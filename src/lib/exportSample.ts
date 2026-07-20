@@ -19,7 +19,10 @@ export async function exportSample(sample: SampleDetail) {
     if (typeof event.metadata.thumbnailKey === "string") keys.add(event.metadata.thumbnailKey);
   }
   for (const run of sample.runs) {
-    for (const step of run.steps) for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) keys.add(key);
+    for (const step of run.steps) {
+      for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) keys.add(key);
+      for (const comment of step.comments) if (comment.assetKey) keys.add(comment.assetKey);
+    }
   }
   for (const key of keys) {
     const response = await fetch(`/api/assets/${key}`);
@@ -51,11 +54,17 @@ export async function exportSample(sample: SampleDetail) {
       const individualComments = step.comments.filter((comment) => comment.scope === "individual");
       if (commonComments.length) {
         lines.push("", "**Common execution comments:**");
-        for (const comment of commonComments) lines.push(`- ${comment.body} (${comment.createdAt})`);
+        for (const comment of commonComments) {
+          lines.push(`- ${comment.body || "Image attached"} (${comment.createdAt})`);
+          if (comment.assetKey) lines.push(`  ![Comment image](${assetPaths.get(comment.assetKey)})`);
+        }
       }
       if (individualComments.length) {
         lines.push("", "**Individual execution comments:**");
-        for (const comment of individualComments) lines.push(`- ${comment.body} (${comment.createdAt})`);
+        for (const comment of individualComments) {
+          lines.push(`- ${comment.body || "Image attached"} (${comment.createdAt})`);
+          if (comment.assetKey) lines.push(`  ![Comment image](${assetPaths.get(comment.assetKey)})`);
+        }
       }
       for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) lines.push("", `![${step.title}](${assetPaths.get(key)})`);
       lines.push("");

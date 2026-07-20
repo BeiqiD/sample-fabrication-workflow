@@ -1,11 +1,10 @@
 import { type CSSProperties, type FormEvent, useMemo, useRef, useState } from "react";
 import type { RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api } from "../lib/api";
-import { compressLayerStackImage } from "../lib/images";
+import { compressCommentImage, compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
 import { runStepIsModified } from "../lib/runSteps";
 import { FileDropzone } from "./FileDropzone";
-import { StatusPill } from "./StatusPill";
 
 const STATUSES: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
 
@@ -31,7 +30,7 @@ function DiagramGallery({ keys, label }: { keys: string[]; label: string }) {
 
 function CommentList({ comments }: { comments: RunStepComment[] }) {
   if (!comments.length) return null;
-  return <div className="cell-comments">{comments.map((comment) => <div key={comment.id} className="cell-comment"><p>{comment.body}</p><small>{comment.actorEmail || "Unknown user"} · {new Date(comment.createdAt).toLocaleString()}</small></div>)}</div>;
+  return <div className="cell-comments">{comments.map((comment) => <div key={comment.id} className="cell-comment">{comment.body && <p>{comment.body}</p>}{comment.assetKey && <a href={`/api/assets/${comment.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${comment.assetKey}`} alt={comment.body || "Comment attachment"} loading="lazy" /></a>}<small>{comment.actorEmail || "Unknown user"} · {new Date(comment.createdAt).toLocaleString()}</small></div>)}</div>;
 }
 
 function ActualDifferences({ step }: { step: RunStep }) {
@@ -128,7 +127,6 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
 export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void> }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
   const [selected, setSelected] = useState(() => new Set(columns.filter((column) => column.run).map((column) => column.sample.id)));
-  const [commentingStepId, setCommentingStepId] = useState<string | null>(null);
   const [commonCommentRow, setCommonCommentRow] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -157,16 +155,22 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     finally { setPendingAction(null); }
   }
 
-  async function addComment(scope: "common" | "individual", entries: Array<{ column: RunGridColumn; step: RunStep }>, body: string, actionKey: string) {
+  async function addComment(scope: "common" | "individual", entries: Array<{ column: RunGridColumn; step: RunStep }>, body: string, image: File | null, actionKey: string) {
     const trimmed = body.trim();
     const targets = entries.filter(({ column }) => scope === "individual" || selected.has(column.sample.id));
-    if (!trimmed || !targets.length) return;
+    if ((!trimmed && !image) || !targets.length) return false;
     setPendingAction(actionKey); setError("");
     try {
-      await api.addRunStepComments({ scope, body: trimmed, targets: targets.map(({ column, step }) => target(column, step)) });
-      setCommentingStepId(null); setCommonCommentRow(null);
+      let assetKey: string | undefined;
+      if (image) {
+        const compressed = await compressCommentImage(image);
+        assetKey = (await api.uploadAsset(compressed.main, compressed.main.name)).key;
+      }
+      await api.addRunStepComments({ scope, body: trimmed, assetKey, targets: targets.map(({ column, step }) => target(column, step)) });
+      setCommonCommentRow(null);
       await onSaved();
-    } catch (error) { setError((error as Error).message); }
+      return true;
+    } catch (error) { setError((error as Error).message); return false; }
     finally { setPendingAction(null); }
   }
 
@@ -195,7 +199,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     </div>
     {error && <p className="error-banner grid-error">{error}</p>}
     <div className="run-grid-scroll" ref={scroller}>
-      <div className="run-grid" style={{ "--sample-columns": columns.length, "--grid-min-width": `${280 + columns.length * 260}px` } as CSSProperties}>
+      <div className="run-grid" style={{ "--sample-columns": columns.length, "--grid-min-width": `${220 + columns.length * 290}px` } as CSSProperties}>
         <div className="run-grid-header recipe-column">
           <strong>Recipe step</strong>
           <small>Common actions use checked samples</small>
@@ -216,8 +220,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             <div className="recipe-cell recipe-column ad-hoc-recipe-gap" aria-hidden="true" />
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
-              return <div className={`sample-step-cell${step ? " ad-hoc-cell" : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} commenting={commentingStepId === step.id} onDone={() => void markDone(column, step)} onComment={() => setCommentingStepId(commentingStepId === step.id ? null : step.id)} onSaveComment={(body) => addComment("individual", [{ column, step }], body, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+              return <div className={`sample-step-cell${step ? ` ad-hoc-cell step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
+                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -233,17 +237,15 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
             <div className="recipe-cell recipe-column">
               <div className="recipe-step-heading"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
-              {row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}
-              {row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}
-              {row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} />}
-              {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <div key={comment.operationGroupId || comment.id}><p>{comment.body}</p><span>{codes.join(", ")} · {new Date(comment.createdAt).toLocaleString()}</span></div>)}</div>}
+              <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} />}</div>
+              {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <div key={comment.operationGroupId || comment.id}>{comment.body && <p>{comment.body}</p>}{comment.assetKey && <a href={`/api/assets/${comment.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${comment.assetKey}`} alt={comment.body || "Common comment attachment"} loading="lazy" /></a>}<span>{codes.join(", ")} · {new Date(comment.createdAt).toLocaleString()}</span></div>)}</div>}
               <div className="recipe-actions"><button type="button" className="button primary compact-button" disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}>{pendingAction === `confirm:${row.key}` ? "Confirming…" : `Confirm ${eligibleCount || ""} done`.replace("  ", " ")}</button><button type="button" className="button compact-button" disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}>Common comment</button></div>
-              {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body) => addComment("common", entries, body, `common:${row.key}`)} />}
+              {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body, image) => addComment("common", entries, body, image, `common:${row.key}`)} />}
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
-              return <div className={`sample-step-cell${step ? "" : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} commenting={commentingStepId === step.id} onDone={() => void markDone(column, step)} onComment={() => setCommentingStepId(commentingStepId === step.id ? null : step.id)} onSaveComment={(body) => addComment("individual", [{ column, step }], body, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
+                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -254,32 +256,31 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
   </article>;
 }
 
-function CommentComposer({ label, saving, onSave, onCancel }: { label: string; saving: boolean; onSave: (body: string) => Promise<void>; onCancel: () => void }) {
+function CommentComposer({ label, saving, onSave, onCancel }: { label: string; saving: boolean; onSave: (body: string, image: File | null) => Promise<boolean>; onCancel?: () => void }) {
   const [body, setBody] = useState("");
-  return <form className="grid-comment-composer" onSubmit={(event) => { event.preventDefault(); void onSave(body); }}><label>{label}<textarea autoFocus rows={2} value={body} onChange={(event) => setBody(event.target.value)} /></label><div><button type="button" className="text-button" onClick={onCancel}>Cancel</button><button className="button primary compact-button" disabled={saving || !body.trim()}>{saving ? "Saving…" : "Add comment"}</button></div></form>;
+  const [image, setImage] = useState<File | null>(null);
+  return <form className="grid-comment-composer" onSubmit={(event) => { event.preventDefault(); void onSave(body, image).then((saved) => { if (saved) { setBody(""); setImage(null); } }); }}><label>{label}<textarea rows={2} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Add an observation…" /></label><FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label="Attach a comment photo" /><div>{onCancel && <button type="button" className="text-button" onClick={onCancel}>Cancel</button>}<button className="button primary compact-button" disabled={saving || (!body.trim() && !image)}>{saving ? "Saving…" : "Add comment"}</button></div></form>;
 }
 
-function StepCell({ column, step, pendingAction, commenting, onDone, onComment, onSaveComment, onEdit, onAddAfter }: {
-  column: RunGridColumn; step: RunStep; pendingAction: string | null; commenting: boolean;
-  onDone: () => void; onComment: () => void; onSaveComment: (body: string) => Promise<void>; onEdit: () => void; onAddAfter: () => void;
+function StepCell({ column, step, pendingAction, onDone, onSaveComment, onEdit, onAddAfter }: {
+  column: RunGridColumn; step: RunStep; pendingAction: string | null;
+  onDone: () => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onEdit: () => void; onAddAfter: () => void;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
   const busy = pendingAction !== null;
   return <>
     <div className="cell-status-line">
       {step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}
-      {step.status === "done" ? <span className="done-mark" aria-label="Done">✓</span> : step.status !== "pending" ? <StatusPill status={step.status} /> : <span />}
+      <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}>{step.status === "done" ? "✓" : step.status === "in_progress" ? "↻" : step.status === "skipped" ? "—" : step.status === "blocked" ? "!" : "○"}</span><strong>{step.status.replace("_", " ")}</strong></div>
     </div>
     {step.origin === "ad_hoc" && <strong className="ad-hoc-title">{step.title}</strong>}
-    <ActualDifferences step={step} />
-    <DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} />
+    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} /></div>
     <CommentList comments={individualComments} />
+    <CommentComposer label="Individual comment" saving={pendingAction === `comment:${step.id}`} onSave={onSaveComment} />
     <div className="cell-actions">
       {step.status !== "done" && <button type="button" disabled={busy} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>}
-      <button type="button" disabled={busy} onClick={onComment}>Comment</button>
       <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
       <button type="button" disabled={busy || !column.run} onClick={onAddAfter}>+ Step</button>
     </div>
-    {commenting && <CommentComposer label="Individual comment" saving={pendingAction === `comment:${step.id}`} onCancel={onComment} onSave={onSaveComment} />}
   </>;
 }

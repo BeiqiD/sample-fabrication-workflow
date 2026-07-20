@@ -61,6 +61,7 @@ export interface RunStepComment {
   scope: "common" | "individual";
   operationGroupId: string | null;
   body: string;
+  assetKey: string | null;
   actorEmail: string | null;
   createdAt: string;
 }
@@ -76,6 +77,7 @@ export interface CreateRunStepCommentsInput {
   scope: RunStepComment["scope"];
   body: string;
   targets: RunStepTarget[];
+  assetKey?: string;
 }
 
 export interface ConfirmRunStepsInput {
