@@ -68,12 +68,9 @@ export function EntryPage() {
 
     setSaving(true); setError(""); setSuccess("");
     try {
-      if (detailsChanged) {
-        await api.updateSample(selected.id, { status, location, pinned, expectedUpdatedAt });
-      }
+      let assetKey: string | undefined;
+      let thumbnailKey: string | undefined;
       if (body || image) {
-        let assetKey: string | undefined;
-        let thumbnailKey: string | undefined;
         if (image) {
           const signature = `${selected.id}:${image.name}:${image.size}:${image.lastModified}`;
           if (pendingUploadRef.current?.signature !== signature) pendingUploadRef.current = { signature };
@@ -86,13 +83,10 @@ export function EntryPage() {
           assetKey = pending.assetKey;
           thumbnailKey = pending.thumbnailKey;
         }
-        await api.createEvent(selected.id, {
-          kind: image ? "image" : "comment",
-          body,
-          assetKey,
-          metadata: thumbnailKey ? { thumbnailKey } : {},
-        });
       }
+      await api.createRecord(selected.id, {
+        status, location, pinned, expectedUpdatedAt, body, assetKey, thumbnailKey,
+      });
       const refreshed = await api.getSample(selected.id);
       setSelected(refreshed);
       setExpectedUpdatedAt(refreshed.updatedAt);

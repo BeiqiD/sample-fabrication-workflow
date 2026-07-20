@@ -20,6 +20,7 @@ export interface SampleEvent {
   body: string | null;
   assetKey: string | null;
   metadata: Record<string, unknown>;
+  actorEmail: string | null;
   createdAt: string;
 }
 
@@ -43,6 +44,14 @@ export interface RunStep {
   templateCommentsText: string | null;
   templateImageKey: string | null;
   updatedAt: string;
+}
+
+export interface UpdateRunStepInput {
+  status: StepStatus;
+  notes: string;
+  expectedUpdatedAt: string;
+  assetKey?: string;
+  thumbnailKey?: string;
 }
 
 export interface SampleRun {
@@ -72,18 +81,21 @@ export interface UpdateSampleInput {
   expectedUpdatedAt: string;
 }
 
+export interface CreateRecordInput {
+  status: SampleStatus;
+  location: string;
+  pinned: boolean;
+  expectedUpdatedAt: string;
+  body?: string;
+  assetKey?: string;
+  thumbnailKey?: string;
+}
+
 export interface FullExportManifest {
   schemaVersion: 1;
   exportedAt: string;
   tables: Record<string, Array<Record<string, unknown>>>;
   assetKeys: string[];
-}
-
-export interface CreateEventInput {
-  kind: EventKind;
-  body?: string;
-  assetKey?: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface FabubloxSection {

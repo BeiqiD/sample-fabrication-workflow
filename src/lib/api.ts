@@ -1,4 +1,4 @@
-import type { CreateEventInput, CreateSampleInput, FabubloxImportPreview, FullExportManifest, SampleDetail, SampleSummary, StepStatus, UpdateSampleInput } from "../../shared/types";
+import type { CreateRecordInput, CreateSampleInput, FabubloxImportPreview, FullExportManifest, SampleDetail, SampleSummary, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -23,7 +23,7 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
-  createEvent: (id: string, input: CreateEventInput) => request<{ id: string }>(`/samples/${id}/events`, {
+  createRecord: (id: string, input: CreateRecordInput) => request<{ ok: true; updatedAt: string }>(`/samples/${id}/records`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
@@ -33,10 +33,10 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ templateVersionId }),
   }),
-  updateRunStep: (sampleId: string, runId: string, stepId: string, status: StepStatus, notes: string) => request<{ ok: true }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}`, {
+  updateRunStep: (sampleId: string, runId: string, stepId: string, input: UpdateRunStepInput) => request<{ ok: true }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ status, notes }),
+    body: JSON.stringify(input),
   }),
   uploadAsset: async (file: Blob, filename: string) => request<{ key: string }>("/assets", {
     method: "POST",
@@ -45,11 +45,6 @@ export const api = {
   }),
   listTemplates: () => request<{ templates: TemplateRecord[] }>("/templates"),
   getFullExport: () => request<FullExportManifest>("/exports/all"),
-  createTemplate: (input: CreateTemplateInput) => request<{ id: string; version: number }>("/templates", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
-  }),
   importFabublox: async (file: File, preview: FabubloxImportPreview, templateType: TemplateRecord["templateType"]) => {
     const form = new FormData();
     form.append("workbook", file, file.name);
@@ -73,12 +68,4 @@ export interface TemplateRecord {
   sourceFilename: string | null;
   stepCount: number;
   createdAt: string;
-}
-
-export interface CreateTemplateInput {
-  name: string;
-  templateType: TemplateRecord["templateType"];
-  sourceFilename: string;
-  sourceAssetKey: string;
-  content: unknown;
 }

@@ -1,12 +1,15 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { CreateEventInput, CreateSampleInput, SampleStatus, StepStatus, UpdateSampleInput } from "../shared/types";
+import type { CreateRecordInput, CreateSampleInput, SampleStatus, StepStatus, UpdateRunStepInput, UpdateSampleInput } from "../shared/types";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
 import { templateStepsFromContent } from "./template-steps";
 import { collectExportAssetKeys } from "./export-data";
+import { authenticateRequest } from "./auth";
+import { bulkInsertStatements } from "./d1-bulk";
+import { contentLengthWithin, escapedLikePattern, sameOriginOrNonBrowser } from "./request-guards";
 import type { Env } from "./types";
 
-const app = new Hono<{ Bindings: Env }>().basePath("/api");
+const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
 
 async function digestSha256(buffer: ArrayBuffer) {
   const digest = await crypto.subtle.digest("SHA-256", buffer);
@@ -17,8 +20,13 @@ function safeObjectName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-async function batchInChunks(db: D1Database, statements: D1PreparedStatement[]) {
-  for (let index = 0; index < statements.length; index += 50) await db.batch(statements.slice(index, index + 50));
+async function deleteR2KeysInBatches(bucket: R2Bucket, keys: string[]) {
+  const failures: unknown[] = [];
+  for (let index = 0; index < keys.length; index += 5) {
+    const results = await Promise.allSettled(keys.slice(index, index + 5).map((key) => bucket.delete(key)));
+    for (const result of results) if (result.status === "rejected") failures.push(result.reason);
+  }
+  return failures;
 }
 
 app.onError((error, c) => {
@@ -27,11 +35,34 @@ app.onError((error, c) => {
   return c.json({ error: "Unexpected server error" }, 500);
 });
 
+app.use("*", async (c, next) => {
+  if (c.req.path === "/api/health") return next();
+  if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method) && !sameOriginOrNonBrowser(c.req.raw)) {
+    return c.json({ error: "Cross-origin writes are not allowed" }, 403);
+  }
+  try {
+    const identity = await authenticateRequest(c.req.raw, c.env);
+    c.set("userEmail", identity.email);
+    await next();
+  } catch (error) {
+    console.warn("Authentication rejected", error);
+    return c.json({ error: "Authentication required" }, 403);
+  }
+});
+
 app.get("/health", (c) => c.json({ ok: true }));
+
+app.get("/ready", async (c) => {
+  await Promise.all([
+    c.env.DB.prepare("SELECT 1 AS ok").first(),
+    c.env.ASSETS.list({ limit: 1 }),
+  ]);
+  return c.json({ ok: true });
+});
 
 app.get("/samples", async (c) => {
   const query = c.req.query("q")?.trim() ?? "";
-  const pattern = `%${query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
+  const pattern = escapedLikePattern(query);
   const statement = query
     ? c.env.DB.prepare(
         `SELECT * FROM samples
@@ -45,22 +76,29 @@ app.get("/samples", async (c) => {
 
 app.post("/samples", async (c) => {
   const input = await c.req.json<CreateSampleInput>();
-  const code = input.code?.trim();
-  const title = input.title?.trim();
+  if (typeof input.code !== "string" || typeof input.title !== "string" || (input.description !== undefined && typeof input.description !== "string") || (input.location !== undefined && typeof input.location !== "string") || (input.parentId !== undefined && typeof input.parentId !== "string")) {
+    throw new HTTPException(400, { message: "Invalid sample fields" });
+  }
+  const code = input.code.trim();
+  const title = input.title.trim();
   if (!code || !title) throw new HTTPException(400, { message: "Code and title are required" });
+  if (code.length > 100 || title.length > 200 || (input.description?.length ?? 0) > 10_000 || (input.location?.length ?? 0) > 500) {
+    throw new HTTPException(400, { message: "One or more sample fields are too long" });
+  }
 
   const id = crypto.randomUUID();
   const eventId = crypto.randomUUID();
   const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
   try {
     await c.env.DB.batch([
       c.env.DB.prepare(
-        `INSERT INTO samples (id, code, title, description, location, parent_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(id, code, title, input.description?.trim() || null, input.location?.trim() || null, input.parentId || null, now, now),
+        `INSERT INTO samples (id, code, title, description, location, parent_id, created_by, updated_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(id, code, title, input.description?.trim() || null, input.location?.trim() || null, input.parentId || null, userEmail, userEmail, now, now),
       c.env.DB.prepare(
-        "INSERT INTO events (id, sample_id, kind, body, created_at) VALUES (?, ?, 'created', ?, ?)",
-      ).bind(eventId, id, `Sample ${code} created`, now),
+        "INSERT INTO events (id, sample_id, kind, body, actor_email, created_at) VALUES (?, ?, 'created', ?, ?, ?)",
+      ).bind(eventId, id, `Sample ${code} created`, userEmail, now),
     ]);
   } catch (error) {
     if (String(error).includes("UNIQUE")) throw new HTTPException(409, { message: `Sample code ${code} already exists` });
@@ -141,7 +179,8 @@ app.patch("/samples/:id", async (c) => {
   const id = c.req.param("id");
   const input = await c.req.json<UpdateSampleInput>();
   const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
-  if (!input.expectedUpdatedAt) throw new HTTPException(400, { message: "expectedUpdatedAt is required" });
+  if (typeof input.expectedUpdatedAt !== "string" || (input.location !== undefined && typeof input.location !== "string") || (input.pinned !== undefined && typeof input.pinned !== "boolean")) throw new HTTPException(400, { message: "Invalid sample update" });
+  if (input.location && input.location.length > 500) throw new HTTPException(400, { message: "Location is too long" });
   if (input.status !== undefined && !allowedStatuses.includes(input.status)) {
     throw new HTTPException(400, { message: "Invalid sample status" });
   }
@@ -161,13 +200,69 @@ app.patch("/samples/:id", async (c) => {
 
   const now = new Date().toISOString();
   const result = await c.env.DB.prepare(
-    `UPDATE samples SET status = ?, location = ?, pinned = ?, updated_at = ?
+    `UPDATE samples SET status = ?, location = ?, pinned = ?, updated_by = ?, updated_at = ?
      WHERE id = ? AND updated_at = ?`,
-  ).bind(nextStatus, nextLocation, nextPinned ? 1 : 0, now, id, input.expectedUpdatedAt).run();
+  ).bind(nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), now, id, input.expectedUpdatedAt).run();
   if (!result.meta.changes) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
   }
   return c.json({ ok: true, updatedAt: now });
+});
+
+app.post("/samples/:id/records", async (c) => {
+  const sampleId = c.req.param("id");
+  const input = await c.req.json<CreateRecordInput>();
+  const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
+  if (typeof input.expectedUpdatedAt !== "string" || typeof input.location !== "string" || typeof input.pinned !== "boolean" || !allowedStatuses.includes(input.status) || (input.body !== undefined && typeof input.body !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.thumbnailKey !== undefined && typeof input.thumbnailKey !== "string")) {
+    throw new HTTPException(400, { message: "A valid sample state and expectedUpdatedAt are required" });
+  }
+  const body = input.body?.trim() || null;
+  if ((input.body?.length ?? 0) > 10_000 || input.location.length > 500) {
+    throw new HTTPException(400, { message: "Record text or location is too long" });
+  }
+  const assetKey = input.assetKey || null;
+  const thumbnailKey = input.thumbnailKey || null;
+  if (thumbnailKey && !assetKey) throw new HTTPException(400, { message: "A thumbnail requires a primary asset" });
+  const assetKeys = [assetKey, thumbnailKey].filter((key): key is string => Boolean(key));
+  if (assetKeys.length) {
+    const placeholders = assetKeys.map(() => "?").join(", ");
+    const result = await c.env.DB.prepare(
+      `SELECT r2_key FROM assets WHERE status = 'ready' AND r2_key IN (${placeholders})`,
+    ).bind(...assetKeys).all<{ r2_key: string }>();
+    if (new Set(result.results.map((row) => row.r2_key)).size !== new Set(assetKeys).size) {
+      throw new HTTPException(400, { message: "One or more uploaded assets are unavailable" });
+    }
+  }
+
+  const current = await c.env.DB.prepare(
+    "SELECT status, location, pinned, updated_at FROM samples WHERE id = ?",
+  ).bind(sampleId).first<{ status: SampleStatus; location: string | null; pinned: number; updated_at: string }>();
+  if (!current) throw new HTTPException(404, { message: "Sample not found" });
+  if (current.updated_at !== input.expectedUpdatedAt) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Review the current state and save again." });
+  }
+  const location = input.location.trim() || null;
+  const detailsChanged = current.status !== input.status || current.location !== location || Boolean(current.pinned) !== input.pinned;
+  if (!detailsChanged && !body && !assetKey) throw new HTTPException(400, { message: "The record has no changes" });
+
+  const mutationId = crypto.randomUUID();
+  const now = new Date(Math.max(Date.now(), Date.parse(input.expectedUpdatedAt) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const statements = [c.env.DB.prepare(
+    `UPDATE samples SET status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+     WHERE id = ? AND updated_at = ?`,
+  ).bind(input.status, location, input.pinned ? 1 : 0, userEmail, mutationId, now, sampleId, input.expectedUpdatedAt)];
+  if (body || assetKey) statements.push(c.env.DB.prepare(
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
+     SELECT ?, id, ?, ?, ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
+  ).bind(
+    crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey,
+    JSON.stringify(thumbnailKey ? { thumbnailKey } : {}), userEmail, now, sampleId, mutationId,
+  ));
+  const results = await c.env.DB.batch(statements);
+  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This sample changed elsewhere. Review the current state and save again." });
+  if (statements.length > 1 && !results[1].meta.changes) throw new Error("Atomic record event was not created");
+  return c.json({ ok: true, updatedAt: now }, 201);
 });
 
 app.post("/samples/:id/runs", async (c) => {
@@ -192,79 +287,87 @@ app.post("/samples/:id/runs", async (c) => {
   const runId = crypto.randomUUID();
   const eventId = crypto.randomUUID();
   const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
   await c.env.DB.batch([
-    c.env.DB.prepare("INSERT INTO runs (id, sample_id, template_version_id, created_at) VALUES (?, ?, ?, ?)").bind(runId, sampleId, templateVersionId, now),
-    ...steps.map((step) => c.env.DB.prepare(
-      "INSERT INTO run_steps (id, run_id, position, title, template_step_id, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-    ).bind(crypto.randomUUID(), runId, step.position, step.title, step.templateStepId, now)),
+    c.env.DB.prepare("INSERT INTO runs (id, sample_id, template_version_id, created_by, created_at) VALUES (?, ?, ?, ?, ?)").bind(runId, sampleId, templateVersionId, userEmail, now),
+    ...bulkInsertStatements(c.env.DB, "run_steps",
+      ["id", "run_id", "position", "title", "template_step_id", "updated_by", "updated_at"],
+      steps.map((step) => [crypto.randomUUID(), runId, step.position, step.title, step.templateStepId, userEmail, now])),
     c.env.DB.prepare(
-      "INSERT INTO events (id, sample_id, kind, body, metadata_json, created_at) VALUES (?, ?, 'step', ?, ?, ?)",
-    ).bind(eventId, sampleId, `Assigned ${template.name} (${steps.length} steps)`, JSON.stringify({ runId, templateVersionId }), now),
-    c.env.DB.prepare("UPDATE samples SET updated_at = ? WHERE id = ?").bind(now, sampleId),
+      "INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at) VALUES (?, ?, 'step', ?, ?, ?, ?)",
+    ).bind(eventId, sampleId, `Assigned ${template.name} (${steps.length} steps)`, JSON.stringify({ runId, templateVersionId }), userEmail, now),
+    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
   ]);
   return c.json({ id: runId }, 201);
 });
 
 app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   const { sampleId, runId, stepId } = c.req.param();
-  const input = await c.req.json<{ status?: StepStatus; notes?: string }>();
+  const input = await c.req.json<UpdateRunStepInput>();
   const allowed: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
-  if (!input.status || !allowed.includes(input.status)) throw new HTTPException(400, { message: "Valid step status is required" });
-  const step = await c.env.DB.prepare(
-    `SELECT rs.title FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?`,
-  ).bind(stepId, runId, sampleId).first<{ title: string }>();
-  if (!step) throw new HTTPException(404, { message: "Run step not found" });
-  const now = new Date().toISOString();
-  const notes = input.notes?.trim() || null;
-  await c.env.DB.batch([
-    c.env.DB.prepare("UPDATE run_steps SET status = ?, notes = ?, updated_at = ? WHERE id = ?").bind(input.status, notes, now, stepId),
-    c.env.DB.prepare(
-      "INSERT INTO events (id, sample_id, kind, body, metadata_json, created_at) VALUES (?, ?, 'step', ?, ?, ?)",
-    ).bind(crypto.randomUUID(), sampleId, `${step.title}: ${input.status.replace("_", " ")}${notes ? ` — ${notes}` : ""}`, JSON.stringify({ runId, stepId, status: input.status }), now),
-    c.env.DB.prepare("UPDATE samples SET updated_at = ? WHERE id = ?").bind(now, sampleId),
-  ]);
-  const remaining = await c.env.DB.prepare(
-    "SELECT COUNT(*) AS count FROM run_steps WHERE run_id = ? AND status NOT IN ('done', 'skipped')",
-  ).bind(runId).first<{ count: number }>();
-  if ((remaining?.count ?? 0) === 0) {
-    await c.env.DB.prepare("UPDATE runs SET status = 'complete', completed_at = ? WHERE id = ?").bind(now, runId).run();
-  } else {
-    await c.env.DB.prepare("UPDATE runs SET status = 'active', completed_at = NULL WHERE id = ?").bind(runId).run();
+  if (!input.status || !allowed.includes(input.status) || typeof input.expectedUpdatedAt !== "string" || typeof input.notes !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.thumbnailKey !== undefined && typeof input.thumbnailKey !== "string")) throw new HTTPException(400, { message: "Valid step status, notes, and expectedUpdatedAt are required" });
+  if (input.notes.length > 10_000) throw new HTTPException(400, { message: "Step notes are too long" });
+  if (input.thumbnailKey && !input.assetKey) throw new HTTPException(400, { message: "A thumbnail requires a primary asset" });
+  const assetKeys = [input.assetKey, input.thumbnailKey].filter((key): key is string => Boolean(key));
+  if (assetKeys.length) {
+    const result = await c.env.DB.prepare(
+      `SELECT r2_key FROM assets WHERE status = 'ready' AND r2_key IN (${assetKeys.map(() => "?").join(", ")})`,
+    ).bind(...assetKeys).all<{ r2_key: string }>();
+    if (new Set(result.results.map((row) => row.r2_key)).size !== new Set(assetKeys).size) throw new HTTPException(400, { message: "One or more uploaded assets are unavailable" });
   }
+  const step = await c.env.DB.prepare(
+    `SELECT rs.title, rs.updated_at FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?`,
+  ).bind(stepId, runId, sampleId).first<{ title: string; updated_at: string }>();
+  if (!step) throw new HTTPException(404, { message: "Run step not found" });
+  if (step.updated_at !== input.expectedUpdatedAt) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before saving." });
+  const now = new Date(Math.max(Date.now(), Date.parse(input.expectedUpdatedAt) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const notes = input.notes?.trim() || null;
+  const mutationId = crypto.randomUUID();
+  const statements = [
+    c.env.DB.prepare("UPDATE run_steps SET status = ?, notes = ?, updated_by = ?, last_mutation_id = ?, updated_at = ? WHERE id = ? AND updated_at = ?")
+      .bind(input.status, notes, userEmail, mutationId, now, stepId, input.expectedUpdatedAt),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, r.sample_id, 'step', ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?`,
+    ).bind(crypto.randomUUID(), `${step.title}: ${input.status.replace("_", " ")}${notes ? ` — ${notes}` : ""}`, JSON.stringify({ runId, stepId, status: input.status }), userEmail, now, stepId, runId, sampleId, mutationId),
+  ];
+  if (input.assetKey) statements.push(c.env.DB.prepare(
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
+     SELECT ?, r.sample_id, 'image', ?, ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?`,
+  ).bind(crypto.randomUUID(), `Attachment for step: ${step.title}`, input.assetKey, JSON.stringify({ runId, stepId, thumbnailKey: input.thumbnailKey }), userEmail, now, stepId, runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND EXISTS (
+       SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+     )`,
+  ).bind(userEmail, now, sampleId, stepId, runId, sampleId, mutationId));
+  const results = await c.env.DB.batch(statements);
+  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before saving." });
+  if (!results[1].meta.changes || !results[results.length - 1].meta.changes) throw new Error("Atomic step record was not completed");
   return c.json({ ok: true });
 });
 
-app.post("/samples/:id/events", async (c) => {
-  const sampleId = c.req.param("id");
-  const input = await c.req.json<CreateEventInput>();
-  if (!input.kind) throw new HTTPException(400, { message: "Event kind is required" });
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const result = await c.env.DB.batch([
-    c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(id, sampleId, input.kind, input.body?.trim() || null, input.assetKey || null, JSON.stringify(input.metadata ?? {}), now),
-    c.env.DB.prepare("UPDATE samples SET updated_at = ? WHERE id = ?").bind(now, sampleId),
-  ]);
-  if (!result[1].meta.changes) throw new HTTPException(404, { message: "Sample not found" });
-  return c.json({ id }, 201);
-});
-
 app.post("/assets", async (c) => {
+  if (!contentLengthWithin(c.req.raw, 10 * 1024 * 1024)) throw new HTTPException(413, { message: "Asset uploads are limited to 10 MB" });
   const contentType = c.req.header("content-type") || "application/octet-stream";
+  if (!contentType.toLowerCase().startsWith("image/")) throw new HTTPException(415, { message: "Ordinary asset uploads must be images" });
   const filename = c.req.header("x-filename") || "upload";
+  if (filename.length > 255 || contentType.length > 200) throw new HTTPException(400, { message: "Asset metadata is too long" });
   const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const buffer = await c.req.arrayBuffer();
+  if (buffer.byteLength > 10 * 1024 * 1024) throw new HTTPException(413, { message: "Asset uploads are limited to 10 MB" });
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
   try {
     await c.env.DB.prepare(
-      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, created_at)
-       VALUES (?, ?, ?, ?, ?, 'ready', ?)`,
-    ).bind(id, key, filename, contentType, buffer.byteLength, now).run();
+      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at)
+       VALUES (?, ?, ?, ?, ?, 'ready', ?, ?)`,
+    ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now).run();
   } catch (error) {
     await c.env.ASSETS.delete(key);
     throw error;
@@ -279,6 +382,8 @@ app.get("/assets/:key{.+}", async (c) => {
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
   headers.set("cache-control", "private, max-age=3600");
+  headers.set("x-content-type-options", "nosniff");
+  if (!headers.get("content-type")?.startsWith("image/")) headers.set("content-disposition", "attachment");
   return new Response(object.body, { headers });
 });
 
@@ -294,10 +399,9 @@ app.get("/exports/all", async (c) => {
     imports: "SELECT * FROM imports ORDER BY created_at, id",
     assets: "SELECT * FROM assets ORDER BY created_at, id",
   } as const;
-  const entries = await Promise.all(Object.entries(tableQueries).map(async ([name, sql]) => {
-    const result = await c.env.DB.prepare(sql).all<Record<string, unknown>>();
-    return [name, result.results] as const;
-  }));
+  const names = Object.keys(tableQueries);
+  const results = await c.env.DB.batch(Object.values(tableQueries).map((sql) => c.env.DB.prepare(sql)));
+  const entries = names.map((name, index) => [name, results[index].results ?? []] as const);
   const tables = Object.fromEntries(entries) as Record<string, Array<Record<string, unknown>>>;
   return c.json({
     schemaVersion: 1,
@@ -308,11 +412,16 @@ app.get("/exports/all", async (c) => {
 });
 
 app.post("/imports/fabublox", async (c) => {
+  if (!contentLengthWithin(c.req.raw, 50 * 1024 * 1024)) throw new HTTPException(413, { message: "FabuBlox imports are limited to 50 MB" });
   const form = await c.req.raw.formData();
   const workbook = form.get("workbook");
   const manifestFile = form.get("manifest");
   if (!(workbook instanceof File) || !(manifestFile instanceof File)) throw new HTTPException(400, { message: "Workbook and manifest files are required" });
-  const manifest = JSON.parse(await manifestFile.text()) as {
+  let parsedManifest: unknown;
+  try { parsedManifest = JSON.parse(await manifestFile.text()); }
+  catch { throw new HTTPException(400, { message: "The FabuBlox manifest is not valid JSON" }); }
+  if (!parsedManifest || typeof parsedManifest !== "object") throw new HTTPException(400, { message: "Invalid FabuBlox manifest" });
+  const manifest = parsedManifest as {
     schemaVersion: number;
     title: string;
     templateType: "process" | "module" | "recipe";
@@ -330,38 +439,58 @@ app.post("/imports/fabublox", async (c) => {
     }>;
     warnings: unknown[];
   };
-  if (manifest.schemaVersion !== 1 || !manifest.title?.trim() || !manifest.source?.sheetName || !Array.isArray(manifest.steps) || !manifest.steps.length) {
+  if (manifest.schemaVersion !== 1 || typeof manifest.title !== "string" || !manifest.title.trim() || manifest.title.length > 200 || typeof manifest.source?.sheetName !== "string" || !manifest.source.sheetName || !Array.isArray(manifest.steps) || !manifest.steps.length || !Array.isArray(manifest.images) || !Array.isArray(manifest.warnings)) {
     throw new HTTPException(400, { message: "Invalid FabuBlox manifest" });
   }
   if (!["process", "module", "recipe"].includes(manifest.templateType)) throw new HTTPException(400, { message: "Invalid template type" });
+  if (manifest.steps.length > 180 || manifest.images.length > 40) {
+    throw new HTTPException(413, { message: "This import exceeds the 180-step or 40-image deployment limit" });
+  }
+  for (const image of manifest.images) {
+    if (!(form.get(`image:${image.localId}`) instanceof File)) throw new HTTPException(400, { message: `Missing uploaded image ${image.localId}` });
+  }
+  const payloadBytes = workbook.size + manifestFile.size + manifest.images.reduce((sum, image) => {
+    const file = form.get(`image:${image.localId}`);
+    return sum + (file instanceof File ? file.size : 0);
+  }, 0);
+  if (payloadBytes > 50 * 1024 * 1024) throw new HTTPException(413, { message: "FabuBlox imports are limited to 50 MB" });
   const workbookBuffer = await workbook.arrayBuffer();
   const actualSha = await digestSha256(workbookBuffer);
   if (actualSha !== manifest.source.fileSha256) throw new HTTPException(400, { message: "Workbook checksum does not match the preview" });
 
   const importId = crypto.randomUUID();
   const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
   await c.env.DB.prepare(
-    `INSERT INTO imports (id, status, source_filename, source_sha256, sheet_name, template_type, warning_count, created_at)
-     VALUES (?, 'pending', ?, ?, ?, ?, ?, ?)`,
-  ).bind(importId, workbook.name, actualSha, manifest.source.sheetName, manifest.templateType, manifest.warnings.length, now).run();
+    `INSERT INTO imports (id, status, source_filename, source_sha256, sheet_name, template_type, warning_count, actor_email, created_at)
+     VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(importId, workbook.name, actualSha, manifest.source.sheetName, manifest.templateType, manifest.warnings.length, userEmail, now).run();
 
+  const uploadedKeys: string[] = [];
   try {
     const prefix = `imports/${importId}`;
     const workbookKey = `${prefix}/source/${safeObjectName(workbook.name)}`;
     const manifestKey = `${prefix}/manifest.json`;
-    await Promise.all([
-      c.env.ASSETS.put(workbookKey, workbookBuffer, { httpMetadata: { contentType: workbook.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } }),
-      c.env.ASSETS.put(manifestKey, JSON.stringify(manifest, null, 2), { httpMetadata: { contentType: "application/json" } }),
-    ]);
+    await c.env.ASSETS.put(workbookKey, workbookBuffer, { httpMetadata: { contentType: workbook.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } });
+    uploadedKeys.push(workbookKey);
+    await c.env.ASSETS.put(manifestKey, JSON.stringify(manifest, null, 2), { httpMetadata: { contentType: "application/json" } });
+    uploadedKeys.push(manifestKey);
 
-    const uploadedAssets = await Promise.all(manifest.images.map(async (image) => {
-      const value = form.get(`image:${image.localId}`);
-      if (!(value instanceof File)) throw new Error(`Missing uploaded image ${image.localId}`);
-      const assetId = crypto.randomUUID();
-      const key = `${prefix}/images/${image.localId}-${safeObjectName(value.name)}`;
-      await c.env.ASSETS.put(key, await value.arrayBuffer(), { httpMetadata: { contentType: value.type || image.mimeType } });
-      return { image, file: value, assetId, key };
-    }));
+    const uploadedAssets: Array<{ image: typeof manifest.images[number]; file: File; assetId: string; key: string }> = [];
+    for (let index = 0; index < manifest.images.length; index += 5) {
+      const uploadResults = await Promise.allSettled(manifest.images.slice(index, index + 5).map(async (image) => {
+        const value = form.get(`image:${image.localId}`);
+        if (!(value instanceof File)) throw new Error(`Missing uploaded image ${image.localId}`);
+        const assetId = crypto.randomUUID();
+        const key = `${prefix}/images/${image.localId}-${safeObjectName(value.name)}`;
+        await c.env.ASSETS.put(key, await value.arrayBuffer(), { httpMetadata: { contentType: value.type || image.mimeType } });
+        uploadedKeys.push(key);
+        return { image, file: value, assetId, key };
+      }));
+      const failedUpload = uploadResults.find((result) => result.status === "rejected");
+      for (const result of uploadResults) if (result.status === "fulfilled") uploadedAssets.push(result.value);
+      if (failedUpload?.status === "rejected") throw failedUpload.reason;
+    }
 
     const latest = await c.env.DB.prepare(
       "SELECT COALESCE(MAX(version), 0) AS version FROM template_versions WHERE name = ? AND template_type = ?",
@@ -372,33 +501,31 @@ app.post("/imports/fabublox", async (c) => {
     const statements: D1PreparedStatement[] = [
       c.env.DB.prepare(
         `INSERT INTO template_versions
-          (id, name, template_type, version, source_filename, source_asset_key, content_json, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(templateVersionId, manifest.title.trim(), manifest.templateType, version, workbook.name, workbookKey, JSON.stringify(manifest), now),
+          (id, name, template_type, version, source_filename, source_asset_key, content_json, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(templateVersionId, manifest.title.trim(), manifest.templateType, version, workbook.name, workbookKey, JSON.stringify(manifest), userEmail, now),
+      ...bulkInsertStatements(c.env.DB, "template_steps",
+        ["id", "template_version_id", "position", "source_row", "step_number", "section_name", "name", "tool_name", "parameters_text", "comments_text", "raw_json"],
+        manifest.steps.map((step) => [stepIds.get(step.localId), templateVersionId, step.position, step.sourceRow, step.stepNumber, step.sectionName, step.name, step.toolName, step.parametersText, step.commentsText, JSON.stringify(step.rawCells)])),
+      ...bulkInsertStatements(c.env.DB, "assets",
+        ["id", "import_id", "r2_key", "original_name", "mime_type", "byte_size", "status", "actor_email", "created_at"],
+        uploadedAssets.map(({ assetId, key, file }) => [assetId, importId, key, file.name, file.type || "application/octet-stream", file.size, "ready", userEmail, now])),
+      ...bulkInsertStatements(c.env.DB, "template_step_assets", ["template_step_id", "asset_id"],
+        uploadedAssets.flatMap(({ image, assetId }) => {
+          const stepId = image.assignedStepLocalId ? stepIds.get(image.assignedStepLocalId) : null;
+          return stepId ? [[stepId, assetId]] : [];
+        })),
       c.env.DB.prepare(
-        "UPDATE imports SET template_version_id = ?, workbook_asset_key = ?, manifest_asset_key = ? WHERE id = ?",
-      ).bind(templateVersionId, workbookKey, manifestKey, importId),
-      ...manifest.steps.map((step) => c.env.DB.prepare(
-        `INSERT INTO template_steps
-          (id, template_version_id, position, source_row, step_number, section_name, name, tool_name, parameters_text, comments_text, raw_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(stepIds.get(step.localId), templateVersionId, step.position, step.sourceRow, step.stepNumber, step.sectionName, step.name, step.toolName, step.parametersText, step.commentsText, JSON.stringify(step.rawCells))),
-      ...uploadedAssets.map(({ assetId, key, file }) => c.env.DB.prepare(
-        `INSERT INTO assets (id, import_id, r2_key, original_name, mime_type, byte_size, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'ready', ?)`,
-      ).bind(assetId, importId, key, file.name, file.type || "application/octet-stream", file.size, now)),
-      ...uploadedAssets.flatMap(({ image, assetId }) => {
-        const stepId = image.assignedStepLocalId ? stepIds.get(image.assignedStepLocalId) : null;
-        return stepId ? [c.env.DB.prepare("INSERT INTO template_step_assets (template_step_id, asset_id) VALUES (?, ?)").bind(stepId, assetId)] : [];
-      }),
+        `UPDATE imports SET status = 'ready', template_version_id = ?, workbook_asset_key = ?, manifest_asset_key = ?, completed_at = ?
+         WHERE id = ? AND status = 'pending'`,
+      ).bind(templateVersionId, workbookKey, manifestKey, new Date().toISOString(), importId),
     ];
-    await batchInChunks(c.env.DB, statements);
-    const completedAt = new Date().toISOString();
-    await c.env.DB.prepare(
-      `UPDATE imports SET status = 'ready', completed_at = ? WHERE id = ?`,
-    ).bind(completedAt, importId).run();
+    if (statements.length > 49) throw new Error("Import would exceed the D1 Free query limit");
+    await c.env.DB.batch(statements);
     return c.json({ id: importId, templateVersionId, version }, 201);
   } catch (error) {
+    const cleanupFailures = await deleteR2KeysInBatches(c.env.ASSETS, uploadedKeys);
+    if (cleanupFailures.length) console.error("Could not clean every failed import object", cleanupFailures);
     await c.env.DB.prepare("UPDATE imports SET status = 'failed', error_message = ?, completed_at = ? WHERE id = ?")
       .bind(String(error), new Date().toISOString(), importId).run();
     throw error;
@@ -429,40 +556,6 @@ app.get("/templates", async (c) => {
     stepCount: templateStepsFromContent(JSON.parse(row.content_json)).length,
     createdAt: row.created_at,
   })) });
-});
-
-app.post("/templates", async (c) => {
-  const input = await c.req.json<{
-    name: string;
-    templateType: "process" | "module" | "recipe";
-    sourceFilename?: string;
-    sourceAssetKey?: string;
-    content: unknown;
-  }>();
-  const name = input.name?.trim();
-  if (!name || !["process", "module", "recipe"].includes(input.templateType)) {
-    throw new HTTPException(400, { message: "A name and valid template type are required" });
-  }
-  const latest = await c.env.DB.prepare(
-    "SELECT COALESCE(MAX(version), 0) AS version FROM template_versions WHERE name = ? AND template_type = ?",
-  ).bind(name, input.templateType).first<{ version: number }>();
-  const version = (latest?.version ?? 0) + 1;
-  const id = crypto.randomUUID();
-  await c.env.DB.prepare(
-    `INSERT INTO template_versions
-      (id, name, template_type, version, source_filename, source_asset_key, content_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    id,
-    name,
-    input.templateType,
-    version,
-    input.sourceFilename || null,
-    input.sourceAssetKey || null,
-    JSON.stringify(input.content),
-    new Date().toISOString(),
-  ).run();
-  return c.json({ id, version }, 201);
 });
 
 export default app;

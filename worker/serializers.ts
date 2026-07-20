@@ -41,6 +41,7 @@ export function sampleEvent(row: {
   body: string | null;
   asset_key: string | null;
   metadata_json: string;
+  actor_email?: string | null;
   created_at: string;
 }): SampleEvent {
   return {
@@ -50,6 +51,7 @@ export function sampleEvent(row: {
     body: row.body,
     assetKey: row.asset_key,
     metadata: JSON.parse(row.metadata_json || "{}") as Record<string, unknown>,
+    actorEmail: row.actor_email ?? null,
     createdAt: row.created_at,
   };
 }

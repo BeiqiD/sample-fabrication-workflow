@@ -14,12 +14,13 @@ A low-friction, event-based sample log for fabrication work. The app is a single
 
 For repeated bench work, `/entry` provides a dedicated mobile-friendly recording screen: select the target sample, keep its code visible, and save a note/photo together with current status, location, and pinned state.
 
-See [MVP_SPEC.md](./MVP_SPEC.md) for scope, [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) for the data model, and [docs/FABUBLOX_IMPORT.md](./docs/FABUBLOX_IMPORT.md) for the workbook contract.
+See [MVP_SPEC.md](./MVP_SPEC.md) for scope, [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for system invariants, [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) for the data model, [docs/FABUBLOX_IMPORT.md](./docs/FABUBLOX_IMPORT.md) for the workbook contract, and [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the production checklist.
 
 ## Local development
 
 ```bash
 npm install
+cp .dev.vars.example .dev.vars
 npm run db:migrate:local
 npm run dev
 ```
@@ -28,7 +29,7 @@ Cloudflare's Vite plugin runs the API inside the Workers runtime and uses local 
 
 ## Deploy
 
-Log in to Wrangler, then run:
+Production requires a Cloudflare Access application plus `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. Follow [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md), then run:
 
 ```bash
 npm run db:migrate:remote

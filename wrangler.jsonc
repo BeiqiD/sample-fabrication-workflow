@@ -6,6 +6,9 @@
   "assets": {
     "not_found_handling": "single-page-application"
   },
+  "vars": {
+    "AUTH_MODE": "access"
+  },
   "d1_databases": [
     {
       "binding": "DB",

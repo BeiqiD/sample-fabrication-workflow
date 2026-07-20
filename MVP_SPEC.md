@@ -18,12 +18,13 @@ Make recording fabrication history less painful than maintaining an Obsidian dat
 - Export one sample as a ZIP containing Markdown, JSON, and all timeline images with relative paths.
 - D1 for records and private R2 for workbook/image assets.
 - Local development and one-Worker deployment.
+- Dedicated bench entry at `/entry`.
+- Full-system, consistent-snapshot ZIP export.
+- Cloudflare Access JWT validation and actor attribution.
 
-## Next vertical slices
+## Architecture-complete deployment boundary
 
-1. Export all versioned tables and R2 assets.
-2. Add sample location/status mutations as explicit timeline events.
-3. Add Cloudflare Access deployment notes and authorization checks.
+The local architecture includes export, audited mutations, atomic bench/step recording, transactional FabuBlox persistence, fail-closed Access validation, and deployment/recovery instructions. Creating the Cloudflare resources and Access policy is intentionally deferred until owner-approved account connection.
 
 ## Explicit exclusions for the first slice
 

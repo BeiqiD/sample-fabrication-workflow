@@ -19,6 +19,7 @@ export function SamplePage() {
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pendingUploadRef = useRef<{ signature: string; assetKey?: string; thumbnailKey?: string } | null>(null);
   const load = useCallback(() => api.getSample(sampleId).then(setSample).catch((error: Error) => setError(error.message)), [sampleId]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { api.listTemplates().then(({ templates }) => setTemplates(templates)).catch((error: Error) => setError(error.message)); }, []);
@@ -33,6 +34,7 @@ export function SamplePage() {
 
   async function addComment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!sample) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const body = String(data.get("body") || "").trim();
@@ -43,13 +45,27 @@ export function SamplePage() {
       let assetKey: string | undefined;
       let thumbnailKey: string | undefined;
       if (image) {
-        const compressed = await compressCommentImage(image);
-        [assetKey, thumbnailKey] = await Promise.all([
-          api.uploadAsset(compressed.main, compressed.main.name).then((result) => result.key),
-          api.uploadAsset(compressed.thumbnail, compressed.thumbnail.name).then((result) => result.key),
-        ]);
+        const signature = `${image.name}:${image.size}:${image.lastModified}`;
+        if (pendingUploadRef.current?.signature !== signature) pendingUploadRef.current = { signature };
+        const pending = pendingUploadRef.current;
+        if (!pending.assetKey || !pending.thumbnailKey) {
+          const compressed = await compressCommentImage(image);
+          if (!pending.assetKey) pending.assetKey = (await api.uploadAsset(compressed.main, compressed.main.name)).key;
+          if (!pending.thumbnailKey) pending.thumbnailKey = (await api.uploadAsset(compressed.thumbnail, compressed.thumbnail.name)).key;
+        }
+        assetKey = pending.assetKey;
+        thumbnailKey = pending.thumbnailKey;
       }
-      await api.createEvent(sampleId, { kind: image ? "image" : "comment", body, assetKey, metadata: thumbnailKey ? { thumbnailKey } : {} });
+      await api.createRecord(sampleId, {
+        status: sample.status,
+        location: sample.location || "",
+        pinned: sample.pinned,
+        expectedUpdatedAt: sample.updatedAt,
+        body,
+        assetKey,
+        thumbnailKey,
+      });
+      pendingUploadRef.current = null;
       form.reset();
       await load();
     } catch (error) { setError((error as Error).message); }
@@ -105,7 +121,7 @@ export function SamplePage() {
         <div className="timeline">
           {sample.events.map((event) => <article className="event" key={event.id}>
             <div className="event-dot" />
-            <div className="event-content"><div className="event-meta"><span>{event.kind}</span><time>{new Date(event.createdAt).toLocaleString()}</time></div>{event.body && <p>{event.body}</p>}{event.assetKey && <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${typeof event.metadata.thumbnailKey === "string" ? event.metadata.thumbnailKey : event.assetKey}`} alt={event.body || "Sample record"} loading="lazy" /></a>}</div>
+            <div className="event-content"><div className="event-meta"><span>{event.kind}{event.actorEmail ? ` · ${event.actorEmail}` : ""}</span><time>{new Date(event.createdAt).toLocaleString()}</time></div>{event.body && <p>{event.body}</p>}{event.assetKey && <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${typeof event.metadata.thumbnailKey === "string" ? event.metadata.thumbnailKey : event.assetKey}`} alt={event.body || "Sample record"} loading="lazy" /></a>}</div>
           </article>)}
         </div>
       </section>
