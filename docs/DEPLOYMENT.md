@@ -32,6 +32,8 @@ Cloudflare recommends validating `Cf-Access-Jwt-Assertion` at the Worker and che
 
 ## 3. Migrate, verify, deploy
 
+> Alpha-v2 replaces the original schema with a clean baseline and deliberately has no compatibility migration. Provision fresh D1 and R2 resources and switch the Worker bindings before applying `0001_alpha_state_chain.sql`. Do not apply it over the existing alpha database. Keep the old resources until the new deployment passes the smoke checks, then remove them separately.
+
 ```bash
 npm run verify
 npm run db:migrate:remote

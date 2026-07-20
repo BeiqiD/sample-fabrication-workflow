@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import type { SampleDetail, SampleStatus, SampleSummary } from "../../shared/types";
+import type { PlanUpdatePreview, SampleDetail, SampleStatus, SampleSummary } from "../../shared/types";
 import { FileDropzone } from "../components/FileDropzone";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { StatusPill } from "../components/StatusPill";
@@ -23,6 +23,7 @@ export function SamplePage() {
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [templateVersionId, setTemplateVersionId] = useState("");
   const [assigning, setAssigning] = useState(false);
+  const [planPreview, setPlanPreview] = useState<PlanUpdatePreview | null>(null);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
   const [commentImage, setCommentImage] = useState<File | null>(null);
@@ -43,6 +44,12 @@ export function SamplePage() {
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { api.listTemplates().then(({ templates }) => setTemplates(templates)).catch((error: Error) => setError(error.message)); }, []);
+  const activeRun = sample?.runs.find((run) => run.status === "active") ?? null;
+  useEffect(() => {
+    setPlanPreview(null);
+    if (!sample || !activeRun || !templateVersionId) return;
+    api.previewPlanUpdate(sample.id, activeRun.id, templateVersionId).then(setPlanPreview).catch((error: Error) => setError(error.message));
+  }, [sample, activeRun, templateVersionId]);
   useEffect(() => {
     if (!showSamplePicker) return;
     const timeout = window.setTimeout(() => {
@@ -72,6 +79,14 @@ export function SamplePage() {
     if (!templateVersionId) return;
     setAssigning(true); setError("");
     try { await api.assignTemplate(sampleId, templateVersionId); setTemplateVersionId(""); await load(); }
+    catch (error) { setError((error as Error).message); }
+    finally { setAssigning(false); }
+  }
+
+  async function updatePlan() {
+    if (!templateVersionId || !activeRun || !planPreview?.compatible) return;
+    setAssigning(true); setError("");
+    try { await api.applyPlanUpdate(sampleId, activeRun.id, templateVersionId); setTemplateVersionId(""); setPlanPreview(null); await load(); }
     catch (error) { setError((error as Error).message); }
     finally { setAssigning(false); }
   }
@@ -138,6 +153,9 @@ export function SamplePage() {
   if (!sample) return <div className="page"><p>{error || "Loading sample…"}</p></div>;
   const includedIds = new Set(samples.map((item) => item.id));
   const availableResults = sampleResults.filter((result) => !includedIds.has(result.id));
+  const assignableTemplates = activeRun
+    ? templates.filter((template) => template.recipeFamilyId === activeRun.recipeFamilyId && template.id !== activeRun.templateVersionId)
+    : templates;
 
   return <div className="page sample-page">
     <Link className="back-link" to="/">← Samples</Link>
@@ -162,9 +180,9 @@ export function SamplePage() {
         <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No samples to add.</p>}</div>
       </div>}
 
-      <div className="card assign-template"><div><strong>Assign a template to {sample.code}</strong><small>Creates an independent execution snapshot for this sample.</small></div><select value={templateVersionId} onChange={(event) => setTemplateVersionId(event.target.value)}><option value="">Choose process, module, or recipe…</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name} · {template.templateType} v{template.version} · {template.stepCount} steps</option>)}</select><button className="button" disabled={!templateVersionId || assigning} onClick={() => void assignTemplate()}>{assigning ? "Assigning…" : "Assign"}</button></div>
+      <div className="card assign-template"><div><strong>{activeRun ? `Update the active plan for ${sample.code}` : `Continue processing ${sample.code}`}</strong><small>{activeRun ? `Only another version of ${activeRun.templateName} can reconcile unfinished work. Completed history is protected.` : sample.runs.length ? "Starts a successor run connected to the last actual step." : "Starts the first run for this physical sample."}</small></div><select value={templateVersionId} onChange={(event) => setTemplateVersionId(event.target.value)}><option value="">{activeRun ? "Choose another version of this recipe…" : "Choose process, module, or recipe…"}</option>{assignableTemplates.map((template) => <option key={template.id} value={template.id}>{template.name} · {template.templateType} v{template.version} · {template.stepCount} steps</option>)}</select><button className="button" disabled={!templateVersionId || assigning || Boolean(activeRun && !planPreview?.compatible)} onClick={() => void (activeRun ? updatePlan() : assignTemplate())}>{assigning ? "Saving…" : activeRun ? "Apply plan update" : sample.runs.length ? "Start successor run" : "Assign"}</button>{activeRun && planPreview && <small className={planPreview.compatible ? "muted" : "error-text"}>{planPreview.compatible ? `${planPreview.preservedCount} linked · ${planPreview.additionCount} new · ${planPreview.supersededCount} replaced` : "This version conflicts with executed history and cannot be applied in place."}</small>}</div>
 
-      {sample.runs.length > 0 ? <section className="runs-section">{sample.runs.map((run) => <MultiSampleRunGrid key={`${run.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={run} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? run : item.runs.find((candidate) => candidate.templateVersionId === run.templateVersionId) ?? null }))} onSaved={load} />)}</section> : <div className="card empty-run-message"><h2>No assigned recipe yet</h2><p>Assign one above to start the execution grid.</p></div>}
+      {sample.runs.length > 0 ? <section className="runs-section">{sample.runs.map((run) => <MultiSampleRunGrid key={`${run.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={run} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? run : item.runs.find((candidate) => candidate.recipeFamilyId === run.recipeFamilyId && candidate.status === run.status) ?? null }))} onSaved={load} />)}</section> : <div className="card empty-run-message"><h2>No assigned recipe yet</h2><p>Assign one above to start the execution grid.</p></div>}
     </section>
 
     <div className="detail-grid sample-record-layout">

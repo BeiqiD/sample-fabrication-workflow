@@ -12,12 +12,14 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "samples"
+      "database_name": "samples-alpha-v2",
+      "database_id": "76926a67-6b5e-43ae-8ef2-e756b3ef4e6d"
     }
   ],
   "r2_buckets": [
     {
-      "binding": "ASSETS"
+      "binding": "ASSETS",
+      "bucket_name": "samples-assets-alpha-v2"
     }
   ]
 }

@@ -117,6 +117,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .assign-template { display: grid; grid-template-columns: 1fr minmax(220px, 1.4fr) auto; gap: 12px; align-items: center; padding: 16px; margin-bottom: 24px; }
 .assign-template div { display: grid; gap: 3px; }
 .assign-template small, .run-step-head small { color: var(--muted); }
+.assign-template > small { grid-column: 2 / -1; }
+.error-text { color: var(--danger); }
 .runs-section { margin-bottom: 30px; }
 .runs-section > h2 { margin: 0 0 12px; }
 .run-card { padding: 20px; margin-bottom: 16px; }
@@ -288,6 +290,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .cell-actions button.done-action { padding-inline: 8px; color: white; background: var(--accent); }
 .cell-actions button:hover { background: var(--accent-soft); }
 .cell-actions button:disabled { opacity: .45; cursor: wait; }
+.step-more-actions { position: relative; }
+.step-more-actions summary { min-height: 27px; padding: 6px; border-radius: 6px; color: var(--accent); font-size: 10px; font-weight: 700; cursor: pointer; list-style: none; }
+.step-more-actions summary::-webkit-details-marker { display: none; }
+.step-more-actions[open] > div { position: absolute; z-index: 8; top: calc(100% + 4px); left: 0; display: grid; min-width: 128px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 8px 24px rgba(37, 42, 38, .14); }
+.step-more-actions[open] > div button { text-align: left; white-space: nowrap; }
+.verification-badge { display: inline-flex; width: fit-content; padding: 4px 7px; border-radius: 999px; font-size: 9px; font-weight: 760; letter-spacing: .03em; }
+.verification-badge.matched { color: #176044; background: #d8eee2; }
+.verification-badge.mismatched { color: #8c342d; background: #f4deda; }
 .grid-comment-composer { position: relative; overflow: hidden; border: 1px solid #bed5c8; border-radius: 8px; background: rgba(255,255,255,.62); transition: border-color .15s, box-shadow .15s, background .15s; }
 .grid-comment-composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); background: white; }
 .grid-comment-composer.dragging { border-color: var(--accent); background: var(--accent-soft); }
@@ -406,6 +416,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .facts { position: static; }
   .composer-actions { align-items: stretch; flex-direction: column; }
   .assign-template { grid-template-columns: 1fr; }
+  .assign-template > small { grid-column: auto; }
   .step-edit { grid-template-columns: 1fr; margin-left: 0; }
   .step-content-grid { grid-template-columns: 1fr; margin-left: 0; }
   .step-actions, .step-form, .actual-step-content, .execution-diagrams, .inline-execution { margin-left: 0; }

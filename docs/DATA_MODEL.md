@@ -4,14 +4,20 @@
 |---|---|
 | `samples` | A physical wafer, chip, piece, or other tracked item. Self-reference represents parent/child splitting. |
 | `events` | Append-oriented timeline records: creation, comments, images, location/status changes, and run-step activity. |
-| `template_versions` | Imported or cloned process/module/recipe versions. Editable until first assignment, then locked; deletion is a soft archive. |
-| `runs` | Sample-bound assignment with its own template name/type/version snapshot. It remains readable after the source template is archived. |
-| `run_steps` | Ordered execution steps with immutable planned fields and independently editable actual fields. Ad hoc steps have no planned baseline. |
-| `run_step_assets` | Planned diagrams copied at assignment and execution diagrams uploaded during fabrication. |
+| `recipe_families` | Stable identity shared by successive versions of one recipe. |
+| `step_definitions` | SHA-256-addressed instructions; order and version are deliberately excluded from the hash. |
+| `state_representations` | SHA-256-addressed expected sample states, currently represented by ordered diagram assets. |
+| `template_versions` | Imported or cloned versions with an ordered manifest of logical step, definition, and expected-state hashes. |
+| `runs` | Ordered processing segments for one physical sample, linked through predecessor and anchor step. |
+| `run_plan_revisions` | Immutable records of which recipe version governed the unfinished plan at each revision. |
+| `run_steps` | The actual execution chain. Recipe-derived rows reference definitions; corrections are nullable overrides and ad-hoc rows are explicit actual steps. |
+| `run_step_plan_links` | Links recipe plan entries to stable actual run-step identities across plan revisions. |
+| `run_step_assets` | Execution and observed-state images uploaded during fabrication. |
+| `state_verifications` | Sparse observed-state anchors connected to the previous verification. |
+| `state_verification_steps` | Immutable snapshot of the actual steps covered by a verification interval. |
 | `imports` | Pending/ready/failed state for one confirmed FabuBlox workbook import. |
 | `assets` | R2 object metadata and readiness state for imported and ordinary uploads. |
-| `template_steps` | Structured template step records. Editable only while the parent version has never been assigned. |
-| `template_step_assets` | Relationship between an imported step and its layer-stack diagrams. |
+| `template_steps` | Ordered logical references from a recipe version to hashed definitions and expected states. |
 
 R2 object keys are stored in D1. The bucket stays private and the Worker returns assets only through application routes. Exporters must replace those keys with relative paths inside the resulting ZIP.
 
@@ -25,6 +31,8 @@ Validated Cloudflare Access email addresses are stored on events and other mutab
 
 `last_mutation_id` values are internal concurrency tokens. They allow dependent event inserts to prove that the preceding conditional update succeeded within the same transactional batch.
 
-Assignment is a snapshot boundary. It locks the source version, copies every step field and planned diagram into the run, and records the displayed template metadata on the run itself. Later run edits update only actual fields. Differences from the planned baseline, added ad hoc steps, execution diagrams, and the supplied deviation reason remain attached to that sample and are also represented in the sample timeline.
+A recipe version is a statement of what should happen and what state should result. A run records what did happen. `run_step_plan_links` connect those two views without treating an execution correction as a recipe edit.
 
-Promotion is a separate, explicit operation. It copies the run's current actual step fields and all still-available planned/execution diagrams into the next editable template version. Execution notes and deviation explanations remain audit data on the sample run rather than silently becoming standard instructions.
+Plan updates align logical step keys first and exact definition hashes second. Executed entries cannot be removed, changed, or preceded by newly inserted planned work. Compatible future entries retain their run-step IDs, new entries are appended after the execution head, and displaced unfinished entries remain auditable as superseded.
+
+Verification is not inferred from `done`. A user may verify after any step once every current step in the interval is done or skipped. The verification stores its predecessor and an explicit ordered coverage snapshot; a mismatch also opens recipe-change evidence without mutating the recipe.

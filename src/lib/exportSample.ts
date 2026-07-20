@@ -45,8 +45,10 @@ export async function exportSample(sample: SampleDetail) {
     "",
   ];
   for (const run of sample.runs) {
-    lines.push(`### ${run.templateName} — ${run.templateType} v${run.templateVersion}`, "");
-    for (const [index, step] of run.steps.entries()) {
+    lines.push(`### Run ${run.sequenceNo}: ${run.templateName} — ${run.templateType} v${run.templateVersion}`, "",
+      `- Status: ${run.status}`, `- Plan revision: ${run.planRevisionNumber}`, `- Predecessor run: ${run.predecessorRunId || ""}`, "");
+    const visibleSteps = run.steps.filter((step) => step.planStatus === "current" || step.actualizedAt).sort((left, right) => left.position - right.position);
+    for (const [index, step] of visibleSteps.entries()) {
       lines.push(`#### ${index + 1}. ${step.title} [${step.status}]`, "", `- Origin: ${step.origin}`, `- Tool: ${step.toolName || ""}`, "", step.parametersText || "");
       if (step.commentsText) lines.push("", step.commentsText);
       if (step.deviationNote) lines.push("", `**Deviation:** ${step.deviationNote}`);
@@ -69,6 +71,14 @@ export async function exportSample(sample: SampleDetail) {
       for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) lines.push("", `![${step.title}](${assetPaths.get(key)})`);
       lines.push("");
     }
+  }
+  lines.push("## State verification chain", "");
+  for (const verification of sample.stateVerifications) {
+    lines.push(`### ${verification.createdAt} — ${verification.result}`, "",
+      `- After run step: ${verification.afterRunStepId}`,
+      `- Previous verification: ${verification.previousVerificationId || ""}`,
+      `- Covered steps: ${verification.coveredRunStepIds.join(", ")}`,
+      `- Status: ${verification.status}`, "", verification.note || "", "");
   }
   lines.push(
     "## Timeline",

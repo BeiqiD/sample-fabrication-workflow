@@ -24,21 +24,22 @@ flowchart TD
 ## Data invariants
 
 - Sample codes and template version numbers are unique in D1.
-- A template version is editable only before its first assignment. Assignment atomically locks it; deletion is an archive that prevents new assignments.
-- D1 triggers enforce the assignment boundary as a final guard: inserting a run locks its source version, while an archived source rejects new runs even under concurrent requests.
-- Assigning a template copies independent run metadata, planned step fields, actual starting fields, and every planned diagram. Sample pages never depend on a live join to the source template.
-- Run edits preserve the assigned baseline. Changed actual fields, deviation reasons, execution diagrams, and ad hoc steps apply only to one sample run.
-- Promoting a run creates a new unlocked template version from its current actual fields and diagrams; it never mutates either the run or its assigned baseline.
+- A recipe family owns immutable versions. A version is editable only before its first run-plan reference; the first reference atomically locks it.
+- Step definitions and expected diagram states are content-addressed. Recipe versions, plans, and runs reference their hashes, so repeated content is stored once.
+- A physical sample has at most one active run. Finished runs form an ordered predecessor chain; the successor anchors to the previous run's last actual step.
+- Each run has immutable plan revisions. A newer version of the same recipe family can replace only unfinished future work; completed and ad-hoc execution remains in the chain.
+- Run rows store actual overrides only when they differ from the hashed recipe definition. Comments, deviation reasons, execution diagrams, and ad-hoc steps remain sample-specific.
+- State verification is a sparse chain independent of recipe metrology steps. Each verification snapshots the run steps covered since the previous valid verification and records matched or mismatched outcome.
 - Sample state changes and their history events are emitted by database triggers.
 - Dedicated bench records update sample state and append the manual event in one D1 batch, guarded by the caller's last-seen timestamp and a per-mutation identifier.
 - Step state, notes, optional attachment event, sample timestamp, and run rollup are one D1 batch.
 - Every user-originated record stores the validated Access email.
 - Ordinary R2 uploads are registered in `assets`; failed registration removes the object.
 - Every new workbook, manifest, imported diagram, and ordinary image receives a SHA-256. Ready assets are unique by hash, so repeated content reuses one private R2 object even when filenames differ.
-- FabuBlox database rows are committed in one transactional D1 batch. A failed batch removes every R2 object uploaded for that import and leaves a failed import audit row.
+- A FabuBlox import remains pending while bounded D1 batches write content-addressed rows. Pending or failed versions are hidden; a failed import removes newly uploaded R2 objects and releases their hashes for retry.
 
 ## Platform limits
 
-Bulk inserts keep each statement below D1's 100-bound-parameter limit. A confirmed import is capped at 180 steps and 40 images, uses at most five concurrent R2 writes, and keeps the D1 batch below the Free plan's 50-query invocation limit.
+Bulk inserts keep each statement below D1's 100-bound-parameter limit. A confirmed import is capped at 180 steps and 40 images, uses at most five concurrent R2 writes, and divides persistence into bounded batches behind the pending-import visibility gate.
 
 Full export reads all tables through one D1 batch for a consistent database snapshot, then downloads the referenced private assets into a browser-generated ZIP. The manifest contains stable relative paths and no authentication URLs.

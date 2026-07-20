@@ -1,4 +1,4 @@
-import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, FabubloxImportPreview, FullExportManifest, SampleDetail, SampleSummary, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, FabubloxImportPreview, FullExportManifest, PlanUpdatePreview, SampleDetail, SampleSummary, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -33,6 +33,12 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ templateVersionId }),
   }),
+  previewPlanUpdate: (sampleId: string, runId: string, templateVersionId: string) => request<PlanUpdatePreview & { familyMismatch?: boolean }>(`/samples/${sampleId}/runs/${runId}/plan-update/preview`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ templateVersionId }),
+  }),
+  applyPlanUpdate: (sampleId: string, runId: string, templateVersionId: string, reason = "") => request<{ ok: true; planRevisionId: string; revisionNumber: number }>(`/samples/${sampleId}/runs/${runId}/plan-update`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ templateVersionId, reason }),
+  }),
   updateRunStep: (sampleId: string, runId: string, stepId: string, input: UpdateRunStepInput) => request<{ ok: true }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
@@ -53,6 +59,9 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
+  verifyState: (sampleId: string, runId: string, stepId: string, input: CreateStateVerificationInput) => request<{ verification: StateVerification }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/verify-state`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
+  }),
   uploadAsset: async (file: Blob, filename: string) => request<{ id: string; key: string; deduplicated: boolean }>("/assets", {
     method: "POST",
     headers: { "content-type": file.type || "application/octet-stream", "x-filename": filename },
@@ -72,10 +81,10 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   getFullExport: () => request<FullExportManifest>("/exports/all"),
-  importFabublox: async (file: File, preview: FabubloxImportPreview, templateType: TemplateRecord["templateType"]) => {
+  importFabublox: async (file: File, preview: FabubloxImportPreview, templateType: TemplateRecord["templateType"], recipeFamilyId?: string) => {
     const form = new FormData();
     form.append("workbook", file, file.name);
-    const manifest = { ...preview, images: preview.images.map(({ data: _data, ...image }) => image), templateType };
+    const manifest = { ...preview, images: preview.images.map(({ data: _data, ...image }) => image), templateType, recipeFamilyId: recipeFamilyId || null };
     form.append("manifest", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "manifest.json");
     for (const image of preview.images) {
       const sourceName = image.sourcePart.split("/").pop() || `${image.localId}.png`;
@@ -89,9 +98,11 @@ export const api = {
 
 export interface TemplateRecord {
   id: string;
+  recipeFamilyId: string;
   name: string;
   templateType: "process" | "module" | "recipe";
   version: number;
+  manifestHash: string;
   sourceFilename: string | null;
   stepCount: number;
   locked: boolean;
@@ -101,6 +112,9 @@ export interface TemplateRecord {
 
 export interface TemplateStepRecord {
   id: string;
+  logicalStepKey: string;
+  definitionHash: string;
+  expectedStateHash: string | null;
   position: number;
   sourceRow: number | null;
   stepNumber: string | null;

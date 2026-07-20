@@ -13,7 +13,8 @@ export interface RunGridRow {
 }
 
 function orderedSteps(run: SampleRun | null) {
-  return run ? [...run.steps].sort((left, right) => left.position - right.position) : [];
+  return run ? [...run.steps].filter((step) => step.planStatus !== "superseded" || step.actualizedAt)
+    .sort((left, right) => left.position - right.position) : [];
 }
 
 export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
@@ -21,16 +22,16 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
   if (!primaryRun) return [];
   const primaryTemplateSteps = orderedSteps(primaryRun).filter((step) => step.origin === "template");
   const templateStepsByColumn = columns.map(({ run }) => orderedSteps(run).filter((step) => step.origin === "template"));
-  const primaryIndexByTemplateId = new Map(
-    primaryTemplateSteps.flatMap((step, index) => step.templateStepId ? [[step.templateStepId, index] as const] : []),
+  const primaryIndexByLogicalKey = new Map(
+    primaryTemplateSteps.flatMap((step, index) => step.logicalStepKey ? [[step.logicalStepKey, index] as const] : []),
   );
 
   const templateRows = primaryTemplateSteps.map<RunGridRow>((recipeStep, recipeIndex) => ({
-    key: `template:${recipeStep.templateStepId ?? recipeIndex}`,
+    key: `template:${recipeStep.logicalStepKey ?? recipeStep.templateStepId ?? recipeIndex}`,
     kind: "template",
     recipeStep,
-    steps: templateStepsByColumn.map((steps) => recipeStep.templateStepId
-      ? steps.find((step) => step.templateStepId === recipeStep.templateStepId) ?? null
+    steps: templateStepsByColumn.map((steps) => recipeStep.logicalStepKey
+      ? steps.find((step) => step.logicalStepKey === recipeStep.logicalStepKey) ?? null
       : steps[recipeIndex] ?? null),
   }));
 
@@ -42,8 +43,8 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
     for (const step of steps) {
       if (step.origin === "template") {
         templateOrdinal += 1;
-        anchorIndex = step.templateStepId
-          ? primaryIndexByTemplateId.get(step.templateStepId) ?? templateOrdinal
+        anchorIndex = step.logicalStepKey
+          ? primaryIndexByLogicalKey.get(step.logicalStepKey) ?? templateOrdinal
           : templateOrdinal;
         continue;
       }

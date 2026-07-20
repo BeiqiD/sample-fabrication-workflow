@@ -6,8 +6,12 @@ function step(id: string, position: number, overrides: Partial<RunStep> = {}): R
   return {
     id,
     templateStepId: id,
+    logicalStepKey: id,
+    definitionHash: `hash:${id}`,
+    expectedStateHash: null,
     position,
     origin: "template",
+    planStatus: "current",
     title: id,
     status: "pending",
     notes: null,
@@ -22,6 +26,9 @@ function step(id: string, position: number, overrides: Partial<RunStep> = {}): R
     plannedImageKeys: [],
     executionImageKeys: [],
     comments: [],
+    actualizedAt: null,
+    verificationIds: [],
+    stateVerification: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -31,11 +38,18 @@ function step(id: string, position: number, overrides: Partial<RunStep> = {}): R
 function run(id: string, steps: RunStep[]): SampleRun {
   return {
     id,
+    recipeFamilyId: "recipe-family",
     templateVersionId: "recipe-v1",
     templateName: "Recipe",
     templateType: "recipe",
     templateVersion: 1,
     status: "active",
+    currentPlanRevisionId: "plan-1",
+    planRevisionNumber: 1,
+    predecessorRunId: null,
+    anchorStepId: null,
+    sequenceNo: 1,
+    runGroupId: "group-1",
     createdAt: "2026-01-01T00:00:00.000Z",
     completedAt: null,
     steps,
@@ -58,18 +72,19 @@ function sample(id: string): SampleDetail {
     children: [],
     events: [],
     runs: [],
+    stateVerifications: [],
   };
 }
 
 describe("multi-sample run grid", () => {
-  it("aligns template rows by template step id despite different positions", () => {
+  it("aligns template rows by logical key across recipe versions and different positions", () => {
     const rows = buildRunGrid([
       { sample: sample("a"), run: run("a-run", [step("one", 1000), step("two", 2000)]) },
-      { sample: sample("b"), run: run("b-run", [step("one", 500), step("two", 9000)]) },
+      { sample: sample("b"), run: run("b-run", [step("v2-one", 500, { templateStepId: "v2-one", logicalStepKey: "one" }), step("v2-two", 9000, { templateStepId: "v2-two", logicalStepKey: "two" })]) },
     ]);
     expect(rows.map((row) => row.steps.map((item) => item?.id))).toEqual([
-      ["one", "one"],
-      ["two", "two"],
+      ["one", "v2-one"],
+      ["two", "v2-two"],
     ]);
   });
 

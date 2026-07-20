@@ -233,10 +233,25 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     finally { setPendingAction(null); }
   }
 
+  async function verifyState(column: RunGridColumn, step: RunStep, result: "matched" | "mismatched") {
+    if (!column.run) return;
+    const note = result === "mismatched" ? window.prompt("Describe how the observed state differs from the recipe expectation:") : "";
+    if (result === "mismatched" && note === null) return;
+    setPendingAction(`verify:${step.id}`); setError("");
+    try {
+      await api.verifyState(column.sample.id, column.run.id, step.id, {
+        result, note: note || "", expectedUpdatedAt: step.updatedAt,
+        completeStep: ["pending", "in_progress"].includes(step.status),
+      });
+      await onSaved();
+    } catch (error) { setError((error as Error).message); }
+    finally { setPendingAction(null); }
+  }
+
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
   return <article className={`run-grid-card ${layoutClass}`}>
     <div className="run-grid-toolbar">
-      <div><p className="eyebrow">{primaryRun.templateType} · assigned v{primaryRun.templateVersion}</p><h2>{primaryRun.templateName}</h2><small>Recipe on the left; actual execution stays in each sample column.</small></div>
+      <div><p className="eyebrow">{primaryRun.templateType} · run {primaryRun.sequenceNo} · plan r{primaryRun.planRevisionNumber}</p><h2>{primaryRun.templateName} v{primaryRun.templateVersion}</h2><small>{primaryRun.status === "active" ? "Recipe on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scroller.current?.scrollBy({ left: -340, behavior: "smooth" })} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scroller.current?.scrollBy({ left: 340, behavior: "smooth" })} aria-label="Scroll sample columns right">→</button>}</div>
     </div>
     {error && <p className="error-banner grid-error">{error}</p>}
@@ -263,7 +278,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
               return <div className={`sample-step-cell${step ? ` ad-hoc-cell step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -287,7 +302,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
               return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -330,9 +345,9 @@ function CommentComposer({ label, saving, onSave, onCancel }: { label: string; s
   </form>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onSaveComment, onEdit, onAddAfter }: {
+function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment, onEdit, onAddAfter }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
-  onDone: () => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onEdit: () => void; onAddAfter: () => void;
+  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onEdit: () => void; onAddAfter: () => void;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
   const busy = pendingAction !== null;
@@ -341,9 +356,11 @@ function StepCell({ column, step, pendingAction, onDone, onSaveComment, onEdit, 
       <div className="cell-actions">
         {step.status !== "done" && <button type="button" className="done-action" disabled={busy} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>}
         <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
-        <button type="button" disabled={busy || !column.run} onClick={onAddAfter}>+ Step</button>
+        <button type="button" disabled={busy || column.run?.status !== "active"} onClick={onAddAfter}>+ Step</button>
+        <details className="step-more-actions"><summary>{pendingAction === `verify:${step.id}` ? "Verifying…" : "More"}</summary><div><button type="button" disabled={busy} onClick={() => onVerify("matched")}>State verified</button><button type="button" disabled={busy} onClick={() => onVerify("mismatched")}>State mismatch</button></div></details>
       </div>
       {step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}
+      {step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "State verified" : "State mismatch"} · {step.stateVerification.coveredRunStepIds.length} covered</span>}
       <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}>{step.status === "done" ? "✓" : step.status === "in_progress" ? "↻" : step.status === "skipped" ? "—" : step.status === "blocked" ? "!" : "○"}</span><strong>{step.status.replace("_", " ")}</strong></div>
     </div>
     {step.origin === "ad_hoc" && <strong className="ad-hoc-title">{step.title}</strong>}

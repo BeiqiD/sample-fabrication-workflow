@@ -1,6 +1,6 @@
 export type SampleStatus = "active" | "stored" | "consumed" | "lost";
 export type StepStatus = "pending" | "in_progress" | "done" | "skipped" | "blocked";
-export type EventKind = "comment" | "image" | "location" | "status" | "created" | "step";
+export type EventKind = "comment" | "image" | "location" | "status" | "created" | "step" | "run" | "plan" | "verification";
 
 export interface SampleSummary {
   id: string;
@@ -31,13 +31,18 @@ export interface SampleDetail extends SampleSummary {
   children: Array<Pick<SampleSummary, "id" | "code" | "title">>;
   events: SampleEvent[];
   runs: SampleRun[];
+  stateVerifications: StateVerification[];
 }
 
 export interface RunStep {
   id: string;
   templateStepId: string | null;
+  logicalStepKey: string | null;
+  definitionHash: string | null;
+  expectedStateHash: string | null;
   position: number;
   origin: "template" | "ad_hoc";
+  planStatus: "current" | "superseded";
   title: string;
   status: StepStatus;
   notes: string | null;
@@ -52,8 +57,26 @@ export interface RunStep {
   plannedImageKeys: string[];
   executionImageKeys: string[];
   comments: RunStepComment[];
+  actualizedAt: string | null;
+  verificationIds: string[];
+  stateVerification: StateVerification | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StateVerification {
+  id: string;
+  sampleId: string;
+  afterRunStepId: string;
+  previousVerificationId: string | null;
+  runPlanRevisionId: string | null;
+  expectedStateHash: string | null;
+  result: "matched" | "mismatched";
+  note: string | null;
+  status: "valid" | "stale";
+  actorEmail: string | null;
+  createdAt: string;
+  coveredRunStepIds: string[];
 }
 
 export interface RunStepComment {
@@ -108,14 +131,43 @@ export interface CreateRunStepInput {
 
 export interface SampleRun {
   id: string;
+  recipeFamilyId: string;
   templateVersionId: string;
   templateName: string;
   templateType: "process" | "module" | "recipe";
   templateVersion: number;
-  status: "active" | "complete" | "cancelled";
+  status: "active" | "complete" | "cancelled" | "superseded";
+  currentPlanRevisionId: string;
+  planRevisionNumber: number;
+  predecessorRunId: string | null;
+  anchorStepId: string | null;
+  sequenceNo: number;
+  runGroupId: string;
   createdAt: string;
   completedAt: string | null;
   steps: RunStep[];
+}
+
+export interface PlanUpdatePreview {
+  compatible: boolean;
+  currentTemplateVersionId: string;
+  nextTemplateVersionId: string;
+  preservedCount: number;
+  additionCount: number;
+  supersededCount: number;
+  conflicts: Array<{
+    kind: "inserted_before_execution_head" | "modified_executed_step" | "removed_executed_step";
+    existingStepId?: string;
+    templateStepId?: string;
+  }>;
+}
+
+export interface CreateStateVerificationInput {
+  result: "matched" | "mismatched";
+  note: string;
+  expectedUpdatedAt: string;
+  completeStep?: boolean;
+  assetKey?: string;
 }
 
 export interface CreateSampleInput {
