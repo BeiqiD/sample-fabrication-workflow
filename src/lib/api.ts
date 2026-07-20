@@ -1,4 +1,4 @@
-import type { CreateEventInput, CreateSampleInput, FabubloxImportPreview, SampleDetail, SampleSummary, StepStatus } from "../../shared/types";
+import type { CreateEventInput, CreateSampleInput, FabubloxImportPreview, FullExportManifest, SampleDetail, SampleSummary, StepStatus, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -15,6 +15,11 @@ export const api = {
   getSample: (id: string) => request<SampleDetail>(`/samples/${id}`),
   createSample: (input: CreateSampleInput) => request<{ id: string }>("/samples", {
     method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  updateSample: (id: string, input: UpdateSampleInput) => request<{ ok: true; updatedAt: string }>(`/samples/${id}`, {
+    method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
@@ -39,6 +44,7 @@ export const api = {
     body: file,
   }),
   listTemplates: () => request<{ templates: TemplateRecord[] }>("/templates"),
+  getFullExport: () => request<FullExportManifest>("/exports/all"),
   createTemplate: (input: CreateTemplateInput) => request<{ id: string; version: number }>("/templates", {
     method: "POST",
     headers: { "content-type": "application/json" },

@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { CreateEventInput, CreateSampleInput, StepStatus } from "../shared/types";
+import type { CreateEventInput, CreateSampleInput, SampleStatus, StepStatus, UpdateSampleInput } from "../shared/types";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
 import { templateStepsFromContent } from "./template-steps";
+import { collectExportAssetKeys } from "./export-data";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env }>().basePath("/api");
@@ -21,7 +22,7 @@ async function batchInChunks(db: D1Database, statements: D1PreparedStatement[]) 
 }
 
 app.onError((error, c) => {
-  if (error instanceof HTTPException) return error.getResponse();
+  if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
   console.error(error);
   return c.json({ error: "Unexpected server error" }, 500);
 });
@@ -136,6 +137,39 @@ app.get("/samples/:id", async (c) => {
   });
 });
 
+app.patch("/samples/:id", async (c) => {
+  const id = c.req.param("id");
+  const input = await c.req.json<UpdateSampleInput>();
+  const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
+  if (!input.expectedUpdatedAt) throw new HTTPException(400, { message: "expectedUpdatedAt is required" });
+  if (input.status !== undefined && !allowedStatuses.includes(input.status)) {
+    throw new HTTPException(400, { message: "Invalid sample status" });
+  }
+  const current = await c.env.DB.prepare(
+    "SELECT status, location, pinned, updated_at FROM samples WHERE id = ?",
+  ).bind(id).first<{ status: SampleStatus; location: string | null; pinned: number; updated_at: string }>();
+  if (!current) throw new HTTPException(404, { message: "Sample not found" });
+  if (current.updated_at !== input.expectedUpdatedAt) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
+  }
+
+  const nextStatus = input.status ?? current.status;
+  const nextLocation = input.location === undefined ? current.location : input.location.trim() || null;
+  const nextPinned = input.pinned === undefined ? Boolean(current.pinned) : input.pinned;
+  const changed = nextLocation !== current.location || nextStatus !== current.status || nextPinned !== Boolean(current.pinned);
+  if (!changed) return c.json({ ok: true, updatedAt: current.updated_at });
+
+  const now = new Date().toISOString();
+  const result = await c.env.DB.prepare(
+    `UPDATE samples SET status = ?, location = ?, pinned = ?, updated_at = ?
+     WHERE id = ? AND updated_at = ?`,
+  ).bind(nextStatus, nextLocation, nextPinned ? 1 : 0, now, id, input.expectedUpdatedAt).run();
+  if (!result.meta.changes) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
+  }
+  return c.json({ ok: true, updatedAt: now });
+});
+
 app.post("/samples/:id/runs", async (c) => {
   const sampleId = c.req.param("id");
   const { templateVersionId } = await c.req.json<{ templateVersionId?: string }>();
@@ -222,8 +256,20 @@ app.post("/assets", async (c) => {
   const contentType = c.req.header("content-type") || "application/octet-stream";
   const filename = c.req.header("x-filename") || "upload";
   const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  await c.env.ASSETS.put(key, c.req.raw.body, { httpMetadata: { contentType } });
-  return c.json({ key }, 201);
+  const buffer = await c.req.arrayBuffer();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 'ready', ?)`,
+    ).bind(id, key, filename, contentType, buffer.byteLength, now).run();
+  } catch (error) {
+    await c.env.ASSETS.delete(key);
+    throw error;
+  }
+  return c.json({ id, key }, 201);
 });
 
 app.get("/assets/:key{.+}", async (c) => {
@@ -234,6 +280,31 @@ app.get("/assets/:key{.+}", async (c) => {
   headers.set("etag", object.httpEtag);
   headers.set("cache-control", "private, max-age=3600");
   return new Response(object.body, { headers });
+});
+
+app.get("/exports/all", async (c) => {
+  const tableQueries = {
+    samples: "SELECT * FROM samples ORDER BY created_at, id",
+    events: "SELECT * FROM events ORDER BY created_at, id",
+    template_versions: "SELECT * FROM template_versions ORDER BY created_at, id",
+    template_steps: "SELECT * FROM template_steps ORDER BY template_version_id, position",
+    template_step_assets: "SELECT * FROM template_step_assets ORDER BY template_step_id, asset_id",
+    runs: "SELECT * FROM runs ORDER BY created_at, id",
+    run_steps: "SELECT * FROM run_steps ORDER BY run_id, position",
+    imports: "SELECT * FROM imports ORDER BY created_at, id",
+    assets: "SELECT * FROM assets ORDER BY created_at, id",
+  } as const;
+  const entries = await Promise.all(Object.entries(tableQueries).map(async ([name, sql]) => {
+    const result = await c.env.DB.prepare(sql).all<Record<string, unknown>>();
+    return [name, result.results] as const;
+  }));
+  const tables = Object.fromEntries(entries) as Record<string, Array<Record<string, unknown>>>;
+  return c.json({
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    tables,
+    assetKeys: collectExportAssetKeys(tables.assets, tables.imports),
+  });
 });
 
 app.post("/imports/fabublox", async (c) => {

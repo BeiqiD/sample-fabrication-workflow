@@ -4,20 +4,29 @@ function safeName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function assetPath(key: string) {
+  return `assets/${key.split("/").map(safeName).join("/")}`;
+}
+
 export async function exportSample(sample: SampleDetail) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
-  const assets = zip.folder("assets")!;
   const assetPaths = new Map<string, string>();
 
+  const keys = new Set<string>();
   for (const event of sample.events) {
-    if (!event.assetKey || assetPaths.has(event.assetKey)) continue;
-    const response = await fetch(`/api/assets/${event.assetKey}`);
-    if (!response.ok) throw new Error(`Could not export asset ${event.assetKey}`);
-    const basename = safeName(event.assetKey.split("/").pop() || "asset");
-    const path = `assets/${basename}`;
-    assets.file(basename, await response.blob());
-    assetPaths.set(event.assetKey, path);
+    if (event.assetKey) keys.add(event.assetKey);
+    if (typeof event.metadata.thumbnailKey === "string") keys.add(event.metadata.thumbnailKey);
+  }
+  for (const run of sample.runs) {
+    for (const step of run.steps) if (step.templateImageKey) keys.add(step.templateImageKey);
+  }
+  for (const key of keys) {
+    const response = await fetch(`/api/assets/${key}`);
+    if (!response.ok) throw new Error(`Could not export asset ${key}`);
+    const path = assetPath(key);
+    zip.file(path, await response.blob());
+    assetPaths.set(key, path);
   }
 
   const lines = [
@@ -46,5 +55,5 @@ export async function exportSample(sample: SampleDetail) {
   anchor.href = url;
   anchor.download = `${safeName(sample.code)}.zip`;
   anchor.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

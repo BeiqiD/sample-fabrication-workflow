@@ -65,6 +65,20 @@ export interface CreateSampleInput {
   parentId?: string;
 }
 
+export interface UpdateSampleInput {
+  status?: SampleStatus;
+  location?: string;
+  pinned?: boolean;
+  expectedUpdatedAt: string;
+}
+
+export interface FullExportManifest {
+  schemaVersion: 1;
+  exportedAt: string;
+  tables: Record<string, Array<Record<string, unknown>>>;
+  assetKeys: string[];
+}
+
 export interface CreateEventInput {
   kind: EventKind;
   body?: string;

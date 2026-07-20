@@ -6,8 +6,11 @@ A low-friction, event-based sample log for fabrication work. The app is a single
 
 1. Find or create a sample.
 2. Add comments and phone photos to its timeline.
-3. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
-4. Store each confirmed import as an immutable process, module, or recipe version.
+3. Change location, lifecycle status, or pinned state with an automatic audit entry.
+4. Create child samples directly from a parent for split/dicing workflows.
+5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
+6. Store each confirmed import as an immutable process, module, or recipe version.
+7. Export one sample or a full-system ZIP containing D1 data and private R2 assets.
 
 See [MVP_SPEC.md](./MVP_SPEC.md) for scope, [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) for the data model, and [docs/FABUBLOX_IMPORT.md](./docs/FABUBLOX_IMPORT.md) for the workbook contract.
 
@@ -34,4 +37,4 @@ The `wrangler.jsonc` bindings intentionally omit production IDs so Wrangler can 
 
 ## Data ownership
 
-The planned export format contains JSON tables, Markdown summaries, and assets using relative paths. No export should depend on a temporary signed URL.
+Exports contain JSON tables, Markdown summaries where applicable, and assets using relative paths. No export depends on a temporary signed URL.
