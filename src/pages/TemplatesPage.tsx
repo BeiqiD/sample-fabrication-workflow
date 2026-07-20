@@ -11,7 +11,7 @@ export function TemplatesPage() {
     <div className="page-heading"><div><p className="eyebrow">FabuBlox</p><h1>Templates</h1></div><Link className="button primary" to="/imports/fabublox">Import workbook</Link></div>
     {error && <p className="error-banner">{error}</p>}
     <div className="card table-card">
-      {templates.length ? <table><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Steps</th><th>Imported</th></tr></thead><tbody>{templates.map((template) => <tr key={template.id}><td><strong>{template.name}</strong><small>{template.sourceFilename}</small></td><td>{template.templateType}</td><td>v{template.version}</td><td>{template.stepCount}</td><td>{new Date(template.createdAt).toLocaleDateString()}</td></tr>)}</tbody></table> : <p className="muted padded">No imported templates yet.</p>}
+      {templates.length ? <table><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>State</th><th>Steps</th><th /></tr></thead><tbody>{templates.map((template) => <tr key={template.id}><td><strong>{template.name}</strong><small>{template.sourceFilename}</small></td><td>{template.templateType}</td><td>v{template.version}</td><td><span className={`template-state ${template.locked ? "locked" : "draft"}`}>{template.locked ? "Locked" : "Editable"}</span></td><td>{template.stepCount}</td><td><Link className="text-button" to={`/templates/${template.id}`}>{template.locked ? "View" : "Edit"} →</Link></td></tr>)}</tbody></table> : <p className="muted padded">No active templates yet.</p>}
     </div>
   </div>;
 }

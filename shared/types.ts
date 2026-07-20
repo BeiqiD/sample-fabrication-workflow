@@ -36,22 +36,44 @@ export interface SampleDetail extends SampleSummary {
 export interface RunStep {
   id: string;
   position: number;
+  origin: "template" | "ad_hoc";
   title: string;
   status: StepStatus;
   notes: string | null;
   toolName: string | null;
   parametersText: string | null;
-  templateCommentsText: string | null;
-  templateImageKey: string | null;
+  commentsText: string | null;
+  deviationNote: string | null;
+  plannedTitle: string | null;
+  plannedToolName: string | null;
+  plannedParametersText: string | null;
+  plannedCommentsText: string | null;
+  plannedImageKeys: string[];
+  executionImageKeys: string[];
+  createdAt: string;
   updatedAt: string;
 }
 
 export interface UpdateRunStepInput {
   status: StepStatus;
+  title: string;
+  toolName: string;
+  parametersText: string;
+  commentsText: string;
+  deviationNote: string;
   notes: string;
   expectedUpdatedAt: string;
   assetKey?: string;
-  thumbnailKey?: string;
+}
+
+export interface CreateRunStepInput {
+  afterStepId?: string;
+  title: string;
+  toolName: string;
+  parametersText: string;
+  commentsText: string;
+  deviationNote: string;
+  assetKey?: string;
 }
 
 export interface SampleRun {

@@ -6,6 +6,7 @@ import { RunChecklist } from "../components/RunChecklist";
 import { api, type TemplateRecord } from "../lib/api";
 import { exportSample } from "../lib/exportSample";
 import { compressCommentImage } from "../lib/images";
+import { FileDropzone } from "../components/FileDropzone";
 
 export function SamplePage() {
   const { sampleId = "" } = useParams();
@@ -18,7 +19,7 @@ export function SamplePage() {
   const [assigning, setAssigning] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [commentImage, setCommentImage] = useState<File | null>(null);
   const pendingUploadRef = useRef<{ signature: string; assetKey?: string; thumbnailKey?: string } | null>(null);
   const load = useCallback(() => api.getSample(sampleId).then(setSample).catch((error: Error) => setError(error.message)), [sampleId]);
   useEffect(() => { void load(); }, [load]);
@@ -38,7 +39,7 @@ export function SamplePage() {
     const form = event.currentTarget;
     const data = new FormData(form);
     const body = String(data.get("body") || "").trim();
-    const image = fileRef.current?.files?.[0];
+    const image = commentImage;
     if (!body && !image) return;
     setSaving(true);
     try {
@@ -66,6 +67,7 @@ export function SamplePage() {
         thumbnailKey,
       });
       pendingUploadRef.current = null;
+      setCommentImage(null);
       form.reset();
       await load();
     } catch (error) { setError((error as Error).message); }
@@ -115,7 +117,8 @@ export function SamplePage() {
         {sample.runs.length > 0 && <section className="runs-section"><h2>Runs</h2>{sample.runs.map((run) => <RunChecklist key={run.id} sampleId={sampleId} run={run} onSaved={load} />)}</section>}
         <form className="card composer" onSubmit={addComment}>
           <label>Add a record<textarea name="body" rows={3} placeholder="Comment, observation, or step note…" /></label>
-          <div className="composer-actions"><input ref={fileRef} name="image" type="file" accept="image/*" capture="environment" /><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Add to timeline"}</button></div>
+          <FileDropzone compact accept="image/*" capture="environment" file={commentImage} onFile={(file) => { pendingUploadRef.current = null; setCommentImage(file); }} label="Drop a record photo" />
+          <div className="composer-actions"><span className="muted">Photos are compressed before upload.</span><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Add to timeline"}</button></div>
         </form>
         {error && <p className="error-banner">{error}</p>}
         <div className="timeline">

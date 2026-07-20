@@ -9,8 +9,10 @@ A low-friction, event-based sample log for fabrication work. The app is a single
 3. Change location, lifecycle status, or pinned state with an automatic audit entry.
 4. Create child samples directly from a parent for split/dicing workflows.
 5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
-6. Store each confirmed import as an immutable process, module, or recipe version.
-7. Export one sample or a full-system ZIP containing D1 data and private R2 assets.
+6. Edit a process/module/recipe version until its first assignment, then keep it locked or clone it as a new version.
+7. Assign a version as an independent sample run: preserve the plan while recording actual parameters, deviations, added steps, and execution diagrams.
+8. Promote a useful actual run into the next editable template version without rewriting the run or its original plan.
+9. Archive templates without changing existing sample runs, and export one sample or a full-system ZIP containing D1 data and private R2 assets.
 
 For repeated bench work, `/entry` provides a dedicated mobile-friendly recording screen: select the target sample, keep its code visible, and save a note/photo together with current status, location, and pinned state.
 
@@ -26,6 +28,9 @@ npm run dev
 ```
 
 Cloudflare's Vite plugin runs the API inside the Workers runtime and uses local D1/R2 simulations by default.
+
+Workbook and image inputs support both drag-and-drop and ordinary file selection. Images are compressed in the browser before upload.
+The Worker hashes every received workbook, manifest, and image with SHA-256 and reuses existing R2 objects with identical content.
 
 ## Deploy
 

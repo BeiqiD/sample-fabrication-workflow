@@ -19,7 +19,7 @@ export async function exportSample(sample: SampleDetail) {
     if (typeof event.metadata.thumbnailKey === "string") keys.add(event.metadata.thumbnailKey);
   }
   for (const run of sample.runs) {
-    for (const step of run.steps) if (step.templateImageKey) keys.add(step.templateImageKey);
+    for (const step of run.steps) for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) keys.add(key);
   }
   for (const key of keys) {
     const response = await fetch(`/api/assets/${key}`);
@@ -38,9 +38,23 @@ export async function exportSample(sample: SampleDetail) {
     "",
     sample.description || "",
     "",
-    "## Timeline",
+    "## Sample runs",
     "",
   ];
+  for (const run of sample.runs) {
+    lines.push(`### ${run.templateName} — ${run.templateType} v${run.templateVersion}`, "");
+    for (const [index, step] of run.steps.entries()) {
+      lines.push(`#### ${index + 1}. ${step.title} [${step.status}]`, "", `- Origin: ${step.origin}`, `- Tool: ${step.toolName || ""}`, "", step.parametersText || "");
+      if (step.commentsText) lines.push("", step.commentsText);
+      if (step.deviationNote) lines.push("", `**Deviation:** ${step.deviationNote}`);
+      for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) lines.push("", `![${step.title}](${assetPaths.get(key)})`);
+      lines.push("");
+    }
+  }
+  lines.push(
+    "## Timeline",
+    "",
+  );
   for (const event of [...sample.events].reverse()) {
     lines.push(`### ${event.createdAt} — ${event.kind}`, "", event.body || "");
     if (event.assetKey) lines.push("", `![${event.body || event.kind}](${assetPaths.get(event.assetKey)})`);

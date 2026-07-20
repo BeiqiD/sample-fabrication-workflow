@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { FabubloxImportPreview, ParsedFabubloxImage } from "../../shared/types";
 import { api, type TemplateRecord } from "../lib/api";
 import { parseFabuBloxWorkbook } from "../lib/fabublox";
+import { FileDropzone } from "../components/FileDropzone";
 
 function LayerThumbnail({ image, alt }: { image?: ParsedFabubloxImage; alt: string }) {
   const [url, setUrl] = useState("");
@@ -24,8 +25,8 @@ export function ImportPage() {
   const [error, setError] = useState("");
   const images = useMemo(() => new Map(preview?.images.map((image) => [image.localId, image]) ?? []), [preview]);
 
-  async function choose(nextFile?: File) {
-    if (!nextFile) return;
+  async function choose(nextFile: File | null) {
+    if (!nextFile) { setFile(null); setPreview(null); setError(""); return; }
     setFile(nextFile); setPreview(null); setBusy(true); setError("");
     try { setPreview(await parseFabuBloxWorkbook(nextFile)); }
     catch (error) { setError(`Could not read FabuBlox workbook: ${(error as Error).message}`); }
@@ -44,7 +45,7 @@ export function ImportPage() {
   return <div className="page narrow-page">
     <p className="eyebrow">Import</p><h1>FabuBlox workbook</h1>
     <p className="lead">Parsing stays in the browser until you confirm. Cell values, drawing relationships, anchor rows, and embedded layer-stack diagrams are inspected together.</p>
-    <label className="dropzone"><input type="file" accept=".xlsx" onChange={(event) => void choose(event.target.files?.[0])} /><strong>{busy && !preview ? "Inspecting workbook…" : "Choose a FabuBlox .xlsx workbook"}</strong><span>No content is uploaded before confirmation.</span></label>
+    <FileDropzone accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" file={file} onFile={(nextFile) => void choose(nextFile)} label={busy && !preview ? "Inspecting workbook…" : "Drop a FabuBlox .xlsx workbook"} hint="Drop the workbook here or click to browse. Nothing is uploaded before confirmation." />
     {error && <p className="error-banner">{error}</p>}
     {preview && <div className="import-preview">
       <div className="card preview-summary">

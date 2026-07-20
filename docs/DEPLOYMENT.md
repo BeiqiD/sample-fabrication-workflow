@@ -2,6 +2,12 @@
 
 Do not deploy until the Access application exists. The committed configuration is deliberately fail-closed: without valid Access settings the UI may load, but protected API requests return `403`.
 
+## Branch safety during development
+
+Keep `main` as the production branch. While a feature is unfinished, go to **Worker → Settings → Build → Branch control** and turn off **Builds for non-production branches**. Cloudflare will then ignore pushes to branches such as `agent/sample-run-workflows`; only a later merge to `main` can start the production build.
+
+If preview builds are enabled later, give the preview trigger a separate deploy command and separate D1/R2 resources. Never place `wrangler d1 migrations apply ... --remote` in a non-production deploy command: a preview Worker can otherwise migrate or write the production database even though its URL is not the production URL. Workers Builds exposes `WORKERS_CI_BRANCH` when a branch-aware command is needed. See Cloudflare's current [build branch controls](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/) and [build environment variables](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#default-variables).
+
 ## 1. Connect and provision
 
 1. Authenticate Wrangler with the intended Cloudflare account.

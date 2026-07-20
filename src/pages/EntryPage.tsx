@@ -5,6 +5,7 @@ import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { sampleDetailsChanged } from "../lib/entry";
 import { compressCommentImage } from "../lib/images";
+import { FileDropzone } from "../components/FileDropzone";
 
 export function EntryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,8 +20,8 @@ export function EntryPage() {
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [image, setImage] = useState<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const pendingUploadRef = useRef<{ signature: string; assetKey?: string; thumbnailKey?: string } | null>(null);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function EntryPage() {
   function choose(sample: SampleSummary) {
     if (dirty && !window.confirm("Discard the information currently entered and switch samples?")) return;
     setError(""); setSuccess(""); setDirty(false);
+    setImage(null);
     pendingUploadRef.current = null;
     setSelected(null);
     setQuery(sample.code);
@@ -59,7 +61,6 @@ export function EntryPage() {
     const status = String(data.get("status")) as SampleStatus;
     const location = String(data.get("location") || "");
     const pinned = data.get("pinned") === "on";
-    const image = fileRef.current?.files?.[0];
     const detailsChanged = sampleDetailsChanged(selected, { status, location, pinned });
     if (!body && !image && !detailsChanged) {
       setError("Enter a note, select a photo, or change sample details before saving.");
@@ -92,6 +93,7 @@ export function EntryPage() {
       setExpectedUpdatedAt(refreshed.updatedAt);
       setDirty(false);
       pendingUploadRef.current = null;
+      setImage(null);
       setFormVersion((value) => value + 1);
       setSuccess(`Saved to ${refreshed.code} at ${new Date().toLocaleTimeString()}.`);
     } catch (error) {
@@ -125,7 +127,7 @@ export function EntryPage() {
         {!selected ? <div className="card entry-empty"><h2>Select a sample</h2><p className="muted">The selected sample code remains visible during entry to reduce wrong-sample records.</p></div> : <form ref={formRef} key={`${selected.id}:${formVersion}`} className="card entry-form" onSubmit={submit} onChange={() => setDirty(true)}>
           <div className="entry-target"><div><span>Recording to</span><strong>{selected.code}</strong><p>{selected.title}</p></div><Link to={`/samples/${selected.id}`}>Open timeline ↗</Link></div>
           <label>Observation or note<textarea name="body" rows={6} placeholder="What happened, what was measured, or what should happen next?" /></label>
-          <label>Photo<input ref={fileRef} name="image" type="file" accept="image/*" capture="environment" /></label>
+          <div><span className="field-label">Photo</span><FileDropzone compact accept="image/*" capture="environment" file={image} onFile={(file) => { pendingUploadRef.current = null; setImage(file); setDirty(true); }} label="Drop a photo" /></div>
           <fieldset><legend>Current sample state</legend><div className="entry-state-grid">
             <label>Status<select name="status" defaultValue={selected.status}><option value="active">Active</option><option value="stored">Stored</option><option value="consumed">Consumed</option><option value="lost">Lost</option></select></label>
             <label>Location<input name="location" defaultValue={selected.location || ""} placeholder="Box, lab, or tool" /></label>

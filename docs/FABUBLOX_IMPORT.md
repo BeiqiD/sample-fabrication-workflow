@@ -4,10 +4,10 @@ The importer is format-aware for FabuBlox OOXML workbooks. It is not presented a
 
 ## Parsing contract
 
-1. SheetJS reads resolved cell values and locates known headers by normalized labels.
-2. JSZip opens the OPC package.
-3. `workbook.xml` and its relationships resolve the selected worksheet part.
-4. The worksheet relationship resolves its drawing part.
+1. JSZip opens the OPC package; workbooks larger than 50 MB and worksheets with more than 100,000 materialized cells are rejected before import.
+2. `workbook.xml`, worksheet XML, inline strings, and `sharedStrings.xml` provide sheet names and resolved cell values without a general-purpose spreadsheet runtime.
+3. Normalized labels locate the known FabuBlox headers.
+4. Workbook relationships resolve the selected worksheet part, whose relationships resolve its drawing part.
 5. Drawing relationships resolve each embedded image relationship to its media part.
 6. `oneCellAnchor` and `twoCellAnchor` coordinates map drawings to source rows.
 7. Images outside the detected layer-stack column or without a matching step remain unassigned and produce visible warnings.
@@ -28,5 +28,5 @@ The Worker creates a pending import, stores workbook/manifest/images in R2, writ
 
 ## Test strategy
 
-- Generated fixtures verify header detection, relationship-based media resolution, `oneCellAnchor`/`twoCellAnchor`, deliberately reordered media filenames, and unassigned-image warnings.
+- Generated fixtures verify inline/shared/rich strings, header detection, relationship-based media resolution, `oneCellAnchor`/`twoCellAnchor`, deliberately reordered media filenames, and unassigned-image warnings.
 - Real workbooks remain private local fixtures and are never committed to the public repository.

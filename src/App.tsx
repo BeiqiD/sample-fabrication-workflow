@@ -6,6 +6,7 @@ import { SamplePage } from "./pages/SamplePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ExportPage } from "./pages/ExportPage";
 import { EntryPage } from "./pages/EntryPage";
+import { TemplatePage } from "./pages/TemplatePage";
 
 const ImportPage = lazy(() => import("./pages/ImportPage").then((module) => ({ default: module.ImportPage })));
 
@@ -32,6 +33,7 @@ export function App() {
           <Route path="/entry" element={<EntryPage />} />
           <Route path="/samples/:sampleId" element={<SamplePage />} />
           <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/templates/:templateId" element={<TemplatePage />} />
           <Route path="/imports/fabublox" element={<ImportPage />} />
           <Route path="/export" element={<ExportPage />} />
         </Routes>

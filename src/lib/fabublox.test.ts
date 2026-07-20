@@ -1,7 +1,6 @@
 import { DOMParser } from "@xmldom/xmldom";
 import JSZip from "jszip";
 import { beforeAll, describe, expect, it } from "vitest";
-import * as XLSX from "xlsx";
 import { parseFabuBloxWorkbook } from "./fabublox";
 
 beforeAll(() => {
@@ -11,19 +10,33 @@ beforeAll(() => {
 const transparentPng = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg==", "base64"));
 
 async function syntheticDrawingFixture() {
-  const workbook = XLSX.utils.book_new();
-  const rows = [
-    ["Step #", "Step Name", "Tool Name", "Parameters", "Comments", null, null, null, null, "Layer Stacks"],
-    [0, "Coat", "Spinner", "4000 rpm", null],
-    [1, "Develop", null, "30 s", null],
-  ];
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Synthetic");
-  const base = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-  const zip = await JSZip.loadAsync(base);
+  const zip = new JSZip();
+  zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8"?>
+    <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <sheets><sheet name="Synthetic" sheetId="1" r:id="rSheet1"/></sheets>
+    </workbook>`);
+  zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8"?>
+    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+      <Relationship Id="rSheet1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+    </Relationships>`);
+  zip.file("xl/sharedStrings.xml", `<?xml version="1.0" encoding="UTF-8"?>
+    <sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+      <si><t>Step #</t></si><si><t>Step Name</t></si><si><r><t>Co</t></r><r><t>at</t></r></si>
+    </sst>`);
   const worksheetPath = "xl/worksheets/sheet1.xml";
-  let worksheet = await zip.file(worksheetPath)!.async("text");
-  worksheet = worksheet.replace("</worksheet>", '<drawing r:id="rIdDrawing"/></worksheet>');
-  zip.file(worksheetPath, worksheet);
+  zip.file(worksheetPath, `<?xml version="1.0" encoding="UTF-8"?>
+    <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <sheetData>
+        <row r="1">
+          <c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c>
+          <c r="C1" t="inlineStr"><is><t>Tool Name</t></is></c><c r="D1" t="inlineStr"><is><t>Parameters</t></is></c>
+          <c r="E1" t="inlineStr"><is><t>Comments</t></is></c><c r="J1" t="inlineStr"><is><t>Layer Stacks</t></is></c>
+        </row>
+        <row r="2"><c r="A2"><v>0</v></c><c r="B2" t="s"><v>2</v></c><c r="C2" t="inlineStr"><is><t>Spinner</t></is></c><c r="D2" t="inlineStr"><is><t>4000 rpm</t></is></c></row>
+        <row r="3"><c r="A3"><v>1</v></c><c r="B3" t="inlineStr"><is><t>Develop</t></is></c><c r="D3" t="inlineStr"><is><t>30 s</t></is></c></row>
+      </sheetData>
+      <drawing r:id="rIdDrawing"/>
+    </worksheet>`);
   zip.file("xl/worksheets/_rels/sheet1.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
       <Relationship Id="rIdDrawing" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>

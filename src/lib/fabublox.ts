@@ -1,5 +1,4 @@
 import JSZip from "jszip";
-import * as XLSX from "xlsx";
 import type {
   FabubloxImage,
   FabubloxImportPreview,
@@ -128,6 +127,65 @@ async function locateWorksheetPart(zip: JSZip, sheetName: string) {
   return part;
 }
 
+async function worksheetNames(zip: JSZip) {
+  const workbookEntry = zip.file("xl/workbook.xml");
+  if (!workbookEntry) throw new Error("Missing xl/workbook.xml");
+  const workbook = xml(await workbookEntry.async("text"));
+  return elements(workbook, "sheet").map((sheet) => sheet.getAttribute("name")?.trim()).filter((name): name is string => Boolean(name));
+}
+
+async function sharedStrings(zip: JSZip) {
+  const entry = zip.file("xl/sharedStrings.xml");
+  if (!entry) return [];
+  const document = xml(await entry.async("text"));
+  return elements(document, "si").map((item) => elements(item, "t").map((part) => part.textContent ?? "").join(""));
+}
+
+function columnIndex(reference: string | null) {
+  const letters = reference?.match(/^([A-Z]+)\d+$/i)?.[1]?.toUpperCase();
+  if (!letters) return null;
+  return [...letters].reduce((value, letter) => value * 26 + letter.charCodeAt(0) - 64, 0) - 1;
+}
+
+function inlineString(cell: Element) {
+  const container = elements(cell, "is")[0];
+  return container ? elements(container, "t").map((part) => part.textContent ?? "").join("") : "";
+}
+
+async function worksheetRows(zip: JSZip, worksheetPart: string, strings: string[]) {
+  const entry = zip.file(worksheetPart);
+  if (!entry) throw new Error(`Missing worksheet part ${worksheetPart}`);
+  const document = xml(await entry.async("text"));
+  const rows: unknown[][] = [];
+  let fallbackRow = 0;
+  let cellCount = 0;
+  for (const row of elements(document, "row")) {
+    const declaredRow = Number(row.getAttribute("r"));
+    const rowIndex = Number.isInteger(declaredRow) && declaredRow > 0 ? declaredRow - 1 : fallbackRow;
+    fallbackRow = rowIndex + 1;
+    const values = rows[rowIndex] ?? [];
+    let fallbackColumn = 0;
+    for (const cell of elements(row, "c")) {
+      cellCount += 1;
+      if (cellCount > 100_000) throw new Error("Worksheet contains too many cells");
+      const declaredColumn = columnIndex(cell.getAttribute("r"));
+      const column = declaredColumn ?? fallbackColumn;
+      fallbackColumn = column + 1;
+      const kind = cell.getAttribute("t");
+      const raw = elements(cell, "v")[0]?.textContent ?? "";
+      let value: unknown = null;
+      if (kind === "s") value = strings[Number(raw)] ?? "";
+      else if (kind === "inlineStr") value = inlineString(cell);
+      else if (kind === "b") value = raw === "1";
+      else if (kind === "str" || kind === "d" || kind === "e") value = raw;
+      else if (raw !== "") value = Number.isFinite(Number(raw)) ? Number(raw) : raw;
+      values[column] = value;
+    }
+    rows[rowIndex] = values;
+  }
+  return rows;
+}
+
 async function extractDrawings(zip: JSZip, worksheetPart: string): Promise<ParsedFabubloxImage[]> {
   const worksheetEntry = zip.file(worksheetPart);
   if (!worksheetEntry) throw new Error(`Missing worksheet part ${worksheetPart}`);
@@ -230,12 +288,16 @@ export function manifestFromPreview(preview: FabubloxImportPreview) {
 }
 
 export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportPreview> {
+  if (file.size > 50 * 1024 * 1024) throw new Error("Workbook is larger than the 50 MB import limit");
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-  const candidates = workbook.SheetNames.map((sheetName) => {
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, defval: null, raw: false });
-    return { sheetName, rows, header: findHeader(rows) };
-  }).sort((a, b) => b.header.score - a.header.score);
+  const zip = await JSZip.loadAsync(buffer);
+  const strings = await sharedStrings(zip);
+  const candidates = await Promise.all((await worksheetNames(zip)).map(async (sheetName) => {
+    const worksheetPart = await locateWorksheetPart(zip, sheetName);
+    const rows = await worksheetRows(zip, worksheetPart, strings);
+    return { sheetName, worksheetPart, rows, header: findHeader(rows) };
+  }));
+  candidates.sort((a, b) => b.header.score - a.header.score);
   const selected = candidates[0];
   if (!selected || selected.header.score < 2) throw new Error("No FabuBlox sheet with Step # / Step Name headers was found");
 
@@ -244,9 +306,7 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
   const parsedRows = parseRows(selected.rows, selected.header.row, selected.header.columns);
   warnings.push(...parsedRows.warnings);
 
-  const zip = await JSZip.loadAsync(buffer);
-  const worksheetPart = await locateWorksheetPart(zip, selected.sheetName);
-  const images = await extractDrawings(zip, worksheetPart);
+  const images = await extractDrawings(zip, selected.worksheetPart);
   for (const image of images) {
     const step = parsedRows.steps.find((candidate) => candidate.sourceRow === image.anchor.row + 1);
     if (step) {
