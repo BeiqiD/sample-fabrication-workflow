@@ -1,4 +1,5 @@
 const MAX_BOUND_PARAMETERS = 100;
+const SAFE_SQL_IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 
 export function chunkRows<T>(rows: T[][], columnsPerRow: number) {
   if (columnsPerRow < 1 || columnsPerRow > MAX_BOUND_PARAMETERS) throw new Error("Invalid bulk insert width");
@@ -15,7 +16,7 @@ export function bulkInsertStatements(
   rows: unknown[][],
 ) {
   if (!rows.length) return [];
-  if (!/^[a-z_]+$/.test(table) || columns.some((column) => !/^[a-z_]+$/.test(column))) throw new Error("Unsafe bulk insert identifier");
+  if (!SAFE_SQL_IDENTIFIER.test(table) || columns.some((column) => !SAFE_SQL_IDENTIFIER.test(column))) throw new Error("Unsafe bulk insert identifier");
   if (rows.some((row) => row.length !== columns.length)) throw new Error("Bulk insert row width mismatch");
   return chunkRows(rows, columns.length).map((chunk) => {
     const placeholders = chunk.map(() => `(${columns.map(() => "?").join(", ")})`).join(", ");
