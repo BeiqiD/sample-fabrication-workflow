@@ -14,6 +14,7 @@ function step(overrides: Partial<RunStep> = {}): RunStep {
 
 describe("sample run deviations", () => {
   it("keeps an unchanged snapshot unmarked", () => expect(runStepIsModified(step())).toBe(false));
+  it("keeps an execution comment separate from recipe changes", () => expect(runStepIsModified(step({ notes: "Process completed normally" }))).toBe(false));
   it("marks changed actual parameters", () => expect(runStepIsModified(step({ parametersText: "12 s" }))).toBe(true));
   it("always marks ad hoc steps", () => expect(runStepIsModified(step({ origin: "ad_hoc", plannedTitle: null }))).toBe(true));
 });
