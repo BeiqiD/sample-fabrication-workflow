@@ -25,7 +25,7 @@ export function HomePage() {
   return <div className="page narrow-page">
     <div className="page-heading">
       <div><p className="eyebrow">Workspace</p><h1>Samples</h1></div>
-      <Link className="button primary" to="/samples/new">New sample</Link>
+      <div className="header-actions"><Link className="button" to="/samples/new">New sample</Link><Link className="button primary" to="/entry">Record information</Link></div>
     </div>
     <label className="search-box">
       <span>Search</span>

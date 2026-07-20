@@ -79,7 +79,7 @@ export function SamplePage() {
     <Link className="back-link" to="/">← Samples</Link>
     <div className="sample-header">
       <div><p className="eyebrow">{sample.code}</p><h1>{sample.title}</h1><p className="lead">{sample.description || "No description"}</p></div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/new?parentId=${encodeURIComponent(sample.id)}`}>Create child</Link><button className="button" disabled={exporting} onClick={() => {
+      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button primary" to={`/entry?sampleId=${encodeURIComponent(sample.id)}`}>Record</Link><Link className="button" to={`/samples/new?parentId=${encodeURIComponent(sample.id)}`}>Create child</Link><button className="button" disabled={exporting} onClick={() => {
         setExporting(true);
         void exportSample(sample).catch((error: Error) => setError(error.message)).finally(() => setExporting(false));
       }}>{exporting ? "Exporting…" : "Export ZIP"}</button></div>

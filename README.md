@@ -12,6 +12,8 @@ A low-friction, event-based sample log for fabrication work. The app is a single
 6. Store each confirmed import as an immutable process, module, or recipe version.
 7. Export one sample or a full-system ZIP containing D1 data and private R2 assets.
 
+For repeated bench work, `/entry` provides a dedicated mobile-friendly recording screen: select the target sample, keep its code visible, and save a note/photo together with current status, location, and pinned state.
+
 See [MVP_SPEC.md](./MVP_SPEC.md) for scope, [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) for the data model, and [docs/FABUBLOX_IMPORT.md](./docs/FABUBLOX_IMPORT.md) for the workbook contract.
 
 ## Local development
