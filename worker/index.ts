@@ -161,15 +161,17 @@ app.get("/samples/:id", async (c) => {
     ).bind(id).all<{ run_step_id: string; role: "planned" | "execution"; r2_key: string }>(),
     c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
-              rsc.body, rsc.actor_email, rsc.created_at
+              rsc.body, ca.r2_key AS asset_key, rsc.actor_email, rsc.created_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
+       LEFT JOIN assets ca ON ca.id = rsc.asset_id AND ca.status = 'ready'
        WHERE r.sample_id = ?
        ORDER BY rsc.created_at, rsc.id`,
     ).bind(id).all<{
       id: string; run_step_id: string; scope: "common" | "individual";
-      operation_group_id: string | null; body: string; actor_email: string | null; created_at: string;
+      operation_group_id: string | null; body: string; asset_key: string | null;
+      actor_email: string | null; created_at: string;
     }>(),
   ]);
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
@@ -184,7 +186,7 @@ app.get("/samples/:id", async (c) => {
   const stepAssets = new Map<string, { planned: string[]; execution: string[] }>();
   const stepComments = new Map<string, Array<{
     id: string; scope: "common" | "individual"; operationGroupId: string | null;
-    body: string; actorEmail: string | null; createdAt: string;
+    body: string; assetKey: string | null; actorEmail: string | null; createdAt: string;
   }>>();
   for (const row of runAssetRows.results) {
     const entry = stepAssets.get(row.run_step_id) ?? { planned: [], execution: [] };
@@ -198,6 +200,7 @@ app.get("/samples/:id", async (c) => {
       scope: row.scope,
       operationGroupId: row.operation_group_id,
       body: row.body,
+      assetKey: row.asset_key,
       actorEmail: row.actor_email,
       createdAt: row.created_at,
     });
@@ -517,11 +520,13 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
 app.post("/run-step-comments", async (c) => {
   const input = await c.req.json<CreateRunStepCommentsInput>();
   if (!input || !["common", "individual"].includes(input.scope)
-    || typeof input.body !== "string" || !validRunStepTargets(input.targets)) {
+    || typeof input.body !== "string" || !validRunStepTargets(input.targets)
+    || (input.assetKey !== undefined && typeof input.assetKey !== "string")) {
     throw new HTTPException(400, { message: "A valid comment and 1–12 step targets are required" });
   }
   const body = input.body.trim();
-  if (!body) throw new HTTPException(400, { message: "Comment cannot be empty" });
+  const assetKey = input.assetKey?.trim() || null;
+  if (!body && !assetKey) throw new HTTPException(400, { message: "Comment text or an image is required" });
   if (body.length > 10_000) throw new HTTPException(400, { message: "Comment is too long" });
   if (input.scope === "individual" && input.targets.length !== 1) {
     throw new HTTPException(400, { message: "An individual comment must target one sample step" });
@@ -529,16 +534,20 @@ app.post("/run-step-comments", async (c) => {
 
   const values = input.targets.map(() => "(?, ?, ?)").join(", ");
   const bindings = input.targets.flatMap((target) => [target.sampleId, target.runId, target.stepId]);
-  const matched = await c.env.DB.prepare(
+  const [matched, commentAsset] = await Promise.all([c.env.DB.prepare(
     `WITH requested(sample_id, run_id, step_id) AS (VALUES ${values})
      SELECT q.sample_id, q.run_id, q.step_id
      FROM requested q
      JOIN runs r ON r.id = q.run_id AND r.sample_id = q.sample_id
      JOIN run_steps rs ON rs.id = q.step_id AND rs.run_id = q.run_id`,
-  ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>();
+  ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>(),
+  assetKey ? c.env.DB.prepare(
+    "SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?",
+  ).bind(assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null)]);
   if (matched.results.length !== input.targets.length) {
     throw new HTTPException(404, { message: "One or more sample steps were not found" });
   }
+  if (assetKey && !commentAsset) throw new HTTPException(400, { message: "The uploaded comment image is unavailable" });
 
   const operationGroupId = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -546,22 +555,23 @@ app.post("/run-step-comments", async (c) => {
   const sampleIds = [...new Set(input.targets.map((target) => target.sampleId))];
   const statements: D1PreparedStatement[] = input.targets.map((target) => c.env.DB.prepare(
     `INSERT INTO run_step_comments
-       (id, run_step_id, scope, operation_group_id, body, actor_email, created_at)
-     SELECT ?, rs.id, ?, ?, ?, ?, ?
+       (id, run_step_id, scope, operation_group_id, body, asset_id, actor_email, created_at)
+     SELECT ?, rs.id, ?, ?, ?, ?, ?, ?
      FROM run_steps rs JOIN runs r ON r.id = rs.run_id
      WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?`,
   ).bind(
-    crypto.randomUUID(), input.scope, operationGroupId, body, userEmail, now,
+    crypto.randomUUID(), input.scope, operationGroupId, body, commentAsset?.id ?? null, userEmail, now,
     target.stepId, target.runId, target.sampleId,
   ));
   for (const sampleId of sampleIds) {
     const stepIds = input.targets.filter((target) => target.sampleId === sampleId).map((target) => target.stepId);
     statements.push(c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
+       VALUES (?, ?, 'step', ?, ?, ?, ?, ?)`,
     ).bind(
       crypto.randomUUID(), sampleId,
-      input.scope === "common" ? `Common step comment: ${body}` : `Step comment: ${body}`,
+      input.scope === "common" ? `Common step comment: ${body || "Image attached"}` : `Step comment: ${body || "Image attached"}`,
+      commentAsset?.r2_key ?? null,
       JSON.stringify({ action: "step_comment", scope: input.scope, operationGroupId, stepIds }),
       userEmail, now,
     ));
