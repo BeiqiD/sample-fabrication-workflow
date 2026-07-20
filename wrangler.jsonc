@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "sample-management-system",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-07-20",
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "samples"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS"
+    }
+  ]
+}
