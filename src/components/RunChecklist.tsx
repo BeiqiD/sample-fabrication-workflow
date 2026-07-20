@@ -65,6 +65,7 @@ function StepEditor({ sampleId, runId, step, displayIndex, onSaved }: { sampleId
   const [editing, setEditing] = useState(false);
   const [addingAfter, setAddingAfter] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [quickSaving, setQuickSaving] = useState<"status" | "comment" | null>(null);
   const [error, setError] = useState("");
   const pendingUploadRef = useRef<{ signature: string; assetKey?: string } | null>(null);
 
@@ -94,20 +95,52 @@ function StepEditor({ sampleId, runId, step, displayIndex, onSaved }: { sampleId
     finally { setSaving(false); }
   }
 
+  async function saveQuickAction(action: "status" | "comment", nextStatus: StepStatus) {
+    setQuickSaving(action); setError("");
+    try {
+      await api.updateRunStep(sampleId, runId, step.id, {
+        status: nextStatus,
+        title: step.title,
+        toolName: step.toolName || "",
+        parametersText: step.parametersText || "",
+        commentsText: step.commentsText || "",
+        deviationNote: step.deviationNote || "",
+        notes,
+        expectedUpdatedAt: step.updatedAt,
+      });
+      await onSaved();
+    } catch (error) { setError((error as Error).message); }
+    finally { setQuickSaving(null); }
+  }
+
   const modified = runStepIsModified(step);
+  const isTemplateStep = step.origin === "template";
+  const commentChanged = notes.trim() !== (step.notes || "").trim();
   return <li className="run-step">
     <div className="run-step-head">
       <span className="step-index">{displayIndex + 1}</span>
-      <div><div className="step-title-line"><strong>{step.title}</strong>{step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{modified && step.origin === "template" && <span className="change-badge">Modified</span>}</div>{step.toolName && <small>{step.toolName}</small>}</div>
+      <div><div className="step-title-line"><strong>{isTemplateStep ? step.plannedTitle || step.title : step.title}</strong>{step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{modified && isTemplateStep && <span className="change-badge">Modified</span>}</div>{(isTemplateStep ? step.plannedToolName : step.toolName) && <small>{isTemplateStep ? step.plannedToolName : step.toolName}</small>}</div>
       <StatusPill status={step.status} />
     </div>
 
     <div className="step-content-grid">
-      <div>{step.parametersText && <><h4>Actual parameters</h4><p>{step.parametersText}</p></>}{step.commentsText && <><h4>Instructions / comments</h4><p>{step.commentsText}</p></>}{step.notes && <><h4>Execution note</h4><p>{step.notes}</p></>}{step.deviationNote && <p className="deviation-note"><strong>Deviation:</strong> {step.deviationNote}</p>}</div>
-      <div><DiagramGallery keys={step.plannedImageKeys} label={`Planned diagram for ${step.title}`} /><DiagramGallery keys={step.executionImageKeys} label={`Execution diagram for ${step.title}`} /></div>
+      <div>
+        <p className="step-content-label">{isTemplateStep ? "Assigned recipe" : "Ad hoc step"}</p>
+        {(isTemplateStep ? step.plannedParametersText : step.parametersText) && <><h4>Parameters</h4><p>{isTemplateStep ? step.plannedParametersText : step.parametersText}</p></>}
+        {(isTemplateStep ? step.plannedCommentsText : step.commentsText) && <><h4>{isTemplateStep ? "Recipe comment" : "Instructions"}</h4><p>{isTemplateStep ? step.plannedCommentsText : step.commentsText}</p></>}
+        {!(isTemplateStep ? step.plannedParametersText || step.plannedCommentsText : step.parametersText || step.commentsText) && <p className="muted">No parameters or instructions.</p>}
+      </div>
+      <div>{isTemplateStep && <DiagramGallery keys={step.plannedImageKeys} label={`Recipe diagram for ${step.plannedTitle || step.title}`} />}</div>
     </div>
 
-    {modified && step.origin === "template" && <details className="planned-comparison"><summary>Compare with assigned plan</summary><dl><dt>Step</dt><dd>{step.plannedTitle || "—"}</dd><dt>Tool</dt><dd>{step.plannedToolName || "—"}</dd><dt>Parameters</dt><dd>{step.plannedParametersText || "—"}</dd><dt>Comments</dt><dd>{step.plannedCommentsText || "—"}</dd></dl></details>}
+    {modified && isTemplateStep && <div className="actual-step-content"><p className="step-content-label">Actual changes</p><dl><dt>Step</dt><dd>{step.title}</dd><dt>Tool</dt><dd>{step.toolName || "—"}</dd><dt>Parameters</dt><dd>{step.parametersText || "—"}</dd><dt>Instructions</dt><dd>{step.commentsText || "—"}</dd></dl>{step.deviationNote && <p className="deviation-note"><strong>Deviation:</strong> {step.deviationNote}</p>}</div>}
+    {step.executionImageKeys.length > 0 && <div className="execution-diagrams"><p className="step-content-label">Execution diagrams</p><DiagramGallery keys={step.executionImageKeys} label={`Execution diagram for ${step.title}`} /></div>}
+
+    <div className="inline-execution">
+      <div className="inline-execution-heading"><div><strong>Execution</strong><small>Recorded separately from the assigned recipe.</small></div><button type="button" className={`button${step.status === "done" ? "" : " primary"}`} disabled={quickSaving !== null} onClick={() => void saveQuickAction("status", step.status === "done" ? "pending" : "done")}>{quickSaving === "status" ? "Saving…" : step.status === "done" ? "Reopen step" : "Mark as done"}</button></div>
+      <label>Comment<textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Add an observation even when the recipe was followed exactly…" /></label>
+      <div className="inline-comment-actions"><small>Marking the step as done also saves the current comment.</small><button type="button" className="button" disabled={quickSaving !== null || !commentChanged} onClick={() => void saveQuickAction("comment", step.status)}>{quickSaving === "comment" ? "Saving…" : "Save comment"}</button></div>
+    </div>
 
     <div className="step-actions"><button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Close editor" : "Edit actual step"}</button><button type="button" className="text-button" onClick={() => setAddingAfter((value) => !value)}>{addingAfter ? "Cancel insertion" : "Add step after"}</button></div>
 
@@ -115,9 +148,8 @@ function StepEditor({ sampleId, runId, step, displayIndex, onSaved }: { sampleId
       <div className="step-field-row"><label>Status<select value={status} onChange={(event) => setStatus(event.target.value as StepStatus)}>{STATUSES.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select></label><label>Step name<input value={title} onChange={(event) => setTitle(event.target.value)} /></label></div>
       <label>Tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} /></label>
       <label>Actual parameters<textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} /></label>
-      <label>Instructions or comments<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} /></label>
+      <label>Actual instructions<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} /></label>
       <label>Deviation from assigned plan<textarea rows={2} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} placeholder="Explain why the actual process differs" /></label>
-      <label>Execution note<textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
       <FileDropzone compact accept="image/*" file={image} onFile={(file) => { pendingUploadRef.current = null; setImage(file); }} label="Drop an execution diagram" />
       <button type="button" className="button primary" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save actual step"}</button>
     </div>}
