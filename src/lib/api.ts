@@ -28,6 +28,9 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
+  deleteSampleRecord: (sampleId: string, eventId: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/records/${eventId}`, {
+    method: "DELETE",
+  }),
   assignTemplate: (sampleId: string, templateVersionId: string) => request<{ id: string }>(`/samples/${sampleId}/runs`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -53,6 +56,9 @@ export const api = {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
+  }),
+  deleteRunStepComment: (commentId: string) => request<{ ok: true; deleted: number }>(`/run-step-comments/${commentId}`, {
+    method: "DELETE",
   }),
   confirmRunSteps: (input: ConfirmRunStepsInput) => request<{ ok: true; confirmed: number }>("/run-steps/confirm", {
     method: "POST",

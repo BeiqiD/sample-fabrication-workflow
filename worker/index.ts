@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, RunStepTarget, SampleStatus, StepStatus, UpdateRunStepInput, UpdateSampleInput } from "../shared/types";
 import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
+import { isSampleRecordEvent } from "../shared/sample-records";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
 import { collectExportAssetKeys } from "./export-data";
 import { authenticateRequest } from "./auth";
@@ -446,12 +447,42 @@ app.post("/samples/:id/records", async (c) => {
      SELECT ?, id, ?, ?, ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
   ).bind(
     crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey,
-    JSON.stringify(thumbnailKey ? { thumbnailKey } : {}), userEmail, now, sampleId, mutationId,
+    JSON.stringify({ action: "sample_record", ...(thumbnailKey ? { thumbnailKey } : {}) }), userEmail, now, sampleId, mutationId,
   ));
   const results = await c.env.DB.batch(statements);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This sample changed elsewhere. Review the current state and save again." });
   if (statements.length > 1 && !results[1].meta.changes) throw new Error("Atomic record event was not created");
   return c.json({ ok: true, updatedAt: now }, 201);
+});
+
+app.delete("/samples/:id/records/:eventId", async (c) => {
+  const sampleId = c.req.param("id");
+  const eventId = c.req.param("eventId");
+  const event = await c.env.DB.prepare(
+    "SELECT id, kind, metadata_json FROM events WHERE id = ? AND sample_id = ?",
+  ).bind(eventId, sampleId).first<{ id: string; kind: string; metadata_json: string }>();
+  if (!event) throw new HTTPException(404, { message: "Sample record not found" });
+  let metadata: Record<string, unknown> = {};
+  try { metadata = JSON.parse(event.metadata_json || "{}") as Record<string, unknown>; }
+  catch { throw new HTTPException(409, { message: "This record cannot be safely deleted" }); }
+  if (!isSampleRecordEvent(event.kind, metadata)) throw new HTTPException(400, { message: "Execution history cannot be deleted as a sample comment" });
+
+  const sample = await c.env.DB.prepare(
+    "SELECT updated_at FROM samples WHERE id = ?",
+  ).bind(sampleId).first<{ updated_at: string }>();
+  if (!sample) throw new HTTPException(404, { message: "Sample not found" });
+  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "DELETE FROM events WHERE id = ? AND sample_id = ?",
+    ).bind(eventId, sampleId),
+    c.env.DB.prepare(
+      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
+    ).bind(userEmail, now, sampleId),
+  ]);
+  if (!results[0].meta.changes) throw new HTTPException(409, { message: "The sample record was already deleted" });
+  return c.json({ ok: true, updatedAt: now });
 });
 
 app.post("/samples/:id/runs", async (c) => {
@@ -876,6 +907,71 @@ app.post("/run-step-comments", async (c) => {
     throw new HTTPException(409, { message: "One or more sample steps changed before the comment was saved" });
   }
   return c.json({ ok: true, operationGroupId }, 201);
+});
+
+app.delete("/run-step-comments/:id", async (c) => {
+  const commentId = c.req.param("id");
+  const comment = await c.env.DB.prepare(
+    `SELECT rsc.id, rsc.scope, rsc.operation_group_id
+     FROM run_step_comments rsc
+     JOIN run_steps rs ON rs.id = rsc.run_step_id
+     JOIN runs r ON r.id = rs.run_id
+     WHERE rsc.id = ?`,
+  ).bind(commentId).first<{
+    id: string; scope: "common" | "individual"; operation_group_id: string | null;
+  }>();
+  if (!comment) throw new HTTPException(404, { message: "Step comment not found" });
+
+  const removeCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
+  const targets = removeCommonGroup
+    ? await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?`,
+    ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; sample_id: string; updated_at: string; sample_updated_at: string }>()
+    : await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       WHERE rsc.id = ?`,
+    ).bind(comment.id).all<{ id: string; run_step_id: string; sample_id: string; updated_at: string; sample_updated_at: string }>();
+  if (!targets.results.length) throw new HTTPException(404, { message: "Step comment not found" });
+
+  const latestUpdate = Math.max(...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map((value) => Date.parse(value)).filter(Number.isFinite));
+  const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
+  const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id IN (${stepIds.map(() => "?").join(", ")})`,
+    ).bind(userEmail, now, ...stepIds),
+    removeCommonGroup
+      ? c.env.DB.prepare(
+        "DELETE FROM run_step_comments WHERE scope = 'common' AND operation_group_id = ?",
+      ).bind(comment.operation_group_id)
+      : c.env.DB.prepare("DELETE FROM run_step_comments WHERE id = ?").bind(comment.id),
+  ];
+  if (comment.operation_group_id) statements.push(c.env.DB.prepare(
+    `DELETE FROM events
+     WHERE kind = 'step' AND json_valid(metadata_json)
+       AND json_extract(metadata_json, '$.action') = 'step_comment'
+       AND json_extract(metadata_json, '$.operationGroupId') = ?`,
+  ).bind(comment.operation_group_id));
+  for (const sampleId of sampleIds) statements.push(c.env.DB.prepare(
+    "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
+  ).bind(userEmail, now, sampleId));
+
+  const results = await c.env.DB.batch(statements);
+  const deleted = results[1].meta.changes ?? 0;
+  if (!deleted) throw new HTTPException(409, { message: "The comment was already deleted" });
+  return c.json({ ok: true, deleted });
 });
 
 app.post("/run-steps/confirm", async (c) => {

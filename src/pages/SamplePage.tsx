@@ -1,6 +1,8 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import type { PlanUpdatePreview, SampleDetail, SampleStatus, SampleSummary } from "../../shared/types";
+import { isSampleRecordEvent } from "../../shared/sample-records";
+import type { PlanUpdatePreview, SampleDetail, SampleEvent, SampleStatus, SampleSummary } from "../../shared/types";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { StatusPill } from "../components/StatusPill";
@@ -27,6 +29,9 @@ export function SamplePage() {
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
   const [commentImage, setCommentImage] = useState<File | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<SampleEvent | null>(null);
+  const [recordDeleteError, setRecordDeleteError] = useState("");
+  const [deletingRecord, setDeletingRecord] = useState(false);
   const [showSamplePicker, setShowSamplePicker] = useState(false);
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
@@ -132,6 +137,17 @@ export function SamplePage() {
     finally { setSaving(false); }
   }
 
+  async function deleteRecord() {
+    if (!sample || !recordToDelete) return;
+    setDeletingRecord(true); setRecordDeleteError("");
+    try {
+      await api.deleteSampleRecord(sample.id, recordToDelete.id);
+      setRecordToDelete(null);
+      await load();
+    } catch (error) { setRecordDeleteError((error as Error).message); }
+    finally { setDeletingRecord(false); }
+  }
+
   async function updateDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!sample) return;
@@ -206,10 +222,19 @@ export function SamplePage() {
         <div className="timeline">
           {sample.events.map((event) => <article className="event" key={event.id}>
             <div className="event-dot" />
-            <div className="event-content"><div className="event-meta"><span>{event.kind}{event.actorEmail ? ` · ${event.actorEmail}` : ""}</span><time>{new Date(event.createdAt).toLocaleString()}</time></div>{event.body && <p>{event.body}</p>}{event.assetKey && <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${typeof event.metadata.thumbnailKey === "string" ? event.metadata.thumbnailKey : event.assetKey}`} alt={event.body || "Sample record"} loading="lazy" /></a>}</div>
+            <div className="event-content"><div className="event-meta"><span>{event.kind}{event.actorEmail ? ` · ${event.actorEmail}` : ""}</span><div><time>{new Date(event.createdAt).toLocaleString()}</time>{isSampleRecordEvent(event.kind, event.metadata) && <button type="button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(event); }}>Delete</button>}</div></div>{event.body && <p>{event.body}</p>}{event.assetKey && <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${typeof event.metadata.thumbnailKey === "string" ? event.metadata.thumbnailKey : event.assetKey}`} alt={event.body || "Sample record"} loading="lazy" /></a>}</div>
           </article>)}
         </div>
       </section>
     </div>
+    {recordToDelete && <ConfirmDeleteDialog
+      title="Remove this sample record?"
+      description="This global comment or photo will be removed from the sample timeline."
+      summary={recordToDelete.body?.trim() || (recordToDelete.assetKey ? "Photo record" : "Empty record")}
+      deleting={deletingRecord}
+      error={recordDeleteError}
+      onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }}
+      onConfirm={() => void deleteRecord()}
+    />}
   </div>;
 }

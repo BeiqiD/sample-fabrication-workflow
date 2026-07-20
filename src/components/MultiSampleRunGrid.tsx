@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { compressCommentImage, compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
 import { runStepIsModified } from "../lib/runSteps";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { FileDropzone } from "./FileDropzone";
 
 const STATUSES: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
@@ -12,6 +13,11 @@ type DrawerState =
   | { mode: "edit"; column: RunGridColumn; step: RunStep }
   | { mode: "add"; column: RunGridColumn; afterStepId?: string }
   | null;
+
+type DeleteCommentRequest = {
+  comment: RunStepComment;
+  common: boolean;
+};
 
 function target(column: RunGridColumn, step: RunStep) {
   if (!column.run) throw new Error("This sample has no matching run");
@@ -25,31 +31,107 @@ function target(column: RunGridColumn, step: RunStep) {
 
 function DiagramGallery({ keys, label }: { keys: string[]; label: string }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
+
+  function setImageZoom(nextZoom: number) {
+    const limited = Math.min(5, Math.max(1, nextZoom));
+    setZoom(limited);
+    if (limited === 1) setPan({ x: 0, y: 0 });
+  }
+
   useEffect(() => {
     if (activeIndex === null) return;
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setActiveIndex(null);
       if (event.key === "ArrowLeft") setActiveIndex((current) => current === null ? null : (current - 1 + keys.length) % keys.length);
       if (event.key === "ArrowRight") setActiveIndex((current) => current === null ? null : (current + 1) % keys.length);
+      if (["+", "="].includes(event.key)) { event.preventDefault(); setZoom((current) => Math.min(5, current + .25)); }
+      if (event.key === "-") { event.preventDefault(); setZoom((current) => Math.max(1, current - .25)); }
+      if (event.key === "0") { setZoom(1); setPan({ x: 0, y: 0 }); }
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [activeIndex, keys.length]);
   if (!keys.length) return null;
   return <>
-    <div className="grid-diagrams" role="list">{keys.map((key, index) => <button type="button" key={key} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}><img src={`/api/assets/${key}`} alt={label} loading="lazy" /></button>)}</div>
+    <div className="grid-diagrams" role="list">{keys.map((key, index) => <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}><img src={`/api/assets/${key}`} alt={label} loading="lazy" /></button>)}</div>
     {activeIndex !== null && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
-      <div className="image-lightbox-toolbar"><span>{activeIndex + 1} / {keys.length}</span><a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Open original</a><button type="button" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button></div>
-      <img src={`/api/assets/${keys[activeIndex]}`} alt={`${label} ${activeIndex + 1}`} />
+      <div className="image-lightbox-toolbar">
+        <span>{activeIndex + 1} / {keys.length}</span>
+        <div className="image-zoom-controls" aria-label="Image zoom controls">
+          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
+          <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Fit image to window">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
+        </div>
+        <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
+        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button>
+      </div>
+      <div
+        className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
+        onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
+        onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
+        onPointerDown={(event) => {
+          if (zoom === 1) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
+        }}
+        onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
+        onPointerCancel={() => { dragRef.current = null; }}
+        onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}
+      >
+        <img
+          src={`/api/assets/${keys[activeIndex]}`}
+          alt={`${label} ${activeIndex + 1}`}
+          draggable={false}
+          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
+        />
+      </div>
       {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
     </div>}
   </>;
 }
 
-function CommentList({ comments }: { comments: RunStepComment[] }) {
+function CommentCard({ comment, meta, imageLabel, onDelete, common = false }: {
+  comment: RunStepComment;
+  meta: string;
+  imageLabel: string;
+  onDelete: () => void;
+  common?: boolean;
+}) {
+  return <div className={`cell-comment${common ? " common-comment" : ""}`}>
+    <div className="comment-card-content">
+      <div className="comment-card-copy">{comment.body && <p>{comment.body}</p>}<small>{meta}</small></div>
+      {comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label={imageLabel} /></div>}
+    </div>
+    <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>
+  </div>;
+}
+
+function CommentList({ comments, onDelete }: { comments: RunStepComment[]; onDelete: (comment: RunStepComment) => void }) {
   if (!comments.length) return null;
-  const imageKeys = comments.flatMap((comment) => comment.assetKey ? [comment.assetKey] : []);
-  return <div className="comment-history"><div className="cell-comments">{comments.map((comment) => <div key={comment.id} className="cell-comment">{comment.body && <p>{comment.body}</p>}<small>{comment.assetKey ? "Photo · " : ""}{comment.actorEmail || "Unknown user"} · {new Date(comment.createdAt).toLocaleString()}</small></div>)}</div>{imageKeys.length > 0 && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys} label="Comment photo" /></div>}</div>;
+  return <div className="comment-history"><div className="cell-comments">{comments.map((comment) => <CommentCard
+    key={comment.id}
+    comment={comment}
+    meta={`${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
+    imageLabel="Comment photo"
+    onDelete={() => onDelete(comment)}
+  />)}</div></div>;
 }
 
 function ActualDifferences({ step }: { step: RunStep }) {
@@ -148,6 +230,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
   const [selected, setSelected] = useState(() => new Set(columns.filter((column) => column.run).map((column) => column.sample.id)));
   const [commonCommentRow, setCommonCommentRow] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
+  const [deleteRequest, setDeleteRequest] = useState<DeleteCommentRequest | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [scrollState, setScrollState] = useState({ overflow: false, left: false, right: false });
@@ -185,6 +269,15 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     });
   }
 
+  function scrollColumns(direction: -1 | 1) {
+    const node = scroller.current;
+    const sampleHeader = node?.querySelector<HTMLElement>(".sample-column-header");
+    if (!node || !sampleHeader) return;
+    const columnWidth = sampleHeader.getBoundingClientRect().width;
+    const nextColumn = Math.round(node.scrollLeft / columnWidth) + direction;
+    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: "smooth" });
+  }
+
   async function confirmSteps(rowKey: string, entries: Array<{ column: RunGridColumn; step: RunStep }>) {
     const eligible = entries.filter(({ column, step }) => selected.has(column.sample.id) && ["pending", "in_progress"].includes(step.status));
     if (!eligible.length) return;
@@ -212,6 +305,18 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
       await onSaved();
       return true;
     } catch (error) { setError((error as Error).message); return false; }
+    finally { setPendingAction(null); }
+  }
+
+  async function deleteComment() {
+    if (!deleteRequest) return;
+    const actionKey = `delete:${deleteRequest.comment.id}`;
+    setPendingAction(actionKey); setDeleteError(""); setError("");
+    try {
+      await api.deleteRunStepComment(deleteRequest.comment.id);
+      setDeleteRequest(null);
+      await onSaved();
+    } catch (error) { setDeleteError((error as Error).message); }
     finally { setPendingAction(null); }
   }
 
@@ -252,7 +357,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
   return <article className={`run-grid-card ${layoutClass}`}>
     <div className="run-grid-toolbar">
       <div><p className="eyebrow">{primaryRun.templateType} · run {primaryRun.sequenceNo} · plan r{primaryRun.planRevisionNumber}</p><h2>{primaryRun.templateName} v{primaryRun.templateVersion}</h2><small>{primaryRun.status === "active" ? "Recipe on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
-      <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scroller.current?.scrollBy({ left: -340, behavior: "smooth" })} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scroller.current?.scrollBy({ left: 340, behavior: "smooth" })} aria-label="Scroll sample columns right">→</button>}</div>
+      <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
     </div>
     {error && <p className="error-banner grid-error">{error}</p>}
     <div className="run-grid-scroll" ref={scroller}>
@@ -278,7 +383,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
               return <div className={`sample-step-cell${step ? ` ad-hoc-cell step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ comment, common: false }); }} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -295,14 +400,21 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             <div className="recipe-cell recipe-column">
               <div className="recipe-step-heading"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} />}</div>
-              {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <div key={comment.operationGroupId || comment.id}>{comment.body && <p>{comment.body}</p>}{comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label="Common comment photo" /></div>}<span>{codes.join(", ")} · {new Date(comment.createdAt).toLocaleString()}</span></div>)}</div>}
-              <div className="recipe-actions"><button type="button" className="button primary compact-button" disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}>{pendingAction === `confirm:${row.key}` ? "Confirming…" : `Confirm ${eligibleCount || ""} done`.replace("  ", " ")}</button><button type="button" className="button compact-button" disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}>Common comment</button></div>
+              {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
+                key={comment.operationGroupId || comment.id}
+                comment={comment}
+                common
+                meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
+                imageLabel="Common comment photo"
+                onDelete={() => { setDeleteError(""); setDeleteRequest({ comment, common: true }); }}
+              />)}</div>}
+              <div className="recipe-actions"><button type="button" className="button primary compact-button" title={`Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}>{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</button><button type="button" className="button compact-button" disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}>Comment</button></div>
               {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body, image) => addComment("common", entries, body, image, `common:${row.key}`)} />}
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
               return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ comment, common: false }); }} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -310,6 +422,15 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
       </div>
     </div>
     {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={onSaved} />}
+    {deleteRequest && <ConfirmDeleteDialog
+      title="Remove this comment?"
+      description={deleteRequest.common ? "This common comment will be removed from every sample included when it was added." : "This comment will be removed from this sample step."}
+      summary={deleteRequest.comment.body.trim() || (deleteRequest.comment.assetKey ? "Photo comment" : "Empty comment")}
+      deleting={pendingAction === `delete:${deleteRequest.comment.id}`}
+      error={deleteError}
+      onCancel={() => { setDeleteRequest(null); setDeleteError(""); }}
+      onConfirm={() => void deleteComment()}
+    />}
   </article>;
 }
 
@@ -320,6 +441,7 @@ function CommentComposer({ label, saving, onSave, onCancel }: { label: string; s
   const [imageError, setImageError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (!image) { setPreviewUrl(null); return; }
     const url = URL.createObjectURL(image);
@@ -333,39 +455,48 @@ function CommentComposer({ label, saving, onSave, onCancel }: { label: string; s
     setImageError(""); setImage(file);
   }
 
-  return <form className={`grid-comment-composer${dragging ? " dragging" : ""}`} onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); chooseImage(event.dataTransfer.files[0]); }} onSubmit={(event) => { event.preventDefault(); void onSave(body, image).then((saved) => { if (saved) { setBody(""); setImage(null); } }); }}>
+  function resizeTextarea() {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(112, textarea.scrollHeight)}px`;
+  }
+
+  return <form className={`grid-comment-composer${dragging ? " dragging" : ""}`} onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); chooseImage(event.dataTransfer.files[0]); }} onSubmit={(event) => { event.preventDefault(); void onSave(body, image).then((saved) => { if (saved) { setBody(""); setImage(null); requestAnimationFrame(resizeTextarea); } }); }}>
     {dragging && <div className="comment-drop-overlay">Drop photo here</div>}
-    <textarea rows={2} aria-label={label} value={body} onChange={(event) => setBody(event.target.value)} onPaste={(event) => { const pastedImage = [...event.clipboardData.files].find((file) => file.type.startsWith("image/")); if (pastedImage) chooseImage(pastedImage); }} placeholder={`${label} — type, paste, or drop a photo…`} />
-    <div className="comment-composer-footer">
+    <div className="comment-composer-row">
+      <textarea ref={textareaRef} rows={1} aria-label={label} value={body} onInput={resizeTextarea} onChange={(event) => setBody(event.target.value)} onPaste={(event) => { const pastedImage = [...event.clipboardData.files].find((file) => file.type.startsWith("image/")); if (pastedImage) chooseImage(pastedImage); }} placeholder={onCancel ? "Add to checked samples…" : "Add a comment…"} />
       <input ref={inputRef} className="comment-file-input" type="file" accept="image/*" capture="environment" onChange={(event) => { chooseImage(event.target.files?.[0]); event.target.value = ""; }} />
-      {image && previewUrl ? <div className="pending-comment-image"><img src={previewUrl} alt="Pending comment attachment" /><span>{image.name}</span><button type="button" onClick={() => setImage(null)} aria-label="Remove attached photo">×</button></div> : <button type="button" className="comment-attach-button" onClick={() => inputRef.current?.click()} title="Attach a photo, or drop it anywhere in the comment box"><span>＋</span> Photo</button>}
-      <div className="comment-submit-actions">{onCancel && <button type="button" className="text-button" onClick={onCancel}>Cancel</button>}<button className="button primary compact-button" disabled={saving || (!body.trim() && !image)}>{saving ? "Saving…" : "Add"}</button></div>
+      {image && previewUrl ? <div className="pending-comment-image" title={image.name}><img src={previewUrl} alt="Pending comment attachment" /><button type="button" onClick={() => setImage(null)} aria-label="Remove attached photo">×</button></div> : <button type="button" className="comment-attach-button" onClick={() => inputRef.current?.click()} title="Attach a photo, or drop it anywhere in this comment"><span aria-hidden="true">＋</span><span className="visually-hidden">Attach photo</span></button>}
+      {onCancel && <button type="button" className="comment-cancel-button" onClick={onCancel} aria-label="Cancel common comment" title="Cancel">×</button>}
+      <button className="button primary compact-button comment-add-button" disabled={saving || (!body.trim() && !image)}>{saving ? "…" : "Add"}</button>
     </div>
     {imageError && <small className="comment-image-error">{imageError}</small>}
   </form>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment, onEdit, onAddAfter }: {
+function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment, onDeleteComment, onEdit, onAddAfter }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
-  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onEdit: () => void; onAddAfter: () => void;
+  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onDeleteComment: (comment: RunStepComment) => void; onEdit: () => void; onAddAfter: () => void;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
+  const [showStateActions, setShowStateActions] = useState(false);
   const busy = pendingAction !== null;
   return <>
-    <div className="cell-command-bar">
-      <div className="cell-actions">
-        {step.status !== "done" && <button type="button" className="done-action" disabled={busy} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>}
-        <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
-        <button type="button" disabled={busy || column.run?.status !== "active"} onClick={onAddAfter}>+ Step</button>
-        <details className="step-more-actions"><summary>{pendingAction === `verify:${step.id}` ? "Verifying…" : "More"}</summary><div><button type="button" disabled={busy} onClick={() => onVerify("matched")}>State verified</button><button type="button" disabled={busy} onClick={() => onVerify("mismatched")}>State mismatch</button></div></details>
-      </div>
-      {step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}
-      {step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "State verified" : "State mismatch"} · {step.stateVerification.coveredRunStepIds.length} covered</span>}
+    <div className="cell-status-row">
       <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}>{step.status === "done" ? "✓" : step.status === "in_progress" ? "↻" : step.status === "skipped" ? "—" : step.status === "blocked" ? "!" : "○"}</span><strong>{step.status.replace("_", " ")}</strong></div>
+      <div className="cell-badges">{step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "Verified" : "Mismatch"} · {step.stateVerification.coveredRunStepIds.length}</span>}</div>
     </div>
+    <div className="cell-actions">
+      <button type="button" className="done-action" disabled={busy || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
+      <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
+      <button type="button" disabled={busy || column.run?.status !== "active"} onClick={onAddAfter}>+ Step</button>
+      <button type="button" disabled={busy} aria-expanded={showStateActions} onClick={() => setShowStateActions((shown) => !shown)}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>
+    </div>
+    {showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
     {step.origin === "ad_hoc" && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} /></div>
-    <CommentList comments={individualComments} />
+    <CommentList comments={individualComments} onDelete={onDeleteComment} />
     <CommentComposer label="Individual comment" saving={pendingAction === `comment:${step.id}`} onSave={onSaveComment} />
   </>;
 }

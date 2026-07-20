@@ -36,7 +36,7 @@ export async function compressCommentImage(file: File): Promise<{ main: File; th
 export async function compressLayerStackImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 512 / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(bitmap.width * scale));
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -44,7 +44,7 @@ export async function compressLayerStackImage(file: File): Promise<File> {
   if (!context) { bitmap.close(); return file; }
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  const webp = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.55));
+  const webp = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.65));
   if (!webp || webp.size >= file.size) return file;
   return new File([webp], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp", lastModified: Date.now() });
 }
