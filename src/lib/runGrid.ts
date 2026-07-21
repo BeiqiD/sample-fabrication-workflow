@@ -7,9 +7,10 @@ export interface RunGridColumn {
 
 export interface RunGridRow {
   key: string;
-  kind: "template" | "ad_hoc";
   recipeStep: RunStep | null;
   steps: Array<RunStep | null>;
+  adHocBefore: Array<RunStep[]>;
+  adHocAfter: Array<RunStep[]>;
 }
 
 function orderedSteps(run: SampleRun | null) {
@@ -28,14 +29,15 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
 
   const templateRows = primaryTemplateSteps.map<RunGridRow>((recipeStep, recipeIndex) => ({
     key: `template:${recipeStep.logicalStepKey ?? recipeStep.templateStepId ?? recipeIndex}`,
-    kind: "template",
     recipeStep,
     steps: templateStepsByColumn.map((steps) => recipeStep.logicalStepKey
       ? steps.find((step) => step.logicalStepKey === recipeStep.logicalStepKey) ?? null
       : steps[recipeIndex] ?? null),
+    adHocBefore: Array.from({ length: columns.length }, (): RunStep[] => []),
+    adHocAfter: Array.from({ length: columns.length }, (): RunStep[] => []),
   }));
 
-  const adHocByAnchor = new Map<number, RunGridRow[]>();
+  const leadingAdHoc = Array.from({ length: columns.length }, (): RunStep[] => []);
   columns.forEach(({ run }, columnIndex) => {
     const steps = orderedSteps(run);
     let templateOrdinal = -1;
@@ -48,22 +50,11 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
           : templateOrdinal;
         continue;
       }
-      const rowSteps = Array.from<RunStep | null>({ length: columns.length }).fill(null);
-      rowSteps[columnIndex] = step;
-      const rows = adHocByAnchor.get(anchorIndex) ?? [];
-      rows.push({
-        key: `ad_hoc:${columnIndex}:${step.id}`,
-        kind: "ad_hoc",
-        recipeStep: null,
-        steps: rowSteps,
-      });
-      adHocByAnchor.set(anchorIndex, rows);
+      if (anchorIndex < 0) leadingAdHoc[columnIndex].push(step);
+      else templateRows[anchorIndex]?.adHocAfter[columnIndex].push(step);
     }
   });
 
-  const rows = [...(adHocByAnchor.get(-1) ?? [])];
-  templateRows.forEach((row, index) => {
-    rows.push(row, ...(adHocByAnchor.get(index) ?? []));
-  });
-  return rows;
+  if (templateRows[0]) templateRows[0].adHocBefore = leadingAdHoc;
+  return templateRows;
 }
