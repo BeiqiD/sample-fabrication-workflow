@@ -47,8 +47,6 @@ The Worker hashes every received workbook, image, normalized recipe step, expect
 
 ## Deploy
 
-Production is served at [samples.run](https://samples.run) as a custom domain of the existing `sample-management-system` Worker. The committed configuration disables both the ordinary `workers.dev` endpoint and version preview URLs. Production also requires a Cloudflare Access application covering `samples.run`, plus `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` Worker secrets.
-
 Follow [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md), then run:
 
 ```bash
