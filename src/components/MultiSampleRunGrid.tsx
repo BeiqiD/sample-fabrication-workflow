@@ -30,7 +30,15 @@ function target(column: RunGridColumn, step: RunStep) {
   };
 }
 
-function DiagramGallery({ keys, label }: { keys: string[]; label: string }) {
+type GalleryKind = "diagram" | "photo";
+type GallerySize = "compact" | "wide";
+
+function DiagramGallery({ keys, label, kind = "diagram", size = "compact" }: {
+  keys: string[];
+  label: string;
+  kind?: GalleryKind;
+  size?: GallerySize;
+}) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -65,46 +73,47 @@ function DiagramGallery({ keys, label }: { keys: string[]; label: string }) {
     };
   }, [activeIndex, keys.length]);
   if (!keys.length) return null;
-  const lightbox = activeIndex === null ? null : createPortal(<div className="image-lightbox" role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
-    <div className="image-lightbox-toolbar">
-      <span>{activeIndex + 1} / {keys.length}</span>
-      <div className="image-zoom-controls" aria-label="Image zoom controls">
-        <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
-        <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Fit image to window">{Math.round(zoom * 100)}%</button>
-        <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
+  const lightbox = activeIndex === null ? null : createPortal(<div className={`image-lightbox ${kind}-lightbox`} role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
+    <div className="image-lightbox-panel">
+      <div className="image-lightbox-toolbar">
+        <span className="image-lightbox-caption"><strong>{label}</strong><small>{activeIndex + 1} / {keys.length}</small></span>
+        <div className="image-zoom-controls" aria-label="Image zoom controls">
+          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
+          <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Reset image zoom">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
+        </div>
+        <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
+        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button>
       </div>
-      <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
-      <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button>
+      <div
+        className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
+        onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
+        onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
+        onPointerDown={(event) => {
+          if (zoom === 1) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
+        }}
+        onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
+        onPointerCancel={() => { dragRef.current = null; }}
+      >
+        <img
+          src={`/api/assets/${keys[activeIndex]}`}
+          alt={`${label} ${activeIndex + 1}`}
+          draggable={false}
+          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
+        />
+      </div>
+      {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
     </div>
-    <div
-      className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
-      onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
-      onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
-      onPointerDown={(event) => {
-        if (zoom === 1) return;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
-      }}
-      onPointerMove={(event) => {
-        const drag = dragRef.current;
-        if (!drag || drag.pointerId !== event.pointerId) return;
-        setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
-      }}
-      onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
-      onPointerCancel={() => { dragRef.current = null; }}
-      onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}
-    >
-      <img
-        src={`/api/assets/${keys[activeIndex]}`}
-        alt={`${label} ${activeIndex + 1}`}
-        draggable={false}
-        style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
-      />
-    </div>
-    {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
   </div>, document.body);
   return <>
-    <div className="grid-diagrams" role="list">{keys.map((key, index) => <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}><img src={`/api/assets/${key}`} alt={label} loading="lazy" /></button>)}</div>
+    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails`} role="list">{keys.map((key, index) => <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}><img src={`/api/assets/${key}`} alt={label} loading="lazy" /></button>)}</div>
     {lightbox}
   </>;
 }
@@ -119,7 +128,7 @@ function CommentCard({ comment, meta, imageLabel, onDelete, common = false }: {
   return <div className={`cell-comment${common ? " common-comment" : ""}`}>
     <div className="comment-card-content">
       <div className="comment-card-copy">{comment.body && <p>{comment.body}</p>}<small>{meta}</small></div>
-      {comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label={imageLabel} /></div>}
+      {comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label={imageLabel} kind="photo" /></div>}
     </div>
     <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>
   </div>;
@@ -401,7 +410,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
             <div className="recipe-cell recipe-column">
               <div className="recipe-step-heading"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
-              <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} />}</div>
+              <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
                 key={comment.operationGroupId || comment.id}
                 comment={comment}
