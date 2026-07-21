@@ -334,6 +334,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .common-comments p { margin: 0 0 3px; white-space: pre-wrap; font-size: 12px; }
 .recipe-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; margin-top: 11px; }
 .recipe-actions .button { min-width: 0; padding-inline: 5px; white-space: nowrap; }
+.recipe-icon-action { gap: 5px; }
+.processing-action-icon { display: block; flex: 0 0 auto; }
 .compact-button { min-height: 34px; padding: 6px 10px; border-radius: 7px; font-size: 11px; }
 .sample-step-cell { display: flex; flex-direction: column; gap: 7px; border-top: 4px solid transparent; transition: background .16s, border-color .16s; }
 .sample-step-cell.step-status-pending { border-top-color: var(--neutral); background: var(--paper); }
@@ -621,14 +623,15 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .grid-scroll-buttons { justify-content: space-between; }
   .recipe-cell, .sample-step-cell { padding: 8px; }
   .recipe-step-heading-desktop, .recipe-desktop-details { display: none; }
-  .recipe-details-trigger { position: relative; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 10px; gap: 6px 4px; padding: 0; border: 0; color: var(--ink); background: transparent; text-align: left; }
-  .recipe-details-trigger > strong { grid-column: 1 / -1; min-width: 0; overflow-wrap: break-word; word-break: normal; font-size: 11px; line-height: 1.32; }
-  .recipe-details-trigger > .recipe-details-meta { width: auto; height: auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px; border-radius: 0; color: inherit; background: transparent; }
-  .recipe-details-meta > span { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); font: 700 9px ui-monospace, monospace; }
-  .recipe-details-trigger small { width: fit-content; padding: 2px 5px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: 8px; line-height: 1.25; white-space: nowrap; }
-  .recipe-details-trigger > b { align-self: center; color: var(--muted); font-size: 16px; font-weight: 400; }
+  .recipe-details-trigger { position: relative; width: 100%; display: grid; grid-template-columns: 20px minmax(0, 1fr) 14px; gap: 6px; align-items: start; padding: 0; border: 0; color: var(--ink); background: transparent; text-align: left; }
+  .recipe-details-trigger > .recipe-step-number { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); font: 700 9px ui-monospace, monospace; }
+  .recipe-details-trigger > strong { min-width: 0; padding-top: 2px; overflow-wrap: break-word; word-break: normal; font-size: 11px; line-height: 1.32; }
+  .recipe-details-chevron { align-self: center; color: var(--muted); }
   .recipe-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
-  .recipe-actions .button { width: auto; min-height: 28px; padding: 4px 8px; border-radius: 6px; font-size: 9px; }
+  .recipe-actions .button { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 7px; }
+  .recipe-actions .processing-action-icon { width: 16px; height: 16px; }
+  .recipe-action-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .recipe-icon-action[aria-busy="true"] .processing-action-icon { animation: action-pulse .8s ease-in-out infinite alternate; }
   .template-table-card { overflow: visible; border: 0; background: transparent; box-shadow: none; }
   .templates-page > .page-heading { align-items: stretch; flex-direction: column; gap: 12px; }
   .templates-page > .page-heading > button { width: 100%; }
@@ -666,3 +669,5 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .split-piece summary strong { grid-column: 1; }
   .split-piece summary small { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 }
+
+@keyframes action-pulse { to { opacity: .35; } }
