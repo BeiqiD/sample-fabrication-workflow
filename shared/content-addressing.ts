@@ -1,6 +1,6 @@
 export const STEP_HASH_SCHEME = "step-definition/v1";
 export const STATE_HASH_SCHEME = "state-diagram/v1";
-export const MANIFEST_HASH_SCHEME = "recipe-manifest/v1";
+const MANIFEST_HASH_SCHEME = "recipe-manifest/v1";
 
 function normalizedText(value: string | null | undefined) {
   const normalized = (value ?? "").normalize("NFC").replace(/\r\n?/g, "\n");
@@ -34,7 +34,7 @@ export interface StepDefinitionSource {
   commentsText?: string | null;
 }
 
-export function canonicalStepDefinition(source: StepDefinitionSource) {
+function canonicalStepDefinition(source: StepDefinitionSource) {
   return {
     schema: STEP_HASH_SCHEME,
     name: normalizedText(source.name) ?? "",

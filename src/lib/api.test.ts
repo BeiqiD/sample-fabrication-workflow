@@ -49,6 +49,19 @@ describe("sample split API", () => {
   });
 });
 
+describe("processing sample API", () => {
+  it("requests the execution-only sample view", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ runs: [], stateVerifications: [] }), {
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.getProcessingSample("sample-1");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/samples/sample-1?view=processing", undefined);
+  });
+});
+
 describe("template removal API", () => {
   it("uses the guarded template delete endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, disposition: "deleted" }), {

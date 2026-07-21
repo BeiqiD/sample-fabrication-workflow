@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { MAX_SPLIT_PIECES, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
 import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
@@ -12,6 +12,8 @@ import { contentLengthWithin, escapedLikePattern, sameOriginOrNonBrowser } from 
 import { insertionPosition } from "./run-position";
 import { returnedEveryConfirmationTarget } from "./run-step-confirmation";
 import { resolveAssetReferences } from "./asset-dedupe";
+import { titleChangeAudit } from "./sample-update";
+import { loadPlanContext } from "./plan-context";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
@@ -49,66 +51,6 @@ async function deleteR2KeysInBatches(bucket: R2Bucket, keys: string[]) {
   return failures;
 }
 
-type PlanContext = {
-  run: {
-    id: string; status: string; recipe_family_id: string; current_plan_revision_id: string;
-    revision_no: number; current_template_version_id: string;
-  };
-  nextTemplate: { id: string; recipe_family_id: string; name: string; template_type: string; version: number };
-  existing: Array<{
-    id: string; logicalStepKey: string | null; definitionHash: string | null;
-    position: number; actualized: boolean; origin: "template" | "ad_hoc";
-  }>;
-  next: Array<{
-    id: string; logicalStepKey: string; definitionHash: string; expectedStateHash: string | null; position: number;
-  }>;
-};
-
-async function loadPlanContext(db: D1Database, sampleId: string, runId: string, templateVersionId: string): Promise<PlanContext> {
-  const [run, nextTemplate, existingRows, nextRows] = await Promise.all([
-    db.prepare(
-      `SELECT r.id, r.status, r.recipe_family_id, r.current_plan_revision_id,
-              rpr.revision_no, rpr.template_version_id AS current_template_version_id
-       FROM runs r JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
-       WHERE r.id = ? AND r.sample_id = ?`,
-    ).bind(runId, sampleId).first<PlanContext["run"]>(),
-    db.prepare(
-      `SELECT id, recipe_family_id, name, template_type, version FROM template_versions
-       WHERE id = ? AND archived_at IS NULL`,
-    ).bind(templateVersionId).first<PlanContext["nextTemplate"]>(),
-    db.prepare(
-      `SELECT id, logical_step_key, definition_hash, position,
-              CASE WHEN actualized_at IS NOT NULL THEN 1 ELSE 0 END AS actualized, origin
-       FROM run_steps WHERE run_id = ? AND (plan_status = 'current' OR origin = 'ad_hoc')
-       ORDER BY position`,
-    ).bind(runId).all<{
-      id: string; logical_step_key: string | null; definition_hash: string | null;
-      position: number; actualized: number; origin: "template" | "ad_hoc";
-    }>(),
-    db.prepare(
-      `SELECT id, logical_step_key, definition_hash, expected_state_hash, position
-       FROM template_steps WHERE template_version_id = ? ORDER BY position`,
-    ).bind(templateVersionId).all<{
-      id: string; logical_step_key: string; definition_hash: string;
-      expected_state_hash: string | null; position: number;
-    }>(),
-  ]);
-  if (!run) throw new HTTPException(404, { message: "Sample run not found" });
-  if (!nextTemplate) throw new HTTPException(404, { message: "Recipe version not found" });
-  return {
-    run,
-    nextTemplate,
-    existing: existingRows.results.map((row) => ({
-      id: row.id, logicalStepKey: row.logical_step_key, definitionHash: row.definition_hash,
-      position: Number(row.position), actualized: Boolean(row.actualized), origin: row.origin,
-    })),
-    next: nextRows.results.map((row) => ({
-      id: row.id, logicalStepKey: row.logical_step_key, definitionHash: row.definition_hash,
-      expectedStateHash: row.expected_state_hash, position: Number(row.position),
-    })),
-  };
-}
-
 app.onError((error, c) => {
   if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
   console.error(error);
@@ -142,9 +84,9 @@ app.get("/ready", async (c) => {
 
 const sampleOverviewSelect = `
   SELECT s.*,
-         COALESCE(ptv.name, r.template_name_snapshot) AS current_recipe_name,
-         COALESCE(ptv.version, r.template_version_snapshot) AS current_recipe_version,
-         r.status AS current_recipe_status,
+         COALESCE(ptv.name, r.template_name_snapshot) AS latest_workflow_name,
+         COALESCE(ptv.version, r.template_version_snapshot) AS latest_workflow_version,
+         r.status AS latest_run_status,
          (
            SELECT COALESCE(rs.title, sd.name)
            FROM run_steps rs
@@ -187,18 +129,17 @@ app.get("/samples", async (c) => {
         `WITH sample_overview AS (${sampleOverviewSelect})
          SELECT * FROM sample_overview
          WHERE code LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR location LIKE ? ESCAPE '\\'
-           OR current_recipe_name LIKE ? ESCAPE '\\'
-         ORDER BY pinned DESC, updated_at DESC LIMIT 50`,
+           OR latest_workflow_name LIKE ? ESCAPE '\\'
+         ORDER BY pinned DESC, updated_at DESC`,
       ).bind(pattern, pattern, pattern, pattern)
-    : c.env.DB.prepare(`${sampleOverviewSelect} ORDER BY s.pinned DESC, s.updated_at DESC LIMIT 30`);
+    : c.env.DB.prepare(`${sampleOverviewSelect} ORDER BY s.pinned DESC, s.updated_at DESC`);
   const result = await statement.all();
   return c.json({ samples: result.results.map((row) => sampleSummary(row as never)) });
 });
 
 app.post("/samples", async (c) => {
   const input = await c.req.json<CreateSampleInput>();
-  const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
-  if (typeof input.code !== "string" || typeof input.title !== "string" || (input.description !== undefined && typeof input.description !== "string") || (input.location !== undefined && typeof input.location !== "string") || (input.status !== undefined && !allowedStatuses.includes(input.status)) || (input.parentId !== undefined && typeof input.parentId !== "string")) {
+  if (typeof input.code !== "string" || typeof input.title !== "string" || (input.description !== undefined && typeof input.description !== "string") || (input.location !== undefined && typeof input.location !== "string") || (input.status !== undefined && !isSampleStatus(input.status))) {
     throw new HTTPException(400, { message: "Invalid sample fields" });
   }
   const code = input.code.trim();
@@ -212,13 +153,13 @@ app.post("/samples", async (c) => {
   const eventId = crypto.randomUUID();
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
-  const status = input.status ?? "stored";
+  const status = input.status ?? DEFAULT_SAMPLE_STATUS;
   try {
     await c.env.DB.batch([
       c.env.DB.prepare(
-        `INSERT INTO samples (id, code, title, description, status, location, parent_id, created_by, updated_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(id, code, title, input.description?.trim() || null, status, input.location?.trim() || null, input.parentId || null, userEmail, userEmail, now, now),
+        `INSERT INTO samples (id, code, title, description, status, location, created_by, updated_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(id, code, title, input.description?.trim() || null, status, input.location?.trim() || null, userEmail, userEmail, now, now),
       c.env.DB.prepare(
         "INSERT INTO events (id, sample_id, kind, body, actor_email, created_at) VALUES (?, ?, 'created', ?, ?, ?)",
       ).bind(eventId, id, `Sample ${code} created`, userEmail, now),
@@ -233,7 +174,6 @@ app.post("/samples", async (c) => {
 app.post("/samples/:id/split", async (c) => {
   const parentId = c.req.param("id");
   const input = await c.req.json<SplitSampleInput>();
-  const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
   if (!input || typeof input.expectedUpdatedAt !== "string"
     || (input.parentStatusAfter !== "active" && input.parentStatusAfter !== "consumed")
     || !Array.isArray(input.pieces) || input.pieces.length < 1 || input.pieces.length > MAX_SPLIT_PIECES) {
@@ -242,7 +182,7 @@ app.post("/samples/:id/split", async (c) => {
 
   const pieces = input.pieces.map((piece) => {
     if (!piece || typeof piece !== "object" || typeof piece.code !== "string" || typeof piece.title !== "string"
-      || typeof piece.location !== "string" || !allowedStatuses.includes(piece.status)
+      || typeof piece.location !== "string" || !isSampleStatus(piece.status)
       || (piece.description !== undefined && typeof piece.description !== "string")) {
       throw new HTTPException(400, { message: "Every split piece needs valid sample fields" });
     }
@@ -326,14 +266,19 @@ app.post("/samples/:id/split", async (c) => {
 
 app.get("/samples/:id", async (c) => {
   const id = c.req.param("id");
+  const processingView = c.req.query("view") === "processing";
   const [sample, children, events, runRows, runAssetRows, runCommentRows, verificationRows, verificationStepRows] = await Promise.all([
     c.env.DB.prepare(
       `WITH sample_overview AS (${sampleOverviewSelect})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
        FROM sample_overview s LEFT JOIN samples p ON p.id = s.parent_id WHERE s.id = ?`,
     ).bind(id).first<Record<string, unknown>>(),
-    c.env.DB.prepare("SELECT id, code, title FROM samples WHERE parent_id = ? ORDER BY created_at").bind(id).all(),
-    c.env.DB.prepare("SELECT * FROM events WHERE sample_id = ? ORDER BY created_at DESC").bind(id).all(),
+    processingView
+      ? Promise.resolve({ results: [] })
+      : c.env.DB.prepare("SELECT id, code, title FROM samples WHERE parent_id = ? ORDER BY created_at").bind(id).all(),
+    processingView
+      ? Promise.resolve({ results: [] })
+      : c.env.DB.prepare("SELECT * FROM events WHERE sample_id = ? ORDER BY created_at DESC").bind(id).all(),
     c.env.DB.prepare(
       `SELECT r.id AS run_id, r.recipe_family_id, r.template_version_id, r.status AS run_status,
               r.created_at AS run_created_at, r.completed_at,
@@ -494,25 +439,28 @@ app.get("/samples/:id", async (c) => {
     });
     }
   }
-  return c.json({
+  const detail = {
     ...sampleDetail(sample as never),
+    runs: [...runs.values()],
+    stateVerifications,
+  };
+  if (processingView) return c.json(detail);
+  return c.json({
+    ...detail,
     parent,
     children: children.results,
     events: events.results.map((row) => sampleEvent(row as never)),
-    runs: [...runs.values()],
-    stateVerifications,
   });
 });
 
 app.patch("/samples/:id", async (c) => {
   const id = c.req.param("id");
   const input = await c.req.json<UpdateSampleInput>();
-  const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
   if ("code" in input) throw new HTTPException(400, { message: "Sample code is a permanent identifier and cannot be changed" });
   if (typeof input.expectedUpdatedAt !== "string" || (input.title !== undefined && typeof input.title !== "string") || (input.location !== undefined && typeof input.location !== "string") || (input.pinned !== undefined && typeof input.pinned !== "boolean")) throw new HTTPException(400, { message: "Invalid sample update" });
   if (input.title !== undefined && (!input.title.trim() || input.title.length > 200)) throw new HTTPException(400, { message: "Short title is required and must be 200 characters or fewer" });
   if (input.location && input.location.length > 500) throw new HTTPException(400, { message: "Location is too long" });
-  if (input.status !== undefined && !allowedStatuses.includes(input.status)) {
+  if (input.status !== undefined && !isSampleStatus(input.status)) {
     throw new HTTPException(400, { message: "Invalid sample status" });
   }
   const current = await c.env.DB.prepare(
@@ -532,42 +480,30 @@ app.patch("/samples/:id", async (c) => {
 
   const now = new Date().toISOString();
   const mutationId = crypto.randomUUID();
-  const fieldChanges = {
-    ...(nextTitle !== current.title ? { title: { from: current.title, to: nextTitle } } : {}),
-    ...(nextStatus !== current.status ? { status: { from: current.status, to: nextStatus } } : {}),
-    ...(nextLocation !== current.location ? { location: { from: current.location, to: nextLocation } } : {}),
-    ...(nextPinned !== Boolean(current.pinned) ? { pinned: { from: Boolean(current.pinned), to: nextPinned } } : {}),
-  };
-  const changeSummary = Object.entries(fieldChanges).map(([field, values]) => {
-    const format = (value: unknown) => value === null || value === "" ? "—" : String(value);
-    return `${field}: ${format(values.from)} → ${format(values.to)}`;
-  }).join("; ");
-  const eventKind = nextStatus !== current.status ? "status" : nextLocation !== current.location ? "location" : "comment";
-  const results = await c.env.DB.batch([
-    c.env.DB.prepare(
+  const titleAudit = titleChangeAudit(current.title, nextTitle);
+  const statements = [c.env.DB.prepare(
     `UPDATE samples SET title = ?, status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
      WHERE id = ? AND updated_at = ?`,
-    ).bind(nextTitle, nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), mutationId, now, id, input.expectedUpdatedAt),
-    c.env.DB.prepare(
+  ).bind(nextTitle, nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), mutationId, now, id, input.expectedUpdatedAt)];
+  if (titleAudit) statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       SELECT ?, id, ?, ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
+       SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
     ).bind(
-      crypto.randomUUID(), eventKind, `Sample details updated · ${changeSummary}`,
-      JSON.stringify({ action: "sample_details_updated", changes: fieldChanges }), c.get("userEmail"), now, id, mutationId,
-    ),
-  ]);
+      crypto.randomUUID(), titleAudit.body, JSON.stringify(titleAudit.metadata),
+      c.get("userEmail"), now, id, mutationId,
+    ));
+  const results = await c.env.DB.batch(statements);
   if (!results[0].meta.changes) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
   }
-  if (!results[1].meta.changes) throw new Error("Sample detail audit event was not created");
+  if (titleAudit && !results[1]?.meta.changes) throw new Error("Sample title audit event was not created");
   return c.json({ ok: true, updatedAt: now });
 });
 
 app.post("/samples/:id/records", async (c) => {
   const sampleId = c.req.param("id");
   const input = await c.req.json<CreateRecordInput>();
-  const allowedStatuses: SampleStatus[] = ["active", "stored", "consumed", "lost"];
-  if (typeof input.expectedUpdatedAt !== "string" || typeof input.location !== "string" || typeof input.pinned !== "boolean" || !allowedStatuses.includes(input.status) || (input.body !== undefined && typeof input.body !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.thumbnailKey !== undefined && typeof input.thumbnailKey !== "string")) {
+  if (typeof input.expectedUpdatedAt !== "string" || typeof input.location !== "string" || typeof input.pinned !== "boolean" || !isSampleStatus(input.status) || (input.body !== undefined && typeof input.body !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.thumbnailKey !== undefined && typeof input.thumbnailKey !== "string")) {
     throw new HTTPException(400, { message: "A valid sample state and expectedUpdatedAt are required" });
   }
   const body = input.body?.trim() || null;
@@ -825,7 +761,7 @@ app.post("/samples/:id/runs", async (c) => {
     c.env.DB.prepare(
       "INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at) VALUES (?, ?, 'run', ?, ?, ?, ?)",
     ).bind(eventId, sampleId, `${latestRun ? "Started successor run" : "Assigned"} ${template.name} v${template.version} (${steps.length} planned steps)`, JSON.stringify({ runId, templateVersionId, templateVersion: template.version, predecessorRunId: latestRun?.id ?? null, anchorStepId: anchor?.id ?? null }), userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET process_revision = process_revision + 1, updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
+    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
   ];
   if (statements.length > 49) throw new HTTPException(413, { message: "This template is too large to assign on the current plan" });
   try { await c.env.DB.batch(statements); }
@@ -839,7 +775,7 @@ app.post("/samples/:id/runs", async (c) => {
 app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const { sampleId, runId } = c.req.param();
   const { templateVersionId } = await c.req.json<{ templateVersionId?: string }>();
-  if (!templateVersionId) throw new HTTPException(400, { message: "A recipe version is required" });
+  if (!templateVersionId) throw new HTTPException(400, { message: "A template version is required" });
   const context = await loadPlanContext(c.env.DB, sampleId, runId, templateVersionId);
   const sameFamily = context.run.recipe_family_id === context.nextTemplate.recipe_family_id;
   const alignment = sameFamily ? alignFuturePlan(context.existing, context.next) : {
@@ -972,7 +908,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
       JSON.stringify({ runId, planRevisionId: revisionId, fromTemplateVersionId: context.run.current_template_version_id,
         toTemplateVersionId: input.templateVersionId, preserved: alignment.matches.length,
         added: alignment.additions.length, superseded: alignment.supersededStepIds.length }), userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET process_revision = process_revision + 1, updated_by = ?, updated_at = ? WHERE id = ?")
+    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
       .bind(userEmail, now, sampleId),
   );
   if (statements.length > 49) throw new HTTPException(413, { message: "This plan update is too large for one atomic operation" });
@@ -1506,7 +1442,7 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
       evidence?.r2_key ?? null,
       JSON.stringify({ verificationId, runId, stepId, previousVerificationId: previous?.id ?? null, coveredStepIds: covered.map((step) => step.id), result: input.result }),
       userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET process_revision = process_revision + 1, updated_by = ?, updated_at = ? WHERE id = ?")
+    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
       .bind(userEmail, now, sampleId),
   ];
   if (input.result === "mismatched") statements.push(c.env.DB.prepare(

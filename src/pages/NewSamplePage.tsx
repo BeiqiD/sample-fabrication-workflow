@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { SampleStatus } from "../../shared/types";
+import { DEFAULT_SAMPLE_STATUS, SAMPLE_CREATION_STATUSES, SAMPLE_STATUS_LABELS, type SampleStatus } from "../../shared/types";
 import { api } from "../lib/api";
 
 export function NewSamplePage() {
@@ -32,7 +32,7 @@ export function NewSamplePage() {
     <form className="card form-grid" onSubmit={submit}>
       <label>Sample code<input name="code" required placeholder="e.g. SOD-2026-014" /></label>
       <label>Short title<input name="title" required placeholder="What is this sample?" /></label>
-      <label>Status<select name="status" defaultValue="stored"><option value="stored">Stored</option><option value="active">Active</option><option value="consumed">Consumed</option><option value="lost">Lost</option></select></label>
+      <label>Status<select name="status" defaultValue={DEFAULT_SAMPLE_STATUS}>{SAMPLE_CREATION_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
       <label>Current location<input name="location" placeholder="Box, lab, or tool" /></label>
       <label>Description<textarea name="description" rows={5} placeholder="Optional starting context" /></label>
       {error && <p className="error-banner">{error}</p>}

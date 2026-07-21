@@ -33,6 +33,7 @@ flowchart TD
 - State verification is a sparse chain independent of recipe metrology steps. Each verification snapshots the run steps covered since the previous valid verification and records matched or mismatched outcome.
 - Sample state changes and their history events are emitted by database triggers.
 - Dedicated bench records update sample state and append the manual event in one D1 batch, guarded by the caller's last-seen timestamp and a per-mutation identifier.
+- Processing reads omit the permanent Timeline and parent/child archive data; the Sample page uses the full archive view.
 - Step state, notes, optional attachment event, sample timestamp, and run rollup are one D1 batch.
 - Every user-originated record stores the validated Access email.
 - Ordinary R2 uploads are registered in `assets`; failed registration removes the object.

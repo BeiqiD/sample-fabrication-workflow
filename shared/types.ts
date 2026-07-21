@@ -1,6 +1,21 @@
-export type SampleStatus = "active" | "stored" | "consumed" | "lost";
+export const SAMPLE_STATUSES = ["active", "stored", "consumed", "lost"] as const;
+export type SampleStatus = typeof SAMPLE_STATUSES[number];
+export const DEFAULT_SAMPLE_STATUS: SampleStatus = "stored";
+export const SAMPLE_CREATION_STATUSES: readonly SampleStatus[] = Object.freeze([
+  DEFAULT_SAMPLE_STATUS,
+  ...SAMPLE_STATUSES.filter((status) => status !== DEFAULT_SAMPLE_STATUS),
+]);
+export const SAMPLE_STATUS_LABELS: Readonly<Record<SampleStatus, string>> = {
+  active: "Active",
+  stored: "Stored",
+  consumed: "Consumed",
+  lost: "Lost",
+};
+export function isSampleStatus(value: unknown): value is SampleStatus {
+  return typeof value === "string" && (SAMPLE_STATUSES as readonly string[]).includes(value);
+}
 export type StepStatus = "pending" | "in_progress" | "done" | "skipped" | "blocked";
-export type EventKind = "comment" | "image" | "location" | "status" | "created" | "step" | "run" | "plan" | "verification";
+type EventKind = "comment" | "image" | "location" | "status" | "created" | "step" | "run" | "plan" | "verification";
 export const MAX_SPLIT_PIECES = 32;
 
 export interface SampleSummary {
@@ -12,9 +27,9 @@ export interface SampleSummary {
   parentId: string | null;
   pinned: boolean;
   updatedAt: string;
-  currentRecipeName: string | null;
-  currentRecipeVersion: number | null;
-  currentRecipeStatus: SampleRun["status"] | null;
+  latestWorkflowName: string | null;
+  latestWorkflowVersion: number | null;
+  latestRunStatus: SampleRun["status"] | null;
   currentStepTitle: string | null;
   currentStateStepTitle: string | null;
   currentStateThumbnailKey: string | null;
@@ -31,14 +46,17 @@ export interface SampleEvent {
   createdAt: string;
 }
 
-export interface SampleDetail extends SampleSummary {
+export interface ProcessingSampleDetail extends SampleSummary {
+  runs: SampleRun[];
+  stateVerifications: StateVerification[];
+}
+
+export interface SampleDetail extends ProcessingSampleDetail {
   description: string | null;
   createdAt: string;
   parent: Pick<SampleSummary, "id" | "code" | "title"> | null;
   children: Array<Pick<SampleSummary, "id" | "code" | "title">>;
   events: SampleEvent[];
-  runs: SampleRun[];
-  stateVerifications: StateVerification[];
 }
 
 export interface RunStep {
@@ -183,7 +201,6 @@ export interface CreateSampleInput {
   description?: string;
   location?: string;
   status?: SampleStatus;
-  parentId?: string;
 }
 
 export interface SplitSamplePieceInput {
@@ -245,7 +262,7 @@ export interface FabubloxStep {
   rawCells: Record<string, unknown>;
 }
 
-export interface FabubloxImage {
+interface FabubloxImage {
   localId: string;
   sourcePart: string;
   mimeType: string;

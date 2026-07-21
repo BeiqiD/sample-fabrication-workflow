@@ -6,11 +6,12 @@ Make recording fabrication history less painful than maintaining an Obsidian dat
 
 ## Included
 
-- Search and recent samples at `/` (no dashboard).
+- Processing workspace at `/` and `/processing`, with active work shown by default and latest-run status filters available.
+- High-density permanent sample archive at `/samples`.
 - Create a sample at `/samples/new`.
 - Sample detail at `/samples/:sampleId`, including parent/children, facts, and an event timeline.
 - Comments and directly captured images; browser-side compression is intentionally aggressive.
-- FabuBlox workbook parsing at `/imports/fabublox` before upload.
+- FabuBlox workbook parsing from Templates before upload; `/imports/fabublox` remains a compatibility redirect.
 - Extraction of worksheet values and OOXML embedded media.
 - Relationship- and anchor-aware mapping of FabuBlox layer-stack drawings to normalized steps.
 - Immutable process/module/recipe template versions at `/templates`.
@@ -18,7 +19,7 @@ Make recording fabrication history less painful than maintaining an Obsidian dat
 - Export one sample as a ZIP containing Markdown, JSON, and all timeline images with relative paths.
 - D1 for records and private R2 for workbook/image assets.
 - Local development and one-Worker deployment.
-- Dedicated bench entry at `/entry`.
+- Sample-level records and detail changes from the Sample page.
 - Full-system, consistent-snapshot ZIP export.
 - Cloudflare Access JWT validation and actor attribution.
 

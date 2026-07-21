@@ -1,14 +1,13 @@
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
-import { HomePage } from "./pages/HomePage";
+import { SamplesPage } from "./pages/SamplesPage";
 import { NewSamplePage } from "./pages/NewSamplePage";
 import { SamplePage } from "./pages/SamplePage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ExportPage } from "./pages/ExportPage";
-import { EntryPage } from "./pages/EntryPage";
 import { TemplatePage } from "./pages/TemplatePage";
 import { ProcessingPage } from "./pages/ProcessingPage";
-import { ProcessingRunPage } from "./pages/ProcessingRunPage";
+import { ProcessingWorkspacePage } from "./pages/ProcessingWorkspacePage";
 
 export function App() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -48,21 +47,20 @@ export function App() {
           </button>
         </div>
       </header>
-      <main><Suspense fallback={<div className="page"><p className="muted">Loading…</p></div>}>
+      <main>
         <Routes>
           <Route path="/" element={<Navigate to="/processing" replace />} />
           <Route path="/processing" element={<ProcessingPage />} />
-          <Route path="/processing/:sampleId" element={<ProcessingRunPage />} />
-          <Route path="/samples" element={<HomePage />} />
+          <Route path="/processing/:sampleId" element={<ProcessingWorkspacePage />} />
+          <Route path="/samples" element={<SamplesPage />} />
           <Route path="/samples/new" element={<NewSamplePage />} />
-          <Route path="/entry" element={<EntryPage />} />
           <Route path="/samples/:sampleId" element={<SamplePage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/templates/:templateId" element={<TemplatePage />} />
           <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
           <Route path="/export" element={<ExportPage />} />
         </Routes>
-      </Suspense></main>
+      </main>
     </div>
   );
 }

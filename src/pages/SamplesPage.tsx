@@ -5,15 +5,15 @@ import { EmptyState } from "../components/EmptyState";
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 
-function recipeStateText(sample: SampleSummary) {
-  if (!sample.currentRecipeName) return "No workflow assigned";
-  if (sample.currentRecipeStatus === "active") return sample.currentStepTitle ? `Current step · ${sample.currentStepTitle}` : "Active recipe";
-  if (sample.currentRecipeStatus === "complete") return "Recipe completed";
-  if (sample.currentRecipeStatus === "cancelled") return "Latest recipe cancelled";
-  return "Latest recipe superseded";
+function workflowStateText(sample: SampleSummary) {
+  if (!sample.latestWorkflowName) return "No workflow assigned";
+  if (sample.latestRunStatus === "active") return sample.currentStepTitle ? `Current step · ${sample.currentStepTitle}` : "Active workflow";
+  if (sample.latestRunStatus === "complete") return "Workflow completed";
+  if (sample.latestRunStatus === "cancelled") return "Latest workflow cancelled";
+  return "Latest workflow superseded";
 }
 
-export function HomePage() {
+export function SamplesPage() {
   const [samples, setSamples] = useState<SampleSummary[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +37,7 @@ export function HomePage() {
     </div>
     <label className="search-box">
       <span>Search</span>
-      <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Code, title, recipe, or location" />
+      <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Code, title, workflow, or location" />
     </label>
     {error && <p className="error-banner">{error}</p>}
     {loading ? <p className="muted">Loading…</p> : samples.length ? <div className="sample-directory">
@@ -45,11 +45,11 @@ export function HomePage() {
       {samples.map((sample) => <Link to={`/samples/${sample.id}`} className="sample-directory-row" key={sample.id}>
         <div className="sample-directory-identity"><div className="sample-identity"><span className="sample-code">{sample.code}</span>{sample.pinned && <span className="sample-pinned">Pinned</span>}</div><strong>{sample.title}</strong>{sample.parentId && <small>Child sample</small>}</div>
         <div className="sample-directory-state"><StatusPill status={sample.status} /><span>{sample.location || "No location"}</span></div>
-        <div className="sample-directory-workflow"><strong>{sample.currentRecipeName || "—"}{sample.currentRecipeVersion != null ? ` · v${sample.currentRecipeVersion}` : ""}</strong><small>{recipeStateText(sample)}</small></div>
+        <div className="sample-directory-workflow"><strong>{sample.latestWorkflowName || "—"}{sample.latestWorkflowVersion != null ? ` · v${sample.latestWorkflowVersion}` : ""}</strong><small>{workflowStateText(sample)}</small></div>
         <time>{new Date(sample.updatedAt).toLocaleDateString()}</time>
       </Link>)}
     </div> : <EmptyState title={query ? "No matching samples" : "No samples yet"}>
-      {query ? "Try another code, title, recipe, or location." : "Create the first sample to start its event log."}
+      {query ? "Try another code, title, workflow, or location." : "Create the first sample to start its event log."}
     </EmptyState>}
   </div>;
 }

@@ -16,10 +16,10 @@ The app is a single open-source Cloudflare Worker project: React and Vite provid
 
 ## MVP flow
 
-1. Find or create a sample.
-2. Add comments and phone photos to its timeline.
-3. Change location, lifecycle status, or pinned state with an automatic audit entry.
-4. Create child samples directly from a parent for split/dicing workflows.
+1. Use `Processing` to find active work, or `Samples` to browse the permanent archive and create a sample.
+2. Add comments and phone photos to a sample's timeline.
+3. Change location, lifecycle status, title, or pinned state with one audit entry per changed field.
+4. Split a parent into multiple automatically numbered child samples in one atomic operation; review each child before confirming.
 5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
 6. Import a distinct recipe or attach the workbook to an existing recipe family as its next immutable version.
 7. Start a sample run, preserving the expected recipe plan while recording actual parameters, comments, deviations, added steps, and execution diagrams.
@@ -27,7 +27,7 @@ The app is a single open-source Cloudflare Worker project: React and Vite provid
 9. Verify the observed sample state after any completed step; each verification links to the previous one and records the covered execution interval.
 10. Finish a run and start a successor run on the same physical sample, connected to its last actual step.
 
-For repeated bench work, `/entry` provides a dedicated mobile-friendly recording screen: select the target sample, keep its code visible, and save a note/photo together with current status, location, and pinned state.
+Sample-level notes, photos, details, split history, run summaries, and the complete Timeline live on the Sample page. Step execution stays in Processing so planned work and actual work remain distinct.
 
 See [MVP_SPEC.md](./MVP_SPEC.md) for scope, [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for system invariants, [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) for the data model, [docs/FABUBLOX_IMPORT.md](./docs/FABUBLOX_IMPORT.md) for the workbook contract, and [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the production checklist.
 

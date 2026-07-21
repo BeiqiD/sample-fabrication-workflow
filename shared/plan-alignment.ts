@@ -14,7 +14,7 @@ export interface NextPlanStep {
   position: number;
 }
 
-export type PlanConflict = {
+type PlanConflict = {
   kind: "inserted_before_execution_head" | "modified_executed_step" | "removed_executed_step";
   existingStepId?: string;
   templateStepId?: string;

@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { isSampleRecordEvent } from "../../shared/sample-records";
-import type { SampleDetail, SampleEvent, SampleRun, SampleStatus } from "../../shared/types";
+import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
 import { SplitSampleDialog } from "../components/SplitSampleDialog";
@@ -157,7 +157,7 @@ export function SamplePage() {
         {editingDetails ? <form className="detail-form" onSubmit={updateDetails}>
           <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
           <label>Short title<input name="title" defaultValue={sample.title} required maxLength={200} /></label>
-          <label>Status<select name="status" defaultValue={sample.status}><option value="active">Active</option><option value="stored">Stored</option><option value="consumed">Consumed</option><option value="lost">Lost</option></select></label>
+          <label>Status<select name="status" defaultValue={sample.status}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
           <label>Location<input name="location" defaultValue={sample.location || ""} placeholder="Box, lab, or tool" /></label>
           <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} />Pinned</label>
           <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>

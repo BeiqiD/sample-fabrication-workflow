@@ -1,4 +1,4 @@
-import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, FabubloxImportPreview, FullExportManifest, PlanUpdatePreview, SampleDetail, SampleSummary, SplitSampleInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, FabubloxImportPreview, FullExportManifest, PlanUpdatePreview, ProcessingSampleDetail, SampleDetail, SampleSummary, SplitSampleInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -13,6 +13,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listSamples: (query = "") => request<{ samples: SampleSummary[] }>(`/samples?q=${encodeURIComponent(query)}`),
   getSample: (id: string) => request<SampleDetail>(`/samples/${id}`),
+  getProcessingSample: (id: string) => request<ProcessingSampleDetail>(`/samples/${id}?view=processing`),
   createSample: (input: CreateSampleInput) => request<{ id: string }>("/samples", {
     method: "POST",
     headers: { "content-type": "application/json" },

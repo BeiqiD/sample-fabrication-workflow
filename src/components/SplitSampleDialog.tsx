@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MAX_SPLIT_PIECES, type SampleDetail, type SampleStatus, type SplitSamplePieceInput } from "../../shared/types";
+import { MAX_SPLIT_PIECES, SAMPLE_CREATION_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleStatus, type SplitSamplePieceInput } from "../../shared/types";
 import { api } from "../lib/api";
 import { createSplitPieceDrafts } from "../lib/splitSamples";
 
@@ -109,7 +109,7 @@ export function SplitSampleDialog({ sample, onCancel, onComplete }: {
             <div className="split-piece-fields">
               <label>Sample code<input value={piece.code} required maxLength={100} onChange={(event) => updatePiece(index, "code", event.target.value)} /></label>
               <label>Short title<input value={piece.title} required maxLength={200} onChange={(event) => updatePiece(index, "title", event.target.value)} /></label>
-              <label>Status<select value={piece.status} onChange={(event) => updatePiece(index, "status", event.target.value as SampleStatus)}><option value="stored">Stored</option><option value="active">Active</option><option value="consumed">Consumed</option><option value="lost">Lost</option></select></label>
+              <label>Status<select value={piece.status} onChange={(event) => updatePiece(index, "status", event.target.value as SampleStatus)}>{SAMPLE_CREATION_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
               <label>Location<input value={piece.location} required maxLength={500} onChange={(event) => updatePiece(index, "location", event.target.value)} /></label>
               <label className="split-piece-description">Description<textarea rows={3} value={piece.description || ""} maxLength={10_000} onChange={(event) => updatePiece(index, "description", event.target.value)} /></label>
             </div>

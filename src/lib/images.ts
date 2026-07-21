@@ -1,9 +1,5 @@
 const MAX_EDGE = 1600;
 
-export async function compressImage(file: File): Promise<File> {
-  return (await compressCommentImage(file)).main;
-}
-
 async function canvasBlob(bitmap: ImageBitmap, maxEdge: number, quality: number) {
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");

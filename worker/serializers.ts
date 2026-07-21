@@ -11,9 +11,9 @@ type SampleRow = {
   pinned: number;
   created_at?: string;
   updated_at: string;
-  current_recipe_name?: string | null;
-  current_recipe_version?: number | null;
-  current_recipe_status?: SampleSummary["currentRecipeStatus"];
+  latest_workflow_name?: string | null;
+  latest_workflow_version?: number | null;
+  latest_run_status?: SampleSummary["latestRunStatus"];
   current_step_title?: string | null;
   current_state_step_title?: string | null;
   current_state_thumbnail_key?: string | null;
@@ -29,9 +29,9 @@ export function sampleSummary(row: SampleRow): SampleSummary {
     parentId: row.parent_id,
     pinned: Boolean(row.pinned),
     updatedAt: row.updated_at,
-    currentRecipeName: row.current_recipe_name ?? null,
-    currentRecipeVersion: row.current_recipe_version == null ? null : Number(row.current_recipe_version),
-    currentRecipeStatus: row.current_recipe_status ?? null,
+    latestWorkflowName: row.latest_workflow_name ?? null,
+    latestWorkflowVersion: row.latest_workflow_version == null ? null : Number(row.latest_workflow_version),
+    latestRunStatus: row.latest_run_status ?? null,
     currentStepTitle: row.current_step_title ?? null,
     currentStateStepTitle: row.current_state_step_title ?? null,
     currentStateThumbnailKey: row.current_state_thumbnail_key ?? null,

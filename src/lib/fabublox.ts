@@ -1,6 +1,5 @@
 import JSZip from "jszip";
 import type {
-  FabubloxImage,
   FabubloxImportPreview,
   FabubloxSection,
   FabubloxStep,
@@ -278,13 +277,6 @@ function parseRows(rows: unknown[][], headerRow: number, columns: ColumnMap) {
     });
   }
   return { sections, steps, warnings };
-}
-
-export function manifestFromPreview(preview: FabubloxImportPreview) {
-  return {
-    ...preview,
-    images: preview.images.map(({ data: _data, ...image }): FabubloxImage => image),
-  };
 }
 
 export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportPreview> {

@@ -1,7 +1,7 @@
-import type { RunStep, SampleDetail, SampleRun } from "../../shared/types";
+import type { ProcessingSampleDetail, RunStep, SampleRun } from "../../shared/types";
 
 export interface RunGridColumn {
-  sample: SampleDetail;
+  sample: ProcessingSampleDetail;
   run: SampleRun | null;
 }
 

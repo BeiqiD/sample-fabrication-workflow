@@ -31,6 +31,10 @@ Validated Cloudflare Access email addresses are stored on events and other mutab
 
 `last_mutation_id` values are internal concurrency tokens. They allow dependent event inserts to prove that the preceding conditional update succeeded within the same transactional batch.
 
+`samples.process_revision` is retained only for compatibility with the deployed alpha schema. Current concurrency control uses `updated_at` and `last_mutation_id`; application writes no longer increment the legacy column. Removing it should be a future explicit migration rather than an edit to the already-deployed initial migration.
+
+`recipe_change_proposals` stores evidence opened by mismatched state verification. It is included in full export and prevents referenced template history from being deleted, but it does not yet have a review interface.
+
 A recipe version is a statement of what should happen and what state should result. A run records what did happen. `run_step_plan_links` connect those two views without treating an execution correction as a recipe edit.
 
 Plan updates align logical step keys first and exact definition hashes second. Executed entries cannot be removed, changed, or preceded by newly inserted planned work. Compatible future entries retain their run-step IDs, new entries are appended after the execution head, and displaced unfinished entries remain auditable as superseded.

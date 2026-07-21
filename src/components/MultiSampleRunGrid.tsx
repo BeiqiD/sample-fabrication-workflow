@@ -300,13 +300,13 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="step-drawer" role="dialog" aria-modal="true" aria-labelledby="step-drawer-title">
       <div className="step-drawer-heading"><div><p className="eyebrow">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? "Correct execution" : "Add an individual step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
-      <p className="muted">{editing ? "Record what actually happened. The assigned recipe stays unchanged." : "This step belongs only to this sample run."}</p>
+      <p className="muted">{editing ? "Record what actually happened. The assigned plan stays unchanged." : "This step belongs only to this sample run."}</p>
       <form className="drawer-form" onSubmit={save}>
         {isTemplateStep ? <div className="locked-step-title"><small>Recipe step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>Step name<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
         {editing && <label>Status<select value={status} onChange={(event) => setStatus(event.target.value as StepStatus)}>{STATUSES.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select></label>}
         <label>Actual tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} placeholder={step?.plannedToolName || "Tool used"} /></label>
         <label>Actual parameters<textarea rows={4} value={parametersText} onChange={(event) => setParametersText(event.target.value)} placeholder={step?.plannedParametersText || "Time, temperature, settings…"} /></label>
-        <label>What happened<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder="Execution detail, not a recipe edit" /></label>
+        <label>What happened<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder="Execution detail, not a plan edit" /></label>
         <label>Reason for deviation<textarea rows={3} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} /></label>
         <FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label="Add an execution image" />
         {error && <p className="error-banner">{error}</p>}
@@ -435,7 +435,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
 
   async function verifyState(column: RunGridColumn, step: RunStep, result: "matched" | "mismatched") {
     if (!column.run) return;
-    const note = result === "mismatched" ? window.prompt("Describe how the observed state differs from the recipe expectation:") : "";
+    const note = result === "mismatched" ? window.prompt("Describe how the observed state differs from the planned expectation:") : "";
     if (result === "mismatched" && note === null) return;
     setPendingAction(`verify:${step.id}`); setError("");
     try {
@@ -468,7 +468,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
   return <article className={`run-grid-card ${layoutClass}`}>
     <div className="run-grid-toolbar">
-      <div><p className="eyebrow">{primaryRun.templateType} · run {primaryRun.sequenceNo} · plan r{primaryRun.planRevisionNumber}</p><h2>{primaryRun.templateName} v{primaryRun.templateVersion}</h2><small>{primaryRun.status === "active" ? "Recipe on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
+      <div><p className="eyebrow">{primaryRun.templateType} · run {primaryRun.sequenceNo} · plan r{primaryRun.planRevisionNumber}</p><h2>{primaryRun.templateName} v{primaryRun.templateVersion}</h2><small>{primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
     </div>
     {error && <p className="error-banner grid-error">{error}</p>}
@@ -502,7 +502,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
             <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}`}>
               {row.kind === "ad_hoc" ? <div className="recipe-step-heading"><span>+</span><div><strong>Additional step</strong><small>Not part of the assigned recipe</small></div></div> : <>
               <div className="recipe-step-heading"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
-              <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} size="wide" />}</div>
+              <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
                 key={comment.operationGroupId || comment.id}
                 comment={comment}
