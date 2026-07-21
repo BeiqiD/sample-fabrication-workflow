@@ -268,13 +268,13 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .grid-diagrams img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
 .grid-diagrams.photo-thumbnails button { width: 48px; height: 48px; padding: 0; }
 .grid-diagrams.photo-thumbnails img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; }
-.image-lightbox { position: fixed; inset: 0; z-index: 100; isolation: isolate; display: grid; place-items: center; padding: 24px; background: rgba(24,29,26,.58); backdrop-filter: blur(4px); }
-.image-lightbox-panel { position: relative; width: fit-content; min-width: min(360px, 100%); max-width: min(760px, 100%); max-height: calc(100vh - 48px); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; background: #f7f6f1; box-shadow: 0 24px 80px rgba(0,0,0,.34); }
+.image-lightbox { --lightbox-outer-inset: 48px; --lightbox-stage-block-padding: 40px; position: fixed; inset: 0; z-index: 100; isolation: isolate; display: grid; place-items: center; padding: 24px; background: rgba(24,29,26,.58); backdrop-filter: blur(4px); }
+.image-lightbox-panel { position: relative; width: fit-content; min-width: min(360px, 100%); max-width: min(760px, 100%); max-height: calc(100dvh - var(--lightbox-outer-inset)); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border-radius: 14px; background: #f7f6f1; box-shadow: 0 0 0 1px rgba(255,255,255,.16), 0 24px 80px rgba(0,0,0,.34); }
 .photo-lightbox .image-lightbox-panel { max-width: min(1100px, 100%); background: #171a18; }
 .image-lightbox-stage { min-width: 0; min-height: 0; display: grid; place-items: center; overflow: hidden; padding: 20px; touch-action: none; }
 .image-lightbox-stage.zoomed { cursor: grab; }
 .image-lightbox-stage.zoomed:active { cursor: grabbing; }
-.image-lightbox-stage img { display: block; width: auto; height: auto; max-width: min(70vw, 720px); max-height: calc(100vh - 150px); object-fit: contain; user-select: none; transition: transform .12s ease-out; will-change: transform; }
+.image-lightbox-stage img { display: block; width: auto; height: auto; max-width: min(70vw, 720px); max-height: calc(100dvh - var(--lightbox-outer-inset) - 52px - var(--lightbox-stage-block-padding) - 4px); object-fit: contain; user-select: none; transition: transform .12s ease-out; will-change: transform; }
 .photo-lightbox .image-lightbox-stage img { max-width: min(82vw, 1040px); }
 .image-lightbox-stage.zoomed img { transition: none; }
 .image-lightbox-toolbar { position: relative; z-index: 2; min-height: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 7px 9px 7px 14px; color: white; background: #202521; font-size: 12px; }
@@ -520,13 +520,13 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .recipe-content-split > .grid-diagrams.wide-thumbnails button { width: 84px; height: 60px; }
   .recipe-actions { gap: 4px; }
   .recipe-actions .button { font-size: 10px; }
-  .image-lightbox { padding: 10px; }
-  .image-lightbox-panel { min-width: 0; max-height: calc(100vh - 20px); }
+  .image-lightbox { --lightbox-outer-inset: 20px; --lightbox-stage-block-padding: 20px; padding: 10px; }
+  .image-lightbox-panel { min-width: 0; }
   .image-lightbox-toolbar { gap: 7px; padding-left: 10px; }
   .image-lightbox-caption strong { display: none; }
   .image-lightbox-toolbar a { display: none; }
   .image-lightbox-stage { padding: 10px; }
-  .image-lightbox-stage img { max-width: calc(100vw - 40px); max-height: calc(100vh - 92px); }
+  .image-lightbox-stage img { max-width: calc(100vw - 40px); }
   .lightbox-arrow { width: 38px; height: 38px; }
   .lightbox-arrow.previous { left: 8px; }
   .lightbox-arrow.next { right: 8px; }
