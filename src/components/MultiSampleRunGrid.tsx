@@ -9,6 +9,7 @@ import { runStepIsModified } from "../lib/runSteps";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { FileDropzone } from "./FileDropzone";
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
+import { StepStatusIcon } from "./StepStatusIcon";
 
 const STATUSES: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
 
@@ -683,7 +684,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment
   const busy = pendingAction !== null;
   return <>
     <div className="cell-status-row">
-      <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}>{step.status === "done" ? "✓" : step.status === "in_progress" ? "↻" : step.status === "skipped" ? "—" : step.status === "blocked" ? "!" : "○"}</span><strong>{step.status.replace("_", " ")}</strong></div>
+      <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}><StepStatusIcon status={step.status} /></span><strong>{step.status.replace("_", " ")}</strong></div>
       <div className="cell-badges">{step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "Verified" : "Mismatch"} · {step.stateVerification.coveredRunStepIds.length}</span>}</div>
     </div>
     {!readOnly && <div className="cell-actions">

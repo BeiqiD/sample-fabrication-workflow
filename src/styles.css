@@ -354,9 +354,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .cell-state-done { --state-color: var(--success); color: var(--success); background: var(--success-soft); }
 .cell-state-skipped { --state-color: var(--warning); color: var(--warning-text); background: var(--warning-soft); }
 .cell-state-blocked { --state-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
-.done-mark, .state-symbol { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--accent-contrast); font-size: 13px; font-weight: 850; }
+.done-mark, .state-symbol { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--accent-contrast); }
 .done-mark { background: var(--success); }
 .state-symbol { background: var(--state-color); }
+.step-status-icon { display: block; flex: 0 0 auto; }
 .ad-hoc-title { line-height: 1.3; }
 .cell-content-split { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: start; }
 .cell-content-split > .grid-diagrams { max-width: 76px; margin-top: 0; flex-direction: column; }
@@ -614,21 +615,22 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .run-grid-card,
   .run-grid-card.sample-count-1,
   .run-grid-card.sample-count-2,
-  .run-grid-card.sample-count-3 { --recipe-width: 128px; --sample-width: 270px; }
+  .run-grid-card.sample-count-3 { --recipe-width: 112px; --sample-width: 270px; }
   .run-grid-card.sample-count-1 .run-grid { width: 100%; grid-template-columns: minmax(var(--recipe-width), .55fr) minmax(var(--sample-width), 1fr); }
   .run-grid-card.sample-count-2 .run-grid,
   .run-grid-card.sample-count-3 .run-grid,
   .run-grid-card.sample-count-4 .run-grid { width: max-content; grid-template-columns: var(--recipe-width) repeat(var(--sample-columns), var(--sample-width)); }
   .run-grid-toolbar { padding: 15px; }
   .grid-scroll-buttons { justify-content: space-between; }
-  .recipe-cell, .sample-step-cell { padding: 8px; }
+  .recipe-cell { padding: 9px 8px; }
+  .sample-step-cell { padding: 8px; }
   .recipe-step-heading-desktop, .recipe-desktop-details { display: none; }
-  .recipe-details-trigger { position: relative; width: 100%; display: grid; grid-template-columns: 20px minmax(0, 1fr) 14px; gap: 6px; align-items: start; padding: 0; border: 0; color: var(--ink); background: transparent; text-align: left; }
+  .recipe-details-trigger { position: relative; width: 100%; display: grid; grid-template-columns: 20px minmax(0, 1fr) 14px; grid-template-rows: 20px auto; column-gap: 6px; row-gap: 8px; align-items: start; padding: 0; border: 0; color: var(--ink); background: transparent; text-align: left; }
   .recipe-details-trigger > .recipe-step-number { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); font: 700 9px ui-monospace, monospace; }
-  .recipe-details-trigger > strong { min-width: 0; padding-top: 2px; overflow-wrap: break-word; word-break: normal; font-size: 11px; line-height: 1.32; }
-  .recipe-details-chevron { align-self: center; color: var(--muted); }
-  .recipe-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
-  .recipe-actions .button { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 7px; }
+  .recipe-details-trigger > strong { grid-column: 1 / -1; grid-row: 2; min-width: 0; overflow-wrap: break-word; word-break: normal; font-size: 11px; line-height: 1.38; }
+  .recipe-details-chevron { grid-column: 3; grid-row: 1; align-self: center; justify-self: end; color: var(--muted); }
+  .recipe-actions { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 16px; margin-top: 13px; }
+  .recipe-actions .button { width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 7px; }
   .recipe-actions .processing-action-icon { width: 16px; height: 16px; }
   .recipe-action-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .recipe-icon-action[aria-busy="true"] .processing-action-icon { animation: action-pulse .8s ease-in-out infinite alternate; }
