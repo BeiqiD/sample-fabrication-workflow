@@ -10,6 +10,7 @@ import { authenticateRequest } from "./auth";
 import { bulkInsertStatements } from "./d1-bulk";
 import { contentLengthWithin, escapedLikePattern, sameOriginOrNonBrowser } from "./request-guards";
 import { insertionPosition } from "./run-position";
+import { returnedEveryConfirmationTarget } from "./run-step-confirmation";
 import { resolveAssetReferences } from "./asset-dedupe";
 import type { Env } from "./types";
 
@@ -1039,7 +1040,8 @@ app.post("/run-steps/confirm", async (c) => {
      UPDATE run_steps
      SET status = 'done', actualized_at = COALESCE(actualized_at, ?), updated_by = ?, last_mutation_id = ?, updated_at = ?
      WHERE id IN (SELECT step_id FROM valid)
-       AND (SELECT COUNT(*) FROM valid) = ?`,
+       AND (SELECT COUNT(*) FROM valid) = ?
+     RETURNING id`,
   ).bind(...bindings, now, userEmail, operationGroupId, now, input.targets.length)];
 
   const sampleIds = [...new Set(input.targets.map((target) => target.sampleId))];
@@ -1064,7 +1066,7 @@ app.post("/run-steps/confirm", async (c) => {
     ).bind(userEmail, now, sampleId, operationGroupId, ...stepIds));
   }
   const results = await c.env.DB.batch(statements);
-  if (results[0].meta.changes !== input.targets.length) {
+  if (!returnedEveryConfirmationTarget(results[0].results, input.targets.map((target) => target.stepId))) {
     throw new HTTPException(409, { message: "One or more steps changed elsewhere. Reload before confirming." });
   }
   return c.json({ ok: true, confirmed: input.targets.length });
