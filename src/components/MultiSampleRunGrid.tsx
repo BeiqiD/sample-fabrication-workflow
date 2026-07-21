@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api } from "../lib/api";
+import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressCommentImage, compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
 import { runStepIsModified } from "../lib/runSteps";
@@ -32,6 +33,77 @@ function target(column: RunGridColumn, step: RunStep) {
 
 type GalleryKind = "diagram" | "photo";
 type GallerySize = "compact" | "wide";
+
+type DiagramViewport = {
+  naturalWidth: number;
+  naturalHeight: number;
+  viewBox: string;
+};
+
+const diagramViewportCache = new Map<string, DiagramViewport | null>();
+
+function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
+  const cached = diagramViewportCache.get(src);
+  const [viewport, setViewport] = useState<DiagramViewport | null | undefined>(cached);
+
+  function measure(image: HTMLImageElement) {
+    if (diagramViewportCache.has(src)) {
+      setViewport(diagramViewportCache.get(src));
+      return;
+    }
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return;
+
+    try {
+      context.drawImage(image, 0, 0, width, height);
+      const bounds = visibleAlphaBounds(context.getImageData(0, 0, width, height).data, width, height);
+      const fillsCanvas = bounds && bounds.width >= width * .96 && bounds.height >= height * .96;
+      if (!bounds || fillsCanvas) {
+        diagramViewportCache.set(src, null);
+        setViewport(null);
+        return;
+      }
+
+      const inverseScale = 1 / scale;
+      const x = bounds.x * inverseScale;
+      const y = bounds.y * inverseScale;
+      const contentWidth = bounds.width * inverseScale;
+      const contentHeight = bounds.height * inverseScale;
+      const padding = Math.max(8, Math.max(contentWidth, contentHeight) * .03);
+      const next = {
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+        viewBox: `${x - padding} ${y - padding} ${contentWidth + padding * 2} ${contentHeight + padding * 2}`,
+      };
+      diagramViewportCache.set(src, next);
+      setViewport(next);
+    } catch {
+      diagramViewportCache.set(src, null);
+      setViewport(null);
+    }
+  }
+
+  return <>
+    <img
+      className={viewport ? "diagram-thumbnail-source measured" : "diagram-thumbnail-source"}
+      src={src}
+      alt={viewport ? "" : alt}
+      aria-hidden={Boolean(viewport)}
+      loading="lazy"
+      onLoad={(event) => measure(event.currentTarget)}
+    />
+    {viewport && <svg className="diagram-thumbnail-svg" viewBox={viewport.viewBox} role="img" aria-label={alt}>
+      <image href={src} width={viewport.naturalWidth} height={viewport.naturalHeight} />
+    </svg>}
+  </>;
+}
 
 function DiagramGallery({ keys, label, kind = "diagram", size = "compact" }: {
   keys: string[];
@@ -113,7 +185,12 @@ function DiagramGallery({ keys, label, kind = "diagram", size = "compact" }: {
     </div>
   </div>, document.body);
   return <>
-    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails`} role="list">{keys.map((key, index) => <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}><img src={`/api/assets/${key}`} alt={label} loading="lazy" /></button>)}</div>
+    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails`} role="list">{keys.map((key, index) => {
+      const src = `/api/assets/${key}`;
+      return <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}>
+        {kind === "diagram" ? <DiagramThumbnail src={src} alt={label} /> : <img src={src} alt={label} loading="lazy" />}
+      </button>;
+    })}</div>
     {lightbox}
   </>;
 }
