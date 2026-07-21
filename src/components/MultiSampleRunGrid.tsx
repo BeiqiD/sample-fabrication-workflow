@@ -202,6 +202,8 @@ function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDel
 
 function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetailsState>; onClose: () => void }) {
   const { step, number } = state;
+  const hasPlannedCopy = Boolean(step.plannedParametersText || step.plannedCommentsText);
+  const hasPlannedDiagrams = step.plannedImageKeys.length > 0;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -222,11 +224,13 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
         <div><p className="eyebrow">Recipe step {number}</p><h2 id="recipe-details-title">{step.plannedTitle || step.title}</h2>{step.plannedToolName && <small>{step.plannedToolName}</small>}</div>
         <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close recipe details">×</button>
       </div>
-      <div className="recipe-details-content">
-        {step.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{step.plannedParametersText}</p></div>}
-        {step.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{step.plannedCommentsText}</p></div>}
+      <div className={`recipe-details-content${hasPlannedCopy && hasPlannedDiagrams ? " has-diagrams" : ""}`}>
+        {hasPlannedCopy && <div className="recipe-details-copy">
+          {step.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{step.plannedParametersText}</p></div>}
+          {step.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{step.plannedCommentsText}</p></div>}
+        </div>}
         <DiagramGallery keys={step.plannedImageKeys} label={`Plan diagram for ${step.title}`} />
-        {!step.plannedParametersText && !step.plannedCommentsText && !step.plannedImageKeys.length && <p className="muted">No additional recipe details.</p>}
+        {!hasPlannedCopy && !hasPlannedDiagrams && <p className="muted">No additional recipe details.</p>}
       </div>
     </section>
   </div>, document.body);

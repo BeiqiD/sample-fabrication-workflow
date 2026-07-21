@@ -293,6 +293,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .recipe-details-heading h2 { margin: 0 0 3px; font-size: 22px; }
 .recipe-details-heading small { color: var(--muted); }
 .recipe-details-content { display: grid; gap: 12px; margin-top: 20px; }
+.recipe-details-copy { min-width: 0; display: grid; gap: 12px; }
 .recipe-details-content .recipe-field { margin-bottom: 0; }
 .recipe-details-content > .grid-diagrams { margin-top: 0; }
 .grid-diagrams { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -616,7 +617,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .run-grid-card.sample-count-1,
   .run-grid-card.sample-count-2,
   .run-grid-card.sample-count-3 { --recipe-width: 88px; --sample-width: 270px; }
-  .run-grid-card.sample-count-1 .run-grid { width: 100%; grid-template-columns: minmax(var(--recipe-width), .55fr) minmax(var(--sample-width), 1fr); }
+  .run-grid-card.sample-count-1 .run-grid { width: 100%; grid-template-columns: var(--recipe-width) minmax(var(--sample-width), 1fr); }
   .run-grid-card.sample-count-2 .run-grid,
   .run-grid-card.sample-count-3 .run-grid,
   .run-grid-card.sample-count-4 .run-grid { width: max-content; grid-template-columns: var(--recipe-width) repeat(var(--sample-columns), var(--sample-width)); }
@@ -636,6 +637,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .recipe-actions .processing-action-icon { width: 16px; height: 16px; }
   .recipe-action-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .recipe-icon-action[aria-busy="true"] .processing-action-icon { animation: action-pulse .8s ease-in-out infinite alternate; }
+  .recipe-details-content.has-diagrams { grid-template-columns: minmax(0, 1fr) 96px; column-gap: 14px; align-items: start; }
+  .recipe-details-content > .grid-diagrams { width: 96px; justify-self: end; display: grid; grid-template-columns: 96px; gap: 8px; }
+  .recipe-details-content > .grid-diagrams .grid-diagram-item,
+  .recipe-details-content > .grid-diagrams .grid-diagram-item > button:first-child { width: 96px; }
+  .recipe-details-content > .grid-diagrams .grid-diagram-item > button:first-child { height: 72px; }
   .template-table-card { overflow: visible; border: 0; background: transparent; box-shadow: none; }
   .templates-page > .page-heading { align-items: stretch; flex-direction: column; gap: 12px; }
   .templates-page > .page-heading > button { width: 100%; }
