@@ -94,14 +94,25 @@ describe("multi-sample run grid", () => {
     ]);
   });
 
-  it("places an individual ad hoc step in a sparse row after its recipe anchor", () => {
+  it("nests an individual ad hoc step under its recipe anchor without adding a sparse grid row", () => {
     const extra = step("extra", 1500, { origin: "ad_hoc", templateStepId: null });
     const rows = buildRunGrid([
       { sample: sample("a"), run: run("a-run", [step("one", 1000), step("two", 2000)]) },
       { sample: sample("b"), run: run("b-run", [step("one", 1000), extra, step("two", 2000)]) },
     ]);
-    expect(rows.map((row) => row.kind)).toEqual(["template", "ad_hoc", "template"]);
-    expect(rows[1].steps).toEqual([null, extra]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].adHocAfter).toEqual([[], [extra]]);
+    expect(rows[1].adHocAfter).toEqual([[], []]);
+  });
+
+  it("keeps multiple per-sample ad hoc steps in each sample's own nested stack", () => {
+    const aExtra = step("a-extra", 1400, { origin: "ad_hoc", templateStepId: null });
+    const bExtra = step("b-extra", 1500, { origin: "ad_hoc", templateStepId: null });
+    const rows = buildRunGrid([
+      { sample: sample("a"), run: run("a-run", [step("one", 1000), aExtra, step("two", 2000)]) },
+      { sample: sample("b"), run: run("b-run", [step("one", 1000), bExtra, step("two", 2000)]) },
+    ]);
+    expect(rows[0].adHocAfter).toEqual([[aExtra], [bExtra]]);
   });
 
   it("keeps a column present when a sample has no matching run", () => {
