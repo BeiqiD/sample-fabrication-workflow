@@ -13,8 +13,8 @@ export function App() {
     <div className="app-shell">
       <header className="topbar">
         <NavLink to="/" className="brand">
-          <span className="brand-mark">SL</span>
-          <span>Sample Log</span>
+          <span className="brand-mark">SF</span>
+          <span>Sample Fabrication Workflow</span>
         </NavLink>
         <nav>
           <NavLink to="/" end>Samples</NavLink>

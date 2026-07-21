@@ -1,6 +1,18 @@
-# Sample Management System
+# Sample Fabrication Workflow
 
-A low-friction, event-based sample log for fabrication work. The app is a single open-source Cloudflare Worker project: React and Vite provide the interface, Hono provides the API, D1 stores structured records, and private R2 stores workbooks and compressed images.
+A lightweight, sample-centered workflow and event log for small-scale research fabrication. It is intentionally not a general LIMS or enterprise MES: the app follows a specific management model for research groups in which the planned process and the work actually performed may diverge.
+
+## Management model and scope
+
+- A Template or Recipe describes **what should be done**. It is a reusable, versioned plan rather than a rigid work order.
+- Assigning a version to a physical sample locks that version and creates an independent, sample-bound plan and run. Later template edits, archives, or deletions cannot rewrite content that was already assigned.
+- The run records **what was actually done**. Operators can change actual parameters, add comments and diagrams, record deviations, skip work, or insert ad-hoc steps while keeping the expected plan visible for comparison.
+- Meaningful actions append to the sample's event history. Completed execution and verified sample states therefore remain traceable even as future work changes.
+- A template version is editable only before its first assignment. An unused version can be deleted; a referenced version can only be archived so historical sample records remain intact.
+
+These are deliberate assumptions, not a universal laboratory-management model. They favor an honest, durable history of each physical sample over forcing execution to match the original recipe. Groups with different rules for deviations, version ownership, approvals, or historical corrections should review and adapt the model before adopting the app.
+
+The app is a single open-source Cloudflare Worker project: React and Vite provide the interface, Hono provides the API, D1 stores structured records, and private R2 stores workbooks and compressed images.
 
 ## MVP flow
 
