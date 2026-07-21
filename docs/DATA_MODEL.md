@@ -35,4 +35,6 @@ A recipe version is a statement of what should happen and what state should resu
 
 Plan updates align logical step keys first and exact definition hashes second. Executed entries cannot be removed, changed, or preceded by newly inserted planned work. Compatible future entries retain their run-step IDs, new entries are appended after the execution head, and displaced unfinished entries remain auditable as superseded.
 
+Deleting an unused template version removes its version and ordered step rows. Import provenance and content-addressed assets are retained because they may be shared; an assigned version is archived instead of deleted so run and plan history remain resolvable.
+
 Verification is not inferred from `done`. A user may verify after any step once every current step in the interval is done or skipped. The verification stores its predecessor and an explicit ordered coverage snapshot; a mismatch also opens recipe-change evidence without mutating the recipe.

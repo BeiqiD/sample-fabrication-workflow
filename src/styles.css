@@ -59,10 +59,9 @@ p { line-height: 1.55; }
 .sample-row:hover { background: rgba(255,255,255,.58); box-shadow: inset 3px 0 var(--accent); }
 .sample-state-thumbnail { position: relative; width: 120px; height: 90px; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: #eeece6; }
 .sample-state-thumbnail img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.sample-state-thumbnail > span { position: absolute; right: 5px; bottom: 5px; left: 5px; overflow: hidden; padding: 4px 5px; border-radius: 5px; color: white; background: rgba(22,27,23,.76); font-size: 9px; font-weight: 720; letter-spacing: .025em; line-height: 1.2; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .sample-state-thumbnail.placeholder { display: grid; place-items: center; align-content: center; gap: 7px; color: #7b8079; background: repeating-linear-gradient(135deg, #f1efe9 0, #f1efe9 8px, #ece9e2 8px, #ece9e2 16px); }
 .sample-state-thumbnail.placeholder svg { width: 38px; height: 38px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: .72; }
-.sample-state-thumbnail.placeholder > span { position: static; max-width: calc(100% - 10px); padding: 0; color: inherit; background: transparent; font-size: 10px; white-space: normal; }
+.sample-state-thumbnail.placeholder > span { max-width: calc(100% - 10px); color: inherit; font-size: 10px; line-height: 1.2; text-align: center; white-space: normal; }
 .sample-state-thumbnail.no-recipe { color: #8a877f; }
 .sample-code { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); font-weight: 700; line-height: 1.35; }
 .sample-main { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -257,7 +256,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .recipe-step-heading > div { display: grid; gap: 3px; }
 .recipe-step-heading small { color: var(--muted); }
 .recipe-content-split { display: grid; gap: 8px; margin-top: 10px; }
-.recipe-content-split > .grid-diagrams { width: 100%; margin-top: 0; }
+.recipe-content-split > .grid-diagrams { width: 100%; justify-content: center; margin-top: 0; }
 .recipe-field { margin: 0 0 10px; }
 .recipe-field small, .common-comments > small { color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .07em; }
 .recipe-field p { margin: 3px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 13px; line-height: 1.45; }
@@ -397,6 +396,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; }
 .composer-actions input[type="file"] { padding: 0; border: 0; box-shadow: none; font-size: 13px; }
 .field-label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 650; }
+.timeline-toolbar { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .timeline { position: relative; }
 .event { display: grid; grid-template-columns: 18px 1fr; gap: 14px; padding-bottom: 24px; position: relative; }
 .event::before { content: ""; position: absolute; left: 4px; top: 11px; bottom: -3px; width: 1px; background: var(--line); }
@@ -425,6 +425,13 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .file-drop-copy small { color: var(--muted); font-weight: 400; }
 .file-dropzone .text-button { margin-left: auto; }
 .import-preview { display: grid; gap: 18px; margin-top: 24px; }
+.template-import-section { display: grid; gap: 18px; padding: 22px; margin: -8px 0 28px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.5); }
+.template-import-section h2 { margin-bottom: 6px; }
+.template-import-section > div > p:last-child { max-width: 720px; margin: 0; }
+.success-banner a { color: var(--accent); font-weight: 700; }
+.template-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; white-space: nowrap; }
+.text-button.danger-text { color: var(--danger); }
+.text-button:disabled { opacity: .55; cursor: wait; }
 .preview-summary { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 20px; padding: 20px; }
 .preview-summary div { display: grid; gap: 5px; }
 .preview-summary small, table small { display: block; color: var(--muted); }
@@ -534,5 +541,6 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .lightbox-arrow.next { right: 8px; }
   .comment-card-content { flex-wrap: wrap; padding-right: 34px; }
   .comment-thumbnail-gallery { flex-basis: 100%; }
+  .timeline-toolbar { align-items: flex-start; flex-direction: column; }
   .step-drawer { padding: 18px; }
 }

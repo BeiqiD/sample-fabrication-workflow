@@ -78,7 +78,7 @@ export const api = {
   updateTemplate: (id: string, input: { name: string; version: number }) => request<{ ok: true }>(`/templates/${id}`, {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
-  archiveTemplate: (id: string) => request<{ ok: true }>(`/templates/${id}`, { method: "DELETE" }),
+  removeTemplate: (id: string) => request<{ ok: true; disposition: "deleted" | "archived" }>(`/templates/${id}`, { method: "DELETE" }),
   cloneTemplate: (id: string) => request<{ id: string; version: number }>(`/templates/${id}/clone`, { method: "POST" }),
   createTemplateStep: (templateId: string, input: TemplateStepInput) => request<{ id: string }>(`/templates/${templateId}/steps`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),

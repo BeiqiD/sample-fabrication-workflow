@@ -87,7 +87,10 @@ export function TemplatePage() {
     const result = await api.getTemplate(templateId);
     setTemplate(result.template); setName(result.template.name); setVersion(result.template.version);
   }, [templateId]);
-  useEffect(() => { void load().catch((error: Error) => setError(error.message)); }, [load]);
+  useEffect(() => {
+    setTemplate(null); setError("");
+    void load().catch((error: Error) => setError(error.message));
+  }, [load]);
 
   async function saveMetadata() {
     setSaving(true); setError("");
@@ -99,13 +102,17 @@ export function TemplatePage() {
   async function clone() {
     setSaving(true); setError("");
     try { const created = await api.cloneTemplate(templateId); navigate(`/templates/${created.id}`); }
-    catch (error) { setError((error as Error).message); setSaving(false); }
+    catch (error) { setError((error as Error).message); }
+    finally { setSaving(false); }
   }
 
-  async function archive() {
-    if (!window.confirm("Archive this template version? Existing sample runs will remain unchanged, but it can no longer be assigned.")) return;
+  async function remove() {
+    const message = template?.locked
+      ? "Archive this assigned template version? Existing sample runs and history will remain unchanged, but it can no longer be assigned."
+      : "Permanently delete this unused template version? Its import source and shared files will be retained.";
+    if (!window.confirm(message)) return;
     setSaving(true); setError("");
-    try { await api.archiveTemplate(templateId); navigate("/templates"); }
+    try { await api.removeTemplate(templateId); navigate("/templates"); }
     catch (error) { setError((error as Error).message); setSaving(false); }
   }
 
@@ -113,7 +120,7 @@ export function TemplatePage() {
   const editable = !template.locked && !template.archived;
   return <div className="page narrow-page">
     <Link className="back-link" to="/templates">← Templates</Link>
-    <div className="page-heading"><div><p className="eyebrow">{template.templateType} · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>Clone as new version</button><button className="button danger" disabled={saving} onClick={() => void archive()}>Archive</button></div></div>
+    <div className="page-heading"><div><p className="eyebrow">{template.templateType} · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => void remove()}>{template.locked ? "Archive" : "Delete"}</button></div></div>
     {template.locked && <p className="info-banner">This version was assigned on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
     {editable && <section className="card template-metadata-editor"><h2>Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
     {error && <p className="error-banner">{error}</p>}

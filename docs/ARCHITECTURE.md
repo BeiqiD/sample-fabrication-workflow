@@ -25,6 +25,7 @@ flowchart TD
 
 - Sample codes and template version numbers are unique in D1.
 - A recipe family owns immutable versions. A version is editable only before its first run-plan reference; the first reference atomically locks it.
+- An unused template version can be deleted. Once a version has a run-plan reference it can only be archived, preserving every historical link while removing it from future assignment choices.
 - Step definitions and expected diagram states are content-addressed. Recipe versions, plans, and runs reference their hashes, so repeated content is stored once.
 - A physical sample has at most one active run. Finished runs form an ordered predecessor chain; the successor anchors to the previous run's last actual step.
 - Each run has immutable plan revisions. A newer version of the same recipe family can replace only unfinished future work; completed and ad-hoc execution remains in the chain.

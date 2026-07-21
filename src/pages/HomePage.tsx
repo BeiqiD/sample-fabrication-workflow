@@ -18,7 +18,6 @@ function SampleStateThumbnail({ sample }: { sample: SampleSummary }) {
       loading="lazy"
       onError={() => setImageFailed(true)}
     />
-    <span>Current state</span>
   </div>;
 
   const hasRecipe = Boolean(sample.currentRecipeName);

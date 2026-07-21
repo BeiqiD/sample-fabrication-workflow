@@ -26,3 +26,16 @@ describe("comment deletion API", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/samples/sample-1/records/event-1", { method: "DELETE" });
   });
 });
+
+describe("template removal API", () => {
+  it("uses the guarded template delete endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, disposition: "deleted" }), {
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.removeTemplate("template-1");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/templates/template-1", { method: "DELETE" });
+  });
+});
