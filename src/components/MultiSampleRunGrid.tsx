@@ -4,11 +4,11 @@ import type { RunStep, RunStepComment, SampleRun, StepStatus } from "../../share
 import { api } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressCommentImage, compressLayerStackImage } from "../lib/images";
-import { parameterEntryCount } from "../lib/recipeDetails";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
 import { runStepIsModified } from "../lib/runSteps";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { FileDropzone } from "./FileDropzone";
+import { ProcessingActionIcon } from "./ProcessingActionIcon";
 
 const STATUSES: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
 
@@ -585,12 +585,11 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
           }));
           const eligibleCount = entries.filter(({ column, step }) => selected.has(column.sample.id) && ["pending", "in_progress"].includes(step.status)).length;
           const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
-          const parameterCount = parameterEntryCount(row.recipeStep?.plannedParametersText);
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
             <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}`}>
               {row.kind === "ad_hoc" ? <div className="recipe-step-heading"><span>+</span><div><strong>Additional step</strong><small>Not part of the assigned recipe</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
-              {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View recipe details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><span className="recipe-details-meta"><span>{recipeNumber}</span>{parameterCount > 0 && <small>{parameterCount} parameter{parameterCount === 1 ? "" : "s"}</small>}</span><b aria-hidden="true">›</b></button>}
+              {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View recipe details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
               <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
                 key={comment.operationGroupId || comment.id}
@@ -601,7 +600,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 onDelete={() => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
                 onDeleteAsset={comment.assetKey ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
               />)}</div>}
-              {!readOnly && <><div className="recipe-actions"><button type="button" className="button primary compact-button" title={`Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}>{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</button><button type="button" className="button compact-button" disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}>Comment</button></div>
+              {!readOnly && <><div className="recipe-actions"><button type="button" className="button primary compact-button recipe-icon-action" title={pendingAction === `confirm:${row.key}` ? "Saving…" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-label={pendingAction === `confirm:${row.key}` ? "Saving confirmed steps" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-busy={pendingAction === `confirm:${row.key}`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}><ProcessingActionIcon name="done" /><span className="recipe-action-label">{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</span></button><button type="button" className="button compact-button recipe-icon-action" title="Comment on selected samples" aria-label="Comment on selected samples" aria-expanded={commonCommentRow === row.key} disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}><ProcessingActionIcon name="comment" /><span className="recipe-action-label">Comment</span></button></div>
               {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body, image) => addComment("common", entries, body, image, `common:${row.key}`)} />}</>}</>}
             </div>
             {columns.map((column, columnIndex) => {
