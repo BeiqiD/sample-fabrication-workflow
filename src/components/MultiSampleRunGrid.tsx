@@ -441,6 +441,20 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     finally { setPendingAction(null); }
   }
 
+  function renderStepContent(column: RunGridColumn, step: RunStep) {
+    return <StepCell
+      column={column}
+      step={step}
+      pendingAction={pendingAction}
+      onDone={() => void markDone(column, step)}
+      onVerify={(result) => void verifyState(column, step, result)}
+      onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)}
+      onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ comment, common: false }); }}
+      onEdit={() => setDrawer({ mode: "edit", column, step })}
+      onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
+    />;
+  }
+
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
   return <article className={`run-grid-card ${layoutClass}`}>
     <div className="run-grid-toolbar">
@@ -466,16 +480,6 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
 
         {rows.map((row, rowIndex) => {
           const entries = row.steps.flatMap((step, columnIndex) => step ? [{ step, column: columns[columnIndex] }] : []);
-          if (row.kind === "ad_hoc") return <div className="run-grid-row ad-hoc-grid-row" key={row.key} style={{ display: "contents" }}>
-            <div className="recipe-cell recipe-column ad-hoc-recipe-gap" aria-hidden="true" />
-            {columns.map((column, columnIndex) => {
-              const step = row.steps[columnIndex];
-              return <div className={`sample-step-cell${step ? ` ad-hoc-cell step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ comment, common: false }); }} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
-              </div>;
-            })}
-          </div>;
-
           const commonGroups = new Map<string, { comment: RunStepComment; codes: string[] }>();
           entries.forEach(({ step, column }) => step.comments.filter((comment) => comment.scope === "common").forEach((comment) => {
             const key = comment.operationGroupId || comment.id;
@@ -483,7 +487,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             if (existing) existing.codes.push(column.sample.code); else commonGroups.set(key, { comment, codes: [column.sample.code] });
           }));
           const eligibleCount = entries.filter(({ column, step }) => selected.has(column.sample.id) && ["pending", "in_progress"].includes(step.status)).length;
-          const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
+          const recipeNumber = rowIndex + 1;
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
             <div className="recipe-cell recipe-column">
               <div className="recipe-step-heading"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
@@ -501,8 +505,13 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
-              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {step ? <StepCell column={column} step={step} pendingAction={pendingAction} onDone={() => void markDone(column, step)} onVerify={(result) => void verifyState(column, step, result)} onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)} onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ comment, common: false }); }} onEdit={() => setDrawer({ mode: "edit", column, step })} onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })} /> : <span className="not-applicable">—</span>}
+              const before = row.adHocBefore[columnIndex];
+              const after = row.adHocAfter[columnIndex];
+              const hasNestedSteps = before.length > 0 || after.length > 0;
+              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : hasNestedSteps ? " has-nested-steps" : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
+                {before.length > 0 && <div className="ad-hoc-step-stack before-recipe-step" aria-label="Individual steps before this recipe step">{before.map((adHocStep) => <section className={`ad-hoc-inline step-status-${adHocStep.status}`} key={adHocStep.id}>{renderStepContent(column, adHocStep)}</section>)}</div>}
+                {step ? renderStepContent(column, step) : !hasNestedSteps && <span className="not-applicable">—</span>}
+                {after.length > 0 && <div className="ad-hoc-step-stack" aria-label="Individual steps after this recipe step">{after.map((adHocStep) => <section className={`ad-hoc-inline step-status-${adHocStep.status}`} key={adHocStep.id}>{renderStepContent(column, adHocStep)}</section>)}</div>}
               </div>;
             })}
           </div>;
