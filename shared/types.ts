@@ -11,6 +11,12 @@ export interface SampleSummary {
   parentId: string | null;
   pinned: boolean;
   updatedAt: string;
+  currentRecipeName: string | null;
+  currentRecipeVersion: number | null;
+  currentRecipeStatus: SampleRun["status"] | null;
+  currentStepTitle: string | null;
+  currentStateStepTitle: string | null;
+  currentStateThumbnailKey: string | null;
 }
 
 export interface SampleEvent {

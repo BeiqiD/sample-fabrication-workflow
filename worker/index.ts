@@ -139,16 +139,57 @@ app.get("/ready", async (c) => {
   return c.json({ ok: true });
 });
 
+const sampleOverviewSelect = `
+  SELECT s.*,
+         COALESCE(ptv.name, r.template_name_snapshot) AS current_recipe_name,
+         COALESCE(ptv.version, r.template_version_snapshot) AS current_recipe_version,
+         r.status AS current_recipe_status,
+         (
+           SELECT COALESCE(rs.title, sd.name)
+           FROM run_steps rs
+           LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+           WHERE rs.run_id = r.id AND rs.plan_status = 'current'
+             AND rs.status NOT IN ('done', 'skipped')
+           ORDER BY rs.position
+           LIMIT 1
+         ) AS current_step_title,
+         (
+           SELECT COALESCE(rs.title, sd.name)
+           FROM run_steps rs
+           LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+           WHERE rs.run_id = r.id AND rs.status = 'done'
+             AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+           ORDER BY rs.position DESC
+           LIMIT 1
+         ) AS current_state_step_title,
+         (
+           SELECT a.r2_key
+           FROM run_steps rs
+           JOIN state_representation_assets sra ON sra.state_hash = rs.expected_state_hash
+           JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+           WHERE rs.run_id = r.id AND rs.status = 'done'
+             AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+           ORDER BY rs.position DESC, sra.position
+           LIMIT 1
+         ) AS current_state_thumbnail_key
+  FROM samples s
+  LEFT JOIN runs r ON r.sample_id = s.id
+    AND r.sequence_no = (SELECT MAX(latest.sequence_no) FROM runs latest WHERE latest.sample_id = s.id)
+  LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
+  LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
+
 app.get("/samples", async (c) => {
   const query = c.req.query("q")?.trim() ?? "";
   const pattern = escapedLikePattern(query);
   const statement = query
     ? c.env.DB.prepare(
-        `SELECT * FROM samples
+        `WITH sample_overview AS (${sampleOverviewSelect})
+         SELECT * FROM sample_overview
          WHERE code LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR location LIKE ? ESCAPE '\\'
+           OR current_recipe_name LIKE ? ESCAPE '\\'
          ORDER BY pinned DESC, updated_at DESC LIMIT 50`,
-      ).bind(pattern, pattern, pattern)
-    : c.env.DB.prepare("SELECT * FROM samples ORDER BY pinned DESC, updated_at DESC LIMIT 30");
+      ).bind(pattern, pattern, pattern, pattern)
+    : c.env.DB.prepare(`${sampleOverviewSelect} ORDER BY s.pinned DESC, s.updated_at DESC LIMIT 30`);
   const result = await statement.all();
   return c.json({ samples: result.results.map((row) => sampleSummary(row as never)) });
 });
@@ -190,8 +231,9 @@ app.get("/samples/:id", async (c) => {
   const id = c.req.param("id");
   const [sample, children, events, runRows, runAssetRows, runCommentRows, verificationRows, verificationStepRows] = await Promise.all([
     c.env.DB.prepare(
-      `SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
-       FROM samples s LEFT JOIN samples p ON p.id = s.parent_id WHERE s.id = ?`,
+      `WITH sample_overview AS (${sampleOverviewSelect})
+       SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
+       FROM sample_overview s LEFT JOIN samples p ON p.id = s.parent_id WHERE s.id = ?`,
     ).bind(id).first<Record<string, unknown>>(),
     c.env.DB.prepare("SELECT id, code, title FROM samples WHERE parent_id = ? ORDER BY created_at").bind(id).all(),
     c.env.DB.prepare("SELECT * FROM events WHERE sample_id = ? ORDER BY created_at DESC").bind(id).all(),

@@ -12,6 +12,12 @@ describe("D1 serializers", () => {
       parent_id: null,
       pinned: 1,
       updated_at: "2026-07-20T10:00:00.000Z",
+      current_recipe_name: "Mesa etch",
+      current_recipe_version: 3,
+      current_recipe_status: "active",
+      current_step_title: "Strip resist",
+      current_state_step_title: "Develop resist",
+      current_state_thumbnail_key: "imports/recipe/images/state.png",
     })).toEqual({
       id: "sample-1",
       code: "SOD-001",
@@ -21,7 +27,33 @@ describe("D1 serializers", () => {
       parentId: null,
       pinned: true,
       updatedAt: "2026-07-20T10:00:00.000Z",
+      currentRecipeName: "Mesa etch",
+      currentRecipeVersion: 3,
+      currentRecipeStatus: "active",
+      currentStepTitle: "Strip resist",
+      currentStateStepTitle: "Develop resist",
+      currentStateThumbnailKey: "imports/recipe/images/state.png",
     });
+  });
+
+  it("uses empty workflow metadata for a sample without an assigned recipe", () => {
+    expect(sampleSummary({
+      id: "sample-2",
+      code: "SOD-002",
+      title: "Unassigned sample",
+      status: "stored",
+      location: null,
+      parent_id: null,
+      pinned: 0,
+      updated_at: "2026-07-20T10:00:00.000Z",
+    })).toEqual(expect.objectContaining({
+      currentRecipeName: null,
+      currentRecipeVersion: null,
+      currentRecipeStatus: null,
+      currentStepTitle: null,
+      currentStateStepTitle: null,
+      currentStateThumbnailKey: null,
+    }));
   });
 
   it("parses event metadata", () => {
