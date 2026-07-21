@@ -12,4 +12,11 @@ describe("isSampleRecordEvent", () => {
     expect(isSampleRecordEvent("step", { action: "updated" })).toBe(false);
     expect(isSampleRecordEvent("verification", {})).toBe(false);
   });
+
+  it("does not offer audit or already-deleted events for deletion", () => {
+    expect(isSampleRecordEvent("comment", { action: "sample_record_deleted" })).toBe(false);
+    expect(isSampleRecordEvent("comment", { action: "sample_details_updated" })).toBe(false);
+    expect(isSampleRecordEvent("comment", { action: "image_attachment_deleted" })).toBe(false);
+    expect(isSampleRecordEvent("comment", { action: "sample_record", deletedAt: "2026-07-21T12:00:00Z" })).toBe(false);
+  });
 });

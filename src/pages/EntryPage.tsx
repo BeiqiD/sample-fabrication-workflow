@@ -29,7 +29,6 @@ export function EntryPage() {
     api.getSample(initialSampleId).then((sample) => {
       setSelected(sample);
       setExpectedUpdatedAt(sample.updatedAt);
-      setQuery(sample.code);
     }).catch((error: Error) => setError(error.message));
   }, [initialSampleId]);
 
@@ -48,8 +47,6 @@ export function EntryPage() {
     setError(""); setSuccess(""); setDirty(false);
     setImage(null);
     pendingUploadRef.current = null;
-    setSelected(null);
-    setQuery(sample.code);
     setSearchParams({ sampleId: sample.id }, { replace: true });
   }
 
@@ -120,7 +117,7 @@ export function EntryPage() {
             <span><strong>{sample.code}</strong><small>{sample.title}</small></span><StatusPill status={sample.status} />
           </button>)}
           {!searching && !results.length && <p className="muted padded">No matching samples.</p>}
-          {!searching && selected && !selectedInResults && <button type="button" className="entry-result selected" onClick={() => setQuery(selected.code)}><span><strong>{selected.code}</strong><small>{selected.title}</small></span><StatusPill status={selected.status} /></button>}
+          {!searching && selected && !selectedInResults && <div className="entry-result selected"><span><strong>{selected.code}</strong><small>{selected.title}</small></span><StatusPill status={selected.status} /></div>}
         </div>
       </aside>
       <section>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
 import { api, type TemplateDetail, type TemplateStepRecord } from "../lib/api";
 import { compressLayerStackImage } from "../lib/images";
@@ -13,6 +14,8 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [imageToDelete, setImageToDelete] = useState<string | null>(null);
+  const [imageDeleteError, setImageDeleteError] = useState("");
 
   async function save() {
     setSaving(true); setError("");
@@ -28,12 +31,25 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
     finally { setSaving(false); }
   }
 
+  async function deleteImage() {
+    if (!imageToDelete) return;
+    setSaving(true); setImageDeleteError("");
+    try {
+      await api.deleteTemplateStepImage(template.id, step.id, imageToDelete);
+      setImageToDelete(null);
+      await onSaved();
+    } catch (error) { setImageDeleteError((error as Error).message); }
+    finally { setSaving(false); }
+  }
+
   return <article className="card template-step-card">
     <div className="template-step-number">{step.stepNumber || step.position + 1}</div>
     <div className="template-step-body">
       <div className="card-title-row"><div><h2>{step.name}</h2>{step.sectionName && <span className="section-label">{step.sectionName}</span>}</div>{!template.locked && !template.archived && <button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</button>}</div>
-      <dl className="template-detail-list"><dt>Tool</dt><dd>{step.toolName || "—"}</dd><dt>Parameters</dt><dd>{step.parametersText || "—"}</dd><dt>Comments</dt><dd>{step.commentsText || "—"}</dd></dl>
-      {step.imageKeys.length > 0 && <div className="diagram-gallery">{step.imageKeys.map((key) => <a key={key} href={`/api/assets/${key}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${key}`} alt={`Diagram for ${step.name}`} /></a>)}</div>}
+      <div className={step.imageKeys.length > 0 ? "template-step-content has-diagrams" : "template-step-content"}>
+        <dl className="template-detail-list"><dt>Tool</dt><dd>{step.toolName || "—"}</dd><dt>Parameters</dt><dd>{step.parametersText || "—"}</dd><dt>Comments</dt><dd>{step.commentsText || "—"}</dd></dl>
+        {step.imageKeys.length > 0 && <div className="diagram-gallery">{step.imageKeys.map((key, index) => <div className="diagram-gallery-item" key={key}><a href={`/api/assets/${key}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${key}`} alt={`Diagram for ${step.name}`} /></a>{!template.locked && !template.archived && <button type="button" className="diagram-delete-button" aria-label={`Delete diagram ${index + 1} for ${step.name}`} onClick={() => { setImageDeleteError(""); setImageToDelete(key); }}>Delete</button>}</div>)}</div>}
+      </div>
       {editing && <div className="step-form">
         <label>Step name<input value={name} onChange={(event) => setName(event.target.value)} /></label>
         <label>Tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} /></label>
@@ -44,6 +60,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
       </div>}
       {error && <p className="error-banner">{error}</p>}
     </div>
+    {imageToDelete && <ConfirmDeleteDialog title="Delete this template diagram?" description="The diagram will be removed from this editable template step. Existing assigned runs and shared file data will remain unchanged." summary={`${step.name} · diagram ${step.imageKeys.indexOf(imageToDelete) + 1}`} deleting={saving} error={imageDeleteError} eyebrow="Delete diagram" confirmLabel="Delete diagram" onCancel={() => { setImageToDelete(null); setImageDeleteError(""); }} onConfirm={() => void deleteImage()} />}
   </article>;
 }
 

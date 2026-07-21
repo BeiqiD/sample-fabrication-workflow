@@ -435,13 +435,35 @@ app.patch("/samples/:id", async (c) => {
   if (!changed) return c.json({ ok: true, updatedAt: current.updated_at });
 
   const now = new Date().toISOString();
-  const result = await c.env.DB.prepare(
-    `UPDATE samples SET title = ?, status = ?, location = ?, pinned = ?, updated_by = ?, updated_at = ?
+  const mutationId = crypto.randomUUID();
+  const fieldChanges = {
+    ...(nextTitle !== current.title ? { title: { from: current.title, to: nextTitle } } : {}),
+    ...(nextStatus !== current.status ? { status: { from: current.status, to: nextStatus } } : {}),
+    ...(nextLocation !== current.location ? { location: { from: current.location, to: nextLocation } } : {}),
+    ...(nextPinned !== Boolean(current.pinned) ? { pinned: { from: Boolean(current.pinned), to: nextPinned } } : {}),
+  };
+  const changeSummary = Object.entries(fieldChanges).map(([field, values]) => {
+    const format = (value: unknown) => value === null || value === "" ? "—" : String(value);
+    return `${field}: ${format(values.from)} → ${format(values.to)}`;
+  }).join("; ");
+  const eventKind = nextStatus !== current.status ? "status" : nextLocation !== current.location ? "location" : "comment";
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+    `UPDATE samples SET title = ?, status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
      WHERE id = ? AND updated_at = ?`,
-  ).bind(nextTitle, nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), now, id, input.expectedUpdatedAt).run();
-  if (!result.meta.changes) {
+    ).bind(nextTitle, nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), mutationId, now, id, input.expectedUpdatedAt),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, id, ?, ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
+    ).bind(
+      crypto.randomUUID(), eventKind, `Sample details updated · ${changeSummary}`,
+      JSON.stringify({ action: "sample_details_updated", changes: fieldChanges }), c.get("userEmail"), now, id, mutationId,
+    ),
+  ]);
+  if (!results[0].meta.changes) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
   }
+  if (!results[1].meta.changes) throw new Error("Sample detail audit event was not created");
   return c.json({ ok: true, updatedAt: now });
 });
 
@@ -505,8 +527,8 @@ app.delete("/samples/:id/records/:eventId", async (c) => {
   const sampleId = c.req.param("id");
   const eventId = c.req.param("eventId");
   const event = await c.env.DB.prepare(
-    "SELECT id, kind, metadata_json FROM events WHERE id = ? AND sample_id = ?",
-  ).bind(eventId, sampleId).first<{ id: string; kind: string; metadata_json: string }>();
+    "SELECT id, kind, body, asset_key, metadata_json FROM events WHERE id = ? AND sample_id = ?",
+  ).bind(eventId, sampleId).first<{ id: string; kind: string; body: string | null; asset_key: string | null; metadata_json: string }>();
   if (!event) throw new HTTPException(404, { message: "Sample record not found" });
   let metadata: Record<string, unknown> = {};
   try { metadata = JSON.parse(event.metadata_json || "{}") as Record<string, unknown>; }
@@ -519,15 +541,131 @@ app.delete("/samples/:id/records/:eventId", async (c) => {
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
   const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
+  const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
+  const deletedSummary = event.body?.trim() || (event.asset_key ? "Photo attachment" : "Empty record");
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
-      "DELETE FROM events WHERE id = ? AND sample_id = ?",
-    ).bind(eventId, sampleId),
+      "UPDATE events SET asset_key = NULL, metadata_json = ? WHERE id = ? AND sample_id = ?",
+    ).bind(JSON.stringify({ ...retainedMetadata, deletedAt: now, deletedBy: userEmail, hadAsset: Boolean(event.asset_key) }), eventId, sampleId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(), sampleId, `Deleted sample record · ${deletedSummary}`,
+      JSON.stringify({ action: "sample_record_deleted", originalEventId: eventId, hadAsset: Boolean(event.asset_key) }), userEmail, now,
+    ),
     c.env.DB.prepare(
       "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
     ).bind(userEmail, now, sampleId),
   ]);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "The sample record was already deleted" });
+  return c.json({ ok: true, updatedAt: now });
+});
+
+app.delete("/samples/:id/events/:eventId/asset", async (c) => {
+  const sampleId = c.req.param("id");
+  const eventId = c.req.param("eventId");
+  const event = await c.env.DB.prepare(
+    "SELECT id, kind, body, asset_key, metadata_json FROM events WHERE id = ? AND sample_id = ?",
+  ).bind(eventId, sampleId).first<{ id: string; kind: string; body: string | null; asset_key: string | null; metadata_json: string }>();
+  if (!event) throw new HTTPException(404, { message: "Timeline entry not found" });
+  if (!event.asset_key) throw new HTTPException(409, { message: "This image attachment was already deleted" });
+  let metadata: Record<string, unknown> = {};
+  try { metadata = JSON.parse(event.metadata_json || "{}") as Record<string, unknown>; }
+  catch { throw new HTTPException(409, { message: "This image attachment cannot be safely deleted" }); }
+
+  const sourceAction = typeof metadata.action === "string" ? metadata.action : null;
+  const operationGroupId = typeof metadata.operationGroupId === "string" ? metadata.operationGroupId : null;
+  const verificationId = typeof metadata.verificationId === "string" ? metadata.verificationId : null;
+  const stepId = typeof metadata.stepId === "string" ? metadata.stepId : null;
+  const runId = typeof metadata.runId === "string" ? metadata.runId : null;
+  const affectedSampleIds = operationGroupId && sourceAction === "step_comment"
+    ? (await c.env.DB.prepare(
+      `SELECT DISTINCT sample_id FROM events
+       WHERE kind = 'step' AND json_valid(metadata_json)
+         AND json_extract(metadata_json, '$.action') = 'step_comment'
+         AND json_extract(metadata_json, '$.operationGroupId') = ?`,
+    ).bind(operationGroupId).all<{ sample_id: string }>()).results.map((row) => row.sample_id)
+    : [sampleId];
+  const sampleRows = await c.env.DB.prepare(
+    `SELECT id, updated_at FROM samples WHERE id IN (${affectedSampleIds.map(() => "?").join(", ")})`,
+  ).bind(...affectedSampleIds).all<{ id: string; updated_at: string }>();
+  if (!sampleRows.results.length) throw new HTTPException(404, { message: "Sample not found" });
+  const latestUpdate = Math.max(...sampleRows.results.map((row) => Date.parse(row.updated_at)).filter(Number.isFinite));
+  const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const statements: D1PreparedStatement[] = [];
+  let eventDetachIndex = -1;
+
+  if (sourceAction === "step_comment" && operationGroupId) {
+    statements.push(c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id IN (SELECT run_step_id FROM run_step_comments WHERE operation_group_id = ?)`,
+    ).bind(userEmail, now, operationGroupId));
+    statements.push(c.env.DB.prepare(
+      `UPDATE run_step_comments SET asset_id = NULL
+       WHERE operation_group_id = ? AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)`,
+    ).bind(operationGroupId, event.asset_key));
+    eventDetachIndex = statements.length;
+    statements.push(c.env.DB.prepare(
+      `UPDATE events SET asset_key = NULL,
+         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+       WHERE kind = 'step' AND asset_key = ? AND json_valid(metadata_json)
+         AND json_extract(metadata_json, '$.action') = 'step_comment'
+         AND json_extract(metadata_json, '$.operationGroupId') = ?`,
+    ).bind(now, userEmail, event.asset_key, operationGroupId));
+  } else if (verificationId && event.kind === "verification") {
+    statements.push(c.env.DB.prepare(
+      `UPDATE state_verifications SET evidence_asset_id = NULL
+       WHERE id = ? AND sample_id = ? AND evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)`,
+    ).bind(verificationId, sampleId, event.asset_key));
+    eventDetachIndex = statements.length;
+    statements.push(c.env.DB.prepare(
+      `UPDATE events SET asset_key = NULL,
+         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+       WHERE id = ? AND sample_id = ? AND asset_key = ?`,
+    ).bind(now, userEmail, eventId, sampleId, event.asset_key));
+  } else if (stepId && runId && event.kind === "image") {
+    statements.push(c.env.DB.prepare(
+      `DELETE FROM run_step_assets WHERE run_step_id = ?
+       AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+       AND EXISTS (SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+                   WHERE rs.id = run_step_assets.run_step_id AND r.id = ? AND r.sample_id = ?)`,
+    ).bind(stepId, event.asset_key, runId, sampleId));
+    statements.push(c.env.DB.prepare(
+      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND run_id = ?",
+    ).bind(userEmail, now, stepId, runId));
+    eventDetachIndex = statements.length;
+    statements.push(c.env.DB.prepare(
+      `UPDATE events SET asset_key = NULL,
+         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+       WHERE id = ? AND sample_id = ? AND asset_key = ?`,
+    ).bind(now, userEmail, eventId, sampleId, event.asset_key));
+  } else if (isSampleRecordEvent(event.kind, metadata)) {
+    const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
+    eventDetachIndex = statements.length;
+    statements.push(c.env.DB.prepare(
+      "UPDATE events SET asset_key = NULL, metadata_json = ? WHERE id = ? AND sample_id = ? AND asset_key = ?",
+    ).bind(JSON.stringify({ ...retainedMetadata, assetDeletedAt: now, assetDeletedBy: userEmail }), eventId, sampleId, event.asset_key));
+  } else {
+    throw new HTTPException(400, { message: "This timeline image is not a removable attachment" });
+  }
+
+  for (const affectedSampleId of affectedSampleIds) {
+    statements.push(c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(), affectedSampleId, `Deleted image attachment · ${event.body?.trim() || "Image"}`,
+      JSON.stringify({ action: "image_attachment_deleted", originalEventId: eventId, sourceAction, hadAsset: true }),
+      userEmail, now,
+    ));
+    statements.push(c.env.DB.prepare(
+      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
+    ).bind(userEmail, now, affectedSampleId));
+  }
+  const results = await c.env.DB.batch(statements);
+  if (eventDetachIndex < 0 || !results[eventDetachIndex].meta.changes) throw new HTTPException(409, { message: "This image attachment was already deleted" });
   return c.json({ ok: true, updatedAt: now });
 });
 
@@ -825,6 +963,42 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   return c.json({ ok: true });
 });
 
+app.delete("/samples/:sampleId/runs/:runId/steps/:stepId/assets", async (c) => {
+  const { sampleId, runId, stepId } = c.req.param();
+  const input = await c.req.json<{ assetKey?: string }>();
+  if (typeof input.assetKey !== "string" || !input.assetKey) throw new HTTPException(400, { message: "An image attachment is required" });
+  const attachment = await c.env.DB.prepare(
+    `SELECT rsa.id, rs.title, sd.name AS planned_title, rs.updated_at, s.updated_at AS sample_updated_at
+     FROM run_step_assets rsa JOIN run_steps rs ON rs.id = rsa.run_step_id
+     JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
+     LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+     JOIN assets a ON a.id = rsa.asset_id
+     WHERE rsa.run_step_id = ? AND r.id = ? AND r.sample_id = ? AND a.r2_key = ?`,
+  ).bind(stepId, runId, sampleId, input.assetKey).first<{ id: string; title: string | null; planned_title: string | null; updated_at: string; sample_updated_at: string }>();
+  if (!attachment) throw new HTTPException(404, { message: "Execution image not found" });
+  const now = new Date(Math.max(Date.now(), Date.parse(attachment.updated_at) + 1, Date.parse(attachment.sample_updated_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const title = attachment.title || attachment.planned_title || "Step";
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM run_step_assets WHERE id = ?").bind(attachment.id),
+    c.env.DB.prepare(
+      `UPDATE events SET asset_key = NULL,
+         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+       WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+         AND json_extract(metadata_json, '$.runId') = ? AND json_extract(metadata_json, '$.stepId') = ?`,
+    ).bind(now, userEmail, sampleId, input.assetKey, runId, stepId),
+    c.env.DB.prepare("UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND run_id = ?").bind(userEmail, now, stepId, runId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       VALUES (?, ?, 'image', ?, ?, ?, ?)`,
+    ).bind(crypto.randomUUID(), sampleId, `Deleted execution image attachment · ${title}`,
+      JSON.stringify({ action: "execution_attachment_deleted", runId, stepId, hadAsset: true }), userEmail, now),
+    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
+  ]);
+  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This execution image was already deleted" });
+  return c.json({ ok: true, updatedAt: now });
+});
+
 app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   const { sampleId, runId } = c.req.param();
   const input = await c.req.json<CreateRunStepInput>();
@@ -877,6 +1051,11 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     ).bind(crypto.randomUUID(), sampleId, `Added ad hoc step: ${title}`, JSON.stringify({ runId, stepId, action: "added", afterStepId: input.afterStepId ?? null, deviationNote: input.deviationNote.trim() || null }), userEmail, now),
     c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
   );
+  if (asset) statements.push(c.env.DB.prepare(
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
+     VALUES (?, ?, 'image', ?, ?, ?, ?, ?)`,
+  ).bind(crypto.randomUUID(), sampleId, `Execution diagram for step: ${title}`, asset.r2_key,
+    JSON.stringify({ runId, stepId, action: "execution_attachment_added" }), userEmail, now));
   await c.env.DB.batch(statements);
   return c.json({ id: stepId }, 201);
 });
@@ -955,6 +1134,65 @@ app.post("/run-step-comments", async (c) => {
   return c.json({ ok: true, operationGroupId }, 201);
 });
 
+app.delete("/run-step-comments/:id/asset", async (c) => {
+  const commentId = c.req.param("id");
+  const comment = await c.env.DB.prepare(
+    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, a.r2_key
+     FROM run_step_comments rsc
+     JOIN run_steps rs ON rs.id = rsc.run_step_id
+     JOIN runs r ON r.id = rs.run_id
+     LEFT JOIN assets a ON a.id = rsc.asset_id
+     WHERE rsc.id = ?`,
+  ).bind(commentId).first<{ id: string; scope: "common" | "individual"; operation_group_id: string | null; r2_key: string | null }>();
+  if (!comment) throw new HTTPException(404, { message: "Step comment not found" });
+  if (!comment.r2_key) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
+  const removeCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
+  const targets = removeCommonGroup
+    ? await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
+       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ? AND rsc.asset_id IS NOT NULL`,
+    ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>()
+    : await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
+       WHERE rsc.id = ? AND rsc.asset_id IS NOT NULL`,
+    ).bind(comment.id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>();
+  if (!targets.results.length) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
+  const latestUpdate = Math.max(...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map(Date.parse).filter(Number.isFinite));
+  const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
+  const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(`UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id IN (${stepIds.map(() => "?").join(", ")})`).bind(userEmail, now, ...stepIds),
+    removeCommonGroup
+      ? c.env.DB.prepare("UPDATE run_step_comments SET asset_id = NULL WHERE scope = 'common' AND operation_group_id = ? AND asset_id IS NOT NULL").bind(comment.operation_group_id)
+      : c.env.DB.prepare("UPDATE run_step_comments SET asset_id = NULL WHERE id = ? AND asset_id IS NOT NULL").bind(comment.id),
+  ];
+  if (comment.operation_group_id) statements.push(c.env.DB.prepare(
+    `UPDATE events SET asset_key = NULL,
+       metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+     WHERE kind = 'step' AND json_valid(metadata_json)
+       AND json_extract(metadata_json, '$.action') = 'step_comment'
+       AND json_extract(metadata_json, '$.operationGroupId') = ?`,
+  ).bind(now, userEmail, comment.operation_group_id));
+  for (const sampleId of sampleIds) {
+    const sampleTarget = targets.results.find((target) => target.sample_id === sampleId);
+    statements.push(c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+    ).bind(crypto.randomUUID(), sampleId, `Deleted comment image attachment · ${sampleTarget?.body.trim() || "Image"}`,
+      JSON.stringify({ action: "comment_attachment_deleted", operationGroupId: comment.operation_group_id, stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }), userEmail, now));
+    statements.push(c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId));
+  }
+  const results = await c.env.DB.batch(statements);
+  if (!results[1].meta.changes) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
+  return c.json({ ok: true, updatedAt: now });
+});
+
 app.delete("/run-step-comments/:id", async (c) => {
   const commentId = c.req.param("id");
   const comment = await c.env.DB.prepare(
@@ -971,21 +1209,21 @@ app.delete("/run-step-comments/:id", async (c) => {
   const removeCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
   const targets = removeCommonGroup
     ? await c.env.DB.prepare(
-      `SELECT rsc.id, rsc.run_step_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
+      `SELECT rsc.id, rsc.run_step_id, rsc.body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
        JOIN samples s ON s.id = r.sample_id
        WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?`,
-    ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; sample_id: string; updated_at: string; sample_updated_at: string }>()
+    ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
-      `SELECT rsc.id, rsc.run_step_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
+      `SELECT rsc.id, rsc.run_step_id, rsc.body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
        JOIN samples s ON s.id = r.sample_id
        WHERE rsc.id = ?`,
-    ).bind(comment.id).all<{ id: string; run_step_id: string; sample_id: string; updated_at: string; sample_updated_at: string }>();
+    ).bind(comment.id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>();
   if (!targets.results.length) throw new HTTPException(404, { message: "Step comment not found" });
 
   const latestUpdate = Math.max(...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map((value) => Date.parse(value)).filter(Number.isFinite));
@@ -1005,14 +1243,29 @@ app.delete("/run-step-comments/:id", async (c) => {
       : c.env.DB.prepare("DELETE FROM run_step_comments WHERE id = ?").bind(comment.id),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
-    `DELETE FROM events
+    `UPDATE events SET asset_key = NULL,
+       metadata_json = json_set(metadata_json, '$.deletedAt', ?, '$.deletedBy', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
        AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-  ).bind(comment.operation_group_id));
-  for (const sampleId of sampleIds) statements.push(c.env.DB.prepare(
-    "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-  ).bind(userEmail, now, sampleId));
+  ).bind(now, userEmail, comment.operation_group_id));
+  for (const sampleId of sampleIds) {
+    const sampleTargets = targets.results.filter((target) => target.sample_id === sampleId);
+    const sampleStepIds = sampleTargets.map((target) => target.run_step_id);
+    const deletedSummary = sampleTargets[0]?.body.trim() || (sampleTargets.some((target) => target.asset_id) ? "Image attachment" : "Empty comment");
+    statements.push(c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(), sampleId,
+      `Deleted ${removeCommonGroup ? "common " : ""}step comment · ${deletedSummary}`,
+      JSON.stringify({ action: "step_comment_deleted", operationGroupId: comment.operation_group_id, stepIds: sampleStepIds, hadAsset: sampleTargets.some((target) => Boolean(target.asset_id)) }),
+      userEmail, now,
+    ));
+    statements.push(c.env.DB.prepare(
+      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
+    ).bind(userEmail, now, sampleId));
+  }
 
   const results = await c.env.DB.batch(statements);
   const deleted = results[1].meta.changes ?? 0;
@@ -1740,6 +1993,61 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
   ).bind(manifestHash, templateId));
   const results = await c.env.DB.batch(statements);
   if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template was assigned while you were editing it. Clone it to continue." });
+  return c.json({ ok: true });
+});
+
+app.delete("/templates/:templateId/steps/:stepId/images", async (c) => {
+  const { templateId, stepId } = c.req.param();
+  const input = await c.req.json<{ assetKey?: string }>();
+  if (typeof input.assetKey !== "string" || !input.assetKey) throw new HTTPException(400, { message: "An image attachment is required" });
+  const [template, step, allSteps, currentAssets] = await Promise.all([
+    c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?")
+      .bind(templateId).first<{ locked_at: string | null; archived_at: string | null }>(),
+    c.env.DB.prepare("SELECT id, expected_state_hash FROM template_steps WHERE id = ? AND template_version_id = ?")
+      .bind(stepId, templateId).first<{ id: string; expected_state_hash: string | null }>(),
+    c.env.DB.prepare("SELECT id, logical_step_key, definition_hash, expected_state_hash FROM template_steps WHERE template_version_id = ? ORDER BY position")
+      .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
+    c.env.DB.prepare(
+      `SELECT a.id, a.r2_key, a.sha256, sra.position
+       FROM template_steps ts
+       JOIN state_representation_assets sra ON sra.state_hash = ts.expected_state_hash
+       JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+       WHERE ts.id = ? AND ts.template_version_id = ? ORDER BY sra.position, a.id`,
+    ).bind(stepId, templateId).all<{ id: string; r2_key: string; sha256: string | null; position: number }>(),
+  ]);
+  if (!template || !step) throw new HTTPException(404, { message: "Template step not found" });
+  if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
+  const removed = currentAssets.results.find((asset) => asset.r2_key === input.assetKey);
+  if (!removed) throw new HTTPException(404, { message: "Template diagram not found" });
+  const remainingAssets = currentAssets.results.filter((asset) => asset.r2_key !== input.assetKey);
+  if (remainingAssets.some((asset) => !asset.sha256)) throw new HTTPException(409, { message: "This legacy diagram set cannot be safely changed" });
+  const state = remainingAssets.length ? await hashStateRepresentation(remainingAssets.map((asset) => asset.sha256 as string)) : null;
+  const expectedStateHash = state?.hash ?? null;
+  const manifestHash = await hashRecipeManifest(allSteps.results.map((entry) => ({
+    logicalStepKey: entry.logical_step_key,
+    definitionHash: entry.definition_hash,
+    expectedStateHash: entry.id === stepId ? expectedStateHash : entry.expected_state_hash,
+  })));
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
+  if (state) statements.push(c.env.DB.prepare(
+    `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
+     VALUES (?, ?, 'diagram', ?, ?)`,
+  ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
+  for (const [position, asset] of remainingAssets.entries()) statements.push(c.env.DB.prepare(
+    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position) VALUES (?, ?, ?)",
+  ).bind(state?.hash, asset.id, position));
+  const stepUpdateIndex = statements.length;
+  statements.push(c.env.DB.prepare(
+    `UPDATE template_steps SET expected_state_hash = ?
+     WHERE id = ? AND template_version_id = ? AND expected_state_hash IS ?
+       AND EXISTS (SELECT 1 FROM template_versions WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL)`,
+  ).bind(expectedStateHash, stepId, templateId, step.expected_state_hash, templateId));
+  statements.push(c.env.DB.prepare(
+    "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
+  ).bind(manifestHash, templateId));
+  const results = await c.env.DB.batch(statements);
+  if (!results[stepUpdateIndex].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template changed while the diagram was being deleted. Reload and try again." });
   return c.json({ ok: true });
 });
 

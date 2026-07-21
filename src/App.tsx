@@ -7,6 +7,8 @@ import { TemplatesPage } from "./pages/TemplatesPage";
 import { ExportPage } from "./pages/ExportPage";
 import { EntryPage } from "./pages/EntryPage";
 import { TemplatePage } from "./pages/TemplatePage";
+import { ProcessingPage } from "./pages/ProcessingPage";
+import { ProcessingRunPage } from "./pages/ProcessingRunPage";
 
 export function App() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -23,14 +25,14 @@ export function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <NavLink to="/" className="brand">
+        <NavLink to="/processing" className="brand">
           <span className="brand-mark">SF</span>
           <span>Sample Fabrication Workflow</span>
         </NavLink>
         <div className="topbar-actions">
           <nav>
-            <NavLink to="/" end>Samples</NavLink>
-            <NavLink to="/entry">Record</NavLink>
+            <NavLink to="/processing">Processing</NavLink>
+            <NavLink to="/samples">Samples</NavLink>
             <NavLink to="/templates">Templates</NavLink>
             <NavLink to="/export">Export</NavLink>
           </nav>
@@ -48,7 +50,10 @@ export function App() {
       </header>
       <main><Suspense fallback={<div className="page"><p className="muted">Loading…</p></div>}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<Navigate to="/processing" replace />} />
+          <Route path="/processing" element={<ProcessingPage />} />
+          <Route path="/processing/:sampleId" element={<ProcessingRunPage />} />
+          <Route path="/samples" element={<HomePage />} />
           <Route path="/samples/new" element={<NewSamplePage />} />
           <Route path="/entry" element={<EntryPage />} />
           <Route path="/samples/:sampleId" element={<SamplePage />} />

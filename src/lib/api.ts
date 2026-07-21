@@ -31,6 +31,9 @@ export const api = {
   deleteSampleRecord: (sampleId: string, eventId: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/records/${eventId}`, {
     method: "DELETE",
   }),
+  deleteEventAsset: (sampleId: string, eventId: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/events/${eventId}/asset`, {
+    method: "DELETE",
+  }),
   assignTemplate: (sampleId: string, templateVersionId: string) => request<{ id: string }>(`/samples/${sampleId}/runs`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -60,6 +63,12 @@ export const api = {
   deleteRunStepComment: (commentId: string) => request<{ ok: true; deleted: number }>(`/run-step-comments/${commentId}`, {
     method: "DELETE",
   }),
+  deleteRunStepCommentAsset: (commentId: string) => request<{ ok: true; updatedAt: string }>(`/run-step-comments/${commentId}/asset`, {
+    method: "DELETE",
+  }),
+  deleteRunStepAsset: (sampleId: string, runId: string, stepId: string, assetKey: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/assets`, {
+    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetKey }),
+  }),
   confirmRunSteps: (input: ConfirmRunStepsInput) => request<{ ok: true; confirmed: number }>("/run-steps/confirm", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -85,6 +94,9 @@ export const api = {
   }),
   updateTemplateStep: (templateId: string, stepId: string, input: TemplateStepInput) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
+  }),
+  deleteTemplateStepImage: (templateId: string, stepId: string, assetKey: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}/images`, {
+    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetKey }),
   }),
   getFullExport: () => request<FullExportManifest>("/exports/all"),
   importFabublox: async (file: File, preview: FabubloxImportPreview, templateType: TemplateRecord["templateType"], recipeFamilyId?: string) => {

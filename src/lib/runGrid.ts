@@ -7,10 +7,9 @@ export interface RunGridColumn {
 
 export interface RunGridRow {
   key: string;
+  kind: "template" | "ad_hoc";
   recipeStep: RunStep | null;
   steps: Array<RunStep | null>;
-  adHocBefore: Array<RunStep[]>;
-  adHocAfter: Array<RunStep[]>;
 }
 
 function orderedSteps(run: SampleRun | null) {
@@ -29,15 +28,17 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
 
   const templateRows = primaryTemplateSteps.map<RunGridRow>((recipeStep, recipeIndex) => ({
     key: `template:${recipeStep.logicalStepKey ?? recipeStep.templateStepId ?? recipeIndex}`,
+    kind: "template",
     recipeStep,
     steps: templateStepsByColumn.map((steps) => recipeStep.logicalStepKey
       ? steps.find((step) => step.logicalStepKey === recipeStep.logicalStepKey) ?? null
       : steps[recipeIndex] ?? null),
-    adHocBefore: Array.from({ length: columns.length }, (): RunStep[] => []),
-    adHocAfter: Array.from({ length: columns.length }, (): RunStep[] => []),
   }));
 
-  const leadingAdHoc = Array.from({ length: columns.length }, (): RunStep[] => []);
+  const adHocByAnchor = Array.from(
+    { length: primaryTemplateSteps.length + 1 },
+    () => Array.from({ length: columns.length }, (): RunStep[] => []),
+  );
   columns.forEach(({ run }, columnIndex) => {
     const steps = orderedSteps(run);
     let templateOrdinal = -1;
@@ -50,11 +51,24 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
           : templateOrdinal;
         continue;
       }
-      if (anchorIndex < 0) leadingAdHoc[columnIndex].push(step);
-      else templateRows[anchorIndex]?.adHocAfter[columnIndex].push(step);
+      const bucketIndex = Math.max(0, Math.min(primaryTemplateSteps.length, anchorIndex + 1));
+      adHocByAnchor[bucketIndex][columnIndex].push(step);
     }
   });
 
-  if (templateRows[0]) templateRows[0].adHocBefore = leadingAdHoc;
-  return templateRows;
+  const rows: RunGridRow[] = [];
+  for (let bucketIndex = 0; bucketIndex < adHocByAnchor.length; bucketIndex += 1) {
+    if (bucketIndex > 0) rows.push(templateRows[bucketIndex - 1]);
+    const bucket = adHocByAnchor[bucketIndex];
+    const rowCount = Math.max(0, ...bucket.map((steps) => steps.length));
+    for (let adHocIndex = 0; adHocIndex < rowCount; adHocIndex += 1) {
+      rows.push({
+        key: `ad-hoc:${bucketIndex}:${adHocIndex}`,
+        kind: "ad_hoc",
+        recipeStep: null,
+        steps: bucket.map((steps) => steps[adHocIndex] ?? null),
+      });
+    }
+  }
+  return rows;
 }

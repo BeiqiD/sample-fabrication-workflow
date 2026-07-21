@@ -16,10 +16,10 @@ type DrawerState =
   | { mode: "add"; column: RunGridColumn; afterStepId?: string }
   | null;
 
-type DeleteCommentRequest = {
-  comment: RunStepComment;
-  common: boolean;
-};
+type DeleteRequest =
+  | { kind: "comment"; comment: RunStepComment; common: boolean }
+  | { kind: "comment_asset"; comment: RunStepComment; common: boolean }
+  | { kind: "execution_asset"; assetKey: string; column: RunGridColumn; step: RunStep };
 
 function target(column: RunGridColumn, step: RunStep) {
   if (!column.run) throw new Error("This sample has no matching run");
@@ -105,11 +105,12 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
   </>;
 }
 
-function DiagramGallery({ keys, label, kind = "diagram", size = "compact" }: {
+function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDelete }: {
   keys: string[];
   label: string;
   kind?: GalleryKind;
   size?: GallerySize;
+  onDelete?: (key: string) => void;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -187,38 +188,40 @@ function DiagramGallery({ keys, label, kind = "diagram", size = "compact" }: {
   return <>
     <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails`} role="list">{keys.map((key, index) => {
       const src = `/api/assets/${key}`;
-      return <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}>
+      return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}>
         {kind === "diagram" ? <DiagramThumbnail src={src} alt={label} /> : <img src={src} alt={label} loading="lazy" />}
-      </button>;
+      </button>{onDelete && <button type="button" className="diagram-delete-button" title="Delete image" onClick={() => onDelete(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
     })}</div>
     {lightbox}
   </>;
 }
 
-function CommentCard({ comment, meta, imageLabel, onDelete, common = false }: {
+function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, common = false }: {
   comment: RunStepComment;
   meta: string;
   imageLabel: string;
-  onDelete: () => void;
+  onDelete?: () => void;
+  onDeleteAsset?: () => void;
   common?: boolean;
 }) {
   return <div className={`cell-comment${common ? " common-comment" : ""}`}>
     <div className="comment-card-content">
       <div className="comment-card-copy">{comment.body && <p>{comment.body}</p>}<small>{meta}</small></div>
-      {comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label={imageLabel} kind="photo" /></div>}
+      {comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label={imageLabel} kind="photo" onDelete={onDeleteAsset ? () => onDeleteAsset() : undefined} /></div>}
     </div>
-    <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>
+    {onDelete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
   </div>;
 }
 
-function CommentList({ comments, onDelete }: { comments: RunStepComment[]; onDelete: (comment: RunStepComment) => void }) {
+function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepComment[]; onDelete?: (comment: RunStepComment) => void; onDeleteAsset?: (comment: RunStepComment) => void }) {
   if (!comments.length) return null;
   return <div className="comment-history"><div className="cell-comments">{comments.map((comment) => <CommentCard
     key={comment.id}
     comment={comment}
     meta={`${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
     imageLabel="Comment photo"
-    onDelete={() => onDelete(comment)}
+    onDelete={onDelete ? () => onDelete(comment) : undefined}
+    onDeleteAsset={onDeleteAsset && comment.assetKey ? () => onDeleteAsset(comment) : undefined}
   />)}</div></div>;
 }
 
@@ -313,12 +316,12 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   </div>;
 }
 
-export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void> }) {
+export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
   const [selected, setSelected] = useState(() => new Set(columns.filter((column) => column.run).map((column) => column.sample.id)));
   const [commonCommentRow, setCommonCommentRow] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
-  const [deleteRequest, setDeleteRequest] = useState<DeleteCommentRequest | null>(null);
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -396,12 +399,16 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     finally { setPendingAction(null); }
   }
 
-  async function deleteComment() {
+  async function confirmDelete() {
     if (!deleteRequest) return;
-    const actionKey = `delete:${deleteRequest.comment.id}`;
+    const actionKey = deleteRequest.kind === "execution_asset"
+      ? `delete-asset:${deleteRequest.step.id}:${deleteRequest.assetKey}`
+      : `delete:${deleteRequest.comment.id}:${deleteRequest.kind}`;
     setPendingAction(actionKey); setDeleteError(""); setError("");
     try {
-      await api.deleteRunStepComment(deleteRequest.comment.id);
+      if (deleteRequest.kind === "comment") await api.deleteRunStepComment(deleteRequest.comment.id);
+      else if (deleteRequest.kind === "comment_asset") await api.deleteRunStepCommentAsset(deleteRequest.comment.id);
+      else await api.deleteRunStepAsset(deleteRequest.column.sample.id, deleteRequest.column.run!.id, deleteRequest.step.id, deleteRequest.assetKey);
       setDeleteRequest(null);
       await onSaved();
     } catch (error) { setDeleteError((error as Error).message); }
@@ -449,9 +456,12 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
       onDone={() => void markDone(column, step)}
       onVerify={(result) => void verifyState(column, step, result)}
       onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)}
-      onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ comment, common: false }); }}
+      onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: false }); }}
+      onDeleteCommentAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: false }); }}
+      onDeleteExecutionAsset={(assetKey) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey, column, step }); }}
       onEdit={() => setDrawer({ mode: "edit", column, step })}
       onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
+      readOnly={readOnly}
     />;
   }
 
@@ -469,12 +479,12 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
           <small>Common actions use checked samples</small>
         </div>
         {columns.map((column) => <div className="run-grid-header sample-column-header" key={column.sample.id}>
-          <label><input type="checkbox" checked={selected.has(column.sample.id)} disabled={!column.run} onChange={() => toggleColumn(column.sample.id)} /><span><strong>{column.sample.code}</strong><small>{column.sample.title}</small></span></label>
+          <label><input type="checkbox" checked={selected.has(column.sample.id)} disabled={!column.run || readOnly} onChange={() => toggleColumn(column.sample.id)} /><span><strong>{column.sample.code}</strong><small>{column.sample.title}</small></span></label>
           {!column.run && <em>No matching run</em>}
         </div>)}
 
         <div className="bulk-selector recipe-column">
-          <label><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(availableColumns.map((column) => column.sample.id)))} />{allSelected ? "Clear all" : "Select all"}</label>
+          <label><input type="checkbox" checked={allSelected} disabled={readOnly} onChange={() => setSelected(allSelected ? new Set() : new Set(availableColumns.map((column) => column.sample.id)))} />{readOnly ? "Read only" : allSelected ? "Clear all" : "Select all"}</label>
         </div>
         {columns.map((column) => <div className="bulk-selector" key={`selected:${column.sample.id}`}>{column.run && <small>{selected.has(column.sample.id) ? "Included in common actions" : "Individual only"}</small>}</div>)}
 
@@ -487,9 +497,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
             if (existing) existing.codes.push(column.sample.code); else commonGroups.set(key, { comment, codes: [column.sample.code] });
           }));
           const eligibleCount = entries.filter(({ column, step }) => selected.has(column.sample.id) && ["pending", "in_progress"].includes(step.status)).length;
-          const recipeNumber = rowIndex + 1;
+          const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
-            <div className="recipe-cell recipe-column">
+            <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}`}>
+              {row.kind === "ad_hoc" ? <div className="recipe-step-heading"><span>+</span><div><strong>Additional step</strong><small>Not part of the assigned recipe</small></div></div> : <>
               <div className="recipe-step-heading"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               <div className="recipe-content-split"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Recipe note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Recipe diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
@@ -498,20 +509,16 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
                 common
                 meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
                 imageLabel="Common comment photo"
-                onDelete={() => { setDeleteError(""); setDeleteRequest({ comment, common: true }); }}
+                onDelete={() => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
+                onDeleteAsset={comment.assetKey ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
               />)}</div>}
-              <div className="recipe-actions"><button type="button" className="button primary compact-button" title={`Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}>{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</button><button type="button" className="button compact-button" disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}>Comment</button></div>
-              {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body, image) => addComment("common", entries, body, image, `common:${row.key}`)} />}
+              {!readOnly && <><div className="recipe-actions"><button type="button" className="button primary compact-button" title={`Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}>{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</button><button type="button" className="button compact-button" disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}>Comment</button></div>
+              {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body, image) => addComment("common", entries, body, image, `common:${row.key}`)} />}</>}</>}
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
-              const before = row.adHocBefore[columnIndex];
-              const after = row.adHocAfter[columnIndex];
-              const hasNestedSteps = before.length > 0 || after.length > 0;
-              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : hasNestedSteps ? " has-nested-steps" : " empty-cell"}`} key={`${row.key}:${column.sample.id}`}>
-                {before.length > 0 && <div className="ad-hoc-step-stack before-recipe-step" aria-label="Individual steps before this recipe step">{before.map((adHocStep) => <section className={`ad-hoc-inline step-status-${adHocStep.status}`} key={adHocStep.id}>{renderStepContent(column, adHocStep)}</section>)}</div>}
-                {step ? renderStepContent(column, step) : !hasNestedSteps && <span className="not-applicable">—</span>}
-                {after.length > 0 && <div className="ad-hoc-step-stack" aria-label="Individual steps after this recipe step">{after.map((adHocStep) => <section className={`ad-hoc-inline step-status-${adHocStep.status}`} key={adHocStep.id}>{renderStepContent(column, adHocStep)}</section>)}</div>}
+              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}${row.kind === "ad_hoc" ? " additional-step-cell" : ""}`} key={`${row.key}:${column.sample.id}`}>
+                {step ? renderStepContent(column, step) : <span className="not-applicable">—</span>}
               </div>;
             })}
           </div>;
@@ -520,13 +527,19 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved }: { columns: 
     </div>
     {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={onSaved} />}
     {deleteRequest && <ConfirmDeleteDialog
-      title="Remove this comment?"
-      description={deleteRequest.common ? "This common comment will be removed from every sample included when it was added." : "This comment will be removed from this sample step."}
-      summary={deleteRequest.comment.body.trim() || (deleteRequest.comment.assetKey ? "Photo comment" : "Empty comment")}
-      deleting={pendingAction === `delete:${deleteRequest.comment.id}`}
+      title={deleteRequest.kind === "comment" ? "Delete this comment?" : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this execution image?"}
+      description={deleteRequest.kind === "comment"
+        ? (deleteRequest.common ? "This common comment will be removed from every sample included when it was added. The audit history will remain." : "This comment will be removed from this sample step. The audit history will remain.")
+        : deleteRequest.kind === "comment_asset"
+          ? (deleteRequest.common ? "The attached image will be removed from every copy of this common comment; the text and audit history will remain." : "The attached image will be removed; the comment text and audit history will remain.")
+          : "The image will be detached from this execution step; the Timeline will retain a text-only deletion event."}
+      summary={deleteRequest.kind === "execution_asset" ? deleteRequest.step.title : deleteRequest.comment.body.trim() || "Image attachment"}
+      deleting={pendingAction !== null && pendingAction.startsWith("delete")}
       error={deleteError}
+      eyebrow={deleteRequest.kind === "comment" ? "Delete comment" : "Delete image"}
+      confirmLabel={deleteRequest.kind === "comment" ? "Delete comment" : "Delete image"}
       onCancel={() => { setDeleteRequest(null); setDeleteError(""); }}
-      onConfirm={() => void deleteComment()}
+      onConfirm={() => void confirmDelete()}
     />}
   </article>;
 }
@@ -572,9 +585,9 @@ function CommentComposer({ label, saving, onSave, onCancel }: { label: string; s
   </form>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment, onDeleteComment, onEdit, onAddAfter }: {
+function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddAfter, readOnly }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
-  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onDeleteComment: (comment: RunStepComment) => void; onEdit: () => void; onAddAfter: () => void;
+  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void; onAddAfter: () => void; readOnly: boolean;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
   const [showStateActions, setShowStateActions] = useState(false);
@@ -584,16 +597,16 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment
       <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}>{step.status === "done" ? "✓" : step.status === "in_progress" ? "↻" : step.status === "skipped" ? "—" : step.status === "blocked" ? "!" : "○"}</span><strong>{step.status.replace("_", " ")}</strong></div>
       <div className="cell-badges">{step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "Verified" : "Mismatch"} · {step.stateVerification.coveredRunStepIds.length}</span>}</div>
     </div>
-    <div className="cell-actions">
+    {!readOnly && <div className="cell-actions">
       <button type="button" className="done-action" disabled={busy || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
       <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
       <button type="button" disabled={busy || column.run?.status !== "active"} onClick={onAddAfter}>+ Step</button>
       <button type="button" disabled={busy} aria-expanded={showStateActions} onClick={() => setShowStateActions((shown) => !shown)}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>
-    </div>
-    {showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
+    </div>}
+    {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
     {step.origin === "ad_hoc" && <strong className="ad-hoc-title">{step.title}</strong>}
-    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} /></div>
-    <CommentList comments={individualComments} onDelete={onDeleteComment} />
-    <CommentComposer label="Individual comment" saving={pendingAction === `comment:${step.id}`} onSave={onSaveComment} />
+    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
+    <CommentList comments={individualComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
+    {!readOnly && <CommentComposer label="Individual comment" saving={pendingAction === `comment:${step.id}`} onSave={onSaveComment} />}
   </>;
 }

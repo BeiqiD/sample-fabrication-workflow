@@ -94,25 +94,51 @@ describe("multi-sample run grid", () => {
     ]);
   });
 
-  it("nests an individual ad hoc step under its recipe anchor without adding a sparse grid row", () => {
+  it("adds an individual ad hoc step as its own row after the recipe anchor", () => {
     const extra = step("extra", 1500, { origin: "ad_hoc", templateStepId: null });
     const rows = buildRunGrid([
       { sample: sample("a"), run: run("a-run", [step("one", 1000), step("two", 2000)]) },
       { sample: sample("b"), run: run("b-run", [step("one", 1000), extra, step("two", 2000)]) },
     ]);
-    expect(rows).toHaveLength(2);
-    expect(rows[0].adHocAfter).toEqual([[], [extra]]);
-    expect(rows[1].adHocAfter).toEqual([[], []]);
+    expect(rows).toHaveLength(3);
+    expect(rows.map((row) => row.kind)).toEqual(["template", "ad_hoc", "template"]);
+    expect(rows[1].steps).toEqual([null, extra]);
   });
 
-  it("keeps multiple per-sample ad hoc steps in each sample's own nested stack", () => {
+  it("keeps leading ad hoc steps in aligned rows before the first recipe step", () => {
+    const aLeading = step("a-leading", 500, { origin: "ad_hoc", templateStepId: null });
+    const bLeading = step("b-leading", 700, { origin: "ad_hoc", templateStepId: null });
+    const rows = buildRunGrid([
+      { sample: sample("a"), run: run("a-run", [aLeading, step("one", 1000)]) },
+      { sample: sample("b"), run: run("b-run", [bLeading, step("one", 1000)]) },
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(["ad_hoc", "template"]);
+    expect(rows[0].steps).toEqual([aLeading, bLeading]);
+  });
+
+  it("aligns the first ad hoc step from each sample in one shared additional row", () => {
     const aExtra = step("a-extra", 1400, { origin: "ad_hoc", templateStepId: null });
     const bExtra = step("b-extra", 1500, { origin: "ad_hoc", templateStepId: null });
     const rows = buildRunGrid([
       { sample: sample("a"), run: run("a-run", [step("one", 1000), aExtra, step("two", 2000)]) },
       { sample: sample("b"), run: run("b-run", [step("one", 1000), bExtra, step("two", 2000)]) },
     ]);
-    expect(rows[0].adHocAfter).toEqual([[aExtra], [bExtra]]);
+    expect(rows).toHaveLength(3);
+    expect(rows[1].kind).toBe("ad_hoc");
+    expect(rows[1].steps).toEqual([aExtra, bExtra]);
+  });
+
+  it("uses another shared row only when a sample has another ad hoc step at the same position", () => {
+    const aFirst = step("a-first", 1300, { origin: "ad_hoc", templateStepId: null });
+    const aSecond = step("a-second", 1400, { origin: "ad_hoc", templateStepId: null });
+    const bFirst = step("b-first", 1500, { origin: "ad_hoc", templateStepId: null });
+    const rows = buildRunGrid([
+      { sample: sample("a"), run: run("a-run", [step("one", 1000), aFirst, aSecond, step("two", 2000)]) },
+      { sample: sample("b"), run: run("b-run", [step("one", 1000), bFirst, step("two", 2000)]) },
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(["template", "ad_hoc", "ad_hoc", "template"]);
+    expect(rows[1].steps).toEqual([aFirst, bFirst]);
+    expect(rows[2].steps).toEqual([aSecond, null]);
   });
 
   it("keeps a column present when a sample has no matching run", () => {
