@@ -47,14 +47,16 @@ The Worker hashes every received workbook, image, normalized recipe step, expect
 
 ## Deploy
 
-Production requires a Cloudflare Access application plus `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`. Follow [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md), then run:
+Production is served at [samples.run](https://samples.run) as a custom domain of the existing `sample-management-system` Worker. The committed configuration disables both the ordinary `workers.dev` endpoint and version preview URLs. Production also requires a Cloudflare Access application covering `samples.run`, plus `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` Worker secrets.
+
+Follow [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md), then run:
 
 ```bash
 npm run db:migrate:remote
 npm run deploy
 ```
 
-The `wrangler.jsonc` bindings intentionally omit production IDs so Wrangler can provision D1 and R2 resources during the first deployment. Review the generated binding identifiers before deploying migrations.
+The committed `DB` and `ASSETS` bindings identify the existing alpha-v2 production resources. Do not change those bindings or the Worker name during an ordinary deployment; a fork or fresh installation must replace them with resources owned by its Cloudflare account.
 
 ## Data ownership
 
