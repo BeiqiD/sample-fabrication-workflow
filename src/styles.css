@@ -615,7 +615,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .run-grid-card,
   .run-grid-card.sample-count-1,
   .run-grid-card.sample-count-2,
-  .run-grid-card.sample-count-3 { --recipe-width: 112px; --sample-width: 270px; }
+  .run-grid-card.sample-count-3 { --recipe-width: 88px; --sample-width: 270px; }
   .run-grid-card.sample-count-1 .run-grid { width: 100%; grid-template-columns: minmax(var(--recipe-width), .55fr) minmax(var(--sample-width), 1fr); }
   .run-grid-card.sample-count-2 .run-grid,
   .run-grid-card.sample-count-3 .run-grid,
@@ -625,9 +625,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .recipe-cell { padding: 9px 8px; }
   .sample-step-cell { padding: 8px; }
   .recipe-step-heading-desktop, .recipe-desktop-details { display: none; }
+  .additional-step-heading { display: flex; justify-content: center; }
+  .additional-step-heading > div { display: none; }
   .recipe-details-trigger { position: relative; width: 100%; display: grid; grid-template-columns: 20px minmax(0, 1fr) 14px; grid-template-rows: 20px auto; column-gap: 6px; row-gap: 8px; align-items: start; padding: 0; border: 0; color: var(--ink); background: transparent; text-align: left; }
   .recipe-details-trigger > .recipe-step-number { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); font: 700 9px ui-monospace, monospace; }
-  .recipe-details-trigger > strong { grid-column: 1 / -1; grid-row: 2; min-width: 0; overflow-wrap: break-word; word-break: normal; font-size: 11px; line-height: 1.38; }
+  .recipe-details-trigger > strong { grid-column: 1 / -1; grid-row: 2; min-width: 0; overflow-wrap: anywhere; word-break: normal; hyphens: auto; font-size: 11px; line-height: 1.38; }
   .recipe-details-chevron { grid-column: 3; grid-row: 1; align-self: center; justify-self: end; color: var(--muted); }
   .recipe-actions { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 16px; margin-top: 13px; }
   .recipe-actions .button { width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 7px; }
