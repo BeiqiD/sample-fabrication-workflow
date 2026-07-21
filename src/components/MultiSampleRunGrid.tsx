@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api } from "../lib/api";
 import { compressCommentImage, compressLayerStackImage } from "../lib/images";
@@ -64,46 +65,47 @@ function DiagramGallery({ keys, label }: { keys: string[]; label: string }) {
     };
   }, [activeIndex, keys.length]);
   if (!keys.length) return null;
+  const lightbox = activeIndex === null ? null : createPortal(<div className="image-lightbox" role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
+    <div className="image-lightbox-toolbar">
+      <span>{activeIndex + 1} / {keys.length}</span>
+      <div className="image-zoom-controls" aria-label="Image zoom controls">
+        <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
+        <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Fit image to window">{Math.round(zoom * 100)}%</button>
+        <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
+      </div>
+      <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
+      <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button>
+    </div>
+    <div
+      className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
+      onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
+      onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
+      onPointerDown={(event) => {
+        if (zoom === 1) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
+      }}
+      onPointerMove={(event) => {
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
+      }}
+      onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
+      onPointerCancel={() => { dragRef.current = null; }}
+      onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}
+    >
+      <img
+        src={`/api/assets/${keys[activeIndex]}`}
+        alt={`${label} ${activeIndex + 1}`}
+        draggable={false}
+        style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
+      />
+    </div>
+    {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
+  </div>, document.body);
   return <>
     <div className="grid-diagrams" role="list">{keys.map((key, index) => <button type="button" key={`${key}:${index}`} role="listitem" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}><img src={`/api/assets/${key}`} alt={label} loading="lazy" /></button>)}</div>
-    {activeIndex !== null && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
-      <div className="image-lightbox-toolbar">
-        <span>{activeIndex + 1} / {keys.length}</span>
-        <div className="image-zoom-controls" aria-label="Image zoom controls">
-          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
-          <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Fit image to window">{Math.round(zoom * 100)}%</button>
-          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
-        </div>
-        <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
-        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button>
-      </div>
-      <div
-        className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
-        onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
-        onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
-        onPointerDown={(event) => {
-          if (zoom === 1) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
-        }}
-        onPointerMove={(event) => {
-          const drag = dragRef.current;
-          if (!drag || drag.pointerId !== event.pointerId) return;
-          setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
-        }}
-        onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
-        onPointerCancel={() => { dragRef.current = null; }}
-        onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}
-      >
-        <img
-          src={`/api/assets/${keys[activeIndex]}`}
-          alt={`${label} ${activeIndex + 1}`}
-          draggable={false}
-          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
-        />
-      </div>
-      {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
-    </div>}
+    {lightbox}
   </>;
 }
 
