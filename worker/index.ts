@@ -1742,12 +1742,48 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
 
 app.delete("/templates/:id", async (c) => {
   const id = c.req.param("id");
+  const template = await c.env.DB.prepare(
+    `SELECT tv.recipe_family_id, tv.locked_at, tv.archived_at,
+            EXISTS (SELECT 1 FROM runs r WHERE r.template_version_id = tv.id) OR
+            EXISTS (SELECT 1 FROM run_plan_revisions rpr WHERE rpr.template_version_id = tv.id) OR
+            EXISTS (SELECT 1 FROM recipe_change_proposals rcp WHERE rcp.source_template_version_id = tv.id) AS referenced
+     FROM template_versions tv WHERE tv.id = ?`,
+  ).bind(id).first<{ recipe_family_id: string; locked_at: string | null; archived_at: string | null; referenced: number }>();
+  if (!template || template.archived_at) throw new HTTPException(404, { message: "Active template version not found" });
+
   const now = new Date().toISOString();
-  const result = await c.env.DB.prepare(
-    "UPDATE template_versions SET archived_at = ?, archived_by = ? WHERE id = ? AND archived_at IS NULL",
-  ).bind(now, c.get("userEmail"), id).run();
-  if (!result.meta.changes) throw new HTTPException(404, { message: "Active template version not found" });
-  return c.json({ ok: true });
+  if (template.locked_at || template.referenced) {
+    const result = await c.env.DB.prepare(
+      "UPDATE template_versions SET archived_at = ?, archived_by = ? WHERE id = ? AND archived_at IS NULL",
+    ).bind(now, c.get("userEmail"), id).run();
+    if (!result.meta.changes) throw new HTTPException(409, { message: "This template changed while it was being archived" });
+    return c.json({ ok: true, disposition: "archived" as const });
+  }
+
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `DELETE FROM template_versions
+       WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL
+         AND NOT EXISTS (SELECT 1 FROM runs WHERE template_version_id = ?)
+         AND NOT EXISTS (SELECT 1 FROM run_plan_revisions WHERE template_version_id = ?)
+         AND NOT EXISTS (SELECT 1 FROM recipe_change_proposals WHERE source_template_version_id = ?)`,
+    ).bind(id, id, id, id),
+    c.env.DB.prepare(
+      "UPDATE imports SET template_version_id = NULL WHERE template_version_id = ? AND NOT EXISTS (SELECT 1 FROM template_versions WHERE id = ?)",
+    ).bind(id, id),
+    c.env.DB.prepare(
+      `DELETE FROM recipe_families
+       WHERE id = ?
+         AND NOT EXISTS (SELECT 1 FROM template_versions WHERE recipe_family_id = ?)
+         AND NOT EXISTS (SELECT 1 FROM runs WHERE recipe_family_id = ?)
+         AND NOT EXISTS (SELECT 1 FROM recipe_change_proposals WHERE recipe_family_id = ?)`,
+    ).bind(template.recipe_family_id, template.recipe_family_id, template.recipe_family_id, template.recipe_family_id),
+    c.env.DB.prepare(
+      "UPDATE imports SET recipe_family_id = NULL WHERE recipe_family_id = ? AND NOT EXISTS (SELECT 1 FROM recipe_families WHERE id = ?)",
+    ).bind(template.recipe_family_id, template.recipe_family_id),
+  ]);
+  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This template was assigned while it was being deleted. Reload it and archive it instead." });
+  return c.json({ ok: true, disposition: "deleted" as const });
 });
 
 export default app;

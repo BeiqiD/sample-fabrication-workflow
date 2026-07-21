@@ -9,6 +9,7 @@ import { StatusPill } from "../components/StatusPill";
 import { api, type TemplateRecord } from "../lib/api";
 import { exportSample } from "../lib/exportSample";
 import { compressCommentImage } from "../lib/images";
+import { SAMPLE_HISTORY_PREVIEW_COUNT, visibleSampleHistory } from "../lib/sampleHistory";
 
 const MAX_VISIBLE_SAMPLES = 8;
 
@@ -35,6 +36,7 @@ export function SamplePage() {
   const [showSamplePicker, setShowSamplePicker] = useState(false);
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const pendingUploadRef = useRef<{ signature: string; assetKey?: string; thumbnailKey?: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -48,6 +50,7 @@ export function SamplePage() {
   }, [sampleId, additionalKey]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { setHistoryExpanded(false); }, [sampleId]);
   useEffect(() => { api.listTemplates().then(({ templates }) => setTemplates(templates)).catch((error: Error) => setError(error.message)); }, []);
   const activeRun = sample?.runs.find((run) => run.status === "active") ?? null;
   useEffect(() => {
@@ -172,6 +175,8 @@ export function SamplePage() {
   const assignableTemplates = activeRun
     ? templates.filter((template) => template.recipeFamilyId === activeRun.recipeFamilyId && template.id !== activeRun.templateVersionId)
     : templates;
+  const visibleEvents = visibleSampleHistory(sample.events, historyExpanded);
+  const hiddenEventCount = sample.events.length - visibleEvents.length;
 
   return <div className="page sample-page">
     <Link className="back-link" to="/">← Samples</Link>
@@ -219,8 +224,14 @@ export function SamplePage() {
           <div className="composer-actions"><span className="muted">This appears in the sample timeline, not inside a recipe step.</span><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Add to sample record"}</button></div>
         </form>
         {error && <p className="error-banner">{error}</p>}
-        <div className="timeline">
-          {sample.events.map((event) => <article className="event" key={event.id}>
+        {sample.events.length > SAMPLE_HISTORY_PREVIEW_COUNT && <div className="timeline-toolbar">
+          <span>{historyExpanded ? `All ${sample.events.length} entries` : `Latest ${visibleEvents.length} of ${sample.events.length} entries`}</span>
+          <button type="button" className="text-button" aria-expanded={historyExpanded} aria-controls="sample-history" onClick={() => setHistoryExpanded((value) => !value)}>
+            {historyExpanded ? `Show latest ${SAMPLE_HISTORY_PREVIEW_COUNT}` : `Show ${hiddenEventCount} older`}
+          </button>
+        </div>}
+        <div className="timeline" id="sample-history">
+          {visibleEvents.map((event) => <article className="event" key={event.id}>
             <div className="event-dot" />
             <div className="event-content"><div className="event-meta"><span>{event.kind}{event.actorEmail ? ` · ${event.actorEmail}` : ""}</span><div><time>{new Date(event.createdAt).toLocaleString()}</time>{isSampleRecordEvent(event.kind, event.metadata) && <button type="button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(event); }}>Delete</button>}</div></div>{event.body && <p>{event.body}</p>}{event.assetKey && <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${typeof event.metadata.thumbnailKey === "string" ? event.metadata.thumbnailKey : event.assetKey}`} alt={event.body || "Sample record"} loading="lazy" /></a>}</div>
           </article>)}
