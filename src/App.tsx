@@ -8,6 +8,14 @@ import { ExportPage } from "./pages/ExportPage";
 import { TemplatePage } from "./pages/TemplatePage";
 import { ProcessingPage } from "./pages/ProcessingPage";
 import { ProcessingWorkspacePage } from "./pages/ProcessingWorkspacePage";
+import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
+
+const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
+  { to: "/processing", label: "Processing", icon: "processing" },
+  { to: "/samples", label: "Samples", icon: "samples" },
+  { to: "/templates", label: "Templates", icon: "templates" },
+  { to: "/export", label: "Export", icon: "export" },
+];
 
 export function App() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -24,16 +32,16 @@ export function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <NavLink to="/processing" className="brand">
-          <span className="brand-mark">SF</span>
-          <span>Sample Fabrication Workflow</span>
+        <NavLink to="/processing" className="brand" aria-label="Sample Fabrication Workflow" title="Sample Fabrication Workflow">
+          <span className="brand-mark"><NavigationIcon name="brand" /></span>
+          <span className="brand-title">Sample Fabrication Workflow</span>
         </NavLink>
         <div className="topbar-actions">
-          <nav>
-            <NavLink to="/processing">Processing</NavLink>
-            <NavLink to="/samples">Samples</NavLink>
-            <NavLink to="/templates">Templates</NavLink>
-            <NavLink to="/export">Export</NavLink>
+          <nav aria-label="Primary navigation">
+            {primaryNavigation.map(({ to, label, icon }) => <NavLink key={to} to={to} aria-label={label} title={label}>
+              <NavigationIcon name={icon} />
+              <span className="nav-link-label">{label}</span>
+            </NavLink>)}
           </nav>
           <button
             type="button"
