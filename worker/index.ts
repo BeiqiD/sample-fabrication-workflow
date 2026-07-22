@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
 import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
@@ -498,6 +498,57 @@ app.patch("/samples/:id", async (c) => {
   }
   if (titleAudit && !results[1]?.meta.changes) throw new Error("Sample title audit event was not created");
   return c.json({ ok: true, updatedAt: now });
+});
+
+app.delete("/samples/:id", async (c) => {
+  const id = c.req.param("id");
+  const input = await c.req.json<DeleteSampleInput>().catch(() => null);
+  if (!input || typeof input.confirmationCode !== "string" || typeof input.expectedUpdatedAt !== "string") {
+    throw new HTTPException(400, { message: "The sample code and current revision are required" });
+  }
+  const sample = await c.env.DB.prepare(
+    `SELECT s.code, s.updated_at,
+            (SELECT COUNT(*) FROM runs r WHERE r.sample_id = s.id) AS run_count,
+            (SELECT COUNT(*) FROM run_steps rs JOIN runs r ON r.id = rs.run_id WHERE r.sample_id = s.id) AS step_count,
+            (SELECT COUNT(*) FROM events e WHERE e.sample_id = s.id) AS event_count,
+            (SELECT COUNT(*) FROM state_verifications sv WHERE sv.sample_id = s.id) AS verification_count,
+            (SELECT COUNT(*) FROM samples child WHERE child.parent_id = s.id) AS child_count
+     FROM samples s WHERE s.id = ?`,
+  ).bind(id).first<{
+    code: string; updated_at: string; run_count: number; step_count: number;
+    event_count: number; verification_count: number; child_count: number;
+  }>();
+  if (!sample) throw new HTTPException(404, { message: "Sample not found" });
+  if (input.confirmationCode !== sample.code) {
+    throw new HTTPException(400, { message: "The confirmation code does not match the sample code" });
+  }
+  if (input.expectedUpdatedAt !== sample.updated_at) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting." });
+  }
+
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE recipe_change_proposals SET source_verification_id = NULL
+       WHERE source_verification_id IN (SELECT id FROM state_verifications WHERE sample_id = ?)
+         AND EXISTS (SELECT 1 FROM samples WHERE id = ? AND code = ? AND updated_at = ?)`,
+    ).bind(id, id, sample.code, sample.updated_at),
+    c.env.DB.prepare(
+      "DELETE FROM samples WHERE id = ? AND code = ? AND updated_at = ?",
+    ).bind(id, sample.code, sample.updated_at),
+  ]);
+  if (!results[1].meta.changes) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting." });
+  }
+  return c.json({
+    ok: true,
+    deleted: {
+      runs: Number(sample.run_count),
+      steps: Number(sample.step_count),
+      events: Number(sample.event_count),
+      verifications: Number(sample.verification_count),
+      childrenDetached: Number(sample.child_count),
+    },
+  });
 });
 
 app.post("/samples/:id/records", async (c) => {

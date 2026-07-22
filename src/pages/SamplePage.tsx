@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
@@ -26,6 +26,7 @@ function runStatusLabel(status: SampleRun["status"]) {
 
 export function SamplePage() {
   const { sampleId = "" } = useParams();
+  const navigate = useNavigate();
   const [sample, setSample] = useState<SampleDetail | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,6 +42,10 @@ export function SamplePage() {
   const [deletingAsset, setDeletingAsset] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [splitting, setSplitting] = useState(false);
+  const [confirmingSampleDeletion, setConfirmingSampleDeletion] = useState(false);
+  const [sampleDeleteConfirmation, setSampleDeleteConfirmation] = useState("");
+  const [sampleDeleteError, setSampleDeleteError] = useState("");
+  const [deletingSample, setDeletingSample] = useState(false);
   const pendingUploadRef = useRef<{ signature: string; assetKey?: string; thumbnailKey?: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -135,6 +140,19 @@ export function SamplePage() {
     finally { setUpdatingDetails(false); }
   }
 
+  async function deleteSample() {
+    if (!sample || sampleDeleteConfirmation !== sample.code) return;
+    setDeletingSample(true); setSampleDeleteError("");
+    try {
+      await api.deleteSample(sample.id, {
+        confirmationCode: sampleDeleteConfirmation,
+        expectedUpdatedAt: sample.updatedAt,
+      });
+      navigate("/samples", { replace: true });
+    } catch (error) { setSampleDeleteError((error as Error).message); }
+    finally { setDeletingSample(false); }
+  }
+
   if (!sample) return <div className="page"><p>{error || "Loading sample…"}</p></div>;
   const activeRun = sample.runs.find((run) => run.status === "active") ?? null;
   const visibleEvents = visibleSampleHistory(sample.events, historyExpanded);
@@ -162,6 +180,7 @@ export function SamplePage() {
           <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} />Pinned</label>
           <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>
         </form> : <dl><dt>Sample code</dt><dd>{sample.code}</dd><dt>Sample name</dt><dd>{sample.title}</dd><dt>Status</dt><dd>{sample.status}</dd><dt>Location</dt><dd>{sample.location || "—"}</dd><dt>Pinned</dt><dd>{sample.pinned ? "Yes" : "No"}</dd><dt>Parent</dt><dd>{sample.parent ? <Link to={`/samples/${sample.parent.id}`}>{sample.parent.code}</Link> : "—"}</dd><dt>Children</dt><dd>{sample.children.length ? sample.children.map((child) => <Link key={child.id} to={`/samples/${child.id}`}>{child.code}</Link>) : "—"}</dd><dt>Created</dt><dd>{new Date(sample.createdAt).toLocaleString()}</dd></dl>}
+        {!editingDetails && <div className="sample-danger-zone"><div><strong>Delete sample</strong><small>Remove this sample and its processing history.</small></div><button type="button" className="button danger" onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete</button></div>}
       </aside>
 
       <section className="sample-runs-section">
@@ -198,6 +217,18 @@ export function SamplePage() {
     </section>
     {recordToDelete && <ConfirmDeleteDialog title="Delete this sample record?" description="The record will disappear from the current view, while the Timeline will retain an audit entry." summary={recordToDelete.body?.trim() || (recordToDelete.assetKey ? "Photo record" : "Empty record")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete record" confirmLabel="Delete record" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}
+    {confirmingSampleDeletion && <ConfirmDeleteDialog
+      title={`Delete ${sample.code}?`}
+      description={`The sample and all of its processing history will be permanently deleted.${sample.children.length ? " Child samples will remain, but their parent link will be removed." : ""}`}
+      summary={`${sample.runs.length} processing run${sample.runs.length === 1 ? "" : "s"}\n${sample.runs.reduce((total, run) => total + run.steps.length, 0)} processing steps\n${sample.events.length} timeline entries\n${sample.stateVerifications.length} state verifications\n${sample.children.length} child sample${sample.children.length === 1 ? "" : "s"} kept`}
+      deleting={deletingSample}
+      error={sampleDeleteError}
+      eyebrow="Delete sample"
+      confirmLabel="Permanently delete"
+      confirmation={{ label: `Type ${sample.code} to confirm`, target: sample.code, value: sampleDeleteConfirmation, onChange: setSampleDeleteConfirmation }}
+      onCancel={() => { setConfirmingSampleDeletion(false); setSampleDeleteConfirmation(""); setSampleDeleteError(""); }}
+      onConfirm={() => void deleteSample()}
+    />}
     {splitting && <SplitSampleDialog sample={sample} onCancel={() => setSplitting(false)} onComplete={async () => { setSplitting(false); await load(); }} />}
   </div>;
 }

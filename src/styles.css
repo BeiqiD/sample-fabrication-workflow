@@ -428,6 +428,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .confirm-dialog h2 { margin-bottom: 8px; font-size: 22px; }
 .confirm-dialog > p:not(.eyebrow, .error-banner) { margin: 0; color: var(--muted); font-size: 13px; }
 .confirm-dialog blockquote { max-height: 120px; margin: 16px 0; padding: 10px 12px; overflow: auto; border-left: 3px solid var(--danger); color: var(--ink); background: var(--danger-soft); font-size: 12px; white-space: pre-wrap; }
+.confirm-dialog-confirmation { display: grid; gap: 7px; margin: 16px 0 0; color: var(--ink); font-size: 12px; font-weight: 700; }
 .confirm-dialog .error-banner { margin: 12px 0 0; }
 .split-dialog-backdrop { position: fixed; inset: 0; z-index: 55; display: grid; place-items: center; padding: 20px; background: var(--overlay); backdrop-filter: blur(3px); }
 .split-dialog { width: min(760px, 100%); max-height: calc(100vh - 40px); padding: 24px; overflow-y: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 20px 70px rgba(20,25,21,.22); }
@@ -456,6 +457,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-overview-page { width: min(1180px, calc(100% - 40px)); }
 .sample-overview-grid { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 28px; align-items: start; }
 .sample-details-card { position: static; }
+.sample-danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px -18px -18px; padding: 16px 18px; border-top: 1px solid color-mix(in srgb, var(--danger) 28%, var(--line)); border-radius: 0 0 12px 12px; background: color-mix(in srgb, var(--danger-soft) 55%, var(--paper)); }
+.sample-danger-zone > div { min-width: 0; display: grid; gap: 3px; }
+.sample-danger-zone small { color: var(--muted); font-size: 11px; line-height: 1.35; }
 .sample-runs-section .section-heading { margin-top: 0; }
 .sample-runs-section .section-heading > div { display: grid; gap: 2px; }
 .sample-runs-section .section-heading .eyebrow { margin: 0; }
