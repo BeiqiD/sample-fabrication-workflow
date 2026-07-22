@@ -1,4 +1,4 @@
-import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, FabubloxImportPreview, FullExportManifest, PlanUpdatePreview, ProcessingSampleDetail, SampleDetail, SampleSummary, SplitSampleInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FullExportManifest, PlanUpdatePreview, ProcessingSampleDetail, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -26,6 +26,11 @@ export const api = {
   }),
   updateSample: (id: string, input: UpdateSampleInput) => request<{ ok: true; updatedAt: string }>(`/samples/${id}`, {
     method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  deleteSample: (id: string, input: DeleteSampleInput) => request<{ ok: true; deleted: SampleDeletionImpact }>(`/samples/${id}`, {
+    method: "DELETE",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),

@@ -225,6 +225,19 @@ export interface UpdateSampleInput {
   expectedUpdatedAt: string;
 }
 
+export interface DeleteSampleInput {
+  confirmationCode: string;
+  expectedUpdatedAt: string;
+}
+
+export interface SampleDeletionImpact {
+  runs: number;
+  steps: number;
+  events: number;
+  verifications: number;
+  childrenDetached: number;
+}
+
 export interface CreateRecordInput {
   status: SampleStatus;
   location: string;

@@ -49,6 +49,24 @@ describe("sample split API", () => {
   });
 });
 
+describe("sample deletion API", () => {
+  it("sends the typed code and loaded revision to the guarded endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, deleted: { runs: 1, steps: 3, events: 5, verifications: 1, childrenDetached: 2 } }), {
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const input = { confirmationCode: "SOD-42", expectedUpdatedAt: "2026-07-22T14:00:00.000Z" };
+    await api.deleteSample("sample-42", input);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/samples/sample-42", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  });
+});
+
 describe("processing sample API", () => {
   it("requests the execution-only sample view", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ runs: [], stateVerifications: [] }), {
