@@ -10,6 +10,7 @@ import { authenticateRequest } from "./auth";
 import { bulkInsertStatements } from "./d1-bulk";
 import { contentLengthWithin, escapedLikePattern, sameOriginOrNonBrowser } from "./request-guards";
 import { insertionPosition } from "./run-position";
+import { ACTIVATE_SAMPLE_FOR_RUN_SQL } from "./run-lifecycle";
 import { returnedEveryConfirmationTarget } from "./run-step-confirmation";
 import { resolveAssetReferences } from "./asset-dedupe";
 import { titleChangeAudit } from "./sample-update";
@@ -1038,7 +1039,7 @@ app.post("/samples/:id/runs", async (c) => {
   const runId = crypto.randomUUID();
   const planRevisionId = crypto.randomUUID();
   const eventId = crypto.randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
   const stepIds = new Map(steps.map((step) => [step.id, crypto.randomUUID()]));
   const anchor = latestRun ? await c.env.DB.prepare(
@@ -1090,7 +1091,7 @@ app.post("/samples/:id/runs", async (c) => {
         exactStateHashMatch: currentState.stateHash === template.initial_state_hash,
       },
     }), userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
+    c.env.DB.prepare(ACTIVATE_SAMPLE_FOR_RUN_SQL).bind(userEmail, now, sampleId),
   ];
   if (statements.length > 49) throw new HTTPException(413, { message: "This process template is too large to start on the current plan" });
   try { await c.env.DB.batch(statements); }
