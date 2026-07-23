@@ -13,8 +13,9 @@ If preview builds are enabled later, first give the preview trigger a separate d
 ## 1. Connect and verify bindings
 
 1. Authenticate Wrangler with the intended Cloudflare account.
-2. Confirm that `DB` identifies the intended D1 database and `ASSETS` identifies the intended private R2 bucket.
-3. Keep the production Worker name and resource bindings unchanged during ordinary deployments. A fork or clean installation must provision its own resources and replace the committed identifiers before applying migrations.
+2. Confirm that `DB` identifies the intended D1 database and `ASSETS` identifies the private inline-image bucket.
+3. File attachments remain disabled until an external file-storage adapter is configured and authenticated. Do not create a second R2 bucket as a temporary attachment store.
+4. Keep the production Worker name and resource bindings unchanged during ordinary deployments. A fork or clean installation must provision its own resources and replace the committed identifiers before applying migrations.
 
 ## 2. Protect the hostname with Access
 
@@ -46,9 +47,9 @@ After deployment:
 
 1. Confirm an unauthenticated `https://samples.run/api/samples` request is rejected.
 2. Sign in through Access and confirm `https://samples.run/api/ready` returns `{ "ok": true }`.
-3. Create a disposable sample, add a record, and confirm the timeline shows the authenticated email.
+3. Create a disposable sample; add a text comment, compressed comment image, and external link; then confirm the comment and timeline show the authenticated email. Also confirm file attachment controls are disabled while no external storage provider is connected.
 4. Preview the intended FabuBlox workbook and confirm the import before upload.
-5. Download a full ZIP export and inspect `export-manifest.json` plus at least one asset.
+5. Download a full ZIP export and inspect `export-manifest.json` and at least one inline asset.
 
 ## Local development
 

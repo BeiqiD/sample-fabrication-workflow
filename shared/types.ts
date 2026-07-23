@@ -57,6 +57,7 @@ export interface SampleDetail extends ProcessingSampleDetail {
   parent: Pick<SampleSummary, "id" | "code" | "title"> | null;
   children: Array<Pick<SampleSummary, "id" | "code" | "title">>;
   events: SampleEvent[];
+  comments?: CommentSubmission[];
 }
 
 export interface RunStep {
@@ -110,8 +111,130 @@ export interface RunStepComment {
   operationGroupId: string | null;
   body: string;
   assetKey: string | null;
+  submissionId?: string | null;
+  status?: CommentSubmissionStatus;
+  images?: CommentImage[];
+  attachments?: CommentAttachment[];
   actorEmail: string | null;
   createdAt: string;
+}
+
+export type CommentSubmissionStatus = "draft" | "uploading" | "ready" | "failed" | "cancelled";
+export type CommentSubmissionItemStatus = "pending" | "uploading" | "ready" | "failed" | "cancelled";
+
+export interface CommentImage {
+  id: string;
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  originalFilename: string;
+  originalMimeType: string;
+  originalByteSize: number;
+  assetKey: string | null;
+  status: CommentSubmissionItemStatus;
+  error: string | null;
+  relatedAttachmentId: string | null;
+}
+
+export interface UploadedCommentAttachment {
+  id: string;
+  kind: "file";
+  title: string;
+  description: string | null;
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  sha256: string | null;
+  downloadUrl: string | null;
+  status: CommentSubmissionItemStatus;
+  error: string | null;
+  relatedCommentImageId: string | null;
+}
+
+export interface LinkedCommentAttachment {
+  id: string;
+  kind: "link";
+  title: string;
+  description: string | null;
+  url: string;
+  status: CommentSubmissionItemStatus;
+  error: string | null;
+}
+
+export type CommentAttachment = UploadedCommentAttachment | LinkedCommentAttachment;
+
+export interface CommentSubmission {
+  id: string;
+  contextKind: "sample" | "run_steps";
+  scope: "common" | "individual" | null;
+  body: string;
+  status: CommentSubmissionStatus;
+  error: string | null;
+  images: CommentImage[];
+  attachments: CommentAttachment[];
+  actorEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommentImageSubmissionItemInput {
+  id: string;
+  kind: "comment_image";
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  originalFilename: string;
+  originalMimeType: string;
+  originalByteSize: number;
+  relatedAttachmentId?: string;
+}
+
+export interface CommentFileSubmissionItemInput {
+  id: string;
+  kind: "attachment";
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  title?: string;
+  relatedCommentImageId?: string;
+}
+
+export interface CommentLinkSubmissionItemInput {
+  id: string;
+  kind: "link";
+  url: string;
+  title: string;
+  description?: string;
+}
+
+export type CommentSubmissionItemInput =
+  | CommentImageSubmissionItemInput
+  | CommentFileSubmissionItemInput
+  | CommentLinkSubmissionItemInput;
+
+export type CreateCommentSubmissionInput = {
+  id: string;
+  body: string;
+  items: CommentSubmissionItemInput[];
+} & ({
+  context: {
+    kind: "sample";
+    sampleId: string;
+    expectedUpdatedAt: string;
+  };
+} | {
+  context: {
+    kind: "run_steps";
+    scope: "common" | "individual";
+    targets: RunStepTarget[];
+  };
+});
+
+export interface ManagedStorageStatus {
+  provider: string | null;
+  available: boolean;
+  authentication: "service_binding" | "oauth" | "not_configured";
+  message: string;
 }
 
 export interface RunStepTarget {
@@ -305,10 +428,17 @@ export interface CreateRecordInput {
 }
 
 export interface FullExportManifest {
-  schemaVersion: 1;
+  schemaVersion: 2;
   exportedAt: string;
   tables: Record<string, Array<Record<string, unknown>>>;
   assetKeys: string[];
+  managedAttachments: Array<{
+    itemId: string;
+    filename: string;
+    byteSize: number;
+    sha256: string;
+    downloadUrl: string;
+  }>;
 }
 
 export interface FabubloxSection {

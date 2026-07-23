@@ -1,4 +1,12 @@
 const MAX_EDGE = 1600;
+export const MAX_COMMENT_IMAGE_SOURCE_BYTES = 5 * 1024 * 1024;
+
+export class CommentImagePreparationError extends Error {
+  constructor(message: string, readonly canAttach = true) {
+    super(message);
+    this.name = "CommentImagePreparationError";
+  }
+}
 
 async function canvasBlob(bitmap: ImageBitmap, maxEdge: number, quality: number) {
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
@@ -27,6 +35,20 @@ export async function compressCommentImage(file: File): Promise<{ main: File; th
       thumbnail: new File([thumbnail], `${basename}.thumb.webp`, { type: "image/webp", lastModified: Date.now() }),
     };
   } finally { bitmap.close(); }
+}
+
+export async function prepareCommentImage(file: File): Promise<File> {
+  if (file.size > MAX_COMMENT_IMAGE_SOURCE_BYTES) {
+    throw new CommentImagePreparationError("This image is larger than 5 MB and cannot be inserted as a comment image.");
+  }
+  if (!file.type.startsWith("image/") || /(?:tiff?|raw|dng|cr2|nef|arw)/i.test(file.type)) {
+    throw new CommentImagePreparationError("This file cannot be inserted as a comment image.");
+  }
+  try {
+    return (await compressCommentImage(file)).main;
+  } catch {
+    throw new CommentImagePreparationError("This browser cannot decode the file as a comment image.");
+  }
 }
 
 export async function compressLayerStackImage(file: File): Promise<File> {

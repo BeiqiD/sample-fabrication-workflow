@@ -1,5 +1,5 @@
 import { isSampleRecordEvent } from "../../shared/sample-records";
-import type { SampleDetail, SampleEvent } from "../../shared/types";
+import type { CommentAttachment, CommentImage, CommentSubmissionStatus, SampleDetail, SampleEvent } from "../../shared/types";
 
 export type SampleNoteKind = "sample_record" | "process_comment" | "execution_detail" | "deviation" | "state_mismatch" | "blocked_step";
 
@@ -16,6 +16,10 @@ export interface SampleNote {
   runId: string | null;
   stepId: string | null;
   sampleEvent: SampleEvent | null;
+  submissionId: string | null;
+  status: CommentSubmissionStatus;
+  images: CommentImage[];
+  attachments: CommentAttachment[];
 }
 
 function eventThumbnailKey(event: SampleEvent) {
@@ -26,7 +30,7 @@ function eventThumbnailKey(event: SampleEvent) {
 
 export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
   const notes: SampleNote[] = sample.events
-    .filter((event) => isSampleRecordEvent(event.kind, event.metadata))
+    .filter((event) => isSampleRecordEvent(event.kind, event.metadata) && event.metadata.action !== "comment_submission")
     .map((event) => ({
       id: `sample:${event.id}`,
       kind: "sample_record",
@@ -40,7 +44,45 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
       runId: null,
       stepId: null,
       sampleEvent: event,
+      submissionId: null,
+      status: "ready",
+      images: event.assetKey ? [{
+        id: `legacy:${event.id}`,
+        filename: "Comment image",
+        mimeType: "image/*",
+        byteSize: 0,
+        originalFilename: "Comment image",
+        originalMimeType: "image/*",
+        originalByteSize: 0,
+        assetKey: event.assetKey,
+        status: "ready",
+        error: null,
+        relatedAttachmentId: null,
+      }] : [],
+      attachments: [],
     }));
+
+  for (const comment of sample.comments ?? []) {
+    if (comment.status !== "ready") continue;
+    notes.push({
+      id: `submission:${comment.id}`,
+      kind: "sample_record",
+      label: "Sample note",
+      body: comment.body.trim() || (comment.images.length || comment.attachments.length ? "Files attached" : "Empty note"),
+      assetKey: comment.images[0]?.assetKey ?? null,
+      thumbnailKey: comment.images[0]?.assetKey ?? null,
+      actorEmail: comment.actorEmail,
+      createdAt: comment.createdAt,
+      context: "Added directly to this sample",
+      runId: null,
+      stepId: null,
+      sampleEvent: null,
+      submissionId: comment.id,
+      status: comment.status,
+      images: comment.images,
+      attachments: comment.attachments,
+    });
+  }
 
   const verificationEvents = new Map<string, SampleEvent>();
   for (const event of sample.events) {
@@ -67,6 +109,22 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           runId: run.id,
           stepId: step.id,
           sampleEvent: null,
+          submissionId: comment.submissionId ?? null,
+          status: comment.status ?? "ready",
+          images: comment.images ?? (comment.assetKey ? [{
+            id: `legacy:${comment.id}`,
+            filename: "Comment image",
+            mimeType: "image/*",
+            byteSize: 0,
+            originalFilename: "Comment image",
+            originalMimeType: "image/*",
+            originalByteSize: 0,
+            assetKey: comment.assetKey,
+            status: "ready",
+            error: null,
+            relatedAttachmentId: null,
+          }] : []),
+          attachments: comment.attachments ?? [],
         });
       }
 
@@ -86,6 +144,10 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           runId: run.id,
           stepId: step.id,
           sampleEvent: null,
+          submissionId: null,
+          status: "ready",
+          images: [],
+          attachments: [],
         });
       }
 
@@ -103,6 +165,10 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           runId: run.id,
           stepId: step.id,
           sampleEvent: null,
+          submissionId: null,
+          status: "ready",
+          images: [],
+          attachments: [],
         });
       } else if (step.deviationNote?.trim()) {
         notes.push({
@@ -118,6 +184,10 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           runId: run.id,
           stepId: step.id,
           sampleEvent: null,
+          submissionId: null,
+          status: "ready",
+          images: [],
+          attachments: [],
         });
       }
 
@@ -137,6 +207,10 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           runId: run.id,
           stepId: step.id,
           sampleEvent: null,
+          submissionId: null,
+          status: "ready",
+          images: [],
+          attachments: [],
         });
       }
     }

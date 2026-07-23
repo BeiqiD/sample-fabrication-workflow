@@ -38,7 +38,7 @@ export function sampleSummary(row: SampleRow): SampleSummary {
   };
 }
 
-export function sampleDetail(row: SampleRow): Omit<SampleDetail, "parent" | "children" | "events" | "runs" | "stateVerifications"> {
+export function sampleDetail(row: SampleRow): Omit<SampleDetail, "parent" | "children" | "events" | "runs" | "stateVerifications" | "comments"> {
   return {
     ...sampleSummary(row),
     description: row.description ?? null,

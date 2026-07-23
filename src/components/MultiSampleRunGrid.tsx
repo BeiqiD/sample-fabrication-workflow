@@ -1,12 +1,12 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
+import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
-import { compressCommentImage, compressLayerStackImage } from "../lib/images";
+import { compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
 import { runStepIsModified } from "../lib/runSteps";
-import { CommentComposer } from "./CommentComposer";
+import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { FileDropzone } from "./FileDropzone";
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
@@ -245,13 +245,55 @@ function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, commo
   onDeleteAsset?: () => void;
   common?: boolean;
 }) {
+  const imageKeys = (comment.images ?? []).flatMap((image) => image.assetKey ? [image.assetKey] : []);
+  const attachments = comment.attachments ?? [];
+  const incomplete = comment.status && comment.status !== "ready";
   return <div className={`cell-comment${common ? " common-comment" : ""}`}>
     <div className="comment-card-content">
-      <div className="comment-card-copy">{comment.body && <p>{comment.body}</p>}<small>{meta}</small></div>
-      {comment.assetKey && <div className="comment-thumbnail-gallery"><DiagramGallery keys={[comment.assetKey]} label={imageLabel} kind="photo" onDelete={onDeleteAsset ? () => onDeleteAsset() : undefined} /></div>}
+      <div className="comment-card-copy">
+        {incomplete && <strong className={`comment-upload-state status-${comment.status}`}>{comment.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
+        {comment.body && <p>{comment.body}</p>}
+        <small>{meta}</small>
+      </div>
+      {(imageKeys.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : [comment.assetKey!]} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
     </div>
-    {onDelete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
+    {attachments.length > 0 && <div className="comment-attachment-list">
+      <small>Attachments</small>
+      {attachments.map((attachment) => attachment.kind === "link"
+        ? <a href={attachment.url} target="_blank" rel="noreferrer" key={attachment.id}>↗ {attachment.title}</a>
+        : attachment.downloadUrl
+          ? <a href={attachment.downloadUrl} key={attachment.id}>📎 {attachment.filename} · {formatBytes(attachment.byteSize)}</a>
+          : <span className={`attachment-status status-${attachment.status}`} key={attachment.id}>📎 {attachment.filename} · {attachment.status}</span>)}
+    </div>}
+    {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
   </div>;
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function recoverableFromComments(comments: RunStepComment[]) {
+  const submissions = new Map<string, CommentSubmission>();
+  for (const comment of comments) {
+    if (!comment.submissionId || !comment.status || ["ready", "cancelled"].includes(comment.status)) continue;
+    submissions.set(comment.submissionId, {
+      id: comment.submissionId,
+      contextKind: "run_steps",
+      scope: comment.scope,
+      body: comment.body,
+      status: comment.status,
+      error: null,
+      images: comment.images ?? [],
+      attachments: comment.attachments ?? [],
+      actorEmail: comment.actorEmail,
+      createdAt: comment.createdAt,
+      updatedAt: comment.createdAt,
+    });
+  }
+  return [...submissions.values()];
 }
 
 function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepComment[]; onDelete?: (comment: RunStepComment) => void; onDeleteAsset?: (comment: RunStepComment) => void }) {
@@ -465,25 +507,6 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     finally { setPendingAction(null); }
   }
 
-  async function addComment(scope: "common" | "individual", entries: Array<{ column: RunGridColumn; step: RunStep }>, body: string, image: File | null, actionKey: string) {
-    const trimmed = body.trim();
-    const targets = entries.filter(({ column }) => scope === "individual" || selected.has(column.sample.id));
-    if ((!trimmed && !image) || !targets.length) return false;
-    setPendingAction(actionKey); setError("");
-    try {
-      let assetKey: string | undefined;
-      if (image) {
-        const compressed = await compressCommentImage(image);
-        assetKey = (await api.uploadAsset(compressed.main, compressed.main.name)).key;
-      }
-      await api.addRunStepComments({ scope, body: trimmed, assetKey, targets: targets.map(({ column, step }) => target(column, step)) });
-      setCommonCommentRow(null);
-      await onSaved();
-      return true;
-    } catch (error) { setError((error as Error).message); return false; }
-    finally { setPendingAction(null); }
-  }
-
   async function confirmDelete() {
     if (!deleteRequest) return;
     const actionKey = deleteRequest.kind === "execution_asset"
@@ -491,7 +514,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       : `delete:${deleteRequest.comment.id}:${deleteRequest.kind}`;
     setPendingAction(actionKey); setDeleteError(""); setError("");
     try {
-      if (deleteRequest.kind === "comment") await api.deleteRunStepComment(deleteRequest.comment.id);
+      if (deleteRequest.kind === "comment") {
+        if (deleteRequest.comment.submissionId) await api.deleteCommentSubmission(deleteRequest.comment.submissionId);
+        else await api.deleteRunStepComment(deleteRequest.comment.id);
+      }
       else if (deleteRequest.kind === "comment_asset") await api.deleteRunStepCommentAsset(deleteRequest.comment.id);
       else await api.deleteRunStepAsset(deleteRequest.column.sample.id, deleteRequest.column.run!.id, deleteRequest.step.id, deleteRequest.assetKey);
       setDeleteRequest(null);
@@ -540,7 +566,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       pendingAction={pendingAction}
       onDone={() => void markDone(column, step)}
       onVerify={(result) => void verifyState(column, step, result)}
-      onSaveComment={(body, image) => addComment("individual", [{ column, step }], body, image, `comment:${step.id}`)}
+      commentContext={{ kind: "run_steps", scope: "individual", targets: [target(column, step)] }}
+      onCommentSubmitted={onSaved}
       onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: false }); }}
       onDeleteCommentAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: false }); }}
       onDeleteExecutionAsset={(assetKey) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey, column, step }); }}
@@ -589,6 +616,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
             const existing = commonGroups.get(key);
             if (existing) existing.codes.push(column.sample.code); else commonGroups.set(key, { comment, codes: [column.sample.code] });
           }));
+          const commonRecovery = recoverableFromComments([...commonGroups.values()].map(({ comment }) => comment));
+          const readyCommonGroups = [...commonGroups.values()].filter(({ comment }) => (comment.status ?? "ready") === "ready");
           const eligibleCount = entries.filter(({ column, step }) => selected.has(column.sample.id) && ["pending", "in_progress"].includes(step.status)).length;
           const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
@@ -597,7 +626,22 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
               <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
-              {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
+              {!readOnly && <><div className="recipe-actions"><button type="button" className="button primary compact-button recipe-icon-action" title={pendingAction === `confirm:${row.key}` ? "Saving…" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-label={pendingAction === `confirm:${row.key}` ? "Saving confirmed steps" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-busy={pendingAction === `confirm:${row.key}`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}><ProcessingActionIcon name="done" /><span className="recipe-action-label">{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</span></button><button type="button" className="button compact-button recipe-icon-action" title="Comment on selected samples" aria-label="Comment on selected samples" aria-expanded={commonCommentRow === row.key} disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}><ProcessingActionIcon name="comment" /><span className="recipe-action-label">Comment</span></button></div>
+              {commonCommentRow === row.key && <CommentComposer
+                label="Add to checked samples"
+                context={{
+                  kind: "run_steps",
+                  scope: "common",
+                  targets: entries.filter(({ column }) => selected.has(column.sample.id)).map(({ column, step }) => target(column, step)),
+                }}
+                onCancel={() => setCommonCommentRow(null)}
+                onSubmitted={async () => {
+                  setCommonCommentRow(null);
+                  await onSaved();
+                }}
+              />}</>}</>}
+              <CommentSubmissionRecovery submissions={commonRecovery} onSubmitted={onSaved} />
+              {readyCommonGroups.length > 0 && <div className="common-comments"><small>Common execution comments</small>{readyCommonGroups.map(({ comment, codes }) => <CommentCard
                 key={comment.operationGroupId || comment.id}
                 comment={comment}
                 common
@@ -606,8 +650,6 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 onDelete={() => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
                 onDeleteAsset={comment.assetKey ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
               />)}</div>}
-              {!readOnly && <><div className="recipe-actions"><button type="button" className="button primary compact-button recipe-icon-action" title={pendingAction === `confirm:${row.key}` ? "Saving…" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-label={pendingAction === `confirm:${row.key}` ? "Saving confirmed steps" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-busy={pendingAction === `confirm:${row.key}`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}><ProcessingActionIcon name="done" /><span className="recipe-action-label">{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</span></button><button type="button" className="button compact-button recipe-icon-action" title="Comment on selected samples" aria-label="Comment on selected samples" aria-expanded={commonCommentRow === row.key} disabled={!entries.some(({ column }) => selected.has(column.sample.id))} onClick={() => setCommonCommentRow(commonCommentRow === row.key ? null : row.key)}><ProcessingActionIcon name="comment" /><span className="recipe-action-label">Comment</span></button></div>
-              {commonCommentRow === row.key && <CommentComposer label="Add to checked samples" saving={pendingAction === `common:${row.key}`} onCancel={() => setCommonCommentRow(null)} onSave={(body, image) => addComment("common", entries, body, image, `common:${row.key}`)} />}</>}</>}
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
@@ -639,11 +681,16 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   </article>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddAfter, readOnly }: {
+function StepCell({ column, step, pendingAction, onDone, onVerify, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddAfter, readOnly }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
-  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void; onSaveComment: (body: string, image: File | null) => Promise<boolean>; onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void; onAddAfter: () => void; readOnly: boolean;
+  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void;
+  commentContext: Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
+  onCommentSubmitted: () => Promise<void>;
+  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void; onAddAfter: () => void; readOnly: boolean;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
+  const recoverableComments = recoverableFromComments(individualComments);
+  const readyComments = individualComments.filter((comment) => (comment.status ?? "ready") === "ready");
   const [showStateActions, setShowStateActions] = useState(false);
   const busy = pendingAction !== null;
   return <>
@@ -660,7 +707,8 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, onSaveComment
     {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
     {step.origin === "ad_hoc" && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
-    <CommentList comments={individualComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
-    {!readOnly && <CommentComposer label="Individual comment" saving={pendingAction === `comment:${step.id}`} onSave={onSaveComment} />}
+    {!readOnly && <CommentComposer label="Individual comment" context={commentContext} onSubmitted={onCommentSubmitted} />}
+    <CommentSubmissionRecovery submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
+    <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
   </>;
 }

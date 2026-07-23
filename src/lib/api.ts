@@ -1,4 +1,4 @@
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -103,6 +103,73 @@ export const api = {
     headers: { "content-type": file.type || "application/octet-stream", "x-filename": filename },
     body: file,
   }),
+  getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status"),
+  createCommentSubmission: (input: CreateCommentSubmissionInput) => request<{ id: string; deduplicated: boolean }>("/comment-submissions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  uploadCommentSubmissionItem: (
+    submissionId: string,
+    itemId: string,
+    file: File,
+    sha256: string | null,
+    onProgress: (progress: number) => void,
+    signal?: AbortSignal,
+  ) => new Promise<{ ok: true; deduplicated: boolean }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", `/api/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}/content`);
+    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
+    xhr.setRequestHeader("x-upload-size", String(file.size));
+    if (sha256) xhr.setRequestHeader("x-content-sha256", sha256);
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) onProgress(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
+    });
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        try { resolve(JSON.parse(xhr.responseText) as { ok: true; deduplicated: boolean }); }
+        catch { reject(new Error("The upload completed but returned an invalid response")); }
+        return;
+      }
+      try {
+        const payload = JSON.parse(xhr.responseText) as { error?: string };
+        reject(new Error(payload.error || `Upload failed (${xhr.status})`));
+      } catch { reject(new Error(`Upload failed (${xhr.status})`)); }
+    });
+    xhr.addEventListener("error", () => reject(new Error("Network error")));
+    xhr.addEventListener("abort", () => reject(new DOMException("Upload cancelled", "AbortError")));
+    if (signal) {
+      if (signal.aborted) xhr.abort();
+      else signal.addEventListener("abort", () => xhr.abort(), { once: true });
+    }
+    xhr.send(file);
+    onProgress(0);
+  }),
+  markCommentSubmissionItemFailed: (submissionId: string, itemId: string, error: string) => request<{ ok: true }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}/fail`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error }),
+    },
+  ),
+  removeCommentSubmissionItem: (submissionId: string, itemId: string) => request<{ ok: true }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}`,
+    { method: "DELETE" },
+  ),
+  finalizeCommentSubmission: (submissionId: string) => request<{ ok: true; status: "ready" }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}/finalize`,
+    { method: "POST" },
+  ),
+  cancelCommentSubmission: (submissionId: string) => request<{ ok: true }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}/cancel`,
+    { method: "POST" },
+  ),
+  deleteCommentSubmission: (submissionId: string) => request<{ ok: true }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}`,
+    { method: "DELETE" },
+  ),
   listTemplates: () => request<{ templates: TemplateRecord[] }>("/templates"),
   getTemplate: (id: string) => request<{ template: TemplateDetail }>(`/templates/${id}`),
   updateTemplate: (id: string, input: { name: string; version: number }) => request<{ ok: true }>(`/templates/${id}`, {

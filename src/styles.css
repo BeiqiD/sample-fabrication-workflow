@@ -405,30 +405,83 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .verification-badge { display: inline-flex; width: fit-content; padding: 4px 7px; border-radius: 999px; font-size: 9px; font-weight: 760; letter-spacing: .03em; }
 .verification-badge.matched { color: var(--success); background: var(--success-soft); }
 .verification-badge.mismatched { color: var(--danger); background: var(--danger-soft); }
-.grid-comment-composer { position: relative; overflow: hidden; padding: 4px; border: 1px solid var(--line-strong); border-radius: 8px; background: color-mix(in srgb, var(--paper) 72%, transparent); transition: border-color .15s, box-shadow .15s, background .15s; }
+.grid-comment-composer { position: relative; padding: 4px; border: 1px solid var(--line-strong); border-radius: 8px; background: color-mix(in srgb, var(--paper) 72%, transparent); transition: border-color .15s, box-shadow .15s, background .15s; }
 .grid-comment-composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); background: var(--input); }
 .grid-comment-composer.dragging { border-color: var(--accent); background: var(--accent-soft); }
 .comment-composer-row { min-width: 0; display: flex; align-items: flex-end; gap: 4px; }
 .grid-comment-composer textarea { min-width: 52px; min-height: 32px; max-height: 112px; padding: 7px 6px; overflow-y: auto; border: 0; border-radius: 5px; background: transparent; box-shadow: none; font-size: 12px; line-height: 1.45; resize: none; }
 .grid-comment-composer textarea:focus { border: 0; box-shadow: none; }
 .comment-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.comment-attach-button, .comment-cancel-button { width: 32px; height: 32px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; color: var(--accent); background: transparent; font-size: 16px; font-weight: 700; }
-.comment-attach-button:hover, .comment-cancel-button:hover { background: var(--accent-soft); }
-.comment-attach-icon { position: relative; display: block; width: 23px; height: 23px; border: 1px solid var(--line-strong); border-radius: 50%; }
-.comment-attach-icon::before, .comment-attach-icon::after { position: absolute; top: 50%; left: 50%; border-radius: 1px; background: currentColor; content: ""; transform: translate(-50%, -50%); }
-.comment-attach-icon::before { width: 10px; height: 2px; }
-.comment-attach-icon::after { width: 2px; height: 10px; }
+.comment-tool-button, .comment-cancel-button { width: 32px; height: 32px; flex: 0 0 auto; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; color: var(--accent); background: transparent; font-size: 16px; font-weight: 700; }
+.comment-tool-button:hover, .comment-cancel-button:hover { background: var(--accent-soft); }
+.comment-image-icon { position: relative; display: block; width: 19px; height: 15px; border: 1.5px solid currentColor; border-radius: 3px; }
+.comment-image-icon::before { position: absolute; right: 2px; bottom: 2px; width: 8px; height: 8px; border-top: 1.5px solid currentColor; border-left: 1.5px solid currentColor; content: ""; transform: rotate(45deg); }
+.comment-image-icon::after { position: absolute; top: 2px; left: 3px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; content: ""; }
+.comment-attach-icon { position: relative; display: block; width: 17px; height: 19px; transform: rotate(38deg); }
+.comment-attach-icon::before { position: absolute; inset: 1px 3px; border: 1.7px solid currentColor; border-top-color: transparent; border-radius: 0 0 8px 8px; content: ""; }
+.comment-attach-icon::after { position: absolute; inset: 5px 6px 4px; border: 1.7px solid currentColor; border-top-color: transparent; border-radius: 0 0 5px 5px; content: ""; }
+.comment-attachment-control { position: relative; flex: 0 0 auto; }
+.attachment-menu { position: absolute; z-index: 8; right: 0; top: calc(100% + 6px); min-width: 180px; display: grid; overflow: hidden; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: 0 12px 30px rgba(20,25,21,.16); }
+.attachment-menu button { padding: 8px 10px; border: 0; border-radius: 5px; text-align: left; background: transparent; white-space: nowrap; }
+.attachment-menu button:hover:not(:disabled) { background: var(--accent-soft); }
+.attachment-menu button:disabled { color: var(--muted); cursor: not-allowed; opacity: .62; }
+.attachment-menu p { max-width: 250px; margin: 3px 6px 5px; color: var(--muted); font-size: 9px; line-height: 1.4; }
 .comment-cancel-button { color: var(--muted); font-size: 18px; }
-.pending-comment-image { position: relative; width: 32px; height: 32px; flex: 0 0 auto; }
-.pending-comment-image img { width: 32px; height: 32px; border-radius: 5px; object-fit: cover; }
-.pending-comment-image button { position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--paper); font-size: 12px; line-height: 1; }
 .comment-add-button { min-width: 42px; min-height: 32px; flex: 0 0 auto; padding: 5px 7px; }
 .recipe-cell .grid-comment-composer { margin-top: 7px; }
 .recipe-cell .comment-composer-row { flex-wrap: wrap; }
 .recipe-cell .grid-comment-composer textarea { flex-basis: 100%; }
-.recipe-cell .comment-attach-button, .recipe-cell .pending-comment-image { margin-right: auto; }
+.recipe-cell .image-button { margin-left: auto; }
 .comment-drop-overlay { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; border: 2px dashed var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 94%, transparent); font-size: 12px; font-weight: 750; pointer-events: none; }
 .comment-image-error { display: block; padding: 0 8px 6px; color: var(--danger); font-size: 9px; }
+.pending-draft-section, .local-submission-list { display: grid; gap: 7px; margin: 8px 4px 2px; padding-top: 8px; border-top: 1px solid var(--line); }
+.recovered-submission-list { display: grid; gap: 7px; margin-top: 7px; }
+.pending-section-label { margin: 0; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.pending-image-list, .pending-attachment-list, .upload-item-list { display: grid; gap: 6px; }
+.pending-image-card { min-width: 0; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+.pending-image-card > img { width: 48px; height: 48px; border-radius: 5px; object-fit: cover; background: var(--surface-muted); }
+.recipe-cell .pending-image-card { grid-template-columns: 40px minmax(0, 1fr); }
+.recipe-cell .pending-image-card > img { width: 40px; height: 40px; }
+.recipe-cell .pending-image-card .pending-card-actions { grid-column: 1 / -1; }
+.recipe-cell .pending-attachment { grid-template-columns: auto minmax(0, 1fr); }
+.recipe-cell .pending-attachment > button { grid-column: 1 / -1; justify-self: end; }
+.pending-image-card > div:nth-child(2), .rejected-image-card > div:first-child, .pending-attachment > div, .upload-item > div:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
+.pending-image-card strong, .rejected-image-card strong, .pending-attachment strong, .upload-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.pending-image-card span, .rejected-image-card span, .pending-attachment span, .upload-item span { overflow-wrap: anywhere; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.pending-card-actions, .upload-item-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.pending-card-actions button, .pending-attachment > button, .upload-item-actions button, .uploading-comment-actions button { padding: 3px 5px; border: 0; color: var(--accent); background: transparent; font-size: 9px; }
+.rejected-image-card { min-width: 0; display: flex; justify-content: space-between; gap: 8px; padding: 7px; border: 1px solid var(--warning); border-radius: 7px; background: var(--warning-soft); }
+.pending-attachment { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 7px; align-items: center; padding: 6px 7px; border-radius: 6px; background: var(--neutral-soft); }
+.attachment-kind-icon { color: var(--accent); font-size: 13px; }
+.attachment-storage-warning { margin: 0; color: var(--warning-text); font-size: 9px; line-height: 1.4; }
+.attachment-link-form { display: grid; gap: 6px; margin: 8px 4px 4px; padding: 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+.attachment-link-form label { display: grid; gap: 3px; color: var(--muted); font-size: 9px; font-weight: 700; }
+.attachment-link-form input, .attachment-link-form textarea { min-height: 30px; padding: 5px 7px; border: 1px solid var(--line); background: var(--input); font-size: 11px; }
+.attachment-link-form > div { display: flex; justify-content: flex-end; gap: 6px; }
+.uploading-comment-card { display: grid; gap: 7px; padding: 8px; border: 1px solid var(--info); border-radius: 7px; background: var(--info-soft); }
+.uploading-comment-card.status-failed { border-color: var(--danger); background: var(--danger-soft); }
+.uploading-comment-heading { display: flex; justify-content: space-between; gap: 8px; }
+.uploading-comment-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
+.uploading-comment-heading strong { font-size: 11px; }
+.uploading-comment-heading p { margin: 3px 0 0; white-space: pre-wrap; font-size: 11px; }
+.uploading-comment-heading > button { align-self: start; padding: 3px 5px; border: 0; color: var(--accent); background: transparent; font-size: 9px; }
+.recovery-hint { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.upload-item { min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 5px 6px; border-radius: 5px; background: color-mix(in srgb, var(--paper) 76%, transparent); }
+.recipe-cell .upload-item { grid-template-columns: 24px minmax(0, 1fr); }
+.recipe-cell .upload-item-actions { grid-column: 2; }
+.upload-item-state { color: var(--info); font-size: 10px; font-weight: 800; text-align: center; }
+.upload-item.status-ready .upload-item-state { color: var(--success); }
+.upload-item.status-failed .upload-item-state, .upload-item-error, .upload-submission-error { color: var(--danger) !important; }
+.upload-item progress { width: 100%; height: 4px; accent-color: var(--accent); }
+.upload-item-actions label { padding: 3px 5px; font-size: 9px; cursor: pointer; }
+.upload-item-actions input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.upload-submission-error { margin: 0; font-size: 9px; }
+.comment-upload-state { display: block; margin-bottom: 4px; color: var(--info); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; }
+.comment-upload-state.status-failed { color: var(--danger); }
+.comment-attachment-list, .sample-note-attachments { display: grid; gap: 3px; margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--line); }
+.comment-attachment-list small, .sample-note-attachments small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.comment-attachment-list a, .comment-attachment-list span, .sample-note-attachments a, .sample-note-attachments span { overflow-wrap: anywhere; font-size: 10px; }
+.attachment-status.status-failed { color: var(--danger); }
 .visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 .ad-hoc-title { color: var(--ink); }
 .step-drawer-backdrop { position: fixed; inset: 0; z-index: 30; display: flex; justify-content: flex-end; background: var(--overlay); backdrop-filter: blur(2px); }
@@ -543,6 +596,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-note-context { margin: 0; overflow-wrap: anywhere; line-height: 1.4; }
 .sample-note-content { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; margin-top: 9px; }
 .sample-note-content > p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.sample-note-content > .comment-upload-state, .sample-note-content > .sample-note-attachments { grid-column: 1 / -1; }
+.sample-note-images { max-width: 304px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .sample-note-image img { display: block; width: 92px; height: 72px; border: 1px solid var(--line); border-radius: 8px; object-fit: cover; background: var(--surface-muted); }
 .sample-note-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .sample-note-footer > span { min-width: 0; overflow-wrap: anywhere; }
@@ -570,14 +625,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-run-progress { display: grid; gap: 2px; }
 .sample-run-progress strong { font-variant-numeric: tabular-nums; }
 .sample-run-summary time { white-space: nowrap; }
-.run-structure-history { display: flex; align-items: start; gap: 10px; padding: 16px; overflow-x: auto; border-top: 1px solid var(--line); background: var(--surface); }
-.run-structure-history > .muted { margin: 0; }
-.run-structure-frame { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
-.run-structure-frame > div { width: 150px; display: grid; gap: 6px; }
-.run-structure-frame small { color: var(--muted); font-weight: 700; }
-.run-structure-images { display: grid; gap: 5px; }
+.run-structure-history { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; grid-template-rows: auto auto; align-items: start; gap: 6px 10px; padding: 16px; overflow-x: auto; border-top: 1px solid var(--line); background: var(--surface); }
+.run-structure-history > .muted { grid-row: 1 / -1; margin: 0; }
+.run-structure-frame { grid-row: span 2; display: grid; grid-template-columns: auto 150px; grid-template-rows: subgrid; column-gap: 10px; }
+.run-structure-frame > div { grid-column: 2; grid-row: 1 / span 2; width: 150px; display: grid; grid-template-rows: subgrid; row-gap: 6px; }
+.run-structure-frame small { grid-row: 1; min-width: 0; overflow-wrap: anywhere; color: var(--muted); font-weight: 700; line-height: 1.35; }
+.run-structure-images { grid-row: 2; display: grid; gap: 5px; }
 .run-structure-frame img { display: block; width: 150px; height: 100px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
-.run-structure-arrow { color: var(--muted); font-size: 22px; }
+.run-structure-arrow { grid-column: 1; grid-row: 2; align-self: start; display: grid; place-items: center; height: 100px; color: var(--muted); font-size: 22px; }
 .deleted-event .event-dot { background: var(--neutral); }
 .deleted-event .event-content > p { color: var(--muted); text-decoration: line-through; }
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; }

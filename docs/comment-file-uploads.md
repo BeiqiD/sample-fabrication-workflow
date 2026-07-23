@@ -1,0 +1,58 @@
+# Comment file uploads
+
+All sample notes and process-step comments use the same two-stage submission
+model.
+
+## Storage boundaries
+
+- Processed inline comment images use the existing private `ASSETS` R2 binding.
+- Original files use the `ManagedStorage` interface in
+  `worker/managed-storage.ts`.
+- External links are database records only. The Worker never fetches or
+  validates their targets.
+
+There is deliberately no R2 fallback for original files. File attachment
+controls remain disabled until an external file-storage adapter is configured
+and its server-side authentication is valid. Comment images and external links
+continue to work without a connected file-storage provider.
+
+Provider-specific key naming, requests, and authentication must stay inside a
+`ManagedStorage` implementation; comment routes must not contain Google Drive,
+OneDrive, SWITCHdrive, or other provider-specific logic.
+
+## Authentication
+
+Application authentication and storage authentication are separate:
+
+1. Cloudflare Access authenticates the person creating or retrying a
+   submission.
+2. The Worker authenticates to the configured external file storage. No
+   storage credential reaches the browser.
+3. An OAuth-backed adapter should keep refresh tokens in encrypted
+   server-side secrets and store only a connection/secret reference, provider,
+   account label, status, and expiry in D1. It must expose the same
+   `ManagedStorage` methods and report unavailable or expired authentication
+   through `/api/storage/status`.
+
+Do not put OAuth access or refresh tokens in D1 records, local storage, comment
+metadata, upload URLs, or client logs.
+
+## Deployment
+
+Apply `migrations/0005_comment_submissions.sql`. No additional R2 bucket is
+required. Until a file-storage provider is implemented, configured, and
+authenticated, users can submit text, compressed comment images, and attachment
+links, but cannot upload original files.
+
+## Upload integrity
+
+- Comment images are decoded and converted to WebP in the browser, then
+  independently hashed by the Worker.
+- Managed attachments are sent as the original `File` body without
+  transformation. The browser supplies a SHA-256 hash, and the storage adapter
+  streams the body unchanged.
+- Submission and item IDs make create, upload, retry, and finalize operations
+  idempotent. Successfully uploaded items are not uploaded again.
+- Cancelled or abandoned storage objects are marked for cleanup. A scheduled
+  cleanup handler can remove provider objects after the retention period
+  without changing the composer or submission API.

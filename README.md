@@ -13,12 +13,12 @@ A lightweight, sample-centered workflow and event log for small-scale research f
 
 These are deliberate assumptions, not a universal laboratory-management model. They favor an honest, durable history of each physical sample over forcing execution to match the current process template. Groups with different rules for deviations, version ownership, approvals, or historical corrections should review and adapt the model before adopting the app.
 
-The app is a single open-source Cloudflare Worker project: React and Vite provide the interface, Hono provides the API, D1 stores structured records, and private R2 stores workbooks and compressed images.
+The app is a single open-source Cloudflare Worker project: React and Vite provide the interface, Hono provides the API, D1 stores structured records, private R2 stores workbooks and compressed inline images, and a separate managed-storage adapter stores unchanged comment attachments.
 
 ## MVP flow
 
 1. Use `Processing` to find active work, or `Samples` to browse the permanent archive and create a sample.
-2. Add comments and phone photos to a sample's timeline.
+2. Add comments, compressed inline photos, unchanged original files, and external attachment links.
 3. Change location, physical lifecycle status, title, or pinned state with one audit entry per changed field. Starting or reopening a process run automatically makes the sample active; completing it returns the sample to stored unless it was explicitly marked consumed or lost.
 4. Split a parent into multiple automatically numbered child samples in one atomic operation; review each child before confirming.
 5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
@@ -43,7 +43,7 @@ npm run dev
 
 Cloudflare's Vite plugin runs the API inside the Workers runtime and uses local D1/R2 simulations by default.
 
-Workbook and image inputs support both drag-and-drop and ordinary file selection. Images are compressed in the browser before upload.
+Workbook and image inputs support both drag-and-drop and ordinary file selection. Comment images are compressed in the browser before upload. Files selected through the paperclip remain unchanged and are uploaded only after the comment's `Add` action.
 The Worker hashes every received workbook, image, normalized process step, expected state, and template manifest with SHA-256. Repeated content therefore reuses definitions and state representations instead of copying full content into every run.
 
 ## Deploy
@@ -55,7 +55,7 @@ npm run db:migrate:remote
 npm run deploy
 ```
 
-The committed `DB` and `ASSETS` bindings identify the existing alpha-v2 production resources. Do not change those bindings or the Worker name during an ordinary deployment; a fork or fresh installation must replace them with resources owned by its Cloudflare account.
+The committed `DB` and `ASSETS` bindings identify the production resources. Original-file attachments have no R2 fallback and stay disabled until an external file-storage provider is configured and authenticated. Do not change the bindings or Worker name during an ordinary deployment; a fork or fresh installation must replace them with resources owned by its Cloudflare account. Storage-provider and authentication boundaries are documented in [docs/comment-file-uploads.md](./docs/comment-file-uploads.md).
 
 ## Data ownership
 

@@ -1,7 +1,7 @@
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
-import { CommentComposer } from "../components/CommentComposer";
+import { CommentComposer, CommentSubmissionRecovery } from "../components/CommentComposer";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { SampleTimeline } from "../components/SampleTimeline";
@@ -9,7 +9,6 @@ import { SplitSampleDialog } from "../components/SplitSampleDialog";
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { exportSample } from "../lib/exportSample";
-import { compressCommentImage } from "../lib/images";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 
@@ -24,6 +23,11 @@ function runStatusLabel(status: SampleRun["status"]) {
   if (status === "cancelled") return "Cancelled";
   if (status === "superseded") return "Superseded";
   return "Active";
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function runStructureFrames(run: SampleRun) {
@@ -52,7 +56,6 @@ export function SamplePage() {
   const navigate = useNavigate();
   const [sample, setSample] = useState<SampleDetail | null>(null);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
@@ -62,12 +65,14 @@ export function SamplePage() {
   const [assetToDelete, setAssetToDelete] = useState<SampleEvent | null>(null);
   const [assetDeleteError, setAssetDeleteError] = useState("");
   const [deletingAsset, setDeletingAsset] = useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = useState<{ id: string; body: string } | null>(null);
+  const [submissionDeleteError, setSubmissionDeleteError] = useState("");
+  const [deletingSubmission, setDeletingSubmission] = useState(false);
   const [splitting, setSplitting] = useState(false);
   const [confirmingSampleDeletion, setConfirmingSampleDeletion] = useState(false);
   const [sampleDeleteConfirmation, setSampleDeleteConfirmation] = useState("");
   const [sampleDeleteError, setSampleDeleteError] = useState("");
   const [deletingSample, setDeletingSample] = useState(false);
-  const pendingUploadRef = useRef<{ signature: string; assetKey?: string; thumbnailKey?: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -77,43 +82,6 @@ export function SamplePage() {
   }, [sampleId]);
 
   useEffect(() => { void load(); }, [load]);
-
-  async function addComment(body: string, image: File | null) {
-    if (!sample || (!body.trim() && !image)) return false;
-    setSaving(true); setError("");
-    try {
-      let assetKey: string | undefined;
-      let thumbnailKey: string | undefined;
-      if (image) {
-        const signature = `${image.name}:${image.size}:${image.lastModified}`;
-        if (pendingUploadRef.current?.signature !== signature) pendingUploadRef.current = { signature };
-        const pending = pendingUploadRef.current;
-        if (!pending.assetKey || !pending.thumbnailKey) {
-          const compressed = await compressCommentImage(image);
-          if (!pending.assetKey) pending.assetKey = (await api.uploadAsset(compressed.main, compressed.main.name)).key;
-          if (!pending.thumbnailKey) pending.thumbnailKey = (await api.uploadAsset(compressed.thumbnail, compressed.thumbnail.name)).key;
-        }
-        assetKey = pending.assetKey;
-        thumbnailKey = pending.thumbnailKey;
-      }
-      await api.createRecord(sampleId, {
-        status: sample.status,
-        location: sample.location || "",
-        pinned: sample.pinned,
-        expectedUpdatedAt: sample.updatedAt,
-        body: body.trim(),
-        assetKey,
-        thumbnailKey,
-      });
-      pendingUploadRef.current = null;
-      await load();
-      return true;
-    } catch (error) {
-      setError((error as Error).message);
-      return false;
-    }
-    finally { setSaving(false); }
-  }
 
   async function deleteRecord() {
     if (!sample || !recordToDelete) return;
@@ -135,6 +103,18 @@ export function SamplePage() {
       await load();
     } catch (error) { setAssetDeleteError((error as Error).message); }
     finally { setDeletingAsset(false); }
+  }
+
+  async function deleteSubmission() {
+    if (!submissionToDelete) return;
+    setDeletingSubmission(true);
+    setSubmissionDeleteError("");
+    try {
+      await api.deleteCommentSubmission(submissionToDelete.id);
+      setSubmissionToDelete(null);
+      await load();
+    } catch (error) { setSubmissionDeleteError((error as Error).message); }
+    finally { setDeletingSubmission(false); }
   }
 
   async function updateDetails(event: FormEvent<HTMLFormElement>) {
@@ -219,7 +199,14 @@ export function SamplePage() {
         </div>
         <div className="sample-note-composer">
           <p className="card-label">Add a note or observation</p>
-          <CommentComposer label="Add a note or observation" placeholder="Observation about this sample, independent of a process step…" submitLabel="Add note" saving={saving} onSave={addComment} />
+          <CommentComposer
+            label="Add a note or observation"
+            placeholder="Observation about this sample, independent of a process step…"
+            submitLabel="Add note"
+            context={{ kind: "sample", sampleId: sample.id, expectedUpdatedAt: sample.updatedAt }}
+            onSubmitted={load}
+          />
+          <CommentSubmissionRecovery submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={load} />
           <small>Saved directly to this sample.</small>
         </div>
         {notes.length ? <div className="sample-notes-list">{notes.map((note) => <article className={`sample-note sample-note-${note.kind}`} key={note.id}>
@@ -228,8 +215,19 @@ export function SamplePage() {
             <time>{new Date(note.createdAt).toLocaleString()}</time>
           </div>
           <div className="sample-note-content">
+            {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
             <p>{note.body}</p>
-            {note.assetKey && <a className="sample-note-image" href={`/api/assets/${note.assetKey}`} target="_blank" rel="noreferrer"><img src={`/api/assets/${note.thumbnailKey || note.assetKey}`} alt={note.body || note.label} loading="lazy" /></a>}
+            {note.images.some((image) => image.assetKey) && <div className="sample-note-images">{note.images.flatMap((image) => image.assetKey
+              ? [<a className="sample-note-image" href={`/api/assets/${image.assetKey}`} target="_blank" rel="noreferrer" key={image.id}><img src={`/api/assets/${image.assetKey}`} alt={note.body || note.label} loading="lazy" /></a>]
+              : [])}</div>}
+            {note.attachments.length > 0 && <div className="sample-note-attachments">
+              <small>Attachments</small>
+              {note.attachments.map((attachment) => attachment.kind === "link"
+                ? <a href={attachment.url} target="_blank" rel="noreferrer" key={attachment.id}>↗ {attachment.title}</a>
+                : attachment.downloadUrl
+                  ? <a href={attachment.downloadUrl} key={attachment.id}>📎 {attachment.filename} · {formatBytes(attachment.byteSize)}</a>
+                  : <span className={`attachment-status status-${attachment.status}`} key={attachment.id}>📎 {attachment.filename} · {attachment.status}</span>)}
+            </div>}
           </div>
           <div className="sample-note-footer">
             <span>{note.actorEmail || (note.kind === "execution_detail" || note.kind === "deviation" || note.kind === "blocked_step" ? "Current process state" : "Unknown user")}</span>
@@ -237,6 +235,7 @@ export function SamplePage() {
               {note.runId && <Link className="text-button" to={`/processing/${sample.id}?run=${encodeURIComponent(note.runId)}`}>Open in processing</Link>}
               {note.sampleEvent?.assetKey && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
               {note.sampleEvent && <button type="button" className="text-button danger-text-button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(note.sampleEvent); }}>Delete note</button>}
+              {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Delete note</button>}
             </div>
           </div>
         </article>)}</div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
@@ -282,6 +281,7 @@ export function SamplePage() {
     </section>
     {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (recordToDelete.assetKey ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}
+    {submissionToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note and its attachments will be removed. The Timeline will retain a deletion audit entry." summary={submissionToDelete.body || "Files attached"} deleting={deletingSubmission} error={submissionDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setSubmissionToDelete(null); setSubmissionDeleteError(""); }} onConfirm={() => void deleteSubmission()} />}
     {confirmingSampleDeletion && <ConfirmDeleteDialog
       title={`Delete ${sample.code}?`}
       description={`The sample and all of its processing history will be permanently deleted.${sample.children.length ? " Child samples will remain, but their parent link will be removed." : ""}`}

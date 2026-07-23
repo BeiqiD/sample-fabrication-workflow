@@ -13,6 +13,8 @@ export function sampleEventLabel(event: SampleEvent) {
   const actionLabels: Record<string, string> = {
     added: "Ad hoc step added",
     comment_attachment_deleted: "Comment attachment deleted",
+    comment_submission: "Comment",
+    comment_submission_deleted: "Comment deleted",
     confirmed_done: "Steps confirmed",
     created_by_split: "Sample created by split",
     execution_attachment_added: "Execution attachment added",
@@ -46,6 +48,8 @@ export function sampleEventCategory(event: SampleEvent): Exclude<SampleHistoryFi
   const action = sampleEventAction(event);
   if (isSampleRecordEvent(event.kind, event.metadata)
     || action === "sample_record_deleted"
+    || action === "comment_submission"
+    || action === "comment_submission_deleted"
     || action === "step_comment"
     || action === "step_comment_deleted"
     || action === "comment_attachment_deleted") return "notes";

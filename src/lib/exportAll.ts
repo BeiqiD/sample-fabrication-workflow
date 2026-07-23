@@ -12,18 +12,30 @@ export async function exportAll(onProgress?: (completed: number, total: number) 
     exportedAt: manifest.exportedAt,
     tables: Object.fromEntries(Object.entries(manifest.tables).map(([name, rows]) => [name, { rowCount: rows.length, path: `tables/${name}.json` }])),
     assets: manifest.assetKeys.map((key) => ({ key, path: `assets/${key.split("/").map(safeSegment).join("/")}` })),
+    managedAttachments: manifest.managedAttachments.map((attachment) => ({
+      ...attachment,
+      path: `attachments/${safeSegment(attachment.itemId)}-${safeSegment(attachment.filename)}`,
+    })),
   }, null, 2));
   for (const [name, rows] of Object.entries(manifest.tables)) {
     zip.file(`tables/${safeSegment(name)}.json`, JSON.stringify(rows, null, 2));
   }
-  onProgress?.(0, manifest.assetKeys.length);
+  const total = manifest.assetKeys.length + manifest.managedAttachments.length;
+  onProgress?.(0, total);
   let completed = 0;
   for (const key of manifest.assetKeys) {
     const response = await fetch(`/api/assets/${key}`);
     if (!response.ok) throw new Error(`Could not export asset ${key}`);
     zip.file(`assets/${key.split("/").map(safeSegment).join("/")}`, await response.blob());
     completed += 1;
-    onProgress?.(completed, manifest.assetKeys.length);
+    onProgress?.(completed, total);
+  }
+  for (const attachment of manifest.managedAttachments) {
+    const response = await fetch(attachment.downloadUrl);
+    if (!response.ok) throw new Error(`Could not export attachment ${attachment.filename}`);
+    zip.file(`attachments/${safeSegment(attachment.itemId)}-${safeSegment(attachment.filename)}`, await response.blob());
+    completed += 1;
+    onProgress?.(completed, total);
   }
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
   const url = URL.createObjectURL(blob);

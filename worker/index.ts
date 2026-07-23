@@ -16,6 +16,14 @@ import { resolveAssetReferences } from "./asset-dedupe";
 import { titleChangeAudit } from "./sample-update";
 import { loadPlanContext } from "./plan-context";
 import { validateSubstrateTransition } from "./run-start";
+import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
+import { cleanupCommentUploads } from "./comment-upload-cleanup";
+import { managedStorage } from "./managed-storage";
+import {
+  serializeCommentSubmissions,
+  type CommentSubmissionItemRow,
+  type CommentSubmissionRow,
+} from "./comment-submission-serialization";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
@@ -81,12 +89,18 @@ app.use("*", async (c, next) => {
 app.get("/health", (c) => c.json({ ok: true }));
 
 app.get("/ready", async (c) => {
-  await Promise.all([
+  const checks: Promise<unknown>[] = [
     c.env.DB.prepare("SELECT 1 AS ok").first(),
     c.env.ASSETS.list({ limit: 1 }),
-  ]);
+  ];
+  if (c.env.MANAGED_STORAGE_PROVIDER) {
+    if (!managedStorage(c.env)) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
+  }
+  await Promise.all(checks);
   return c.json({ ok: true });
 });
+
+app.route("/", commentSubmissionRoutes);
 
 type SampleStructureState = {
   stateHash: string | null;
@@ -437,7 +451,20 @@ app.post("/samples/:id/split", async (c) => {
 app.get("/samples/:id", async (c) => {
   const id = c.req.param("id");
   const processingView = c.req.query("view") === "processing";
-  const [sample, children, events, runRows, runAssetRows, runInitialAssetRows, runCommentRows, verificationRows, verificationStepRows] = await Promise.all([
+  const [
+    sample,
+    children,
+    events,
+    runRows,
+    runAssetRows,
+    runInitialAssetRows,
+    runCommentRows,
+    verificationRows,
+    verificationStepRows,
+    commentSubmissionRows,
+    commentSubmissionItemRows,
+    commentSubmissionTargetRows,
+  ] = await Promise.all([
     c.env.DB.prepare(
       `WITH sample_overview AS (${sampleOverviewSelect})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
@@ -505,7 +532,7 @@ app.get("/samples/:id", async (c) => {
     ).bind(id).all<{ run_id: string; r2_key: string }>(),
     c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
-              rsc.body, ca.r2_key AS asset_key, rsc.actor_email, rsc.created_at
+              rsc.body, ca.r2_key AS asset_key, rsc.submission_id, rsc.actor_email, rsc.created_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
@@ -515,7 +542,7 @@ app.get("/samples/:id", async (c) => {
     ).bind(id).all<{
       id: string; run_step_id: string; scope: "common" | "individual";
       operation_group_id: string | null; body: string; asset_key: string | null;
-      actor_email: string | null; created_at: string;
+      submission_id: string | null; actor_email: string | null; created_at: string;
     }>(),
     c.env.DB.prepare(
       `SELECT sv.* FROM state_verifications sv
@@ -527,6 +554,29 @@ app.get("/samples/:id", async (c) => {
        JOIN state_verifications sv ON sv.id = svs.verification_id
        WHERE sv.sample_id = ? ORDER BY sv.created_at, svs.ordinal`,
     ).bind(id).all<{ verification_id: string; run_step_id: string; ordinal: number }>(),
+    c.env.DB.prepare(
+      `SELECT DISTINCT cs.*
+       FROM comment_submissions cs
+       LEFT JOIN comment_submission_targets cst ON cst.submission_id = cs.id
+       WHERE cs.sample_id = ? OR cst.sample_id = ?
+       ORDER BY cs.created_at, cs.id`,
+    ).bind(id, id).all<CommentSubmissionRow>(),
+    c.env.DB.prepare(
+      `SELECT DISTINCT csi.*, a.r2_key AS asset_key
+       FROM comment_submission_items csi
+       JOIN comment_submissions cs ON cs.id = csi.submission_id
+       LEFT JOIN comment_submission_targets cst ON cst.submission_id = cs.id
+       LEFT JOIN assets a ON a.id = csi.asset_id AND a.status = 'ready'
+       WHERE cs.sample_id = ? OR cst.sample_id = ?
+       ORDER BY csi.submission_id, csi.position`,
+    ).bind(id, id).all<CommentSubmissionItemRow>(),
+    c.env.DB.prepare(
+      `SELECT cst.submission_id, cst.run_step_id
+       FROM comment_submission_targets cst
+       JOIN comment_submissions cs ON cs.id = cst.submission_id
+       WHERE cst.sample_id = ? AND cs.status <> 'cancelled'
+       ORDER BY cs.created_at, cst.run_step_id`,
+    ).bind(id).all<{ submission_id: string; run_step_id: string }>(),
   ]);
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
   const parent = sample.p_id
@@ -553,8 +603,14 @@ app.get("/samples/:id", async (c) => {
   const initialAssetsByRun = new Map<string, string[]>();
   const stepComments = new Map<string, Array<{
     id: string; scope: "common" | "individual"; operationGroupId: string | null;
-    body: string; assetKey: string | null; actorEmail: string | null; createdAt: string;
+    body: string; assetKey: string | null; submissionId: string | null;
+    status: "draft" | "uploading" | "ready" | "failed" | "cancelled";
+    images: import("../shared/types").CommentImage[];
+    attachments: import("../shared/types").CommentAttachment[];
+    actorEmail: string | null; createdAt: string;
   }>>();
+  const submissions = serializeCommentSubmissions(commentSubmissionRows.results, commentSubmissionItemRows.results);
+  const submissionById = new Map(submissions.map((submission) => [submission.id, submission]));
   for (const row of runAssetRows.results) {
     const entry = stepAssets.get(row.run_step_id) ?? { planned: [], execution: [] };
     entry[row.role].push(row.r2_key);
@@ -565,16 +621,52 @@ app.get("/samples/:id", async (c) => {
   }
   for (const row of runCommentRows.results) {
     const entry = stepComments.get(row.run_step_id) ?? [];
+    const submission = row.submission_id ? submissionById.get(row.submission_id) : null;
     entry.push({
       id: row.id,
       scope: row.scope,
       operationGroupId: row.operation_group_id,
       body: row.body,
       assetKey: row.asset_key,
+      submissionId: row.submission_id,
+      status: submission?.status ?? "ready",
+      images: submission?.images ?? (row.asset_key ? [{
+        id: `legacy:${row.id}`,
+        filename: "Comment image",
+        mimeType: "image/*",
+        byteSize: 0,
+        originalFilename: "Comment image",
+        originalMimeType: "image/*",
+        originalByteSize: 0,
+        assetKey: row.asset_key,
+        status: "ready",
+        error: null,
+        relatedAttachmentId: null,
+      }] : []),
+      attachments: submission?.attachments ?? [],
       actorEmail: row.actor_email,
       createdAt: row.created_at,
     });
     stepComments.set(row.run_step_id, entry);
+  }
+  for (const target of commentSubmissionTargetRows.results) {
+    const submission = submissionById.get(target.submission_id);
+    if (!submission || submission.status === "ready" || submission.status === "cancelled") continue;
+    const entry = stepComments.get(target.run_step_id) ?? [];
+    entry.push({
+      id: `submission:${submission.id}:${target.run_step_id}`,
+      scope: submission.scope || "individual",
+      operationGroupId: submission.scope === "common" ? submission.id : null,
+      body: submission.body,
+      assetKey: submission.images[0]?.assetKey ?? null,
+      submissionId: submission.id,
+      status: submission.status,
+      images: submission.images,
+      attachments: submission.attachments,
+      actorEmail: submission.actorEmail,
+      createdAt: submission.createdAt,
+    });
+    stepComments.set(target.run_step_id, entry);
   }
   for (const row of runRows.results) {
     const runId = String(row.run_id);
@@ -628,6 +720,7 @@ app.get("/samples/:id", async (c) => {
     ...sampleDetail(sample as never),
     runs: [...runs.values()],
     stateVerifications,
+    comments: submissions.filter((submission) => submission.contextKind === "sample" && submission.status !== "cancelled"),
   };
   if (processingView) return c.json(detail);
   return c.json({
@@ -2046,16 +2139,33 @@ app.get("/exports/all", async (c) => {
     recipe_change_proposals: "SELECT * FROM recipe_change_proposals ORDER BY created_at, id",
     imports: "SELECT * FROM imports ORDER BY created_at, id",
     assets: "SELECT * FROM assets ORDER BY created_at, id",
+    comment_submissions: "SELECT * FROM comment_submissions ORDER BY created_at, id",
+    comment_submission_targets: "SELECT * FROM comment_submission_targets ORDER BY submission_id, run_step_id",
+    comment_submission_items: "SELECT * FROM comment_submission_items ORDER BY submission_id, position",
+    managed_storage_objects: "SELECT * FROM managed_storage_objects ORDER BY created_at, id",
   } as const;
   const names = Object.keys(tableQueries);
   const results = await c.env.DB.batch(Object.values(tableQueries).map((sql) => c.env.DB.prepare(sql)));
   const entries = names.map((name, index) => [name, results[index].results ?? []] as const);
   const tables = Object.fromEntries(entries) as Record<string, Array<Record<string, unknown>>>;
+  const managedAttachments = (tables.comment_submission_items ?? []).flatMap((item) => {
+    if (item.kind !== "attachment" || item.status !== "ready" || typeof item.storage_object_id !== "string") return [];
+    const object = (tables.managed_storage_objects ?? []).find((candidate) => candidate.id === item.storage_object_id);
+    if (!object || object.status !== "ready") return [];
+    return [{
+      itemId: String(item.id),
+      filename: String(item.filename || object.original_name || "attachment"),
+      byteSize: Number(item.byte_size || object.byte_size || 0),
+      sha256: String(item.sha256 || object.sha256 || ""),
+      downloadUrl: `/api/attachments/${encodeURIComponent(String(item.id))}/download`,
+    }];
+  });
   return c.json({
-    schemaVersion: 1,
+    schemaVersion: 2,
     exportedAt: new Date().toISOString(),
     tables,
     assetKeys: collectExportAssetKeys(tables.assets, tables.imports),
+    managedAttachments,
   });
 });
 
@@ -2720,4 +2830,9 @@ app.delete("/templates/:id", async (c) => {
   return c.json({ ok: true, disposition: "deleted" as const });
 });
 
-export default app;
+export default {
+  fetch: (request: Request, env: Env, executionContext: ExecutionContext) => app.fetch(request, env, executionContext),
+  scheduled: (_event: ScheduledController, env: Env, executionContext: ExecutionContext) => {
+    executionContext.waitUntil(cleanupCommentUploads(env));
+  },
+} satisfies ExportedHandler<Env>;
