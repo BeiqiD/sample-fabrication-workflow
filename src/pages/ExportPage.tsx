@@ -13,7 +13,7 @@ export function ExportPage() {
     finally { setExporting(false); }
   }
 
-  return <div className="page narrow-page">
+  return <div className="page export-page">
     <p className="eyebrow">Backup</p><h1>Export all data</h1>
     <p className="lead">Download a versioned ZIP containing every database table and every stored asset. Files use relative paths and contain no temporary or authentication URLs.</p>
     <section className="card export-card">
