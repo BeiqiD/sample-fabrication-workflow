@@ -21,7 +21,7 @@
 
 R2 object keys are stored in D1. The bucket stays private and the Worker returns assets only through application routes. Exporters must replace those keys with relative paths inside the resulting ZIP.
 
-Location, lifecycle status, and pinned changes are recorded by database triggers. This makes the current value and its append-only timeline entry part of the same statement. The update API also requires the caller's last-seen `updated_at` value and rejects stale writes.
+Location, lifecycle status, and pinned changes are recorded by database triggers. Process-run triggers also keep the normal lifecycle synchronized: starting or reopening a run makes its sample `active`, and completing the run returns an `active` sample to `stored` without overriding an explicit `consumed` or `lost` state. This makes the current value and its append-only timeline entry part of the same statement. The update API also requires the caller's last-seen `updated_at` value and rejects stale writes.
 
 Ordinary uploads are registered after the R2 write succeeds; a failed registration removes the object. The full export covers every database table and the union of registered assets plus imported source workbook and manifest keys.
 

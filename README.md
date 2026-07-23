@@ -19,7 +19,7 @@ The app is a single open-source Cloudflare Worker project: React and Vite provid
 
 1. Use `Processing` to find active work, or `Samples` to browse the permanent archive and create a sample.
 2. Add comments and phone photos to a sample's timeline.
-3. Change location, lifecycle status, title, or pinned state with one audit entry per changed field.
+3. Change location, physical lifecycle status, title, or pinned state with one audit entry per changed field. Starting or reopening a process run automatically makes the sample active; completing it returns the sample to stored unless it was explicitly marked consumed or lost.
 4. Split a parent into multiple automatically numbered child samples in one atomic operation; review each child before confirming.
 5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
 6. Import a distinct process template or attach the workbook to an existing process-template family as its next immutable version.

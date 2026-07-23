@@ -1,8 +1,8 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
+import { CommentComposer } from "../components/CommentComposer";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
-import { FileDropzone } from "../components/FileDropzone";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { SampleTimeline } from "../components/SampleTimeline";
 import { SplitSampleDialog } from "../components/SplitSampleDialog";
@@ -56,7 +56,6 @@ export function SamplePage() {
   const [exporting, setExporting] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
-  const [commentImage, setCommentImage] = useState<File | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<SampleEvent | null>(null);
   const [recordDeleteError, setRecordDeleteError] = useState("");
   const [deletingRecord, setDeletingRecord] = useState(false);
@@ -79,14 +78,8 @@ export function SamplePage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function addComment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!sample) return;
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const body = String(data.get("body") || "").trim();
-    const image = commentImage;
-    if (!body && !image) return;
+  async function addComment(body: string, image: File | null) {
+    if (!sample || (!body.trim() && !image)) return false;
     setSaving(true); setError("");
     try {
       let assetKey: string | undefined;
@@ -108,15 +101,17 @@ export function SamplePage() {
         location: sample.location || "",
         pinned: sample.pinned,
         expectedUpdatedAt: sample.updatedAt,
-        body,
+        body: body.trim(),
         assetKey,
         thumbnailKey,
       });
       pendingUploadRef.current = null;
-      setCommentImage(null);
-      form.reset();
       await load();
-    } catch (error) { setError((error as Error).message); }
+      return true;
+    } catch (error) {
+      setError((error as Error).message);
+      return false;
+    }
     finally { setSaving(false); }
   }
 
@@ -222,11 +217,11 @@ export function SamplePage() {
           <div><h2>Notes &amp; observations</h2><p>Important comments, observations, and exceptions from this sample and its processing runs.</p></div>
           <span className="section-count">{notes.length}</span>
         </div>
-        <form className="note-composer" onSubmit={addComment}>
-          <label>Add a note or observation<textarea name="body" rows={3} placeholder="Observation about this sample, independent of a process step…" /></label>
-          <FileDropzone compact accept="image/*" capture="environment" file={commentImage} onFile={(file) => { pendingUploadRef.current = null; setCommentImage(file); }} label="Drop a sample-level photo" />
-          <div className="composer-actions"><span className="muted">Saved directly to this sample.</span><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Add note"}</button></div>
-        </form>
+        <div className="sample-note-composer">
+          <p className="card-label">Add a note or observation</p>
+          <CommentComposer label="Add a note or observation" placeholder="Observation about this sample, independent of a process step…" submitLabel="Add note" saving={saving} onSave={addComment} />
+          <small>Saved directly to this sample.</small>
+        </div>
         {notes.length ? <div className="sample-notes-list">{notes.map((note) => <article className={`sample-note sample-note-${note.kind}`} key={note.id}>
           <div className="sample-note-heading">
             <div><p className="card-label">{note.label}</p><p className="sample-note-context">{note.context}</p></div>

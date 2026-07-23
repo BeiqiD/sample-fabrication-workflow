@@ -27,7 +27,8 @@ flowchart TD
 - A process-template family owns immutable versions. A version is editable only before its first run-plan reference; the first reference atomically locks it.
 - An unused template version can be deleted. Once a version has a run-plan reference it can only be archived, preserving every historical link while removing it from future assignment choices.
 - Step definitions and expected diagram states are content-addressed. Process-template versions, plans, and runs reference their hashes, so repeated content is stored once.
-- A physical sample has at most one active process run. Finished runs form an ordered predecessor chain; a new run anchors to the previous run's last actual step.
+- A physical sample has at most one active process run. Starting or reopening that run makes the sample `active`; completing it returns an `active` sample to `stored`. Explicit physical states such as `consumed` or `lost` are never overwritten by run completion.
+- Finished runs form an ordered predecessor chain; a new run anchors to the previous run's last actual step.
 - Every run stores an immutable initial substrate hash confirmed when it begins. Before a new run starts, the server revalidates the displayed template and current-sample structure choices.
 - Split children store the parent's current structure as an inherited substrate snapshot. Their first run requires the same confirmation when that structure differs from the selected template.
 - Each run has immutable plan revisions. A newer version of the same process-template family can replace only unfinished future work; completed and ad-hoc execution remains in the chain.

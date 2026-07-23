@@ -512,7 +512,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .split-piece-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; border-top: 1px solid var(--line); background: var(--surface); }
 .split-piece-description { grid-column: 1 / -1; }
 .sample-overview-page, .sample-timeline-page { width: min(var(--content-width), calc(100% - 40px)); }
-.sample-priority-grid { display: grid; grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.sample-priority-grid { display: grid; grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); gap: 28px; align-items: stretch; }
 .sample-priority-sidebar { min-width: 0; display: grid; gap: 16px; }
 .sample-details-card { position: static; }
 .sample-details-card .sample-location-value { color: var(--ink); font-size: 16px; font-weight: 680; }
@@ -523,13 +523,14 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-current-structure > div:first-child { min-width: 0; }
 .sample-current-structure .sample-state-thumbnail { width: 96px; height: 72px; }
 .structure-source-link { width: fit-content; margin-top: 4px; text-decoration: none; }
-.sample-notes-card { min-width: 0; padding: 22px; }
+.sample-notes-card { min-width: 0; display: flex; flex-direction: column; padding: 22px; }
 .sample-notes-heading { align-items: start; margin: 0 0 16px; }
-.note-composer { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 12px 14px; padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-warm); }
-.note-composer > label { min-width: 0; display: grid; gap: 7px; color: var(--ink); font-size: 13px; font-weight: 680; }
-.note-composer textarea { min-height: 92px; }
-.note-composer .file-dropzone.compact { min-height: 92px; }
-.note-composer .composer-actions { grid-column: 1 / -1; margin-top: 0; }
+.sample-note-composer { display: grid; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-warm); }
+.sample-note-composer > .card-label { margin: 0 4px; }
+.sample-note-composer > small { margin: 0 4px; color: var(--muted); font-size: var(--font-meta); }
+.sample-note-composer .grid-comment-composer { background: var(--paper); }
+.sample-note-composer .grid-comment-composer textarea { font-size: 13px; }
+.sample-note-composer .comment-add-button { min-width: 72px; }
 .sample-notes-list { max-height: 650px; margin: 20px -4px 0 0; padding-right: 8px; overflow-y: auto; scrollbar-color: var(--line-strong) transparent; }
 .sample-note { padding: 16px 2px 16px 14px; border-top: 1px solid var(--line); border-left: 3px solid var(--accent); }
 .sample-note:first-child { border-top-color: transparent; }
@@ -548,7 +549,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-note-footer > div { flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
 .sample-note-footer .text-button { font-size: 11px; text-decoration: none; }
 .danger-text-button { color: var(--danger); }
-.notes-empty { display: grid; place-items: center; min-height: 150px; margin-top: 18px; padding: 24px; border-top: 1px solid var(--line); color: var(--muted); text-align: center; }
+.notes-empty { flex: 1 1 auto; display: grid; place-items: center; min-height: 150px; margin-top: 18px; padding: 24px; border-top: 1px solid var(--line); color: var(--muted); text-align: center; }
 .notes-empty p { margin: 0; color: var(--ink); font-weight: 650; }
 .notes-empty span { font-size: 12px; }
 .sample-secondary-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(340px, 2fr); gap: 28px; align-items: start; margin-top: 42px; padding-top: 36px; border-top: 1px solid var(--line); }
@@ -724,8 +725,6 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .processing-row-side { grid-column: 2; grid-row: 2; min-width: 0; flex-direction: row; align-items: center; }
   .facts { position: static; }
   .composer-actions { align-items: stretch; flex-direction: column; }
-  .note-composer { grid-template-columns: 1fr; }
-  .note-composer .composer-actions { grid-column: auto; }
   .sample-notes-card { padding: 16px; }
   .sample-notes-list { max-height: none; margin-right: 0; padding-right: 0; overflow: visible; }
   .sample-note { padding-left: 10px; }
