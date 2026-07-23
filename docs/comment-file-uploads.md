@@ -16,6 +16,16 @@ controls remain disabled until an external file-storage adapter is configured
 and its server-side authentication is valid. Comment images and external links
 continue to work without a connected file-storage provider.
 
+The first supported adapter is SWITCHdrive over its official HTTPS WebDAV
+endpoint. It uses a dedicated SWITCHdrive App Passcode, never the user's
+SWITCH edu-ID password. The Worker checks the credentials with a read-only
+`PROPFIND` request before the UI enables file attachments. File bytes are
+streamed unchanged to SWITCHdrive; parent directories are created lazily.
+Attachments belonging to one sample are placed below a human-readable
+`samples/<sample-code>--<sample-id>/comment-attachments/` folder. A comment
+shared across multiple samples is stored once below `shared-comment-attachments/`
+instead of silently duplicating the original file.
+
 Provider-specific key naming, requests, and authentication must stay inside a
 `ManagedStorage` implementation; comment routes must not contain Google Drive,
 OneDrive, SWITCHdrive, or other provider-specific logic.
@@ -37,12 +47,27 @@ Application authentication and storage authentication are separate:
 Do not put OAuth access or refresh tokens in D1 records, local storage, comment
 metadata, upload URLs, or client logs.
 
+## SWITCHdrive configuration
+
+Configure these values as Worker secrets in the Cloudflare dashboard:
+
+- `MANAGED_STORAGE_PROVIDER=switchdrive`
+- `SWITCHDRIVE_WEBDAV_URL=https://drive.switch.ch/remote.php/dav/files/USERNAME/`
+- `SWITCHDRIVE_USERNAME=<username shown with the App Passcode>`
+- `SWITCHDRIVE_APP_PASSWORD=<dedicated App Passcode>`
+- `SWITCHDRIVE_ROOT=sample-fabrication-workflow`
+
+All five can be entered as secrets so the WebDAV account path and username are
+not exposed in deployment logs. The adapter accepts only the official
+`drive.switch.ch` HTTPS WebDAV endpoint. It does not follow or fetch
+user-supplied URLs.
+
 ## Deployment
 
 Apply `migrations/0005_comment_submissions.sql`. No additional R2 bucket is
-required. Until a file-storage provider is implemented, configured, and
-authenticated, users can submit text, compressed comment images, and attachment
-links, but cannot upload original files.
+required. Until all SWITCHdrive secrets are configured and the WebDAV
+credential check succeeds, users can submit text, compressed comment images,
+and attachment links, but cannot upload original files.
 
 ## Upload integrity
 

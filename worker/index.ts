@@ -18,7 +18,7 @@ import { loadPlanContext } from "./plan-context";
 import { validateSubstrateTransition } from "./run-start";
 import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
-import { managedStorage } from "./managed-storage";
+import { managedStorageStatus } from "./managed-storage";
 import {
   serializeCommentSubmissions,
   type CommentSubmissionItemRow,
@@ -94,7 +94,8 @@ app.get("/ready", async (c) => {
     c.env.ASSETS.list({ limit: 1 }),
   ];
   if (c.env.MANAGED_STORAGE_PROVIDER) {
-    if (!managedStorage(c.env)) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
+    const storageStatus = await managedStorageStatus(c.env);
+    if (!storageStatus.available) throw new HTTPException(503, { message: storageStatus.message });
   }
   await Promise.all(checks);
   return c.json({ ok: true });
