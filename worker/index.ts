@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
-import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type FinishProcessRunInput, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, normalizedStepName, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
@@ -14,6 +14,7 @@ import { returnedEveryConfirmationTarget } from "./run-step-confirmation";
 import { resolveAssetReferences } from "./asset-dedupe";
 import { titleChangeAudit } from "./sample-update";
 import { loadPlanContext } from "./plan-context";
+import { resolveRunInitialState } from "./run-start";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
@@ -82,6 +83,71 @@ app.get("/ready", async (c) => {
   return c.json({ ok: true });
 });
 
+type SampleStructureState = {
+  stateHash: string | null;
+  stepTitle: string | null;
+  imageKeys: string[];
+};
+
+async function stateImageKeys(db: D1Database, stateHash: string | null) {
+  if (!stateHash) return [];
+  const rows = await db.prepare(
+    `SELECT a.r2_key
+     FROM state_representation_assets sra
+     JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+     WHERE sra.state_hash = ?
+     ORDER BY sra.position, a.id`,
+  ).bind(stateHash).all<{ r2_key: string }>();
+  return rows.results.map((row) => row.r2_key);
+}
+
+async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Promise<SampleStructureState> {
+  const row = await db.prepare(
+    `WITH latest_run AS (
+       SELECT id, sequence_no, initial_state_hash
+       FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1
+     ),
+     candidates AS (
+       SELECT rs.expected_state_hash AS state_hash, COALESCE(rs.title, sd.name) AS step_title, 1 AS priority
+       FROM run_steps rs
+       JOIN latest_run lr ON lr.id = rs.run_id
+       LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+       WHERE rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
+         AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+       ORDER BY rs.position DESC LIMIT 1
+     ),
+     latest_initial AS (
+       SELECT initial_state_hash AS state_hash, NULL AS step_title, 2 AS priority
+       FROM latest_run WHERE initial_state_hash IS NOT NULL
+     ),
+     historical_step AS (
+       SELECT rs.expected_state_hash AS state_hash, COALESCE(rs.title, sd.name) AS step_title, 3 AS priority
+       FROM run_steps rs
+       JOIN runs r ON r.id = rs.run_id
+       LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+       WHERE r.sample_id = ? AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
+         AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+       ORDER BY r.sequence_no DESC, rs.position DESC LIMIT 1
+     ),
+     inherited_sample AS (
+       SELECT inherited_state_hash AS state_hash, NULL AS step_title, 4 AS priority
+       FROM samples WHERE id = ? AND inherited_state_hash IS NOT NULL
+     )
+     SELECT state_hash, step_title FROM (
+       SELECT * FROM candidates
+       UNION ALL SELECT * FROM latest_initial
+       UNION ALL SELECT * FROM historical_step
+       UNION ALL SELECT * FROM inherited_sample
+     ) ORDER BY priority LIMIT 1`,
+  ).bind(sampleId, sampleId, sampleId).first<{ state_hash: string; step_title: string | null }>();
+  const stateHash = row?.state_hash ?? null;
+  return {
+    stateHash,
+    stepTitle: row?.step_title ?? null,
+    imageKeys: await stateImageKeys(db, stateHash),
+  };
+}
+
 const sampleOverviewSelect = `
   SELECT s.*,
          COALESCE(ptv.name, r.template_name_snapshot) AS latest_workflow_name,
@@ -97,23 +163,39 @@ const sampleOverviewSelect = `
            LIMIT 1
          ) AS current_step_title,
          (
-           SELECT COALESCE(rs.title, sd.name)
-           FROM run_steps rs
-           LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-           WHERE rs.run_id = r.id AND rs.status = 'done'
-             AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
-           ORDER BY rs.position DESC
-           LIMIT 1
+           SELECT state_step_title FROM (
+             SELECT COALESCE(rs.title, sd.name) AS state_step_title, 1 AS priority
+             FROM run_steps rs
+             LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+             WHERE rs.run_id = r.id AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
+               AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+             ORDER BY rs.position DESC LIMIT 1
+           )
          ) AS current_state_step_title,
          (
            SELECT a.r2_key
-           FROM run_steps rs
-           JOIN state_representation_assets sra ON sra.state_hash = rs.expected_state_hash
+           FROM state_representation_assets sra
            JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-           WHERE rs.run_id = r.id AND rs.status = 'done'
-             AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
-           ORDER BY rs.position DESC, sra.position
-           LIMIT 1
+           WHERE sra.state_hash = COALESCE(
+             (
+               SELECT rs.expected_state_hash
+               FROM run_steps rs
+               WHERE rs.run_id = r.id AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
+                 AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+               ORDER BY rs.position DESC LIMIT 1
+             ),
+             r.initial_state_hash,
+             (
+               SELECT rs.expected_state_hash
+               FROM run_steps rs JOIN runs earlier ON earlier.id = rs.run_id
+               WHERE earlier.sample_id = s.id AND earlier.sequence_no < r.sequence_no
+                 AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
+                 AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+               ORDER BY earlier.sequence_no DESC, rs.position DESC LIMIT 1
+             ),
+             s.inherited_state_hash
+           )
+           ORDER BY sra.position, a.id LIMIT 1
          ) AS current_state_thumbnail_key
   FROM samples s
   LEFT JOIN runs r ON r.sample_id = s.id
@@ -206,9 +288,12 @@ app.post("/samples/:id/split", async (c) => {
     throw new HTTPException(409, { message: "Every new piece must have a unique sample code" });
   }
 
-  const parent = await c.env.DB.prepare(
-    "SELECT code, updated_at FROM samples WHERE id = ?",
-  ).bind(parentId).first<{ code: string; updated_at: string }>();
+  const [parent, parentStructure] = await Promise.all([
+    c.env.DB.prepare(
+      "SELECT code, updated_at FROM samples WHERE id = ?",
+    ).bind(parentId).first<{ code: string; updated_at: string }>(),
+    loadCurrentSampleStructure(c.env.DB, parentId),
+  ]);
   if (!parent) throw new HTTPException(404, { message: "Parent sample not found" });
   if (parent.updated_at !== input.expectedUpdatedAt) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before splitting." });
@@ -222,15 +307,24 @@ app.post("/samples/:id/split", async (c) => {
   for (const child of children) {
     statements.push(
       c.env.DB.prepare(
-        `INSERT INTO samples (id, code, title, description, status, location, parent_id, created_by, updated_by, created_at, updated_at)
-         SELECT ?, ?, ?, ?, ?, ?, id, ?, ?, ?, ? FROM samples WHERE id = ? AND updated_at = ?`,
-      ).bind(child.id, child.code, child.title, child.description, child.status, child.location, userEmail, userEmail, now, now, parentId, input.expectedUpdatedAt),
+        `INSERT INTO samples
+          (id, code, title, description, status, location, parent_id, inherited_state_hash,
+           created_by, updated_by, created_at, updated_at)
+         SELECT ?, ?, ?, ?, ?, ?, id, ?, ?, ?, ?, ?
+         FROM samples WHERE id = ? AND updated_at = ?`,
+      ).bind(child.id, child.code, child.title, child.description, child.status, child.location,
+        parentStructure.stateHash, userEmail, userEmail, now, now, parentId, input.expectedUpdatedAt),
       c.env.DB.prepare(
         `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
          SELECT ?, id, 'created', ?, ?, ?, ? FROM samples WHERE id = ? AND parent_id = ?`,
       ).bind(
         crypto.randomUUID(), `Created by splitting parent ${parent.code}`,
-        JSON.stringify({ action: "created_by_split", parentId, parentCode: parent.code }), userEmail, now, child.id, parentId,
+        JSON.stringify({
+          action: "created_by_split",
+          parentId,
+          parentCode: parent.code,
+          inheritedStateHash: parentStructure.stateHash,
+        }), userEmail, now, child.id, parentId,
       ),
     );
   }
@@ -267,7 +361,7 @@ app.post("/samples/:id/split", async (c) => {
 app.get("/samples/:id", async (c) => {
   const id = c.req.param("id");
   const processingView = c.req.query("view") === "processing";
-  const [sample, children, events, runRows, runAssetRows, runCommentRows, verificationRows, verificationStepRows] = await Promise.all([
+  const [sample, children, events, runRows, runAssetRows, runInitialAssetRows, runCommentRows, verificationRows, verificationStepRows] = await Promise.all([
     c.env.DB.prepare(
       `WITH sample_overview AS (${sampleOverviewSelect})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
@@ -284,6 +378,7 @@ app.get("/samples/:id", async (c) => {
               r.created_at AS run_created_at, r.completed_at,
               r.current_plan_revision_id, COALESCE(rpr.revision_no, 1) AS plan_revision_no,
               r.predecessor_run_id, r.anchor_step_id, r.sequence_no, r.run_group_id,
+              r.initial_state_hash,
               COALESCE(ptv.name, r.template_name_snapshot) AS template_name,
               COALESCE(ptv.template_type, r.template_type_snapshot) AS template_type,
               COALESCE(ptv.version, r.template_version_snapshot) AS template_version,
@@ -324,6 +419,14 @@ app.get("/samples/:id", async (c) => {
          WHERE r.sample_id = ? AND rsa.role = 'execution'
        ) ORDER BY run_step_id, role, position, created_at`,
     ).bind(id, id).all<{ run_step_id: string; role: "planned" | "execution"; r2_key: string }>(),
+    c.env.DB.prepare(
+      `SELECT r.id AS run_id, a.r2_key
+       FROM runs r
+       JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
+       JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+       WHERE r.sample_id = ?
+       ORDER BY r.sequence_no DESC, sra.position, a.id`,
+    ).bind(id).all<{ run_id: string; r2_key: string }>(),
     c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
               rsc.body, ca.r2_key AS asset_key, rsc.actor_email, rsc.created_at
@@ -371,6 +474,7 @@ app.get("/samples/:id", async (c) => {
   const verificationByEndpoint = new Map(stateVerifications.map((verification) => [verification.afterRunStepId, verification]));
   const runs = new Map<string, Record<string, unknown> & { steps: unknown[] }>();
   const stepAssets = new Map<string, { planned: string[]; execution: string[] }>();
+  const initialAssetsByRun = new Map<string, string[]>();
   const stepComments = new Map<string, Array<{
     id: string; scope: "common" | "individual"; operationGroupId: string | null;
     body: string; assetKey: string | null; actorEmail: string | null; createdAt: string;
@@ -379,6 +483,9 @@ app.get("/samples/:id", async (c) => {
     const entry = stepAssets.get(row.run_step_id) ?? { planned: [], execution: [] };
     entry[row.role].push(row.r2_key);
     stepAssets.set(row.run_step_id, entry);
+  }
+  for (const row of runInitialAssetRows.results) {
+    initialAssetsByRun.set(row.run_id, [...(initialAssetsByRun.get(row.run_id) ?? []), row.r2_key]);
   }
   for (const row of runCommentRows.results) {
     const entry = stepComments.get(row.run_step_id) ?? [];
@@ -406,6 +513,8 @@ app.get("/samples/:id", async (c) => {
       predecessorRunId: row.predecessor_run_id ? String(row.predecessor_run_id) : null,
       anchorStepId: row.anchor_step_id ? String(row.anchor_step_id) : null,
       sequenceNo: Number(row.sequence_no), runGroupId: String(row.run_group_id),
+      initialStateHash: row.initial_state_hash ? String(row.initial_state_hash) : null,
+      initialStateImageKeys: initialAssetsByRun.get(runId) ?? [],
       createdAt: String(row.run_created_at),
       completedAt: row.completed_at ? String(row.completed_at) : null,
       steps: [],
@@ -752,17 +861,58 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
   return c.json({ ok: true, updatedAt: now });
 });
 
-app.post("/samples/:id/runs", async (c) => {
+app.post("/samples/:id/runs/preview", async (c) => {
   const sampleId = c.req.param("id");
   const { templateVersionId } = await c.req.json<{ templateVersionId?: string }>();
+  if (!templateVersionId) throw new HTTPException(400, { message: "A process-template version is required" });
+  const [sample, template, latestRun, currentState] = await Promise.all([
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare(
+      `SELECT id, name, version, initial_state_hash
+       FROM template_versions
+       WHERE id = ? AND archived_at IS NULL
+         AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = template_versions.id AND i.status != 'ready')`,
+    ).bind(templateVersionId).first<{ id: string; name: string; version: number; initial_state_hash: string | null }>(),
+    c.env.DB.prepare(
+      "SELECT id, status FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1",
+    ).bind(sampleId).first<{ id: string; status: string }>(),
+    loadCurrentSampleStructure(c.env.DB, sampleId),
+  ]);
+  if (!sample) throw new HTTPException(404, { message: "Sample not found" });
+  if (!template) throw new HTTPException(404, { message: "Process-template version not found" });
+  if (latestRun?.status === "active") {
+    throw new HTTPException(409, { message: "Finish the active process run or update its process template instead." });
+  }
+  return c.json({
+    successor: Boolean(latestRun),
+    sampleUpdatedAt: sample.updated_at,
+    template: {
+      id: template.id,
+      name: template.name,
+      version: template.version,
+      initialStateHash: template.initial_state_hash,
+      initialStateImageKeys: await stateImageKeys(c.env.DB, template.initial_state_hash),
+    },
+    sampleCurrentState: {
+      hash: currentState.stateHash,
+      stepTitle: currentState.stepTitle,
+      imageKeys: currentState.imageKeys,
+    },
+  });
+});
+
+app.post("/samples/:id/runs", async (c) => {
+  const sampleId = c.req.param("id");
+  const input = await c.req.json<StartProcessRunInput>();
+  const { templateVersionId } = input;
   if (!templateVersionId) throw new HTTPException(400, { message: "Template version is required" });
   const [sample, template, templateStepRows, latestRun] = await Promise.all([
-    c.env.DB.prepare("SELECT code FROM samples WHERE id = ?").bind(sampleId).first<{ code: string }>(),
+    c.env.DB.prepare("SELECT code, updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ code: string; updated_at: string }>(),
     c.env.DB.prepare(
-      `SELECT tv.name, tv.template_type, tv.version, tv.recipe_family_id
+      `SELECT tv.name, tv.template_type, tv.version, tv.recipe_family_id, tv.initial_state_hash
        FROM template_versions tv WHERE tv.id = ? AND tv.archived_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = tv.id AND i.status != 'ready')`,
-    ).bind(templateVersionId).first<{ name: string; template_type: "process" | "module" | "recipe"; version: number; recipe_family_id: string }>(),
+    ).bind(templateVersionId).first<{ name: string; template_type: "process" | "module" | "recipe"; version: number; recipe_family_id: string; initial_state_hash: string | null }>(),
     c.env.DB.prepare(
       `SELECT id, position, logical_step_key, definition_hash, expected_state_hash
        FROM template_steps WHERE template_version_id = ? ORDER BY position`,
@@ -773,7 +923,25 @@ app.post("/samples/:id/runs", async (c) => {
   ]);
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
   if (!template) throw new HTTPException(404, { message: "Template version not found" });
-  if (latestRun?.status === "active") throw new HTTPException(409, { message: "This sample already has an active run. Update its plan or finish it before starting a successor run." });
+  if (latestRun?.status === "active") throw new HTTPException(409, { message: "This sample already has an active process run. Update its process template or finish it before starting a new run." });
+  const currentState = await loadCurrentSampleStructure(c.env.DB, sampleId);
+  if ((latestRun || currentState.stateHash) && (typeof input.expectedSampleUpdatedAt !== "string" || input.expectedSampleUpdatedAt !== sample.updated_at)) {
+    throw new HTTPException(409, { message: "This sample changed after the substrate structure was reviewed. Review it again before starting the run." });
+  }
+  const initialState = resolveRunInitialState({
+    hasPreviousRun: Boolean(latestRun),
+    requestedHashProvided: Object.prototype.hasOwnProperty.call(input, "initialStateHash"),
+    requestedHash: input.initialStateHash ?? null,
+    templateHash: template.initial_state_hash,
+    sampleCurrentHash: currentState.stateHash,
+  });
+  if (!initialState.ok) {
+    throw new HTTPException(409, {
+      message: initialState.reason === "confirmation_required"
+        ? "Confirm the initial substrate structure before starting this process run."
+        : "The selected initial substrate structure is no longer available. Review the current and template structures again.",
+    });
+  }
   const steps = templateStepRows.results;
   if (!steps.length) throw new HTTPException(422, { message: "This template has no mapped steps. Re-import it with a step column." });
 
@@ -792,11 +960,12 @@ app.post("/samples/:id/runs", async (c) => {
       `INSERT INTO runs
         (id, sample_id, recipe_family_id, template_version_id, current_plan_revision_id,
          predecessor_run_id, anchor_step_id, sequence_no, run_group_id,
-         template_name_snapshot, template_type_snapshot, template_version_snapshot, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         template_name_snapshot, template_type_snapshot, template_version_snapshot,
+         initial_state_hash, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(runId, sampleId, template.recipe_family_id, templateVersionId, planRevisionId,
       latestRun?.id ?? null, anchor?.id ?? null, Number(latestRun?.sequence_no ?? 0) + 1, crypto.randomUUID(),
-      template.name, template.template_type, template.version, userEmail, now),
+      template.name, template.template_type, template.version, initialState.hash, userEmail, now),
     c.env.DB.prepare(
       `INSERT INTO run_plan_revisions
        (id, run_id, revision_no, template_version_id, effective_after_step_id, reason, actor_email, created_at)
@@ -811,16 +980,84 @@ app.post("/samples/:id/runs", async (c) => {
       steps.map((step) => [planRevisionId, step.id, stepIds.get(step.id), "planned", now])),
     c.env.DB.prepare(
       "INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at) VALUES (?, ?, 'run', ?, ?, ?, ?)",
-    ).bind(eventId, sampleId, `${latestRun ? "Started successor run" : "Assigned"} ${template.name} v${template.version} (${steps.length} planned steps)`, JSON.stringify({ runId, templateVersionId, templateVersion: template.version, predecessorRunId: latestRun?.id ?? null, anchorStepId: anchor?.id ?? null }), userEmail, now),
+    ).bind(eventId, sampleId, `${latestRun ? "Started new process run" : "Started first process run"} · ${template.name} v${template.version} (${steps.length} planned steps)`, JSON.stringify({
+      runId,
+      templateVersionId,
+      templateVersion: template.version,
+      predecessorRunId: latestRun?.id ?? null,
+      anchorStepId: anchor?.id ?? null,
+      initialStateHash: initialState.hash,
+      initialStateSource: initialState.hash === template.initial_state_hash ? "process_template" : "sample_current_state",
+    }), userEmail, now),
     c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
   ];
-  if (statements.length > 49) throw new HTTPException(413, { message: "This template is too large to assign on the current plan" });
+  if (statements.length > 49) throw new HTTPException(413, { message: "This process template is too large to start on the current plan" });
   try { await c.env.DB.batch(statements); }
   catch (error) {
-    if (String(error).includes("template version archived")) throw new HTTPException(409, { message: "This template was archived before assignment completed" });
+    if (String(error).includes("template version archived")) throw new HTTPException(409, { message: "This process-template version was archived before the run started" });
     throw error;
   }
   return c.json({ id: runId }, 201);
+});
+
+app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
+  const { sampleId, runId } = c.req.param();
+  const input = await c.req.json<FinishProcessRunInput>();
+  if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
+    throw new HTTPException(400, { message: "The current sample revision is required" });
+  }
+  const [run, sample, unfinished] = await Promise.all([
+    c.env.DB.prepare(
+      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ?",
+    ).bind(runId, sampleId).first<{ id: string; template_name_snapshot: string; template_version_snapshot: number; status: string }>(),
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM run_steps
+       WHERE run_id = ? AND plan_status = 'current' AND status NOT IN ('done', 'skipped')`,
+    ).bind(runId).first<{ count: number }>(),
+  ]);
+  if (!run || !sample) throw new HTTPException(404, { message: "Process run not found" });
+  if (run.status !== "active") throw new HTTPException(409, { message: "Only the active process run can be finished" });
+  if (sample.updated_at !== input.expectedSampleUpdatedAt) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before finishing the run." });
+  }
+  if (Number(unfinished?.count ?? 0) > 0) {
+    throw new HTTPException(409, { message: "Complete or skip every current planned step before finishing the process run." });
+  }
+  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE runs SET status = 'complete', completed_at = ?
+       WHERE id = ? AND sample_id = ? AND status = 'active'
+         AND NOT EXISTS (
+           SELECT 1 FROM run_steps
+           WHERE run_id = ? AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
+         )`,
+    ).bind(now, runId, sampleId, runId),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND updated_at = ?`,
+    ).bind(userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, id, 'run', ?, ?, ?, ? FROM samples
+       WHERE id = ? AND last_mutation_id = ?`,
+    ).bind(
+      crypto.randomUUID(),
+      `Finished process run · ${run.template_name_snapshot} v${run.template_version_snapshot}`,
+      JSON.stringify({ action: "process_run_finished", runId }),
+      userEmail,
+      now,
+      sampleId,
+      mutationId,
+    ),
+  ]);
+  if (!results[0].meta.changes || !results[1].meta.changes || !results[2].meta.changes) {
+    throw new HTTPException(409, { message: "The process run changed while it was being finished. Reload and try again." });
+  }
+  return c.json({ ok: true, completedAt: now });
 });
 
 app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
@@ -830,7 +1067,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const context = await loadPlanContext(c.env.DB, sampleId, runId, templateVersionId);
   const sameFamily = context.run.recipe_family_id === context.nextTemplate.recipe_family_id;
   const alignment = sameFamily ? alignFuturePlan(context.existing, context.next) : {
-    matches: [], additions: [], supersededStepIds: [], conflicts: [],
+    matches: [], additions: [], supersededStepIds: [], conflicts: [], historicalDifferences: [],
   };
   return c.json({
     compatible: sameFamily && alignment.conflicts.length === 0,
@@ -840,6 +1077,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
     additionCount: alignment.additions.length,
     supersededCount: alignment.supersededStepIds.length,
     conflicts: alignment.conflicts,
+    historicalDifferences: alignment.historicalDifferences,
     familyMismatch: !sameFamily,
   });
 });
@@ -848,16 +1086,16 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   const { sampleId, runId } = c.req.param();
   const input = await c.req.json<{ templateVersionId?: string; reason?: string }>();
   if (!input.templateVersionId || (input.reason !== undefined && typeof input.reason !== "string")) {
-    throw new HTTPException(400, { message: "A recipe version and optional reason are required" });
+    throw new HTTPException(400, { message: "A process-template version and optional reason are required" });
   }
   const context = await loadPlanContext(c.env.DB, sampleId, runId, input.templateVersionId);
   if (context.run.status !== "active") throw new HTTPException(409, { message: "Only an active run can receive a plan update" });
   if (context.run.recipe_family_id !== context.nextTemplate.recipe_family_id) {
-    throw new HTTPException(409, { message: "A plan update must use another version of the same recipe. Finish this run before assigning a different recipe." });
+    throw new HTTPException(409, { message: "An in-place process update must use another version of the same process template. Finish this run before choosing a different template." });
   }
   const alignment = alignFuturePlan(context.existing, context.next);
   if (alignment.conflicts.length) {
-    throw new HTTPException(409, { message: "This version changes already-executed history or inserts work before it. Start a successor run or revise the recipe alignment." });
+    throw new HTTPException(409, { message: "This version inserts new work before the execution boundary. Start a new process run or review the template alignment." });
   }
 
   const now = new Date().toISOString();
@@ -901,7 +1139,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
        (id, run_id, revision_no, template_version_id, effective_after_step_id, reason, actor_email, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(revisionId, runId, Number(context.run.revision_no) + 1, input.templateVersionId,
-      executionHead?.id ?? null, input.reason?.trim() || "Imported recipe version update", userEmail, now),
+      executionHead?.id ?? null, input.reason?.trim() || "Imported process-template version update", userEmail, now),
     c.env.DB.prepare(
       `UPDATE run_steps SET position = -1000000000 - (? * 1000000) - position
        WHERE run_id = ? AND origin = 'template' AND actualized_at IS NULL AND plan_status = 'current'`,
@@ -958,7 +1196,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
       `Updated active plan to ${context.nextTemplate.name} v${context.nextTemplate.version}`,
       JSON.stringify({ runId, planRevisionId: revisionId, fromTemplateVersionId: context.run.current_template_version_id,
         toTemplateVersionId: input.templateVersionId, preserved: alignment.matches.length,
-        added: alignment.additions.length, superseded: alignment.supersededStepIds.length }), userEmail, now),
+        added: alignment.additions.length, superseded: alignment.supersededStepIds.length,
+        historicalDifferences: alignment.historicalDifferences }), userEmail, now),
     c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
       .bind(userEmail, now, sampleId),
   );
@@ -1501,7 +1740,7 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
      (id, recipe_family_id, source_template_version_id, source_verification_id, change_type, body, actor_email, created_at)
      VALUES (?, ?, ?, ?, 'expected_state', ?, ?, ?)`,
   ).bind(crypto.randomUUID(), target.recipe_family_id, target.template_version_id, verificationId,
-    note || "Observed state did not match the recipe's expected state", userEmail, now));
+    note || "Observed state did not match the process template's expected state", userEmail, now));
   const results = await c.env.DB.batch(statements);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before verifying its state." });
   return c.json({
@@ -1609,7 +1848,6 @@ app.post("/imports/fabublox", async (c) => {
   const manifest = parsedManifest as {
     schemaVersion: number;
     title: string;
-    templateType: "process" | "module" | "recipe";
     recipeFamilyId?: string | null;
     source: { fileName: string; fileSha256: string; sheetName: string };
     steps: Array<{
@@ -1623,20 +1861,25 @@ app.post("/imports/fabublox", async (c) => {
       assignedStepLocalId: string | null;
       anchor: Record<string, unknown>;
     }>;
+    initialStateImageIds: string[];
     warnings: unknown[];
   };
-  if (manifest.schemaVersion !== 1 || typeof manifest.title !== "string" || !manifest.title.trim() || manifest.title.length > 200 || typeof manifest.source?.sheetName !== "string" || !manifest.source.sheetName || !Array.isArray(manifest.steps) || !manifest.steps.length || !Array.isArray(manifest.images) || !Array.isArray(manifest.warnings)) {
+  if (manifest.schemaVersion !== 1 || typeof manifest.title !== "string" || !manifest.title.trim() || manifest.title.length > 200 || typeof manifest.source?.sheetName !== "string" || !manifest.source.sheetName || !Array.isArray(manifest.steps) || !manifest.steps.length || !Array.isArray(manifest.images) || !Array.isArray(manifest.initialStateImageIds) || !Array.isArray(manifest.warnings)) {
     throw new HTTPException(400, { message: "Invalid FabuBlox manifest" });
   }
-  if (!["process", "module", "recipe"].includes(manifest.templateType)) throw new HTTPException(400, { message: "Invalid template type" });
   if (manifest.recipeFamilyId !== undefined && manifest.recipeFamilyId !== null && typeof manifest.recipeFamilyId !== "string") {
-    throw new HTTPException(400, { message: "Invalid recipe family" });
+    throw new HTTPException(400, { message: "Invalid process-template family" });
   }
   if (manifest.steps.length > 180 || manifest.images.length > 40) {
     throw new HTTPException(413, { message: "This import exceeds the 180-step or 40-image deployment limit" });
   }
   for (const image of manifest.images) {
     if (!(form.get(`image:${image.localId}`) instanceof File)) throw new HTTPException(400, { message: `Missing uploaded image ${image.localId}` });
+  }
+  const imageIds = new Set(manifest.images.map((image) => image.localId));
+  if (new Set(manifest.initialStateImageIds).size !== manifest.initialStateImageIds.length
+    || manifest.initialStateImageIds.some((id) => typeof id !== "string" || !imageIds.has(id))) {
+    throw new HTTPException(400, { message: "Invalid initial substrate image selection" });
   }
   const payloadBytes = workbook.size + manifestFile.size + manifest.images.reduce((sum, image) => {
     const file = form.get(`image:${image.localId}`);
@@ -1667,10 +1910,10 @@ app.post("/imports/fabublox", async (c) => {
   const existingFamily = manifest.recipeFamilyId
     ? await c.env.DB.prepare("SELECT id, name, template_type FROM recipe_families WHERE id = ? AND archived_at IS NULL")
       .bind(manifest.recipeFamilyId).first<{ id: string; name: string; template_type: string }>()
-    : await c.env.DB.prepare("SELECT id, name, template_type FROM recipe_families WHERE name = ? AND template_type = ? AND archived_at IS NULL")
-      .bind(manifest.title.trim(), manifest.templateType).first<{ id: string; name: string; template_type: string }>();
-  if (manifest.recipeFamilyId && !existingFamily) throw new HTTPException(404, { message: "Recipe family not found" });
-  if (existingFamily && existingFamily.template_type !== manifest.templateType) throw new HTTPException(409, { message: "The selected recipe family has a different type" });
+    : await c.env.DB.prepare("SELECT id, name, template_type FROM recipe_families WHERE name = ? AND template_type = 'process' AND archived_at IS NULL")
+      .bind(manifest.title.trim()).first<{ id: string; name: string; template_type: string }>();
+  if (manifest.recipeFamilyId && !existingFamily) throw new HTTPException(404, { message: "Process-template family not found" });
+  const internalTemplateType = existingFamily?.template_type ?? "process";
   const recipeFamilyId = existingFamily?.id ?? crypto.randomUUID();
   const recipeName = existingFamily?.name ?? manifest.title.trim();
   const importId = crypto.randomUUID();
@@ -1679,7 +1922,7 @@ app.post("/imports/fabublox", async (c) => {
   await c.env.DB.prepare(
     `INSERT INTO imports (id, status, source_filename, source_sha256, sheet_name, template_type, recipe_family_id, warning_count, actor_email, created_at)
      VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(importId, workbook.name, actualSha, manifest.source.sheetName, manifest.templateType, recipeFamilyId, manifest.warnings.length, userEmail, now).run();
+  ).bind(importId, workbook.name, actualSha, manifest.source.sheetName, internalTemplateType, recipeFamilyId, manifest.warnings.length, userEmail, now).run();
 
   const uploadedKeys: string[] = [];
   try {
@@ -1731,24 +1974,28 @@ app.post("/imports/fabublox", async (c) => {
     const templateVersionId = crypto.randomUUID();
     const stepIds = new Map(manifest.steps.map((step) => [step.localId, crypto.randomUUID()]));
 
-    const numberedCounts = new Map<string, number>();
-    for (const step of manifest.steps) if (step.stepNumber?.trim()) {
-      const key = step.stepNumber.trim();
-      numberedCounts.set(key, (numberedCounts.get(key) ?? 0) + 1);
-    }
     const occurrences = new Map<string, number>();
     const definitions = new Map<string, Awaited<ReturnType<typeof hashStepDefinition>>>();
     const states = new Map<string, Awaited<ReturnType<typeof hashStateRepresentation>>>();
     const stateAssetRows = new Map<string, [string, string, number]>();
+    const initialStateAssets = imageAssets.filter((asset) => manifest.initialStateImageIds.includes(asset.localId));
+    let initialStateHash: string | null = null;
+    if (initialStateAssets.length) {
+      const initialState = await hashStateRepresentation(initialStateAssets.map((asset) => asset.sha256));
+      states.set(initialState.hash, initialState);
+      initialStateHash = initialState.hash;
+      initialStateAssets.forEach((asset, index) =>
+        stateAssetRows.set(`${initialState.hash}:${asset.assetId}`, [initialState.hash, asset.assetId, index]));
+    }
     let inheritedStateHash: string | null = null;
     const preparedSteps: Array<{
       source: typeof manifest.steps[number]; logicalKey: string; definitionHash: string; expectedStateHash: string | null;
     }> = [];
     for (const step of manifest.steps) {
-      const occurrenceKey = step.stepNumber?.trim() ? `number:${step.stepNumber.trim()}` : `name:${step.name.trim().toLocaleLowerCase()}`;
+      const occurrenceKey = normalizedStepName(step.name);
       const occurrence = (occurrences.get(occurrenceKey) ?? 0) + 1;
       occurrences.set(occurrenceKey, occurrence);
-      const logicalKey = logicalStepKey(step, occurrence, Boolean(step.stepNumber?.trim() && (numberedCounts.get(step.stepNumber.trim()) ?? 0) > 1));
+      const logicalKey = logicalStepKey(step, occurrence);
       const definition = await hashStepDefinition(step);
       definitions.set(definition.hash, definition);
       const assignedAssets = imageAssets.filter((asset) => asset.image?.assignedStepLocalId === step.localId);
@@ -1784,7 +2031,7 @@ app.post("/imports/fabublox", async (c) => {
       ...(!existingFamily ? [c.env.DB.prepare(
         `INSERT INTO recipe_families (id, name, template_type, created_by, created_at)
          VALUES (?, ?, ?, ?, ?)`,
-      ).bind(recipeFamilyId, recipeName, manifest.templateType, userEmail, now)] : []),
+      ).bind(recipeFamilyId, recipeName, internalTemplateType, userEmail, now)] : []),
       c.env.DB.prepare("UPDATE imports SET template_version_id = ? WHERE id = ? AND status = 'pending'")
         .bind(templateVersionId, importId),
       ...bulkInsertStatements(c.env.DB, "assets",
@@ -1806,13 +2053,14 @@ app.post("/imports/fabublox", async (c) => {
         [...stateAssetRows.values()].filter(([stateHash]) => !existingStateHashes.has(stateHash))),
       c.env.DB.prepare(
         `INSERT INTO template_versions
-          (id, recipe_family_id, name, template_type, version, manifest_hash, source_filename, source_asset_key, content_json, created_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(templateVersionId, recipeFamilyId, recipeName, manifest.templateType, version, manifestHash, workbook.name, workbookAsset.key, JSON.stringify({
+          (id, recipe_family_id, name, template_type, version, manifest_hash, initial_state_hash,
+           source_filename, source_asset_key, content_json, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(templateVersionId, recipeFamilyId, recipeName, internalTemplateType, version, manifestHash, initialStateHash, workbook.name, workbookAsset.key, JSON.stringify({
         schemaVersion: manifest.schemaVersion,
         source: manifest.source,
         importedTitle: manifest.title,
-        templateType: manifest.templateType,
+        objectKind: "process_template",
         warningCount: manifest.warnings.length,
       }), userEmail, now),
       ...bulkInsertStatements(c.env.DB, "template_steps",
@@ -1839,8 +2087,10 @@ app.post("/imports/fabublox", async (c) => {
 });
 
 app.get("/templates", async (c) => {
-  const result = await c.env.DB.prepare(
-    `SELECT tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.version, tv.manifest_hash, tv.source_filename, tv.created_at,
+  const [result, initialAssetRows] = await Promise.all([
+    c.env.DB.prepare(
+    `SELECT tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.version, tv.manifest_hash,
+            tv.initial_state_hash, tv.source_filename, tv.created_at,
             tv.locked_at, tv.archived_at,
             (SELECT COUNT(*) FROM template_steps ts WHERE ts.template_version_id = tv.id) AS step_count
      FROM template_versions tv
@@ -1854,12 +2104,26 @@ app.get("/templates", async (c) => {
     template_type: "process" | "module" | "recipe";
     version: number;
     manifest_hash: string;
+    initial_state_hash: string | null;
     source_filename: string | null;
     created_at: string;
     locked_at: string | null;
     archived_at: string | null;
     step_count: number;
-  }>();
+  }>(),
+    c.env.DB.prepare(
+      `SELECT tv.id AS template_version_id, a.r2_key
+       FROM template_versions tv
+       JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
+       JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+       WHERE tv.archived_at IS NULL
+       ORDER BY tv.id, sra.position, a.id`,
+    ).all<{ template_version_id: string; r2_key: string }>(),
+  ]);
+  const initialAssets = new Map<string, string[]>();
+  for (const row of initialAssetRows.results) {
+    initialAssets.set(row.template_version_id, [...(initialAssets.get(row.template_version_id) ?? []), row.r2_key]);
+  }
   return c.json({ templates: result.results.map((row) => ({
     id: row.id,
     recipeFamilyId: row.recipe_family_id,
@@ -1869,6 +2133,8 @@ app.get("/templates", async (c) => {
     manifestHash: row.manifest_hash,
     sourceFilename: row.source_filename,
     stepCount: Number(row.step_count),
+    initialStateHash: row.initial_state_hash,
+    initialStateImageKeys: initialAssets.get(row.id) ?? [],
     locked: Boolean(row.locked_at),
     lockedAt: row.locked_at,
     createdAt: row.created_at,
@@ -1910,9 +2176,10 @@ app.post("/templates/:id/clone", async (c) => {
 
 app.get("/templates/:id", async (c) => {
   const id = c.req.param("id");
-  const [template, stepRows, assetRows] = await Promise.all([
+  const [template, stepRows, assetRows, initialAssetRows] = await Promise.all([
     c.env.DB.prepare(
-      `SELECT id, recipe_family_id, name, template_type, version, manifest_hash, source_filename, locked_at, archived_at, created_at
+      `SELECT id, recipe_family_id, name, template_type, version, manifest_hash, initial_state_hash,
+              source_filename, locked_at, archived_at, created_at
        FROM template_versions WHERE id = ?`,
     ).bind(id).first<Record<string, unknown>>(),
     c.env.DB.prepare(
@@ -1929,6 +2196,13 @@ app.get("/templates/:id", async (c) => {
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
        WHERE ts.template_version_id = ? ORDER BY ts.id, sra.position, a.id`,
     ).bind(id).all<{ template_step_id: string; r2_key: string }>(),
+    c.env.DB.prepare(
+      `SELECT a.r2_key
+       FROM template_versions tv
+       JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
+       JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+       WHERE tv.id = ? ORDER BY sra.position, a.id`,
+    ).bind(id).all<{ r2_key: string }>(),
   ]);
   if (!template) throw new HTTPException(404, { message: "Template version not found" });
   const images = new Map<string, string[]>();
@@ -1936,6 +2210,8 @@ app.get("/templates/:id", async (c) => {
   return c.json({ template: {
     id: String(template.id), recipeFamilyId: String(template.recipe_family_id), name: String(template.name), templateType: String(template.template_type), version: Number(template.version),
     manifestHash: String(template.manifest_hash),
+    initialStateHash: template.initial_state_hash ? String(template.initial_state_hash) : null,
+    initialStateImageKeys: initialAssetRows.results.map((row) => row.r2_key),
     sourceFilename: template.source_filename ? String(template.source_filename) : null,
     locked: Boolean(template.locked_at), lockedAt: template.locked_at ? String(template.locked_at) : null,
     archived: Boolean(template.archived_at), createdAt: String(template.created_at),
@@ -1961,10 +2237,10 @@ app.patch("/templates/:id", async (c) => {
   const current = await c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?").bind(id).first<{ locked_at: string | null; archived_at: string | null }>();
   if (!current) throw new HTTPException(404, { message: "Template version not found" });
   if (current.archived_at) throw new HTTPException(409, { message: "Archived templates cannot be edited" });
-  if (current.locked_at) throw new HTTPException(409, { message: "This template was assigned and is now locked. Clone it to create an editable version." });
+  if (current.locked_at) throw new HTTPException(409, { message: "This template version has been used by a process run and is now locked. Clone it to create an editable version." });
   try {
     const result = await c.env.DB.prepare("UPDATE template_versions SET name = ?, version = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL").bind(name, input.version, id).run();
-    if (!result.meta.changes) throw new HTTPException(409, { message: "This template was assigned while you were editing it. Clone it to continue." });
+    if (!result.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
   } catch (error) {
     if (String(error).includes("UNIQUE")) throw new HTTPException(409, { message: `Version ${input.version} already exists for this template` });
     throw error;
@@ -2022,7 +2298,7 @@ app.post("/templates/:id/steps", async (c) => {
     "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
   ).bind(manifestHash, templateId));
   const results = await c.env.DB.batch(statements);
-  if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template was assigned while you were editing it. Clone it to continue." });
+  if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
   return c.json({ id: stepId }, 201);
 });
 
@@ -2075,7 +2351,7 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
     "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
   ).bind(manifestHash, templateId));
   const results = await c.env.DB.batch(statements);
-  if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template was assigned while you were editing it. Clone it to continue." });
+  if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
   return c.json({ ok: true });
 });
 
@@ -2176,7 +2452,7 @@ app.delete("/templates/:id", async (c) => {
       "UPDATE imports SET recipe_family_id = NULL WHERE recipe_family_id = ? AND NOT EXISTS (SELECT 1 FROM recipe_families WHERE id = ?)",
     ).bind(template.recipe_family_id, template.recipe_family_id),
   ]);
-  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This template was assigned while it was being deleted. Reload it and archive it instead." });
+  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while it was being deleted. Reload it and archive it instead." });
   return c.json({ ok: true, disposition: "deleted" as const });
 });
 

@@ -299,6 +299,7 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
   warnings.push(...parsedRows.warnings);
 
   const images = await extractDrawings(zip, selected.worksheetPart);
+  const layerColumn = selected.header.columns.layerStacks ?? null;
   for (const image of images) {
     const step = parsedRows.steps.find((candidate) => candidate.sourceRow === image.anchor.row + 1);
     if (step) {
@@ -306,10 +307,19 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
       step.imageIds.push(image.localId);
     }
   }
-  const unassignedImageIds = images.filter((image) => !image.assignedStepLocalId).map((image) => image.localId);
+  const firstStepRow = Math.min(...parsedRows.steps.map((step) => step.sourceRow));
+  const initialStateImageIds = images.filter((image) =>
+    !image.assignedStepLocalId
+    && layerColumn !== null
+    && image.anchor.col === layerColumn
+    && image.anchor.row + 1 < firstStepRow
+  ).map((image) => image.localId);
+  const initialStateImageSet = new Set(initialStateImageIds);
+  const unassignedImageIds = images
+    .filter((image) => !image.assignedStepLocalId && !initialStateImageSet.has(image.localId))
+    .map((image) => image.localId);
   if (unassignedImageIds.length) warnings.push({ code: "unassigned_images", message: `${unassignedImageIds.length} image(s) could not be assigned by anchor row` });
   for (const step of parsedRows.steps) if (step.imageIds.length > 1) warnings.push({ code: "multiple_images", message: `Step ${step.stepNumber ?? step.position} has multiple images`, sourceRow: step.sourceRow });
-  const layerColumn = selected.header.columns.layerStacks ?? null;
   for (const image of images) if (layerColumn !== null && image.anchor.col !== layerColumn) warnings.push({ code: "image_outside_layer_column", message: `${image.localId} is anchored outside the Layer Stacks column`, sourceRow: image.anchor.row + 1 });
 
   return {
@@ -320,6 +330,7 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
     sections: parsedRows.sections,
     steps: parsedRows.steps,
     images,
+    initialStateImageIds,
     unassignedImageIds,
     warnings,
   };

@@ -6,11 +6,11 @@ import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 
 function workflowStateText(sample: SampleSummary) {
-  if (!sample.latestWorkflowName) return "No workflow assigned";
-  if (sample.latestRunStatus === "active") return sample.currentStepTitle ? `Current step · ${sample.currentStepTitle}` : "Active workflow";
-  if (sample.latestRunStatus === "complete") return "Workflow completed";
-  if (sample.latestRunStatus === "cancelled") return "Latest workflow cancelled";
-  return "Latest workflow superseded";
+  if (!sample.latestWorkflowName) return "No process run yet";
+  if (sample.latestRunStatus === "active") return sample.currentStepTitle ? `Current step · ${sample.currentStepTitle}` : "Active process run";
+  if (sample.latestRunStatus === "complete") return "Process run completed";
+  if (sample.latestRunStatus === "cancelled") return "Latest process run cancelled";
+  return "Latest process run superseded";
 }
 
 export function SamplesPage() {
@@ -37,11 +37,11 @@ export function SamplesPage() {
     </div>
     <label className="search-box">
       <span>Search</span>
-      <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Code, name, workflow, or location" />
+      <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Code, name, process template, or location" />
     </label>
     {error && <p className="error-banner">{error}</p>}
     {loading ? <p className="muted">Loading…</p> : samples.length ? <div className="sample-directory">
-      <div className="sample-directory-head" aria-hidden="true"><span>Sample</span><span>Status / location</span><span>Latest workflow</span><span>Updated</span></div>
+      <div className="sample-directory-head" aria-hidden="true"><span>Sample</span><span>Status / location</span><span>Latest process run</span><span>Updated</span></div>
       {samples.map((sample) => <Link to={`/samples/${sample.id}`} className="sample-directory-row" key={sample.id}>
         <div className="sample-directory-identity"><div className="sample-identity"><span className="sample-code">{sample.code}</span>{sample.pinned && <span className="sample-pinned">Pinned</span>}</div><strong>{sample.title}</strong>{sample.parentId && <small>Child sample</small>}</div>
         <div className="sample-directory-state"><StatusPill status={sample.status} /><span>{sample.location || "No location"}</span></div>
@@ -49,7 +49,7 @@ export function SamplesPage() {
         <time>{new Date(sample.updatedAt).toLocaleDateString()}</time>
       </Link>)}
     </div> : <EmptyState title={query ? "No matching samples" : "No samples yet"}>
-      {query ? "Try another code, name, workflow, or location." : "Create the first sample to start its event log."}
+      {query ? "Try another code, name, process template, or location." : "Create the first sample to start its event log."}
     </EmptyState>}
   </div>;
 }

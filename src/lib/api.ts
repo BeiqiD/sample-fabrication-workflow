@@ -1,4 +1,4 @@
-import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FullExportManifest, PlanUpdatePreview, ProcessingSampleDetail, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ConfirmRunStepsInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -45,10 +45,20 @@ export const api = {
   deleteEventAsset: (sampleId: string, eventId: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/events/${eventId}/asset`, {
     method: "DELETE",
   }),
-  assignTemplate: (sampleId: string, templateVersionId: string) => request<{ id: string }>(`/samples/${sampleId}/runs`, {
+  previewRunStart: (sampleId: string, templateVersionId: string) => request<RunStartPreview>(`/samples/${sampleId}/runs/preview`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ templateVersionId }),
+  }),
+  startProcessRun: (sampleId: string, input: StartProcessRunInput) => request<{ id: string }>(`/samples/${sampleId}/runs`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  finishProcessRun: (sampleId: string, runId: string, input: FinishProcessRunInput) => request<{ ok: true; completedAt: string }>(`/samples/${sampleId}/runs/${runId}/finish`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
   }),
   previewPlanUpdate: (sampleId: string, runId: string, templateVersionId: string) => request<PlanUpdatePreview & { familyMismatch?: boolean }>(`/samples/${sampleId}/runs/${runId}/plan-update/preview`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ templateVersionId }),
@@ -110,10 +120,10 @@ export const api = {
     method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetKey }),
   }),
   getFullExport: () => request<FullExportManifest>("/exports/all"),
-  importFabublox: async (file: File, preview: FabubloxImportPreview, templateType: TemplateRecord["templateType"], recipeFamilyId?: string) => {
+  importFabublox: async (file: File, preview: FabubloxImportPreview, recipeFamilyId?: string) => {
     const form = new FormData();
     form.append("workbook", file, file.name);
-    const manifest = { ...preview, images: preview.images.map(({ data: _data, ...image }) => image), templateType, recipeFamilyId: recipeFamilyId || null };
+    const manifest = { ...preview, images: preview.images.map(({ data: _data, ...image }) => image), recipeFamilyId: recipeFamilyId || null };
     form.append("manifest", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "manifest.json");
     for (const image of preview.images) {
       const sourceName = image.sourcePart.split("/").pop() || `${image.localId}.png`;
@@ -134,6 +144,8 @@ export interface TemplateRecord {
   manifestHash: string;
   sourceFilename: string | null;
   stepCount: number;
+  initialStateHash: string | null;
+  initialStateImageKeys: string[];
   locked: boolean;
   lockedAt: string | null;
   createdAt: string;

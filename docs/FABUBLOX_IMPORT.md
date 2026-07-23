@@ -10,13 +10,14 @@ The importer is format-aware for FabuBlox OOXML workbooks. It is not presented a
 4. Workbook relationships resolve the selected worksheet part, whose relationships resolve its drawing part.
 5. Drawing relationships resolve each embedded image relationship to its media part.
 6. `oneCellAnchor` and `twoCellAnchor` coordinates map drawings to source rows.
-7. Images outside the detected layer-stack column or without a matching step remain unassigned and produce visible warnings.
+7. A layer-stack image anchored before the first process step is recognized as the initial substrate structure.
+8. Other images outside the detected layer-stack column or without a matching step remain unassigned and produce visible warnings.
 
 Media filenames are never used to infer step order. Resolved shared-string values are used instead of raw shared-string indices.
 
 ## Preview and confirmation
 
-The preview shows the detected sheet, object kind, structured step fields, layer-stack thumbnails, unassigned images, and warnings. Nothing is uploaded before confirmation.
+The preview shows the detected sheet, process-template relationship, initial substrate structure, structured step fields, layer-stack thumbnails, unassigned images, and warnings. Nothing is uploaded before confirmation.
 
 Confirmation sends one multipart request containing:
 
@@ -24,7 +25,7 @@ Confirmation sends one multipart request containing:
 - a schema-versioned normalized manifest;
 - compressed extracted images keyed by local image ID.
 
-The Worker creates a pending import, stores workbook/manifest/images in R2, writes an immutable template version and normalized steps/assets to D1, and only then marks the import ready. Pending and failed imports are hidden from template assignment.
+The Worker creates a pending import, stores workbook/manifest/images in R2, writes an immutable process-template version with its initial-state hash and normalized steps/assets to D1, and only then marks the import ready. Pending and failed imports are hidden from process-run choices.
 
 ## Test strategy
 

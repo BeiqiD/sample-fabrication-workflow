@@ -14,8 +14,8 @@ Make recording fabrication history less painful than maintaining an Obsidian dat
 - FabuBlox workbook parsing from Templates before upload; `/imports/fabublox` remains a compatibility redirect.
 - Extraction of worksheet values and OOXML embedded media.
 - Relationship- and anchor-aware mapping of FabuBlox layer-stack drawings to normalized steps.
-- Immutable process/module/recipe template versions at `/templates`.
-- Assigning a template version creates a run checklist; step status, notes, and images append to the sample timeline.
+- Immutable process-template versions at `/templates`, including an optional initial substrate structure imported from FabuBlox.
+- Starting a process run creates its checklist and immutable initial substrate snapshot; step status, notes, and images append to the sample timeline.
 - Export one sample as a ZIP containing Markdown, JSON, and all timeline images with relative paths.
 - D1 for records and private R2 for workbook/image assets.
 - Local development and one-Worker deployment.
