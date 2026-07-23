@@ -107,16 +107,47 @@ async function markItemFailed(env: Env, submissionId: string, itemId: string, me
   ]);
 }
 
+async function managedKeyForSubmission(
+  env: Env,
+  submission: SubmissionRow,
+  submissionId: string,
+  itemId: string,
+  filename: string,
+) {
+  if (submission.sample_id) {
+    const sample = await env.DB.prepare("SELECT id, code FROM samples WHERE id = ?")
+      .bind(submission.sample_id).first<{ id: string; code: string }>();
+    return managedObjectKey(submissionId, itemId, filename, sample ?? undefined);
+  }
+  const samples = await env.DB.prepare(
+    `SELECT DISTINCT s.id, s.code
+     FROM comment_submission_targets cst
+     JOIN samples s ON s.id = cst.sample_id
+     WHERE cst.submission_id = ?
+     ORDER BY s.code, s.id
+     LIMIT 2`,
+  ).bind(submissionId).all<{ id: string; code: string }>();
+  return managedObjectKey(
+    submissionId,
+    itemId,
+    filename,
+    samples.results.length === 1 ? samples.results[0] : undefined,
+  );
+}
+
 export const routes = new Hono<AppBindings>();
 
-routes.get("/storage/status", (c) => c.json(managedStorageStatus(c.env)));
+routes.get("/storage/status", async (c) => c.json(await managedStorageStatus(c.env)));
 
 routes.post("/comment-submissions", async (c) => {
   const input = await c.req.json<CreateCommentSubmissionInput>().catch(() => null);
   const validationError = validateCommentSubmissionInput(input);
   if (validationError || !input) throw new HTTPException(400, { message: validationError || "Invalid comment submission" });
-  if (requiresManagedStorage(input.items) && !managedStorage(c.env)) {
-    throw new HTTPException(503, { message: managedStorageStatus(c.env).message });
+  if (requiresManagedStorage(input.items)) {
+    const storageStatus = await managedStorageStatus(c.env);
+    if (!storageStatus.available) {
+      throw new HTTPException(503, { message: storageStatus.message });
+    }
   }
   if (input.context.kind === "run_steps" && !validTargets(input.context.targets)) {
     throw new HTTPException(400, { message: "Valid process-step targets are required" });
@@ -282,7 +313,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     const sha256 = c.req.header("x-content-sha256")?.toLowerCase();
     if (!validSha256(sha256)) throw new HTTPException(400, { message: "A SHA-256 content hash is required" });
     const storage = managedStorage(c.env);
-    if (!storage) throw new HTTPException(503, { message: managedStorageStatus(c.env).message });
+    if (!storage) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
     const existing = await c.env.DB.prepare(
       `SELECT id FROM managed_storage_objects
        WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status = 'ready' LIMIT 1`,
@@ -291,13 +322,14 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     let deduplicated = Boolean(existing);
     if (!storageObjectId) {
       storageObjectId = crypto.randomUUID();
-      const key = managedObjectKey(submissionId, itemId, item.filename);
+      const key = await managedKeyForSubmission(c.env, submission, submissionId, itemId, item.filename);
       const stored = await storage.put({
         key,
         body: c.req.raw.body,
         contentType,
         filename: item.filename,
         sha256,
+        byteSize: item.byte_size,
       });
       if (stored.byteSize !== item.byte_size) {
         await storage.delete(key);

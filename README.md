@@ -55,7 +55,7 @@ npm run db:migrate:remote
 npm run deploy
 ```
 
-The committed `DB` and `ASSETS` bindings identify the production resources. Original-file attachments have no R2 fallback and stay disabled until an external file-storage provider is configured and authenticated. Do not change the bindings or Worker name during an ordinary deployment; a fork or fresh installation must replace them with resources owned by its Cloudflare account. Storage-provider and authentication boundaries are documented in [docs/comment-file-uploads.md](./docs/comment-file-uploads.md).
+The committed `DB` and `ASSETS` bindings identify the production resources. Original-file attachments have no R2 fallback and stay disabled until the SWITCHdrive WebDAV adapter is configured and its App Passcode is verified. Do not change the bindings or Worker name during an ordinary deployment; a fork or fresh installation must replace them with resources owned by its Cloudflare account. Storage-provider and authentication boundaries, including the required Cloudflare secrets, are documented in [docs/comment-file-uploads.md](./docs/comment-file-uploads.md).
 
 ## Data ownership
 
