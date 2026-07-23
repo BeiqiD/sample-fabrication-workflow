@@ -221,8 +221,8 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
     <section className="recipe-details-sheet" role="dialog" aria-modal="true" aria-labelledby="recipe-details-title">
       <div className="recipe-details-handle" aria-hidden="true" />
       <div className="recipe-details-heading">
-        <div><p className="eyebrow">Recipe step {number}</p><h2 id="recipe-details-title">{step.plannedTitle || step.title}</h2>{step.plannedToolName && <small>{step.plannedToolName}</small>}</div>
-        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close recipe details">×</button>
+        <div><p className="eyebrow">Process step {number}</p><h2 id="recipe-details-title">{step.plannedTitle || step.title}</h2>{step.plannedToolName && <small>{step.plannedToolName}</small>}</div>
+        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close process-step details">×</button>
       </div>
       <div className={`recipe-details-content${hasPlannedCopy && hasPlannedDiagrams ? " has-diagrams" : ""}`}>
         {hasPlannedCopy && <div className="recipe-details-copy">
@@ -230,7 +230,7 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
           {step.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{step.plannedCommentsText}</p></div>}
         </div>}
         <DiagramGallery keys={step.plannedImageKeys} label={`Plan diagram for ${step.title}`} />
-        {!hasPlannedCopy && !hasPlannedDiagrams && <p className="muted">No additional recipe details.</p>}
+        {!hasPlannedCopy && !hasPlannedDiagrams && <p className="muted">No additional process-step details.</p>}
       </div>
     </section>
   </div>, document.body);
@@ -340,9 +340,9 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="step-drawer" role="dialog" aria-modal="true" aria-labelledby="step-drawer-title">
       <div className="step-drawer-heading"><div><p className="eyebrow">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? "Correct execution" : "Add an individual step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
-      <p className="muted">{editing ? "Record what actually happened. The assigned plan stays unchanged." : "This step belongs only to this sample run."}</p>
+      <p className="muted">{editing ? "Record what actually happened. The process plan stays unchanged." : "This step belongs only to this sample run."}</p>
       <form className="drawer-form" onSubmit={save}>
-        {isTemplateStep ? <div className="locked-step-title"><small>Recipe step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>Step name<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
+        {isTemplateStep ? <div className="locked-step-title"><small>Process step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>Step name<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
         {editing && <label>Status<select value={status} onChange={(event) => setStatus(event.target.value as StepStatus)}>{STATUSES.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select></label>}
         <label>Actual tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} placeholder={step?.plannedToolName || "Tool used"} /></label>
         <label>Actual parameters<textarea rows={4} value={parametersText} onChange={(event) => setParametersText(event.target.value)} placeholder={step?.plannedParametersText || "Time, temperature, settings…"} /></label>
@@ -557,7 +557,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     </div>
     {error && <p className="error-banner grid-error">{error}</p>}
     <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`} aria-hidden="true">
-      <div className="sticky-recipe-name">Recipe</div>
+      <div className="sticky-recipe-name">Process plan</div>
       <div className="sticky-sample-viewport">
         <div className="sticky-sample-track" ref={stickySampleTrack}>
           {columns.map((column) => <div className="sticky-sample-name" key={`sticky:${column.sample.id}`} title={`${column.sample.title} · ${column.sample.code}`}>{column.sample.title}</div>)}
@@ -567,7 +567,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     <div className="run-grid-scroll" ref={scroller}>
       <div className="run-grid" style={{ "--sample-columns": columns.length } as React.CSSProperties}>
         <div className="run-grid-header recipe-column" ref={fullHeader}>
-          <strong>Recipe step</strong>
+          <strong>Process step</strong>
           <small>Common actions use checked samples</small>
         </div>
         {columns.map((column) => <div className="run-grid-header sample-column-header" key={column.sample.id}>
@@ -592,9 +592,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
           const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
             <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}`}>
-              {row.kind === "ad_hoc" ? <div className="recipe-step-heading additional-step-heading"><span>+</span><div><strong>Additional step</strong><small>Not part of the assigned recipe</small></div></div> : <>
+              {row.kind === "ad_hoc" ? <div className="recipe-step-heading additional-step-heading"><span>+</span><div><strong>Additional step</strong><small>Not part of the process template</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
-              {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View recipe details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
+              {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
               <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               {commonGroups.size > 0 && <div className="common-comments"><small>Common execution comments</small>{[...commonGroups.values()].map(({ comment, codes }) => <CommentCard
                 key={comment.operationGroupId || comment.id}

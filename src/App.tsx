@@ -13,7 +13,7 @@ import { NavigationIcon, type NavigationIconName } from "./components/Navigation
 const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
   { to: "/processing", label: "Processing", icon: "processing" },
   { to: "/samples", label: "Samples", icon: "samples" },
-  { to: "/templates", label: "Templates", icon: "templates" },
+  { to: "/templates", label: "Process templates", icon: "templates" },
   { to: "/export", label: "Export", icon: "export" },
 ];
 

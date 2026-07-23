@@ -168,9 +168,38 @@ export interface SampleRun {
   anchorStepId: string | null;
   sequenceNo: number;
   runGroupId: string;
+  initialStateHash: string | null;
+  initialStateImageKeys: string[];
   createdAt: string;
   completedAt: string | null;
   steps: RunStep[];
+}
+
+export interface RunStartPreview {
+  successor: boolean;
+  sampleUpdatedAt: string;
+  template: {
+    id: string;
+    name: string;
+    version: number;
+    initialStateHash: string | null;
+    initialStateImageKeys: string[];
+  };
+  sampleCurrentState: {
+    hash: string | null;
+    stepTitle: string | null;
+    imageKeys: string[];
+  };
+}
+
+export interface StartProcessRunInput {
+  templateVersionId: string;
+  initialStateHash?: string | null;
+  expectedSampleUpdatedAt?: string;
+}
+
+export interface FinishProcessRunInput {
+  expectedSampleUpdatedAt: string;
 }
 
 export interface PlanUpdatePreview {
@@ -181,8 +210,13 @@ export interface PlanUpdatePreview {
   additionCount: number;
   supersededCount: number;
   conflicts: Array<{
-    kind: "inserted_before_execution_head" | "modified_executed_step" | "removed_executed_step";
+    kind: "inserted_before_execution_head";
     existingStepId?: string;
+    templateStepId?: string;
+  }>;
+  historicalDifferences: Array<{
+    kind: "modified_executed_step" | "removed_executed_step";
+    existingStepId: string;
     templateStepId?: string;
   }>;
 }
@@ -315,6 +349,7 @@ export interface FabubloxImportPreview {
   sections: FabubloxSection[];
   steps: FabubloxStep[];
   images: ParsedFabubloxImage[];
+  initialStateImageIds: string[];
   unassignedImageIds: string[];
   warnings: ImportWarning[];
 }

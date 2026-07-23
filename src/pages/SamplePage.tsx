@@ -188,19 +188,19 @@ export function SamplePage() {
         {sample.runs.length ? <div className="sample-run-list">{sample.runs.map((run) => {
           const progress = runProgress(run);
           return <article className="card sample-run-summary" key={run.id}>
-            <div><span className={`run-status run-status-${run.status}`}>{runStatusLabel(run.status)}</span><p className="sample-run-name"><strong>{run.templateName}</strong> · v{run.templateVersion}</p><small>{run.templateType} · run {run.sequenceNo} · plan r{run.planRevisionNumber}</small></div>
+            <div><span className={`run-status run-status-${run.status}`}>{runStatusLabel(run.status)}</span><p className="sample-run-name"><strong>{run.templateName}</strong> · v{run.templateVersion}</p><small>Process run {run.sequenceNo} · plan revision {run.planRevisionNumber} · {run.initialStateHash ? "initial substrate recorded" : "no initial diagram"}</small></div>
             <div className="sample-run-progress"><strong>{progress.completed} / {progress.total}</strong><span>steps complete</span></div>
             <time>{new Date(run.completedAt || run.createdAt).toLocaleString()}</time>
             <Link className="button" to={`/processing/${sample.id}?run=${encodeURIComponent(run.id)}`}>{run.status === "active" ? "Continue" : "View run"}</Link>
           </article>;
-        })}</div> : <div className="card empty-run-message"><h2>No processing runs</h2><p>Open Processing to assign the first workflow.</p></div>}
+        })}</div> : <div className="card empty-run-message"><h2>No process runs</h2><p>Open Processing to choose a process template and start the first run.</p></div>}
       </section>
     </div>
 
     <section className="sample-record-section" id="sample-record">
       <div className="section-heading sample-record-heading"><div><p className="eyebrow">Permanent sample history</p><h2>Timeline</h2></div></div>
       <form className="card composer" onSubmit={addComment}>
-        <label>Add a sample record<textarea name="body" rows={3} placeholder="Overall observation about this sample, independent of any workflow step…" /></label>
+        <label>Add a sample record<textarea name="body" rows={3} placeholder="Overall observation about this sample, independent of any process step…" /></label>
         <FileDropzone compact accept="image/*" capture="environment" file={commentImage} onFile={(file) => { pendingUploadRef.current = null; setCommentImage(file); }} label="Drop a sample-level photo" />
         <div className="composer-actions"><span className="muted">This belongs to the sample archive, not a processing step.</span><button className="button primary" disabled={saving}>{saving ? "Saving…" : "Add record"}</button></div>
       </form>

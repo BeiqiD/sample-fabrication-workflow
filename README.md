@@ -4,13 +4,14 @@ A lightweight, sample-centered workflow and event log for small-scale research f
 
 ## Management model and scope
 
-- A Template or Recipe describes **what should be done**. It is a reusable, versioned plan rather than a rigid work order.
-- Assigning a version to a physical sample locks that version and creates an independent, sample-bound plan and run. Later template edits, archives, or deletions cannot rewrite content that was already assigned.
-- The run records **what was actually done**. Operators can change actual parameters, add comments and diagrams, record deviations, skip work, or insert ad-hoc steps while keeping the expected plan visible for comparison.
+- A Process template describes **what should be done**. It is a reusable, versioned plan rather than a rigid work order.
+- Starting a process run on a physical sample locks that template version and creates an independent, sample-bound execution plan. Later template versions, archives, or deletions cannot rewrite content already used by the run.
+- The process run records **what was actually done**. Operators can change actual parameters, add comments and diagrams, record deviations, skip work, or insert ad-hoc steps while keeping the planned step visible for comparison.
+- Each run stores an immutable initial substrate structure. A first run uses the template definition; an additional run requires confirmation against the sample's current derived structure.
 - Meaningful actions append to the sample's event history. Completed execution and verified sample states therefore remain traceable even as future work changes.
-- A template version is editable only before its first assignment. An unused version can be deleted; a referenced version can only be archived so historical sample records remain intact.
+- A process-template version is editable only before its first run. An unused version can be deleted; a referenced version can only be archived so historical sample records remain intact.
 
-These are deliberate assumptions, not a universal laboratory-management model. They favor an honest, durable history of each physical sample over forcing execution to match the original recipe. Groups with different rules for deviations, version ownership, approvals, or historical corrections should review and adapt the model before adopting the app.
+These are deliberate assumptions, not a universal laboratory-management model. They favor an honest, durable history of each physical sample over forcing execution to match the current process template. Groups with different rules for deviations, version ownership, approvals, or historical corrections should review and adapt the model before adopting the app.
 
 The app is a single open-source Cloudflare Worker project: React and Vite provide the interface, Hono provides the API, D1 stores structured records, and private R2 stores workbooks and compressed images.
 
@@ -21,11 +22,11 @@ The app is a single open-source Cloudflare Worker project: React and Vite provid
 3. Change location, lifecycle status, title, or pinned state with one audit entry per changed field.
 4. Split a parent into multiple automatically numbered child samples in one atomic operation; review each child before confirming.
 5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
-6. Import a distinct recipe or attach the workbook to an existing recipe family as its next immutable version.
-7. Start a sample run, preserving the expected recipe plan while recording actual parameters, comments, deviations, added steps, and execution diagrams.
-8. Reconcile a longer recipe version with the unfinished part of an active run without rewriting completed history.
+6. Import a distinct process template or attach the workbook to an existing process-template family as its next immutable version.
+7. Start a process run, preserving its confirmed initial substrate and planned steps while recording actual parameters, comments, deviations, added steps, and execution diagrams.
+8. Reconcile a newer process-template version with the unfinished part of an active run without rewriting completed history.
 9. Verify the observed sample state after any completed step; each verification links to the previous one and records the covered execution interval.
-10. Finish a run and start a successor run on the same physical sample, connected to its last actual step.
+10. Finish a run and start a new independent run on the same physical sample after confirming whether its initial substrate comes from the sample's current structure or the new template.
 
 Sample-level notes, photos, details, split history, run summaries, and the complete Timeline live on the Sample page. Step execution stays in Processing so planned work and actual work remain distinct.
 
@@ -43,7 +44,7 @@ npm run dev
 Cloudflare's Vite plugin runs the API inside the Workers runtime and uses local D1/R2 simulations by default.
 
 Workbook and image inputs support both drag-and-drop and ordinary file selection. Images are compressed in the browser before upload.
-The Worker hashes every received workbook, image, normalized recipe step, expected state, and recipe manifest with SHA-256. Repeated recipes therefore reuse definitions and state representations instead of copying their full content into every run.
+The Worker hashes every received workbook, image, normalized process step, expected state, and template manifest with SHA-256. Repeated content therefore reuses definitions and state representations instead of copying full content into every run.
 
 ## Deploy
 

@@ -20,9 +20,11 @@ describe("content-addressed recipe definitions", () => {
     await expect(hashRecipeManifest([{ logicalStepKey: "number:1", definitionHash: "action", expectedStateHash: first.hash }])).resolves.toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("prefers an imported step number over a generated name occurrence", () => {
-    expect(logicalStepKey({ stepNumber: "2.1", name: "Bake" }, 3)).toBe("number:2.1");
-    expect(logicalStepKey({ stepNumber: "2.1", name: "Bake" }, 3, true)).toBe("number:2.1:3");
+  it("uses the normalized step name and occurrence even when numbering changes", () => {
+    expect(logicalStepKey({ stepNumber: "2.1", name: "Bake" }, 3)).toBe("name:bake:3");
+    expect(logicalStepKey({ stepNumber: "9", name: "Bake" }, 3)).toBe("name:bake:3");
     expect(logicalStepKey({ name: "Bake" }, 3)).toBe("name:bake:3");
+    expect(logicalStepKey({ name: " Clean  Wafer " }, 1)).toBe("name:clean%20wafer:1");
+    expect(logicalStepKey({ name: "Clean-Wafer" }, 1)).toBe("name:clean-wafer:1");
   });
 });

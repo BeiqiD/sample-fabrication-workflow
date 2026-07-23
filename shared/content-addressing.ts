@@ -54,11 +54,12 @@ export async function hashStateRepresentation(assetHashes: string[]) {
   return { hash: await sha256Hex(stableJson(canonical)), canonical };
 }
 
-export function logicalStepKey(input: { stepNumber?: string | null; name: string }, occurrence: number, duplicateNumber = false) {
-  const stepNumber = normalizedText(input.stepNumber);
-  if (stepNumber) return `number:${stepNumber}${duplicateNumber ? `:${occurrence}` : ""}`;
-  const slug = (normalizedText(input.name) ?? "step").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "step";
-  return `name:${slug}:${occurrence}`;
+export function normalizedStepName(name: string) {
+  return name.normalize("NFC").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function logicalStepKey(input: { stepNumber?: string | null; name: string }, occurrence: number) {
+  return `name:${encodeURIComponent(normalizedStepName(input.name) || "step")}:${occurrence}`;
 }
 
 export async function hashRecipeManifest(steps: Array<{ logicalStepKey: string; definitionHash: string; expectedStateHash: string | null }>) {

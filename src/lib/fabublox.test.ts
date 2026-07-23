@@ -48,14 +48,16 @@ async function syntheticDrawingFixture() {
   </xdr:twoCellAnchor>`;
   zip.file("xl/drawings/drawing1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-      ${anchor(1, "rImageA")}${anchor(2, "rImageB")}${anchor(8, "rUnassigned")}
+      ${anchor(0, "rInitial")}${anchor(1, "rImageA")}${anchor(2, "rImageB")}${anchor(8, "rUnassigned")}
     </xdr:wsDr>`);
   zip.file("xl/drawings/_rels/drawing1.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+      <Relationship Id="rInitial" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/initial.png"/>
       <Relationship Id="rImageA" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image9.png"/>
       <Relationship Id="rImageB" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
       <Relationship Id="rUnassigned" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image5.png"/>
     </Relationships>`);
+  zip.file("xl/media/initial.png", transparentPng);
   zip.file("xl/media/image1.png", transparentPng);
   zip.file("xl/media/image5.png", transparentPng);
   zip.file("xl/media/image9.png", transparentPng);
@@ -67,12 +69,14 @@ describe("OOXML drawing relationships", () => {
     const preview = await parseFabuBloxWorkbook(await syntheticDrawingFixture());
     expect(preview.steps).toHaveLength(2);
     expect(preview.images.map((image) => image.sourcePart)).toEqual([
+      "xl/media/initial.png",
       "xl/media/image9.png",
       "xl/media/image1.png",
       "xl/media/image5.png",
     ]);
-    expect(preview.steps[0].imageIds).toEqual(["image-1"]);
-    expect(preview.steps[1].imageIds).toEqual(["image-2"]);
-    expect(preview.unassignedImageIds).toEqual(["image-3"]);
+    expect(preview.initialStateImageIds).toEqual(["image-1"]);
+    expect(preview.steps[0].imageIds).toEqual(["image-2"]);
+    expect(preview.steps[1].imageIds).toEqual(["image-3"]);
+    expect(preview.unassignedImageIds).toEqual(["image-4"]);
   });
 });

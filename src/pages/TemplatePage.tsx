@@ -60,7 +60,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
       </div>}
       {error && <p className="error-banner">{error}</p>}
     </div>
-    {imageToDelete && <ConfirmDeleteDialog title="Delete this template diagram?" description="The diagram will be removed from this editable template step. Existing assigned runs and shared file data will remain unchanged." summary={`${step.name} · diagram ${step.imageKeys.indexOf(imageToDelete) + 1}`} deleting={saving} error={imageDeleteError} eyebrow="Delete diagram" confirmLabel="Delete diagram" onCancel={() => { setImageToDelete(null); setImageDeleteError(""); }} onConfirm={() => void deleteImage()} />}
+    {imageToDelete && <ConfirmDeleteDialog title="Delete this template diagram?" description="The diagram will be removed from this editable process step. Existing process runs and shared file data will remain unchanged." summary={`${step.name} · diagram ${step.imageKeys.indexOf(imageToDelete) + 1}`} deleting={saving} error={imageDeleteError} eyebrow="Delete diagram" confirmLabel="Delete diagram" onCancel={() => { setImageToDelete(null); setImageDeleteError(""); }} onConfirm={() => void deleteImage()} />}
   </article>;
 }
 
@@ -125,7 +125,7 @@ export function TemplatePage() {
 
   async function remove() {
     const message = template?.locked
-      ? "Archive this assigned template version? Existing sample runs and history will remain unchanged, but it can no longer be assigned."
+      ? "Archive this template version? Existing process runs and history will remain unchanged, but it can no longer be used to start a run."
       : "Permanently delete this unused template version? Its import source and shared files will be retained.";
     if (!window.confirm(message)) return;
     setSaving(true); setError("");
@@ -136,11 +136,12 @@ export function TemplatePage() {
   if (!template) return <div className="page narrow-page"><p>{error || "Loading template…"}</p></div>;
   const editable = !template.locked && !template.archived;
   return <div className="page narrow-page">
-    <Link className="back-link" to="/templates">← Templates</Link>
-    <div className="page-heading"><div><p className="eyebrow">{template.templateType} · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => void remove()}>{template.locked ? "Archive" : "Delete"}</button></div></div>
-    {template.locked && <p className="info-banner">This version was assigned on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
+    <Link className="back-link" to="/templates">← Process templates</Link>
+    <div className="page-heading"><div><p className="eyebrow">Process template · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => void remove()}>{template.locked ? "Archive" : "Delete"}</button></div></div>
+    {template.locked && <p className="info-banner">This version was first used on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
     {editable && <section className="card template-metadata-editor"><h2>Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
     {error && <p className="error-banner">{error}</p>}
-    <section className="template-steps-section"><div className="section-heading"><h2>Complete template</h2><span>{template.steps.length} steps</span></div>{template.steps.map((step) => <TemplateStepEditor key={step.id} template={template} step={step} onSaved={load} />)}{editable && <NewTemplateStep templateId={template.id} onSaved={load} />}</section>
+    <section className="card template-initial-state"><div><p className="eyebrow">Initial substrate structure</p><h2>{template.initialStateHash ? "Defined by this version" : "No starting diagram"}</h2><p className="muted">A new process run can use this structure, or explicitly continue from the sample’s current structure.</p></div>{template.initialStateImageKeys.length > 0 && <div className="diagram-gallery">{template.initialStateImageKeys.map((key) => <a href={`/api/assets/${key}`} target="_blank" rel="noreferrer" key={key}><img src={`/api/assets/${key}`} alt="Initial substrate structure" /></a>)}</div>}</section>
+    <section className="template-steps-section"><div className="section-heading"><h2>Complete process template</h2><span>{template.steps.length} steps</span></div>{template.steps.map((step) => <TemplateStepEditor key={step.id} template={template} step={step} onSaved={load} />)}{editable && <NewTemplateStep templateId={template.id} onSaved={load} />}</section>
   </div>;
 }
