@@ -224,7 +224,7 @@ export function SamplePage() {
             <div className="run-structure-history">
               {frames.length ? frames.map((frame, index) => <div className="run-structure-frame" key={frame.key}>
                 {index > 0 && <span className="run-structure-arrow" aria-hidden="true">→</span>}
-                <div><small>{frame.label}</small><div>{frame.imageKeys.map((key) => <a href={`/api/assets/${key}`} target="_blank" rel="noreferrer" key={key}><img src={`/api/assets/${key}`} alt={`${frame.label} for run ${run.sequenceNo}`} /></a>)}</div></div>
+                <div><small>{frame.label}</small><div className="run-structure-images">{frame.imageKeys.map((key) => <img loading="lazy" src={`/api/assets/${key}`} alt={`${frame.label} for run ${run.sequenceNo}`} key={key} />)}</div></div>
               </div>) : <p className="muted">This run has no recorded structure diagrams.</p>}
             </div>
           </details>;
