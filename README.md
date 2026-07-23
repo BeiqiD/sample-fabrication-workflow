@@ -1,38 +1,101 @@
 # Sample Fabrication Workflow
 
-A lightweight, sample-centered workflow and event log for small-scale research fabrication. It is intentionally not a general LIMS or enterprise MES: the app follows a specific management model for research groups in which the planned process and the work actually performed may diverge.
+A sample-centered fabrication record for small research groups. It keeps reusable process plans separate from the work actually performed, so deviations, added steps, comments, images, attachments, and sample-state changes remain traceable without rewriting history.
 
-## Management model and scope
+This is intentionally not a general LIMS, inventory system, or enterprise MES. The project is optimized for physical samples that move through evolving research processes.
 
-- A Process template describes **what should be done**. It is a reusable, versioned plan rather than a rigid work order.
-- Starting a process run on a physical sample locks that template version and creates an independent, sample-bound execution plan. Later template versions, archives, or deletions cannot rewrite content already used by the run.
-- The process run records **what was actually done**. Operators can change actual parameters, add comments and diagrams, record deviations, skip work, or insert ad-hoc steps while keeping the planned step visible for comparison.
-- Each run stores an immutable initial substrate structure. A first run uses the template definition; an additional run requires confirmation against the sample's current derived structure.
-- Meaningful actions append to the sample's event history. Completed execution and verified sample states therefore remain traceable even as future work changes.
-- A process-template version is editable only before its first run. An unused version can be deleted; a referenced version can only be archived so historical sample records remain intact.
+## Core model
 
-These are deliberate assumptions, not a universal laboratory-management model. They favor an honest, durable history of each physical sample over forcing execution to match the current process template. Groups with different rules for deviations, version ownership, approvals, or historical corrections should review and adapt the model before adopting the app.
+- A **process template** describes what should be done. Templates are versioned and reusable.
+- Starting a **process run** locks the selected template version into a sample-bound execution plan.
+- A run records what was actually done. Operators can change actual parameters, skip work, document deviations, or insert ad-hoc steps while retaining the planned step for comparison.
+- Each run preserves its initial substrate structure. Later runs can continue from the sample's derived current structure or start from the new template definition.
+- Meaningful actions append to the sample timeline. Completed runs and verified sample states remain traceable as later work is added.
+- An unused template version can be edited or deleted. Once referenced by a run, it becomes historical data and can only be archived.
 
-The app is a single open-source Cloudflare Worker project: React and Vite provide the interface, Hono provides the API, D1 stores structured records, private R2 stores workbooks and compressed inline images, and a separate managed-storage adapter stores unchanged comment attachments.
+These rules favor a durable and honest record of each physical sample. Groups with different approval, correction, or version-ownership rules should review the model before adopting the app.
 
-## MVP flow
+## What it supports
 
-1. Use `Processing` to find active work, or `Samples` to browse the permanent archive and create a sample.
-2. Add comments, compressed inline photos, unchanged original files, and external attachment links.
-3. Change location, physical lifecycle status, title, or pinned state with one audit entry per changed field. Starting or reopening a process run automatically makes the sample active; completing it returns the sample to stored unless it was explicitly marked consumed or lost.
-4. Split a parent into multiple automatically numbered child samples in one atomic operation; review each child before confirming.
-5. Import a FabuBlox Excel workbook in the browser and review its sheets and embedded media.
-6. Import a distinct process template or attach the workbook to an existing process-template family as its next immutable version.
-7. Start a process run, preserving its confirmed initial substrate and planned steps while recording actual parameters, comments, deviations, added steps, and execution diagrams.
-8. Reconcile a newer process-template version with the unfinished part of an active run without rewriting completed history.
-9. Verify the observed sample state after any completed step; each verification links to the previous one and records the covered execution interval.
-10. Finish a run and start a new independent run on the same physical sample after confirming whether its initial substrate comes from the sample's current structure or the new template.
+- Create, search, pin, update, split, consume, lose, and store physical samples.
+- Import FabuBlox Excel workbooks, including embedded process diagrams.
+- Maintain versioned process/module/recipe families without changing records already assigned to samples.
+- Run one process across one or several samples, with per-sample status, comments, parameter overrides, deviations, and additional steps.
+- Track current structure, verified states, process lifecycle, sample notes, and a chronological timeline.
+- Add compressed inline comment images, unchanged original-file attachments, and URL-only attachment links.
+- Export portable ZIP archives containing structured data, Markdown summaries, and assets referenced by relative paths.
 
-Sample-level notes, photos, details, split history, run summaries, and the complete Timeline live on the Sample page. Step execution stays in Processing so planned work and actual work remain distinct.
+## Architecture
 
-See [MVP_SPEC.md](./MVP_SPEC.md) for scope, [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for system invariants, [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) for the data model, [docs/FABUBLOX_IMPORT.md](./docs/FABUBLOX_IMPORT.md) for the workbook contract, and [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the production checklist.
+The application deploys as one Cloudflare Worker project.
+
+| Component | Responsibility |
+|---|---|
+| React, React Router, Vite | Browser interface |
+| Hono on Cloudflare Workers | API, authentication checks, exports, and storage orchestration |
+| Cloudflare D1 | Samples, templates, runs, events, comments, hashes, and file metadata |
+| Private Cloudflare R2 | Imported workbooks, diagrams, and compressed inline images |
+| `ManagedStorage` adapter | Optional unchanged original files; currently supports SWITCHdrive over WebDAV |
+| Cloudflare Access | User authentication; the Worker validates the Access JWT again before serving protected API routes |
+
+Original-file storage is deliberately provider-neutral at the application boundary. Comment and run logic call `ManagedStorage`; provider-specific authentication and requests remain inside the adapter.
+
+## Deploy your own instance
+
+Every installation must use its own Cloudflare account, Worker name, hostname, D1 database, R2 bucket, Access application, and secrets. Do not deploy a fork until the installation-specific values in `wrangler.jsonc` have been replaced.
+
+The recommended workflow needs no persistent local checkout:
+
+1. Fork this repository.
+2. In Cloudflare, create one D1 database and one private R2 bucket.
+3. Edit `wrangler.jsonc` in your fork:
+   - keep the binding names `DB` and `ASSETS`, because the code uses those names;
+   - replace the Worker name, D1 database name and ID, and R2 bucket name;
+   - remove or replace any route or custom-domain entry;
+   - enable a `workers.dev` hostname or add a custom domain owned by your account.
+4. Create or connect a Cloudflare Worker to the fork. The Worker name in Cloudflare must match `name` in `wrangler.jsonc`.
+5. Configure Workers Builds:
+
+   ```text
+   Production branch: main
+   Build command: npm run build
+   Deploy command: npx wrangler d1 migrations apply DB --remote && npx wrangler deploy
+   ```
+
+   Disable non-production branch builds unless previews have separate D1/R2 resources and a separate deploy command.
+6. Protect the application's complete hostname with a Cloudflare Access self-hosted application and an Allow policy.
+7. In the Worker's runtime **Variables and Secrets**, add:
+
+   ```text
+   ACCESS_TEAM_DOMAIN=https://<YOUR_TEAM>.cloudflareaccess.com
+   ACCESS_AUD=<YOUR_ACCESS_APPLICATION_AUD>
+   ```
+
+   `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store deployment-specific values as encrypted secrets rather than committing them to Git.
+8. Push or merge the configuration to `main`. Workers Builds will compile the app, apply all unapplied D1 migrations, and deploy only if the migrations succeed.
+9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
+
+See [the full deployment guide](./docs/DEPLOYMENT.md) for a sanitized `wrangler.jsonc` example, first-deployment checks, upgrades, recovery, and optional SWITCHdrive setup.
+
+## Optional original-file storage
+
+The app works without an external file provider: text comments, compressed inline images, and attachment links remain available. Unchanged original-file uploads stay disabled until a managed-storage adapter passes its server-side connection check.
+
+The included SWITCHdrive adapter uses HTTPS WebDAV with a dedicated App Passcode. Configure it only through Worker secrets:
+
+```text
+MANAGED_STORAGE_PROVIDER=switchdrive
+SWITCHDRIVE_WEBDAV_URL=<YOUR_SWITCHDRIVE_WEBDAV_URL>
+SWITCHDRIVE_USERNAME=<APP_PASSCODE_USERNAME>
+SWITCHDRIVE_APP_PASSWORD=<APP_PASSCODE_PASSWORD>
+SWITCHDRIVE_ROOT=<YOUR_STORAGE_ROOT>
+```
+
+The browser never receives these credentials. Original files are streamed unchanged to managed storage; no second R2 bucket is used as a fallback. See [comment file uploads](./docs/comment-file-uploads.md) for the storage and retry model.
 
 ## Local development
+
+Local development is optional:
 
 ```bash
 npm install
@@ -41,22 +104,23 @@ npm run db:migrate:local
 npm run dev
 ```
 
-Cloudflare's Vite plugin runs the API inside the Workers runtime and uses local D1/R2 simulations by default.
+Cloudflare's Vite plugin runs the API in the Workers runtime with local D1 and R2 simulations. `AUTH_MODE=disabled` is intended only for local development.
 
-Workbook and image inputs support both drag-and-drop and ordinary file selection. Comment images are compressed in the browser before upload. Files selected through the paperclip remain unchanged and are uploaded only after the comment's `Add` action.
-The Worker hashes every received workbook, image, normalized process step, expected state, and template manifest with SHA-256. Repeated content therefore reuses definitions and state representations instead of copying full content into every run.
-
-## Deploy
-
-Follow [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md), then run:
+Run the full verification suite with:
 
 ```bash
-npm run db:migrate:remote
-npm run deploy
+npm run verify
 ```
 
-The committed `DB` and `ASSETS` bindings identify the production resources. Original-file attachments have no R2 fallback and stay disabled until the SWITCHdrive WebDAV adapter is configured and its App Passcode is verified. Do not change the bindings or Worker name during an ordinary deployment; a fork or fresh installation must replace them with resources owned by its Cloudflare account. Storage-provider and authentication boundaries, including the required Cloudflare secrets, are documented in [docs/comment-file-uploads.md](./docs/comment-file-uploads.md).
+## Data ownership and backup
 
-## Data ownership
+Exports contain JSON tables, Markdown summaries where applicable, and assets using relative paths; they do not depend on temporary signed URLs or a running deployment. Keep periodic full-system exports outside the deployment account.
 
-Exports contain JSON tables, Markdown summaries where applicable, and assets using relative paths. No export depends on a temporary signed URL.
+## Further documentation
+
+- [MVP scope](./MVP_SPEC.md)
+- [Architecture and invariants](./docs/ARCHITECTURE.md)
+- [Data model](./docs/DATA_MODEL.md)
+- [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
+- [Deployment guide](./docs/DEPLOYMENT.md)
+- [Comment and original-file uploads](./docs/comment-file-uploads.md)
