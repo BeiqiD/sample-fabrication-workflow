@@ -35,6 +35,9 @@ export function ProcessingWorkspacePage() {
   const [showSamplePicker, setShowSamplePicker] = useState(false);
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
+  const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
+  const [metrologyQuery, setMetrologyQuery] = useState("");
+  const [startingMetrologyId, setStartingMetrologyId] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -48,7 +51,7 @@ export function ProcessingWorkspacePage() {
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { api.listTemplates().then(({ templates }) => setTemplates(templates)).catch((error: Error) => setError(error.message)); }, []);
-  const activeRun = sample?.runs.find((run) => run.status === "active") ?? null;
+  const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
 
   useEffect(() => {
@@ -115,14 +118,15 @@ export function ProcessingWorkspacePage() {
     if (!templateVersionId || !runStartPreview || !transitionMode) return;
     setAssigning(true); setRunStartError("");
     try {
+      const currentPlanRevisionId = (transitionMode === "update" ? activeRun : selectedRun)?.currentPlanRevisionId;
       const substrateConfirmation = {
         confirmed: true as const,
         expectedSampleUpdatedAt: runStartPreview.sampleUpdatedAt,
         expectedPreviousStateHash: runStartPreview.sampleCurrentState.hash,
         expectedTemplateInitialStateHash: runStartPreview.template.initialStateHash,
         expectedLatestRunId: runStartPreview.expectedLatestRunId,
-        ...(transitionMode === "update" || transitionMode === "reopen"
-          ? { expectedCurrentPlanRevisionId: (transitionMode === "update" ? activeRun : selectedRun)?.currentPlanRevisionId }
+        ...((transitionMode === "update" || transitionMode === "reopen") && currentPlanRevisionId
+          ? { expectedCurrentPlanRevisionId: currentPlanRevisionId }
           : {}),
       };
       if (transitionMode === "start") {
@@ -155,6 +159,18 @@ export function ProcessingWorkspacePage() {
     finally { setAssigning(false); }
   }
 
+  async function startMetrology(templateVersionId: string) {
+    setStartingMetrologyId(templateVersionId); setError("");
+    try {
+      const result = await api.startMetrologyRun(sampleId, { templateVersionId });
+      setShowMetrologyPicker(false);
+      setMetrologyQuery("");
+      updateSearchParams({ run: result.id });
+      await load();
+    } catch (error) { setError((error as Error).message); }
+    finally { setStartingMetrologyId(""); }
+  }
+
   function openTransition(mode: "start" | "update" | "reopen") {
     setTransitionMode(mode);
     setTemplateVersionId("");
@@ -168,13 +184,20 @@ export function ProcessingWorkspacePage() {
   const includedIds = new Set(samples.map((item) => item.id));
   const availableResults = sampleResults.filter((result) => !includedIds.has(result.id));
   const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
+  const processTemplates = templates.filter((template) => template.templateKind === "process");
+  const metrologyTemplates = templates.filter((template) => template.templateKind === "metrology");
+  const visibleMetrologyTemplates = metrologyTemplates.filter((template) =>
+    `${template.name} ${template.toolName || ""}`.toLowerCase().includes(metrologyQuery.trim().toLowerCase()));
   const assignableTemplates = transitionTargetRun
-    ? templates.filter((template) => template.recipeFamilyId === transitionTargetRun.recipeFamilyId && template.version > transitionTargetRun.templateVersion)
-    : templates;
+    ? processTemplates.filter((template) => template.recipeFamilyId === transitionTargetRun.recipeFamilyId && template.version > transitionTargetRun.templateVersion)
+    : processTemplates;
   const selectedIsActive = selectedRun?.status === "active";
-  const selectedIsLatest = selectedRun?.id === sample.runs[0]?.id;
+  const selectedIsActiveProcess = selectedRun?.runKind === "process" && selectedIsActive;
+  const processRuns = sample.runs.filter((run) => run.runKind === "process");
+  const selectedIsLatestProcess = selectedRun?.runKind === "process" && selectedRun.id === processRuns[0]?.id;
   const unfinishedCurrentSteps = activeRun?.steps.filter((step) =>
-    step.planStatus === "current" && step.status !== "done" && step.status !== "skipped") ?? [];
+    step.entryKind === "fabrication" && step.planStatus === "current"
+      && step.status !== "done" && step.status !== "skipped") ?? [];
 
   return <div className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
@@ -198,24 +221,40 @@ export function ProcessingWorkspacePage() {
       </div>}
 
       {sample.runs.length > 0 && (sample.runs.length > 1
-        ? <div className="run-selector card"><label>Viewing process run<select value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>Run {run.sequenceNo} · {run.templateName} v{run.templateVersion} · {processRunStatus(run.status)}</option>)}</select></label>{!selectedIsActive && <span>{processRunStatus(selectedRun?.status || "complete")} · read-only</span>}</div>
-        : selectedRun && <div className="run-viewing-card card"><div><p className="card-label">Process run</p><h3 className="card-title">Run {selectedRun.sequenceNo} · {selectedRun.templateName} v{selectedRun.templateVersion}</h3></div><span className={`run-status run-status-${selectedRun.status}`}>{processRunStatus(selectedRun.status)}</span></div>)}
+        ? <div className="run-selector card"><label>Viewing run<select value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select></label>{!selectedIsActive && <span>{processRunStatus(selectedRun?.status || "complete")} · read-only</span>}</div>
+        : selectedRun && <div className="run-viewing-card card"><div><p className="card-label">{selectedRun.runKind === "metrology" ? "Metrology run" : "Process run"}</p><h3 className="card-title">Run {selectedRun.sequenceNo} · {selectedRun.templateName}{selectedRun.runKind === "process" ? ` v${selectedRun.templateVersion}` : ""}</h3></div><span className={`run-status run-status-${selectedRun.status}`}>{processRunStatus(selectedRun.status)}</span></div>)}
 
       <div className="run-workflow-actions card">
-        <div><h3 className="card-title">Run actions</h3><p className="card-context">{selectedRun ? `Run ${selectedRun.sequenceNo} · ${selectedRun.templateName}` : "No process run yet"}</p><p className="card-meta">{selectedIsActive ? "Update only future work, or finish this processing stage." : selectedRun ? "This completed run remains read-only unless it is the latest run and is explicitly reopened." : "Start the first processing stage from a template Step 0."}</p></div>
+        <div><h3 className="card-title">Run actions</h3><p className="card-context">{selectedRun ? `Run ${selectedRun.sequenceNo} · ${selectedRun.templateName}` : "No run yet"}</p><p className="card-meta">{selectedRun?.runKind === "metrology" ? selectedIsActive ? "This metrology run completes when its record is marked Done." : "This metrology result remains read-only." : selectedIsActiveProcess ? "Update only future work, or finish this processing stage." : selectedRun ? "This completed process run remains read-only unless it is the latest process run and is explicitly reopened." : "Start fabrication from a process template, or run metrology independently."}</p></div>
         <div className="run-workflow-buttons">
-          {selectedIsActive && <button type="button" className="button" onClick={() => openTransition("update")}>Update future plan</button>}
-          {selectedIsActive && <button type="button" className="button" disabled={assigning || unfinishedCurrentSteps.length > 0} title={unfinishedCurrentSteps.length ? "Complete or skip every current step first" : "Finish this run"} onClick={() => void finishActiveRun()}>Finish run</button>}
-          {!activeRun && selectedRun?.status === "complete" && selectedIsLatest && <button type="button" className="button" onClick={() => openTransition("reopen")}>Reopen with updated template</button>}
-          {!activeRun && <button type="button" className="button primary" onClick={() => openTransition("start")}>{sample.runs.length ? "Start new run" : "Start first run"}</button>}
-          {activeRun && !selectedIsActive && <button type="button" className="button" onClick={() => updateSearchParams({ run: activeRun.id })}>View active run</button>}
+          {selectedIsActiveProcess && <button type="button" className="button" onClick={() => openTransition("update")}>Update future plan</button>}
+          {selectedIsActiveProcess && <button type="button" className="button" disabled={assigning || unfinishedCurrentSteps.length > 0} title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}>Finish run</button>}
+          {!activeRun && selectedRun?.status === "complete" && selectedIsLatestProcess && <button type="button" className="button" onClick={() => openTransition("reopen")}>Reopen with updated template</button>}
+          {!activeRun && <button type="button" className="button primary" onClick={() => openTransition("start")}>{processRuns.length ? "Start new process" : "Start first process"}</button>}
+          <button type="button" className="button" onClick={() => setShowMetrologyPicker(true)}>Start metrology</button>
+          {activeRun && !selectedIsActiveProcess && <button type="button" className="button" onClick={() => updateSearchParams({ run: activeRun.id })}>View active process</button>}
         </div>
       </div>
 
-      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : item.runs.find((candidate) => candidate.recipeFamilyId === selectedRun.recipeFamilyId && candidate.status === selectedRun.status) ?? null }))} onSaved={load} readOnly={!selectedIsActive} /></section> : <div className="card empty-run-message"><h3 className="card-title">No process run yet</h3><p>Start the first run to create an execution grid.</p></div>}
+      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : item.runs.find((candidate) => candidate.runKind === selectedRun.runKind && candidate.recipeFamilyId === selectedRun.recipeFamilyId && candidate.status === selectedRun.status) ?? null }))} onSaved={load} readOnly={!selectedIsActive} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
+      {showMetrologyPicker && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !startingMetrologyId) setShowMetrologyPicker(false); }}>
+        <section className="run-start-dialog transition-template-dialog standalone-metrology-dialog" role="dialog" aria-modal="true" aria-labelledby="standalone-metrology-title">
+          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">Independent run</p><h2 id="standalone-metrology-title">Choose a metrology template</h2></div><button type="button" className="drawer-close" disabled={Boolean(startingMetrologyId)} onClick={() => setShowMetrologyPicker(false)} aria-label="Close">×</button></div>
+          <p className="muted">This creates a standalone result record and does not change the active fabrication process or sample structure.</p>
+          <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={metrologyQuery} onChange={(event) => setMetrologyQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+          <div className="metrology-picker-list standalone-metrology-list">
+            {visibleMetrologyTemplates.map((template) => <button type="button" key={template.id} disabled={Boolean(startingMetrologyId)} onClick={() => void startMetrology(template.id)}>
+              <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}</small></span>
+              <span>{startingMetrologyId === template.id ? "Starting…" : "Start"}</span>
+            </button>)}
+            {!visibleMetrologyTemplates.length && <p className="muted">No matching metrology templates. Create one from Templates first.</p>}
+          </div>
+          <div className="form-actions"><Link className="button" to="/templates">Manage templates</Link><button type="button" className="button" disabled={Boolean(startingMetrologyId)} onClick={() => setShowMetrologyPicker(false)}>Cancel</button></div>
+        </section>
+      </div>}
       {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !assigning) setTransitionMode(null); }}>
         <section className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
-          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? sample.runs.length ? "Start new run" : "Start first run" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close">×</button></div>
+          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close">×</button></div>
           <p className="muted">{transitionMode === "start" ? "This creates an independent process run. Earlier runs remain completed." : "Only a newer version of the same process template can continue this run; completed steps remain frozen."}</p>
           <label className="transition-template-select">Process template<select autoFocus value={templateVersionId} onChange={(event) => { setTemplateVersionId(event.target.value); setRunStartError(""); }}><option value="">Choose a process template…</option>{assignableTemplates.map((template) => <option key={template.id} value={template.id}>{template.name} · v{template.version} · {template.stepCount} executable steps</option>)}</select></label>
           {!assignableTemplates.length && <p className="warning-card compact-warning">{transitionMode === "start" ? "No process templates are available." : "Import a newer version of this process template before updating or reopening the run."}</p>}

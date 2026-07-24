@@ -139,7 +139,7 @@ export function TemplatePage() {
   if (!template) return <div className="page"><p>{error || "Loading template…"}</p></div>;
   const editable = !template.locked && !template.archived;
   return <div className="page template-detail-page">
-    <Link className="back-link" to="/templates">← Process templates</Link>
+    <Link className="back-link" to="/templates">← Templates</Link>
     <div className="page-heading"><div><p className="eyebrow">Process template · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => void remove()}>{template.locked ? "Archive" : "Delete"}</button></div></div>
     {template.locked && <p className="info-banner">This version was first used on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
     {editable && <section className="card template-metadata-editor"><h2 className="card-title">Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}

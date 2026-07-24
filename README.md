@@ -8,6 +8,7 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 - A **process template** describes what should be done. Templates are versioned and reusable.
 - Starting a **process run** locks the selected template version into a sample-bound execution plan.
+- A **metrology template** is a directly editable, flat record preset. Adding it to a process or starting it independently copies a snapshot; later run edits never update the template, and later template edits never rewrite existing records.
 - A run records what was actually done. Operators can change actual parameters, skip work, document deviations, or insert ad-hoc steps while retaining the planned step for comparison.
 - Each run preserves its initial substrate structure. Later runs can continue from the sample's derived current structure or start from the new template definition.
 - Meaningful actions append to the sample timeline. Completed runs and verified sample states remain traceable as later work is added.
@@ -20,6 +21,8 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Create, search, pin, update, split, consume, lose, and store physical samples.
 - Import FabuBlox Excel workbooks, including embedded process diagrams.
 - Maintain versioned process/module/recipe families without changing records already assigned to samples.
+- Create reusable SEM, TEM, AFM, optical-microscope, XRD, or custom metrology templates directly in the Templates page, with template-only equipment notes and manuals.
+- Insert metrology records between fabrication steps or run them independently without changing process progress, sample status, or current structure.
 - Run one process across one or several samples, with per-sample status, comments, parameter overrides, deviations, and additional steps.
 - Track current structure, verified states, process lifecycle, sample notes, and a chronological timeline.
 - Add compressed inline comment images, unchanged original-file attachments, and URL-only attachment links.

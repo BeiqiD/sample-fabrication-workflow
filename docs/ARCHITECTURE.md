@@ -26,15 +26,18 @@ flowchart TD
 - Sample codes and template version numbers are unique in D1.
 - A process-template family owns immutable versions. A version is editable only before its first run-plan reference; the first reference atomically locks it.
 - An unused template version can be deleted. Once a version has a run-plan reference it can only be archived, preserving every historical link while removing it from future assignment choices.
+- Metrology templates are flat, directly editable presets. A run entry stores the selected step-definition hash as its immutable snapshot, so edits in either direction never propagate between the template and an existing record.
+- Metrology template equipment/method notes and reference files are template-only. They are intentionally excluded from run snapshots and run views.
 - Step definitions and expected diagram states are content-addressed. Process-template versions, plans, and runs reference their hashes, so repeated content is stored once.
-- A physical sample has at most one active process run. Starting or reopening that run makes the sample `active`; completing it returns an `active` sample to `stored`. Explicit physical states such as `consumed` or `lost` are never overwritten by run completion.
+- A physical sample has at most one active process run, while metrology can run independently or sit between fabrication steps. Starting, completing, or editing metrology never changes sample status or current structure and never contributes to fabrication progress.
+- Starting or reopening a process run makes the sample `active`; completing it returns an `active` sample to `stored`. Explicit physical states such as `consumed` or `lost` are never overwritten by run completion.
 - Finished runs form an ordered predecessor chain; a new run anchors to the previous run's last actual step.
 - Every run stores an immutable initial substrate hash confirmed when it begins. Before a new run starts, the server revalidates the displayed template and current-sample structure choices.
 - Split children store the parent's current structure as an inherited substrate snapshot. Their first run requires the same confirmation when that structure differs from the selected template.
 - Each run has immutable plan revisions. A newer version of the same process-template family can replace only unfinished future work; completed and ad-hoc execution remains in the chain.
 - Version alignment uses normalized step names and relative sequence. Step numbers and mutable content do not define cross-version identity.
 - Run rows store actual overrides only when they differ from the hashed process-step definition. Comments, deviation reasons, execution diagrams, and ad-hoc steps remain sample-specific.
-- State verification is a sparse chain independent of planned metrology steps. Each verification snapshots the run steps covered since the previous valid verification and records matched or mismatched outcome.
+- State verification is a sparse fabrication-only chain. It ignores metrology records, snapshots the fabrication steps covered since the previous valid verification, and records the matched or mismatched outcome.
 - Sample state changes and their history events are emitted by database triggers.
 - Dedicated bench records update sample state and append the manual event in one D1 batch, guarded by the caller's last-seen timestamp and a per-mutation identifier.
 - Processing reads omit the permanent Timeline and parent/child archive data; the Sample page uses the full archive view.

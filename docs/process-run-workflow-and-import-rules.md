@@ -10,6 +10,8 @@ The three core entities are:
 - **Process template**: a versioned processing plan that can be reused and updated.
 - **Process run**: one concrete execution of a process template on one sample.
 
+Metrology templates and records are independent of this fabrication lifecycle. A metrology record may appear between process steps or run on its own, but it does not change process completion, sample status, or current structure.
+
 The Sample page answers:
 
 > What has this sample experienced, and what is its current structure?
@@ -49,8 +51,8 @@ Updating a process template does not automatically change or reopen any run.
 
 A completed run may be reopened only when:
 
-- It is the sample's latest run.
-- No later run has already been created.
+- It is the sample's latest process run.
+- No later process run has already been created.
 - The user explicitly applies an updated version of the same process template to continue the same processing objective.
 
 Reopening preserves the original completion event and appends a new event such as:
@@ -64,7 +66,7 @@ Run started
 
 Previously executed steps remain frozen. Only the future plan is added or updated.
 
-If a later run already exists, the earlier run cannot be reopened because that would rewrite the established processing sequence. Further work must be represented by a new run.
+If a later process run already exists, the earlier run cannot be reopened because that would rewrite the established fabrication sequence. Independent metrology runs do not block reopening the latest process run.
 
 ### Start a new run
 
