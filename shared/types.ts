@@ -35,6 +35,26 @@ export interface SampleSummary {
   currentStateThumbnailKey: string | null;
 }
 
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface SampleListFacets {
+  active: number;
+  complete: number;
+  cancelled: number;
+  all: number;
+}
+
+export interface SampleListResponse {
+  samples: SampleSummary[];
+  pagination: PaginationMeta;
+  facets?: SampleListFacets;
+}
+
 export interface SampleEvent {
   id: string;
   sampleId: string;

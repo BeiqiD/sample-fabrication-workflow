@@ -1,4 +1,4 @@
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleListResponse, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -10,8 +10,41 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export interface SampleListOptions {
+  query?: string;
+  page?: number;
+  pageSize?: number;
+  view?: "samples" | "processing";
+  status?: "active" | "complete" | "cancelled" | "all";
+  signal?: AbortSignal;
+}
+
+function sampleListPath(options: SampleListOptions | string) {
+  const normalized = typeof options === "string" ? { query: options } : options;
+  const params = new URLSearchParams();
+  if (normalized.query?.trim()) params.set("q", normalized.query.trim());
+  if (normalized.page && normalized.page > 1) params.set("page", String(normalized.page));
+  if (normalized.pageSize) params.set("pageSize", String(normalized.pageSize));
+  if (normalized.view === "processing") params.set("view", "processing");
+  if (normalized.status && normalized.status !== "active") params.set("status", normalized.status);
+  const query = params.toString();
+  return `/samples${query ? `?${query}` : ""}`;
+}
+
+function paginatedPath(path: string, options: { query?: string; page?: number; pageSize?: number }) {
+  const params = new URLSearchParams();
+  if (options.query?.trim()) params.set("q", options.query.trim());
+  if (options.page && options.page > 1) params.set("page", String(options.page));
+  if (options.pageSize) params.set("pageSize", String(options.pageSize));
+  const query = params.toString();
+  return `${path}${query ? `?${query}` : ""}`;
+}
+
 export const api = {
-  listSamples: (query = "") => request<{ samples: SampleSummary[] }>(`/samples?q=${encodeURIComponent(query)}`),
+  listSamples: (options: SampleListOptions | string = {}) => {
+    const signal = typeof options === "string" ? undefined : options.signal;
+    return request<SampleListResponse>(sampleListPath(options), signal ? { signal } : undefined);
+  },
   getSample: (id: string) => request<SampleDetail>(`/samples/${id}`),
   getProcessingSample: (id: string) => request<ProcessingSampleDetail>(`/samples/${id}?view=processing`),
   createSample: (input: CreateSampleInput) => request<{ id: string }>("/samples", {
@@ -180,7 +213,28 @@ export const api = {
     `/comment-submissions/${encodeURIComponent(submissionId)}`,
     { method: "DELETE" },
   ),
-  listTemplates: () => request<{ templates: TemplateRecord[] }>("/templates"),
+  listTemplates: (signal?: AbortSignal) => request<{ templates: TemplateRecord[] }>("/templates?view=picker", signal ? { signal } : undefined),
+  listTemplateFamilies: (options: { query?: string; page?: number; pageSize?: number; signal?: AbortSignal } = {}) =>
+    request<{ families: ProcessTemplateFamilySummary[]; pagination: PaginationMeta }>(
+      paginatedPath("/template-families", options),
+      options.signal ? { signal: options.signal } : undefined,
+    ),
+  listTemplateFamilyVersions: (recipeFamilyId: string, options: { query?: string; signal?: AbortSignal } = {}) => {
+    const params = new URLSearchParams();
+    if (options.query?.trim()) params.set("q", options.query.trim());
+    const query = params.toString();
+    return request<{ versions: ProcessTemplateVersionSummary[] }>(
+      `/template-families/${encodeURIComponent(recipeFamilyId)}/versions${query ? `?${query}` : ""}`,
+      options.signal ? { signal: options.signal } : undefined,
+    );
+  },
+  listTemplateFamilyOptions: (signal?: AbortSignal) =>
+    request<{ families: ProcessTemplateFamilyOption[] }>("/template-families/options", signal ? { signal } : undefined),
+  listMetrologyTemplates: (options: { query?: string; page?: number; pageSize?: number; signal?: AbortSignal } = {}) =>
+    request<{ templates: MetrologyTemplateSummary[]; pagination: PaginationMeta }>(
+      paginatedPath("/metrology-templates", options),
+      options.signal ? { signal: options.signal } : undefined,
+    ),
   createMetrologyTemplate: (input: MetrologyTemplateInput) => request<{ id: string; version: number }>("/metrology-templates", {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
@@ -247,6 +301,44 @@ export interface TemplateRecord {
   initialSubstrateStep: FabubloxImportPreview["initialSubstrateStep"];
   locked: boolean;
   lockedAt: string | null;
+  createdAt: string;
+}
+
+export interface ProcessTemplateVersionSummary {
+  id: string;
+  recipeFamilyId: string;
+  name: string;
+  templateType: "process" | "module" | "recipe";
+  version: number;
+  sourceFilename: string | null;
+  stepCount: number;
+  initialStateHash: string | null;
+  hasInitialSubstrateStep: boolean;
+  initialStateImageCount: number;
+  locked: boolean;
+  createdAt: string;
+}
+
+export interface ProcessTemplateFamilySummary {
+  recipeFamilyId: string;
+  name: string;
+  templateType: ProcessTemplateVersionSummary["templateType"];
+  latestVersion: number;
+  versionCount: number;
+  latest: ProcessTemplateVersionSummary;
+}
+
+export interface ProcessTemplateFamilyOption {
+  recipeFamilyId: string;
+  name: string;
+  latestVersion: number;
+}
+
+export interface MetrologyTemplateSummary {
+  id: string;
+  name: string;
+  toolName: string | null;
+  hasDefaultContent: boolean;
   createdAt: string;
 }
 

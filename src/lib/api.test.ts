@@ -80,6 +80,54 @@ describe("processing sample API", () => {
   });
 });
 
+describe("paginated directory APIs", () => {
+  it("encodes sample search, processing filters, and pagination in one request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      samples: [],
+      pagination: { page: 3, pageSize: 50, total: 0, totalPages: 1 },
+      facets: { active: 0, complete: 0, cancelled: 0, all: 0 },
+    }), { headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+
+    await api.listSamples({
+      query: "AFM wafer",
+      page: 3,
+      pageSize: 50,
+      view: "processing",
+      status: "complete",
+      signal: controller.signal,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/samples?q=AFM+wafer&page=3&pageSize=50&view=processing&status=complete",
+      { signal: controller.signal },
+    );
+  });
+
+  it("requests process families and metrology templates independently", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ families: [], pagination: { page: 2, pageSize: 20, total: 0, totalPages: 1 } })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ templates: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 } })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.listTemplateFamilies({ query: "etch", page: 2, pageSize: 20 });
+    await api.listMetrologyTemplates({ query: "AFM", pageSize: 25 });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/template-families?q=etch&page=2&pageSize=20", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/metrology-templates?q=AFM&pageSize=25", undefined);
+  });
+
+  it("uses the lightweight picker view for run workspaces", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ templates: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.listTemplates();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/templates?view=picker", undefined);
+  });
+});
+
 describe("template removal API", () => {
   it("uses the guarded template delete endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, disposition: "deleted" }), {

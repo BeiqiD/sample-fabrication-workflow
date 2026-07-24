@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
-import { SamplesPage } from "./pages/SamplesPage";
-import { NewSamplePage } from "./pages/NewSamplePage";
-import { SamplePage } from "./pages/SamplePage";
-import { TemplatesPage } from "./pages/TemplatesPage";
-import { ExportPage } from "./pages/ExportPage";
-import { TemplatePage } from "./pages/TemplatePage";
-import { MetrologyTemplatePage } from "./pages/MetrologyTemplatePage";
-import { ProcessingPage } from "./pages/ProcessingPage";
-import { ProcessingWorkspacePage } from "./pages/ProcessingWorkspacePage";
-import { SampleTimelinePage } from "./pages/SampleTimelinePage";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
+
+const SamplesPage = lazy(() => import("./pages/SamplesPage").then((module) => ({ default: module.SamplesPage })));
+const NewSamplePage = lazy(() => import("./pages/NewSamplePage").then((module) => ({ default: module.NewSamplePage })));
+const SamplePage = lazy(() => import("./pages/SamplePage").then((module) => ({ default: module.SamplePage })));
+const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
+const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
+const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
+const MetrologyTemplatePage = lazy(() => import("./pages/MetrologyTemplatePage").then((module) => ({ default: module.MetrologyTemplatePage })));
+const ProcessingPage = lazy(() => import("./pages/ProcessingPage").then((module) => ({ default: module.ProcessingPage })));
+const ProcessingWorkspacePage = lazy(() => import("./pages/ProcessingWorkspacePage").then((module) => ({ default: module.ProcessingWorkspacePage })));
+const SampleTimelinePage = lazy(() => import("./pages/SampleTimelinePage").then((module) => ({ default: module.SampleTimelinePage })));
 
 const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
   { to: "/processing", label: "Processing", icon: "processing" },
@@ -59,20 +60,22 @@ export function App() {
         </div>
       </header>
       <main>
-        <Routes>
-          <Route path="/" element={<Navigate to="/processing" replace />} />
-          <Route path="/processing" element={<ProcessingPage />} />
-          <Route path="/processing/:sampleId" element={<ProcessingWorkspacePage />} />
-          <Route path="/samples" element={<SamplesPage />} />
-          <Route path="/samples/new" element={<NewSamplePage />} />
-          <Route path="/samples/:sampleId/timeline" element={<SampleTimelinePage />} />
-          <Route path="/samples/:sampleId" element={<SamplePage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
-          <Route path="/templates/:templateId" element={<TemplatePage />} />
-          <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
-          <Route path="/export" element={<ExportPage />} />
-        </Routes>
+        <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/processing" replace />} />
+            <Route path="/processing" element={<ProcessingPage />} />
+            <Route path="/processing/:sampleId" element={<ProcessingWorkspacePage />} />
+            <Route path="/samples" element={<SamplesPage />} />
+            <Route path="/samples/new" element={<NewSamplePage />} />
+            <Route path="/samples/:sampleId/timeline" element={<SampleTimelinePage />} />
+            <Route path="/samples/:sampleId" element={<SamplePage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
+            <Route path="/templates/:templateId" element={<TemplatePage />} />
+            <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
+            <Route path="/export" element={<ExportPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );

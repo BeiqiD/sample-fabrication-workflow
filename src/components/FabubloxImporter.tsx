@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FabubloxImportPreview, ParsedFabubloxImage } from "../../shared/types";
-import { api, type TemplateRecord } from "../lib/api";
+import { api, type ProcessTemplateFamilyOption } from "../lib/api";
 import { parseFabuBloxWorkbook } from "../lib/fabublox";
 import { FileDropzone } from "./FileDropzone";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
@@ -22,19 +22,29 @@ function substrateStatus(preview: FabubloxImportPreview) {
 }
 
 interface FabubloxImporterProps {
-  templates: TemplateRecord[];
   onImported: (result: { templateVersionId: string; version: number; name: string }) => Promise<void>;
 }
 
-export function FabubloxImporter({ templates, onImported }: FabubloxImporterProps) {
+export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<FabubloxImportPreview | null>(null);
   const [recipeFamilyId, setRecipeFamilyId] = useState("");
+  const [families, setFamilies] = useState<ProcessTemplateFamilyOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [familyError, setFamilyError] = useState("");
   const images = useMemo(() => new Map(preview?.images.map((image) => [image.localId, image]) ?? []), [preview]);
-  const families = useMemo(() => [...new Map(templates
-    .map((template) => [template.recipeFamilyId, template])).values()], [templates]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api.listTemplateFamilyOptions(controller.signal).then(({ families }) => {
+      setFamilies(families);
+      setFamilyError("");
+    }).catch((error: Error) => {
+      if (error.name !== "AbortError") setFamilyError(`Existing process templates could not be loaded: ${error.message}`);
+    });
+    return () => controller.abort();
+  }, []);
 
   async function choose(nextFile: File | null) {
     if (!nextFile) { setFile(null); setPreview(null); setError(""); return; }
@@ -61,6 +71,7 @@ export function FabubloxImporter({ templates, onImported }: FabubloxImporterProp
       </div>
     </div>
     <FileDropzone accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" file={file} onFile={(nextFile) => void choose(nextFile)} label={busy && !preview ? "Inspecting workbook…" : "Drop a FabuBlox .xlsx workbook"} hint="Cell values, drawing relationships, anchor rows, and embedded layer-stack diagrams are inspected in the browser." />
+    {familyError && <p className="error-banner">{familyError}</p>}
     {error && <p className="error-banner">{error}</p>}
     {preview && <div className="import-preview">
       <div className="card preview-summary">
