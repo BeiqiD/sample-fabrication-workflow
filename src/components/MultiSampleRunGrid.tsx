@@ -423,9 +423,13 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
-    api.listTemplates().then(({ templates }) => {
+    const controller = new AbortController();
+    api.listTemplates(controller.signal).then(({ templates }) => {
       setTemplates(templates.filter((template) => template.templateKind === "metrology"));
-    }).catch((error: Error) => setError(error.message));
+    }).catch((error: Error) => {
+      if (error.name !== "AbortError") setError(error.message);
+    });
+    return () => controller.abort();
   }, []);
   const filtered = templates.filter((template) => {
     const haystack = `${template.name} ${template.toolName || ""} ${template.commentsText || ""}`.toLowerCase();

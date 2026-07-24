@@ -19,6 +19,7 @@ import { validateSubstrateTransition } from "./run-start";
 import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import { managedStorageStatus } from "./managed-storage";
+import { likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, searchTokens } from "./directory-query";
 import {
   serializeCommentSubmissions,
   type CommentSubmissionItemRow,
@@ -306,20 +307,175 @@ const sampleOverviewSelect = `
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
   LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
 
+const sampleDirectoryBaseSelect = `
+  SELECT s.id, s.code, s.title, s.status, s.location, s.parent_id, s.pinned,
+         s.updated_at, s.inherited_state_hash,
+         r.id AS latest_run_id,
+         r.sequence_no AS latest_run_sequence,
+         r.initial_state_hash AS latest_run_initial_state_hash,
+         COALESCE(ptv.name, r.template_name_snapshot) AS latest_workflow_name,
+         COALESCE(ptv.version, r.template_version_snapshot) AS latest_workflow_version,
+         r.status AS latest_run_status
+  FROM samples s
+  LEFT JOIN runs r ON r.id = (
+    SELECT latest.id
+    FROM runs latest
+    WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+    ORDER BY latest.sequence_no DESC
+    LIMIT 1
+  )
+  LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
+  LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
+
+function sampleDirectorySearch(query: string) {
+  const tokens = searchTokens(query);
+  if (!tokens.length) return { sql: "1 = 1", bindings: [] as string[] };
+  const haystack = `LOWER(
+    COALESCE(code, '') || ' ' ||
+    COALESCE(title, '') || ' ' ||
+    COALESCE(location, '') || ' ' ||
+    COALESCE(latest_workflow_name, '')
+  )`;
+  return { sql: repeatedLikeSql(haystack, tokens), bindings: likeBindings(tokens) };
+}
+
+function processingDirectoryWhere(filter: ReturnType<typeof processingDirectoryFilter>) {
+  if (filter === "complete") return "latest_run_status = 'complete'";
+  if (filter === "cancelled") return "latest_run_status = 'cancelled'";
+  if (filter === "all") return "1 = 1";
+  return "status = 'active' AND (latest_run_status = 'active' OR latest_run_status IS NULL)";
+}
+
 app.get("/samples", async (c) => {
   const query = c.req.query("q")?.trim() ?? "";
-  const pattern = escapedLikePattern(query);
-  const statement = query
-    ? c.env.DB.prepare(
-        `WITH sample_overview AS (${sampleOverviewSelect})
-         SELECT * FROM sample_overview
-         WHERE code LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR location LIKE ? ESCAPE '\\'
-           OR latest_workflow_name LIKE ? ESCAPE '\\'
-         ORDER BY pinned DESC, updated_at DESC`,
-      ).bind(pattern, pattern, pattern, pattern)
-    : c.env.DB.prepare(`${sampleOverviewSelect} ORDER BY s.pinned DESC, s.updated_at DESC`);
-  const result = await statement.all();
-  return c.json({ samples: result.results.map((row) => sampleSummary(row as never)) });
+  const processingView = c.req.query("view") === "processing";
+  const filter = processingDirectoryFilter(c.req.query("status"));
+  const { page, pageSize, offset } = readPagination(c.req.query("page"), c.req.query("pageSize"));
+  const search = sampleDirectorySearch(query);
+  const filterSql = processingView ? processingDirectoryWhere(filter) : "1 = 1";
+  const stateFields = processingView ? `,
+         (
+           SELECT COALESCE(rs.title, sd.name)
+           FROM run_steps rs
+           LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+           WHERE rs.run_id = filtered_samples.latest_run_id
+             AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+             AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+             AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
+               SELECT 1 FROM run_step_assets rsa
+               WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
+             ))
+           ORDER BY rs.position DESC LIMIT 1
+         ) AS current_state_step_title,
+         COALESCE(
+           (
+             SELECT a.r2_key
+             FROM run_steps rs
+             JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
+             JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
+             WHERE rs.run_id = filtered_samples.latest_run_id
+               AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+               AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+             ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
+           ),
+           (
+             SELECT a.r2_key
+             FROM state_representation_assets sra
+             JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
+             WHERE sra.state_hash = COALESCE(
+               (
+                 SELECT rs.expected_state_hash
+                 FROM run_steps rs
+                 WHERE rs.run_id = filtered_samples.latest_run_id
+                   AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+                   AND rs.expected_state_hash IS NOT NULL
+                   AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+                 ORDER BY rs.position DESC LIMIT 1
+               ),
+               filtered_samples.latest_run_initial_state_hash,
+               (
+                 SELECT rs.expected_state_hash
+                 FROM run_steps rs
+                 JOIN runs earlier ON earlier.id = rs.run_id
+                 WHERE earlier.sample_id = filtered_samples.id
+                   AND earlier.run_kind = 'process'
+                   AND (
+                     filtered_samples.latest_run_sequence IS NULL
+                     OR earlier.sequence_no < filtered_samples.latest_run_sequence
+                   )
+                   AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+                   AND rs.expected_state_hash IS NOT NULL
+                   AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
+                 ORDER BY earlier.sequence_no DESC, rs.position DESC LIMIT 1
+               ),
+               filtered_samples.inherited_state_hash
+             )
+             ORDER BY sra.position, a.id LIMIT 1
+           )
+         ) AS current_state_thumbnail_key` : `,
+         NULL AS current_state_step_title,
+         NULL AS current_state_thumbnail_key`;
+  const pageSql = `
+    WITH sample_base AS (${sampleDirectoryBaseSelect}),
+    filtered_samples AS (
+      SELECT *
+      FROM sample_base
+      WHERE ${search.sql} AND ${filterSql}
+      ORDER BY pinned DESC, updated_at DESC, id
+      LIMIT ? OFFSET ?
+    )
+    SELECT filtered_samples.*,
+           (
+             SELECT COALESCE(rs.title, sd.name)
+             FROM run_steps rs
+             LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+             WHERE rs.run_id = filtered_samples.latest_run_id
+               AND rs.plan_status = 'current'
+               AND rs.entry_kind = 'fabrication'
+               AND rs.status NOT IN ('done', 'skipped')
+             ORDER BY rs.position
+             LIMIT 1
+           ) AS current_step_title
+           ${stateFields}
+    FROM filtered_samples
+    ORDER BY pinned DESC, updated_at DESC, id`;
+  const countSql = processingView
+    ? `WITH sample_base AS (${sampleDirectoryBaseSelect})
+       SELECT COUNT(*) AS all_count,
+              COALESCE(SUM(CASE WHEN status = 'active' AND (latest_run_status = 'active' OR latest_run_status IS NULL) THEN 1 ELSE 0 END), 0) AS active_count,
+              COALESCE(SUM(CASE WHEN latest_run_status = 'complete' THEN 1 ELSE 0 END), 0) AS complete_count,
+              COALESCE(SUM(CASE WHEN latest_run_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count
+       FROM sample_base WHERE ${search.sql}`
+    : `WITH sample_base AS (${sampleDirectoryBaseSelect})
+       SELECT COUNT(*) AS all_count FROM sample_base WHERE ${search.sql}`;
+  const d1Started = performance.now();
+  const [result, countRow] = await Promise.all([
+    c.env.DB.prepare(pageSql).bind(...search.bindings, pageSize, offset).all(),
+    c.env.DB.prepare(countSql).bind(...search.bindings).first<{
+      all_count: number;
+      active_count?: number;
+      complete_count?: number;
+      cancelled_count?: number;
+    }>(),
+  ]);
+  const d1Duration = performance.now() - d1Started;
+  const facets = processingView ? {
+    active: Number(countRow?.active_count ?? 0),
+    complete: Number(countRow?.complete_count ?? 0),
+    cancelled: Number(countRow?.cancelled_count ?? 0),
+    all: Number(countRow?.all_count ?? 0),
+  } : undefined;
+  const total = facets ? facets[filter] : Number(countRow?.all_count ?? 0);
+  const serializeStarted = performance.now();
+  const payload = {
+    samples: result.results.map((row) => sampleSummary(row as never)),
+    pagination: paginationMeta(total, page, pageSize),
+    ...(facets ? { facets } : {}),
+  };
+  const serializeDuration = performance.now() - serializeStarted;
+  const response = c.json(payload);
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}`);
+  return response;
 });
 
 app.post("/samples", async (c) => {
@@ -2633,12 +2789,256 @@ app.post("/imports/fabublox", async (c) => {
   }
 });
 
+type ProcessTemplateDirectoryRow = {
+  id: string;
+  recipe_family_id: string;
+  name: string;
+  template_type: "process" | "module" | "recipe";
+  version: number;
+  source_filename: string | null;
+  step_count: number;
+  initial_state_hash: string | null;
+  has_initial_substrate_step: number;
+  initial_asset_count: number;
+  locked_at: string | null;
+  created_at: string;
+  version_count?: number;
+};
+
+function processTemplateVersionSummary(row: ProcessTemplateDirectoryRow) {
+  return {
+    id: row.id,
+    recipeFamilyId: row.recipe_family_id,
+    name: row.name,
+    templateType: row.template_type,
+    version: Number(row.version),
+    sourceFilename: row.source_filename,
+    stepCount: Number(row.step_count),
+    initialStateHash: row.initial_state_hash,
+    hasInitialSubstrateStep: Boolean(row.has_initial_substrate_step),
+    initialStateImageCount: Number(row.initial_asset_count),
+    locked: Boolean(row.locked_at),
+    createdAt: row.created_at,
+  };
+}
+
+const visibleProcessTemplateSql = (alias: string) => `
+  ${alias}.template_kind = 'process'
+  AND ${alias}.archived_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM imports hidden_import
+    WHERE hidden_import.template_version_id = ${alias}.id
+      AND hidden_import.status != 'ready'
+  )`;
+
+function processTemplateFamilySearch(query: string, familyAlias: string) {
+  const tokens = searchTokens(query);
+  if (!tokens.length) return { sql: "1 = 1", bindings: [] as string[] };
+  const haystack = `LOWER(
+    COALESCE(candidate.name, '') || ' ' ||
+    COALESCE(candidate.template_type, '') || ' process fabrication ' ||
+    COALESCE(candidate.source_filename, '') || ' v' ||
+    CAST(candidate.version AS TEXT) || ' version ' ||
+    CAST(candidate.version AS TEXT) || ' ' ||
+    CAST((SELECT COUNT(*) FROM template_steps search_steps WHERE search_steps.template_version_id = candidate.id) AS TEXT) ||
+    ' steps ' || CASE WHEN candidate.locked_at IS NULL THEN 'editable' ELSE 'locked' END
+  )`;
+  return {
+    sql: `EXISTS (
+      SELECT 1
+      FROM template_versions candidate
+      WHERE candidate.recipe_family_id = ${familyAlias}.recipe_family_id
+        AND ${visibleProcessTemplateSql("candidate")}
+        AND ${repeatedLikeSql(haystack, tokens)}
+    )`,
+    bindings: likeBindings(tokens),
+  };
+}
+
+function metrologyTemplateSearch(query: string) {
+  const tokens = searchTokens(query);
+  if (!tokens.length) return { sql: "1 = 1", bindings: [] as string[] };
+  const haystack = `LOWER(
+    COALESCE(tv.name, '') || ' metrology ' ||
+    COALESCE(sd.tool_name, '') || ' ' ||
+    COALESCE(sd.parameters_text, '') || ' ' ||
+    COALESCE(sd.comments_text, '')
+  )`;
+  return { sql: repeatedLikeSql(haystack, tokens), bindings: likeBindings(tokens) };
+}
+
+const processTemplateDirectoryColumns = `
+  tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.version,
+  tv.source_filename, tv.initial_state_hash, tv.locked_at, tv.created_at,
+  (SELECT COUNT(*) FROM template_steps ts WHERE ts.template_version_id = tv.id) AS step_count,
+  CASE WHEN json_valid(tv.content_json)
+    AND json_type(tv.content_json, '$.initialSubstrateStep') = 'object'
+    THEN 1 ELSE 0 END AS has_initial_substrate_step,
+  (SELECT COUNT(*)
+   FROM state_representation_assets sra
+   JOIN assets initial_asset ON initial_asset.id = sra.asset_id AND initial_asset.status = 'ready'
+   WHERE sra.state_hash = tv.initial_state_hash) AS initial_asset_count`;
+
+app.get("/template-families/options", async (c) => {
+  const d1Started = performance.now();
+  const result = await c.env.DB.prepare(
+    `SELECT tv.recipe_family_id, tv.name, tv.version
+     FROM template_versions tv
+     WHERE ${visibleProcessTemplateSql("tv")}
+       AND NOT EXISTS (
+         SELECT 1 FROM template_versions newer
+         WHERE newer.recipe_family_id = tv.recipe_family_id
+           AND ${visibleProcessTemplateSql("newer")}
+           AND newer.version > tv.version
+       )
+     ORDER BY tv.name, tv.template_type, tv.recipe_family_id`,
+  ).all<{ recipe_family_id: string; name: string; version: number }>();
+  const d1Duration = performance.now() - d1Started;
+  const serializeStarted = performance.now();
+  const payload = { families: result.results.map((row) => ({
+    recipeFamilyId: row.recipe_family_id,
+    name: row.name,
+    latestVersion: Number(row.version),
+  })) };
+  const serializeDuration = performance.now() - serializeStarted;
+  const response = c.json(payload);
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}`);
+  return response;
+});
+
+app.get("/template-families", async (c) => {
+  const query = c.req.query("q")?.trim() ?? "";
+  const { page, pageSize, offset } = readPagination(c.req.query("page"), c.req.query("pageSize"), 20);
+  const search = processTemplateFamilySearch(query, "tv");
+  const latestWhere = `
+    ${visibleProcessTemplateSql("tv")}
+    AND NOT EXISTS (
+      SELECT 1 FROM template_versions newer
+      WHERE newer.recipe_family_id = tv.recipe_family_id
+        AND ${visibleProcessTemplateSql("newer")}
+        AND newer.version > tv.version
+    )
+    AND ${search.sql}`;
+  const d1Started = performance.now();
+  const [result, countRow] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT ${processTemplateDirectoryColumns},
+              (SELECT COUNT(*) FROM template_versions family_version
+               WHERE family_version.recipe_family_id = tv.recipe_family_id
+                 AND ${visibleProcessTemplateSql("family_version")}) AS version_count
+       FROM template_versions tv
+       WHERE ${latestWhere}
+       ORDER BY tv.name, tv.template_type, tv.recipe_family_id
+       LIMIT ? OFFSET ?`,
+    ).bind(...search.bindings, pageSize, offset).all<ProcessTemplateDirectoryRow>(),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS total
+       FROM template_versions tv
+       WHERE ${latestWhere}`,
+    ).bind(...search.bindings).first<{ total: number }>(),
+  ]);
+  const d1Duration = performance.now() - d1Started;
+  const serializeStarted = performance.now();
+  const payload = {
+    families: result.results.map((row) => ({
+      recipeFamilyId: row.recipe_family_id,
+      name: row.name,
+      templateType: row.template_type,
+      latestVersion: Number(row.version),
+      versionCount: Number(row.version_count ?? 1),
+      latest: processTemplateVersionSummary(row),
+    })),
+    pagination: paginationMeta(Number(countRow?.total ?? 0), page, pageSize),
+  };
+  const serializeDuration = performance.now() - serializeStarted;
+  const response = c.json(payload);
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}`);
+  return response;
+});
+
+app.get("/template-families/:id/versions", async (c) => {
+  const recipeFamilyId = c.req.param("id");
+  const search = processTemplateFamilySearch(c.req.query("q")?.trim() ?? "", "tv");
+  const d1Started = performance.now();
+  const result = await c.env.DB.prepare(
+    `SELECT ${processTemplateDirectoryColumns}
+     FROM template_versions tv
+     WHERE tv.recipe_family_id = ?
+       AND ${visibleProcessTemplateSql("tv")}
+       AND ${search.sql}
+     ORDER BY tv.version DESC, tv.created_at DESC`,
+  ).bind(recipeFamilyId, ...search.bindings).all<ProcessTemplateDirectoryRow>();
+  const d1Duration = performance.now() - d1Started;
+  const serializeStarted = performance.now();
+  const payload = { versions: result.results.map(processTemplateVersionSummary) };
+  const serializeDuration = performance.now() - serializeStarted;
+  const response = c.json(payload);
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}`);
+  return response;
+});
+
+app.get("/metrology-templates", async (c) => {
+  const query = c.req.query("q")?.trim() ?? "";
+  const { page, pageSize, offset } = readPagination(c.req.query("page"), c.req.query("pageSize"), 25);
+  const search = metrologyTemplateSearch(query);
+  const fromSql = `
+    FROM template_versions tv
+    LEFT JOIN template_steps ts ON ts.template_version_id = tv.id AND ts.position = 0
+    LEFT JOIN step_definitions sd ON sd.hash = ts.definition_hash
+    WHERE tv.template_kind = 'metrology'
+      AND tv.archived_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM imports hidden_import
+        WHERE hidden_import.template_version_id = tv.id
+          AND hidden_import.status != 'ready'
+      )
+      AND ${search.sql}`;
+  const d1Started = performance.now();
+  const [result, countRow] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT tv.id, tv.name, tv.created_at, sd.tool_name,
+              CASE WHEN NULLIF(TRIM(sd.parameters_text), '') IS NOT NULL
+                     OR NULLIF(TRIM(sd.comments_text), '') IS NOT NULL
+                   THEN 1 ELSE 0 END AS has_default_content
+       ${fromSql}
+       ORDER BY tv.name, tv.created_at DESC, tv.id
+       LIMIT ? OFFSET ?`,
+    ).bind(...search.bindings, pageSize, offset).all<{
+      id: string;
+      name: string;
+      created_at: string;
+      tool_name: string | null;
+      has_default_content: number;
+    }>(),
+    c.env.DB.prepare(`SELECT COUNT(*) AS total ${fromSql}`)
+      .bind(...search.bindings).first<{ total: number }>(),
+  ]);
+  const d1Duration = performance.now() - d1Started;
+  const serializeStarted = performance.now();
+  const payload = {
+    templates: result.results.map((row) => ({
+      id: row.id,
+      name: row.name,
+      toolName: row.tool_name,
+      hasDefaultContent: Boolean(row.has_default_content),
+      createdAt: row.created_at,
+    })),
+    pagination: paginationMeta(Number(countRow?.total ?? 0), page, pageSize),
+  };
+  const serializeDuration = performance.now() - serializeStarted;
+  const response = c.json(payload);
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}`);
+  return response;
+});
+
 app.get("/templates", async (c) => {
+  const pickerView = c.req.query("view") === "picker";
+  const d1Started = performance.now();
   const [result, initialAssetRows] = await Promise.all([
     c.env.DB.prepare(
     `SELECT tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.template_kind,
             tv.version, tv.manifest_hash,
-            tv.initial_state_hash, tv.source_filename, tv.content_json, tv.created_at,
+            tv.initial_state_hash, tv.source_filename, ${pickerView ? "NULL" : "tv.content_json"} AS content_json, tv.created_at,
             tv.locked_at, tv.archived_at,
             (SELECT COUNT(*) FROM template_steps ts WHERE ts.template_version_id = tv.id) AS step_count,
             (SELECT sd.tool_name FROM template_steps ts JOIN step_definitions sd ON sd.hash = ts.definition_hash
@@ -2670,7 +3070,7 @@ app.get("/templates", async (c) => {
     parameters_text: string | null;
     comments_text: string | null;
   }>(),
-    c.env.DB.prepare(
+    pickerView ? Promise.resolve({ results: [] as Array<{ template_version_id: string; r2_key: string }> }) : c.env.DB.prepare(
       `SELECT tv.id AS template_version_id, a.r2_key
        FROM template_versions tv
        JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
@@ -2683,7 +3083,9 @@ app.get("/templates", async (c) => {
   for (const row of initialAssetRows.results) {
     initialAssets.set(row.template_version_id, [...(initialAssets.get(row.template_version_id) ?? []), row.r2_key]);
   }
-  return c.json({ templates: result.results.map((row) => ({
+  const d1Duration = performance.now() - d1Started;
+  const serializeStarted = performance.now();
+  const payload = { templates: result.results.map((row) => ({
     id: row.id,
     recipeFamilyId: row.recipe_family_id,
     name: row.name,
@@ -2698,11 +3100,15 @@ app.get("/templates", async (c) => {
     commentsText: row.comments_text,
     initialStateHash: row.initial_state_hash,
     initialStateImageKeys: initialAssets.get(row.id) ?? [],
-    initialSubstrateStep: parseInitialSubstrateStep(row.content_json),
+    initialSubstrateStep: pickerView ? null : parseInitialSubstrateStep(row.content_json),
     locked: Boolean(row.locked_at),
     lockedAt: row.locked_at,
     createdAt: row.created_at,
-  })) });
+  })) };
+  const serializeDuration = performance.now() - serializeStarted;
+  const response = c.json(payload);
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}`);
+  return response;
 });
 
 app.post("/metrology-templates", async (c) => {

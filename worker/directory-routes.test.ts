@@ -1,0 +1,208 @@
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+import { describe, expect, it } from "vitest";
+import worker from "./index";
+import type { Env } from "./types";
+
+class SqliteD1Statement {
+  constructor(
+    private readonly database: DatabaseSync,
+    private readonly sql: string,
+    private readonly bindings: unknown[] = [],
+  ) {}
+
+  bind(...values: unknown[]) {
+    return new SqliteD1Statement(this.database, this.sql, values);
+  }
+
+  async all<T>() {
+    return {
+      results: this.database.prepare(this.sql).all(...this.bindings) as T[],
+      success: true,
+      meta: { changes: 0 },
+    };
+  }
+
+  async first<T>() {
+    return (this.database.prepare(this.sql).get(...this.bindings) as T | undefined) ?? null;
+  }
+
+  async run() {
+    const result = this.database.prepare(this.sql).run(...this.bindings);
+    return { results: [], success: true, meta: { changes: Number(result.changes) } };
+  }
+}
+
+function testDatabase() {
+  const database = new DatabaseSync(":memory:");
+  for (let index = 1; index <= 7; index += 1) {
+    const prefix = String(index).padStart(4, "0");
+    const filename = [
+      "alpha_state_chain",
+      "run_initial_state",
+      "release_unreferenced_templates",
+      "sync_sample_run_status",
+      "comment_submissions",
+      "metrology_templates",
+      "directory_performance",
+    ][index - 1];
+    database.exec(readFileSync(new URL(`../migrations/${prefix}_${filename}.sql`, import.meta.url), "utf8"));
+  }
+  return database;
+}
+
+function seedDirectory(database: DatabaseSync) {
+  const insertSample = database.prepare(
+    `INSERT INTO samples
+      (id, code, title, status, location, pinned, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (let index = 1; index <= 125; index += 1) {
+    const id = `sample-${String(index).padStart(3, "0")}`;
+    const timestamp = `2026-07-${String((index % 24) + 1).padStart(2, "0")}T10:00:00.000Z`;
+    insertSample.run(
+      id,
+      `PERF-${String(index).padStart(3, "0")}`,
+      index === 78 ? "AFM calibration wafer" : `Performance sample ${index}`,
+      index <= 30 ? "active" : "stored",
+      `Box ${Math.ceil(index / 10)}`,
+      index <= 2 ? 1 : 0,
+      timestamp,
+      timestamp,
+    );
+  }
+
+  database.prepare(
+    `INSERT INTO step_definitions
+      (hash, name, canonical_json, created_at)
+     VALUES ('directory-step', 'Etch', '{}', '2026-07-01T00:00:00.000Z')`,
+  ).run();
+  const insertFamily = database.prepare(
+    `INSERT INTO recipe_families (id, name, template_type, created_at)
+     VALUES (?, ?, 'process', '2026-07-01T00:00:00.000Z')`,
+  );
+  const insertVersion = database.prepare(
+    `INSERT INTO template_versions
+      (id, recipe_family_id, name, template_type, version, manifest_hash, content_json, created_at, template_kind)
+     VALUES (?, ?, ?, 'process', ?, ?, ?, ?, 'process')`,
+  );
+  const insertStep = database.prepare(
+    `INSERT INTO template_steps
+      (id, template_version_id, logical_step_key, position, definition_hash, raw_json)
+     VALUES (?, ?, ?, 0, 'directory-step', '{}')`,
+  );
+  for (let family = 1; family <= 25; family += 1) {
+    const familyId = `process-family-${family}`;
+    const name = family === 14 ? "AFM surface preparation" : `Process family ${String(family).padStart(2, "0")}`;
+    insertFamily.run(familyId, name);
+    for (let version = 1; version <= 2; version += 1) {
+      const versionId = `${familyId}-v${version}`;
+      insertVersion.run(
+        versionId,
+        familyId,
+        name,
+        version,
+        `${familyId}-manifest-${version}`,
+        JSON.stringify({ initialSubstrateStep: { stepNumber: "0", name: "Substrate Stack" } }),
+        `2026-07-${String(version).padStart(2, "0")}T00:00:00.000Z`,
+      );
+      insertStep.run(`${versionId}-step`, versionId, `${familyId}:step`);
+    }
+  }
+
+  const runFamily = "process-family-1";
+  const runTemplate = `${runFamily}-v2`;
+  const insertRun = database.prepare(
+    `INSERT INTO runs
+      (id, sample_id, recipe_family_id, template_version_id, sequence_no, run_group_id,
+       template_name_snapshot, template_type_snapshot, template_version_snapshot,
+       status, created_at, run_kind)
+     VALUES (?, ?, ?, ?, 1, ?, 'Process family 01', 'process', 2, ?, '2026-07-24T10:00:00.000Z', 'process')`,
+  );
+  for (let index = 1; index <= 25; index += 1) {
+    const status = index <= 10 ? "active" : index <= 18 ? "complete" : "cancelled";
+    const runId = `run-${index}`;
+    insertRun.run(runId, `sample-${String(index <= 10 ? index : index + 20).padStart(3, "0")}`, runFamily, runTemplate, runId, status);
+  }
+}
+
+function testEnv(database: DatabaseSync): Env {
+  return {
+    AUTH_MODE: "disabled",
+    DB: {
+      prepare: (sql: string) => new SqliteD1Statement(database, sql),
+    } as unknown as D1Database,
+    ASSETS: {} as R2Bucket,
+  };
+}
+
+const executionContext = {
+  waitUntil: () => undefined,
+  passThroughOnException: () => undefined,
+  props: {},
+} as unknown as ExecutionContext;
+
+async function get(env: Env, path: string) {
+  return worker.fetch(new Request(`https://app.test${path}`), env, executionContext);
+}
+
+describe("paginated directory routes", () => {
+  it("paginates lightweight sample rows with stable totals and timing", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    const response = await get(testEnv(database), "/api/samples?page=2&pageSize=50");
+    const payload = await response.json() as {
+      samples: Array<{ code: string; currentStateThumbnailKey: string | null }>;
+      pagination: { page: number; pageSize: number; total: number; totalPages: number };
+    };
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("server-timing")).toMatch(/d1;dur=.*serialize;dur=/);
+    expect(payload.pagination).toEqual({ page: 2, pageSize: 50, total: 125, totalPages: 3 });
+    expect(payload.samples).toHaveLength(50);
+    expect(payload.samples.every((sample) => sample.currentStateThumbnailKey === null)).toBe(true);
+  });
+
+  it("filters processing on the server and returns full-query facets", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    const response = await get(testEnv(database), "/api/samples?view=processing&status=complete&pageSize=5");
+    const payload = await response.json() as {
+      samples: Array<{ latestRunStatus: string }>;
+      pagination: { total: number; totalPages: number };
+      facets: { active: number; complete: number; cancelled: number; all: number };
+    };
+
+    expect(payload.samples).toHaveLength(5);
+    expect(payload.samples.every((sample) => sample.latestRunStatus === "complete")).toBe(true);
+    expect(payload.pagination).toMatchObject({ total: 8, totalPages: 2 });
+    expect(payload.facets).toEqual({ active: 30, complete: 8, cancelled: 7, all: 125 });
+  });
+
+  it("paginates process families, lazy-loads versions, and searches both template kinds", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    const env = testEnv(database);
+    const familyResponse = await get(env, "/api/template-families?page=2&pageSize=20");
+    const familyPayload = await familyResponse.json() as {
+      families: Array<{ recipeFamilyId: string; versionCount: number; latest: { version: number } }>;
+      pagination: { total: number; totalPages: number };
+    };
+    const versionsResponse = await get(env, "/api/template-families/process-family-1/versions");
+    const versionsPayload = await versionsResponse.json() as { versions: Array<{ version: number }> };
+    const processSearch = await (await get(env, "/api/template-families?q=AFM")).json() as { pagination: { total: number } };
+    const metrologySearch = await (await get(env, "/api/metrology-templates?q=AFM&pageSize=2")).json() as {
+      templates: Array<{ name: string }>;
+      pagination: { total: number };
+    };
+
+    expect(familyResponse.headers.get("server-timing")).toContain("d1;dur=");
+    expect(familyPayload.pagination).toEqual({ page: 2, pageSize: 20, total: 25, totalPages: 2 });
+    expect(familyPayload.families).toHaveLength(5);
+    expect(familyPayload.families.every((family) => family.versionCount === 2 && family.latest.version === 2)).toBe(true);
+    expect(versionsPayload.versions.map((version) => version.version)).toEqual([2, 1]);
+    expect(processSearch.pagination.total).toBe(1);
+    expect(metrologySearch.pagination.total).toBe(1);
+    expect(metrologySearch.templates[0]?.name).toBe("AFM");
+  });
+});

@@ -50,7 +50,13 @@ export function ProcessingWorkspacePage() {
   }, [sampleId, additionalKey]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { api.listTemplates().then(({ templates }) => setTemplates(templates)).catch((error: Error) => setError(error.message)); }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    api.listTemplates(controller.signal).then(({ templates }) => setTemplates(templates)).catch((error: Error) => {
+      if (error.name !== "AbortError") setError(error.message);
+    });
+    return () => controller.abort();
+  }, []);
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
 
@@ -75,10 +81,18 @@ export function ProcessingWorkspacePage() {
 
   useEffect(() => {
     if (!showSamplePicker) return;
+    const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      api.listSamples(sampleQuery).then(({ samples }) => setSampleResults(samples)).catch((error: Error) => setError(error.message));
-    }, 160);
-    return () => window.clearTimeout(timeout);
+      api.listSamples({ query: sampleQuery, pageSize: 20, signal: controller.signal })
+        .then(({ samples }) => setSampleResults(samples))
+        .catch((error: Error) => {
+          if (error.name !== "AbortError") setError(error.message);
+        });
+    }, sampleQuery.trim() ? 160 : 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [sampleQuery, showSamplePicker]);
 
   function updateSearchParams(updates: { with?: string[]; run?: string }) {
