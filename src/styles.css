@@ -402,7 +402,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .cell-actions button.done-action { padding-inline: 8px; color: var(--accent-contrast); background: var(--accent); }
 .cell-actions button:hover { background: var(--accent-soft); }
 .cell-actions button:disabled { opacity: .45; cursor: wait; }
-.cell-actions button.add-entry-action { display: grid; place-items: center; padding: 0; }
 .cell-actions.metrology-cell-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cell-actions.metrology-cell-actions:not(:has(.add-entry-action)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .state-action-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 7px; background: color-mix(in srgb, var(--paper) 80%, transparent); }
@@ -626,7 +625,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-note-content > p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .sample-note-content > .comment-upload-state, .sample-note-content > .sample-note-attachments { grid-column: 1 / -1; }
 .sample-note-images { max-width: 304px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.sample-note-image img { display: block; width: 92px; height: 72px; border: 1px solid var(--line); border-radius: 8px; object-fit: cover; background: var(--surface-muted); }
+.sample-note-images > .grid-diagrams { justify-content: flex-end; margin-top: 0; }
+.sample-note-images .grid-diagrams.photo-thumbnails .grid-diagram-item > button:first-child { width: 92px; height: 72px; border-radius: 8px; }
 .sample-note-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .sample-note-footer > span { min-width: 0; overflow-wrap: anywhere; }
 .sample-note-footer > div { flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
@@ -859,7 +859,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .sample-note-heading time { white-space: normal; }
   .sample-note-footer > div { justify-content: flex-start; }
   .sample-note-content { grid-template-columns: minmax(0, 1fr) 76px; }
-  .sample-note-image img { width: 76px; height: 62px; }
+  .sample-note-images .grid-diagrams.photo-thumbnails .grid-diagram-item > button:first-child { width: 76px; height: 62px; }
   .sample-secondary-grid { gap: 34px; margin-top: 34px; padding-top: 30px; }
   .timeline-page-toolbar { align-items: flex-start; flex-direction: column; }
   .timeline-filters { width: 100%; }

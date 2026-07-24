@@ -4,6 +4,7 @@ import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEv
 import { ActionIcon } from "../components/ActionIcon";
 import { CommentComposer, CommentSubmissionRecovery } from "../components/CommentComposer";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
+import { DiagramGallery } from "../components/MultiSampleRunGrid";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { SampleTimeline } from "../components/SampleTimeline";
 import { SplitSampleDialog } from "../components/SplitSampleDialog";
@@ -218,9 +219,11 @@ export function SamplePage() {
           <div className="sample-note-content">
             {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
             <p>{note.body}</p>
-            {note.images.some((image) => image.assetKey) && <div className="sample-note-images">{note.images.flatMap((image) => image.assetKey
-              ? [<a className="sample-note-image" href={`/api/assets/${image.assetKey}`} target="_blank" rel="noreferrer" key={image.id}><img src={`/api/assets/${image.assetKey}`} alt={note.body || note.label} loading="lazy" /></a>]
-              : [])}</div>}
+            {note.images.some((image) => image.assetKey) && <div className="sample-note-images"><DiagramGallery
+              keys={note.images.flatMap((image) => image.assetKey ? [image.assetKey] : [])}
+              label={`${note.label} photo`}
+              kind="photo"
+            /></div>}
             {note.attachments.length > 0 && <div className="sample-note-attachments">
               <small>Attachments</small>
               {note.attachments.map((attachment) => attachment.kind === "link"
