@@ -547,6 +547,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .initial-state-preview-images { flex: 0 0 min(240px, 42%); margin-top: 0; }
 .initial-state-preview .layer-thumbnail { display: block; width: 100%; max-height: 190px; object-fit: contain; }
 .template-initial-state { padding: 20px; }
+.template-initial-state.has-diagrams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 28%); align-items: start; gap: 20px; }
+.template-initial-state .template-diagram-gallery { justify-content: flex-end; margin-top: 0; }
 .initial-state-preview.missing-initial-state { border-color: color-mix(in srgb, var(--danger) 32%, var(--line)); }
 .split-setup-grid { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: 16px; }
 .split-setup-grid label, .split-piece-fields label { min-width: 0; display: grid; align-content: start; gap: 7px; color: var(--ink); font-size: 13px; font-weight: 700; }
@@ -732,9 +734,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .template-step-number { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); font-size: 13px; font-weight: 750; }
 .template-step-body { min-width: 0; }
 .template-step-body .card-title { margin: 1px 0 3px; }
+.template-step-tool { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .template-step-content { margin-top: 14px; }
-.template-diagram-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: var(--font-meta); }
-.template-diagram-summary > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; }
+.template-step-content.has-diagrams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(76px, 166px); gap: 18px; align-items: start; }
+.template-step-content .template-diagram-gallery { justify-content: flex-end; margin-top: 0; }
+.template-step-content .template-diagram-gallery .grid-diagram-item > button:first-child { width: 76px; height: 56px; }
 .new-template-step { margin: 0; }
 
 @media (max-width: 920px) {
@@ -823,8 +827,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .template-detail-list { grid-template-columns: 72px minmax(0, 1fr); gap: 6px 10px; }
   .template-detail-list dt { font-size: 9px; line-height: 1.5; }
   .template-detail-list dd { font-size: 12.5px; line-height: 1.5; }
-  .template-diagram-summary { flex-direction: column; }
-  .template-diagram-summary > div { justify-content: flex-start; }
+  .template-step-content.has-diagrams { grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; }
+  .template-step-content .template-diagram-gallery { display: grid; grid-template-columns: 64px; justify-content: end; }
+  .template-step-content .template-diagram-gallery .grid-diagram-item,
+  .template-step-content .template-diagram-gallery .grid-diagram-item > button:first-child { width: 64px; }
+  .template-step-content .template-diagram-gallery .grid-diagram-item > button:first-child { height: 48px; }
   .file-dropzone.compact { align-items: flex-start; flex-direction: column; }
   .file-dropzone .text-button { margin-left: 0; }
   .execution-heading, .run-grid-toolbar { align-items: stretch; flex-direction: column; }
@@ -889,6 +896,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .finish-run-action, .initial-state-preview { align-items: stretch; flex-direction: column; }
   .finish-run-action .button { width: 100%; }
   .initial-state-preview-images { flex-basis: auto; width: 100%; }
+  .template-initial-state.has-diagrams { grid-template-columns: minmax(0, 1fr) 96px; gap: 12px; }
+  .template-initial-state .template-diagram-gallery { display: grid; grid-template-columns: 96px; justify-content: end; }
+  .template-initial-state .template-diagram-gallery .grid-diagram-item,
+  .template-initial-state .template-diagram-gallery .grid-diagram-item > button:first-child { width: 96px; }
+  .template-initial-state .template-diagram-gallery .grid-diagram-item > button:first-child { height: 68px; }
   .split-setup-grid, .split-review-summary, .split-piece-fields { grid-template-columns: 1fr; }
   .split-common-location, .split-piece-description { grid-column: auto; }
   .split-piece summary { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }

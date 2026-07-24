@@ -110,12 +110,13 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
   </>;
 }
 
-function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDelete }: {
+export function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
   keys: string[];
   label: string;
   kind?: GalleryKind;
   size?: GallerySize;
   onDelete?: (key: string) => void;
+  className?: string;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -191,7 +192,7 @@ function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDel
     </div>
   </div>, document.body);
   return <>
-    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails`} role="list">{keys.map((key, index) => {
+    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list">{keys.map((key, index) => {
       const src = `/api/assets/${key}`;
       return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}>
         {kind === "diagram" ? <DiagramThumbnail src={src} alt={label} /> : <img src={src} alt={label} loading="lazy" />}
