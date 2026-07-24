@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RunStep } from "../../shared/types";
-import { runStepIsModified } from "./runSteps";
+import { runStepIsModified, runStepIsReadOnly } from "./runSteps";
 
 function step(overrides: Partial<RunStep> = {}): RunStep {
   return {
@@ -17,4 +17,25 @@ describe("sample run deviations", () => {
   it("keeps an execution comment separate from recipe changes", () => expect(runStepIsModified(step({ notes: "Process completed normally" }))).toBe(false));
   it("marks changed actual parameters", () => expect(runStepIsModified(step({ parametersText: "12 s" }))).toBe(true));
   it("always marks ad hoc steps", () => expect(runStepIsModified(step({ origin: "ad_hoc", plannedTitle: null }))).toBe(true));
+});
+
+describe("completed-run editing", () => {
+  it("keeps fabrication steps read-only in a completed run", () => {
+    expect(runStepIsReadOnly(true, true, step())).toBe(true);
+  });
+
+  it.each(["pending", "done", "skipped"] as const)(
+    "keeps a %s metrology record editable in a completed run",
+    (status) => {
+      expect(runStepIsReadOnly(true, true, step({ entryKind: "metrology", status }))).toBe(false);
+    },
+  );
+
+  it("keeps every step editable while its run is active", () => {
+    expect(runStepIsReadOnly(false, false, step())).toBe(false);
+  });
+
+  it("keeps metrology records read-only when a run was cancelled", () => {
+    expect(runStepIsReadOnly(true, false, step({ entryKind: "metrology" }))).toBe(true);
+  });
 });

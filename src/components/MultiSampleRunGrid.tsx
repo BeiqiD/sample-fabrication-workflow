@@ -5,7 +5,7 @@ import { api, type MetrologyTemplateInput, type TemplateRecord } from "../lib/ap
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
-import { runStepIsModified } from "../lib/runSteps";
+import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { FileDropzone } from "./FileDropzone";
@@ -652,7 +652,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       onAddFabrication={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
       onAddMetrology={() => setMetrologyDrawer({ column, afterStepId: step.id })}
       allowAdd={primaryRun.runKind === "process"}
-      readOnly={readOnly && !(step.entryKind === "metrology" && !["done", "skipped"].includes(step.status))}
+      readOnly={runStepIsReadOnly(readOnly, primaryRun.status === "complete", step)}
     />;
   }
 
@@ -785,7 +785,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, commentContex
     {!readOnly && <div className={`cell-actions${metrology ? " metrology-cell-actions" : ""}`}>
       <button type="button" className="done-action" disabled={busy || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
       <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
-      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} disabled={busy || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add</button>}
+      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} disabled={busy || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
       {!metrology && <button type="button" disabled={busy} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
     </div>}
     {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={busy} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={busy} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
