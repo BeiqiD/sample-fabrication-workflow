@@ -548,7 +548,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .initial-state-preview .layer-thumbnail { display: block; width: 100%; max-height: 190px; object-fit: contain; }
 .template-initial-state { padding: 20px; }
 .template-initial-state.has-diagrams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 30%); align-items: start; gap: 20px; }
-.template-initial-state .template-diagram-gallery { justify-content: flex-end; margin-top: 0; }
+.template-initial-state .template-diagram-gallery { align-self: center; justify-self: center; justify-content: center; margin-top: 0; }
 .template-initial-state .template-diagram-gallery .grid-diagram-item,
 .template-initial-state .template-diagram-gallery .grid-diagram-item > button:first-child { width: 200px; }
 .template-initial-state .template-diagram-gallery .grid-diagram-item > button:first-child { height: 104px; }
@@ -743,7 +743,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .template-step-tool { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .template-step-content { margin-top: 14px; }
 .template-step-content.has-diagrams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(88px, 190px); gap: 18px; align-items: start; }
-.template-step-content .template-diagram-gallery { justify-content: flex-end; margin-top: 0; }
+.template-step-content .template-diagram-gallery { align-self: center; justify-self: center; justify-content: center; margin-top: 0; }
 .template-step-content .template-diagram-gallery .grid-diagram-item > button:first-child { width: 88px; height: 64px; }
 .new-template-step { margin: 0; }
 
@@ -834,7 +834,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .template-detail-list dt { font-size: 9px; line-height: 1.5; }
   .template-detail-list dd { font-size: 12.5px; line-height: 1.5; }
   .template-step-content.has-diagrams { grid-template-columns: minmax(0, 1fr) 72px; gap: 10px; }
-  .template-step-content .template-diagram-gallery { display: grid; grid-template-columns: 72px; justify-content: end; }
+  .template-step-content .template-diagram-gallery { display: grid; grid-template-columns: 72px; justify-content: center; }
   .template-step-content .template-diagram-gallery .grid-diagram-item,
   .template-step-content .template-diagram-gallery .grid-diagram-item > button:first-child { width: 72px; }
   .template-step-content .template-diagram-gallery .grid-diagram-item > button:first-child { height: 54px; }
@@ -905,7 +905,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .finish-run-action .button { width: 100%; }
   .initial-state-preview-images { flex-basis: auto; width: 100%; }
   .template-initial-state.has-diagrams { grid-template-columns: minmax(0, 1fr) 108px; gap: 12px; }
-  .template-initial-state .template-diagram-gallery { display: grid; grid-template-columns: 108px; justify-content: end; }
+  .template-initial-state .template-diagram-gallery { display: grid; grid-template-columns: 108px; justify-content: center; }
   .template-initial-state .template-diagram-gallery .grid-diagram-item,
   .template-initial-state .template-diagram-gallery .grid-diagram-item > button:first-child { width: 108px; }
   .template-initial-state .template-diagram-gallery .grid-diagram-item > button:first-child { height: 76px; }
