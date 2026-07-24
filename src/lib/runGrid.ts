@@ -7,7 +7,7 @@ export interface RunGridColumn {
 
 export interface RunGridRow {
   key: string;
-  kind: "template" | "ad_hoc";
+  kind: "template" | "ad_hoc" | "metrology";
   recipeStep: RunStep | null;
   steps: Array<RunStep | null>;
 }
@@ -20,8 +20,10 @@ function orderedSteps(run: SampleRun | null) {
 export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
   const primaryRun = columns[0]?.run ?? null;
   if (!primaryRun) return [];
-  const primaryTemplateSteps = orderedSteps(primaryRun).filter((step) => step.origin === "template");
-  const templateStepsByColumn = columns.map(({ run }) => orderedSteps(run).filter((step) => step.origin === "template"));
+  const primaryTemplateSteps = orderedSteps(primaryRun)
+    .filter((step) => step.origin === "template" && step.entryKind === "fabrication");
+  const templateStepsByColumn = columns.map(({ run }) => orderedSteps(run)
+    .filter((step) => step.origin === "template" && step.entryKind === "fabrication"));
   const primaryIndexByLogicalKey = new Map(
     primaryTemplateSteps.flatMap((step, index) => step.logicalStepKey ? [[step.logicalStepKey, index] as const] : []),
   );
@@ -44,7 +46,7 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
     let templateOrdinal = -1;
     let anchorIndex = -1;
     for (const step of steps) {
-      if (step.origin === "template") {
+      if (step.origin === "template" && step.entryKind === "fabrication") {
         templateOrdinal += 1;
         anchorIndex = step.logicalStepKey
           ? primaryIndexByLogicalKey.get(step.logicalStepKey) ?? templateOrdinal
@@ -62,11 +64,12 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
     const bucket = adHocByAnchor[bucketIndex];
     const rowCount = Math.max(0, ...bucket.map((steps) => steps.length));
     for (let adHocIndex = 0; adHocIndex < rowCount; adHocIndex += 1) {
+      const rowSteps = bucket.map((steps) => steps[adHocIndex] ?? null);
       rows.push({
         key: `ad-hoc:${bucketIndex}:${adHocIndex}`,
-        kind: "ad_hoc",
+        kind: rowSteps.find(Boolean)?.entryKind === "metrology" ? "metrology" : "ad_hoc",
         recipeStep: null,
-        steps: bucket.map((steps) => steps[adHocIndex] ?? null),
+        steps: rowSteps,
       });
     }
   }

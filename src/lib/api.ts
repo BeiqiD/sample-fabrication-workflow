@@ -1,4 +1,4 @@
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleSummary, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -72,6 +72,16 @@ export const api = {
     body: JSON.stringify(input),
   }),
   createRunStep: (sampleId: string, runId: string, input: CreateRunStepInput) => request<{ id: string }>(`/samples/${sampleId}/runs/${runId}/steps`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  createMetrologyRunEntry: (sampleId: string, runId: string, input: CreateMetrologyRunEntryInput) => request<{ id: string }>(`/samples/${sampleId}/runs/${runId}/metrology`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  startMetrologyRun: (sampleId: string, input: StartMetrologyRunInput) => request<{ id: string }>(`/samples/${sampleId}/metrology-runs`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
@@ -171,6 +181,23 @@ export const api = {
     { method: "DELETE" },
   ),
   listTemplates: () => request<{ templates: TemplateRecord[] }>("/templates"),
+  createMetrologyTemplate: (input: MetrologyTemplateInput) => request<{ id: string; version: number }>("/metrology-templates", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
+  }),
+  updateMetrologyTemplate: (id: string, input: MetrologyTemplateInput) => request<{ ok: true }>(`/metrology-templates/${id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
+  }),
+  updateMetrologyTemplateNotes: (id: string, notes: string) => request<{ ok: true }>(`/metrology-templates/${id}/notes`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ notes }),
+  }),
+  uploadMetrologyTemplateReference: (id: string, file: File) => request<{ reference: MetrologyTemplateReference }>(`/metrology-templates/${id}/references`, {
+    method: "POST",
+    headers: { "content-type": file.type || "application/octet-stream", "x-filename": file.name },
+    body: file,
+  }),
+  deleteMetrologyTemplateReference: (id: string, referenceId: string) => request<{ ok: true }>(`/metrology-templates/${id}/references/${referenceId}`, {
+    method: "DELETE",
+  }),
   getTemplate: (id: string) => request<{ template: TemplateDetail }>(`/templates/${id}`),
   updateTemplate: (id: string, input: { name: string; version: number }) => request<{ ok: true }>(`/templates/${id}`, {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
@@ -207,10 +234,14 @@ export interface TemplateRecord {
   recipeFamilyId: string;
   name: string;
   templateType: "process" | "module" | "recipe";
+  templateKind: "process" | "metrology";
   version: number;
   manifestHash: string;
   sourceFilename: string | null;
   stepCount: number;
+  toolName: string | null;
+  parametersText: string | null;
+  commentsText: string | null;
   initialStateHash: string | null;
   initialStateImageKeys: string[];
   initialSubstrateStep: FabubloxImportPreview["initialSubstrateStep"];
@@ -237,7 +268,18 @@ export interface TemplateStepRecord {
 
 export interface TemplateDetail extends Omit<TemplateRecord, "stepCount"> {
   archived: boolean;
+  metrologyNotes: string | null;
+  referenceAttachments: MetrologyTemplateReference[];
   steps: TemplateStepRecord[];
+}
+
+export interface MetrologyTemplateReference {
+  id: string;
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  assetKey: string;
+  createdAt: string;
 }
 
 export interface TemplateStepInput {
@@ -246,4 +288,11 @@ export interface TemplateStepInput {
   parametersText: string;
   commentsText: string;
   assetKey?: string;
+}
+
+export interface MetrologyTemplateInput {
+  name: string;
+  toolName: string;
+  parametersText: string;
+  commentsText: string;
 }

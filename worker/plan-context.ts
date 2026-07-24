@@ -47,18 +47,19 @@ export async function loadPlanContext(db: D1Database, sampleId: string, runId: s
        FROM runs r
        JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
        JOIN template_versions current_tv ON current_tv.id = rpr.template_version_id
-       WHERE r.id = ? AND r.sample_id = ?`,
+       WHERE r.id = ? AND r.sample_id = ? AND r.run_kind = 'process'`,
     ).bind(runId, sampleId).first<PlanContext["run"]>(),
     db.prepare(
       `SELECT id, recipe_family_id, name, template_type, version, initial_state_hash, content_json FROM template_versions
-       WHERE id = ? AND archived_at IS NULL`,
+       WHERE id = ? AND template_kind = 'process' AND archived_at IS NULL`,
     ).bind(templateVersionId).first<PlanContext["nextTemplate"]>(),
     db.prepare(
       `SELECT rs.id, COALESCE(sd.name, rs.title) AS name, rs.logical_step_key, rs.definition_hash, rs.position,
               CASE WHEN rs.actualized_at IS NOT NULL THEN 1 ELSE 0 END AS actualized, rs.origin
        FROM run_steps rs
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE rs.run_id = ? AND (rs.plan_status = 'current' OR rs.origin = 'ad_hoc')
+       WHERE rs.run_id = ? AND rs.entry_kind = 'fabrication'
+         AND (rs.plan_status = 'current' OR rs.origin = 'ad_hoc')
        ORDER BY rs.position`,
     ).bind(runId).all<{
       id: string;

@@ -5,9 +5,13 @@ import { groupTemplateVersions } from "./template-groups";
 function template(overrides: Partial<TemplateRecord> & Pick<TemplateRecord, "id" | "recipeFamilyId" | "name" | "version">): TemplateRecord {
   return {
     templateType: "process",
+    templateKind: "process",
     manifestHash: `${overrides.id}-manifest`,
     sourceFilename: null,
     stepCount: 3,
+    toolName: null,
+    parametersText: null,
+    commentsText: null,
     initialStateHash: "state-1",
     initialStateImageKeys: [],
     initialSubstrateStep: null,

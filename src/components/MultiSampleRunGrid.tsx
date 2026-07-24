@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
-import { api } from "../lib/api";
+import { api, type MetrologyTemplateInput, type TemplateRecord } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
@@ -9,6 +9,7 @@ import { runStepIsModified } from "../lib/runSteps";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { FileDropzone } from "./FileDropzone";
+import { MetrologyTemplateForm } from "./MetrologyTemplateForm";
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
 import { StepStatusIcon } from "./StepStatusIcon";
 
@@ -18,6 +19,8 @@ type DrawerState =
   | { mode: "edit"; column: RunGridColumn; step: RunStep }
   | { mode: "add"; column: RunGridColumn; afterStepId?: string }
   | null;
+
+type MetrologyDrawerState = { column: RunGridColumn; afterStepId?: string } | null;
 
 type DeleteRequest =
   | { kind: "comment"; comment: RunStepComment; common: boolean }
@@ -310,6 +313,14 @@ function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepC
 }
 
 function ActualDifferences({ step }: { step: RunStep }) {
+  if (step.entryKind === "metrology") {
+    const details = [
+      step.toolName || step.plannedToolName ? ["Tool", step.toolName || step.plannedToolName || "—"] : null,
+      step.parametersText || step.plannedParametersText ? ["Parameters", step.parametersText || step.plannedParametersText || "—"] : null,
+      step.commentsText || step.plannedCommentsText ? ["Template comment", step.commentsText || step.plannedCommentsText || "—"] : null,
+    ].filter((entry): entry is string[] => Boolean(entry));
+    return details.length ? <div className="actual-differences metrology-details">{details.map(([label, value]) => <p key={label}><span>{label}</span>{value}</p>)}</div> : null;
+  }
   if (step.origin === "ad_hoc") return <div className="actual-differences">
     {step.toolName && <p><span>Tool</span>{step.toolName}</p>}
     {step.parametersText && <p><span>Parameters</span>{step.parametersText}</p>}
@@ -339,7 +350,8 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   const [image, setImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const isTemplateStep = step?.origin === "template";
+  const metrology = step?.entryKind === "metrology";
+  const isTemplateStep = step?.origin === "template" && !metrology;
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -383,19 +395,78 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
 
   return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="step-drawer" role="dialog" aria-modal="true" aria-labelledby="step-drawer-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? "Correct execution" : "Add an individual step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
-      <p className="muted">{editing ? "Record what actually happened. The process plan stays unchanged." : "This step belongs only to this sample run."}</p>
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? metrology ? "Edit metrology record" : "Correct execution" : "Add fabrication step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
+      <p className="muted">{editing ? metrology ? "Keep the result in comments and attachments; tool and parameters remain optional." : "Record what actually happened. The process plan stays unchanged." : "This fabrication step belongs only to this sample run."}</p>
       <form className="drawer-form" onSubmit={save}>
-        {isTemplateStep ? <div className="locked-step-title"><small>Process step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>Step name<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
+        {isTemplateStep ? <div className="locked-step-title"><small>Process step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>{metrology ? "Record title" : "Step name"}<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
         {editing && <label>Status<select value={status} onChange={(event) => setStatus(event.target.value as StepStatus)}>{STATUSES.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select></label>}
-        <label>Actual tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} placeholder={step?.plannedToolName || "Tool used"} /></label>
-        <label>Actual parameters<textarea rows={4} value={parametersText} onChange={(event) => setParametersText(event.target.value)} placeholder={step?.plannedParametersText || "Time, temperature, settings…"} /></label>
-        <label>What happened<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder="Execution detail, not a plan edit" /></label>
-        <label>Reason for deviation<textarea rows={3} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} /></label>
-        <FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label="Add an execution image" />
+        <label>{metrology ? "Tool" : "Actual tool"}<input value={toolName} onChange={(event) => setToolName(event.target.value)} placeholder={step?.plannedToolName || "Tool used"} /></label>
+        <label>{metrology ? "Parameters" : "Actual parameters"}<textarea rows={4} value={parametersText} onChange={(event) => setParametersText(event.target.value)} placeholder={step?.plannedParametersText || "Time, temperature, settings…"} /></label>
+        <label>{metrology ? "Result note" : "What happened"}<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder={metrology ? "Optional result summary" : "Execution detail, not a plan edit"} /></label>
+        {!metrology && <label>Reason for deviation<textarea rows={3} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} /></label>}
+        <FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label={metrology ? "Add a result image" : "Add an execution image"} />
         {error && <p className="error-banner">{error}</p>}
         <div className="form-actions"><button type="button" className="button" onClick={onClose}>Cancel</button><button className="button primary" disabled={saving}>{saving ? "Saving…" : editing ? "Save correction" : "Add step"}</button></div>
       </form>
+    </aside>
+  </div>;
+}
+
+function MetrologyPickerDrawer({ state, onClose, onSaved }: {
+  state: NonNullable<MetrologyDrawerState>;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [templates, setTemplates] = useState<TemplateRecord[]>([]);
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [savingId, setSavingId] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    api.listTemplates().then(({ templates }) => {
+      setTemplates(templates.filter((template) => template.templateKind === "metrology"));
+    }).catch((error: Error) => setError(error.message));
+  }, []);
+  const filtered = templates.filter((template) => {
+    const haystack = `${template.name} ${template.toolName || ""} ${template.commentsText || ""}`.toLowerCase();
+    return haystack.includes(query.trim().toLowerCase());
+  });
+
+  async function add(templateVersionId: string) {
+    if (!state.column.run) return;
+    setSavingId(templateVersionId); setError("");
+    try {
+      await api.createMetrologyRunEntry(state.column.sample.id, state.column.run.id, {
+        templateVersionId,
+        afterStepId: state.afterStepId,
+      });
+      await onSaved();
+      onClose();
+    } catch (error) { setError((error as Error).message); }
+    finally { setSavingId(""); }
+  }
+
+  async function createAndAdd(input: MetrologyTemplateInput) {
+    const created = await api.createMetrologyTemplate(input);
+    await add(created.id);
+  }
+
+  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingId) onClose(); }}>
+    <aside className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
+      <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
+      {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
+        <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+        <div className="metrology-picker-list">
+          {filtered.map((template) => <button type="button" key={template.id} disabled={Boolean(savingId)} onClick={() => void add(template.id)}>
+            <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.commentsText ? " · default comment" : ""}</small></span>
+            <span>{savingId === template.id ? "Adding…" : "Add"}</span>
+          </button>)}
+          {!filtered.length && <p className="muted">No matching metrology templates.</p>}
+        </div>
+        <button type="button" className="button wide" disabled={Boolean(savingId)} onClick={() => setCreating(true)}>Create new metrology template</button>
+      </>}
+      {error && <p className="error-banner">{error}</p>}
     </aside>
   </div>;
 }
@@ -405,6 +476,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   const [selected, setSelected] = useState(() => new Set(columns.filter((column) => column.run).map((column) => column.sample.id)));
   const [commonCommentRow, setCommonCommentRow] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
+  const [metrologyDrawer, setMetrologyDrawer] = useState<MetrologyDrawerState>(null);
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [recipeDetails, setRecipeDetails] = useState<RecipeDetailsState>(null);
@@ -573,20 +645,22 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       onDeleteCommentAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: false }); }}
       onDeleteExecutionAsset={(assetKey) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey, column, step }); }}
       onEdit={() => setDrawer({ mode: "edit", column, step })}
-      onAddAfter={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
-      readOnly={readOnly}
+      onAddFabrication={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
+      onAddMetrology={() => setMetrologyDrawer({ column, afterStepId: step.id })}
+      allowAdd={primaryRun.runKind === "process"}
+      readOnly={readOnly && !(step.entryKind === "metrology" && !["done", "skipped"].includes(step.status))}
     />;
   }
 
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
   return <article className={`run-grid-card ${layoutClass}`} ref={card}>
     <div className="run-grid-toolbar">
-      <div><p className="card-label">{primaryRun.templateType} · run {primaryRun.sequenceNo} · plan r{primaryRun.planRevisionNumber}</p><h3 className="card-title">{primaryRun.templateName} v{primaryRun.templateVersion}</h3><small>{primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
+      <div><p className="card-label">{primaryRun.runKind === "metrology" ? "Metrology" : `${primaryRun.templateType} · plan r${primaryRun.planRevisionNumber}`} · run {primaryRun.sequenceNo}</p><h3 className="card-title">{primaryRun.templateName}{primaryRun.runKind === "process" ? ` v${primaryRun.templateVersion}` : ""}</h3><small>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
     </div>
     {error && <p className="error-banner grid-error">{error}</p>}
     <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`} aria-hidden="true">
-      <div className="sticky-recipe-name">Process plan</div>
+      <div className="sticky-recipe-name">{primaryRun.runKind === "metrology" ? "Metrology" : "Process plan"}</div>
       <div className="sticky-sample-viewport">
         <div className="sticky-sample-track" ref={stickySampleTrack}>
           {columns.map((column) => <div className="sticky-sample-name" key={`sticky:${column.sample.id}`} title={`${column.sample.title} · ${column.sample.code}`}>{column.sample.title}</div>)}
@@ -596,8 +670,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     <div className="run-grid-scroll" ref={scroller}>
       <div className="run-grid" style={{ "--sample-columns": columns.length } as React.CSSProperties}>
         <div className="run-grid-header recipe-column" ref={fullHeader}>
-          <strong>Process step</strong>
-          <small>Common actions use checked samples</small>
+          <strong>{primaryRun.runKind === "metrology" ? "Record type" : "Process step"}</strong>
+          <small>{primaryRun.runKind === "metrology" ? "Independent of fabrication" : "Common actions use checked samples"}</small>
         </div>
         {columns.map((column) => <div className="run-grid-header sample-column-header" key={column.sample.id}>
           <label><input type="checkbox" checked={selected.has(column.sample.id)} disabled={!column.run || readOnly} onChange={() => toggleColumn(column.sample.id)} /><span><strong>{column.sample.title}</strong><small>{column.sample.code}</small></span></label>
@@ -621,9 +695,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
           const readyCommonGroups = [...commonGroups.values()].filter(({ comment }) => (comment.status ?? "ready") === "ready");
           const eligibleCount = entries.filter(({ column, step }) => selected.has(column.sample.id) && ["pending", "in_progress"].includes(step.status)).length;
           const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
+          const rowLeadStep = row.steps.find((step): step is RunStep => Boolean(step));
           return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
-            <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}`}>
-              {row.kind === "ad_hoc" ? <div className="recipe-step-heading additional-step-heading"><span>+</span><div><strong>Additional step</strong><small>Not part of the process template</small></div></div> : <>
+            <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}${row.kind === "metrology" ? " metrology-recipe-cell" : ""}`}>
+              {row.kind !== "template" ? <div className={`recipe-step-heading additional-step-heading${row.kind === "metrology" ? " metrology-step-heading" : ""}`}><span>{row.kind === "metrology" ? "M" : "+"}</span><div><strong>{row.kind === "metrology" ? "Metrology" : "Additional step"}</strong><small>{row.kind === "metrology" ? rowLeadStep?.title : "Not part of the process template"}</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
               <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
@@ -654,7 +729,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
-              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}${row.kind === "ad_hoc" ? " additional-step-cell" : ""}`} key={`${row.key}:${column.sample.id}`}>
+              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}${row.kind === "ad_hoc" ? " additional-step-cell" : ""}${row.kind === "metrology" ? " metrology-step-cell" : ""}`} key={`${row.key}:${column.sample.id}`}>
                 {step ? renderStepContent(column, step) : <span className="not-applicable">—</span>}
               </div>;
             })}
@@ -663,6 +738,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       </div>
     </div>
     {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={onSaved} />}
+    {metrologyDrawer && <MetrologyPickerDrawer key={`${metrologyDrawer.column.sample.id}:${metrologyDrawer.afterStepId || "first"}`} state={metrologyDrawer} onClose={() => setMetrologyDrawer(null)} onSaved={onSaved} />}
     {recipeDetails && <RecipeDetailsSheet state={recipeDetails} onClose={closeRecipeDetails} />}
     {deleteRequest && <ConfirmDeleteDialog
       title={deleteRequest.kind === "comment" ? "Delete this comment?" : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this execution image?"}
@@ -682,31 +758,35 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   </article>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerify, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddAfter, readOnly }: {
+function StepCell({ column, step, pendingAction, onDone, onVerify, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
   onDone: () => void; onVerify: (result: "matched" | "mismatched") => void;
   commentContext: Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
   onCommentSubmitted: () => Promise<void>;
-  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void; onAddAfter: () => void; readOnly: boolean;
+  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void;
+  onAddFabrication: () => void; onAddMetrology: () => void; allowAdd: boolean; readOnly: boolean;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
   const recoverableComments = recoverableFromComments(individualComments);
   const readyComments = individualComments.filter((comment) => (comment.status ?? "ready") === "ready");
   const [showStateActions, setShowStateActions] = useState(false);
+  const [showAddActions, setShowAddActions] = useState(false);
   const busy = pendingAction !== null;
+  const metrology = step.entryKind === "metrology";
   return <>
     <div className="cell-status-row">
       <div className={`cell-state cell-state-${step.status}`}><span className={step.status === "done" ? "done-mark" : "state-symbol"}><StepStatusIcon status={step.status} /></span><strong>{step.status.replace("_", " ")}</strong></div>
-      <div className="cell-badges">{step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "Verified" : "Mismatch"} · {step.stateVerification.coveredRunStepIds.length}</span>}</div>
+      <div className="cell-badges">{metrology ? <span className="change-badge metrology-badge">Metrology</span> : step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "Verified" : "Mismatch"} · {step.stateVerification.coveredRunStepIds.length}</span>}</div>
     </div>
-    {!readOnly && <div className="cell-actions">
+    {!readOnly && <div className={`cell-actions${metrology ? " metrology-cell-actions" : ""}`}>
       <button type="button" className="done-action" disabled={busy || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
       <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
-      <button type="button" disabled={busy || column.run?.status !== "active"} onClick={onAddAfter}>+ Step</button>
-      <button type="button" disabled={busy} aria-expanded={showStateActions} onClick={() => setShowStateActions((shown) => !shown)}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>
+      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} disabled={busy || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>}
+      {!metrology && <button type="button" disabled={busy} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
     </div>}
+    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={busy} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={busy} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
     {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
-    {step.origin === "ad_hoc" && <strong className="ad-hoc-title">{step.title}</strong>}
+    {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} onSubmitted={onCommentSubmitted} />}
     <CommentSubmissionRecovery submissions={recoverableComments} onSubmitted={onCommentSubmitted} />

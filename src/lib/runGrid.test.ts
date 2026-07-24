@@ -11,6 +11,7 @@ function step(id: string, position: number, overrides: Partial<RunStep> = {}): R
     expectedStateHash: null,
     position,
     origin: "template",
+    entryKind: "fabrication",
     planStatus: "current",
     title: id,
     status: "pending",
@@ -43,6 +44,7 @@ function run(id: string, steps: RunStep[]): SampleRun {
     templateName: "Recipe",
     templateType: "recipe",
     templateVersion: 1,
+    runKind: "process",
     status: "active",
     currentPlanRevisionId: "plan-1",
     planRevisionNumber: 1,
@@ -103,6 +105,32 @@ describe("multi-sample run grid", () => {
     expect(rows).toHaveLength(3);
     expect(rows.map((row) => row.kind)).toEqual(["template", "ad_hoc", "template"]);
     expect(rows[1].steps).toEqual([null, extra]);
+  });
+
+  it("keeps metrology between fabrication steps without counting it as a process step", () => {
+    const metrology = step("sem", 1500, {
+      origin: "ad_hoc",
+      entryKind: "metrology",
+      templateStepId: "sem-template",
+      logicalStepKey: "metrology:sem",
+    });
+    const rows = buildRunGrid([
+      { sample: sample("a"), run: run("a-run", [step("one", 1000), metrology, step("two", 2000)]) },
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(["template", "metrology", "template"]);
+    expect(rows.filter((row) => row.kind === "template")).toHaveLength(2);
+    expect(rows[1].steps[0]).toBe(metrology);
+  });
+
+  it("renders a standalone metrology run as one metrology row", () => {
+    const metrology = step("xrd", 1000, {
+      entryKind: "metrology",
+      logicalStepKey: "metrology:xrd",
+    });
+    const rows = buildRunGrid([
+      { sample: sample("a"), run: run("xrd-run", [metrology]) },
+    ]);
+    expect(rows.map((row) => row.kind)).toEqual(["metrology"]);
   });
 
   it("keeps leading ad hoc steps in aligned rows before the first recipe step", () => {

@@ -68,6 +68,7 @@ export interface RunStep {
   expectedStateHash: string | null;
   position: number;
   origin: "template" | "ad_hoc";
+  entryKind: "fabrication" | "metrology";
   planStatus: "current" | "superseded";
   title: string;
   status: StepStatus;
@@ -284,8 +285,9 @@ export interface SampleRun {
   templateName: string;
   templateType: "process" | "module" | "recipe";
   templateVersion: number;
+  runKind: "process" | "metrology";
   status: "active" | "complete" | "cancelled" | "superseded";
-  currentPlanRevisionId: string;
+  currentPlanRevisionId: string | null;
   planRevisionNumber: number;
   predecessorRunId: string | null;
   anchorStepId: string | null;
@@ -332,6 +334,15 @@ export interface SubstrateTransitionConfirmation {
 export interface StartProcessRunInput {
   templateVersionId: string;
   substrateConfirmation?: SubstrateTransitionConfirmation;
+}
+
+export interface CreateMetrologyRunEntryInput {
+  templateVersionId: string;
+  afterStepId?: string;
+}
+
+export interface StartMetrologyRunInput {
+  templateVersionId: string;
 }
 
 export interface FinishProcessRunInput {

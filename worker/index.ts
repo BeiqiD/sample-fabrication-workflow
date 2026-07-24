@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
 import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, normalizedStepName, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
@@ -159,7 +159,9 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
   const row = await db.prepare(
     `WITH latest_run AS (
        SELECT id, sequence_no, initial_state_hash
-       FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1
+       FROM runs
+       WHERE sample_id = ? AND run_kind = 'process'
+       ORDER BY sequence_no DESC LIMIT 1
      ),
      candidates AS (
        SELECT rs.id AS step_id, rs.expected_state_hash AS state_hash,
@@ -168,6 +170,7 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
        JOIN latest_run lr ON lr.id = rs.run_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
        WHERE rs.status = 'done'
+         AND rs.entry_kind = 'fabrication'
          AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
          AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
            SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
@@ -184,7 +187,8 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
        FROM run_steps rs
        JOIN runs r ON r.id = rs.run_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE r.sample_id = ? AND rs.status = 'done'
+       WHERE r.sample_id = ? AND r.run_kind = 'process'
+         AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
          AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
          AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
            SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
@@ -233,6 +237,7 @@ const sampleOverviewSelect = `
            FROM run_steps rs
            LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
            WHERE rs.run_id = r.id AND rs.plan_status = 'current'
+             AND rs.entry_kind = 'fabrication'
              AND rs.status NOT IN ('done', 'skipped')
            ORDER BY rs.position
            LIMIT 1
@@ -242,7 +247,7 @@ const sampleOverviewSelect = `
              SELECT COALESCE(rs.title, sd.name) AS state_step_title, 1 AS priority
              FROM run_steps rs
              LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-             WHERE rs.run_id = r.id AND rs.status = 'done'
+             WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
                AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
                  SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
@@ -257,7 +262,7 @@ const sampleOverviewSelect = `
                FROM run_steps rs
                JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
                JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
-               WHERE rs.run_id = r.id AND rs.status = 'done'
+               WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
                  AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
              ),
@@ -269,7 +274,8 @@ const sampleOverviewSelect = `
                  (
                    SELECT rs.expected_state_hash
                    FROM run_steps rs
-                   WHERE rs.run_id = r.id AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
+                   WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication'
+                     AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
                      AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                    ORDER BY rs.position DESC LIMIT 1
                  ),
@@ -277,7 +283,9 @@ const sampleOverviewSelect = `
                  (
                    SELECT rs.expected_state_hash
                    FROM run_steps rs JOIN runs earlier ON earlier.id = rs.run_id
-                   WHERE earlier.sample_id = s.id AND earlier.sequence_no < r.sequence_no
+                   WHERE earlier.sample_id = s.id AND earlier.run_kind = 'process'
+                     AND earlier.sequence_no < r.sequence_no
+                     AND rs.entry_kind = 'fabrication'
                      AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
                      AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                    ORDER BY earlier.sequence_no DESC, rs.position DESC LIMIT 1
@@ -290,7 +298,11 @@ const sampleOverviewSelect = `
          ) AS current_state_thumbnail_key
   FROM samples s
   LEFT JOIN runs r ON r.sample_id = s.id
-    AND r.sequence_no = (SELECT MAX(latest.sequence_no) FROM runs latest WHERE latest.sample_id = s.id)
+    AND r.sequence_no = (
+      SELECT MAX(latest.sequence_no)
+      FROM runs latest
+      WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+    )
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
   LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
 
@@ -478,19 +490,21 @@ app.get("/samples/:id", async (c) => {
       ? Promise.resolve({ results: [] })
       : c.env.DB.prepare("SELECT * FROM events WHERE sample_id = ? ORDER BY created_at DESC").bind(id).all(),
     c.env.DB.prepare(
-      `SELECT r.id AS run_id, r.recipe_family_id, r.template_version_id, r.status AS run_status,
+      `SELECT r.id AS run_id, r.recipe_family_id, r.template_version_id, r.run_kind,
+              r.status AS run_status,
               r.created_at AS run_created_at, r.completed_at,
               r.current_plan_revision_id, COALESCE(rpr.revision_no, 1) AS plan_revision_no,
               r.predecessor_run_id, r.anchor_step_id, r.sequence_no, r.run_group_id,
               r.initial_state_hash,
-              COALESCE(ptv.name, r.template_name_snapshot) AS template_name,
+              CASE WHEN r.run_kind = 'metrology' THEN r.template_name_snapshot
+                   ELSE COALESCE(ptv.name, r.template_name_snapshot) END AS template_name,
               COALESCE(ptv.template_type, r.template_type_snapshot) AS template_type,
               COALESCE(ptv.version, r.template_version_snapshot) AS template_version,
               COALESCE(ptv.id, r.template_version_id) AS current_template_version_id,
               rs.id AS step_id, rs.template_step_id, rs.logical_step_key, rs.definition_hash,
               rs.expected_state_hash, rs.position, COALESCE(rs.title, sd.name) AS step_title,
               rs.status AS step_status, rs.notes, rs.updated_at AS step_updated_at,
-              rs.origin, rs.plan_status,
+              rs.origin, rs.entry_kind, rs.plan_status,
               COALESCE(rs.tool_name, sd.tool_name) AS tool_name,
               COALESCE(rs.parameters_text, sd.parameters_text) AS parameters_text,
               COALESCE(rs.comments_text, sd.comments_text) AS comments_text,
@@ -677,7 +691,9 @@ app.get("/samples/:id", async (c) => {
       templateName: String(row.template_name),
       templateType: String(row.template_type),
       templateVersion: Number(row.template_version),
-      status: String(row.run_status), currentPlanRevisionId: String(row.current_plan_revision_id),
+      runKind: String(row.run_kind),
+      status: String(row.run_status),
+      currentPlanRevisionId: row.current_plan_revision_id ? String(row.current_plan_revision_id) : null,
       planRevisionNumber: Number(row.plan_revision_no),
       predecessorRunId: row.predecessor_run_id ? String(row.predecessor_run_id) : null,
       anchorStepId: row.anchor_step_id ? String(row.anchor_step_id) : null,
@@ -696,7 +712,8 @@ app.get("/samples/:id", async (c) => {
       logicalStepKey: row.logical_step_key ? String(row.logical_step_key) : null,
       definitionHash: row.definition_hash ? String(row.definition_hash) : null,
       expectedStateHash: row.expected_state_hash ? String(row.expected_state_hash) : null,
-      position: Number(row.position), origin: String(row.origin), planStatus: String(row.plan_status), title: String(row.step_title),
+      position: Number(row.position), origin: String(row.origin), entryKind: String(row.entry_kind),
+      planStatus: String(row.plan_status), title: String(row.step_title),
       status: String(row.step_status), notes: row.notes ? String(row.notes) : null,
       toolName: row.tool_name ? String(row.tool_name) : null,
       parametersText: row.parameters_text ? String(row.parameters_text) : null,
@@ -1040,11 +1057,11 @@ app.post("/samples/:id/runs/preview", async (c) => {
     c.env.DB.prepare(
       `SELECT id, name, version, initial_state_hash, content_json
        FROM template_versions
-       WHERE id = ? AND archived_at IS NULL
+       WHERE id = ? AND template_kind = 'process' AND archived_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = template_versions.id AND i.status != 'ready')`,
     ).bind(templateVersionId).first<{ id: string; name: string; version: number; initial_state_hash: string | null; content_json: string | null }>(),
     c.env.DB.prepare(
-      "SELECT id, status FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1",
+      "SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1",
     ).bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -1090,11 +1107,11 @@ app.post("/samples/:id/runs", async (c) => {
   if (!input || typeof input !== "object") throw new HTTPException(400, { message: "A process-template version and substrate confirmation are required" });
   const { templateVersionId } = input;
   if (typeof templateVersionId !== "string" || !templateVersionId) throw new HTTPException(400, { message: "Template version is required" });
-  const [sample, template, templateStepRows, latestRun] = await Promise.all([
+  const [sample, template, templateStepRows, latestRun, latestSequence] = await Promise.all([
     c.env.DB.prepare("SELECT code, updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ code: string; updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT tv.name, tv.template_type, tv.version, tv.recipe_family_id, tv.initial_state_hash, tv.content_json
-       FROM template_versions tv WHERE tv.id = ? AND tv.archived_at IS NULL
+       FROM template_versions tv WHERE tv.id = ? AND tv.template_kind = 'process' AND tv.archived_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = tv.id AND i.status != 'ready')`,
     ).bind(templateVersionId).first<{ name: string; template_type: "process" | "module" | "recipe"; version: number; recipe_family_id: string; initial_state_hash: string | null; content_json: string | null }>(),
     c.env.DB.prepare(
@@ -1102,8 +1119,12 @@ app.post("/samples/:id/runs", async (c) => {
        FROM template_steps WHERE template_version_id = ? ORDER BY position`,
     ).bind(templateVersionId).all<{ id: string; position: number; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare(
-      `SELECT id, status, sequence_no FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1`,
+      `SELECT id, status, sequence_no
+       FROM runs WHERE sample_id = ? AND run_kind = 'process'
+       ORDER BY sequence_no DESC LIMIT 1`,
     ).bind(sampleId).first<{ id: string; status: "active" | "complete" | "cancelled" | "superseded"; sequence_no: number }>(),
+    c.env.DB.prepare("SELECT COALESCE(MAX(sequence_no), 0) AS sequence_no FROM runs WHERE sample_id = ?")
+      .bind(sampleId).first<{ sequence_no: number }>(),
   ]);
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
   if (!template) throw new HTTPException(404, { message: "Template version not found" });
@@ -1137,24 +1158,32 @@ app.post("/samples/:id/runs", async (c) => {
   const userEmail = c.get("userEmail");
   const stepIds = new Map(steps.map((step) => [step.id, crypto.randomUUID()]));
   const anchor = latestRun ? await c.env.DB.prepare(
-    `SELECT id FROM run_steps WHERE run_id = ? AND actualized_at IS NOT NULL
+    `SELECT id FROM run_steps
+     WHERE run_id = ? AND entry_kind = 'fabrication' AND actualized_at IS NOT NULL
      ORDER BY position DESC LIMIT 1`,
   ).bind(latestRun.id).first<{ id: string }>() : null;
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
       `INSERT INTO runs
         (id, sample_id, recipe_family_id, template_version_id, current_plan_revision_id,
-         predecessor_run_id, anchor_step_id, sequence_no, run_group_id,
+         predecessor_run_id, anchor_step_id, sequence_no, run_group_id, run_kind,
          template_name_snapshot, template_type_snapshot, template_version_snapshot,
          initial_state_hash, created_by, created_at)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'process', ?, ?, ?, ?, ?, ?
        FROM samples s
        WHERE s.id = ? AND s.updated_at = ?
-         AND NOT EXISTS (SELECT 1 FROM runs active WHERE active.sample_id = s.id AND active.status = 'active')
-         AND COALESCE((SELECT id FROM runs latest WHERE latest.sample_id = s.id ORDER BY sequence_no DESC LIMIT 1), '')
+         AND NOT EXISTS (
+           SELECT 1 FROM runs active
+           WHERE active.sample_id = s.id AND active.status = 'active' AND active.run_kind = 'process'
+         )
+         AND COALESCE((
+           SELECT id FROM runs latest
+           WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+           ORDER BY sequence_no DESC LIMIT 1
+         ), '')
              = COALESCE(?, '')`,
     ).bind(runId, sampleId, template.recipe_family_id, templateVersionId, planRevisionId,
-      latestRun?.id ?? null, anchor?.id ?? null, Number(latestRun?.sequence_no ?? 0) + 1, crypto.randomUUID(),
+      latestRun?.id ?? null, anchor?.id ?? null, Number(latestSequence?.sequence_no ?? 0) + 1, crypto.randomUUID(),
       template.name, template.template_type, template.version, initialState.initialStateHash, userEmail, now,
       sampleId, input.substrateConfirmation!.expectedSampleUpdatedAt, latestRun?.id ?? null),
     c.env.DB.prepare(
@@ -1207,12 +1236,13 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
   }
   const [run, sample, unfinished] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ?",
+      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process'",
     ).bind(runId, sampleId).first<{ id: string; template_name_snapshot: string; template_version_snapshot: number; status: string }>(),
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT COUNT(*) AS count FROM run_steps
-       WHERE run_id = ? AND plan_status = 'current' AND status NOT IN ('done', 'skipped')`,
+       WHERE run_id = ? AND entry_kind = 'fabrication'
+         AND plan_status = 'current' AND status NOT IN ('done', 'skipped')`,
     ).bind(runId).first<{ count: number }>(),
   ]);
   if (!run || !sample) throw new HTTPException(404, { message: "Process run not found" });
@@ -1266,7 +1296,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const context = await loadPlanContext(c.env.DB, sampleId, runId, templateVersionId);
   const [sample, latestRun, currentState, templateAssets] = await Promise.all([
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
-    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1")
+    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
     stateAssets(c.env.DB, context.nextTemplate.initial_state_hash),
@@ -1345,7 +1375,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   const context = await loadPlanContext(c.env.DB, sampleId, runId, input.templateVersionId);
   const [sample, latestRun, currentState] = await Promise.all([
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
-    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? ORDER BY sequence_no DESC LIMIT 1")
+    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -1648,7 +1678,7 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
   const definition = await hashStepDefinition({ name: title, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
   const [run, stepRows, asset] = await Promise.all([
-    c.env.DB.prepare("SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND status = 'active'").bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
+    c.env.DB.prepare("SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'").bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
     c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? ORDER BY position").bind(runId).all<{ id: string; position: number }>(),
     input.assetKey ? c.env.DB.prepare("SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
   ]);
@@ -1671,9 +1701,9 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
       definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
     c.env.DB.prepare(
       `INSERT INTO run_steps
-        (id, run_id, previous_step_id, position, title, status, origin, logical_step_key, definition_hash,
+        (id, run_id, previous_step_id, position, title, status, origin, entry_kind, logical_step_key, definition_hash,
          tool_name, parameters_text, comments_text, deviation_note, actualized_at, created_at, updated_by, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'pending', 'ad_hoc', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'pending', 'ad_hoc', 'fabrication', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(stepId, runId, previousStepId, position, title, `ad-hoc:${stepId}`, definition.hash,
       input.toolName.trim() || null, input.parametersText.trim() || null, input.commentsText.trim() || null,
       input.deviationNote.trim() || null, now, now, userEmail, now),
@@ -1698,6 +1728,147 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     JSON.stringify({ runId, stepId, action: "execution_attachment_added" }), userEmail, now));
   await c.env.DB.batch(statements);
   return c.json({ id: stepId }, 201);
+});
+
+app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
+  const { sampleId, runId } = c.req.param();
+  const input = await c.req.json<CreateMetrologyRunEntryInput>();
+  if (!input || typeof input.templateVersionId !== "string" || !input.templateVersionId
+    || (input.afterStepId !== undefined && typeof input.afterStepId !== "string")) {
+    throw new HTTPException(400, { message: "A metrology template and insertion point are required" });
+  }
+  const [run, template, stepRows] = await Promise.all([
+    c.env.DB.prepare(
+      "SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'",
+    ).bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
+    c.env.DB.prepare(
+      `SELECT tv.id, tv.name, tv.version, tv.recipe_family_id,
+              ts.id AS template_step_id, ts.logical_step_key, ts.definition_hash
+       FROM template_versions tv
+       JOIN template_steps ts ON ts.template_version_id = tv.id
+       WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+         AND (SELECT COUNT(*) FROM template_steps only_step WHERE only_step.template_version_id = tv.id) = 1`,
+    ).bind(input.templateVersionId).first<{
+      id: string; name: string; version: number; recipe_family_id: string;
+      template_step_id: string; logical_step_key: string; definition_hash: string;
+    }>(),
+    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? ORDER BY position")
+      .bind(runId).all<{ id: string; position: number }>(),
+  ]);
+  if (!run) throw new HTTPException(404, { message: "Active process run not found" });
+  if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
+  const position = insertionPosition(stepRows.results, input.afterStepId);
+  if (position === null) throw new HTTPException(404, { message: "Insertion point not found" });
+  const afterIndex = input.afterStepId ? stepRows.results.findIndex((step) => step.id === input.afterStepId) : -1;
+  const nextStepId = stepRows.results[afterIndex + 1]?.id ?? null;
+  const stepId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `INSERT INTO run_steps
+        (id, run_id, previous_step_id, position, status, origin, entry_kind, template_step_id,
+         logical_step_key, definition_hash, actualized_at, created_at, updated_by, updated_at)
+       SELECT ?, r.id, ?, ?, 'pending', 'ad_hoc', 'metrology', ?, ?, ?, ?, ?, ?, ?
+       FROM runs r JOIN template_versions tv ON tv.id = ?
+       WHERE r.id = ? AND r.sample_id = ? AND r.run_kind = 'process' AND r.status = 'active'
+         AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL`,
+    ).bind(stepId, input.afterStepId ?? run.anchor_step_id, position, template.template_step_id,
+      template.logical_step_key, template.definition_hash, now, now, userEmail, now,
+      input.templateVersionId, runId, sampleId),
+  ];
+  if (nextStepId) statements.push(c.env.DB.prepare(
+    "UPDATE run_steps SET previous_step_id = ? WHERE id = ? AND run_id = ?",
+  ).bind(stepId, nextStepId, runId));
+  statements.push(
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM run_steps WHERE id = ? AND run_id = ?)`,
+    ).bind(crypto.randomUUID(), sampleId, `Added metrology: ${template.name}`,
+      JSON.stringify({ runId, stepId, action: "metrology_added", templateVersionId: template.id, afterStepId: input.afterStepId ?? null }),
+      userEmail, now, stepId, runId),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND EXISTS (SELECT 1 FROM run_steps WHERE id = ? AND run_id = ?)`,
+    ).bind(userEmail, now, sampleId, stepId, runId),
+  );
+  const results = await c.env.DB.batch(statements);
+  if (!results[0].meta.changes || !results.at(-1)?.meta.changes) {
+    throw new HTTPException(409, { message: "The process run or metrology template changed while the record was being added" });
+  }
+  return c.json({ id: stepId }, 201);
+});
+
+app.post("/samples/:sampleId/metrology-runs", async (c) => {
+  const sampleId = c.req.param("sampleId");
+  const input = await c.req.json<StartMetrologyRunInput>();
+  if (!input || typeof input.templateVersionId !== "string" || !input.templateVersionId) {
+    throw new HTTPException(400, { message: "A metrology template is required" });
+  }
+  const [sample, template, latestSequence] = await Promise.all([
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?")
+      .bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare(
+      `SELECT tv.id, tv.name, tv.version, tv.recipe_family_id, tv.template_type,
+              ts.id AS template_step_id, ts.logical_step_key, ts.definition_hash
+       FROM template_versions tv
+       JOIN template_steps ts ON ts.template_version_id = tv.id
+       WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+         AND (SELECT COUNT(*) FROM template_steps only_step WHERE only_step.template_version_id = tv.id) = 1`,
+    ).bind(input.templateVersionId).first<{
+      id: string; name: string; version: number; recipe_family_id: string; template_type: string;
+      template_step_id: string; logical_step_key: string; definition_hash: string;
+    }>(),
+    c.env.DB.prepare("SELECT COALESCE(MAX(sequence_no), 0) AS sequence_no FROM runs WHERE sample_id = ?")
+      .bind(sampleId).first<{ sequence_no: number }>(),
+  ]);
+  if (!sample) throw new HTTPException(404, { message: "Sample not found" });
+  if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
+  const runId = crypto.randomUUID();
+  const stepId = crypto.randomUUID();
+  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO runs
+        (id, sample_id, recipe_family_id, template_version_id, sequence_no, run_group_id, run_kind,
+         template_name_snapshot, template_type_snapshot, template_version_snapshot,
+         created_by, created_at)
+       SELECT ?, s.id, ?, ?, ?, ?, 'metrology', ?, ?, ?, ?, ?
+       FROM samples s
+       WHERE s.id = ? AND s.updated_at = ?
+         AND EXISTS (
+           SELECT 1 FROM template_versions tv
+           WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+         )`,
+    ).bind(runId, template.recipe_family_id, template.id, Number(latestSequence?.sequence_no ?? 0) + 1,
+      crypto.randomUUID(), template.name, template.template_type, template.version, userEmail, now,
+      sampleId, sample.updated_at, template.id),
+    c.env.DB.prepare(
+      `INSERT INTO run_steps
+        (id, run_id, position, status, origin, entry_kind, template_step_id,
+         logical_step_key, definition_hash, created_at, updated_by, updated_at)
+       SELECT ?, ?, 1000, 'pending', 'template', 'metrology', ?, ?, ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM runs WHERE id = ? AND run_kind = 'metrology')`,
+    ).bind(stepId, runId, template.template_step_id, template.logical_step_key,
+      template.definition_hash, now, userEmail, now, runId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'run', ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM runs WHERE id = ? AND run_kind = 'metrology')`,
+    ).bind(crypto.randomUUID(), sampleId, `Started metrology run · ${template.name}`,
+      JSON.stringify({ runId, stepId, action: "metrology_run_started", templateVersionId: template.id }),
+      userEmail, now, runId),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND EXISTS (SELECT 1 FROM runs WHERE id = ? AND run_kind = 'metrology')`,
+    ).bind(userEmail, now, sampleId, runId),
+  ]);
+  if (results.some((result) => !result.meta.changes)) {
+    throw new HTTPException(409, { message: "The sample or metrology template changed while the run was being started" });
+  }
+  return c.json({ id: runId }, 201);
 });
 
 app.post("/run-step-comments", async (c) => {
@@ -1983,7 +2154,9 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
       `SELECT rs.id, rs.status, rs.updated_at, rs.expected_state_hash, rs.position,
               r.sequence_no, r.current_plan_revision_id, r.recipe_family_id, r.template_version_id
        FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.plan_status = 'current'`,
+       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?
+         AND r.run_kind = 'process' AND rs.entry_kind = 'fabrication'
+         AND rs.plan_status = 'current'`,
     ).bind(stepId, runId, sampleId).first<{
       id: string; status: StepStatus; updated_at: string; expected_state_hash: string | null;
       position: number; sequence_no: number; current_plan_revision_id: string;
@@ -2001,7 +2174,8 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
     c.env.DB.prepare(
       `SELECT rs.id, rs.status, rs.plan_status, rs.actualized_at, r.sequence_no, rs.position
        FROM runs r JOIN run_steps rs ON rs.run_id = r.id
-       WHERE r.sample_id = ? ORDER BY r.sequence_no, rs.position`,
+       WHERE r.sample_id = ? AND r.run_kind = 'process' AND rs.entry_kind = 'fabrication'
+       ORDER BY r.sequence_no, rs.position`,
     ).bind(sampleId).all<{
       id: string; status: StepStatus; plan_status: "current" | "superseded";
       actualized_at: string | null; sequence_no: number; position: number;
@@ -2129,6 +2303,7 @@ app.get("/exports/all", async (c) => {
     state_representation_assets: "SELECT * FROM state_representation_assets ORDER BY state_hash, position",
     template_versions: "SELECT * FROM template_versions ORDER BY created_at, id",
     template_steps: "SELECT * FROM template_steps ORDER BY template_version_id, position",
+    metrology_template_references: "SELECT * FROM metrology_template_references ORDER BY template_version_id, position, id",
     runs: "SELECT * FROM runs ORDER BY created_at, id",
     run_plan_revisions: "SELECT * FROM run_plan_revisions ORDER BY run_id, revision_no",
     run_steps: "SELECT * FROM run_steps ORDER BY run_id, position",
@@ -2461,10 +2636,17 @@ app.post("/imports/fabublox", async (c) => {
 app.get("/templates", async (c) => {
   const [result, initialAssetRows] = await Promise.all([
     c.env.DB.prepare(
-    `SELECT tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.version, tv.manifest_hash,
+    `SELECT tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.template_kind,
+            tv.version, tv.manifest_hash,
             tv.initial_state_hash, tv.source_filename, tv.content_json, tv.created_at,
             tv.locked_at, tv.archived_at,
-            (SELECT COUNT(*) FROM template_steps ts WHERE ts.template_version_id = tv.id) AS step_count
+            (SELECT COUNT(*) FROM template_steps ts WHERE ts.template_version_id = tv.id) AS step_count,
+            (SELECT sd.tool_name FROM template_steps ts JOIN step_definitions sd ON sd.hash = ts.definition_hash
+             WHERE ts.template_version_id = tv.id ORDER BY ts.position LIMIT 1) AS tool_name,
+            (SELECT sd.parameters_text FROM template_steps ts JOIN step_definitions sd ON sd.hash = ts.definition_hash
+             WHERE ts.template_version_id = tv.id ORDER BY ts.position LIMIT 1) AS parameters_text,
+            (SELECT sd.comments_text FROM template_steps ts JOIN step_definitions sd ON sd.hash = ts.definition_hash
+             WHERE ts.template_version_id = tv.id ORDER BY ts.position LIMIT 1) AS comments_text
      FROM template_versions tv
      WHERE tv.archived_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = tv.id AND i.status != 'ready')
@@ -2474,6 +2656,7 @@ app.get("/templates", async (c) => {
     recipe_family_id: string;
     name: string;
     template_type: "process" | "module" | "recipe";
+    template_kind: "process" | "metrology";
     version: number;
     manifest_hash: string;
     initial_state_hash: string | null;
@@ -2483,6 +2666,9 @@ app.get("/templates", async (c) => {
     locked_at: string | null;
     archived_at: string | null;
     step_count: number;
+    tool_name: string | null;
+    parameters_text: string | null;
+    comments_text: string | null;
   }>(),
     c.env.DB.prepare(
       `SELECT tv.id AS template_version_id, a.r2_key
@@ -2502,10 +2688,14 @@ app.get("/templates", async (c) => {
     recipeFamilyId: row.recipe_family_id,
     name: row.name,
     templateType: row.template_type,
+    templateKind: row.template_kind,
     version: row.version,
     manifestHash: row.manifest_hash,
     sourceFilename: row.source_filename,
     stepCount: Number(row.step_count),
+    toolName: row.tool_name,
+    parametersText: row.parameters_text,
+    commentsText: row.comments_text,
     initialStateHash: row.initial_state_hash,
     initialStateImageKeys: initialAssets.get(row.id) ?? [],
     initialSubstrateStep: parseInitialSubstrateStep(row.content_json),
@@ -2513,6 +2703,252 @@ app.get("/templates", async (c) => {
     lockedAt: row.locked_at,
     createdAt: row.created_at,
   })) });
+});
+
+app.post("/metrology-templates", async (c) => {
+  const input = await c.req.json<{
+    name?: string; toolName?: string; parametersText?: string; commentsText?: string;
+  }>();
+  if (typeof input.name !== "string" || typeof input.toolName !== "string"
+    || typeof input.parametersText !== "string" || typeof input.commentsText !== "string") {
+    throw new HTTPException(400, { message: "Valid metrology-template fields are required" });
+  }
+  const name = input.name.trim();
+  const toolName = input.toolName.trim();
+  const parametersText = input.parametersText.trim();
+  const commentsText = input.commentsText.trim();
+  if (!name || name.length > 200 || toolName.length > 500
+    || parametersText.length > 10_000 || commentsText.length > 10_000) {
+    throw new HTTPException(400, { message: "One or more metrology-template fields are invalid" });
+  }
+  const definition = await hashStepDefinition({ name, toolName, parametersText, commentsText });
+  const familyId = crypto.randomUUID();
+  const templateId = crypto.randomUUID();
+  const stepId = crypto.randomUUID();
+  const logicalKey = `metrology:${stepId}`;
+  const manifestHash = await hashRecipeManifest([
+    { logicalStepKey: logicalKey, definitionHash: definition.hash, expectedStateHash: null },
+  ]);
+  const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
+  try {
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO recipe_families (id, name, template_type, created_by, created_at)
+         VALUES (?, ?, 'module', ?, ?)`,
+      ).bind(familyId, `Metrology template · ${familyId}`, userEmail, now),
+      c.env.DB.prepare(
+        `INSERT OR IGNORE INTO step_definitions
+         (hash, hash_scheme, name, tool_name, parameters_text, comments_text, canonical_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
+        definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
+      c.env.DB.prepare(
+        `INSERT INTO template_versions
+         (id, recipe_family_id, name, template_type, template_kind, version, manifest_hash,
+          content_json, created_by, created_at)
+         VALUES (?, ?, ?, 'module', 'metrology', 1, ?, '{}', ?, ?)`,
+      ).bind(templateId, familyId, name, manifestHash, userEmail, now),
+      c.env.DB.prepare(
+        `INSERT INTO template_steps
+         (id, template_version_id, logical_step_key, position, definition_hash, raw_json)
+         VALUES (?, ?, ?, 0, ?, '{}')`,
+      ).bind(stepId, templateId, logicalKey, definition.hash),
+    ]);
+  } catch (error) {
+    if (String(error).includes("UNIQUE")) {
+      throw new HTTPException(409, { message: "A metrology template with this title already exists" });
+    }
+    throw error;
+  }
+  return c.json({ id: templateId, version: 1 }, 201);
+});
+
+app.patch("/metrology-templates/:id", async (c) => {
+  const id = c.req.param("id");
+  const input = await c.req.json<{
+    name?: string; toolName?: string; parametersText?: string; commentsText?: string;
+  }>();
+  if (typeof input.name !== "string" || typeof input.toolName !== "string"
+    || typeof input.parametersText !== "string" || typeof input.commentsText !== "string") {
+    throw new HTTPException(400, { message: "Valid metrology-template fields are required" });
+  }
+  const name = input.name.trim();
+  const toolName = input.toolName.trim();
+  const parametersText = input.parametersText.trim();
+  const commentsText = input.commentsText.trim();
+  if (!name || name.length > 200 || toolName.length > 500
+    || parametersText.length > 10_000 || commentsText.length > 10_000) {
+    throw new HTTPException(400, { message: "One or more metrology-template fields are invalid" });
+  }
+  const template = await c.env.DB.prepare(
+    `SELECT ts.id AS template_step_id, ts.logical_step_key
+     FROM template_versions tv
+     JOIN template_steps ts ON ts.template_version_id = tv.id
+     WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+       AND (SELECT COUNT(*) FROM template_steps only_step WHERE only_step.template_version_id = tv.id) = 1`,
+  ).bind(id).first<{ template_step_id: string; logical_step_key: string }>();
+  if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
+  const definition = await hashStepDefinition({ name, toolName, parametersText, commentsText });
+  const manifestHash = await hashRecipeManifest([
+    { logicalStepKey: template.logical_step_key, definitionHash: definition.hash, expectedStateHash: null },
+  ]);
+  const now = new Date().toISOString();
+  try {
+    const results = await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT OR IGNORE INTO step_definitions
+         (hash, hash_scheme, name, tool_name, parameters_text, comments_text, canonical_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
+        definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
+      c.env.DB.prepare(
+        `UPDATE template_versions SET name = ?, manifest_hash = ?
+         WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL`,
+      ).bind(name, manifestHash, id),
+      c.env.DB.prepare(
+        `UPDATE template_steps SET definition_hash = ?, expected_state_hash = NULL
+         WHERE id = ? AND template_version_id = ?`,
+      ).bind(definition.hash, template.template_step_id, id),
+    ]);
+    if (results.slice(1).some((result) => !result.meta.changes)) {
+      throw new HTTPException(409, { message: "This metrology template changed while it was being saved" });
+    }
+  } catch (error) {
+    if (error instanceof HTTPException) throw error;
+    if (String(error).includes("UNIQUE")) {
+      throw new HTTPException(409, { message: "A metrology template with this title already exists" });
+    }
+    throw error;
+  }
+  return c.json({ ok: true });
+});
+
+app.patch("/metrology-templates/:id/notes", async (c) => {
+  const id = c.req.param("id");
+  const input = await c.req.json<{ notes?: string }>();
+  if (typeof input.notes !== "string" || input.notes.length > 20_000) {
+    throw new HTTPException(400, { message: "Equipment or method notes must be at most 20,000 characters" });
+  }
+  const result = await c.env.DB.prepare(
+    `UPDATE template_versions SET metrology_notes = ?
+     WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL`,
+  ).bind(input.notes.trim() || null, id).run();
+  if (!result.meta.changes) throw new HTTPException(404, { message: "Metrology template not found" });
+  return c.json({ ok: true });
+});
+
+app.post("/metrology-templates/:id/references", async (c) => {
+  const templateId = c.req.param("id");
+  if (!contentLengthWithin(c.req.raw, 25 * 1024 * 1024)) {
+    throw new HTTPException(413, { message: "Template reference files are limited to 25 MB" });
+  }
+  const filename = (c.req.header("x-filename") || "reference").trim();
+  const mimeType = (c.req.header("content-type") || "application/octet-stream").trim();
+  if (!filename || filename.length > 255 || mimeType.length > 200) {
+    throw new HTTPException(400, { message: "Reference-file metadata is invalid" });
+  }
+  const template = await c.env.DB.prepare(
+    "SELECT id FROM template_versions WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL",
+  ).bind(templateId).first<{ id: string }>();
+  if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
+  const buffer = await c.req.arrayBuffer();
+  if (!buffer.byteLength || buffer.byteLength > 25 * 1024 * 1024) {
+    throw new HTTPException(413, { message: "Template reference files must be between 1 byte and 25 MB" });
+  }
+  const sha256 = await digestSha256(buffer);
+  const existingReference = await c.env.DB.prepare(
+    `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at
+     FROM metrology_template_references mtr
+     JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
+     WHERE mtr.template_version_id = ? AND a.sha256 = ?`,
+  ).bind(templateId, sha256).first<{
+    id: string; display_name: string; mime_type: string; byte_size: number;
+    r2_key: string; created_at: string;
+  }>();
+  if (existingReference) return c.json({ reference: {
+    id: existingReference.id,
+    filename: existingReference.display_name,
+    mimeType: existingReference.mime_type,
+    byteSize: Number(existingReference.byte_size),
+    assetKey: existingReference.r2_key,
+    createdAt: existingReference.created_at,
+  } });
+
+  const existingAsset = await c.env.DB.prepare(
+    "SELECT id, r2_key, original_name, mime_type, byte_size FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+  ).bind(sha256).first<{
+    id: string; r2_key: string; original_name: string; mime_type: string; byte_size: number;
+  }>();
+  const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
+  let asset = existingAsset;
+  let uploadedKey: string | null = null;
+  if (!asset) {
+    const assetId = crypto.randomUUID();
+    const key = `metrology/${templateId}/${crypto.randomUUID()}-${safeObjectName(filename)}`;
+    await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType: mimeType } });
+    uploadedKey = key;
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO assets
+         (id, r2_key, original_name, mime_type, byte_size, status, sha256, actor_email, created_at)
+         VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+      ).bind(assetId, key, filename, mimeType, buffer.byteLength, sha256, userEmail, now).run();
+      asset = { id: assetId, r2_key: key, original_name: filename, mime_type: mimeType, byte_size: buffer.byteLength };
+    } catch (error) {
+      await c.env.ASSETS.delete(key);
+      if (!String(error).includes("UNIQUE")) throw error;
+      asset = await c.env.DB.prepare(
+        "SELECT id, r2_key, original_name, mime_type, byte_size FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+      ).bind(sha256).first<{
+        id: string; r2_key: string; original_name: string; mime_type: string; byte_size: number;
+      }>();
+      if (!asset) throw error;
+      uploadedKey = null;
+    }
+  }
+  const referenceId = crypto.randomUUID();
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO metrology_template_references
+       (id, template_version_id, asset_id, display_name, position, actor_email, created_at)
+       VALUES (?, ?, ?, ?, COALESCE((
+         SELECT MAX(position) + 1 FROM metrology_template_references WHERE template_version_id = ?
+       ), 0), ?, ?)`,
+    ).bind(referenceId, templateId, asset.id, filename, templateId, userEmail, now).run();
+  } catch (error) {
+    if (uploadedKey) {
+      await c.env.ASSETS.delete(uploadedKey);
+      await c.env.DB.prepare("DELETE FROM assets WHERE id = ?").bind(asset.id).run();
+    }
+    if (String(error).includes("UNIQUE")) {
+      throw new HTTPException(409, { message: "This reference file is already attached" });
+    }
+    throw error;
+  }
+  return c.json({ reference: {
+    id: referenceId,
+    filename,
+    mimeType: asset.mime_type,
+    byteSize: Number(asset.byte_size),
+    assetKey: asset.r2_key,
+    createdAt: now,
+  } }, 201);
+});
+
+app.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
+  const { id, referenceId } = c.req.param();
+  const result = await c.env.DB.prepare(
+    `DELETE FROM metrology_template_references
+     WHERE id = ? AND template_version_id = ?
+       AND EXISTS (
+         SELECT 1 FROM template_versions
+         WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL
+       )`,
+  ).bind(referenceId, id, id).run();
+  if (!result.meta.changes) throw new HTTPException(404, { message: "Template reference not found" });
+  return c.json({ ok: true });
 });
 
 app.post("/templates/:id/clone", async (c) => {
@@ -2533,10 +2969,10 @@ app.post("/templates/:id/clone", async (c) => {
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
       `INSERT INTO template_versions
-        (id, recipe_family_id, name, template_type, version, manifest_hash, initial_state_hash,
+        (id, recipe_family_id, name, template_type, template_kind, version, manifest_hash, initial_state_hash,
          source_filename, source_asset_key, content_json, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(id, source.recipe_family_id, source.name, source.template_type, version, source.manifest_hash,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(id, source.recipe_family_id, source.name, source.template_type, source.template_kind, version, source.manifest_hash,
       source.initial_state_hash, source.source_filename, source.source_asset_key, source.content_json, userEmail, now),
     ...bulkInsertStatements(c.env.DB, "template_steps",
       ["id", "template_version_id", "logical_step_key", "position", "source_row", "step_number", "section_name", "definition_hash", "expected_state_hash", "raw_json"],
@@ -2550,9 +2986,10 @@ app.post("/templates/:id/clone", async (c) => {
 
 app.get("/templates/:id", async (c) => {
   const id = c.req.param("id");
-  const [template, stepRows, assetRows, initialAssetRows] = await Promise.all([
+  const [template, stepRows, assetRows, initialAssetRows, referenceRows] = await Promise.all([
     c.env.DB.prepare(
-      `SELECT id, recipe_family_id, name, template_type, version, manifest_hash, initial_state_hash,
+      `SELECT id, recipe_family_id, name, template_type, template_kind, metrology_notes,
+              version, manifest_hash, initial_state_hash,
               source_filename, content_json, locked_at, archived_at, created_at
        FROM template_versions WHERE id = ?`,
     ).bind(id).first<Record<string, unknown>>(),
@@ -2577,17 +3014,38 @@ app.get("/templates/:id", async (c) => {
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
        WHERE tv.id = ? ORDER BY sra.position, a.id`,
     ).bind(id).all<{ r2_key: string }>(),
+    c.env.DB.prepare(
+      `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at
+       FROM metrology_template_references mtr
+       JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
+       WHERE mtr.template_version_id = ?
+       ORDER BY mtr.position, mtr.created_at, mtr.id`,
+    ).bind(id).all<{
+      id: string; display_name: string; mime_type: string; byte_size: number;
+      r2_key: string; created_at: string;
+    }>(),
   ]);
   if (!template) throw new HTTPException(404, { message: "Template version not found" });
   const images = new Map<string, string[]>();
   for (const row of assetRows.results) images.set(row.template_step_id, [...(images.get(row.template_step_id) ?? []), row.r2_key]);
   return c.json({ template: {
-    id: String(template.id), recipeFamilyId: String(template.recipe_family_id), name: String(template.name), templateType: String(template.template_type), version: Number(template.version),
+    id: String(template.id), recipeFamilyId: String(template.recipe_family_id), name: String(template.name),
+    templateType: String(template.template_type), templateKind: String(template.template_kind),
+    version: Number(template.version),
     manifestHash: String(template.manifest_hash),
     initialStateHash: template.initial_state_hash ? String(template.initial_state_hash) : null,
     initialStateImageKeys: initialAssetRows.results.map((row) => row.r2_key),
     initialSubstrateStep: parseInitialSubstrateStep(template.content_json ? String(template.content_json) : null),
     sourceFilename: template.source_filename ? String(template.source_filename) : null,
+    metrologyNotes: template.metrology_notes ? String(template.metrology_notes) : null,
+    referenceAttachments: referenceRows.results.map((reference) => ({
+      id: reference.id,
+      filename: reference.display_name,
+      mimeType: reference.mime_type,
+      byteSize: Number(reference.byte_size),
+      assetKey: reference.r2_key,
+      createdAt: reference.created_at,
+    })),
     locked: Boolean(template.locked_at), lockedAt: template.locked_at ? String(template.locked_at) : null,
     archived: Boolean(template.archived_at), createdAt: String(template.created_at),
     steps: stepRows.results.map((step) => ({
@@ -2791,6 +3249,11 @@ app.delete("/templates/:id", async (c) => {
     `SELECT tv.recipe_family_id, tv.locked_at, tv.archived_at,
             EXISTS (SELECT 1 FROM runs r WHERE r.template_version_id = tv.id) OR
             EXISTS (SELECT 1 FROM run_plan_revisions rpr WHERE rpr.template_version_id = tv.id) OR
+            EXISTS (
+              SELECT 1 FROM run_steps rs
+              JOIN template_steps ts ON ts.id = rs.template_step_id
+              WHERE ts.template_version_id = tv.id
+            ) OR
             EXISTS (SELECT 1 FROM recipe_change_proposals rcp WHERE rcp.source_template_version_id = tv.id) AS referenced
      FROM template_versions tv WHERE tv.id = ?`,
   ).bind(id).first<{ recipe_family_id: string; locked_at: string | null; archived_at: string | null; referenced: number }>();
@@ -2811,8 +3274,13 @@ app.delete("/templates/:id", async (c) => {
        WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM runs WHERE template_version_id = ?)
          AND NOT EXISTS (SELECT 1 FROM run_plan_revisions WHERE template_version_id = ?)
+         AND NOT EXISTS (
+           SELECT 1 FROM run_steps rs
+           JOIN template_steps ts ON ts.id = rs.template_step_id
+           WHERE ts.template_version_id = ?
+         )
          AND NOT EXISTS (SELECT 1 FROM recipe_change_proposals WHERE source_template_version_id = ?)`,
-    ).bind(id, id, id, id),
+    ).bind(id, id, id, id, id),
     c.env.DB.prepare(
       "UPDATE imports SET template_version_id = NULL WHERE template_version_id = ? AND NOT EXISTS (SELECT 1 FROM template_versions WHERE id = ?)",
     ).bind(id, id),
