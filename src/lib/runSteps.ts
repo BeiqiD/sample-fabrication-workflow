@@ -12,3 +12,7 @@ export function runStepIsModified(step: RunStep) {
     || normalized(step.commentsText) !== normalized(step.plannedCommentsText)
     || Boolean(normalized(step.deviationNote));
 }
+
+export function runStepIsReadOnly(runReadOnly: boolean, completedRun: boolean, step: RunStep) {
+  return runReadOnly && !(completedRun && step.entryKind === "metrology");
+}

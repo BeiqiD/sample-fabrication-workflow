@@ -207,6 +207,8 @@ export function ProcessingWorkspacePage() {
     : processTemplates;
   const selectedIsActive = selectedRun?.status === "active";
   const selectedIsActiveProcess = selectedRun?.runKind === "process" && selectedIsActive;
+  const selectedRunIsEditable = selectedIsActive
+    || (selectedRun?.runKind === "metrology" && selectedRun.status === "complete");
   const processRuns = sample.runs.filter((run) => run.runKind === "process");
   const selectedIsLatestProcess = selectedRun?.runKind === "process" && selectedRun.id === processRuns[0]?.id;
   const unfinishedCurrentSteps = activeRun?.steps.filter((step) =>
@@ -224,7 +226,7 @@ export function ProcessingWorkspacePage() {
     <section className="execution-workspace">
       <div className="execution-heading">
         <div><h2>Samples in this view</h2><p>Use checked columns for common confirmation and comments. Every correction remains sample-specific.</p></div>
-        <button className="button primary" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedIsActive} onClick={() => setShowSamplePicker((value) => !value)}>+ Add sample</button>
+        <button className="button primary" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}>+ Add sample</button>
       </div>
       <div className="visible-samples">
         {samples.map((item, index) => <div className="visible-sample" key={item.id}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}
@@ -235,11 +237,11 @@ export function ProcessingWorkspacePage() {
       </div>}
 
       {sample.runs.length > 0 && (sample.runs.length > 1
-        ? <div className="run-selector card"><label>Viewing run<select value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select></label>{!selectedIsActive && <span>{processRunStatus(selectedRun?.status || "complete")} · read-only</span>}</div>
+        ? <div className="run-selector card"><label>Viewing run<select value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select></label>{!selectedIsActive && <span>{processRunStatus(selectedRun?.status || "complete")} · {selectedRunIsEditable ? "results editable" : "read-only"}</span>}</div>
         : selectedRun && <div className="run-viewing-card card"><div><p className="card-label">{selectedRun.runKind === "metrology" ? "Metrology run" : "Process run"}</p><h3 className="card-title">Run {selectedRun.sequenceNo} · {selectedRun.templateName}{selectedRun.runKind === "process" ? ` v${selectedRun.templateVersion}` : ""}</h3></div><span className={`run-status run-status-${selectedRun.status}`}>{processRunStatus(selectedRun.status)}</span></div>)}
 
       <div className="run-workflow-actions card">
-        <div><h3 className="card-title">Run actions</h3><p className="card-context">{selectedRun ? `Run ${selectedRun.sequenceNo} · ${selectedRun.templateName}` : "No run yet"}</p><p className="card-meta">{selectedRun?.runKind === "metrology" ? selectedIsActive ? "This metrology run completes when its record is marked Done." : "This metrology result remains read-only." : selectedIsActiveProcess ? "Update only future work, or finish this processing stage." : selectedRun ? "This completed process run remains read-only unless it is the latest process run and is explicitly reopened." : "Start fabrication from a process template, or run metrology independently."}</p></div>
+        <div><h3 className="card-title">Run actions</h3><p className="card-context">{selectedRun ? `Run ${selectedRun.sequenceNo} · ${selectedRun.templateName}` : "No run yet"}</p><p className="card-meta">{selectedRun?.runKind === "metrology" ? selectedIsActive ? "This metrology run completes when its record is marked Done; its results remain editable afterwards." : selectedRun.status === "complete" ? "The measurement is complete, but results, parameters, comments, and attachments remain editable for post-processing." : `This ${processRunStatus(selectedRun.status).toLowerCase()} metrology run remains read-only.` : selectedIsActiveProcess ? "Update only future work, or finish this processing stage." : selectedRun ? "This completed process run remains read-only unless it is the latest process run and is explicitly reopened." : "Start fabrication from a process template, or run metrology independently."}</p></div>
         <div className="run-workflow-buttons">
           {selectedIsActiveProcess && <button type="button" className="button" onClick={() => openTransition("update")}>Update future plan</button>}
           {selectedIsActiveProcess && <button type="button" className="button" disabled={assigning || unfinishedCurrentSteps.length > 0} title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}>Finish run</button>}
@@ -250,7 +252,7 @@ export function ProcessingWorkspacePage() {
         </div>
       </div>
 
-      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : item.runs.find((candidate) => candidate.runKind === selectedRun.runKind && candidate.recipeFamilyId === selectedRun.recipeFamilyId && candidate.status === selectedRun.status) ?? null }))} onSaved={load} readOnly={!selectedIsActive} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
+      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : item.runs.find((candidate) => candidate.runKind === selectedRun.runKind && candidate.recipeFamilyId === selectedRun.recipeFamilyId && candidate.status === selectedRun.status) ?? null }))} onSaved={load} readOnly={!selectedRunIsEditable} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
       {showMetrologyPicker && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !startingMetrologyId) setShowMetrologyPicker(false); }}>
         <section className="run-start-dialog transition-template-dialog standalone-metrology-dialog" role="dialog" aria-modal="true" aria-labelledby="standalone-metrology-title">
           <div className="run-start-dialog-heading"><div><p className="dialog-kicker">Independent run</p><h2 id="standalone-metrology-title">Choose a metrology template</h2></div><button type="button" className="drawer-close" disabled={Boolean(startingMetrologyId)} onClick={() => setShowMetrologyPicker(false)} aria-label="Close">×</button></div>

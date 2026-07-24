@@ -35,7 +35,7 @@ class SqliteD1Statement {
 
 function testDatabase() {
   const database = new DatabaseSync(":memory:");
-  for (let index = 1; index <= 7; index += 1) {
+  for (let index = 1; index <= 8; index += 1) {
     const prefix = String(index).padStart(4, "0");
     const filename = [
       "alpha_state_chain",
@@ -45,6 +45,7 @@ function testDatabase() {
       "comment_submissions",
       "metrology_templates",
       "directory_performance",
+      "sync_metrology_sample_status",
     ][index - 1];
     database.exec(readFileSync(new URL(`../migrations/${prefix}_${filename}.sql`, import.meta.url), "utf8"));
   }
