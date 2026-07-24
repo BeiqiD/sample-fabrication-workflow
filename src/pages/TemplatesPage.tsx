@@ -61,14 +61,17 @@ export function TemplatesPage() {
         <span className="meta-badge">{family.versions.length} version{family.versions.length === 1 ? "" : "s"}</span>
       </header>
       <div className="template-version-list">{family.versions.map((template, index) => <article className="template-version-row" key={template.id}>
-        <div className="template-version-identity">
-          <div className="card-title-line"><strong>v{template.version}</strong>{index === 0 && <span className="meta-badge">Latest</span>}</div>
-          <small>{template.sourceFilename || "Manually created version"}</small>
-        </div>
-        <div className="template-version-fact"><small>Initial substrate</small><span>{initialSubstrateLabel(template)}</span></div>
-        <div className="template-version-fact"><small>State</small><span className={`template-state ${template.locked ? "locked" : "draft"}`}>{template.locked ? "Locked" : "Editable"}</span></div>
-        <div className="template-version-fact"><small>Steps</small><span>{template.stepCount}</span></div>
-        <div className="template-row-actions"><Link className="text-button" to={`/templates/${template.id}`}>{template.locked ? "View" : "Edit"} →</Link>{!template.locked && <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeUnused(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button>}</div>
+        <Link className="template-version-link" to={`/templates/${template.id}`} aria-label={`${template.locked ? "View" : "Edit"} ${template.name} version ${template.version}`}>
+          <div className="template-version-identity">
+            <div className="card-title-line"><strong>v{template.version}</strong>{index === 0 && <span className="meta-badge">Latest</span>}</div>
+            <small>{template.sourceFilename || "Manually created version"}</small>
+          </div>
+          <div className="template-version-fact"><small>Initial substrate</small><span>{initialSubstrateLabel(template)}</span></div>
+          <div className="template-version-fact"><small>State</small><span className={`template-state ${template.locked ? "locked" : "draft"}`}>{template.locked ? "Locked" : "Editable"}</span></div>
+          <div className="template-version-fact"><small>Steps</small><span>{template.stepCount}</span></div>
+          <span className="text-button template-row-open" aria-hidden="true">{template.locked ? "View" : "Edit"} →</span>
+        </Link>
+        {!template.locked && <div className="template-row-actions"><button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeUnused(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button></div>}
       </article>)}</div>
     </section>)}</div> : <div className="card"><p className="muted padded">No active process templates yet.</p></div>}
   </div>;
