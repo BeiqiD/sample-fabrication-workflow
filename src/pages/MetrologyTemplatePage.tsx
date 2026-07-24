@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FileDropzone } from "../components/FileDropzone";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { api, type MetrologyTemplateInput, type TemplateDetail } from "../lib/api";
+import { templateDetailPath } from "../lib/templateRoutes";
 
 export function MetrologyTemplatePage() {
   const { templateId = "" } = useParams();
@@ -16,12 +17,16 @@ export function MetrologyTemplatePage() {
   const [savingReference, setSavingReference] = useState(false);
   const load = useCallback(async (syncReferenceNotes = true) => {
     const result = await api.getTemplate(templateId);
-    if (result.template.templateKind !== "metrology" || result.template.steps.length !== 1) {
+    if (result.template.templateKind !== "metrology") {
+      navigate(templateDetailPath(templateId, "process"), { replace: true });
+      return;
+    }
+    if (result.template.steps.length !== 1) {
       throw new Error("This is not a valid metrology template.");
     }
     setTemplate(result.template);
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
-  }, [templateId]);
+  }, [navigate, templateId]);
   useEffect(() => { void load(true).catch((error: Error) => setError(error.message)); }, [load]);
 
   async function update(input: MetrologyTemplateInput) {

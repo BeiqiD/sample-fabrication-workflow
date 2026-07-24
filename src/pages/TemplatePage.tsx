@@ -6,6 +6,7 @@ import { SubstrateStepDetails } from "../components/SubstrateStepDetails";
 import { FileDropzone } from "../components/FileDropzone";
 import { api, type TemplateDetail, type TemplateStepRecord } from "../lib/api";
 import { compressLayerStackImage } from "../lib/images";
+import { templateDetailPath } from "../lib/templateRoutes";
 import { sectionNameAtGroupStart } from "../lib/template-sections";
 
 function TemplateStepEditor({ template, step, sectionName, onSaved }: { template: TemplateDetail; step: TemplateStepRecord; sectionName: string | null; onSaved: () => Promise<void> }) {
@@ -105,8 +106,12 @@ export function TemplatePage() {
   const [error, setError] = useState("");
   const load = useCallback(async () => {
     const result = await api.getTemplate(templateId);
+    if (result.template.templateKind === "metrology") {
+      navigate(templateDetailPath(templateId, "metrology"), { replace: true });
+      return;
+    }
     setTemplate(result.template); setName(result.template.name); setVersion(result.template.version);
-  }, [templateId]);
+  }, [navigate, templateId]);
   useEffect(() => {
     setTemplate(null); setError("");
     void load().catch((error: Error) => setError(error.message));
