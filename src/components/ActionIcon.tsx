@@ -1,11 +1,20 @@
-export type ActionIconName = "export" | "moon" | "note" | "sun";
+export type ActionIconName = "export" | "metrology" | "moon" | "process" | "split" | "sun";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
   export: <path d="M12 3.5v11M8 10.5l4 4 4-4M5 17v3h14v-3" />,
+  metrology: <>
+    <circle cx="10" cy="10" r="5.5" />
+    <path d="m14 14 6 6M7.5 10h5M10 7.5v5" />
+  </>,
   moon: <path d="M19.5 15.2A8.4 8.4 0 0 1 8.8 4.5 8.5 8.5 0 1 0 19.5 15.2Z" />,
-  note: <>
-    <path d="M6 3.5h8l4 4v13H6z" />
-    <path d="M14 3.5v4h4M9 14h6M12 11v6" />
+  process: <>
+    <path d="m4 7 8-4 8 4-8 4z" />
+    <path d="m4 12 8 4 8-4M4 17l8 4 8-4" />
+  </>,
+  split: <>
+    <path d="M12 3.5v6M12 9.5l-5 5v6M12 9.5l5 5v6" />
+    <circle cx="7" cy="20.5" r="1.5" />
+    <circle cx="17" cy="20.5" r="1.5" />
   </>,
   sun: <>
     <circle cx="12" cy="12" r="3.5" />

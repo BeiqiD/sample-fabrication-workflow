@@ -8,11 +8,13 @@ import { DiagramGallery } from "../components/MultiSampleRunGrid";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { SampleTimeline } from "../components/SampleTimeline";
 import { SplitSampleDialog } from "../components/SplitSampleDialog";
+import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { exportSample } from "../lib/exportSample";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
+import { selectSamplePageRuns } from "../lib/sample-run-selection";
 
 function runProgress(run: SampleRun) {
   const currentSteps = run.steps.filter((step) => step.planStatus === "current");
@@ -75,6 +77,7 @@ export function SamplePage() {
   const [sampleDeleteConfirmation, setSampleDeleteConfirmation] = useState("");
   const [sampleDeleteError, setSampleDeleteError] = useState("");
   const [deletingSample, setDeletingSample] = useState(false);
+  const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -152,19 +155,87 @@ export function SamplePage() {
   }
 
   if (!sample) return <div className="page"><p>{error || "Loading sample…"}</p></div>;
-  const activeRun = sample.runs.find((run) => run.status === "active") ?? null;
-  const latestRun = sample.runs[0] ?? null;
+  const {
+    activeProcessRun,
+    activeMetrologyRun,
+    latestProcessRun,
+    processRunCount,
+  } = selectSamplePageRuns(sample.runs);
   const notes = collectSampleNotes(sample);
   const recentEvents = sample.events.slice(0, SAMPLE_HISTORY_PREVIEW_COUNT);
+  const processActionLabel = activeProcessRun
+    ? "Continue processing"
+    : processRunCount
+      ? "Start new process"
+      : "Start first process";
+  const processActionPath = `/processing/${sample.id}${activeProcessRun
+    ? `?run=${encodeURIComponent(activeProcessRun.id)}`
+    : "?action=start"}`;
+  const metrologyActionLabel = activeMetrologyRun ? "Continue metrology" : "Start metrology";
 
   return <div className="page sample-overview-page">
     <Link className="back-link" to="/samples">← Samples</Link>
     <div className="sample-header">
       <div className="sample-header-copy"><p className="eyebrow">{sample.code}</p><h1>{sample.title}</h1><p className="lead">{sample.description || "No description"}</p></div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button primary" to={`/processing/${sample.id}${activeRun ? `?run=${encodeURIComponent(activeRun.id)}` : "?action=start"}`}>{activeRun ? "Continue processing" : sample.runs.length ? "Start new run" : "Start first run"}</Link><a className="button responsive-icon-button" href="#sample-notes" aria-label="Add note" title="Add note"><ActionIcon name="note" /><span className="responsive-action-label">Add note</span></a><button className="button" onClick={() => setSplitting(true)}>Split sample</button><button className="button responsive-icon-button" disabled={exporting} aria-label={exporting ? "Exporting sample ZIP" : "Export sample ZIP"} aria-busy={exporting} title={exporting ? "Exporting sample ZIP" : "Export sample ZIP"} onClick={() => {
-        setExporting(true);
-        void exportSample(sample).catch((error: Error) => setError(error.message)).finally(() => setExporting(false));
-      }}><ActionIcon name="export" /><span className="responsive-action-label">{exporting ? "Exporting…" : "Export ZIP"}</span></button></div>
+      <div className="header-actions sample-header-actions">
+        <StatusPill status={sample.status} />
+        <div className="sample-header-action-buttons">
+          <Link
+            className="button primary responsive-icon-button"
+            to={processActionPath}
+            aria-label={processActionLabel}
+            title={processActionLabel}
+          >
+            <ActionIcon name="process" />
+            <span className="responsive-action-label">{processActionLabel}</span>
+          </Link>
+          {activeMetrologyRun
+            ? <Link
+              className="button responsive-icon-button"
+              to={`/processing/${sample.id}?run=${encodeURIComponent(activeMetrologyRun.id)}`}
+              aria-label={metrologyActionLabel}
+              title={metrologyActionLabel}
+            >
+              <ActionIcon name="metrology" />
+              <span className="responsive-action-label">{metrologyActionLabel}</span>
+            </Link>
+            : <button
+              type="button"
+              className="button responsive-icon-button"
+              aria-label={metrologyActionLabel}
+              title={metrologyActionLabel}
+              onClick={() => setShowMetrologyPicker(true)}
+            >
+              <ActionIcon name="metrology" />
+              <span className="responsive-action-label">{metrologyActionLabel}</span>
+            </button>}
+          <button
+            type="button"
+            className="button responsive-icon-button"
+            aria-label="Split sample"
+            title="Split sample"
+            onClick={() => setSplitting(true)}
+          >
+            <ActionIcon name="split" />
+            <span className="responsive-action-label">Split sample</span>
+          </button>
+          <button
+            type="button"
+            className="button responsive-icon-button"
+            disabled={exporting}
+            aria-label={exporting ? "Exporting sample ZIP" : "Export sample ZIP"}
+            aria-busy={exporting}
+            title={exporting ? "Exporting sample ZIP" : "Export sample ZIP"}
+            onClick={() => {
+              setExporting(true);
+              void exportSample(sample).catch((error: Error) => setError(error.message)).finally(() => setExporting(false));
+            }}
+          >
+            <ActionIcon name="export" />
+            <span className="responsive-action-label">{exporting ? "Exporting…" : "Export ZIP"}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     {error && <p className="error-banner">{error}</p>}
@@ -188,7 +259,7 @@ export function SamplePage() {
             <h2 className="card-title">Current structure</h2>
             <p className="card-value">{sample.currentStateStepTitle ? `After ${sample.currentStateStepTitle}` : sample.latestWorkflowName ? "Latest recorded substrate" : "No process structure yet"}</p>
             <p className="card-meta">{sample.latestWorkflowName ? `${sample.latestWorkflowName}${sample.latestWorkflowVersion ? ` · v${sample.latestWorkflowVersion}` : ""}` : "Start a process run to establish the first substrate snapshot."}</p>
-            {latestRun && <Link className="text-button structure-source-link" to={`/processing/${sample.id}?run=${encodeURIComponent(latestRun.id)}`}>Open source run</Link>}
+            {latestProcessRun && <Link className="text-button structure-source-link" to={`/processing/${sample.id}?run=${encodeURIComponent(latestProcessRun.id)}`}>Open source run</Link>}
           </div>
           <SampleStateThumbnail sample={sample} />
         </article>
@@ -297,6 +368,11 @@ export function SamplePage() {
       confirmation={{ label: `Type ${sample.code} to confirm`, target: sample.code, value: sampleDeleteConfirmation, onChange: setSampleDeleteConfirmation }}
       onCancel={() => { setConfirmingSampleDeletion(false); setSampleDeleteConfirmation(""); setSampleDeleteError(""); }}
       onConfirm={() => void deleteSample()}
+    />}
+    {showMetrologyPicker && <StandaloneMetrologyDialog
+      sampleId={sample.id}
+      onClose={() => setShowMetrologyPicker(false)}
+      onStarted={(runId) => navigate(`/processing/${sample.id}?run=${encodeURIComponent(runId)}`)}
     />}
     {splitting && <SplitSampleDialog sample={sample} onCancel={() => setSplitting(false)} onComplete={async () => { setSplitting(false); await load(); }} />}
   </div>;

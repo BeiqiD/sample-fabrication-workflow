@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
+import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
 import { StatusPill } from "../components/StatusPill";
 import {
   api,
-  type MetrologyTemplateSummary,
   type ProcessTemplateFamilySummary,
   type ProcessTemplateVersionSummary,
 } from "../lib/api";
@@ -51,10 +51,6 @@ export function ProcessingWorkspacePage() {
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
-  const [metrologyQuery, setMetrologyQuery] = useState("");
-  const [metrologyTemplates, setMetrologyTemplates] = useState<MetrologyTemplateSummary[]>([]);
-  const [metrologyTemplatesLoading, setMetrologyTemplatesLoading] = useState(false);
-  const [startingMetrologyId, setStartingMetrologyId] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -105,29 +101,6 @@ export function ProcessingWorkspacePage() {
       controller.abort();
     };
   }, [sampleQuery, showSamplePicker]);
-
-  useEffect(() => {
-    if (!showMetrologyPicker) return;
-    const controller = new AbortController();
-    setMetrologyTemplatesLoading(true);
-    const timeout = window.setTimeout(() => {
-      api.listMetrologyTemplates({ query: metrologyQuery, pageSize: 50, signal: controller.signal })
-        .then(({ templates }) => {
-          setMetrologyTemplates(templates);
-          setError("");
-        })
-        .catch((error: Error) => {
-          if (error.name !== "AbortError") setError(error.message);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setMetrologyTemplatesLoading(false);
-        });
-    }, metrologyQuery.trim() ? 160 : 0);
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [metrologyQuery, showMetrologyPicker]);
 
   useEffect(() => {
     if (transitionMode !== "start") return;
@@ -267,18 +240,6 @@ export function ProcessingWorkspacePage() {
     finally { setAssigning(false); }
   }
 
-  async function startMetrology(templateVersionId: string) {
-    setStartingMetrologyId(templateVersionId); setError("");
-    try {
-      const result = await api.startMetrologyRun(sampleId, { templateVersionId });
-      setShowMetrologyPicker(false);
-      setMetrologyQuery("");
-      updateSearchParams({ run: result.id });
-      await load();
-    } catch (error) { setError((error as Error).message); }
-    finally { setStartingMetrologyId(""); }
-  }
-
   function openTransition(mode: "start" | "update" | "reopen") {
     setTransitionMode(mode);
     setProcessFamilyQuery("");
@@ -356,22 +317,15 @@ export function ProcessingWorkspacePage() {
       </div>
 
       {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : item.runs.find((candidate) => candidate.runKind === selectedRun.runKind && candidate.recipeFamilyId === selectedRun.recipeFamilyId && candidate.status === selectedRun.status) ?? null }))} onSaved={load} readOnly={!selectedRunIsEditable} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
-      {showMetrologyPicker && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !startingMetrologyId) setShowMetrologyPicker(false); }}>
-        <section className="run-start-dialog transition-template-dialog standalone-metrology-dialog" role="dialog" aria-modal="true" aria-labelledby="standalone-metrology-title">
-          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">Independent run</p><h2 id="standalone-metrology-title">Choose a metrology template</h2></div><button type="button" className="drawer-close" disabled={Boolean(startingMetrologyId)} onClick={() => setShowMetrologyPicker(false)} aria-label="Close">×</button></div>
-          <p className="muted">This creates a standalone result record and does not change the active fabrication process or sample structure.</p>
-          <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={metrologyQuery} onChange={(event) => setMetrologyQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
-          <div className="metrology-picker-list standalone-metrology-list">
-            {metrologyTemplates.map((template) => <button type="button" key={template.id} disabled={Boolean(startingMetrologyId)} onClick={() => void startMetrology(template.id)}>
-              <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}</small></span>
-              <span>{startingMetrologyId === template.id ? "Starting…" : "Start"}</span>
-            </button>)}
-            {metrologyTemplatesLoading && !metrologyTemplates.length && <p className="muted">Loading metrology templates…</p>}
-            {!metrologyTemplatesLoading && !metrologyTemplates.length && <p className="muted">No matching metrology templates. Create one from Templates first.</p>}
-          </div>
-          <div className="form-actions"><Link className="button" to="/templates">Manage templates</Link><button type="button" className="button" disabled={Boolean(startingMetrologyId)} onClick={() => setShowMetrologyPicker(false)}>Cancel</button></div>
-        </section>
-      </div>}
+      {showMetrologyPicker && <StandaloneMetrologyDialog
+        sampleId={sampleId}
+        onClose={() => setShowMetrologyPicker(false)}
+        onStarted={async (runId) => {
+          setShowMetrologyPicker(false);
+          updateSearchParams({ run: runId });
+          await load();
+        }}
+      />}
       {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !assigning) setTransitionMode(null); }}>
         <section className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
           <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close">×</button></div>
