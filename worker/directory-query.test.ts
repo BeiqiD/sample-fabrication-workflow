@@ -38,9 +38,9 @@ describe("directory filtering", () => {
   });
 
   it("defaults sample sorting according to whether a search is active", () => {
-    expect(sampleDirectorySort(null, false)).toBe("updated-desc");
+    expect(sampleDirectorySort(null, false)).toBe("active-updated-desc");
     expect(sampleDirectorySort(null, true)).toBe("relevance");
     expect(sampleDirectorySort("created-asc", true)).toBe("created-asc");
-    expect(sampleDirectorySort("relevance", false)).toBe("updated-desc");
+    expect(sampleDirectorySort("relevance", false)).toBe("active-updated-desc");
   });
 });

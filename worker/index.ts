@@ -400,6 +400,7 @@ function sampleDirectoryOrder(sort: SampleDirectorySort, tokens: string[]) {
     };
   }
   const orderBy: Record<Exclude<SampleDirectorySort, "relevance">, string> = {
+    "active-updated-desc": "CASE WHEN status = 'active' THEN 0 ELSE 1 END, pinned DESC, updated_at DESC, id",
     "updated-desc": "updated_at DESC, id",
     "updated-asc": "updated_at ASC, id",
     "created-desc": "created_at DESC, id",
@@ -407,7 +408,11 @@ function sampleDirectoryOrder(sort: SampleDirectorySort, tokens: string[]) {
     "code-asc": "code COLLATE NOCASE ASC, id",
     "code-desc": "code COLLATE NOCASE DESC, id",
   };
-  return { sql: `pinned DESC, ${orderBy[sort === "relevance" ? "updated-desc" : sort]}`, bindings: [] as string[] };
+  const selected = sort === "relevance" ? "active-updated-desc" : sort;
+  return {
+    sql: selected === "active-updated-desc" ? orderBy[selected] : `pinned DESC, ${orderBy[selected]}`,
+    bindings: [] as string[],
+  };
 }
 
 app.get("/sample-directory-options", async (c) => {

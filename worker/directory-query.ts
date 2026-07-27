@@ -50,7 +50,7 @@ export function processingDirectoryFilter(value: string | null | undefined): Pro
 }
 
 export function sampleDirectorySort(value: string | null | undefined, hasQuery: boolean): SampleDirectorySort {
-  const fallback: SampleDirectorySort = hasQuery ? "relevance" : "updated-desc";
+  const fallback: SampleDirectorySort = hasQuery ? "relevance" : "active-updated-desc";
   if (!(SAMPLE_DIRECTORY_SORTS as readonly string[]).includes(value ?? "")) return fallback;
   return value === "relevance" && !hasQuery ? fallback : value as SampleDirectorySort;
 }
