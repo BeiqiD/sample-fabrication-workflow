@@ -15,6 +15,7 @@ export interface SampleDirectorySettings {
 
 export const SAMPLE_DIRECTORY_SORT_OPTIONS: ReadonlyArray<{ value: SampleDirectorySort; label: string }> = [
   { value: "relevance", label: "Best match" },
+  { value: "active-updated-desc", label: "Active first · recently updated" },
   { value: "updated-desc", label: "Updated · newest first" },
   { value: "updated-asc", label: "Updated · oldest first" },
   { value: "created-desc", label: "Created · newest first" },
@@ -24,7 +25,7 @@ export const SAMPLE_DIRECTORY_SORT_OPTIONS: ReadonlyArray<{ value: SampleDirecto
 ];
 
 export function defaultSampleDirectorySort(hasQuery: boolean): SampleDirectorySort {
-  return hasQuery ? "relevance" : "updated-desc";
+  return hasQuery ? "relevance" : "active-updated-desc";
 }
 
 export function sampleDirectorySortFromParam(value: string | null, hasQuery: boolean): SampleDirectorySort {

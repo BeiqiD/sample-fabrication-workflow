@@ -166,6 +166,21 @@ describe("paginated directory routes", () => {
     expect(payload.samples.every((sample) => sample.currentStateThumbnailKey === null)).toBe(true);
   });
 
+  it("puts active samples first by default, then preserves pinned and recent ordering inside each tier", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    database.prepare(
+      "UPDATE samples SET pinned = 1, updated_at = '2026-08-01T10:00:00.000Z' WHERE id = 'sample-125'",
+    ).run();
+    const response = await get(testEnv(database), "/api/samples?pageSize=50");
+    const payload = await response.json() as {
+      samples: Array<{ code: string; status: string; pinned: boolean }>;
+    };
+
+    expect(payload.samples.slice(0, 30).every((sample) => sample.status === "active")).toBe(true);
+    expect(payload.samples[30]).toMatchObject({ code: "PERF-125", status: "stored", pinned: true });
+  });
+
   it("filters processing on the server and returns full-query facets", async () => {
     const database = testDatabase();
     seedDirectory(database);

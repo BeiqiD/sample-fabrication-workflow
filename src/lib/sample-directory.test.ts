@@ -40,13 +40,13 @@ describe("sample directory URL state", () => {
       location: "",
       parent: "",
       workflow: "",
-      sort: "updated-desc",
+      sort: "active-updated-desc",
     });
 
     expect(searched.has("sort")).toBe(false);
     expect(unsearched.has("sort")).toBe(false);
     expect(sampleDirectorySettings(searched).sort).toBe("relevance");
-    expect(sampleDirectorySettings(unsearched).sort).toBe("updated-desc");
+    expect(sampleDirectorySettings(unsearched).sort).toBe("active-updated-desc");
   });
 
   it("removes one active setting and resets pagination", () => {

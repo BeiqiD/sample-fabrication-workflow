@@ -58,6 +58,7 @@ export interface SampleListResponse {
 
 export const SAMPLE_DIRECTORY_SORTS = [
   "relevance",
+  "active-updated-desc",
   "updated-desc",
   "updated-asc",
   "created-desc",

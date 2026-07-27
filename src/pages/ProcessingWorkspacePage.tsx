@@ -4,7 +4,16 @@ import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, Sample
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
 import { StatusPill } from "../components/StatusPill";
-import { api, type TemplateRecord } from "../lib/api";
+import {
+  api,
+  type MetrologyTemplateSummary,
+  type ProcessTemplateFamilySummary,
+  type ProcessTemplateVersionSummary,
+} from "../lib/api";
+import {
+  availableProcessTemplateVersions,
+  selectedProcessTemplateVersionId,
+} from "../lib/process-template-picker";
 
 const MAX_VISIBLE_SAMPLES = 8;
 
@@ -25,7 +34,13 @@ export function ProcessingWorkspacePage() {
   const [samples, setSamples] = useState<ProcessingSampleDetail[]>([]);
   const sample = samples.find((item) => item.id === sampleId) || null;
   const [error, setError] = useState("");
-  const [templates, setTemplates] = useState<TemplateRecord[]>([]);
+  const [processFamilies, setProcessFamilies] = useState<ProcessTemplateFamilySummary[]>([]);
+  const [processFamilyQuery, setProcessFamilyQuery] = useState("");
+  const [selectedProcessFamilyId, setSelectedProcessFamilyId] = useState("");
+  const [selectedProcessFamily, setSelectedProcessFamily] = useState<ProcessTemplateFamilySummary | null>(null);
+  const [processVersions, setProcessVersions] = useState<ProcessTemplateVersionSummary[]>([]);
+  const [processFamiliesLoading, setProcessFamiliesLoading] = useState(false);
+  const [processVersionsLoading, setProcessVersionsLoading] = useState(false);
   const [templateVersionId, setTemplateVersionId] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [planPreview, setPlanPreview] = useState<PlanUpdatePreview | null>(null);
@@ -37,6 +52,8 @@ export function ProcessingWorkspacePage() {
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
   const [metrologyQuery, setMetrologyQuery] = useState("");
+  const [metrologyTemplates, setMetrologyTemplates] = useState<MetrologyTemplateSummary[]>([]);
+  const [metrologyTemplatesLoading, setMetrologyTemplatesLoading] = useState(false);
   const [startingMetrologyId, setStartingMetrologyId] = useState("");
 
   const load = useCallback(async () => {
@@ -50,15 +67,9 @@ export function ProcessingWorkspacePage() {
   }, [sampleId, additionalKey]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    const controller = new AbortController();
-    api.listTemplates(controller.signal).then(({ templates }) => setTemplates(templates)).catch((error: Error) => {
-      if (error.name !== "AbortError") setError(error.message);
-    });
-    return () => controller.abort();
-  }, []);
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
+  const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
 
   useEffect(() => {
     if (!sample || requestedAction !== "start" || activeRun || transitionMode) return;
@@ -94,6 +105,89 @@ export function ProcessingWorkspacePage() {
       controller.abort();
     };
   }, [sampleQuery, showSamplePicker]);
+
+  useEffect(() => {
+    if (!showMetrologyPicker) return;
+    const controller = new AbortController();
+    setMetrologyTemplatesLoading(true);
+    const timeout = window.setTimeout(() => {
+      api.listMetrologyTemplates({ query: metrologyQuery, pageSize: 50, signal: controller.signal })
+        .then(({ templates }) => {
+          setMetrologyTemplates(templates);
+          setError("");
+        })
+        .catch((error: Error) => {
+          if (error.name !== "AbortError") setError(error.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setMetrologyTemplatesLoading(false);
+        });
+    }, metrologyQuery.trim() ? 160 : 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [metrologyQuery, showMetrologyPicker]);
+
+  useEffect(() => {
+    if (transitionMode !== "start") return;
+    const controller = new AbortController();
+    setProcessFamiliesLoading(true);
+    const timeout = window.setTimeout(() => {
+      api.listTemplateFamilies({ query: processFamilyQuery, pageSize: 50, signal: controller.signal })
+        .then(({ families }) => {
+          setProcessFamilies(families);
+          setRunStartError("");
+        })
+        .catch((error: Error) => {
+          if (error.name !== "AbortError") setRunStartError(error.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setProcessFamiliesLoading(false);
+        });
+    }, processFamilyQuery.trim() ? 160 : 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [processFamilyQuery, transitionMode]);
+
+  useEffect(() => {
+    if (!transitionMode) return;
+    const familyId = transitionMode === "start"
+      ? selectedProcessFamilyId
+      : transitionTargetRun?.recipeFamilyId;
+    if (!familyId) {
+      setProcessVersions([]);
+      setTemplateVersionId("");
+      setProcessVersionsLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setProcessVersionsLoading(true);
+    api.listTemplateFamilyVersions(familyId, { signal: controller.signal })
+      .then(({ versions }) => {
+        const availableVersions = availableProcessTemplateVersions(
+          versions,
+          transitionTargetRun?.templateVersion,
+        );
+        setProcessVersions(availableVersions);
+        setTemplateVersionId((current) => selectedProcessTemplateVersionId(availableVersions, current));
+        setRunStartError("");
+      })
+      .catch((error: Error) => {
+        if (error.name !== "AbortError") setRunStartError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setProcessVersionsLoading(false);
+      });
+    return () => controller.abort();
+  }, [
+    selectedProcessFamilyId,
+    transitionMode,
+    transitionTargetRun?.recipeFamilyId,
+    transitionTargetRun?.templateVersion,
+  ]);
 
   function updateSearchParams(updates: { with?: string[]; run?: string }) {
     const next = new URLSearchParams(searchParams);
@@ -187,6 +281,13 @@ export function ProcessingWorkspacePage() {
 
   function openTransition(mode: "start" | "update" | "reopen") {
     setTransitionMode(mode);
+    setProcessFamilyQuery("");
+    setSelectedProcessFamilyId("");
+    setSelectedProcessFamily(null);
+    setProcessFamilies([]);
+    setProcessVersions([]);
+    setProcessFamiliesLoading(mode === "start");
+    setProcessVersionsLoading(mode !== "start");
     setTemplateVersionId("");
     setPlanPreview(null);
     setRunStartPreview(null);
@@ -194,17 +295,19 @@ export function ProcessingWorkspacePage() {
     setError("");
   }
 
+  function selectProcessFamily(family: ProcessTemplateFamilySummary) {
+    setSelectedProcessFamilyId(family.recipeFamilyId);
+    setSelectedProcessFamily(family);
+    setProcessVersions([family.latest]);
+    setTemplateVersionId(family.latest.id);
+    setPlanPreview(null);
+    setRunStartPreview(null);
+    setRunStartError("");
+  }
+
   if (!sample) return <div className="page"><p>{error || "Loading processing workspace…"}</p></div>;
   const includedIds = new Set(samples.map((item) => item.id));
   const availableResults = sampleResults.filter((result) => !includedIds.has(result.id));
-  const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
-  const processTemplates = templates.filter((template) => template.templateKind === "process");
-  const metrologyTemplates = templates.filter((template) => template.templateKind === "metrology");
-  const visibleMetrologyTemplates = metrologyTemplates.filter((template) =>
-    `${template.name} ${template.toolName || ""}`.toLowerCase().includes(metrologyQuery.trim().toLowerCase()));
-  const assignableTemplates = transitionTargetRun
-    ? processTemplates.filter((template) => template.recipeFamilyId === transitionTargetRun.recipeFamilyId && template.version > transitionTargetRun.templateVersion)
-    : processTemplates;
   const selectedIsActive = selectedRun?.status === "active";
   const selectedIsActiveProcess = selectedRun?.runKind === "process" && selectedIsActive;
   const selectedRunIsEditable = selectedIsActive
@@ -259,11 +362,12 @@ export function ProcessingWorkspacePage() {
           <p className="muted">This creates a standalone result record and does not change the active fabrication process or sample structure.</p>
           <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={metrologyQuery} onChange={(event) => setMetrologyQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
           <div className="metrology-picker-list standalone-metrology-list">
-            {visibleMetrologyTemplates.map((template) => <button type="button" key={template.id} disabled={Boolean(startingMetrologyId)} onClick={() => void startMetrology(template.id)}>
+            {metrologyTemplates.map((template) => <button type="button" key={template.id} disabled={Boolean(startingMetrologyId)} onClick={() => void startMetrology(template.id)}>
               <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}</small></span>
               <span>{startingMetrologyId === template.id ? "Starting…" : "Start"}</span>
             </button>)}
-            {!visibleMetrologyTemplates.length && <p className="muted">No matching metrology templates. Create one from Templates first.</p>}
+            {metrologyTemplatesLoading && !metrologyTemplates.length && <p className="muted">Loading metrology templates…</p>}
+            {!metrologyTemplatesLoading && !metrologyTemplates.length && <p className="muted">No matching metrology templates. Create one from Templates first.</p>}
           </div>
           <div className="form-actions"><Link className="button" to="/templates">Manage templates</Link><button type="button" className="button" disabled={Boolean(startingMetrologyId)} onClick={() => setShowMetrologyPicker(false)}>Cancel</button></div>
         </section>
@@ -272,8 +376,38 @@ export function ProcessingWorkspacePage() {
         <section className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
           <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close">×</button></div>
           <p className="muted">{transitionMode === "start" ? "This creates an independent process run. Earlier runs remain completed." : "Only a newer version of the same process template can continue this run; completed steps remain frozen."}</p>
-          <label className="transition-template-select">Process template<select autoFocus value={templateVersionId} onChange={(event) => { setTemplateVersionId(event.target.value); setRunStartError(""); }}><option value="">Choose a process template…</option>{assignableTemplates.map((template) => <option key={template.id} value={template.id}>{template.name} · v{template.version} · {template.stepCount} executable steps</option>)}</select></label>
-          {!assignableTemplates.length && <p className="warning-card compact-warning">{transitionMode === "start" ? "No process templates are available." : "Import a newer version of this process template before updating or reopening the run."}</p>}
+          <div className={`process-template-picker ${transitionMode === "start" ? "" : "fixed-family"}`}>
+            {transitionMode === "start" && <section className="process-template-picker-column">
+              <div className="process-template-picker-heading"><small>1 · Process family</small><strong>{selectedProcessFamily?.name || "Choose a family"}</strong></div>
+              <label className="search-box process-family-search"><span>Search process families</span><input autoFocus value={processFamilyQuery} onChange={(event) => setProcessFamilyQuery(event.target.value)} placeholder="Etch, bonding, lithography…" /></label>
+              <div className="template-picker-list process-family-list">
+                {processFamilies.map((family) => <button type="button" className={selectedProcessFamilyId === family.recipeFamilyId ? "selected" : ""} aria-pressed={selectedProcessFamilyId === family.recipeFamilyId} key={family.recipeFamilyId} disabled={assigning} onClick={() => selectProcessFamily(family)}>
+                  <span><strong>{family.name}</strong><small>{family.versionCount} version{family.versionCount === 1 ? "" : "s"} · latest v{family.latestVersion}</small></span>
+                  <span>{selectedProcessFamilyId === family.recipeFamilyId ? "Selected" : "Select"}</span>
+                </button>)}
+                {processFamiliesLoading && !processFamilies.length && <p className="muted">Loading process families…</p>}
+                {!processFamiliesLoading && !processFamilies.length && <p className="muted">No matching process families.</p>}
+              </div>
+            </section>}
+            <section className="process-template-picker-column">
+              <div className="process-template-picker-heading">
+                <small>{transitionMode === "start" ? "2 · Version" : "Process family · newer version"}</small>
+                <strong>{transitionMode === "start" ? selectedProcessFamily?.name || "Select a family first" : transitionTargetRun?.templateName}</strong>
+                {transitionTargetRun && <span>Current version · v{transitionTargetRun.templateVersion}</span>}
+              </div>
+              <div className="template-picker-list process-version-list">
+                {processVersions.map((version) => <button type="button" className={templateVersionId === version.id ? "selected" : ""} aria-pressed={templateVersionId === version.id} key={version.id} disabled={assigning} onClick={() => { setTemplateVersionId(version.id); setRunStartError(""); }}>
+                  <span><strong>Version {version.version}</strong><small>{version.stepCount} executable steps{version.sourceFilename ? ` · ${version.sourceFilename}` : ""}</small></span>
+                  <span>{templateVersionId === version.id ? "Selected" : "Use"}</span>
+                </button>)}
+                {processVersionsLoading && !processVersions.length && (transitionMode !== "start" || selectedProcessFamilyId) && <p className="muted">Loading versions…</p>}
+                {!processVersionsLoading && !processVersions.length && transitionMode === "start" && !selectedProcessFamilyId && <p className="muted">Choose a process family to see its versions.</p>}
+                {!processVersionsLoading && !processVersions.length && transitionMode !== "start" && <p className="muted">No newer version is available for this process family.</p>}
+              </div>
+            </section>
+          </div>
+          {!processFamiliesLoading && !processFamilies.length && !selectedProcessFamilyId && !processFamilyQuery.trim() && transitionMode === "start" && <p className="warning-card compact-warning">No process templates are available.</p>}
+          {!processVersionsLoading && !processVersions.length && transitionMode !== "start" && <p className="warning-card compact-warning">Import a newer version of this process template before updating or reopening the run.</p>}
           {(transitionMode === "update" || transitionMode === "reopen") && planPreview && <div className={`transition-plan-summary ${planPreview.compatible ? "" : "has-conflict"}`}><strong>{planPreview.compatible ? `${planPreview.preservedCount} linked · ${planPreview.additionCount} new · ${planPreview.supersededCount} replaced` : "This version cannot be applied"}</strong><small>{planPreview.blockingReason || `${planPreview.historicalDifferences.length} historical difference${planPreview.historicalDifferences.length === 1 ? "" : "s"} retained`}</small></div>}
           {runStartError && <p className="error-banner">{runStartError}</p>}
           <div className="form-actions"><button type="button" className="button" disabled={assigning} onClick={() => setTransitionMode(null)}>Cancel</button><button type="button" className="button primary" disabled={!templateVersionId || assigning || Boolean(transitionMode !== "start" && !planPreview?.compatible)} onClick={() => void (transitionMode === "start" ? beginProcessRun() : planPreview && setRunStartPreview(planPreview.substrateTransition))}>{assigning ? "Loading…" : "Compare structures"}</button></div>

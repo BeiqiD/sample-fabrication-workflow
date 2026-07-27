@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
-import { api, type MetrologyTemplateInput, type TemplateRecord } from "../lib/api";
+import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
 import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
@@ -417,24 +417,30 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const [templates, setTemplates] = useState<TemplateRecord[]>([]);
+  const [templates, setTemplates] = useState<MetrologyTemplateSummary[]>([]);
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
     const controller = new AbortController();
-    api.listTemplates(controller.signal).then(({ templates }) => {
-      setTemplates(templates.filter((template) => template.templateKind === "metrology"));
-    }).catch((error: Error) => {
-      if (error.name !== "AbortError") setError(error.message);
-    });
-    return () => controller.abort();
-  }, []);
-  const filtered = templates.filter((template) => {
-    const haystack = `${template.name} ${template.toolName || ""} ${template.commentsText || ""}`.toLowerCase();
-    return haystack.includes(query.trim().toLowerCase());
-  });
+    setLoading(true);
+    const timeout = window.setTimeout(() => {
+      api.listMetrologyTemplates({ query, pageSize: 50, signal: controller.signal }).then(({ templates }) => {
+        setTemplates(templates);
+        setError("");
+      }).catch((error: Error) => {
+        if (error.name !== "AbortError") setError(error.message);
+      }).finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    }, query.trim() ? 160 : 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [query]);
 
   async function add(templateVersionId: string) {
     if (!state.column.run) return;
@@ -462,11 +468,12 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
       {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
         <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
         <div className="metrology-picker-list">
-          {filtered.map((template) => <button type="button" key={template.id} disabled={Boolean(savingId)} onClick={() => void add(template.id)}>
-            <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.commentsText ? " · default comment" : ""}</small></span>
+          {templates.map((template) => <button type="button" key={template.id} disabled={Boolean(savingId)} onClick={() => void add(template.id)}>
+            <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.hasDefaultContent ? " · default content" : ""}</small></span>
             <span>{savingId === template.id ? "Adding…" : "Add"}</span>
           </button>)}
-          {!filtered.length && <p className="muted">No matching metrology templates.</p>}
+          {loading && !templates.length && <p className="muted">Loading metrology templates…</p>}
+          {!loading && !templates.length && <p className="muted">No matching metrology templates.</p>}
         </div>
         <button type="button" className="button wide" disabled={Boolean(savingId)} onClick={() => setCreating(true)}>Create new metrology template</button>
       </>}
