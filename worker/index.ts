@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
 import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, normalizedStepName, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
@@ -19,7 +19,7 @@ import { validateSubstrateTransition } from "./run-start";
 import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import { managedStorageStatus } from "./managed-storage";
-import { likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, searchTokens } from "./directory-query";
+import { directoryFilterValue, likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, sampleDirectorySort, searchTokens } from "./directory-query";
 import {
   serializeCommentSubmissions,
   type CommentSubmissionItemRow,
@@ -309,7 +309,7 @@ const sampleOverviewSelect = `
 
 const sampleDirectoryBaseSelect = `
   SELECT s.id, s.code, s.title, s.status, s.location, s.parent_id, s.pinned,
-         s.updated_at, s.inherited_state_hash,
+         s.created_at, s.updated_at, s.inherited_state_hash,
          r.id AS latest_run_id,
          r.sequence_no AS latest_run_sequence,
          r.initial_state_hash AS latest_run_initial_state_hash,
@@ -346,13 +346,121 @@ function processingDirectoryWhere(filter: ReturnType<typeof processingDirectoryF
   return "status = 'active' AND (latest_run_status = 'active' OR latest_run_status IS NULL)";
 }
 
+function sampleDirectoryFilters(input: {
+  status: string;
+  location: string;
+  parent: string;
+  workflow: string;
+}) {
+  const sql: string[] = [];
+  const bindings: string[] = [];
+  if (isSampleStatus(input.status)) {
+    sql.push("status = ?");
+    bindings.push(input.status);
+  }
+  if (input.location) {
+    sql.push("LOWER(COALESCE(location, '')) LIKE ? ESCAPE '\\'");
+    bindings.push(escapedLikePattern(input.location.toLocaleLowerCase()));
+  }
+  if (input.parent) {
+    sql.push(`EXISTS (
+      SELECT 1 FROM samples parent
+      WHERE parent.id = sample_base.parent_id
+        AND LOWER(COALESCE(parent.code, '') || ' ' || COALESCE(parent.title, '')) LIKE ? ESCAPE '\\'
+    )`);
+    bindings.push(escapedLikePattern(input.parent.toLocaleLowerCase()));
+  }
+  if (input.workflow) {
+    sql.push("LOWER(COALESCE(latest_workflow_name, '')) LIKE ? ESCAPE '\\'");
+    bindings.push(escapedLikePattern(input.workflow.toLocaleLowerCase()));
+  }
+  return { sql: sql.length ? sql.join(" AND ") : "1 = 1", bindings };
+}
+
+function sampleDirectoryOrder(sort: SampleDirectorySort, tokens: string[]) {
+  if (sort === "relevance" && tokens.length) {
+    const fields = [
+      ["code", 8],
+      ["title", 4],
+      ["latest_workflow_name", 2],
+      ["location", 1],
+    ] as const;
+    const scoreTerms: string[] = [];
+    const bindings: string[] = [];
+    for (const token of tokens) {
+      const pattern = escapedLikePattern(token);
+      for (const [field, weight] of fields) {
+        scoreTerms.push(`CASE WHEN LOWER(COALESCE(${field}, '')) LIKE ? ESCAPE '\\' THEN ${weight} ELSE 0 END`);
+        bindings.push(pattern);
+      }
+    }
+    return {
+      sql: `pinned DESC, (${scoreTerms.join(" + ")}) DESC, updated_at DESC, id`,
+      bindings,
+    };
+  }
+  const orderBy: Record<Exclude<SampleDirectorySort, "relevance">, string> = {
+    "updated-desc": "updated_at DESC, id",
+    "updated-asc": "updated_at ASC, id",
+    "created-desc": "created_at DESC, id",
+    "created-asc": "created_at ASC, id",
+    "code-asc": "code COLLATE NOCASE ASC, id",
+    "code-desc": "code COLLATE NOCASE DESC, id",
+  };
+  return { sql: `pinned DESC, ${orderBy[sort === "relevance" ? "updated-desc" : sort]}`, bindings: [] as string[] };
+}
+
+app.get("/sample-directory-options", async (c) => {
+  const d1Started = performance.now();
+  const [locations, parents, workflows] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT DISTINCT location
+       FROM samples
+       WHERE location IS NOT NULL AND TRIM(location) <> ''
+       ORDER BY location COLLATE NOCASE`,
+    ).all<{ location: string }>(),
+    c.env.DB.prepare(
+      `SELECT DISTINCT parent.id, parent.code, parent.title
+       FROM samples child
+       JOIN samples parent ON parent.id = child.parent_id
+       ORDER BY parent.code COLLATE NOCASE, parent.id`,
+    ).all<{ id: string; code: string; title: string }>(),
+    c.env.DB.prepare(
+      `WITH sample_base AS (${sampleDirectoryBaseSelect})
+       SELECT DISTINCT latest_workflow_name AS name
+       FROM sample_base
+       WHERE latest_workflow_name IS NOT NULL AND TRIM(latest_workflow_name) <> ''
+       ORDER BY latest_workflow_name COLLATE NOCASE`,
+    ).all<{ name: string }>(),
+  ]);
+  const d1Duration = performance.now() - d1Started;
+  const response = c.json({
+    locations: locations.results.map((row) => row.location),
+    parents: parents.results,
+    workflows: workflows.results.map((row) => row.name),
+  });
+  response.headers.set("Server-Timing", `d1;dur=${d1Duration.toFixed(1)}`);
+  return response;
+});
+
 app.get("/samples", async (c) => {
   const query = c.req.query("q")?.trim() ?? "";
   const processingView = c.req.query("view") === "processing";
   const filter = processingDirectoryFilter(c.req.query("status"));
   const { page, pageSize, offset } = readPagination(c.req.query("page"), c.req.query("pageSize"));
   const search = sampleDirectorySearch(query);
-  const filterSql = processingView ? processingDirectoryWhere(filter) : "1 = 1";
+  const sampleFilters = sampleDirectoryFilters({
+    status: processingView ? "" : directoryFilterValue(c.req.query("status")),
+    location: processingView ? "" : directoryFilterValue(c.req.query("location")),
+    parent: processingView ? "" : directoryFilterValue(c.req.query("parent")),
+    workflow: processingView ? "" : directoryFilterValue(c.req.query("process")),
+  });
+  const filterSql = processingView ? processingDirectoryWhere(filter) : sampleFilters.sql;
+  const searchTerms = searchTokens(query);
+  const sort = sampleDirectorySort(c.req.query("sort"), searchTerms.length > 0);
+  const ordering = processingView
+    ? { sql: "pinned DESC, updated_at DESC, id", bindings: [] as string[] }
+    : sampleDirectoryOrder(sort, searchTerms);
   const stateFields = processingView ? `,
          (
            SELECT COALESCE(rs.title, sd.name)
@@ -421,7 +529,7 @@ app.get("/samples", async (c) => {
       SELECT *
       FROM sample_base
       WHERE ${search.sql} AND ${filterSql}
-      ORDER BY pinned DESC, updated_at DESC, id
+      ORDER BY ${ordering.sql}
       LIMIT ? OFFSET ?
     )
     SELECT filtered_samples.*,
@@ -438,7 +546,7 @@ app.get("/samples", async (c) => {
            ) AS current_step_title
            ${stateFields}
     FROM filtered_samples
-    ORDER BY pinned DESC, updated_at DESC, id`;
+    ORDER BY ${ordering.sql}`;
   const countSql = processingView
     ? `WITH sample_base AS (${sampleDirectoryBaseSelect})
        SELECT COUNT(*) AS all_count,
@@ -447,11 +555,11 @@ app.get("/samples", async (c) => {
               COALESCE(SUM(CASE WHEN latest_run_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count
        FROM sample_base WHERE ${search.sql}`
     : `WITH sample_base AS (${sampleDirectoryBaseSelect})
-       SELECT COUNT(*) AS all_count FROM sample_base WHERE ${search.sql}`;
+       SELECT COUNT(*) AS all_count FROM sample_base WHERE ${search.sql} AND ${filterSql}`;
   const d1Started = performance.now();
   const [result, countRow] = await Promise.all([
-    c.env.DB.prepare(pageSql).bind(...search.bindings, pageSize, offset).all(),
-    c.env.DB.prepare(countSql).bind(...search.bindings).first<{
+    c.env.DB.prepare(pageSql).bind(...search.bindings, ...sampleFilters.bindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings).all(),
+    c.env.DB.prepare(countSql).bind(...search.bindings, ...sampleFilters.bindings).first<{
       all_count: number;
       active_count?: number;
       complete_count?: number;

@@ -1,4 +1,4 @@
-import type { PaginationMeta } from "../shared/types";
+import { SAMPLE_DIRECTORY_SORTS, type PaginationMeta, type SampleDirectorySort } from "../shared/types";
 import { escapedLikePattern } from "./request-guards";
 
 export const DEFAULT_DIRECTORY_PAGE_SIZE = 50;
@@ -47,4 +47,14 @@ export type ProcessingDirectoryFilter = "active" | "complete" | "cancelled" | "a
 
 export function processingDirectoryFilter(value: string | null | undefined): ProcessingDirectoryFilter {
   return value === "complete" || value === "cancelled" || value === "all" ? value : "active";
+}
+
+export function sampleDirectorySort(value: string | null | undefined, hasQuery: boolean): SampleDirectorySort {
+  const fallback: SampleDirectorySort = hasQuery ? "relevance" : "updated-desc";
+  if (!(SAMPLE_DIRECTORY_SORTS as readonly string[]).includes(value ?? "")) return fallback;
+  return value === "relevance" && !hasQuery ? fallback : value as SampleDirectorySort;
+}
+
+export function directoryFilterValue(value: string | null | undefined) {
+  return (value ?? "").trim().slice(0, 160);
 }

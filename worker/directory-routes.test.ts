@@ -35,7 +35,7 @@ class SqliteD1Statement {
 
 function testDatabase() {
   const database = new DatabaseSync(":memory:");
-  for (let index = 1; index <= 8; index += 1) {
+  for (let index = 1; index <= 9; index += 1) {
     const prefix = String(index).padStart(4, "0");
     const filename = [
       "alpha_state_chain",
@@ -46,6 +46,7 @@ function testDatabase() {
       "metrology_templates",
       "directory_performance",
       "sync_metrology_sample_status",
+      "sample_directory_filters",
     ][index - 1];
     database.exec(readFileSync(new URL(`../migrations/${prefix}_${filename}.sql`, import.meta.url), "utf8"));
   }
@@ -72,6 +73,7 @@ function seedDirectory(database: DatabaseSync) {
       timestamp,
     );
   }
+  database.prepare("UPDATE samples SET parent_id = 'sample-001' WHERE id IN ('sample-002', 'sample-003')").run();
 
   database.prepare(
     `INSERT INTO step_definitions
@@ -178,6 +180,64 @@ describe("paginated directory routes", () => {
     expect(payload.samples.every((sample) => sample.latestRunStatus === "complete")).toBe(true);
     expect(payload.pagination).toMatchObject({ total: 8, totalPages: 2 });
     expect(payload.facets).toEqual({ active: 30, complete: 8, cancelled: 7, all: 125 });
+  });
+
+  it("combines sample search, filters, and explicit sorting on the server", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    const response = await get(
+      testEnv(database),
+      "/api/samples?q=Performance&status=stored&location=Box%2012&sort=created-desc&pageSize=5",
+    );
+    const payload = await response.json() as {
+      samples: Array<{ code: string; status: string; location: string; createdAt: string }>;
+      pagination: { total: number };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.pagination.total).toBe(10);
+    expect(payload.samples).toHaveLength(5);
+    expect(payload.samples.every((sample) => sample.status === "stored" && sample.location === "Box 12")).toBe(true);
+    expect(payload.samples[0]).toMatchObject({
+      code: "PERF-119",
+      createdAt: "2026-07-24T10:00:00.000Z",
+    });
+
+    const relevanceResponse = await get(testEnv(database), "/api/samples?q=AFM");
+    const relevancePayload = await relevanceResponse.json() as {
+      samples: Array<{ code: string; title: string }>;
+      pagination: { total: number };
+    };
+    expect(relevanceResponse.status).toBe(200);
+    expect(relevancePayload.pagination.total).toBe(1);
+    expect(relevancePayload.samples[0]).toMatchObject({ code: "PERF-078", title: "AFM calibration wafer" });
+  });
+
+  it("filters by parent and latest process text and exposes reusable suggestions", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    const env = testEnv(database);
+    const parentPayload = await (await get(env, "/api/samples?parent=PERF-001")).json() as {
+      samples: Array<{ code: string }>;
+      pagination: { total: number };
+    };
+    const workflowPayload = await (await get(env, "/api/samples?process=family%2001")).json() as {
+      pagination: { total: number };
+    };
+    const optionsResponse = await get(env, "/api/sample-directory-options");
+    const options = await optionsResponse.json() as {
+      locations: string[];
+      parents: Array<{ code: string; title: string }>;
+      workflows: string[];
+    };
+
+    expect(parentPayload.pagination.total).toBe(2);
+    expect(parentPayload.samples.map((sample) => sample.code)).toEqual(["PERF-002", "PERF-003"]);
+    expect(workflowPayload.pagination.total).toBe(25);
+    expect(optionsResponse.headers.get("server-timing")).toContain("d1;dur=");
+    expect(options.locations).toContain("Box 12");
+    expect(options.parents).toContainEqual({ id: "sample-001", code: "PERF-001", title: "Performance sample 1" });
+    expect(options.workflows).toEqual(["Process family 01"]);
   });
 
   it("paginates process families, lazy-loads versions, and searches both template kinds", async () => {

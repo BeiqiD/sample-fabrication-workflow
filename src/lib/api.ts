@@ -1,4 +1,4 @@
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleListResponse, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -16,6 +16,11 @@ export interface SampleListOptions {
   pageSize?: number;
   view?: "samples" | "processing";
   status?: "active" | "complete" | "cancelled" | "all";
+  sampleStatus?: SampleStatus;
+  location?: string;
+  parent?: string;
+  workflow?: string;
+  sort?: SampleDirectorySort;
   signal?: AbortSignal;
 }
 
@@ -26,7 +31,15 @@ function sampleListPath(options: SampleListOptions | string) {
   if (normalized.page && normalized.page > 1) params.set("page", String(normalized.page));
   if (normalized.pageSize) params.set("pageSize", String(normalized.pageSize));
   if (normalized.view === "processing") params.set("view", "processing");
-  if (normalized.status && normalized.status !== "active") params.set("status", normalized.status);
+  if (normalized.view === "processing") {
+    if (normalized.status && normalized.status !== "active") params.set("status", normalized.status);
+  } else {
+    if (normalized.sampleStatus) params.set("status", normalized.sampleStatus);
+    if (normalized.location?.trim()) params.set("location", normalized.location.trim());
+    if (normalized.parent?.trim()) params.set("parent", normalized.parent.trim());
+    if (normalized.workflow?.trim()) params.set("process", normalized.workflow.trim());
+    if (normalized.sort) params.set("sort", normalized.sort);
+  }
   const query = params.toString();
   return `/samples${query ? `?${query}` : ""}`;
 }
@@ -45,6 +58,8 @@ export const api = {
     const signal = typeof options === "string" ? undefined : options.signal;
     return request<SampleListResponse>(sampleListPath(options), signal ? { signal } : undefined);
   },
+  listSampleDirectoryOptions: (signal?: AbortSignal) =>
+    request<SampleDirectoryFilterOptions>("/sample-directory-options", signal ? { signal } : undefined),
   getSample: (id: string) => request<SampleDetail>(`/samples/${id}`),
   getProcessingSample: (id: string) => request<ProcessingSampleDetail>(`/samples/${id}?view=processing`),
   createSample: (input: CreateSampleInput) => request<{ id: string }>("/samples", {
