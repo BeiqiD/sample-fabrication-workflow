@@ -32,3 +32,12 @@ describe("process template picker", () => {
     expect(styles).toMatch(/\.template-picker-list\s*>\s*button\.selected\s*\{[^}]*border-color:\s*var\(--accent\)/);
   });
 });
+
+describe("sample header actions", () => {
+  it("keeps desktop labels and collapses every sample action to an icon on mobile", () => {
+    expect(styles).toMatch(/\.sample-header-action-buttons\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.sample-header-action-buttons\s*\{[^}]*flex-wrap:\s*nowrap/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button\s*\{[^}]*width:\s*42px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button \.responsive-action-label\s*\{[^}]*position:\s*absolute/);
+  });
+});
