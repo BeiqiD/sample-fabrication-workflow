@@ -17,6 +17,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmationRef = useRef<HTMLInputElement>(null);
   const onCancelRef = useRef(onCancel);
@@ -24,21 +25,40 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
-    if (confirmation) confirmationRef.current?.focus();
-    else cancelRef.current?.focus();
+
+    const focusInitialControl = () => {
+      if (confirmation) confirmationRef.current?.focus();
+      else cancelRef.current?.focus();
+    };
+    focusInitialControl();
+
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onCancelRef.current();
+      if (event.key !== "Escape" || deleting) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onCancelRef.current();
     }
-    if (!deleting) window.addEventListener("keydown", onKeyDown);
+
+    function keepFocusInside(event: FocusEvent) {
+      const target = event.target;
+      if (!(target instanceof Node) || dialogRef.current?.contains(target)) return;
+      focusInitialControl();
+    }
+
+    window.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("focusin", keepFocusInside, true);
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("focusin", keepFocusInside, true);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-  }, [deleting]);
+  }, [confirmation, deleting]);
 
   return <div className="confirm-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) onCancel(); }}>
-    <section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description">
+    <section ref={dialogRef} className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description">
       <p className="eyebrow">{eyebrow}</p>
       <h2 id="confirm-delete-title">{title}</h2>
       <p id="confirm-delete-description">{description} This cannot be undone.</p>

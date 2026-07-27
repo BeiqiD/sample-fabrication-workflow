@@ -1,5 +1,14 @@
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
 
+export function processPlanCommentButtonLabel(commentCount: number, hasContent: boolean) {
+  if (commentCount > 0) {
+    const commentLabel = commentCount === 1 ? "1 existing comment" : `${commentCount} existing comments`;
+    return `Open process-plan comments, ${commentLabel}`;
+  }
+  if (hasContent) return "Open process-plan comments, incomplete upload available";
+  return "Add a comment to checked samples";
+}
+
 export function ProcessPlanCommentButton({
   commentCount,
   hasContent = commentCount > 0,
@@ -15,10 +24,7 @@ export function ProcessPlanCommentButton({
   className?: string;
   onClick: () => void;
 }) {
-  const commentLabel = commentCount === 1 ? "1 existing comment" : `${commentCount} existing comments`;
-  const label = commentCount > 0
-    ? `Open comments on selected samples, ${commentLabel}`
-    : "Comment on selected samples";
+  const label = processPlanCommentButtonLabel(commentCount, hasContent);
 
   return <button
     type="button"
