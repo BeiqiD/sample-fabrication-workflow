@@ -28,6 +28,7 @@ export function sampleSummary(row: SampleRow): SampleSummary {
     location: row.location,
     parentId: row.parent_id,
     pinned: Boolean(row.pinned),
+    createdAt: row.created_at ?? row.updated_at,
     updatedAt: row.updated_at,
     latestWorkflowName: row.latest_workflow_name ?? null,
     latestWorkflowVersion: row.latest_workflow_version == null ? null : Number(row.latest_workflow_version),

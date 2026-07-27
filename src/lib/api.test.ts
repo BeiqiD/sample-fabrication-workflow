@@ -105,6 +105,42 @@ describe("paginated directory APIs", () => {
     );
   });
 
+  it("combines sample search, filters, and sorting in one paginated request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      samples: [],
+      pagination: { page: 1, pageSize: 50, total: 0, totalPages: 1 },
+    }), { headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.listSamples({
+      query: "InP",
+      pageSize: 50,
+      sampleStatus: "active",
+      location: "Box A",
+      parent: "7449",
+      workflow: "Bonding",
+      sort: "created-desc",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/samples?q=InP&pageSize=50&status=active&location=Box+A&parent=7449&process=Bonding&sort=created-desc",
+      undefined,
+    );
+  });
+
+  it("loads sample filter suggestions independently from the paginated list", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      locations: [],
+      parents: [],
+      workflows: [],
+    }), { headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.listSampleDirectoryOptions();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/sample-directory-options", undefined);
+  });
+
   it("requests process families and metrology templates independently", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ families: [], pagination: { page: 2, pageSize: 20, total: 0, totalPages: 1 } })))

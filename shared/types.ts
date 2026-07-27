@@ -26,6 +26,7 @@ export interface SampleSummary {
   location: string | null;
   parentId: string | null;
   pinned: boolean;
+  createdAt: string;
   updatedAt: string;
   latestWorkflowName: string | null;
   latestWorkflowVersion: number | null;
@@ -53,6 +54,23 @@ export interface SampleListResponse {
   samples: SampleSummary[];
   pagination: PaginationMeta;
   facets?: SampleListFacets;
+}
+
+export const SAMPLE_DIRECTORY_SORTS = [
+  "relevance",
+  "updated-desc",
+  "updated-asc",
+  "created-desc",
+  "created-asc",
+  "code-asc",
+  "code-desc",
+] as const;
+export type SampleDirectorySort = typeof SAMPLE_DIRECTORY_SORTS[number];
+
+export interface SampleDirectoryFilterOptions {
+  locations: string[];
+  parents: Array<{ id: string; code: string; title: string }>;
+  workflows: string[];
 }
 
 export interface SampleEvent {
