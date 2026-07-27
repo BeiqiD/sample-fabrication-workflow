@@ -385,7 +385,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .lightbox-arrow.previous { left: 12px; }
 .lightbox-arrow.next { right: 12px; }
 .common-comments { display: grid; gap: 7px; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--line); }
-.common-comments > .cell-comment { background: var(--accent-soft); }
+.common-comments .cell-comment { background: var(--accent-soft); }
 .common-comments p { margin: 0 0 3px; white-space: pre-wrap; font-size: 12px; }
 .recipe-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; margin-top: 11px; }
 .recipe-actions .button { min-width: 0; padding-inline: 5px; white-space: nowrap; }
@@ -561,6 +561,19 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .run-start-dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
 .run-start-dialog-heading h2 { margin: 0; font-size: 24px; }
 .run-start-dialog > .muted { margin: 14px 0 18px; }
+.process-plan-comment-backdrop { position: fixed; inset: 0; z-index: 45; display: flex; align-items: flex-end; justify-content: center; padding-top: 20px; background: var(--overlay); backdrop-filter: blur(3px); }
+.process-plan-comment-dialog { width: min(620px, 100%); max-height: calc(100dvh - 20px); display: flex; flex-direction: column; padding: 18px; overflow: hidden; border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0; background: var(--paper); box-shadow: 0 -14px 44px rgba(20,25,21,.18); }
+.process-plan-comment-handle { width: 42px; height: 4px; flex: 0 0 auto; margin: -7px auto 12px; border-radius: 999px; background: var(--line-strong); }
+.process-plan-comment-heading { display: flex; flex: 0 0 auto; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.process-plan-comment-heading h2 { margin: 0; overflow-wrap: anywhere; font-size: 22px; }
+.process-plan-comment-heading small { display: block; margin-top: 4px; color: var(--muted); }
+.process-plan-comment-content { min-height: 0; display: grid; gap: 16px; margin-top: 18px; overflow-y: auto; overscroll-behavior: contain; }
+.process-plan-comment-history { display: grid; gap: 9px; padding-top: 14px; border-top: 1px solid var(--line); }
+.process-plan-comment-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.process-plan-comment-history-heading > small { color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .07em; }
+.process-plan-comment-dialog .cell-comment { background: var(--accent-soft); }
+.process-plan-comment-empty-selection, .process-plan-comment-empty { margin: 0; font-size: 12px; }
+.mobile-recipe-comment-action { display: none; }
 .run-start-structure-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .run-start-structure-option { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px 12px; align-content: start; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .run-start-structure-option.unavailable { cursor: default; opacity: .68; }
@@ -1019,6 +1032,13 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .lightbox-arrow.next { right: 8px; }
   .comment-card-content { flex-wrap: wrap; padding-right: 34px; }
   .comment-thumbnail-gallery { flex-basis: 100%; }
+  .process-plan-comment-inline { display: none; }
+  .recipe-comment-action.has-comments { border-color: color-mix(in srgb, var(--accent) 70%, var(--line)); color: var(--accent); background: var(--accent-soft); }
+  .mobile-recipe-comment-action { display: flex; justify-content: center; margin-top: 13px; }
+  .mobile-recipe-comment-action .recipe-comment-action { width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 7px; }
+  .mobile-recipe-comment-action .processing-action-icon { width: 16px; height: 16px; }
+  .process-plan-comment-backdrop { padding-top: 10px; }
+  .process-plan-comment-dialog { max-height: calc(100dvh - 10px); padding: 18px 14px max(18px, env(safe-area-inset-bottom)); }
   .step-drawer { padding: 18px; }
   .split-dialog-backdrop { padding: 10px; }
   .split-dialog { max-height: calc(100vh - 20px); padding: 18px; }
