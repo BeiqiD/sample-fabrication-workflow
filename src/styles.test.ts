@@ -57,6 +57,8 @@ describe("run workflow actions", () => {
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls-heading \.run-controls-status\s*\{[^}]*margin-left:\s*auto/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-action-menu-trigger\s*\{[^}]*width:\s*46px[^}]*height:\s*40px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-action-menu-label\s*\{[^}]*position:\s*absolute/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-control-menus\s*\{[^}]*position:\s*relative/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-control-menus \.run-action-menu\s*\{[^}]*position:\s*static/);
   });
 
   it("presents early finish as a multiline danger action", () => {

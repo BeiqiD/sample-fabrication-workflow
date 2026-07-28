@@ -1095,7 +1095,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   }
   .run-controls-heading .run-controls-status { margin-left: auto; }
   .run-controls-picker select, .run-controls-picker strong { height: 40px; }
-  .run-control-menus { gap: 6px; margin-top: 0; }
+  .run-control-menus { position: relative; gap: 6px; margin-top: 0; }
+  .run-control-menus .run-action-menu { position: static; }
   .run-action-menu-trigger { width: 46px; min-width: 46px; height: 40px; gap: 4px; padding-inline: 0; }
   .run-action-menu-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .run-action-menu-caret { margin-left: 0; }
