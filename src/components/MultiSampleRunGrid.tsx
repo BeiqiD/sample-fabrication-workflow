@@ -842,7 +842,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   aria-valuenow={progress.completed}
                   title={label}
                   style={{ "--section-progress": `${progress.percent}%` } as React.CSSProperties}
-                />;
+                >
+                  {progress.total > 0 && <span className="run-grid-section-progress-label">{progress.percent}%</span>}
+                </div>;
               })}
             </>}
             <div className="run-grid-row" style={{ display: "contents" }}>
