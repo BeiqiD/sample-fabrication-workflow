@@ -702,6 +702,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .run-viewing-card, .run-workflow-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; margin-bottom: 14px; }
 .run-viewing-card > div, .run-workflow-actions > div:first-child { min-width: 0; display: grid; gap: 5px; }
 .run-workflow-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.run-workflow-buttons .responsive-icon-button { padding-inline: 13px; }
+.run-workflow-buttons .processing-action-icon { width: 20px; height: 20px; }
 .initial-state-preview { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px; }
 .initial-state-preview > div:first-child { min-width: 0; }
 .initial-state-preview-images { flex: 0 0 min(240px, 42%); margin-top: 0; }
@@ -1043,6 +1045,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .run-selector { align-items: stretch; flex-direction: column; }
   .run-viewing-card, .run-workflow-actions { align-items: stretch; flex-direction: column; }
   .run-workflow-buttons { justify-content: flex-start; }
+  .run-workflow-buttons .responsive-icon-button { padding-inline: 0; }
   .process-template-picker { grid-template-columns: minmax(0, 1fr); }
   .sample-run-summary { grid-template-columns: 1fr auto; }
   .sample-run-card .sample-run-summary { grid-template-columns: minmax(0, 1fr) auto 18px; }
