@@ -708,6 +708,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
   padding: 12px 14px;
   margin-bottom: 14px;
 }
+.run-controls-heading { display: contents; }
 .run-controls-title { grid-area: title; white-space: nowrap; }
 .run-controls-picker { grid-area: picker; min-width: 0; }
 .run-controls-picker select { height: 42px; padding-block: 8px; }
@@ -1068,15 +1069,24 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .assign-template { grid-template-columns: 1fr; }
   .assign-template > small { grid-column: auto; }
   .run-controls {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "title status"
-      "picker picker"
-      "note note"
-      "actions actions";
+      "heading"
+      "picker"
+      "note"
+      "actions";
     gap: 7px 10px;
     padding: 11px 12px;
   }
+  .run-controls-heading {
+    grid-area: heading;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px 10px;
+  }
+  .run-controls-heading .run-controls-status { margin-left: auto; }
   .run-controls-picker select { height: 40px; }
   .run-workflow-buttons { justify-content: flex-end; }
   .run-controls > .run-workflow-buttons { margin-top: 1px; }

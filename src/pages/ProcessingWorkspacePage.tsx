@@ -16,6 +16,7 @@ import {
   availableProcessTemplateVersions,
   selectedProcessTemplateVersionId,
 } from "../lib/process-template-picker";
+import { sampleRunControlTitle } from "../lib/sample-run-selection";
 
 const MAX_VISIBLE_SAMPLES = 8;
 
@@ -337,13 +338,15 @@ export function ProcessingWorkspacePage() {
       </div>}
 
       <div className="run-controls card">
-        <h3 className="card-title run-controls-title">Process run</h3>
+        <div className="run-controls-heading">
+          <h3 className="card-title run-controls-title">{sampleRunControlTitle(selectedRun?.runKind)}</h3>
+          <span className={`run-status run-controls-status${selectedRun ? ` run-status-${selectedRun.status}` : ""}`}>{selectedRunState}</span>
+        </div>
         <div className="run-controls-picker">
           {sample.runs.length > 1
             ? <select aria-label="Viewing run" value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select>
             : <strong title={selectedRunLabel}>{selectedRunLabel}</strong>}
         </div>
-        <span className={`run-status run-controls-status${selectedRun ? ` run-status-${selectedRun.status}` : ""}`}>{selectedRunState}</span>
         {runControlNote && <p className="run-controls-note">{runControlNote}</p>}
         <div className="run-workflow-buttons">
           {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="Update future plan" title="Update future plan" onClick={() => openTransition("update")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Update future plan</span></button>}
