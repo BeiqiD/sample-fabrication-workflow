@@ -89,7 +89,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
         <div className="card-copy">
           <div className="card-title-line"><h3 className="card-title">Initial substrate</h3><span className="meta-badge">Step 0</span></div>
           <p className="card-value">{preview.initialSubstrateStep ? "Substrate Stack" : "Substrate Stack was not found"}</p>
-          {preview.initialSubstrateStep ? <SubstrateStepDetails step={preview.initialSubstrateStep} /> : <p className="card-meta">The importer will not borrow a diagram from Step 1. This template cannot start or update a run until it is re-imported with Step 0.</p>}
+          {preview.initialSubstrateStep ? <SubstrateStepDetails step={preview.initialSubstrateStep} /> : <p className="card-meta">The importer will not borrow a diagram from Step 1. This template cannot start a run, or update one before any process step has produced a recorded structure, until it is re-imported with Step 0.</p>}
         </div>
         <div className="initial-state-preview-images">
           {preview.initialStateImageIds.length

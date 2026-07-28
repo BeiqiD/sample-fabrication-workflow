@@ -16,6 +16,7 @@ import { resolveAssetReferences } from "./asset-dedupe";
 import { titleChangeAudit } from "./sample-update";
 import { loadPlanContext } from "./plan-context";
 import { validateSubstrateTransition } from "./run-start";
+import { resolvePlanUpdateStructureTarget } from "./plan-update";
 import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import { managedStorageStatus } from "./managed-storage";
@@ -107,6 +108,7 @@ app.get("/ready", async (c) => {
 app.route("/", commentSubmissionRoutes);
 
 type SampleStructureState = {
+  stepId: string | null;
   stateHash: string | null;
   stepTitle: string | null;
   imageKeys: string[];
@@ -223,6 +225,7 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
     ? `execution-assets:${await sha256Hex(stableJson(executionAssets.results.map((asset) => asset.sha256)))}`
     : row?.state_hash ?? null;
   return {
+    stepId: row?.step_id ?? null,
     stateHash,
     stepTitle: row?.step_title ?? null,
     imageKeys: assets.map((asset) => asset.r2_key),
@@ -1356,12 +1359,18 @@ app.post("/samples/:id/runs/preview", async (c) => {
     ),
     canConfirm,
     blockingReason: canConfirm ? null : "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before starting a run.",
+    comparisonTarget: canConfirm ? {
+      kind: "initial_substrate" as const,
+      key: `initial-substrate:${template.id}`,
+      stateHash: template.initial_state_hash,
+      imageKeys: templateAssets.map((asset) => asset.r2_key),
+      stepId: null,
+      stepTitle: initialSubstrateStep!.name,
+    } : null,
     template: {
       id: template.id,
       name: template.name,
       version: template.version,
-      initialStateHash: template.initial_state_hash,
-      initialStateImageKeys: templateAssets.map((asset) => asset.r2_key),
       initialSubstrateStep,
     },
     sampleCurrentState: {
@@ -1407,12 +1416,14 @@ app.post("/samples/:id/runs", async (c) => {
   const initialState = validateSubstrateTransition(input.substrateConfirmation, {
     sampleUpdatedAt: sample.updated_at,
     previousStateHash: currentState.stateHash,
-    templateInitialStateHash: template.initial_state_hash,
+    templateStructureKey: `initial-substrate:${templateVersionId}`,
+    templateStateHash: template.initial_state_hash,
+    templateStateRequired: true,
     latestRunId: latestRun?.id ?? null,
   });
   if (!initialState.ok) {
     throw new HTTPException(409, {
-      message: initialState.reason === "template_initial_state_missing"
+      message: initialState.reason === "template_structure_missing"
         ? "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before starting a run."
         : initialState.reason === "confirmation_required"
           ? "Compare the previous structure with Step 0 and confirm that the handoff is expected."
@@ -1455,7 +1466,7 @@ app.post("/samples/:id/runs", async (c) => {
              = COALESCE(?, '')`,
     ).bind(runId, sampleId, template.recipe_family_id, templateVersionId, planRevisionId,
       latestRun?.id ?? null, anchor?.id ?? null, Number(latestSequence?.sequence_no ?? 0) + 1, crypto.randomUUID(),
-      template.name, template.template_type, template.version, initialState.initialStateHash, userEmail, now,
+      template.name, template.template_type, template.version, initialState.confirmedTemplateStateHash, userEmail, now,
       sampleId, input.substrateConfirmation!.expectedSampleUpdatedAt, latestRun?.id ?? null),
     c.env.DB.prepare(
       `INSERT INTO run_plan_revisions
@@ -1477,7 +1488,7 @@ app.post("/samples/:id/runs", async (c) => {
       templateVersion: template.version,
       predecessorRunId: latestRun?.id ?? null,
       anchorStepId: anchor?.id ?? null,
-      initialStateHash: initialState.initialStateHash,
+      initialStateHash: initialState.confirmedTemplateStateHash,
       initialStateSource: "process_template_step_0",
       substrateConfirmation: {
         previousStateHash: currentState.stateHash,
@@ -1565,12 +1576,11 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const { templateVersionId } = await c.req.json<{ templateVersionId?: string }>();
   if (!templateVersionId) throw new HTTPException(400, { message: "A template version is required" });
   const context = await loadPlanContext(c.env.DB, sampleId, runId, templateVersionId);
-  const [sample, latestRun, currentState, templateAssets] = await Promise.all([
+  const [sample, latestRun, currentState] = await Promise.all([
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
-    stateAssets(c.env.DB, context.nextTemplate.initial_state_hash),
   ]);
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
   const sameFamily = context.run.recipe_family_id === context.nextTemplate.recipe_family_id;
@@ -1584,6 +1594,18 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const hasFutureWork = context.run.status === "active" || pendingAdditions.length > 0;
   const initialSubstrateStep = parseInitialSubstrateStep(context.nextTemplate.content_json);
   const hasInitialSubstrate = Boolean(context.nextTemplate.initial_state_hash && initialSubstrateStep);
+  const comparisonTarget = sameFamily ? resolvePlanUpdateStructureTarget(
+    alignment,
+    currentState.stepId,
+    context.next,
+    {
+      templateVersionId,
+      stateHash: context.nextTemplate.initial_state_hash,
+      valid: hasInitialSubstrate,
+    },
+  ) : null;
+  const comparisonAssets = await stateAssets(c.env.DB, comparisonTarget?.stateHash ?? null);
+  const hasComparisonTarget = Boolean(comparisonTarget);
   const blockingReason = !sameFamily
     ? "An in-place update must use another version of the same process template."
     : !isNewerVersion
@@ -1592,8 +1614,10 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
       ? "Only an active run or the latest completed run can be updated."
       : !hasFutureWork
         ? "This version adds no future work after the completed run."
-        : !hasInitialSubstrate
-          ? "This process-template version has no valid Step 0: Substrate Stack snapshot."
+        : !hasComparisonTarget
+          ? currentState.stepId
+            ? "The step that produced the current structure could not be matched in this template version."
+            : "This process-template version has no valid Step 0: Substrate Stack snapshot."
           : null;
   return c.json({
     compatible: blockingReason === null,
@@ -1608,17 +1632,21 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
       comparison: compareSubstrateStructures(
         currentState.stateHash,
         currentState.imageHashes,
-        context.nextTemplate.initial_state_hash,
-        templateAssets.map((asset) => asset.sha256),
+        comparisonTarget?.stateHash ?? null,
+        comparisonAssets.map((asset) => asset.sha256),
       ),
-      canConfirm: hasInitialSubstrate,
-      blockingReason: hasInitialSubstrate ? null : "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run.",
+      canConfirm: hasComparisonTarget,
+      blockingReason: hasComparisonTarget ? null : currentState.stepId
+        ? "The current structure-producing step has no match in this template version. Review the step alignment before updating the run."
+        : "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run.",
+      comparisonTarget: comparisonTarget ? {
+        ...comparisonTarget,
+        imageKeys: comparisonAssets.map((asset) => asset.r2_key),
+      } : null,
       template: {
         id: context.nextTemplate.id,
         name: context.nextTemplate.name,
         version: context.nextTemplate.version,
-        initialStateHash: context.nextTemplate.initial_state_hash,
-        initialStateImageKeys: templateAssets.map((asset) => asset.r2_key),
         initialSubstrateStep,
       },
       sampleCurrentState: {
@@ -1660,27 +1688,44 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   if (context.nextTemplate.version <= Number(context.run.current_template_version_number)) {
     throw new HTTPException(409, { message: "A process update must use a newer version of the current process template." });
   }
-  if (!parseInitialSubstrateStep(context.nextTemplate.content_json)) {
-    throw new HTTPException(409, { message: "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run." });
-  }
   const alignment = alignFuturePlan(context.existing, context.next);
   const pendingAdditions = alignment.additions.filter((step) => step.initialStatus === "pending");
   if (reopening && !pendingAdditions.length) {
     throw new HTTPException(409, { message: "This template version adds no future work after the completed run. Start a new run if this is a separate processing stage." });
   }
+  const initialSubstrateStep = parseInitialSubstrateStep(context.nextTemplate.content_json);
+  const comparisonTarget = resolvePlanUpdateStructureTarget(
+    alignment,
+    currentState.stepId,
+    context.next,
+    {
+      templateVersionId: input.templateVersionId,
+      stateHash: context.nextTemplate.initial_state_hash,
+      valid: Boolean(context.nextTemplate.initial_state_hash && initialSubstrateStep),
+    },
+  );
+  if (!comparisonTarget) {
+    throw new HTTPException(409, {
+      message: currentState.stepId
+        ? "The step that produced the current structure could not be matched in this template version."
+        : "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run.",
+    });
+  }
   const transition = validateSubstrateTransition(input.substrateConfirmation, {
     sampleUpdatedAt: sample.updated_at,
     previousStateHash: currentState.stateHash,
-    templateInitialStateHash: context.nextTemplate.initial_state_hash,
+    templateStructureKey: comparisonTarget.key,
+    templateStateHash: comparisonTarget.stateHash,
+    templateStateRequired: comparisonTarget.kind === "initial_substrate",
     latestRunId: latestRun?.id ?? null,
     currentPlanRevisionId: context.run.current_plan_revision_id,
   });
   if (!transition.ok) {
     throw new HTTPException(409, {
-      message: transition.reason === "template_initial_state_missing"
-        ? "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run."
+      message: transition.reason === "template_structure_missing"
+        ? "The current structure-producing step could not be matched to a valid comparison point in this template version."
         : transition.reason === "confirmation_required"
-          ? "Compare the last recorded structure with Step 0 and confirm that the handoff is expected."
+          ? "Compare the current recorded structure with the matched step in the updated template."
           : "The sample, run plan, or template changed after review. Compare the structures again.",
     });
   }
@@ -1742,6 +1787,9 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
          AND EXISTS (SELECT 1 FROM run_plan_revisions WHERE id = ?)`,
     ).bind(Number(context.run.revision_no) + 1, runId, revisionId),
   ];
+  statements.push(...bulkInsertStatements(c.env.DB, "run_steps",
+    ["id", "run_id", "previous_step_id", "position", "origin", "plan_status", "template_step_id", "logical_step_key", "definition_hash", "expected_state_hash", "status", "actualized_at", "created_at", "updated_by", "updated_at"],
+    newSteps));
   for (let index = 0; index < futureMatches.length; index += 12) {
     const chunk = futureMatches.slice(index, index + 12);
     const values = chunk.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(", ");
@@ -1761,9 +1809,6 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
          AND EXISTS (SELECT 1 FROM run_plan_revisions WHERE id = ?)`,
     ).bind(...bindings, userEmail, now, revisionId));
   }
-  statements.push(...bulkInsertStatements(c.env.DB, "run_steps",
-    ["id", "run_id", "previous_step_id", "position", "origin", "plan_status", "template_step_id", "logical_step_key", "definition_hash", "expected_state_hash", "status", "actualized_at", "created_at", "updated_by", "updated_at"],
-    newSteps));
   if (alignment.supersededStepIds.length) {
     for (let index = 0; index < alignment.supersededStepIds.length; index += 80) {
       const ids = alignment.supersededStepIds.slice(index, index + 80);
@@ -1802,9 +1847,11 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
         added: alignment.additions.length, superseded: alignment.supersededStepIds.length,
         autoSkippedAdditions: alignment.additions.length - pendingAdditions.length,
         historicalDifferences: alignment.historicalDifferences, action: reopening ? "process_run_reopened" : "active_plan_updated",
-        substrateConfirmation: {
+        structureConfirmation: {
           previousStateHash: currentState.stateHash,
-          templateInitialStateHash: context.nextTemplate.initial_state_hash,
+          templateStructureKey: comparisonTarget.key,
+          templateStateHash: comparisonTarget.stateHash,
+          templateStepId: comparisonTarget.stepId,
         } }), userEmail, now, runId, revisionId),
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?
@@ -1820,8 +1867,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
     }
   } catch (error) {
     if (error instanceof HTTPException) throw error;
-    if (String(error).includes("FOREIGN KEY") || String(error).includes("constraint")) {
-      throw new HTTPException(409, { message: "The run or sample changed while the structures were being confirmed. Review them again." });
+    if (String(error).includes("template version archived")) {
+      throw new HTTPException(409, { message: "This process-template version was archived before the plan update was saved." });
     }
     throw error;
   }
