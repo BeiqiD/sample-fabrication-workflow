@@ -397,12 +397,8 @@ export interface PlanUpdatePreview {
   substrateTransition: RunStartPreview;
   preservedCount: number;
   additionCount: number;
+  skippedAdditionCount: number;
   supersededCount: number;
-  conflicts: Array<{
-    kind: "inserted_before_execution_head";
-    existingStepId?: string;
-    templateStepId?: string;
-  }>;
   historicalDifferences: Array<{
     kind: "modified_executed_step" | "removed_executed_step";
     existingStepId: string;

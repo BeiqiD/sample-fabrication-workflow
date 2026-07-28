@@ -18,8 +18,8 @@ function TemplateStepEditor({ template, step, sectionName, onSaved }: { template
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [imageToDelete, setImageToDelete] = useState<string | null>(null);
-  const [imageDeleteError, setImageDeleteError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function save() {
     setSaving(true); setError("");
@@ -35,24 +35,23 @@ function TemplateStepEditor({ template, step, sectionName, onSaved }: { template
     finally { setSaving(false); }
   }
 
-  async function deleteImage() {
-    if (!imageToDelete) return;
-    setSaving(true); setImageDeleteError("");
+  async function deleteStep() {
+    setSaving(true); setDeleteError("");
     try {
-      await api.deleteTemplateStepImage(template.id, step.id, imageToDelete);
-      setImageToDelete(null);
+      await api.deleteTemplateStep(template.id, step.id);
+      setConfirmingDelete(false);
       await onSaved();
-    } catch (error) { setImageDeleteError((error as Error).message); }
+    } catch (error) { setDeleteError((error as Error).message); }
     finally { setSaving(false); }
   }
 
   return <article className="card template-step-card">
     <div className="template-step-number">{step.stepNumber || step.position + 1}</div>
     <div className="template-step-body">
-      <div className="card-title-row"><div><h3 className="card-title">{step.name}</h3>{sectionName && <span className="section-label">{sectionName}</span>}{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>{!template.locked && !template.archived && <button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</button>}</div>
+      <div className="card-title-row"><div><h3 className="card-title">{step.name}</h3>{sectionName && <span className="section-label">{sectionName}</span>}{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>{!template.locked && !template.archived && <div className="template-step-actions"><button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</button><button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button></div>}</div>
       <div className={step.imageKeys.length > 0 ? "template-step-content has-diagrams" : "template-step-content"}>
         <dl className="template-detail-list"><dt>Parameters</dt><dd>{step.parametersText || "—"}</dd><dt>Comments</dt><dd>{step.commentsText || "—"}</dd></dl>
-        {step.imageKeys.length > 0 && <DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" onDelete={!template.locked && !template.archived ? (key) => { setImageDeleteError(""); setImageToDelete(key); } : undefined} />}
+        {step.imageKeys.length > 0 && <DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" />}
       </div>
       {editing && <div className="step-form">
         <label>Step name<input value={name} onChange={(event) => setName(event.target.value)} /></label>
@@ -64,7 +63,7 @@ function TemplateStepEditor({ template, step, sectionName, onSaved }: { template
       </div>}
       {error && <p className="error-banner">{error}</p>}
     </div>
-    {imageToDelete && <ConfirmDeleteDialog title="Delete this template diagram?" description="The diagram will be removed from this editable process step. Existing process runs and shared file data will remain unchanged." summary={`${step.name} · diagram ${step.imageKeys.indexOf(imageToDelete) + 1}`} deleting={saving} error={imageDeleteError} eyebrow="Delete diagram" confirmLabel="Delete diagram" onCancel={() => { setImageToDelete(null); setImageDeleteError(""); }} onConfirm={() => void deleteImage()} />}
+    {confirmingDelete && <ConfirmDeleteDialog title="Delete this template step?" description="The complete step, including all of its diagrams, will be removed from this unused template version. Shared file data will remain unchanged." summary={step.name} deleting={saving} error={deleteError} eyebrow="Delete step" confirmLabel="Delete step" onCancel={() => { setConfirmingDelete(false); setDeleteError(""); }} onConfirm={() => void deleteStep()} />}
   </article>;
 }
 

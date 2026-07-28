@@ -28,6 +28,8 @@ import {
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
+const MAX_FABUBLOX_IMPORT_STEPS = 180;
+const MAX_FABUBLOX_IMPORT_IMAGES = MAX_FABUBLOX_IMPORT_STEPS;
 
 async function digestSha256(buffer: ArrayBuffer) {
   return sha256Hex(buffer);
@@ -1574,11 +1576,12 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const sameFamily = context.run.recipe_family_id === context.nextTemplate.recipe_family_id;
   const isNewerVersion = context.nextTemplate.version > Number(context.run.current_template_version_number);
   const alignment = sameFamily ? alignFuturePlan(context.existing, context.next) : {
-    matches: [], additions: [], supersededStepIds: [], conflicts: [], historicalDifferences: [],
+    matches: [], additions: [], supersededStepIds: [], historicalDifferences: [],
   };
   const canReopen = context.run.status === "complete" && latestRun?.id === runId;
   const lifecycleAllowed = context.run.status === "active" || canReopen;
-  const hasFutureWork = context.run.status === "active" || alignment.additions.length > 0;
+  const pendingAdditions = alignment.additions.filter((step) => step.initialStatus === "pending");
+  const hasFutureWork = context.run.status === "active" || pendingAdditions.length > 0;
   const initialSubstrateStep = parseInitialSubstrateStep(context.nextTemplate.content_json);
   const hasInitialSubstrate = Boolean(context.nextTemplate.initial_state_hash && initialSubstrateStep);
   const blockingReason = !sameFamily
@@ -1589,11 +1592,9 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
       ? "Only an active run or the latest completed run can be updated."
       : !hasFutureWork
         ? "This version adds no future work after the completed run."
-        : alignment.conflicts.length
-          ? "This version inserts new work before the execution boundary."
-          : !hasInitialSubstrate
-            ? "This process-template version has no valid Step 0: Substrate Stack snapshot."
-            : null;
+        : !hasInitialSubstrate
+          ? "This process-template version has no valid Step 0: Substrate Stack snapshot."
+          : null;
   return c.json({
     compatible: blockingReason === null,
     blockingReason,
@@ -1628,8 +1629,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
     },
     preservedCount: alignment.matches.length,
     additionCount: alignment.additions.length,
+    skippedAdditionCount: alignment.additions.length - pendingAdditions.length,
     supersededCount: alignment.supersededStepIds.length,
-    conflicts: alignment.conflicts,
     historicalDifferences: alignment.historicalDifferences,
     familyMismatch: !sameFamily,
   });
@@ -1663,10 +1664,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
     throw new HTTPException(409, { message: "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run." });
   }
   const alignment = alignFuturePlan(context.existing, context.next);
-  if (alignment.conflicts.length) {
-    throw new HTTPException(409, { message: "This version inserts new work before the execution boundary. Start a new process run or review the template alignment." });
-  }
-  if (reopening && !alignment.additions.length) {
+  const pendingAdditions = alignment.additions.filter((step) => step.initialStatus === "pending");
+  if (reopening && !pendingAdditions.length) {
     throw new HTTPException(409, { message: "This template version adds no future work after the completed run. Start a new run if this is a separate processing stage." });
   }
   const transition = validateSubstrateTransition(input.substrateConfirmation, {
@@ -1691,6 +1690,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   const revisionId = crypto.randomUUID();
   const matchByTemplate = new Map(alignment.matches.map((match) => [match.templateStepId, match]));
   const existingById = new Map(context.existing.map((step) => [step.id, step]));
+  const additionByTemplate = new Map(alignment.additions.map((step) => [step.id, step]));
   const addedIds = new Map(alignment.additions.map((step) => [step.id, crypto.randomUUID()]));
   const executionHead = [...context.existing].filter((step) => step.actualized).sort((left, right) => right.position - left.position)[0] ?? null;
   let previousStepId = executionHead?.id ?? null;
@@ -1715,8 +1715,10 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
       previousStepId = match.existingStepId;
     } else {
       const id = addedIds.get(step.id)!;
+      const initialStatus = additionByTemplate.get(step.id)?.initialStatus ?? "pending";
       newSteps.push([id, runId, previousStepId, position, "template", "current", step.id,
-        step.logicalStepKey, step.definitionHash, step.expectedStateHash, now, userEmail, now]);
+        step.logicalStepKey, step.definitionHash, step.expectedStateHash,
+        initialStatus, initialStatus === "skipped" ? now : null, now, userEmail, now]);
       previousStepId = id;
     }
   }
@@ -1760,7 +1762,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
     ).bind(...bindings, userEmail, now, revisionId));
   }
   statements.push(...bulkInsertStatements(c.env.DB, "run_steps",
-    ["id", "run_id", "previous_step_id", "position", "origin", "plan_status", "template_step_id", "logical_step_key", "definition_hash", "expected_state_hash", "created_at", "updated_by", "updated_at"],
+    ["id", "run_id", "previous_step_id", "position", "origin", "plan_status", "template_step_id", "logical_step_key", "definition_hash", "expected_state_hash", "status", "actualized_at", "created_at", "updated_by", "updated_at"],
     newSteps));
   if (alignment.supersededStepIds.length) {
     for (let index = 0; index < alignment.supersededStepIds.length; index += 80) {
@@ -1774,7 +1776,9 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   }
   const linkRows = context.next.map((step) => {
     const match = matchByTemplate.get(step.id);
-    return [revisionId, step.id, match?.existingStepId ?? addedIds.get(step.id), match?.relation ?? "planned", now];
+    const addition = match ? null : additionByTemplate.get(step.id);
+    return [revisionId, step.id, match?.existingStepId ?? addedIds.get(step.id),
+      match?.relation ?? (addition?.initialStatus === "skipped" ? "skipped" : "planned"), now];
   });
   statements.push(
     ...bulkInsertStatements(c.env.DB, "run_step_plan_links",
@@ -1796,6 +1800,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
       JSON.stringify({ runId, planRevisionId: revisionId, fromTemplateVersionId: context.run.current_template_version_id,
         toTemplateVersionId: input.templateVersionId, preserved: alignment.matches.length,
         added: alignment.additions.length, superseded: alignment.supersededStepIds.length,
+        autoSkippedAdditions: alignment.additions.length - pendingAdditions.length,
         historicalDifferences: alignment.historicalDifferences, action: reopening ? "process_run_reopened" : "active_plan_updated",
         substrateConfirmation: {
           previousStateHash: currentState.stateHash,
@@ -2655,8 +2660,8 @@ app.post("/imports/fabublox", async (c) => {
   if (manifest.recipeFamilyId !== undefined && manifest.recipeFamilyId !== null && typeof manifest.recipeFamilyId !== "string") {
     throw new HTTPException(400, { message: "Invalid process-template family" });
   }
-  if (manifest.steps.length > 180 || manifest.images.length > 40) {
-    throw new HTTPException(413, { message: "This import exceeds the 180-step or 40-image deployment limit" });
+  if (manifest.steps.length > MAX_FABUBLOX_IMPORT_STEPS || manifest.images.length > MAX_FABUBLOX_IMPORT_IMAGES) {
+    throw new HTTPException(413, { message: `This import exceeds the ${MAX_FABUBLOX_IMPORT_STEPS}-step or ${MAX_FABUBLOX_IMPORT_IMAGES}-image deployment limit` });
   }
   for (const image of manifest.images) {
     if (!(form.get(`image:${image.localId}`) instanceof File)) throw new HTTPException(400, { message: `Missing uploaded image ${image.localId}` });
@@ -3707,58 +3712,46 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
   return c.json({ ok: true });
 });
 
-app.delete("/templates/:templateId/steps/:stepId/images", async (c) => {
+app.delete("/templates/:templateId/steps/:stepId", async (c) => {
   const { templateId, stepId } = c.req.param();
-  const input = await c.req.json<{ assetKey?: string }>();
-  if (typeof input.assetKey !== "string" || !input.assetKey) throw new HTTPException(400, { message: "An image attachment is required" });
-  const [template, step, allSteps, currentAssets] = await Promise.all([
+  const [template, step, remainingSteps] = await Promise.all([
     c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?")
       .bind(templateId).first<{ locked_at: string | null; archived_at: string | null }>(),
-    c.env.DB.prepare("SELECT id, expected_state_hash FROM template_steps WHERE id = ? AND template_version_id = ?")
-      .bind(stepId, templateId).first<{ id: string; expected_state_hash: string | null }>(),
-    c.env.DB.prepare("SELECT id, logical_step_key, definition_hash, expected_state_hash FROM template_steps WHERE template_version_id = ? ORDER BY position")
-      .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare(
-      `SELECT a.id, a.r2_key, a.sha256, sra.position
-       FROM template_steps ts
-       JOIN state_representation_assets sra ON sra.state_hash = ts.expected_state_hash
-       JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-       WHERE ts.id = ? AND ts.template_version_id = ? ORDER BY sra.position, a.id`,
-    ).bind(stepId, templateId).all<{ id: string; r2_key: string; sha256: string | null; position: number }>(),
+      "SELECT id FROM template_steps WHERE id = ? AND template_version_id = ?",
+    ).bind(stepId, templateId).first<{ id: string }>(),
+    c.env.DB.prepare(
+      `SELECT logical_step_key, definition_hash, expected_state_hash
+       FROM template_steps WHERE template_version_id = ? AND id != ? ORDER BY position`,
+    ).bind(templateId, stepId).all<{
+      logical_step_key: string;
+      definition_hash: string;
+      expected_state_hash: string | null;
+    }>(),
   ]);
   if (!template || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
-  const removed = currentAssets.results.find((asset) => asset.r2_key === input.assetKey);
-  if (!removed) throw new HTTPException(404, { message: "Template diagram not found" });
-  const remainingAssets = currentAssets.results.filter((asset) => asset.r2_key !== input.assetKey);
-  if (remainingAssets.some((asset) => !asset.sha256)) throw new HTTPException(409, { message: "This legacy diagram set cannot be safely changed" });
-  const state = remainingAssets.length ? await hashStateRepresentation(remainingAssets.map((asset) => asset.sha256 as string)) : null;
-  const expectedStateHash = state?.hash ?? null;
-  const manifestHash = await hashRecipeManifest(allSteps.results.map((entry) => ({
+  const manifestHash = await hashRecipeManifest(remainingSteps.results.map((entry) => ({
     logicalStepKey: entry.logical_step_key,
     definitionHash: entry.definition_hash,
-    expectedStateHash: entry.id === stepId ? expectedStateHash : entry.expected_state_hash,
+    expectedStateHash: entry.expected_state_hash,
   })));
-  const now = new Date().toISOString();
-  const statements: D1PreparedStatement[] = [];
-  if (state) statements.push(c.env.DB.prepare(
-    `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
-     VALUES (?, ?, 'diagram', ?, ?)`,
-  ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
-  for (const [position, asset] of remainingAssets.entries()) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position) VALUES (?, ?, ?)",
-  ).bind(state?.hash, asset.id, position));
-  const stepUpdateIndex = statements.length;
-  statements.push(c.env.DB.prepare(
-    `UPDATE template_steps SET expected_state_hash = ?
-     WHERE id = ? AND template_version_id = ? AND expected_state_hash IS ?
-       AND EXISTS (SELECT 1 FROM template_versions WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL)`,
-  ).bind(expectedStateHash, stepId, templateId, step.expected_state_hash, templateId));
-  statements.push(c.env.DB.prepare(
-    "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
-  ).bind(manifestHash, templateId));
-  const results = await c.env.DB.batch(statements);
-  if (!results[stepUpdateIndex].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template changed while the diagram was being deleted. Reload and try again." });
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `DELETE FROM template_steps
+       WHERE id = ? AND template_version_id = ?
+         AND EXISTS (
+           SELECT 1 FROM template_versions
+           WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL
+         )`,
+    ).bind(stepId, templateId, templateId),
+    c.env.DB.prepare(
+      "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
+    ).bind(manifestHash, templateId),
+  ]);
+  if (!results[0].meta.changes || !results[1].meta.changes) {
+    throw new HTTPException(409, { message: "This template version was used to start a process run while the step was being deleted. Clone it to continue." });
+  }
   return c.json({ ok: true });
 });
 

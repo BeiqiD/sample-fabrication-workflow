@@ -279,9 +279,7 @@ export const api = {
   updateTemplateStep: (templateId: string, stepId: string, input: TemplateStepInput) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
-  deleteTemplateStepImage: (templateId: string, stepId: string, assetKey: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}/images`, {
-    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetKey }),
-  }),
+  deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
   getFullExport: () => request<FullExportManifest>("/exports/all"),
   importFabublox: async (file: File, preview: FabubloxImportPreview, recipeFamilyId?: string) => {
     const form = new FormData();

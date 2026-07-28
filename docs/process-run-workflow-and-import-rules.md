@@ -183,6 +183,10 @@ Across template versions, process-step identity is based on normalized step name
 
 Repeated names such as `Clean`, `Bake`, or `Inspection` must be disambiguated using their relative order and neighbouring anchors. If sequence alignment remains ambiguous, the user must confirm the mapping.
 
+New steps may be inserted on either side of the run's execution boundary. An inserted step before a later actualized match is recorded as `skipped` when the new version is assigned, because the sample has already passed that point. Additions after the boundary remain `pending`. Before any step has been actualized, all additions remain `pending`.
+
+An imported template version remains editable until it is assigned to a run. Editable process steps can be added, changed, or deleted as a whole. Individual imported diagrams cannot be deleted independently; deleting the step removes its diagram references with it while retaining shared content-addressed asset data.
+
 ## FabuBlox initial substrate import
 
 ### Current problem

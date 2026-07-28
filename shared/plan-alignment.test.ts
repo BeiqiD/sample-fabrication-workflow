@@ -30,22 +30,36 @@ describe("future plan alignment", () => {
       slot("b", "hb", 2000, true),
       slot("c", "hc", 3000),
     ], [next("a", "ha", 0), next("b", "hb", 1), next("x", "hx", 2), next("c", "hc", 3), next("d", "hd", 4)]);
-    expect(result.conflicts).toEqual([]);
     expect(result.additions.map((step) => step.logicalStepKey)).toEqual(["x", "d"]);
+    expect(result.additions.map((step) => step.initialStatus)).toEqual(["pending", "pending"]);
     expect(result.matches.map((match) => match.existingStepId)).toEqual(["a", "b", "c"]);
   });
 
-  it("rejects a new recipe step inserted before an executed anchor", () => {
+  it("auto-skips a new recipe step inserted before an executed anchor", () => {
     const result = alignFuturePlan([slot("a", "ha", 1000, true), slot("b", "hb", 2000, true)], [next("a", "ha", 0), next("x", "hx", 1), next("b", "hb", 2)]);
-    expect(result.conflicts).toContainEqual({ kind: "inserted_before_execution_head", templateStepId: "v2-x" });
+    expect(result.additions).toContainEqual({ ...next("x", "hx", 1), initialStatus: "skipped" });
+  });
+
+  it("keeps additions after the execution boundary pending", () => {
+    const result = alignFuturePlan(
+      [slot("a", "ha", 1000, true), slot("b", "hb", 2000)],
+      [next("a", "ha", 0), next("x", "hx", 1), next("b", "hb", 2)],
+    );
+    expect(result.additions).toContainEqual({ ...next("x", "hx", 1), initialStatus: "pending" });
+  });
+
+  it("keeps every addition pending before execution starts", () => {
+    const result = alignFuturePlan(
+      [slot("a", "ha", 1000), slot("b", "hb", 2000)],
+      [next("x", "hx", 0), next("a", "ha", 1), next("b", "hb", 2)],
+    );
+    expect(result.additions).toContainEqual({ ...next("x", "hx", 0), initialStatus: "pending" });
   });
 
   it("retains modified or removed executed definitions as historical differences", () => {
     const changed = alignFuturePlan([slot("a", "ha", 1000, true)], [next("a", "changed", 0)]);
-    expect(changed.conflicts).toEqual([]);
     expect(changed.historicalDifferences[0]?.kind).toBe("modified_executed_step");
     const removed = alignFuturePlan([slot("a", "ha", 1000, true)], []);
-    expect(removed.conflicts).toEqual([]);
     expect(removed.historicalDifferences[0]?.kind).toBe("removed_executed_step");
   });
 
@@ -93,6 +107,21 @@ describe("future plan alignment", () => {
       { ...next("name:coat:1", "new-coat", 1), name: "coat" },
     ]);
     expect(result.matches.map((match) => match.existingStepId)).toEqual(["number:1", "number:2"]);
+    expect(result.additions).toEqual([]);
+    expect(result.supersededStepIds).toEqual([]);
+  });
+
+  it("uses the current template revision order after an auto-skipped insertion", () => {
+    const result = alignFuturePlan([
+      { ...slot("a", "ha", 1000, true), alignmentPosition: 0 },
+      { ...slot("b", "hb", 2000, true), alignmentPosition: 2 },
+      { ...slot("x", "hx", 3000, true), alignmentPosition: 1 },
+    ], [
+      next("a", "ha", 0),
+      next("x", "hx", 1),
+      next("b", "hb", 2),
+    ]);
+    expect(result.matches.map((match) => match.existingStepId)).toEqual(["a", "x", "b"]);
     expect(result.additions).toEqual([]);
     expect(result.supersededStepIds).toEqual([]);
   });
