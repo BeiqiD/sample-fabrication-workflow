@@ -1,6 +1,12 @@
-export type ActionIconName = "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "sun";
+export type ActionIconName = "actions" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
+  actions: <>
+    <path d="M4 7h10M18 7h2M4 12h2M10 12h10M4 17h7M15 17h5" />
+    <circle cx="16" cy="7" r="2" />
+    <circle cx="8" cy="12" r="2" />
+    <circle cx="13" cy="17" r="2" />
+  </>,
   export: <path d="M12 3.5v11M8 10.5l4 4 4-4M5 17v3h14v-3" />,
   metrology: <>
     <circle cx="10" cy="10" r="5.5" />
@@ -19,6 +25,10 @@ const iconPaths: Record<ActionIconName, React.ReactNode> = {
     <path d="M12 3.5v6M12 9.5l-5 5v6M12 9.5l5 5v6" />
     <circle cx="7" cy="20.5" r="1.5" />
     <circle cx="17" cy="20.5" r="1.5" />
+  </>,
+  start: <>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 8v8M8 12h8" />
   </>,
   sun: <>
     <circle cx="12" cy="12" r="3.5" />

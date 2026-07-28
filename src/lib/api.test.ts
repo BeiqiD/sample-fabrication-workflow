@@ -78,6 +78,27 @@ describe("processing sample API", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/samples/sample-1?view=processing", undefined);
   });
+
+  it("sends explicit confirmation when finishing will skip unfinished steps", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      ok: true,
+      completedAt: "2026-07-29T10:15:00.000Z",
+      skippedStepCount: 3,
+    }), { headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const input = {
+      expectedSampleUpdatedAt: "2026-07-29T10:10:00.000Z",
+      confirmSkipUnfinishedSteps: true,
+    };
+
+    await api.finishProcessRun("sample-1", "run-1", input);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/samples/sample-1/runs/run-1/finish", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  });
 });
 
 describe("paginated directory APIs", () => {

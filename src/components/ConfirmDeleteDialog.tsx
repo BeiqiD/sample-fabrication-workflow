@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", confirmation, onCancel, onConfirm }: {
+export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", confirmation, onCancel, onConfirm }: {
   title: string;
   description: string;
   summary: string;
@@ -8,6 +8,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
   error: string;
   eyebrow?: string;
   confirmLabel?: string;
+  busyLabel?: string;
   confirmation?: {
     label: string;
     target: string;
@@ -69,7 +70,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
       {error && <p className="error-banner">{error}</p>}
       <div className="form-actions">
         <button ref={cancelRef} type="button" className="button" disabled={deleting} onClick={onCancel}>Cancel</button>
-        <button type="button" className="button danger" disabled={deleting || Boolean(confirmation && confirmation.value !== confirmation.target)} onClick={onConfirm}>{deleting ? "Deleting…" : confirmLabel}</button>
+        <button type="button" className="button danger" disabled={deleting || Boolean(confirmation && confirmation.value !== confirmation.target)} onClick={onConfirm}>{deleting ? busyLabel : confirmLabel}</button>
       </div>
     </section>
   </div>;

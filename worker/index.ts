@@ -1558,7 +1558,8 @@ app.post("/samples/:id/runs", async (c) => {
 app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
   const { sampleId, runId } = c.req.param();
   const input = await c.req.json<FinishProcessRunInput>();
-  if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
+  if (!input || typeof input.expectedSampleUpdatedAt !== "string"
+    || (input.confirmSkipUnfinishedSteps !== undefined && typeof input.confirmSkipUnfinishedSteps !== "boolean")) {
     throw new HTTPException(400, { message: "The current sample revision is required" });
   }
   const [run, sample, unfinished] = await Promise.all([
@@ -1567,53 +1568,91 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
     ).bind(runId, sampleId).first<{ id: string; template_name_snapshot: string; template_version_snapshot: number; status: string }>(),
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare(
-      `SELECT COUNT(*) AS count FROM run_steps
+      `SELECT id FROM run_steps
        WHERE run_id = ? AND entry_kind = 'fabrication'
-         AND plan_status = 'current' AND status NOT IN ('done', 'skipped')`,
-    ).bind(runId).first<{ count: number }>(),
+         AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
+       ORDER BY position, id`,
+    ).bind(runId).all<{ id: string }>(),
   ]);
   if (!run || !sample) throw new HTTPException(404, { message: "Process run not found" });
   if (run.status !== "active") throw new HTTPException(409, { message: "Only the active process run can be finished" });
   if (sample.updated_at !== input.expectedSampleUpdatedAt) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before finishing the run." });
   }
-  if (Number(unfinished?.count ?? 0) > 0) {
-    throw new HTTPException(409, { message: "Complete or skip every current planned step before finishing the process run." });
+  const unfinishedStepIds = unfinished.results.map((step) => step.id);
+  if (unfinishedStepIds.length && input.confirmSkipUnfinishedSteps !== true) {
+    throw new HTTPException(409, {
+      message: `Finishing this run will mark ${unfinishedStepIds.length} unfinished step${unfinishedStepIds.length === 1 ? "" : "s"} as skipped. Confirm this action before continuing.`,
+    });
   }
   const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
   const mutationId = crypto.randomUUID();
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
-      `UPDATE runs SET status = 'complete', completed_at = ?
-       WHERE id = ? AND sample_id = ? AND status = 'active'
-         AND NOT EXISTS (
-           SELECT 1 FROM run_steps
-           WHERE run_id = ? AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
-         )`,
-    ).bind(now, runId, sampleId, runId),
-    c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, last_mutation_id = ?, updated_at = ?
        WHERE id = ? AND updated_at = ?`,
     ).bind(userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
     c.env.DB.prepare(
+      `UPDATE run_steps
+       SET status = 'skipped', actualized_at = COALESCE(actualized_at, ?),
+           updated_by = ?, last_mutation_id = ?, updated_at = ?
+       WHERE run_id = ? AND entry_kind = 'fabrication'
+         AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
+         AND EXISTS (
+           SELECT 1 FROM runs
+           WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'
+         )
+         AND EXISTS (
+           SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?
+         )`,
+    ).bind(now, userEmail, mutationId, now, runId, runId, sampleId, sampleId, mutationId),
+    c.env.DB.prepare(
+      `UPDATE runs SET status = 'complete', completed_at = COALESCE(completed_at, ?)
+       WHERE id = ? AND sample_id = ? AND run_kind = 'process'
+         AND status IN ('active', 'complete')
+         AND NOT EXISTS (
+           SELECT 1 FROM run_steps
+           WHERE run_id = ? AND entry_kind = 'fabrication'
+             AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
+         )
+         AND EXISTS (
+           SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?
+         )`,
+    ).bind(now, runId, sampleId, runId, sampleId, mutationId),
+    c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       SELECT ?, id, 'run', ?, ?, ?, ? FROM samples
-       WHERE id = ? AND last_mutation_id = ?`,
+       SELECT ?, s.id, 'run', ?, ?, ?, ? FROM samples s
+       WHERE s.id = ? AND s.last_mutation_id = ?
+         AND EXISTS (
+           SELECT 1 FROM runs r
+           WHERE r.id = ? AND r.sample_id = s.id AND r.status = 'complete'
+         )`,
     ).bind(
       crypto.randomUUID(),
-      `Finished process run · ${run.template_name_snapshot} v${run.template_version_snapshot}`,
-      JSON.stringify({ action: "process_run_finished", runId }),
+      `Finished process run · ${run.template_name_snapshot} v${run.template_version_snapshot}${unfinishedStepIds.length
+        ? ` · ${unfinishedStepIds.length} unfinished step${unfinishedStepIds.length === 1 ? "" : "s"} marked skipped`
+        : ""}`,
+      JSON.stringify({
+        action: "process_run_finished",
+        runId,
+        skippedUnfinishedStepCount: unfinishedStepIds.length,
+        skippedUnfinishedStepIds: unfinishedStepIds,
+      }),
       userEmail,
       now,
       sampleId,
       mutationId,
+      runId,
     ),
   ]);
-  if (!results[0].meta.changes || !results[1].meta.changes || !results[2].meta.changes) {
+  if (!results[0].meta.changes
+    || Number(results[1].meta.changes ?? 0) !== unfinishedStepIds.length
+    || !results[2].meta.changes
+    || !results[3].meta.changes) {
     throw new HTTPException(409, { message: "The process run changed while it was being finished. Reload and try again." });
   }
-  return c.json({ ok: true, completedAt: now });
+  return c.json({ ok: true, completedAt: now, skippedStepCount: unfinishedStepIds.length });
 });
 
 app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {

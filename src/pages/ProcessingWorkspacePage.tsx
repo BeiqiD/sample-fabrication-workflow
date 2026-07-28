@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
+import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
 import { StatusPill } from "../components/StatusPill";
@@ -16,7 +18,7 @@ import {
   availableProcessTemplateVersions,
   selectedProcessTemplateVersionId,
 } from "../lib/process-template-picker";
-import { sampleRunControlTitle } from "../lib/sample-run-selection";
+import { sampleRunControlActionIds, sampleRunControlTitle } from "../lib/sample-run-selection";
 
 const MAX_VISIBLE_SAMPLES = 8;
 
@@ -54,6 +56,8 @@ export function ProcessingWorkspacePage() {
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
+  const [confirmingRunFinish, setConfirmingRunFinish] = useState(false);
+  const [finishRunError, setFinishRunError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -74,6 +78,8 @@ export function ProcessingWorkspacePage() {
     setShowSamplePicker(false);
     setSampleQuery("");
     setSampleResults([]);
+    setConfirmingRunFinish(false);
+    setFinishRunError("");
   }, [selectedRun?.id]);
 
   useEffect(() => {
@@ -253,13 +259,16 @@ export function ProcessingWorkspacePage() {
 
   async function finishActiveRun() {
     if (!sample || !activeRun) return;
-    if (!window.confirm("Finish this process run? Its execution history and initial substrate snapshot will become read-only.")) return;
-    setAssigning(true); setError("");
+    setAssigning(true); setFinishRunError(""); setError("");
     try {
-      await api.finishProcessRun(sample.id, activeRun.id, { expectedSampleUpdatedAt: sample.updatedAt });
+      await api.finishProcessRun(sample.id, activeRun.id, {
+        expectedSampleUpdatedAt: sample.updatedAt,
+        confirmSkipUnfinishedSteps: unfinishedCurrentSteps.length > 0,
+      });
       setTemplateVersionId("");
+      setConfirmingRunFinish(false);
       await load();
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setFinishRunError((error as Error).message); }
     finally { setAssigning(false); }
   }
 
@@ -293,28 +302,76 @@ export function ProcessingWorkspacePage() {
   const includedIds = new Set(samples.map((item) => item.id));
   const availableResults = sampleResults.filter((result) => !includedIds.has(result.id));
   const selectedIsActive = selectedRun?.status === "active";
-  const selectedIsActiveProcess = selectedRun?.runKind === "process" && selectedIsActive;
   const selectedRunIsEditable = selectedIsActive
     || (selectedRun?.runKind === "metrology" && selectedRun.status === "complete");
   const processRuns = sample.runs.filter((run) => run.runKind === "process");
   const processStartLabel = processRuns.length ? "Start new process" : "Start first process";
-  const selectedIsLatestProcess = selectedRun?.runKind === "process" && selectedRun.id === processRuns[0]?.id;
   const selectedRunLabel = selectedRun
     ? `${selectedRun.runKind === "metrology" ? "Metrology" : "Process"} ${selectedRun.sequenceNo} · ${selectedRun.templateName}${selectedRun.runKind === "process" ? ` v${selectedRun.templateVersion}` : ""}`
     : "No run yet";
   const selectedRunState = selectedRun
     ? `${processRunStatus(selectedRun.status)}${selectedIsActive ? "" : selectedRunIsEditable ? " · results editable" : " · read-only"}`
     : "Not started";
-  const runControlNote = selectedRun?.runKind === "metrology"
-    ? selectedIsActive
-      ? "This metrology run completes when its record is marked Done; its results remain editable afterwards."
-      : selectedRun.status === "complete"
-        ? "Results, parameters, comments, and attachments remain editable for post-processing."
-        : ""
-    : "";
   const unfinishedCurrentSteps = activeRun?.steps.filter((step) =>
     step.entryKind === "fabrication" && step.planStatus === "current"
       && step.status !== "done" && step.status !== "skipped") ?? [];
+  const { runActions, startActions } = sampleRunControlActionIds({
+    selectedRun,
+    activeProcessRun: activeRun,
+    latestProcessRun: processRuns[0] ?? null,
+  });
+  const runActionItems: RunActionMenuItem[] = runActions.map((action) => {
+    if (action === "update_plan") return {
+      id: action,
+      label: "Update future plan",
+      icon: <ActionIcon name="plan-update" />,
+      disabled: assigning,
+      onSelect: () => openTransition("update"),
+    };
+    if (action === "finish_run") return {
+      id: action,
+      label: "Finish run",
+      description: unfinishedCurrentSteps.length
+        ? `Skip ${unfinishedCurrentSteps.length} unfinished step${unfinishedCurrentSteps.length === 1 ? "" : "s"}`
+        : "Complete this active run",
+      icon: <ProcessingActionIcon name="done" />,
+      danger: unfinishedCurrentSteps.length > 0,
+      disabled: assigning,
+      onSelect: () => {
+        setFinishRunError("");
+        setConfirmingRunFinish(true);
+      },
+    };
+    if (action === "reopen_process") return {
+      id: action,
+      label: "Reopen with updated template",
+      icon: <ActionIcon name="plan-update" />,
+      disabled: assigning,
+      onSelect: () => openTransition("reopen"),
+    };
+    return {
+      id: action,
+      label: "View active process",
+      icon: <ActionIcon name="process" />,
+      disabled: assigning,
+      onSelect: () => activeRun && updateSearchParams({ run: activeRun.id }),
+    };
+  });
+  const startActionItems: RunActionMenuItem[] = startActions.map((action) => action === "start_process"
+    ? {
+      id: action,
+      label: processStartLabel,
+      icon: <ActionIcon name="process" />,
+      disabled: assigning,
+      onSelect: () => openTransition("start"),
+    }
+    : {
+      id: action,
+      label: "Start metrology",
+      icon: <ActionIcon name="metrology" />,
+      disabled: assigning,
+      onSelect: () => setShowMetrologyPicker(true),
+    });
 
   return <div className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
@@ -347,14 +404,9 @@ export function ProcessingWorkspacePage() {
             ? <select aria-label="Viewing run" value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select>
             : <strong title={selectedRunLabel}>{selectedRunLabel}</strong>}
         </div>
-        {runControlNote && <p className="run-controls-note">{runControlNote}</p>}
-        <div className="run-workflow-buttons">
-          {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="Update future plan" title="Update future plan" onClick={() => openTransition("update")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Update future plan</span></button>}
-          {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" disabled={assigning || unfinishedCurrentSteps.length > 0} aria-label="Finish run" title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}><ProcessingActionIcon name="done" /><span className="responsive-action-label">Finish run</span></button>}
-          {!activeRun && selectedRun?.status === "complete" && selectedIsLatestProcess && <button type="button" className="button responsive-icon-button" aria-label="Reopen with updated template" title="Reopen with updated template" onClick={() => openTransition("reopen")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Reopen with updated template</span></button>}
-          {!activeRun && <button type="button" className="button primary responsive-icon-button" aria-label={processStartLabel} title={processStartLabel} onClick={() => openTransition("start")}><ActionIcon name="process" /><span className="responsive-action-label">{processStartLabel}</span></button>}
-          <button type="button" className="button responsive-icon-button" aria-label="Start metrology" title="Start metrology" onClick={() => setShowMetrologyPicker(true)}><ActionIcon name="metrology" /><span className="responsive-action-label">Start metrology</span></button>
-          {activeRun && !selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="View active process" title="View active process" onClick={() => updateSearchParams({ run: activeRun.id })}><ActionIcon name="process" /><span className="responsive-action-label">View active process</span></button>}
+        <div className="run-control-menus">
+          <RunActionMenu label="Run actions" icon={<ActionIcon name="actions" />} items={runActionItems} disabled={assigning} />
+          <RunActionMenu label="Start run" icon={<ActionIcon name="start" />} items={startActionItems} disabled={assigning} primary />
         </div>
       </div>
 
@@ -367,6 +419,29 @@ export function ProcessingWorkspacePage() {
           updateSearchParams({ run: runId });
           await load();
         }}
+      />}
+      {confirmingRunFinish && <ConfirmDeleteDialog
+        eyebrow="Finish process run"
+        title={unfinishedCurrentSteps.length
+          ? `Skip ${unfinishedCurrentSteps.length} unfinished step${unfinishedCurrentSteps.length === 1 ? "" : "s"}?`
+          : "Finish this process run?"}
+        description={unfinishedCurrentSteps.length
+          ? "Finishing now will mark every unfinished current step as skipped and complete the run."
+          : "The run will be completed and its execution history will become read-only."}
+        summary={`${selectedRunLabel}${unfinishedCurrentSteps.length
+          ? ` · ${unfinishedCurrentSteps.length} unfinished step${unfinishedCurrentSteps.length === 1 ? "" : "s"} will be skipped`
+          : ""}`}
+        deleting={assigning}
+        error={finishRunError}
+        confirmLabel={unfinishedCurrentSteps.length
+          ? `Finish and skip ${unfinishedCurrentSteps.length} step${unfinishedCurrentSteps.length === 1 ? "" : "s"}`
+          : "Finish run"}
+        busyLabel="Finishing…"
+        onCancel={() => {
+          setConfirmingRunFinish(false);
+          setFinishRunError("");
+        }}
+        onConfirm={() => void finishActiveRun()}
       />}
       {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !assigning) setTransitionMode(null); }}>
         <section className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
