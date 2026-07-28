@@ -359,19 +359,22 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
   background:
     repeating-linear-gradient(
       135deg,
-      color-mix(in srgb, var(--success) 78%, var(--success-soft)) 0 7px,
-      color-mix(in srgb, var(--success-soft) 88%, var(--paper)) 7px 14px
+      color-mix(in srgb, var(--success) 78%, var(--success-soft)) 0 9px,
+      color-mix(in srgb, var(--success-soft) 88%, var(--paper)) 9px 24px
     );
   content: "";
   transition: width .18s ease;
+}
+.run-grid-section-progress.complete::before {
+  background: color-mix(in srgb, var(--success) 82%, var(--success-soft));
 }
 .run-grid-section-progress.blocked::before {
   width: 100%;
   background:
     repeating-linear-gradient(
       135deg,
-      color-mix(in srgb, var(--danger) 78%, var(--danger-soft)) 0 7px,
-      color-mix(in srgb, var(--danger-soft) 88%, var(--paper)) 7px 14px
+      color-mix(in srgb, var(--danger) 78%, var(--danger-soft)) 0 9px,
+      color-mix(in srgb, var(--danger-soft) 88%, var(--paper)) 9px 24px
     );
 }
 .run-grid-section-progress.empty::before { display: none; }

@@ -829,11 +829,12 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               <div className="run-grid-section-name recipe-column" title={section.label}>{section.label}</div>
               {columns.map((column, columnIndex) => {
                 const progress = runGridSectionProgress(rows, section, columnIndex);
+                const complete = progress.total > 0 && progress.completed === progress.total && !progress.blocked;
                 const label = progress.total
                   ? `${section.label}: ${progress.completed} of ${progress.total} steps complete${progress.blocked ? "; blocked" : ""}`
                   : `${section.label}: no matching steps`;
                 return <div
-                  className={`run-grid-section-progress${progress.blocked ? " blocked" : ""}${progress.total ? "" : " empty"}`}
+                  className={`run-grid-section-progress${progress.blocked ? " blocked" : ""}${complete ? " complete" : ""}${progress.total ? "" : " empty"}`}
                   key={`section:${section.key}:${column.sample.id}`}
                   role="progressbar"
                   aria-label={label}
