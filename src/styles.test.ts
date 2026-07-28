@@ -43,7 +43,10 @@ describe("sample header actions", () => {
 });
 
 describe("run workflow actions", () => {
-  it("keeps icon-and-label buttons compact on desktop and icon-only on mobile", () => {
+  it("uses one responsive run-controls toolbar for the picker, state, and actions", () => {
+    expect(styles).toMatch(/\.run-controls\s*\{[^}]*grid-template-columns:\s*auto minmax\(220px,\s*1fr\) auto auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*1280px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*auto minmax\(0,\s*1fr\) auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
     expect(styles).toMatch(/\.run-workflow-buttons \.responsive-icon-button\s*\{[^}]*padding-inline:\s*13px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-workflow-buttons\s*\{[^}]*justify-content:\s*flex-end/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-workflow-buttons \.responsive-icon-button\s*\{[^}]*padding-inline:\s*0/);
