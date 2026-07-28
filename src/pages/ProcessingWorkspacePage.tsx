@@ -296,6 +296,7 @@ export function ProcessingWorkspacePage() {
   const selectedRunIsEditable = selectedIsActive
     || (selectedRun?.runKind === "metrology" && selectedRun.status === "complete");
   const processRuns = sample.runs.filter((run) => run.runKind === "process");
+  const processStartLabel = processRuns.length ? "Start new process" : "Start first process";
   const selectedIsLatestProcess = selectedRun?.runKind === "process" && selectedRun.id === processRuns[0]?.id;
   const unfinishedCurrentSteps = activeRun?.steps.filter((step) =>
     step.entryKind === "fabrication" && step.planStatus === "current"
@@ -331,10 +332,10 @@ export function ProcessingWorkspacePage() {
         <div className="run-workflow-buttons">
           {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="Update future plan" title="Update future plan" onClick={() => openTransition("update")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Update future plan</span></button>}
           {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" disabled={assigning || unfinishedCurrentSteps.length > 0} aria-label="Finish run" title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}><ProcessingActionIcon name="done" /><span className="responsive-action-label">Finish run</span></button>}
-          {!activeRun && selectedRun?.status === "complete" && selectedIsLatestProcess && <button type="button" className="button" onClick={() => openTransition("reopen")}>Reopen with updated template</button>}
-          {!activeRun && <button type="button" className="button primary" onClick={() => openTransition("start")}>{processRuns.length ? "Start new process" : "Start first process"}</button>}
+          {!activeRun && selectedRun?.status === "complete" && selectedIsLatestProcess && <button type="button" className="button responsive-icon-button" aria-label="Reopen with updated template" title="Reopen with updated template" onClick={() => openTransition("reopen")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Reopen with updated template</span></button>}
+          {!activeRun && <button type="button" className="button primary responsive-icon-button" aria-label={processStartLabel} title={processStartLabel} onClick={() => openTransition("start")}><ActionIcon name="process" /><span className="responsive-action-label">{processStartLabel}</span></button>}
           <button type="button" className="button responsive-icon-button" aria-label="Start metrology" title="Start metrology" onClick={() => setShowMetrologyPicker(true)}><ActionIcon name="metrology" /><span className="responsive-action-label">Start metrology</span></button>
-          {activeRun && !selectedIsActiveProcess && <button type="button" className="button" onClick={() => updateSearchParams({ run: activeRun.id })}>View active process</button>}
+          {activeRun && !selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="View active process" title="View active process" onClick={() => updateSearchParams({ run: activeRun.id })}><ActionIcon name="process" /><span className="responsive-action-label">View active process</span></button>}
         </div>
       </div>
 

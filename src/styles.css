@@ -1044,7 +1044,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .assign-template > small { grid-column: auto; }
   .run-selector { align-items: stretch; flex-direction: column; }
   .run-viewing-card, .run-workflow-actions { align-items: stretch; flex-direction: column; }
-  .run-workflow-buttons { justify-content: flex-start; }
+  .run-workflow-buttons { justify-content: flex-end; }
   .run-workflow-buttons .responsive-icon-button { padding-inline: 0; }
   .process-template-picker { grid-template-columns: minmax(0, 1fr); }
   .sample-run-summary { grid-template-columns: 1fr auto; }
