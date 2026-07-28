@@ -13,17 +13,28 @@ export interface RunGridRow {
 }
 
 function orderedSteps(run: SampleRun | null) {
-  return run ? [...run.steps].filter((step) => step.planStatus !== "superseded" || step.actualizedAt)
+  return run ? [...run.steps].filter((step) => step.planStatus === "current")
     .sort((left, right) => left.position - right.position) : [];
+}
+
+function orderedTemplateSteps(run: SampleRun | null) {
+  return orderedSteps(run)
+    .filter((step) => step.origin === "template" && step.entryKind === "fabrication")
+    .sort((left, right) => {
+      if (left.planPosition !== null && right.planPosition !== null) {
+        return left.planPosition - right.planPosition;
+      }
+      if (left.planPosition !== null) return -1;
+      if (right.planPosition !== null) return 1;
+      return left.position - right.position;
+    });
 }
 
 export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
   const primaryRun = columns[0]?.run ?? null;
   if (!primaryRun) return [];
-  const primaryTemplateSteps = orderedSteps(primaryRun)
-    .filter((step) => step.origin === "template" && step.entryKind === "fabrication");
-  const templateStepsByColumn = columns.map(({ run }) => orderedSteps(run)
-    .filter((step) => step.origin === "template" && step.entryKind === "fabrication"));
+  const primaryTemplateSteps = orderedTemplateSteps(primaryRun);
+  const templateStepsByColumn = columns.map(({ run }) => orderedTemplateSteps(run));
   const primaryIndexByLogicalKey = new Map(
     primaryTemplateSteps.flatMap((step, index) => step.logicalStepKey ? [[step.logicalStepKey, index] as const] : []),
   );

@@ -776,21 +776,29 @@ app.get("/samples/:id", async (c) => {
               COALESCE(ptv.version, r.template_version_snapshot) AS template_version,
               COALESCE(ptv.id, r.template_version_id) AS current_template_version_id,
               rs.id AS step_id, rs.template_step_id, rs.logical_step_key, rs.definition_hash,
-              rs.expected_state_hash, rs.position, COALESCE(rs.title, sd.name) AS step_title,
+              rs.expected_state_hash, rs.position, current_ts.position AS plan_position,
+              COALESCE(rs.title, sd.name) AS step_title,
               rs.status AS step_status, rs.notes, rs.updated_at AS step_updated_at,
               rs.origin, rs.entry_kind, rs.plan_status,
               COALESCE(rs.tool_name, sd.tool_name) AS tool_name,
               COALESCE(rs.parameters_text, sd.parameters_text) AS parameters_text,
               COALESCE(rs.comments_text, sd.comments_text) AS comments_text,
               rs.deviation_note, rs.actualized_at,
-              sd.name AS planned_title, sd.tool_name AS planned_tool_name,
-              sd.parameters_text AS planned_parameters_text, sd.comments_text AS planned_comments_text,
+              CASE WHEN current_ts.id IS NOT NULL THEN current_sd.name ELSE sd.name END AS planned_title,
+              CASE WHEN current_ts.id IS NOT NULL THEN current_sd.tool_name ELSE sd.tool_name END AS planned_tool_name,
+              CASE WHEN current_ts.id IS NOT NULL THEN current_sd.parameters_text ELSE sd.parameters_text END AS planned_parameters_text,
+              CASE WHEN current_ts.id IS NOT NULL THEN current_sd.comments_text ELSE sd.comments_text END AS planned_comments_text,
               rs.created_at AS step_created_at
        FROM runs r
        LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
        LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
        LEFT JOIN run_steps rs ON rs.run_id = r.id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+       LEFT JOIN run_step_plan_links current_link
+         ON current_link.run_plan_revision_id = r.current_plan_revision_id
+        AND current_link.run_step_id = rs.id
+       LEFT JOIN template_steps current_ts ON current_ts.id = current_link.template_step_id
+       LEFT JOIN step_definitions current_sd ON current_sd.hash = current_ts.definition_hash
        WHERE r.sample_id = ?
        ORDER BY r.sequence_no DESC, rs.position ASC`,
     ).bind(id).all<Record<string, unknown>>(),
@@ -799,7 +807,12 @@ app.get("/samples/:id", async (c) => {
          SELECT rs.id AS run_step_id, 'planned' AS role, a.r2_key, sra.position, a.created_at
          FROM run_steps rs
          JOIN runs r ON r.id = rs.run_id
-         JOIN state_representation_assets sra ON sra.state_hash = rs.expected_state_hash
+         LEFT JOIN run_step_plan_links current_link
+           ON current_link.run_plan_revision_id = r.current_plan_revision_id
+          AND current_link.run_step_id = rs.id
+         LEFT JOIN template_steps current_ts ON current_ts.id = current_link.template_step_id
+         JOIN state_representation_assets sra ON sra.state_hash =
+           CASE WHEN current_ts.id IS NOT NULL THEN current_ts.expected_state_hash ELSE rs.expected_state_hash END
          JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
          WHERE r.sample_id = ?
          UNION ALL
@@ -986,7 +999,9 @@ app.get("/samples/:id", async (c) => {
       logicalStepKey: row.logical_step_key ? String(row.logical_step_key) : null,
       definitionHash: row.definition_hash ? String(row.definition_hash) : null,
       expectedStateHash: row.expected_state_hash ? String(row.expected_state_hash) : null,
-      position: Number(row.position), origin: String(row.origin), entryKind: String(row.entry_kind),
+      position: Number(row.position),
+      planPosition: row.plan_position === null || row.plan_position === undefined ? null : Number(row.plan_position),
+      origin: String(row.origin), entryKind: String(row.entry_kind),
       planStatus: String(row.plan_status), title: String(row.step_title),
       status: String(row.step_status), notes: row.notes ? String(row.notes) : null,
       toolName: row.tool_name ? String(row.tool_name) : null,
@@ -1744,10 +1759,21 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
     id: string; position: number; previousStepId: string | null; templateStepId: string;
     logicalStepKey: string; definitionHash: string; expectedStateHash: string | null;
   }> = [];
+  const actualizedMatches: Array<{
+    id: string; templateStepId: string; logicalStepKey: string;
+    definitionHash: string; expectedStateHash: string | null;
+  }> = [];
   const newSteps: unknown[][] = [];
   for (const step of context.next) {
     const match = matchByTemplate.get(step.id);
     if (match && existingById.get(match.existingStepId)?.actualized) {
+      actualizedMatches.push({
+        id: match.existingStepId,
+        templateStepId: step.id,
+        logicalStepKey: step.logicalStepKey,
+        definitionHash: step.definitionHash,
+        expectedStateHash: step.expectedStateHash,
+      });
       continue;
     }
     const position = Number(executionHead?.position ?? 0) + (++futureIndex * 1000);
@@ -1790,6 +1816,23 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   statements.push(...bulkInsertStatements(c.env.DB, "run_steps",
     ["id", "run_id", "previous_step_id", "position", "origin", "plan_status", "template_step_id", "logical_step_key", "definition_hash", "expected_state_hash", "status", "actualized_at", "created_at", "updated_by", "updated_at"],
     newSteps));
+  for (let index = 0; index < actualizedMatches.length; index += 16) {
+    const chunk = actualizedMatches.slice(index, index + 16);
+    const values = chunk.map(() => "(?, ?, ?, ?, ?)").join(", ");
+    const bindings = chunk.flatMap((step) => [step.id, step.templateStepId,
+      step.logicalStepKey, step.definitionHash, step.expectedStateHash]);
+    statements.push(c.env.DB.prepare(
+      `WITH changes(id, template_step_id, logical_step_key, definition_hash, expected_state_hash) AS (VALUES ${values})
+       UPDATE run_steps SET
+         template_step_id = (SELECT template_step_id FROM changes WHERE changes.id = run_steps.id),
+         logical_step_key = (SELECT logical_step_key FROM changes WHERE changes.id = run_steps.id),
+         definition_hash = (SELECT definition_hash FROM changes WHERE changes.id = run_steps.id),
+         expected_state_hash = (SELECT expected_state_hash FROM changes WHERE changes.id = run_steps.id),
+         updated_by = ?, updated_at = ?
+       WHERE id IN (SELECT id FROM changes)
+         AND EXISTS (SELECT 1 FROM run_plan_revisions WHERE id = ?)`,
+    ).bind(...bindings, userEmail, now, revisionId));
+  }
   for (let index = 0; index < futureMatches.length; index += 12) {
     const chunk = futureMatches.slice(index, index + 12);
     const values = chunk.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(", ");

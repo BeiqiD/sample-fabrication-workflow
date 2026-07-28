@@ -1,7 +1,7 @@
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import type { CommentAttachment, CommentImage, CommentSubmissionStatus, SampleDetail, SampleEvent } from "../../shared/types";
 
-export type SampleNoteKind = "sample_record" | "process_comment" | "execution_detail" | "deviation" | "state_mismatch" | "blocked_step";
+export type SampleNoteKind = "sample_record" | "process_comment" | "execution_detail" | "execution_image" | "deviation" | "state_mismatch" | "blocked_step";
 
 export interface SampleNote {
   id: string;
@@ -125,6 +125,39 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
             relatedAttachmentId: null,
           }] : []),
           attachments: comment.attachments ?? [],
+        });
+      }
+
+      if (step.planStatus === "superseded" && step.executionImageKeys.length) {
+        notes.push({
+          id: `execution-images:${step.id}`,
+          kind: "execution_image",
+          label: "Execution image from removed step",
+          body: "Retained from a step that is no longer part of the current process plan.",
+          assetKey: step.executionImageKeys[0] ?? null,
+          thumbnailKey: step.executionImageKeys[0] ?? null,
+          actorEmail: null,
+          createdAt: step.updatedAt,
+          context,
+          runId: run.id,
+          stepId: step.id,
+          sampleEvent: null,
+          submissionId: null,
+          status: "ready",
+          images: step.executionImageKeys.map((assetKey, index) => ({
+            id: `execution:${step.id}:${index}`,
+            filename: "Execution image",
+            mimeType: "image/*",
+            byteSize: 0,
+            originalFilename: "Execution image",
+            originalMimeType: "image/*",
+            originalByteSize: 0,
+            assetKey,
+            status: "ready",
+            error: null,
+            relatedAttachmentId: null,
+          })),
+          attachments: [],
         });
       }
 

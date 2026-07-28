@@ -42,6 +42,7 @@ function step(overrides: Partial<RunStep> = {}): RunStep {
     definitionHash: "definition-1",
     expectedStateHash: "state-1",
     position: 1,
+    planPosition: null,
     origin: "template",
     entryKind: "fabrication",
     planStatus: "current",
@@ -177,6 +178,56 @@ describe("collectSampleNotes", () => {
       kind: "blocked_step",
       body: "Waiting for replacement tips",
     });
+  });
+
+  it("keeps comments from a step removed from the current process plan", () => {
+    const notes = collectSampleNotes(sample({
+      events: [],
+      stateVerifications: [],
+      runs: [run({
+        steps: [step({
+          planStatus: "superseded",
+          deviationNote: null,
+          stateVerification: null,
+        })],
+      })],
+    }));
+
+    expect(notes).toEqual([
+      expect.objectContaining({
+        kind: "process_comment",
+        body: "AFM result attached",
+        stepId: "step-1",
+      }),
+    ]);
+  });
+
+  it("keeps execution images from a step removed from the current process plan", () => {
+    const notes = collectSampleNotes(sample({
+      events: [],
+      stateVerifications: [],
+      runs: [run({
+        steps: [step({
+          planStatus: "superseded",
+          comments: [],
+          executionImageKeys: ["execution/removed-step-1.png", "execution/removed-step-2.png"],
+          deviationNote: null,
+          stateVerification: null,
+        })],
+      })],
+    }));
+
+    expect(notes).toEqual([
+      expect.objectContaining({
+        kind: "execution_image",
+        label: "Execution image from removed step",
+        stepId: "step-1",
+        images: [
+          expect.objectContaining({ assetKey: "execution/removed-step-1.png" }),
+          expect.objectContaining({ assetKey: "execution/removed-step-2.png" }),
+        ],
+      }),
+    ]);
   });
 
   it("includes user-entered execution detail but not unchanged template text", () => {
