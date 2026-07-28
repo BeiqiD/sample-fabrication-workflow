@@ -197,6 +197,28 @@ describe("paginated directory routes", () => {
     expect(payload.facets).toEqual({ active: 30, complete: 8, cancelled: 7, all: 125 });
   });
 
+  it("limits the process workspace picker to samples with an active run in the same process family", async () => {
+    const database = testDatabase();
+    seedDirectory(database);
+    database.prepare(
+      "UPDATE runs SET template_version_id = 'process-family-1-v1', template_version_snapshot = 1 WHERE id = 'run-10'",
+    ).run();
+
+    const response = await get(
+      testEnv(database),
+      "/api/samples?runFamily=process-family-1&runKind=process&runStatus=active&pageSize=20",
+    );
+    const payload = await response.json() as {
+      samples: Array<{ code: string; latestWorkflowVersion: number; latestRunStatus: string }>;
+      pagination: { total: number };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.pagination.total).toBe(10);
+    expect(payload.samples.every((sample) => sample.latestRunStatus === "active")).toBe(true);
+    expect(payload.samples.some((sample) => sample.latestWorkflowVersion === 1)).toBe(true);
+  });
+
   it("combines sample search, filters, and explicit sorting on the server", async () => {
     const database = testDatabase();
     seedDirectory(database);

@@ -326,6 +326,36 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .bulk-selector.recipe-column { z-index: 2; }
 .bulk-selector label { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 650; }
 .bulk-selector small { font-size: 10px; }
+.run-grid-section-name, .run-grid-section-progress {
+  min-height: 26px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.run-grid-section-name {
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--surface-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: .035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.run-grid-section-progress {
+  background:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--success) 72%, var(--success-soft)) 0 var(--section-progress),
+      var(--surface-muted) var(--section-progress) 100%
+    );
+  transition: background .18s ease;
+}
+.run-grid-section-progress.blocked { background: var(--danger); }
+.run-grid-section-progress.empty { background: var(--surface-muted); }
 .recipe-cell, .sample-step-cell { min-height: 88px; padding: 9px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--paper); }
 .recipe-cell { background: var(--surface-warm); }
 .additional-step-recipe-cell { border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning-soft) 48%, var(--surface-warm)); }
@@ -834,6 +864,22 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 .warning-card { padding: 16px 18px; overflow-wrap: anywhere; border-radius: 12px; color: var(--warning-text); background: var(--warning-soft); }
 .warning-card ul { margin: 8px 0 0; padding-left: 20px; }
 .step-preview-list { display: grid; gap: 12px; }
+.process-section-header {
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: var(--surface-muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: .035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .imported-step { display: grid; grid-template-columns: 42px 1fr 160px; gap: 18px; padding: 18px; align-items: start; }
 .step-position { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); font-weight: 760; }
 .step-copy .card-title { margin: 2px 0 5px; }

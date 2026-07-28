@@ -15,6 +15,11 @@ export interface SampleListOptions {
   page?: number;
   pageSize?: number;
   view?: "samples" | "processing";
+  matchingRun?: {
+    recipeFamilyId: string;
+    runKind: "process" | "metrology";
+    status: "active" | "complete" | "cancelled" | "superseded";
+  };
   status?: "active" | "complete" | "cancelled" | "all";
   sampleStatus?: SampleStatus;
   location?: string;
@@ -30,6 +35,11 @@ function sampleListPath(options: SampleListOptions | string) {
   if (normalized.query?.trim()) params.set("q", normalized.query.trim());
   if (normalized.page && normalized.page > 1) params.set("page", String(normalized.page));
   if (normalized.pageSize) params.set("pageSize", String(normalized.pageSize));
+  if (normalized.matchingRun?.recipeFamilyId.trim()) {
+    params.set("runFamily", normalized.matchingRun.recipeFamilyId.trim());
+    params.set("runKind", normalized.matchingRun.runKind);
+    params.set("runStatus", normalized.matchingRun.status);
+  }
   if (normalized.view === "processing") params.set("view", "processing");
   if (normalized.view === "processing") {
     if (normalized.status && normalized.status !== "active") params.set("status", normalized.status);

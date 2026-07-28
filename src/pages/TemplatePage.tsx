@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DiagramGallery } from "../components/MultiSampleRunGrid";
@@ -7,9 +7,9 @@ import { FileDropzone } from "../components/FileDropzone";
 import { api, type TemplateDetail, type TemplateStepRecord } from "../lib/api";
 import { compressLayerStackImage } from "../lib/images";
 import { templateDetailPath } from "../lib/templateRoutes";
-import { sectionNameAtGroupStart } from "../lib/template-sections";
+import { sectionHeaderAtGroupStart } from "../lib/template-sections";
 
-function TemplateStepEditor({ template, step, sectionName, onSaved }: { template: TemplateDetail; step: TemplateStepRecord; sectionName: string | null; onSaved: () => Promise<void> }) {
+function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDetail; step: TemplateStepRecord; onSaved: () => Promise<void> }) {
   const [name, setName] = useState(step.name);
   const [toolName, setToolName] = useState(step.toolName || "");
   const [parametersText, setParametersText] = useState(step.parametersText || "");
@@ -48,7 +48,7 @@ function TemplateStepEditor({ template, step, sectionName, onSaved }: { template
   return <article className="card template-step-card">
     <div className="template-step-number">{step.stepNumber || step.position + 1}</div>
     <div className="template-step-body">
-      <div className="card-title-row"><div><h3 className="card-title">{step.name}</h3>{sectionName && <span className="section-label">{sectionName}</span>}{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>{!template.locked && !template.archived && <div className="template-step-actions"><button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</button><button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button></div>}</div>
+      <div className="card-title-row"><div><h3 className="card-title">{step.name}</h3>{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>{!template.locked && !template.archived && <div className="template-step-actions"><button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</button><button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button></div>}</div>
       <div className={step.imageKeys.length > 0 ? "template-step-content has-diagrams" : "template-step-content"}>
         <dl className="template-detail-list"><dt>Parameters</dt><dd>{step.parametersText || "—"}</dd><dt>Comments</dt><dd>{step.commentsText || "—"}</dd></dl>
         {step.imageKeys.length > 0 && <DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" />}
@@ -149,6 +149,9 @@ export function TemplatePage() {
     {editable && <section className="card template-metadata-editor"><h2 className="card-title">Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
     {error && <p className="error-banner">{error}</p>}
     <section className={template.initialStateImageKeys.length ? "card template-initial-state has-diagrams" : "card template-initial-state"}><div className="card-copy"><div className="card-title-line"><h2 className="card-title">Initial substrate</h2><span className="meta-badge">Step 0</span></div><p className="card-value">{template.initialSubstrateStep ? "Substrate Stack" : template.initialStateHash ? "Legacy substrate definition" : "Substrate Stack missing"}</p>{template.initialSubstrateStep ? <SubstrateStepDetails step={template.initialSubstrateStep} /> : <p className="card-meta">{template.initialStateHash ? "This older version has a stored structure but no Step 0 metadata." : "Re-import this version with Step 0 named Substrate Stack before starting a run from it."}</p>}{!template.initialStateImageKeys.length && <p className="card-meta">No substrate diagram attached</p>}</div>{template.initialStateImageKeys.length > 0 && <DiagramGallery keys={template.initialStateImageKeys} label="Initial substrate" size="wide" className="template-diagram-gallery" />}</section>
-    <section className="template-steps-section"><div className="section-heading"><div><h2>Process steps</h2><p>Executable steps in this template version.</p></div><span className="section-count">{template.steps.length}</span></div>{template.steps.map((step, index) => <TemplateStepEditor key={step.id} template={template} step={step} sectionName={sectionNameAtGroupStart(template.steps, index)} onSaved={load} />)}{editable && <NewTemplateStep templateId={template.id} onSaved={load} />}</section>
+    <section className="template-steps-section"><div className="section-heading"><div><h2>Process steps</h2><p>Executable steps in this template version.</p></div><span className="section-count">{template.steps.length}</span></div>{template.steps.map((step, index) => {
+      const sectionLabel = sectionHeaderAtGroupStart(template.steps, index);
+      return <Fragment key={step.id}>{sectionLabel && <div className="process-section-header template-section-header">{sectionLabel}</div>}<TemplateStepEditor template={template} step={step} onSaved={load} /></Fragment>;
+    })}{editable && <NewTemplateStep templateId={template.id} onSaved={load} />}</section>
   </div>;
 }

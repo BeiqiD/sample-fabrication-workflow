@@ -103,6 +103,7 @@ export interface RunStep {
   id: string;
   templateStepId: string | null;
   logicalStepKey: string | null;
+  sectionName: string | null;
   definitionHash: string | null;
   expectedStateHash: string | null;
   position: number;

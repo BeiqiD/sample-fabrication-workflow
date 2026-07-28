@@ -6,6 +6,7 @@ import type {
   ImportWarning,
   ParsedFabubloxImage,
 } from "../../shared/types";
+import { normalizeSectionName } from "./template-sections";
 
 const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const HEADER_ALIASES = {
@@ -253,8 +254,10 @@ function parseRows(rows: unknown[][], headerRow: number, columns: ColumnMap) {
     const looksLikeSection = !stepName && Boolean(stepNumber) && !/^\d+(?:\.\d+)*$/.test(stepNumber!);
     if ((!stepNumber && !stepName) || looksLikeSection) {
       if (anyText) {
-        currentSection = anyText;
-        sections.push({ localId: `section-${sections.length + 1}`, sourceRow: rowIndex + 1, name: anyText });
+        currentSection = normalizeSectionName(anyText);
+        if (currentSection) {
+          sections.push({ localId: `section-${sections.length + 1}`, sourceRow: rowIndex + 1, name: currentSection });
+        }
       }
       continue;
     }

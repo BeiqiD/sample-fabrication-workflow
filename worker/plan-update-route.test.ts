@@ -124,6 +124,11 @@ function createDatabase() {
       ('new-descum', 'template-v2', 'name:descum:1', 2, 'new-descum-definition', NULL),
       ('new-coat', 'template-v2', 'name:coat:1', 3, 'new-coat-definition', NULL);
 
+    UPDATE template_steps SET section_name = 'Legacy process' WHERE template_version_id = 'template-v1';
+    UPDATE template_steps SET section_name = 'Preparation' WHERE id = 'new-pre-clean';
+    UPDATE template_steps SET section_name = 'Surface preparation' WHERE id = 'new-clean';
+    UPDATE template_steps SET section_name = 'Lithography' WHERE id IN ('new-descum', 'new-coat');
+
     INSERT INTO runs
       (id, sample_id, recipe_family_id, template_version_id, current_plan_revision_id,
        sequence_no, run_group_id, template_name_snapshot, template_type_snapshot,
@@ -252,6 +257,7 @@ describe("plan update route", () => {
         steps: Array<{
           id: string;
           title: string;
+          sectionName: string | null;
           position: number;
           planPosition: number | null;
           status: string;
@@ -274,6 +280,7 @@ describe("plan update route", () => {
       position: 1000,
       planPosition: 1,
       plannedTitle: "Clean",
+      sectionName: "Surface preparation",
       plannedToolName: "New cleaner",
       plannedParametersText: "New parameters",
       plannedCommentsText: "New note",
@@ -281,6 +288,7 @@ describe("plan update route", () => {
     });
     expect(preClean).toMatchObject({
       status: "skipped",
+      sectionName: "Preparation",
       planPosition: 0,
       plannedTitle: "Pre-clean",
     });

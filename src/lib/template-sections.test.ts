@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSectionName, sectionNameAtGroupStart } from "./template-sections";
+import {
+  normalizeSectionName,
+  sectionHeaderAtGroupStart,
+  sectionNameAtGroupStart,
+  visibleSectionGroups,
+} from "./template-sections";
 
 describe("template section display", () => {
   it("hides empty and imported placeholder section names", () => {
@@ -28,6 +33,37 @@ describe("template section display", () => {
       null,
       "Deposition",
       null,
+    ]);
+  });
+
+  it("omits the header when every step belongs to one section", () => {
+    const steps = [
+      { sectionName: "Lithography" },
+      { sectionName: "Lithography" },
+    ];
+
+    expect(visibleSectionGroups(steps)).toEqual([]);
+    expect(steps.map((_, index) => sectionHeaderAtGroupStart(steps, index))).toEqual([null, null]);
+  });
+
+  it("uses a quiet fallback label for an unsectioned group among named sections", () => {
+    const steps = [
+      { sectionName: "Preparation" },
+      { sectionName: "Unnamed Section" },
+      { sectionName: null },
+      { sectionName: "Bonding" },
+    ];
+
+    expect(visibleSectionGroups(steps).map((group) => group.label)).toEqual([
+      "Preparation",
+      "Other steps",
+      "Bonding",
+    ]);
+    expect(steps.map((_, index) => sectionHeaderAtGroupStart(steps, index))).toEqual([
+      "Preparation",
+      "Other steps",
+      null,
+      "Bonding",
     ]);
   });
 });

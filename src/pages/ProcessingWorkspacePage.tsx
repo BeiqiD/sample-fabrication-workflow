@@ -68,6 +68,12 @@ export function ProcessingWorkspacePage() {
   const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
 
   useEffect(() => {
+    setShowSamplePicker(false);
+    setSampleQuery("");
+    setSampleResults([]);
+  }, [selectedRun?.id]);
+
+  useEffect(() => {
     if (!sample || requestedAction !== "start" || activeRun || transitionMode) return;
     setTransitionMode("start");
     setTemplateVersionId("");
@@ -88,9 +94,22 @@ export function ProcessingWorkspacePage() {
 
   useEffect(() => {
     if (!showSamplePicker) return;
+    if (!selectedRun) {
+      setSampleResults([]);
+      return;
+    }
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      api.listSamples({ query: sampleQuery, pageSize: 20, signal: controller.signal })
+      api.listSamples({
+        query: sampleQuery,
+        pageSize: 20,
+        matchingRun: {
+          recipeFamilyId: selectedRun.recipeFamilyId,
+          runKind: selectedRun.runKind,
+          status: selectedRun.status,
+        },
+        signal: controller.signal,
+      })
         .then(({ samples }) => setSampleResults(samples))
         .catch((error: Error) => {
           if (error.name !== "AbortError") setError(error.message);
@@ -100,7 +119,7 @@ export function ProcessingWorkspacePage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [sampleQuery, showSamplePicker]);
+  }, [sampleQuery, selectedRun?.recipeFamilyId, selectedRun?.runKind, selectedRun?.status, showSamplePicker]);
 
   useEffect(() => {
     if (transitionMode !== "start") return;
@@ -297,8 +316,8 @@ export function ProcessingWorkspacePage() {
         {samples.map((item, index) => <div className="visible-sample" key={item.id}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}
       </div>
       {showSamplePicker && <div className="card sample-picker-popover">
-        <label>Find another sample<input autoFocus value={sampleQuery} onChange={(event) => setSampleQuery(event.target.value)} placeholder="Search samples…" /></label>
-        <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No samples to add.</p>}</div>
+        <label>{selectedRun?.runKind === "metrology" ? "Find a sample with matching metrology" : "Find a sample assigned to this process"}<input autoFocus value={sampleQuery} onChange={(event) => setSampleQuery(event.target.value)} placeholder="Search matching samples…" /></label>
+        <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>
       </div>}
 
       {sample.runs.length > 0 && (sample.runs.length > 1
