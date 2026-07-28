@@ -592,7 +592,10 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
 export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
   const sectionByStart = useMemo(
-    () => new Map(visibleRunGridSections(rows).map((section) => [section.startIndex, section])),
+    () => new Map(visibleRunGridSections(rows).map((section, index) => [
+      section.startIndex,
+      { ...section, number: index + 1 },
+    ])),
     [rows],
   );
   const mobileRunGrid = useMobileRunGrid();
@@ -826,6 +829,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
           const stepName = row.recipeStep?.plannedTitle || row.recipeStep?.title || rowLeadStep?.title || "Process step";
           return <Fragment key={row.key}>
             {section && <>
+              <div className="run-grid-section-mobile-index recipe-column">Section {section.number}</div>
+              <div className="run-grid-section-mobile-name" title={section.label}>{section.label}</div>
               <div className="run-grid-section-name recipe-column" title={section.label}>{section.label}</div>
               {columns.map((column, columnIndex) => {
                 const progress = runGridSectionProgress(rows, section, columnIndex);
@@ -844,7 +849,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   title={label}
                   style={{ "--section-progress": `${progress.percent}%` } as React.CSSProperties}
                 >
-                  {progress.total > 0 && <span className="run-grid-section-progress-label">{progress.percent}%</span>}
+                  <span className="run-grid-section-progress-track">
+                    {progress.total > 0 && <span className="run-grid-section-progress-label">{progress.percent}%</span>}
+                  </span>
                 </div>;
               })}
             </>}
