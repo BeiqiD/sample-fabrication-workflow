@@ -45,6 +45,7 @@ describe("sample header actions", () => {
 describe("run workflow actions", () => {
   it("keeps icon-and-label buttons compact on desktop and icon-only on mobile", () => {
     expect(styles).toMatch(/\.run-workflow-buttons \.responsive-icon-button\s*\{[^}]*padding-inline:\s*13px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-workflow-buttons\s*\{[^}]*justify-content:\s*flex-end/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-workflow-buttons \.responsive-icon-button\s*\{[^}]*padding-inline:\s*0/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button \.responsive-action-label\s*\{[^}]*position:\s*absolute/);
   });
