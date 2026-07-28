@@ -113,7 +113,7 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
-  finishProcessRun: (sampleId: string, runId: string, input: FinishProcessRunInput) => request<{ ok: true; completedAt: string }>(`/samples/${sampleId}/runs/${runId}/finish`, {
+  finishProcessRun: (sampleId: string, runId: string, input: FinishProcessRunInput) => request<{ ok: true; completedAt: string; skippedStepCount: number }>(`/samples/${sampleId}/runs/${runId}/finish`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),

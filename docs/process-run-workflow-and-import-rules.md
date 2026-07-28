@@ -156,11 +156,18 @@ It should display:
 
 Actions depend on state:
 
-- **Active run**: `Update future plan`, `Finish run`.
+- **Active run**: `Update future plan` and the destructive `Finish run` action live under `Run actions`.
 - **Latest completed run with no successor**: `Reopen with updated template`, when a compatible newer template version exists.
 - **Completed run with a successor**: read-only.
 
-`Start new run` belongs primarily on the Sample page because it acts on the sample, not on the old run being viewed.
+Normal process completion remains automatic when the final current fabrication step is done or
+skipped. Using `Finish run` before that point is an early-finish operation: it requires explicit
+confirmation, atomically marks every unfinished current fabrication step as skipped, and records
+the affected step IDs in the run history.
+
+Run-level mutations are grouped under `Run actions`; creation of a new process or standalone
+metrology record is grouped separately under `Start run`. These controls keep stable positions
+while their menu contents follow the selected run.
 
 ## Process template update semantics
 

@@ -43,15 +43,25 @@ describe("sample header actions", () => {
 });
 
 describe("run workflow actions", () => {
-  it("uses one responsive run-controls toolbar for the picker, state, and actions", () => {
-    expect(styles).toMatch(/\.run-controls\s*\{[^}]*grid-template-columns:\s*auto minmax\(220px,\s*1fr\) auto auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*1280px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*auto minmax\(0,\s*1fr\) auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  it("keeps the desktop title, picker, and status on stable tracks", () => {
+    expect(styles).toMatch(/\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(260px,\s*420px\) 210px minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*1280px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(220px,\s*420px\) 210px/);
+    expect(styles).toMatch(/\.run-controls-picker select\s*\{[^}]*height:\s*42px/);
+    expect(styles).toMatch(/\.run-controls-picker strong\s*\{[^}]*height:\s*42px/);
+  });
+
+  it("keeps the mobile picker and both icon menus on one row", () => {
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?grid-template-areas:[^}]*"picker actions"/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls-heading\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls-heading \.run-controls-status\s*\{[^}]*margin-left:\s*auto/);
-    expect(styles).toMatch(/\.run-workflow-buttons \.responsive-icon-button\s*\{[^}]*padding-inline:\s*13px/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-workflow-buttons\s*\{[^}]*justify-content:\s*flex-end/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-workflow-buttons \.responsive-icon-button\s*\{[^}]*padding-inline:\s*0/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button \.responsive-action-label\s*\{[^}]*position:\s*absolute/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-action-menu-trigger\s*\{[^}]*width:\s*46px[^}]*height:\s*40px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-action-menu-label\s*\{[^}]*position:\s*absolute/);
+  });
+
+  it("presents early finish as a multiline danger action", () => {
+    expect(styles).toMatch(/\.run-action-menu-item\s*\{[^}]*grid-template-columns:\s*22px minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.run-action-menu-item\.danger\s*\{[^}]*border-color:[^}]*var\(--danger\)[^}]*color:\s*var\(--danger\)/);
+    expect(styles).toMatch(/\.run-action-menu-item-copy\s*\{[^}]*display:\s*grid/);
   });
 });

@@ -395,6 +395,7 @@ export interface StartMetrologyRunInput {
 
 export interface FinishProcessRunInput {
   expectedSampleUpdatedAt: string;
+  confirmSkipUnfinishedSteps?: boolean;
 }
 
 export interface PlanUpdatePreview {

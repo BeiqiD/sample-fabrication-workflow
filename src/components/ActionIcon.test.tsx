@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ActionIcon, type ActionIconName } from "./ActionIcon";
 
-const names: ActionIconName[] = ["export", "metrology", "moon", "plan-update", "process", "split", "sun"];
+const names: ActionIconName[] = ["actions", "export", "metrology", "moon", "plan-update", "process", "split", "start", "sun"];
 
 describe("ActionIcon", () => {
   it("keeps every action on the same SVG canvas and stroke system", () => {
