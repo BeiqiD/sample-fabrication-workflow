@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { RunStep, SampleDetail, SampleRun } from "../../shared/types";
-import { buildRunGrid } from "./runGrid";
+import { buildRunGrid, runGridSectionProgress, visibleRunGridSections } from "./runGrid";
 
 function step(id: string, position: number, overrides: Partial<RunStep> = {}): RunStep {
   return {
     id,
     templateStepId: id,
     logicalStepKey: id,
+    sectionName: null,
     definitionHash: `hash:${id}`,
     expectedStateHash: null,
     position,
@@ -216,5 +217,62 @@ describe("multi-sample run grid", () => {
       { sample: sample("b"), run: null },
     ]);
     expect(rows[0].steps).toEqual([expect.objectContaining({ id: "one" }), null]);
+  });
+
+  it("creates compact section boundaries only when the plan has multiple groups", () => {
+    const rows = buildRunGrid([
+      {
+        sample: sample("a"),
+        run: run("a-run", [
+          step("clean", 1000, { sectionName: "Preparation" }),
+          step("coat", 2000, { sectionName: "Lithography" }),
+          step("develop", 3000, { sectionName: "Lithography" }),
+        ]),
+      },
+    ]);
+
+    expect(visibleRunGridSections(rows).map((section) => ({
+      label: section.label,
+      startIndex: section.startIndex,
+      endIndex: section.endIndex,
+    }))).toEqual([
+      { label: "Preparation", startIndex: 0, endIndex: 0 },
+      { label: "Lithography", startIndex: 1, endIndex: 2 },
+    ]);
+  });
+
+  it("derives per-sample section progress and gives blocked state precedence", () => {
+    const rows = buildRunGrid([
+      {
+        sample: sample("a"),
+        run: run("a-run", [
+          step("clean", 1000, { sectionName: "Preparation", status: "done" }),
+          step("coat", 2000, { sectionName: "Lithography", status: "skipped" }),
+          step("develop", 3000, { sectionName: "Lithography", status: "blocked" }),
+        ]),
+      },
+      {
+        sample: sample("b"),
+        run: run("b-run", [
+          step("clean-b", 1000, { logicalStepKey: "clean", sectionName: "Preparation" }),
+          step("coat-b", 2000, { logicalStepKey: "coat", sectionName: "Lithography", status: "done" }),
+          step("develop-b", 3000, { logicalStepKey: "develop", sectionName: "Lithography", status: "done" }),
+        ]),
+      },
+    ]);
+    const lithography = visibleRunGridSections(rows)[1];
+
+    expect(runGridSectionProgress(rows, lithography, 0)).toEqual({
+      completed: 1,
+      total: 2,
+      blocked: true,
+      percent: 50,
+    });
+    expect(runGridSectionProgress(rows, lithography, 1)).toEqual({
+      completed: 2,
+      total: 2,
+      blocked: false,
+      percent: 100,
+    });
   });
 });

@@ -1,10 +1,15 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
-import { buildRunGrid, type RunGridColumn } from "../lib/runGrid";
+import {
+  buildRunGrid,
+  runGridSectionProgress,
+  visibleRunGridSections,
+  type RunGridColumn,
+} from "../lib/runGrid";
 import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
@@ -586,6 +591,10 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
 
 export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
+  const sectionByStart = useMemo(
+    () => new Map(visibleRunGridSections(rows).map((section) => [section.startIndex, section])),
+    [rows],
+  );
   const mobileRunGrid = useMobileRunGrid();
   const [selected, setSelected] = useState(() => new Set(columns.filter((column) => column.run).map((column) => column.sample.id)));
   const [commonCommentRow, setCommonCommentRow] = useState<string | null>(null);
@@ -798,6 +807,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
         {columns.map((column) => <div className="bulk-selector" key={`selected:${column.sample.id}`}>{column.run && <small>{selected.has(column.sample.id) ? "Included in common actions" : "Individual only"}</small>}</div>)}
 
         {rows.map((row, rowIndex) => {
+          const section = sectionByStart.get(rowIndex);
           const entries = row.steps.flatMap((step, columnIndex) => step ? [{ step, column: columns[columnIndex] }] : []);
           const commonGroups = new Map<string, CommonCommentGroup>();
           entries.forEach(({ step, column }) => step.comments.filter((comment) => comment.scope === "common").forEach((comment) => {
@@ -814,7 +824,28 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
           const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
           const rowLeadStep = row.steps.find((step): step is RunStep => Boolean(step));
           const stepName = row.recipeStep?.plannedTitle || row.recipeStep?.title || rowLeadStep?.title || "Process step";
-          return <div className="run-grid-row" key={row.key} style={{ display: "contents" }}>
+          return <Fragment key={row.key}>
+            {section && <>
+              <div className="run-grid-section-name recipe-column" title={section.label}>{section.label}</div>
+              {columns.map((column, columnIndex) => {
+                const progress = runGridSectionProgress(rows, section, columnIndex);
+                const label = progress.total
+                  ? `${section.label}: ${progress.completed} of ${progress.total} steps complete${progress.blocked ? "; blocked" : ""}`
+                  : `${section.label}: no matching steps`;
+                return <div
+                  className={`run-grid-section-progress${progress.blocked ? " blocked" : ""}${progress.total ? "" : " empty"}`}
+                  key={`section:${section.key}:${column.sample.id}`}
+                  role="progressbar"
+                  aria-label={label}
+                  aria-valuemin={0}
+                  aria-valuemax={progress.total}
+                  aria-valuenow={progress.completed}
+                  title={label}
+                  style={{ "--section-progress": `${progress.percent}%` } as React.CSSProperties}
+                />;
+              })}
+            </>}
+            <div className="run-grid-row" style={{ display: "contents" }}>
             <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}${row.kind === "metrology" ? " metrology-recipe-cell" : ""}`}>
               {row.kind !== "template" ? <div className={`recipe-step-heading additional-step-heading${row.kind === "metrology" ? " metrology-step-heading" : ""}`}><span>{row.kind === "metrology" ? "M" : "+"}</span><div><strong>{row.kind === "metrology" ? "Metrology" : "Additional step"}</strong><small>{row.kind === "metrology" ? rowLeadStep?.title : "Not part of the process template"}</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
@@ -882,7 +913,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 {step ? renderStepContent(column, step) : <span className="not-applicable">—</span>}
               </div>;
             })}
-          </div>;
+            </div>
+          </Fragment>;
         })}
       </div>
     </div>

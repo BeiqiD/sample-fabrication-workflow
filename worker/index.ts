@@ -455,6 +455,18 @@ app.get("/sample-directory-options", async (c) => {
 
 app.get("/samples", async (c) => {
   const query = c.req.query("q")?.trim() ?? "";
+  const matchingRunFamilyId = c.req.query("runFamily")?.trim() ?? "";
+  const matchingRunKind = c.req.query("runKind")?.trim() ?? "";
+  const matchingRunStatus = c.req.query("runStatus")?.trim() ?? "";
+  const hasMatchingRunFilter = Boolean(matchingRunFamilyId || matchingRunKind || matchingRunStatus);
+  if (
+    matchingRunFamilyId.length > 200
+    || (hasMatchingRunFilter && !matchingRunFamilyId)
+    || (hasMatchingRunFilter && !["process", "metrology"].includes(matchingRunKind))
+    || (hasMatchingRunFilter && !["active", "complete", "cancelled", "superseded"].includes(matchingRunStatus))
+  ) {
+    throw new HTTPException(400, { message: "Invalid matching-run filter" });
+  }
   const processingView = c.req.query("view") === "processing";
   const filter = processingDirectoryFilter(c.req.query("status"));
   const { page, pageSize, offset } = readPagination(c.req.query("page"), c.req.query("pageSize"));
@@ -465,7 +477,20 @@ app.get("/samples", async (c) => {
     parent: processingView ? "" : directoryFilterValue(c.req.query("parent")),
     workflow: processingView ? "" : directoryFilterValue(c.req.query("process")),
   });
-  const filterSql = processingView ? processingDirectoryWhere(filter) : sampleFilters.sql;
+  const baseFilterSql = processingView ? processingDirectoryWhere(filter) : sampleFilters.sql;
+  const matchingRunFilterSql = matchingRunFamilyId
+    ? ` AND EXISTS (
+          SELECT 1 FROM runs matching_run
+          WHERE matching_run.sample_id = sample_base.id
+            AND matching_run.recipe_family_id = ?
+            AND matching_run.run_kind = ?
+            AND matching_run.status = ?
+        )`
+    : "";
+  const filterSql = `(${baseFilterSql})${matchingRunFilterSql}`;
+  const matchingRunBindings = matchingRunFamilyId
+    ? [matchingRunFamilyId, matchingRunKind, matchingRunStatus]
+    : [];
   const searchTerms = searchTokens(query);
   const sort = sampleDirectorySort(c.req.query("sort"), searchTerms.length > 0);
   const ordering = processingView
@@ -568,8 +593,8 @@ app.get("/samples", async (c) => {
        SELECT COUNT(*) AS all_count FROM sample_base WHERE ${search.sql} AND ${filterSql}`;
   const d1Started = performance.now();
   const [result, countRow] = await Promise.all([
-    c.env.DB.prepare(pageSql).bind(...search.bindings, ...sampleFilters.bindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings).all(),
-    c.env.DB.prepare(countSql).bind(...search.bindings, ...sampleFilters.bindings).first<{
+    c.env.DB.prepare(pageSql).bind(...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings).all(),
+    c.env.DB.prepare(countSql).bind(...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings).first<{
       all_count: number;
       active_count?: number;
       complete_count?: number;
@@ -784,6 +809,9 @@ app.get("/samples/:id", async (c) => {
               COALESCE(rs.parameters_text, sd.parameters_text) AS parameters_text,
               COALESCE(rs.comments_text, sd.comments_text) AS comments_text,
               rs.deviation_note, rs.actualized_at,
+              CASE WHEN current_link.run_step_id IS NOT NULL
+                   THEN current_ts.section_name
+                   ELSE original_ts.section_name END AS planned_section_name,
               CASE WHEN current_ts.id IS NOT NULL THEN current_sd.name ELSE sd.name END AS planned_title,
               CASE WHEN current_ts.id IS NOT NULL THEN current_sd.tool_name ELSE sd.tool_name END AS planned_tool_name,
               CASE WHEN current_ts.id IS NOT NULL THEN current_sd.parameters_text ELSE sd.parameters_text END AS planned_parameters_text,
@@ -794,6 +822,7 @@ app.get("/samples/:id", async (c) => {
        LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
        LEFT JOIN run_steps rs ON rs.run_id = r.id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+       LEFT JOIN template_steps original_ts ON original_ts.id = rs.template_step_id
        LEFT JOIN run_step_plan_links current_link
          ON current_link.run_plan_revision_id = r.current_plan_revision_id
         AND current_link.run_step_id = rs.id
@@ -997,6 +1026,7 @@ app.get("/samples/:id", async (c) => {
       runs.get(runId)!.steps.push({
       id: stepId, templateStepId: row.template_step_id ? String(row.template_step_id) : null,
       logicalStepKey: row.logical_step_key ? String(row.logical_step_key) : null,
+      sectionName: row.planned_section_name ? String(row.planned_section_name) : null,
       definitionHash: row.definition_hash ? String(row.definition_hash) : null,
       expectedStateHash: row.expected_state_hash ? String(row.expected_state_hash) : null,
       position: Number(row.position),

@@ -1,4 +1,5 @@
 import type { ProcessingSampleDetail, RunStep, SampleRun } from "../../shared/types";
+import { visibleSectionGroups, type SectionGroup } from "./template-sections";
 
 export interface RunGridColumn {
   sample: ProcessingSampleDetail;
@@ -8,6 +9,7 @@ export interface RunGridColumn {
 export interface RunGridRow {
   key: string;
   kind: "template" | "ad_hoc" | "metrology";
+  sectionName: string | null;
   recipeStep: RunStep | null;
   steps: Array<RunStep | null>;
 }
@@ -42,6 +44,7 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
   const templateRows = primaryTemplateSteps.map<RunGridRow>((recipeStep, recipeIndex) => ({
     key: `template:${recipeStep.logicalStepKey ?? recipeStep.templateStepId ?? recipeIndex}`,
     kind: "template",
+    sectionName: recipeStep.sectionName,
     recipeStep,
     steps: templateStepsByColumn.map((steps) => recipeStep.logicalStepKey
       ? steps.find((step) => step.logicalStepKey === recipeStep.logicalStepKey) ?? null
@@ -79,10 +82,39 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
       rows.push({
         key: `ad-hoc:${bucketIndex}:${adHocIndex}`,
         kind: rowSteps.find(Boolean)?.entryKind === "metrology" ? "metrology" : "ad_hoc",
+        sectionName: bucketIndex > 0
+          ? primaryTemplateSteps[bucketIndex - 1]?.sectionName ?? null
+          : primaryTemplateSteps[0]?.sectionName ?? null,
         recipeStep: null,
         steps: rowSteps,
       });
     }
   }
   return rows;
+}
+
+export interface RunGridSection extends SectionGroup {}
+
+export function visibleRunGridSections(rows: RunGridRow[]): RunGridSection[] {
+  return visibleSectionGroups(rows);
+}
+
+export function runGridSectionProgress(
+  rows: RunGridRow[],
+  section: RunGridSection,
+  columnIndex: number,
+) {
+  const steps = rows
+    .slice(section.startIndex, section.endIndex + 1)
+    .flatMap((row) => {
+      const step = row.steps[columnIndex];
+      return step?.entryKind === "fabrication" ? [step] : [];
+    });
+  const completed = steps.filter((step) => step.status === "done" || step.status === "skipped").length;
+  return {
+    completed,
+    total: steps.length,
+    blocked: steps.some((step) => step.status === "blocked"),
+    percent: steps.length ? Math.round((completed / steps.length) * 100) : 0,
+  };
 }

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FabubloxImportPreview, ParsedFabubloxImage } from "../../shared/types";
 import { api, type ProcessTemplateFamilyOption } from "../lib/api";
 import { parseFabuBloxWorkbook } from "../lib/fabublox";
+import { sectionHeaderAtGroupStart } from "../lib/template-sections";
 import { FileDropzone } from "./FileDropzone";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
 
@@ -99,11 +100,17 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
       </section>
       {preview.warnings.length > 0 && <section className="warning-card"><strong>Import warnings</strong><ul>{preview.warnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
       <section className="step-preview-list">
-        {preview.steps.map((step) => <article className="card imported-step" key={step.localId}>
-          <div className="step-position">{step.stepNumber ?? step.position + 1}</div>
-          <div className="step-copy"><h3 className="card-title">{step.name}</h3>{step.sectionName && <span className="section-label">{step.sectionName}</span>}<dl><dt>Tool</dt><dd>{step.toolName || "—"}</dd><dt>Parameters</dt><dd className="preline">{step.parametersText || "—"}</dd><dt>Comments</dt><dd className="preline">{step.commentsText || "—"}</dd></dl></div>
-          <LayerThumbnail image={step.imageIds[0] ? images.get(step.imageIds[0]) : undefined} alt={`Layer stack for ${step.name}`} />
-        </article>)}
+        {preview.steps.map((step, index) => {
+          const sectionLabel = sectionHeaderAtGroupStart(preview.steps, index);
+          return <Fragment key={step.localId}>
+            {sectionLabel && <div className="process-section-header import-section-header">{sectionLabel}</div>}
+            <article className="card imported-step">
+              <div className="step-position">{step.stepNumber ?? step.position + 1}</div>
+              <div className="step-copy"><h3 className="card-title">{step.name}</h3><dl><dt>Tool</dt><dd>{step.toolName || "—"}</dd><dt>Parameters</dt><dd className="preline">{step.parametersText || "—"}</dd><dt>Comments</dt><dd className="preline">{step.commentsText || "—"}</dd></dl></div>
+              <LayerThumbnail image={step.imageIds[0] ? images.get(step.imageIds[0]) : undefined} alt={`Layer stack for ${step.name}`} />
+            </article>
+          </Fragment>;
+        })}
       </section>
       <button className="button primary wide" disabled={busy || !preview.title.trim() || !preview.steps.length} onClick={() => void confirm()}>{busy ? "Importing…" : "Confirm process-template import"}</button>
     </div>}
