@@ -3,7 +3,9 @@ import type { SubstrateTransitionConfirmation } from "../shared/types";
 export type SubstrateTransitionFacts = {
   sampleUpdatedAt: string;
   previousStateHash: string | null;
-  templateInitialStateHash: string | null;
+  templateStructureKey: string | null;
+  templateStateHash: string | null;
+  templateStateRequired: boolean;
   latestRunId: string | null;
   currentPlanRevisionId?: string;
 };
@@ -13,20 +15,23 @@ export function validateSubstrateTransition(
   facts: SubstrateTransitionFacts,
 ): {
   ok: true;
-  initialStateHash: string;
+  confirmedTemplateStateHash: string | null;
 } | {
   ok: false;
-  reason: "confirmation_required" | "template_initial_state_missing" | "stale_confirmation";
+  reason: "confirmation_required" | "template_structure_missing" | "stale_confirmation";
 } {
-  if (!facts.templateInitialStateHash) return { ok: false, reason: "template_initial_state_missing" };
+  if (!facts.templateStructureKey || (facts.templateStateRequired && !facts.templateStateHash)) {
+    return { ok: false, reason: "template_structure_missing" };
+  }
   if (!confirmation || confirmation.confirmed !== true) return { ok: false, reason: "confirmation_required" };
   if (confirmation.expectedSampleUpdatedAt !== facts.sampleUpdatedAt
     || confirmation.expectedPreviousStateHash !== facts.previousStateHash
-    || confirmation.expectedTemplateInitialStateHash !== facts.templateInitialStateHash
+    || confirmation.expectedTemplateStructureKey !== facts.templateStructureKey
+    || confirmation.expectedTemplateStateHash !== facts.templateStateHash
     || confirmation.expectedLatestRunId !== facts.latestRunId
     || (facts.currentPlanRevisionId !== undefined
       && confirmation.expectedCurrentPlanRevisionId !== facts.currentPlanRevisionId)) {
     return { ok: false, reason: "stale_confirmation" };
   }
-  return { ok: true, initialStateHash: facts.templateInitialStateHash };
+  return { ok: true, confirmedTemplateStateHash: facts.templateStateHash };
 }

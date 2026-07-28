@@ -346,12 +346,18 @@ export interface RunStartPreview {
   comparison: "same" | "different" | "no_previous_structure" | "not_comparable";
   canConfirm: boolean;
   blockingReason: string | null;
+  comparisonTarget: {
+    kind: "initial_substrate" | "matched_step";
+    key: string;
+    stateHash: string | null;
+    imageKeys: string[];
+    stepId: string | null;
+    stepTitle: string;
+  } | null;
   template: {
     id: string;
     name: string;
     version: number;
-    initialStateHash: string | null;
-    initialStateImageKeys: string[];
     initialSubstrateStep: InitialSubstrateStep | null;
   };
   sampleCurrentState: {
@@ -365,7 +371,8 @@ export interface SubstrateTransitionConfirmation {
   confirmed: true;
   expectedSampleUpdatedAt: string;
   expectedPreviousStateHash: string | null;
-  expectedTemplateInitialStateHash: string | null;
+  expectedTemplateStructureKey: string | null;
+  expectedTemplateStateHash: string | null;
   expectedLatestRunId: string | null;
   expectedCurrentPlanRevisionId?: string;
 }

@@ -204,7 +204,8 @@ export function ProcessingWorkspacePage() {
         confirmed: true as const,
         expectedSampleUpdatedAt: runStartPreview.sampleUpdatedAt,
         expectedPreviousStateHash: runStartPreview.sampleCurrentState.hash,
-        expectedTemplateInitialStateHash: runStartPreview.template.initialStateHash,
+        expectedTemplateStructureKey: runStartPreview.comparisonTarget?.key ?? null,
+        expectedTemplateStateHash: runStartPreview.comparisonTarget?.stateHash ?? null,
         expectedLatestRunId: runStartPreview.expectedLatestRunId,
         ...((transitionMode === "update" || transitionMode === "reopen") && currentPlanRevisionId
           ? { expectedCurrentPlanRevisionId: currentPlanRevisionId }
