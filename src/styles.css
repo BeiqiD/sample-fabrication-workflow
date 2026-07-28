@@ -246,9 +246,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .error-text { color: var(--danger); }
 .runs-section { margin-bottom: 30px; }
 .runs-section > h2 { margin: 0 0 12px; }
-.run-selector { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 14px 16px; margin-bottom: 14px; }
-.run-selector label { min-width: min(520px, 100%); display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 680; }
-.run-selector > span { color: var(--muted); font-size: 12px; }
 .change-badge, .template-state { display: inline-flex; width: fit-content; padding: 3px 7px; border-radius: 999px; color: var(--warning-text); background: var(--warning-soft); font-size: 10px; font-weight: 760; text-transform: uppercase; letter-spacing: .04em; }
 .template-state.draft { color: var(--success); background: var(--success-soft); }
 .template-state.locked { color: var(--neutral); background: var(--neutral-soft); }
@@ -699,9 +696,27 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .finish-run-action { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line); }
 .finish-run-action > div { display: grid; gap: 3px; }
 .finish-run-action small { overflow-wrap: anywhere; color: var(--muted); }
-.run-viewing-card, .run-workflow-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; margin-bottom: 14px; }
-.run-viewing-card > div, .run-workflow-actions > div:first-child { min-width: 0; display: grid; gap: 5px; }
+.run-controls {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto auto;
+  grid-template-areas:
+    "title picker status actions"
+    ". note note actions";
+  align-items: center;
+  gap: 4px 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.run-controls-heading { display: contents; }
+.run-controls-title { grid-area: title; white-space: nowrap; }
+.run-controls-picker { grid-area: picker; min-width: 0; }
+.run-controls-picker select { height: 42px; padding-block: 8px; }
+.run-controls-picker strong { display: block; min-width: 0; overflow: hidden; color: var(--ink); font-size: var(--font-body); font-weight: 650; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.run-controls-status { grid-area: status; white-space: nowrap; }
+.run-controls-note { grid-area: note; min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--muted); font-size: var(--font-meta); line-height: 1.4; }
 .run-workflow-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.run-controls > .run-workflow-buttons { grid-area: actions; flex-wrap: nowrap; }
 .run-workflow-buttons .responsive-icon-button { padding-inline: 13px; }
 .run-workflow-buttons .processing-action-icon { width: 20px; height: 20px; }
 .initial-state-preview { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px; }
@@ -978,6 +993,17 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .sample-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+@media (max-width: 1280px) {
+  .run-controls {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title picker status"
+      ". note note"
+      "actions actions actions";
+  }
+  .run-controls > .run-workflow-buttons { flex-wrap: wrap; margin-top: 4px; }
+}
+
 @media (max-width: 720px) {
   .topbar { height: 56px; padding: 0 10px; align-items: center; flex-wrap: nowrap; }
   .topbar-actions { width: auto; gap: 4px; }
@@ -1042,9 +1068,28 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .event-meta > div { flex-wrap: wrap; }
   .assign-template { grid-template-columns: 1fr; }
   .assign-template > small { grid-column: auto; }
-  .run-selector { align-items: stretch; flex-direction: column; }
-  .run-viewing-card, .run-workflow-actions { align-items: stretch; flex-direction: column; }
+  .run-controls {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "heading"
+      "picker"
+      "note"
+      "actions";
+    gap: 7px 10px;
+    padding: 11px 12px;
+  }
+  .run-controls-heading {
+    grid-area: heading;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px 10px;
+  }
+  .run-controls-heading .run-controls-status { margin-left: auto; }
+  .run-controls-picker select { height: 40px; }
   .run-workflow-buttons { justify-content: flex-end; }
+  .run-controls > .run-workflow-buttons { margin-top: 1px; }
   .run-workflow-buttons .responsive-icon-button { padding-inline: 0; }
   .process-template-picker { grid-template-columns: minmax(0, 1fr); }
   .sample-run-summary { grid-template-columns: 1fr auto; }

@@ -10,3 +10,9 @@ export function selectSamplePageRuns(runs: readonly SelectableRun[]) {
     processRunCount: runs.filter((run) => run.runKind === "process").length,
   };
 }
+
+export function sampleRunControlTitle(runKind: SelectableRun["runKind"] | null | undefined) {
+  if (runKind === "process") return "Process run";
+  if (runKind === "metrology") return "Metrology run";
+  return "Run";
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectSamplePageRuns } from "./sample-run-selection";
+import { sampleRunControlTitle, selectSamplePageRuns } from "./sample-run-selection";
 
 describe("selectSamplePageRuns", () => {
   it("keeps active process and standalone metrology actions independent", () => {
@@ -26,5 +26,13 @@ describe("selectSamplePageRuns", () => {
     expect(result.activeMetrologyRun?.id).toBe("metrology-new");
     expect(result.latestProcessRun?.id).toBe("process-new");
     expect(result.processRunCount).toBe(2);
+  });
+});
+
+describe("sampleRunControlTitle", () => {
+  it("matches the title to the selected run kind", () => {
+    expect(sampleRunControlTitle("process")).toBe("Process run");
+    expect(sampleRunControlTitle("metrology")).toBe("Metrology run");
+    expect(sampleRunControlTitle(null)).toBe("Run");
   });
 });
