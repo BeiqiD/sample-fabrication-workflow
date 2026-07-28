@@ -298,6 +298,19 @@ export function ProcessingWorkspacePage() {
   const processRuns = sample.runs.filter((run) => run.runKind === "process");
   const processStartLabel = processRuns.length ? "Start new process" : "Start first process";
   const selectedIsLatestProcess = selectedRun?.runKind === "process" && selectedRun.id === processRuns[0]?.id;
+  const selectedRunLabel = selectedRun
+    ? `${selectedRun.runKind === "metrology" ? "Metrology" : "Process"} ${selectedRun.sequenceNo} · ${selectedRun.templateName}${selectedRun.runKind === "process" ? ` v${selectedRun.templateVersion}` : ""}`
+    : "No run yet";
+  const selectedRunState = selectedRun
+    ? `${processRunStatus(selectedRun.status)}${selectedIsActive ? "" : selectedRunIsEditable ? " · results editable" : " · read-only"}`
+    : "Not started";
+  const runControlNote = selectedRun?.runKind === "metrology"
+    ? selectedIsActive
+      ? "This metrology run completes when its record is marked Done; its results remain editable afterwards."
+      : selectedRun.status === "complete"
+        ? "Results, parameters, comments, and attachments remain editable for post-processing."
+        : ""
+    : "";
   const unfinishedCurrentSteps = activeRun?.steps.filter((step) =>
     step.entryKind === "fabrication" && step.planStatus === "current"
       && step.status !== "done" && step.status !== "skipped") ?? [];
@@ -323,12 +336,15 @@ export function ProcessingWorkspacePage() {
         <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>
       </div>}
 
-      {sample.runs.length > 0 && (sample.runs.length > 1
-        ? <div className="run-selector card"><label>Viewing run<select value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select></label>{!selectedIsActive && <span>{processRunStatus(selectedRun?.status || "complete")} · {selectedRunIsEditable ? "results editable" : "read-only"}</span>}</div>
-        : selectedRun && <div className="run-viewing-card card"><div><p className="card-label">{selectedRun.runKind === "metrology" ? "Metrology run" : "Process run"}</p><h3 className="card-title">Run {selectedRun.sequenceNo} · {selectedRun.templateName}{selectedRun.runKind === "process" ? ` v${selectedRun.templateVersion}` : ""}</h3></div><span className={`run-status run-status-${selectedRun.status}`}>{processRunStatus(selectedRun.status)}</span></div>)}
-
-      <div className="run-workflow-actions card">
-        <div><h3 className="card-title">Run actions</h3><p className="card-context">{selectedRun ? `Run ${selectedRun.sequenceNo} · ${selectedRun.templateName}` : "No run yet"}</p><p className="card-meta">{selectedRun?.runKind === "metrology" ? selectedIsActive ? "This metrology run completes when its record is marked Done; its results remain editable afterwards." : selectedRun.status === "complete" ? "The measurement is complete, but results, parameters, comments, and attachments remain editable for post-processing." : `This ${processRunStatus(selectedRun.status).toLowerCase()} metrology run remains read-only.` : selectedIsActiveProcess ? "Update only future work, or finish this processing stage." : selectedRun ? "This completed process run remains read-only unless it is the latest process run and is explicitly reopened." : "Start fabrication from a process template, or run metrology independently."}</p></div>
+      <div className="run-controls card">
+        <h3 className="card-title run-controls-title">Process run</h3>
+        <div className="run-controls-picker">
+          {sample.runs.length > 1
+            ? <select aria-label="Viewing run" value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select>
+            : <strong title={selectedRunLabel}>{selectedRunLabel}</strong>}
+        </div>
+        <span className={`run-status run-controls-status${selectedRun ? ` run-status-${selectedRun.status}` : ""}`}>{selectedRunState}</span>
+        {runControlNote && <p className="run-controls-note">{runControlNote}</p>}
         <div className="run-workflow-buttons">
           {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="Update future plan" title="Update future plan" onClick={() => openTransition("update")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Update future plan</span></button>}
           {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" disabled={assigning || unfinishedCurrentSteps.length > 0} aria-label="Finish run" title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}><ProcessingActionIcon name="done" /><span className="responsive-action-label">Finish run</span></button>}
