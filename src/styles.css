@@ -346,16 +346,50 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
   white-space: nowrap;
 }
 .run-grid-section-progress {
-  background:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--success) 72%, var(--success-soft)) 0 var(--section-progress),
-      var(--surface-muted) var(--section-progress) 100%
-    );
-  transition: background .18s ease;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface-muted);
 }
-.run-grid-section-progress.blocked { background: var(--danger); }
-.run-grid-section-progress.empty { background: var(--surface-muted); }
+.run-grid-section-progress::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--section-progress);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--success) 78%, var(--success-soft)) 0 7px,
+      color-mix(in srgb, var(--success-soft) 88%, var(--paper)) 7px 14px
+    );
+  content: "";
+  transition: width .18s ease;
+}
+.run-grid-section-progress.blocked::before {
+  width: 100%;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--danger) 78%, var(--danger-soft)) 0 7px,
+      color-mix(in srgb, var(--danger-soft) 88%, var(--paper)) 7px 14px
+    );
+}
+.run-grid-section-progress.empty::before { display: none; }
+.run-grid-section-progress-label {
+  position: relative;
+  z-index: 1;
+  min-width: 34px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 76%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--line-strong) 70%, transparent);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
 .recipe-cell, .sample-step-cell { min-height: 88px; padding: 9px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--paper); }
 .recipe-cell { background: var(--surface-warm); }
 .additional-step-recipe-cell { border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning-soft) 48%, var(--surface-warm)); }
