@@ -293,4 +293,168 @@ describe("plan update route", () => {
     ]);
     database.close();
   });
+
+  it("keeps reordered matched step identities, status, and user comments", async () => {
+    const database = createDatabase();
+    database.exec(`
+      UPDATE run_steps
+      SET status = 'done', actualized_at = '2026-07-28T10:07:00.000Z'
+      WHERE id = 'run-coat';
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, body, actor_email, created_at)
+      VALUES
+        ('coat-comment', 'run-coat', 'individual', 'Keep reordered evidence',
+         'operator@example.com', '2026-07-28T10:07:00.000Z');
+      UPDATE template_steps SET position = position + 10 WHERE template_version_id = 'template-v2';
+      UPDATE template_steps SET position = 0 WHERE id = 'new-coat';
+      UPDATE template_steps SET position = 1 WHERE id = 'new-clean';
+      UPDATE template_steps SET position = 2 WHERE id = 'new-descum';
+      UPDATE template_steps SET position = 4 WHERE id = 'new-pre-clean';
+    `);
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new SqliteD1Database(database),
+      ASSETS: {},
+    } as unknown as Env;
+    const previewResponse = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1/runs/run-1/plan-update/preview",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ templateVersionId: "template-v2" }),
+      },
+    ), env, {} as ExecutionContext);
+    expect(previewResponse.status).toBe(200);
+    const preview = await previewResponse.json() as {
+      compatible: boolean;
+      preservedCount: number;
+      substrateTransition: {
+        sampleUpdatedAt: string;
+        expectedLatestRunId: string;
+        sampleCurrentState: { hash: string };
+        comparisonTarget: { key: string; stateHash: string | null };
+      };
+    };
+    expect(preview.compatible).toBe(true);
+    expect(preview.preservedCount).toBe(2);
+
+    const applyResponse = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1/runs/run-1/plan-update",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          templateVersionId: "template-v2",
+          substrateConfirmation: {
+            confirmed: true,
+            expectedSampleUpdatedAt: preview.substrateTransition.sampleUpdatedAt,
+            expectedPreviousStateHash: preview.substrateTransition.sampleCurrentState.hash,
+            expectedTemplateStructureKey: preview.substrateTransition.comparisonTarget.key,
+            expectedTemplateStateHash: preview.substrateTransition.comparisonTarget.stateHash,
+            expectedLatestRunId: preview.substrateTransition.expectedLatestRunId,
+            expectedCurrentPlanRevisionId: "revision-1",
+          },
+        }),
+      },
+    ), env, {} as ExecutionContext);
+
+    expect(applyResponse.status).toBe(200);
+    expect(database.prepare(
+      `SELECT template_step_id, status, actualized_at, plan_status
+       FROM run_steps WHERE id = 'run-coat'`,
+    ).get()).toEqual({
+      template_step_id: "new-coat",
+      status: "done",
+      actualized_at: "2026-07-28T10:07:00.000Z",
+      plan_status: "current",
+    });
+    expect(database.prepare(
+      "SELECT body FROM run_step_comments WHERE run_step_id = 'run-coat'",
+    ).all()).toEqual([{ body: "Keep reordered evidence" }]);
+    const revision = database.prepare(
+      "SELECT current_plan_revision_id FROM runs WHERE id = 'run-1'",
+    ).get() as { current_plan_revision_id: string };
+    expect(database.prepare(
+      `SELECT ts.id
+       FROM run_step_plan_links link
+       JOIN template_steps ts ON ts.id = link.template_step_id
+       WHERE link.run_plan_revision_id = ?
+       ORDER BY ts.position`,
+    ).all(revision.current_plan_revision_id)).toEqual([
+      { id: "new-coat" },
+      { id: "new-clean" },
+      { id: "new-descum" },
+      { id: "new-pre-clean" },
+    ]);
+    database.close();
+  });
+
+  it("uses the latest retained executed step when the current structure source was removed", async () => {
+    const database = createDatabase();
+    database.exec(`
+      INSERT INTO state_representations (hash, content_json, created_at)
+      VALUES ('obsolete-state', '{}', '2026-07-28T10:00:00.000Z');
+      UPDATE run_steps
+      SET status = 'done', expected_state_hash = 'obsolete-state'
+      WHERE id = 'run-obsolete';
+    `);
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new SqliteD1Database(database),
+      ASSETS: {},
+    } as unknown as Env;
+    const previewResponse = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1/runs/run-1/plan-update/preview",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ templateVersionId: "template-v2" }),
+      },
+    ), env, {} as ExecutionContext);
+    expect(previewResponse.status).toBe(200);
+    const preview = await previewResponse.json() as {
+      compatible: boolean;
+      substrateTransition: {
+        sampleUpdatedAt: string;
+        expectedLatestRunId: string;
+        sampleCurrentState: { hash: string; stepTitle: string };
+        comparisonTarget: { key: string; stateHash: string | null; stepId: string };
+      };
+    };
+    expect(preview.compatible).toBe(true);
+    expect(preview.substrateTransition.sampleCurrentState).toMatchObject({
+      hash: "obsolete-state",
+      stepTitle: "Obsolete step",
+    });
+    expect(preview.substrateTransition.comparisonTarget).toMatchObject({
+      key: "template-step:new-clean",
+      stepId: "new-clean",
+      stateHash: "new-clean-state",
+    });
+
+    const applyResponse = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1/runs/run-1/plan-update",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          templateVersionId: "template-v2",
+          substrateConfirmation: {
+            confirmed: true,
+            expectedSampleUpdatedAt: preview.substrateTransition.sampleUpdatedAt,
+            expectedPreviousStateHash: preview.substrateTransition.sampleCurrentState.hash,
+            expectedTemplateStructureKey: preview.substrateTransition.comparisonTarget.key,
+            expectedTemplateStateHash: preview.substrateTransition.comparisonTarget.stateHash,
+            expectedLatestRunId: preview.substrateTransition.expectedLatestRunId,
+            expectedCurrentPlanRevisionId: "revision-1",
+          },
+        }),
+      },
+    ), env, {} as ExecutionContext);
+    expect(applyResponse.status).toBe(200);
+    expect(database.prepare(
+      "SELECT plan_status FROM run_steps WHERE id = 'run-obsolete'",
+    ).get()).toEqual({ plan_status: "superseded" });
+    database.close();
+  });
 });

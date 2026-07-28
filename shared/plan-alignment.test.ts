@@ -126,4 +126,38 @@ describe("future plan alignment", () => {
     expect(result.additions).toEqual([]);
     expect(result.supersededStepIds).toEqual([]);
   });
+
+  it("preserves step identity when a newer template reorders named steps", () => {
+    const result = alignFuturePlan([
+      slot("a", "ha", 1000, true),
+      slot("b", "hb", 2000, true),
+    ], [
+      next("b", "new-hb", 0),
+      next("a", "new-ha", 1),
+    ]);
+    expect(result.matches.map((match) => [match.existingStepId, match.templateStepId])).toEqual([
+      ["b", "v2-b"],
+      ["a", "v2-a"],
+    ]);
+    expect(result.additions).toEqual([]);
+    expect(result.supersededStepIds).toEqual([]);
+  });
+
+  it("uses unchanged definitions to disambiguate an inserted repeated name", () => {
+    const result = alignFuturePlan([
+      namedSlot("clean-first", "Clean", 1, "first-definition", 1000, true),
+      namedSlot("clean-second", "Clean", 2, "second-definition", 2000, true),
+    ], [
+      namedNext("clean-new", "Clean", 1, "inserted-definition", 0),
+      namedNext("clean-first-v2", "Clean", 2, "first-definition", 1),
+      namedNext("clean-second-v2", "Clean", 3, "second-definition", 2),
+    ]);
+    expect(result.matches.map((match) => [match.existingStepId, match.templateStepId])).toEqual([
+      ["clean-first", "clean-first-v2"],
+      ["clean-second", "clean-second-v2"],
+    ]);
+    expect(result.additions.map((step) => step.id)).toEqual(["clean-new"]);
+    expect(result.additions[0]?.initialStatus).toBe("skipped");
+    expect(result.supersededStepIds).toEqual([]);
+  });
 });

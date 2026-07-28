@@ -202,6 +202,34 @@ describe("collectSampleNotes", () => {
     ]);
   });
 
+  it("keeps execution images from a step removed from the current process plan", () => {
+    const notes = collectSampleNotes(sample({
+      events: [],
+      stateVerifications: [],
+      runs: [run({
+        steps: [step({
+          planStatus: "superseded",
+          comments: [],
+          executionImageKeys: ["execution/removed-step-1.png", "execution/removed-step-2.png"],
+          deviationNote: null,
+          stateVerification: null,
+        })],
+      })],
+    }));
+
+    expect(notes).toEqual([
+      expect.objectContaining({
+        kind: "execution_image",
+        label: "Execution image from removed step",
+        stepId: "step-1",
+        images: [
+          expect.objectContaining({ assetKey: "execution/removed-step-1.png" }),
+          expect.objectContaining({ assetKey: "execution/removed-step-2.png" }),
+        ],
+      }),
+    ]);
+  });
+
   it("includes user-entered execution detail but not unchanged template text", () => {
     const notes = collectSampleNotes(sample({
       events: [],

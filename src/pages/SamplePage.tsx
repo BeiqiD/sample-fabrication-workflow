@@ -305,7 +305,7 @@ export function SamplePage() {
             </div>}
           </div>
           <div className="sample-note-footer">
-            <span>{note.actorEmail || (note.kind === "execution_detail" || note.kind === "deviation" || note.kind === "blocked_step" ? "Current process state" : "Unknown user")}</span>
+            <span>{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>
             <div>
               {note.runId && <Link className="text-button" to={`/processing/${sample.id}?run=${encodeURIComponent(note.runId)}`}>Open in processing</Link>}
               {note.sampleEvent?.assetKey && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}

@@ -172,16 +172,16 @@ The following are separate operations:
 
 2. **Update or reopen an existing run**
    - Applies a compatible template version to the same run.
-   - Preserves completed history.
-   - Updates only the future plan.
+   - Preserves execution status and user-entered evidence.
+   - Refreshes the current plan from the newer template, including completed matched entries.
 
 3. **Start a new run**
    - Creates a new processing stage.
    - Leaves all previous runs completed.
 
-Across template versions, process-step identity is based on normalized step name plus sequence alignment. Step numbers are display information. Parameters, notes, and diagrams describe version changes and do not determine identity.
+Across template versions, process-step identity is based on normalized step names and does not depend on step order. Step numbers are display information. Parameters, notes, and diagrams describe version changes and normally do not determine identity.
 
-Repeated names such as `Clean`, `Bake`, or `Inspection` must be disambiguated using their relative order and neighbouring anchors. If sequence alignment remains ambiguous, the user must confirm the mapping.
+Repeated names such as `Clean`, `Bake`, or `Inspection` are disambiguated by unchanged definitions first, then stable logical keys, and finally occurrence order. This lets reordered steps retain their run status and user-entered evidence while still recognizing insertions between otherwise identical names.
 
 New steps may be inserted on either side of the run's execution boundary. An inserted step before a later actualized match is recorded as `skipped` when the new version is assigned, because the sample has already passed that point. Additions after the boundary remain `pending`. Before any step has been actualized, all additions remain `pending`.
 

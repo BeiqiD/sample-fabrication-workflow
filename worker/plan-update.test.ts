@@ -46,11 +46,45 @@ describe("plan update structure comparison target", () => {
     });
   });
 
-  it("does not silently compare Step 0 when the current step failed to align", () => {
+  it("uses the latest matched executed step when the structure-producing step was removed", () => {
     expect(resolvePlanUpdateStructureTarget(alignment, "renamed-current-step", nextSteps, {
       templateVersionId: "template-v2",
       stateHash: "step-zero",
       valid: true,
+    })).toEqual({
+      kind: "matched_step",
+      key: "template-step:new-clean",
+      stateHash: "state-after-clean",
+      stepId: "new-clean",
+      stepTitle: "Clean",
+    });
+  });
+
+  it("uses Step 0 when the updated plan retains no executed step", () => {
+    expect(resolvePlanUpdateStructureTarget({
+      ...alignment,
+      matches: alignment.matches.map((match) => ({ ...match, relation: "planned" as const })),
+    }, "removed-current-step", nextSteps, {
+      templateVersionId: "template-v2",
+      stateHash: "step-zero",
+      valid: true,
+    })).toEqual({
+      kind: "initial_substrate",
+      key: "initial-substrate:template-v2",
+      stateHash: "step-zero",
+      stepId: null,
+      stepTitle: "Substrate Stack",
+    });
+  });
+
+  it("blocks when no matched execution boundary or valid Step 0 remains", () => {
+    expect(resolvePlanUpdateStructureTarget({
+      ...alignment,
+      matches: [],
+    }, "removed-current-step", nextSteps, {
+      templateVersionId: "template-v2",
+      stateHash: null,
+      valid: false,
     })).toBeNull();
   });
 

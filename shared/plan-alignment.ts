@@ -36,29 +36,37 @@ export interface PlanAlignment {
   historicalDifferences: HistoricalPlanDifference[];
 }
 
-function orderedNameMatches(existing: ExistingPlanSlot[], next: NextPlanStep[]) {
-  const left = existing.map((step) => normalizedStepName(step.name));
-  const right = next.map((step) => normalizedStepName(step.name));
-  const lengths = Array.from({ length: left.length + 1 }, () => Array<number>(right.length + 1).fill(0));
-  for (let leftIndex = left.length - 1; leftIndex >= 0; leftIndex -= 1) {
-    for (let rightIndex = right.length - 1; rightIndex >= 0; rightIndex -= 1) {
-      lengths[leftIndex][rightIndex] = left[leftIndex] === right[rightIndex]
-        ? lengths[leftIndex + 1][rightIndex + 1] + 1
-        : Math.max(lengths[leftIndex + 1][rightIndex], lengths[leftIndex][rightIndex + 1]);
-    }
-  }
+function nameMatches(existing: ExistingPlanSlot[], next: NextPlanStep[]) {
   const matches = new Map<number, ExistingPlanSlot>();
-  let leftIndex = 0;
-  let rightIndex = 0;
-  while (leftIndex < left.length && rightIndex < right.length) {
-    if (left[leftIndex] === right[rightIndex]) {
-      matches.set(rightIndex, existing[leftIndex]);
-      leftIndex += 1;
-      rightIndex += 1;
-    } else if (lengths[leftIndex + 1][rightIndex] > lengths[leftIndex][rightIndex + 1]) {
-      leftIndex += 1;
-    } else {
-      rightIndex += 1;
+  const names = new Set([
+    ...existing.map((step) => normalizedStepName(step.name)),
+    ...next.map((step) => normalizedStepName(step.name)),
+  ]);
+  for (const name of names) {
+    const remainingExisting = existing.filter((step) => normalizedStepName(step.name) === name);
+    const remainingNext = next
+      .map((step, index) => ({ step, index }))
+      .filter(({ step }) => normalizedStepName(step.name) === name);
+    const claim = (predicate: (existingStep: ExistingPlanSlot, nextStep: NextPlanStep) => boolean) => {
+      for (let nextIndex = 0; nextIndex < remainingNext.length;) {
+        const candidate = remainingNext[nextIndex];
+        const existingIndex = remainingExisting.findIndex((step) => predicate(step, candidate.step));
+        if (existingIndex < 0) {
+          nextIndex += 1;
+          continue;
+        }
+        matches.set(candidate.index, remainingExisting[existingIndex]);
+        remainingExisting.splice(existingIndex, 1);
+        remainingNext.splice(nextIndex, 1);
+      }
+    };
+    claim((left, right) => left.definitionHash === right.definitionHash
+      && left.logicalStepKey === right.logicalStepKey);
+    claim((left, right) => left.definitionHash === right.definitionHash);
+    claim((left, right) => Boolean(left.logicalStepKey) && left.logicalStepKey === right.logicalStepKey);
+    while (remainingExisting.length && remainingNext.length) {
+      const candidate = remainingNext.shift()!;
+      matches.set(candidate.index, remainingExisting.shift()!);
     }
   }
   return matches;
@@ -68,9 +76,9 @@ export function alignFuturePlan(existing: ExistingPlanSlot[], next: NextPlanStep
   const templateSlots = existing
     .filter((step) => step.origin === "template")
     .sort((left, right) => (left.alignmentPosition ?? left.position) - (right.alignmentPosition ?? right.position));
-  const orderedMatches = orderedNameMatches(templateSlots, next);
-  const matched = next.map((_, index) => orderedMatches.get(index) ?? null);
-  const claimed = new Set([...orderedMatches.values()].map((step) => step.id));
+  const matchedByNextPosition = nameMatches(templateSlots, next);
+  const matched = next.map((_, index) => matchedByNextPosition.get(index) ?? null);
+  const claimed = new Set([...matchedByNextPosition.values()].map((step) => step.id));
 
   const historicalDifferences: HistoricalPlanDifference[] = [];
   const matches: PlanAlignment["matches"] = [];

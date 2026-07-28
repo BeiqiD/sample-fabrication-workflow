@@ -35,7 +35,7 @@ flowchart TD
 - Every run stores an immutable initial substrate hash confirmed when it begins. Before a new run starts, the server revalidates the displayed template and current-sample structure choices.
 - Split children store the parent's current structure as an inherited substrate snapshot. Their first run requires the same confirmation when that structure differs from the selected template.
 - Each run has immutable plan revisions. A newer version of the same process-template family becomes authoritative for the current plan's order, definitions, imported notes, and expected diagrams. Matched rows retain their execution status and user-entered evidence, ad-hoc execution remains in the chain, and newly inserted work behind the execution boundary is linked as skipped.
-- Version alignment uses normalized step names and relative sequence. Step numbers and mutable content do not define cross-version identity.
+- Version alignment matches normalized step names independently of order. Repeated names prefer unchanged definitions, then stable logical keys, then occurrence order. Step numbers do not define cross-version identity.
 - Run rows store actual overrides only when they differ from the hashed process-step definition. Comments, deviation reasons, execution diagrams, and ad-hoc steps remain sample-specific.
 - State verification is a sparse fabrication-only chain. It ignores metrology records, snapshots the fabrication steps covered since the previous valid verification, and records the matched or mismatched outcome.
 - Sample state changes and their history events are emitted by database triggers.

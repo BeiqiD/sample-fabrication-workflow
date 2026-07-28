@@ -40,9 +40,22 @@ export function resolvePlanUpdateStructureTarget(
   const matchedStepId = alignment.matches.find(
     (match) => match.existingStepId === currentStructureStepId,
   )?.templateStepId;
-  if (!matchedStepId) return null;
-  const step = nextSteps.find((candidate) => candidate.id === matchedStepId);
-  if (!step) return null;
+  const historicalTemplateStepIds = new Set(alignment.matches
+    .filter((match) => match.relation === "historical")
+    .map((match) => match.templateStepId));
+  const step = matchedStepId
+    ? nextSteps.find((candidate) => candidate.id === matchedStepId)
+    : [...nextSteps].reverse().find((candidate) => historicalTemplateStepIds.has(candidate.id));
+  if (!step) {
+    if (!initialSubstrate.valid || !initialSubstrate.stateHash) return null;
+    return {
+      kind: "initial_substrate",
+      key: `initial-substrate:${initialSubstrate.templateVersionId}`,
+      stateHash: initialSubstrate.stateHash,
+      stepId: null,
+      stepTitle: "Substrate Stack",
+    };
+  }
   return {
     kind: "matched_step",
     key: `template-step:${step.id}`,
