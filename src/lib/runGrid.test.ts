@@ -10,6 +10,7 @@ function step(id: string, position: number, overrides: Partial<RunStep> = {}): R
     definitionHash: `hash:${id}`,
     expectedStateHash: null,
     position,
+    planPosition: null,
     origin: "template",
     entryKind: "fabrication",
     planStatus: "current",
@@ -94,6 +95,46 @@ describe("multi-sample run grid", () => {
       ["one", "v2-one"],
       ["two", "v2-two"],
     ]);
+  });
+
+  it("renders the active template order without rewriting execution positions", () => {
+    const rows = buildRunGrid([
+      {
+        sample: sample("a"),
+        run: run("a-run", [
+          step("clean", 1000, {
+            status: "done",
+            actualizedAt: "2026-01-01T01:00:00.000Z",
+            planPosition: 1,
+          }),
+          step("pre-clean", 2000, {
+            status: "skipped",
+            actualizedAt: "2026-01-01T02:00:00.000Z",
+            planPosition: 0,
+          }),
+          step("coat", 3000, { planPosition: 2 }),
+        ]),
+      },
+    ]);
+    expect(rows.map((row) => row.recipeStep?.id)).toEqual(["pre-clean", "clean", "coat"]);
+  });
+
+  it("hides a removed actualized step from the current process plan", () => {
+    const rows = buildRunGrid([
+      {
+        sample: sample("a"),
+        run: run("a-run", [
+          step("clean", 1000, { planPosition: 0 }),
+          step("obsolete", 2000, {
+            planStatus: "superseded",
+            status: "done",
+            actualizedAt: "2026-01-01T01:00:00.000Z",
+          }),
+          step("coat", 3000, { planPosition: 1 }),
+        ]),
+      },
+    ]);
+    expect(rows.map((row) => row.recipeStep?.id)).toEqual(["clean", "coat"]);
   });
 
   it("adds an individual ad hoc step as its own row after the recipe anchor", () => {

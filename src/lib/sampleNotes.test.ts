@@ -42,6 +42,7 @@ function step(overrides: Partial<RunStep> = {}): RunStep {
     definitionHash: "definition-1",
     expectedStateHash: "state-1",
     position: 1,
+    planPosition: null,
     origin: "template",
     entryKind: "fabrication",
     planStatus: "current",
@@ -177,6 +178,28 @@ describe("collectSampleNotes", () => {
       kind: "blocked_step",
       body: "Waiting for replacement tips",
     });
+  });
+
+  it("keeps comments from a step removed from the current process plan", () => {
+    const notes = collectSampleNotes(sample({
+      events: [],
+      stateVerifications: [],
+      runs: [run({
+        steps: [step({
+          planStatus: "superseded",
+          deviationNote: null,
+          stateVerification: null,
+        })],
+      })],
+    }));
+
+    expect(notes).toEqual([
+      expect.objectContaining({
+        kind: "process_comment",
+        body: "AFM result attached",
+        stepId: "step-1",
+      }),
+    ]);
   });
 
   it("includes user-entered execution detail but not unchanged template text", () => {

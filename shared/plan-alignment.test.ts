@@ -61,6 +61,7 @@ describe("future plan alignment", () => {
     expect(changed.historicalDifferences[0]?.kind).toBe("modified_executed_step");
     const removed = alignFuturePlan([slot("a", "ha", 1000, true)], []);
     expect(removed.historicalDifferences[0]?.kind).toBe("removed_executed_step");
+    expect(removed.supersededStepIds).toEqual(["a"]);
   });
 
   it("matches by normalized name sequence when numbering and content change", () => {

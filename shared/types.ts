@@ -106,6 +106,7 @@ export interface RunStep {
   definitionHash: string | null;
   expectedStateHash: string | null;
   position: number;
+  planPosition: number | null;
   origin: "template" | "ad_hoc";
   entryKind: "fabrication" | "metrology";
   planStatus: "current" | "superseded";

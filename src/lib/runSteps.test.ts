@@ -4,7 +4,7 @@ import { runStepIsModified, runStepIsReadOnly } from "./runSteps";
 
 function step(overrides: Partial<RunStep> = {}): RunStep {
   return {
-    id: "step", templateStepId: "template-step", position: 1000, origin: "template", entryKind: "fabrication", title: "Etch", status: "pending", notes: null,
+    id: "step", templateStepId: "template-step", position: 1000, planPosition: null, origin: "template", entryKind: "fabrication", title: "Etch", status: "pending", notes: null,
     toolName: "RIE", parametersText: "10 s", commentsText: "Baseline", deviationNote: null,
     plannedTitle: "Etch", plannedToolName: "RIE", plannedParametersText: "10 s", plannedCommentsText: "Baseline",
     plannedImageKeys: [], executionImageKeys: [], comments: [], createdAt: "2026-01-01", updatedAt: "2026-01-01",

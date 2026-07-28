@@ -81,16 +81,28 @@ function createDatabase() {
     INSERT INTO state_representations (hash, content_json, created_at)
     VALUES
       ('initial-state', '{}', '2026-07-28T10:00:00.000Z'),
+      ('pre-clean-state', '{}', '2026-07-28T10:00:00.000Z'),
       ('old-clean-state', '{}', '2026-07-28T10:00:00.000Z'),
       ('new-clean-state', '{}', '2026-07-28T10:00:00.000Z');
 
-    INSERT INTO step_definitions (hash, name, canonical_json, created_at)
+    INSERT INTO assets
+      (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
     VALUES
-      ('old-clean-definition', 'Clean', '{}', '2026-07-28T10:00:00.000Z'),
-      ('old-coat-definition', 'Coat', '{}', '2026-07-28T10:00:00.000Z'),
-      ('new-clean-definition', 'Clean', '{}', '2026-07-28T10:00:00.000Z'),
-      ('new-descum-definition', 'Descum', '{}', '2026-07-28T10:00:00.000Z'),
-      ('new-coat-definition', 'Coat', '{}', '2026-07-28T10:00:00.000Z');
+      ('new-clean-asset', 'imports/new-clean.png', 'new-clean.png', 'image/png', 10, 'ready',
+       'new-clean-image-hash', '2026-07-28T10:00:00.000Z');
+    INSERT INTO state_representation_assets (state_hash, asset_id, position)
+    VALUES ('new-clean-state', 'new-clean-asset', 0);
+
+    INSERT INTO step_definitions
+      (hash, name, tool_name, parameters_text, comments_text, canonical_json, created_at)
+    VALUES
+      ('old-clean-definition', 'Clean', 'Old cleaner', 'Old parameters', 'Old note', '{}', '2026-07-28T10:00:00.000Z'),
+      ('old-obsolete-definition', 'Obsolete step', NULL, NULL, NULL, '{}', '2026-07-28T10:00:00.000Z'),
+      ('old-coat-definition', 'Coat', NULL, NULL, NULL, '{}', '2026-07-28T10:00:00.000Z'),
+      ('new-pre-clean-definition', 'Pre-clean', NULL, NULL, NULL, '{}', '2026-07-28T10:00:00.000Z'),
+      ('new-clean-definition', 'Clean', 'New cleaner', 'New parameters', 'New note', '{}', '2026-07-28T10:00:00.000Z'),
+      ('new-descum-definition', 'Descum', NULL, NULL, NULL, '{}', '2026-07-28T10:00:00.000Z'),
+      ('new-coat-definition', 'Coat', NULL, NULL, NULL, '{}', '2026-07-28T10:00:00.000Z');
 
     INSERT INTO template_versions
       (id, recipe_family_id, name, template_type, version, manifest_hash, initial_state_hash,
@@ -105,10 +117,12 @@ function createDatabase() {
       (id, template_version_id, logical_step_key, position, definition_hash, expected_state_hash)
     VALUES
       ('old-clean', 'template-v1', 'name:clean:1', 0, 'old-clean-definition', 'old-clean-state'),
-      ('old-coat', 'template-v1', 'name:coat:1', 1, 'old-coat-definition', NULL),
-      ('new-clean', 'template-v2', 'name:clean:1', 0, 'new-clean-definition', 'new-clean-state'),
-      ('new-descum', 'template-v2', 'name:descum:1', 1, 'new-descum-definition', NULL),
-      ('new-coat', 'template-v2', 'name:coat:1', 2, 'new-coat-definition', NULL);
+      ('old-obsolete', 'template-v1', 'name:obsolete-step:1', 1, 'old-obsolete-definition', NULL),
+      ('old-coat', 'template-v1', 'name:coat:1', 2, 'old-coat-definition', NULL),
+      ('new-pre-clean', 'template-v2', 'name:pre-clean:1', 0, 'new-pre-clean-definition', 'pre-clean-state'),
+      ('new-clean', 'template-v2', 'name:clean:1', 1, 'new-clean-definition', 'new-clean-state'),
+      ('new-descum', 'template-v2', 'name:descum:1', 2, 'new-descum-definition', NULL),
+      ('new-coat', 'template-v2', 'name:coat:1', 3, 'new-coat-definition', NULL);
 
     INSERT INTO runs
       (id, sample_id, recipe_family_id, template_version_id, current_plan_revision_id,
@@ -130,7 +144,10 @@ function createDatabase() {
       ('run-clean', 'run-1', NULL, 1000, 'old-clean', 'name:clean:1',
        'old-clean-definition', 'old-clean-state', 'done', '2026-07-28T10:05:00.000Z',
        '2026-07-28T10:00:00.000Z', '2026-07-28T10:05:00.000Z'),
-      ('run-coat', 'run-1', 'run-clean', 2000, 'old-coat', 'name:coat:1',
+      ('run-obsolete', 'run-1', 'run-clean', 1500, 'old-obsolete', 'name:obsolete-step:1',
+       'old-obsolete-definition', NULL, 'pending', '2026-07-28T10:06:00.000Z',
+       '2026-07-28T10:00:00.000Z', '2026-07-28T10:06:00.000Z'),
+      ('run-coat', 'run-1', 'run-obsolete', 2000, 'old-coat', 'name:coat:1',
        'old-coat-definition', NULL, 'pending', NULL,
        '2026-07-28T10:00:00.000Z', '2026-07-28T10:00:00.000Z');
 
@@ -138,7 +155,14 @@ function createDatabase() {
       (run_plan_revision_id, template_step_id, run_step_id, relation, created_at)
     VALUES
       ('revision-1', 'old-clean', 'run-clean', 'historical', '2026-07-28T10:00:00.000Z'),
+      ('revision-1', 'old-obsolete', 'run-obsolete', 'historical', '2026-07-28T10:00:00.000Z'),
       ('revision-1', 'old-coat', 'run-coat', 'planned', '2026-07-28T10:00:00.000Z');
+
+    INSERT INTO run_step_comments
+      (id, run_step_id, scope, body, actor_email, created_at)
+    VALUES
+      ('obsolete-comment', 'run-obsolete', 'individual', 'Keep this observation',
+       'operator@example.com', '2026-07-28T10:06:00.000Z');
   `);
   return database;
 }
@@ -204,6 +228,69 @@ describe("plan update route", () => {
       current_plan_revision_id: expect.any(String),
       template_version_id: "template-v2",
     });
+    expect(database.prepare(
+      `SELECT template_step_id, definition_hash, expected_state_hash, status, actualized_at
+       FROM run_steps WHERE id = 'run-clean'`,
+    ).get()).toEqual({
+      template_step_id: "new-clean",
+      definition_hash: "new-clean-definition",
+      expected_state_hash: "new-clean-state",
+      status: "done",
+      actualized_at: "2026-07-28T10:05:00.000Z",
+    });
+    expect(database.prepare(
+      "SELECT plan_status FROM run_steps WHERE id = 'run-obsolete'",
+    ).get()).toEqual({ plan_status: "superseded" });
+
+    const processingResponse = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1?view=processing",
+    ), env, {} as ExecutionContext);
+    expect(processingResponse.status).toBe(200);
+    const processing = await processingResponse.json() as {
+      runs: Array<{
+        id: string;
+        steps: Array<{
+          id: string;
+          title: string;
+          position: number;
+          planPosition: number | null;
+          status: string;
+          planStatus: string;
+          plannedTitle: string | null;
+          plannedToolName: string | null;
+          plannedParametersText: string | null;
+          plannedCommentsText: string | null;
+          plannedImageKeys: string[];
+          comments: Array<{ body: string }>;
+        }>;
+      }>;
+    };
+    const steps = processing.runs.find((run) => run.id === "run-1")!.steps;
+    const clean = steps.find((step) => step.id === "run-clean")!;
+    const preClean = steps.find((step) => step.plannedTitle === "Pre-clean")!;
+    const obsolete = steps.find((step) => step.id === "run-obsolete")!;
+    expect(clean).toMatchObject({
+      title: "Clean",
+      position: 1000,
+      planPosition: 1,
+      plannedTitle: "Clean",
+      plannedToolName: "New cleaner",
+      plannedParametersText: "New parameters",
+      plannedCommentsText: "New note",
+      plannedImageKeys: ["imports/new-clean.png"],
+    });
+    expect(preClean).toMatchObject({
+      status: "skipped",
+      planPosition: 0,
+      plannedTitle: "Pre-clean",
+    });
+    expect(obsolete).toMatchObject({
+      planPosition: null,
+      planStatus: "superseded",
+    });
+    expect(obsolete.comments).toEqual([
+      expect.objectContaining({ body: "Keep this observation" }),
+    ]);
     database.close();
   });
 });

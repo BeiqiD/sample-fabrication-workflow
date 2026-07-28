@@ -96,7 +96,7 @@ export function alignFuturePlan(existing: ExistingPlanSlot[], next: NextPlanStep
   for (const step of templateSlots) {
     if (claimed.has(step.id)) continue;
     if (step.actualized) historicalDifferences.push({ kind: "removed_executed_step", existingStepId: step.id });
-    else supersededStepIds.push(step.id);
+    supersededStepIds.push(step.id);
   }
   return { matches, additions, supersededStepIds, historicalDifferences };
 }
