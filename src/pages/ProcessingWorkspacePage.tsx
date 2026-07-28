@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
+import { ActionIcon } from "../components/ActionIcon";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
+import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
 import { StatusPill } from "../components/StatusPill";
@@ -327,11 +329,11 @@ export function ProcessingWorkspacePage() {
       <div className="run-workflow-actions card">
         <div><h3 className="card-title">Run actions</h3><p className="card-context">{selectedRun ? `Run ${selectedRun.sequenceNo} · ${selectedRun.templateName}` : "No run yet"}</p><p className="card-meta">{selectedRun?.runKind === "metrology" ? selectedIsActive ? "This metrology run completes when its record is marked Done; its results remain editable afterwards." : selectedRun.status === "complete" ? "The measurement is complete, but results, parameters, comments, and attachments remain editable for post-processing." : `This ${processRunStatus(selectedRun.status).toLowerCase()} metrology run remains read-only.` : selectedIsActiveProcess ? "Update only future work, or finish this processing stage." : selectedRun ? "This completed process run remains read-only unless it is the latest process run and is explicitly reopened." : "Start fabrication from a process template, or run metrology independently."}</p></div>
         <div className="run-workflow-buttons">
-          {selectedIsActiveProcess && <button type="button" className="button" onClick={() => openTransition("update")}>Update future plan</button>}
-          {selectedIsActiveProcess && <button type="button" className="button" disabled={assigning || unfinishedCurrentSteps.length > 0} title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}>Finish run</button>}
+          {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" aria-label="Update future plan" title="Update future plan" onClick={() => openTransition("update")}><ActionIcon name="plan-update" /><span className="responsive-action-label">Update future plan</span></button>}
+          {selectedIsActiveProcess && <button type="button" className="button responsive-icon-button" disabled={assigning || unfinishedCurrentSteps.length > 0} aria-label="Finish run" title={unfinishedCurrentSteps.length ? "Complete or skip every current fabrication step first" : "Finish this run"} onClick={() => void finishActiveRun()}><ProcessingActionIcon name="done" /><span className="responsive-action-label">Finish run</span></button>}
           {!activeRun && selectedRun?.status === "complete" && selectedIsLatestProcess && <button type="button" className="button" onClick={() => openTransition("reopen")}>Reopen with updated template</button>}
           {!activeRun && <button type="button" className="button primary" onClick={() => openTransition("start")}>{processRuns.length ? "Start new process" : "Start first process"}</button>}
-          <button type="button" className="button" onClick={() => setShowMetrologyPicker(true)}>Start metrology</button>
+          <button type="button" className="button responsive-icon-button" aria-label="Start metrology" title="Start metrology" onClick={() => setShowMetrologyPicker(true)}><ActionIcon name="metrology" /><span className="responsive-action-label">Start metrology</span></button>
           {activeRun && !selectedIsActiveProcess && <button type="button" className="button" onClick={() => updateSearchParams({ run: activeRun.id })}>View active process</button>}
         </div>
       </div>

@@ -1,4 +1,4 @@
-export type ActionIconName = "export" | "metrology" | "moon" | "process" | "split" | "sun";
+export type ActionIconName = "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "sun";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
   export: <path d="M12 3.5v11M8 10.5l4 4 4-4M5 17v3h14v-3" />,
@@ -7,6 +7,10 @@ const iconPaths: Record<ActionIconName, React.ReactNode> = {
     <path d="m14 14 6 6M7.5 10h5M10 7.5v5" />
   </>,
   moon: <path d="M19.5 15.2A8.4 8.4 0 0 1 8.8 4.5 8.5 8.5 0 1 0 19.5 15.2Z" />,
+  "plan-update": <>
+    <path d="M5 3.5h9l4 4v5M14 3.5v4h4M8 10h6M8 14h3" />
+    <path d="m12.5 19.5 5.5-5.5 2 2-5.5 5.5H12z" />
+  </>,
   process: <>
     <path d="m4 7 8-4 8 4-8 4z" />
     <path d="m4 12 8 4 8-4M4 17l8 4 8-4" />
