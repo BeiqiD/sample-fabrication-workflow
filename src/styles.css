@@ -211,6 +211,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .facts dt { margin-top: 12px; color: var(--muted); font-size: var(--font-label); font-weight: 700; text-transform: uppercase; letter-spacing: .065em; }
 .facts dd { min-width: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; overflow-wrap: anywhere; word-break: break-word; }
 .card-title-row { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.template-step-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; white-space: nowrap; }
 .text-button { padding: 0; border: 0; color: var(--accent); background: transparent; font-weight: 650; }
 .detail-form { display: grid; gap: 13px; }
 .detail-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 650; }

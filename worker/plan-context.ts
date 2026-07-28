@@ -25,6 +25,7 @@ type PlanContext = {
     logicalStepKey: string | null;
     definitionHash: string | null;
     position: number;
+    alignmentPosition: number;
     actualized: boolean;
     origin: "template" | "ad_hoc";
   }>;
@@ -55,8 +56,14 @@ export async function loadPlanContext(db: D1Database, sampleId: string, runId: s
     ).bind(templateVersionId).first<PlanContext["nextTemplate"]>(),
     db.prepare(
       `SELECT rs.id, COALESCE(sd.name, rs.title) AS name, rs.logical_step_key, rs.definition_hash, rs.position,
+              COALESCE(current_ts.position, rs.position) AS alignment_position,
               CASE WHEN rs.actualized_at IS NOT NULL THEN 1 ELSE 0 END AS actualized, rs.origin
        FROM run_steps rs
+       JOIN runs current_run ON current_run.id = rs.run_id
+       LEFT JOIN run_step_plan_links current_link
+         ON current_link.run_plan_revision_id = current_run.current_plan_revision_id
+        AND current_link.run_step_id = rs.id
+       LEFT JOIN template_steps current_ts ON current_ts.id = current_link.template_step_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
        WHERE rs.run_id = ? AND rs.entry_kind = 'fabrication'
          AND (rs.plan_status = 'current' OR rs.origin = 'ad_hoc')
@@ -67,6 +74,7 @@ export async function loadPlanContext(db: D1Database, sampleId: string, runId: s
       logical_step_key: string | null;
       definition_hash: string | null;
       position: number;
+      alignment_position: number;
       actualized: number;
       origin: "template" | "ad_hoc";
     }>(),
@@ -95,6 +103,7 @@ export async function loadPlanContext(db: D1Database, sampleId: string, runId: s
       logicalStepKey: row.logical_step_key,
       definitionHash: row.definition_hash,
       position: Number(row.position),
+      alignmentPosition: Number(row.alignment_position),
       actualized: Boolean(row.actualized),
       origin: row.origin,
     })),
