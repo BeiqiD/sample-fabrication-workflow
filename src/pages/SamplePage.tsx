@@ -209,7 +209,7 @@ export function SamplePage() {
             </button>}
           <button
             type="button"
-            className="button responsive-icon-button"
+            className="button responsive-icon-button sample-header-secondary-action"
             aria-label="Split sample"
             title="Split sample"
             onClick={() => setSplitting(true)}
@@ -219,7 +219,7 @@ export function SamplePage() {
           </button>
           <button
             type="button"
-            className="button responsive-icon-button"
+            className="button responsive-icon-button sample-header-secondary-action"
             disabled={exporting}
             aria-label={exporting ? "Exporting sample ZIP" : "Export sample ZIP"}
             aria-busy={exporting}
