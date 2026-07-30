@@ -1,4 +1,4 @@
-export type ActionIconName = "actions" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun";
+export type ActionIconName = "actions" | "delete" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
   actions: <>
@@ -6,6 +6,9 @@ const iconPaths: Record<ActionIconName, React.ReactNode> = {
     <circle cx="16" cy="7" r="2" />
     <circle cx="8" cy="12" r="2" />
     <circle cx="13" cy="17" r="2" />
+  </>,
+  delete: <>
+    <path d="M5 7h14M9 7V4.5h6V7M7.5 7l.8 13h7.4l.8-13M10 10.5v6M14 10.5v6" />
   </>,
   export: <path d="M12 3.5v11M8 10.5l4 4 4-4M5 17v3h14v-3" />,
   metrology: <>

@@ -398,6 +398,10 @@ export interface FinishProcessRunInput {
   confirmSkipUnfinishedSteps?: boolean;
 }
 
+export interface DeleteRunInput {
+  expectedSampleUpdatedAt: string;
+}
+
 export interface PlanUpdatePreview {
   compatible: boolean;
   blockingReason: string | null;

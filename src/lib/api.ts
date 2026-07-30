@@ -1,4 +1,4 @@
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -115,6 +115,11 @@ export const api = {
   }),
   finishProcessRun: (sampleId: string, runId: string, input: FinishProcessRunInput) => request<{ ok: true; completedAt: string; skippedStepCount: number }>(`/samples/${sampleId}/runs/${runId}/finish`, {
     method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
+  deleteRun: (sampleId: string, runId: string, input: DeleteRunInput) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}`, {
+    method: "DELETE",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),

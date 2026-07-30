@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { RunStartPreview } from "../../shared/types";
+import { DialogCloseIcon } from "./DialogCloseIcon";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
 
 function StructureImages({ keys, emptyLabel }: { keys: string[]; emptyLabel: string }) {
@@ -45,7 +46,7 @@ export function StartProcessRunDialog({ preview, action, starting, error, onCanc
     <section className="run-start-dialog" role="dialog" aria-modal="true" aria-labelledby="run-start-title">
       <div className="run-start-dialog-heading">
         <div><p className="dialog-kicker">{actionLabel}</p><h2 id="run-start-title">Does this structure handoff match what you expect?</h2></div>
-        <button type="button" className="drawer-close" disabled={starting} onClick={onCancel} aria-label="Close">×</button>
+        <button type="button" className="drawer-close" disabled={starting} onClick={onCancel} aria-label="Close"><DialogCloseIcon /></button>
       </div>
       <p className="muted">{updating
         ? targetIsInitial

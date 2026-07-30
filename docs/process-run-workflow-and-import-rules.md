@@ -159,6 +159,9 @@ Actions depend on state:
 - **Active run**: `Update future plan` and the destructive `Finish run` action live under `Run actions`.
 - **Latest completed run with no successor**: `Reopen with updated template`, when a compatible newer template version exists.
 - **Completed run with a successor**: read-only.
+- **Any selected process or metrology run**: `Delete run` permanently removes the run entity and its
+  steps, comments, attachment associations, plan revisions, and verification entities after an
+  explicit destructive confirmation.
 
 Normal process completion remains automatic when the final current fabrication step is done or
 skipped. Using `Finish run` before that point is an early-finish operation: it requires explicit
@@ -168,6 +171,12 @@ the affected step IDs in the run history.
 Run-level mutations are grouped under `Run actions`; creation of a new process or standalone
 metrology record is grouped separately under `Start run`. These controls keep stable positions
 while their menu contents follow the selected run.
+
+Deleting a run is reserved for accidental creation and is distinct from cancellation. Existing
+sample Timeline text remains as read-only audit history, while detached files use the same
+orphaned-object retention and delayed cleanup path as normal comment deletion. A cancelled run,
+by contrast, represents work that really started and stopped, so the run and its partial execution
+record remain visible.
 
 ## Process template update semantics
 

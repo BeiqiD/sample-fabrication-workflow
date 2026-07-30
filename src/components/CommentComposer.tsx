@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   CommentSubmissionItemInput,
   CommentSubmission,
@@ -9,6 +10,7 @@ import type {
 } from "../../shared/types";
 import { MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
 import { api } from "../lib/api";
+import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
 import { prepareCommentImage } from "../lib/images";
 
 let managedStorageStatusPromise: Promise<ManagedStorageStatus> | null = null;
@@ -219,6 +221,7 @@ export function CommentComposer({
   const [draftError, setDraftError] = useState("");
   const [preparing, setPreparing] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<AnchoredMenuPosition | null>(null);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [storage, setStorage] = useState<ManagedStorageStatus | null>(null);
   const [submissions, setSubmissions] = useState<LocalSubmission[]>([]);
@@ -227,6 +230,8 @@ export function CommentComposer({
   const uploadControllers = useRef(new Map<string, AbortController>());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const attachmentTriggerRef = useRef<HTMLButtonElement>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const storageReady = storage?.available === true;
   const storageMessage = storage?.message ?? "Checking file storage connection…";
@@ -240,6 +245,56 @@ export function CommentComposer({
     for (const image of imagesRef.current) URL.revokeObjectURL(image.previewUrl);
     for (const controller of uploadControllers.current.values()) controller.abort();
   }, []);
+  useLayoutEffect(() => {
+    if (!showAttachmentMenu) return;
+
+    function updatePosition() {
+      const trigger = attachmentTriggerRef.current;
+      const menu = attachmentMenuRef.current;
+      if (!trigger || !menu) return;
+      setAttachmentMenuPosition(anchoredMenuPosition(
+        trigger.getBoundingClientRect(),
+        { width: menu.offsetWidth, height: menu.offsetHeight },
+        { width: window.innerWidth, height: window.innerHeight },
+      ));
+    }
+
+    updatePosition();
+    attachmentMenuRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [showAttachmentMenu, storageMessage, storageReady]);
+  useEffect(() => {
+    if (!showAttachmentMenu) {
+      setAttachmentMenuPosition(null);
+      return;
+    }
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (!(event.target instanceof Node)) return;
+      if (!attachmentTriggerRef.current?.contains(event.target) && !attachmentMenuRef.current?.contains(event.target)) {
+        setShowAttachmentMenu(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setShowAttachmentMenu(false);
+      attachmentTriggerRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [showAttachmentMenu]);
 
   function updateSubmission(id: string, update: (submission: LocalSubmission) => LocalSubmission) {
     setSubmissions((current) => current.map((submission) => submission.id === id ? update(submission) : submission));
@@ -588,20 +643,40 @@ export function CommentComposer({
         <span className="comment-image-icon" aria-hidden="true" /><span className="visually-hidden">Add comment images</span>
       </button>
       <div className="comment-attachment-control">
-        <button type="button" className="comment-tool-button" onClick={() => setShowAttachmentMenu((value) => !value)} title="Add attachment" aria-expanded={showAttachmentMenu}>
+        <button
+          ref={attachmentTriggerRef}
+          type="button"
+          className="comment-tool-button"
+          onClick={() => setShowAttachmentMenu((value) => !value)}
+          title="Add attachment"
+          aria-haspopup="menu"
+          aria-expanded={showAttachmentMenu}
+        >
           <span className="comment-attach-icon" aria-hidden="true" /><span className="visually-hidden">Add attachment</span>
         </button>
-        {showAttachmentMenu && <div className="attachment-menu">
+        {showAttachmentMenu && createPortal(<div
+          ref={attachmentMenuRef}
+          className="attachment-menu"
+          role="menu"
+          aria-label="Attachment options"
+          data-placement={attachmentMenuPosition?.placement}
+          style={{
+            left: attachmentMenuPosition?.left ?? 0,
+            top: attachmentMenuPosition?.top ?? 0,
+            visibility: attachmentMenuPosition ? "visible" : "hidden",
+          }}
+        >
           <button
             type="button"
+            role="menuitem"
             disabled={!storageReady}
             onClick={() => { setShowAttachmentMenu(false); attachmentInputRef.current?.click(); }}
           >
             Upload attachment
           </button>
-          <button type="button" onClick={() => { setShowAttachmentMenu(false); setShowLinkForm(true); }}>Add attachment link</button>
+          <button type="button" role="menuitem" onClick={() => { setShowAttachmentMenu(false); setShowLinkForm(true); }}>Add attachment link</button>
           {!storageReady && <p>{storageMessage}</p>}
-        </div>}
+        </div>, document.body)}
       </div>
       {onCancel && <button type="button" className="comment-cancel-button" onClick={onCancel} aria-label="Cancel common comment" title="Cancel">×</button>}
       <button className="button primary compact-button comment-add-button" disabled={preparing || (!body.trim() && !images.length && !attachments.length && !links.length)}>

@@ -2,7 +2,7 @@ import type { SampleRun } from "../../shared/types";
 
 type SelectableRun = Pick<SampleRun, "id" | "runKind" | "status">;
 
-export type RunControlActionId = "update_plan" | "finish_run" | "reopen_process" | "view_active_process";
+export type RunControlActionId = "update_plan" | "finish_run" | "reopen_process" | "view_active_process" | "delete_run";
 export type StartRunActionId = "start_process" | "start_metrology";
 
 export function selectSamplePageRuns(runs: readonly SelectableRun[]) {
@@ -38,6 +38,7 @@ export function sampleRunControlActionIds({
   } else if (activeProcessRun && selectedRun?.id !== activeProcessRun.id) {
     runActions.push("view_active_process");
   }
+  if (selectedRun) runActions.push("delete_run");
 
   const startActions: StartRunActionId[] = [];
   if (!activeProcessRun) startActions.push("start_process");

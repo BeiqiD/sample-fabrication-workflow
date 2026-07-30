@@ -99,6 +99,23 @@ describe("processing sample API", () => {
       body: JSON.stringify(input),
     });
   });
+
+  it("deletes a run against the loaded sample revision", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      ok: true,
+      updatedAt: "2026-07-29T10:15:00.000Z",
+    }), { headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const input = { expectedSampleUpdatedAt: "2026-07-29T10:10:00.000Z" };
+
+    await api.deleteRun("sample-1", "run-1", input);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/samples/sample-1/runs/run-1", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  });
 });
 
 describe("paginated directory APIs", () => {

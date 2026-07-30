@@ -49,7 +49,7 @@ describe("sampleRunControlActionIds", () => {
       activeProcessRun: activeProcess,
       latestProcessRun: activeProcess,
     })).toEqual({
-      runActions: ["update_plan", "finish_run"],
+      runActions: ["update_plan", "finish_run", "delete_run"],
       startActions: ["start_metrology"],
     });
   });
@@ -60,14 +60,14 @@ describe("sampleRunControlActionIds", () => {
       activeProcessRun: null,
       latestProcessRun: completeProcess,
     })).toEqual({
-      runActions: ["reopen_process"],
+      runActions: ["reopen_process", "delete_run"],
       startActions: ["start_process", "start_metrology"],
     });
     expect(sampleRunControlActionIds({
       selectedRun: oldProcess,
       activeProcessRun: null,
       latestProcessRun: completeProcess,
-    }).runActions).toEqual([]);
+    }).runActions).toEqual(["delete_run"]);
   });
 
   it("keeps navigation to the active process out of the start-run menu", () => {
@@ -76,7 +76,7 @@ describe("sampleRunControlActionIds", () => {
       activeProcessRun: activeProcess,
       latestProcessRun: activeProcess,
     })).toEqual({
-      runActions: ["view_active_process"],
+      runActions: ["view_active_process", "delete_run"],
       startActions: ["start_metrology"],
     });
   });
@@ -87,7 +87,7 @@ describe("sampleRunControlActionIds", () => {
       activeProcessRun: null,
       latestProcessRun: completeProcess,
     })).toEqual({
-      runActions: [],
+      runActions: ["delete_run"],
       startActions: ["start_process", "start_metrology"],
     });
   });

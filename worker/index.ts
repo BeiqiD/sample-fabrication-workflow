@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteRunInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
 import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, normalizedStepName, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
@@ -1653,6 +1653,220 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
     throw new HTTPException(409, { message: "The process run changed while it was being finished. Reload and try again." });
   }
   return c.json({ ok: true, completedAt: now, skippedStepCount: unfinishedStepIds.length });
+});
+
+app.delete("/samples/:sampleId/runs/:runId", async (c) => {
+  const { sampleId, runId } = c.req.param();
+  const input = await c.req.json<DeleteRunInput>().catch(() => null);
+  if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
+    throw new HTTPException(400, { message: "The current sample revision is required" });
+  }
+  const [run, deletableSubmissions] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT r.id, r.run_kind, r.status, r.predecessor_run_id, r.anchor_step_id,
+              r.sequence_no, r.template_name_snapshot, r.template_version_snapshot, r.created_at,
+              s.status AS sample_status, s.updated_at AS sample_updated_at,
+              (SELECT COUNT(*) FROM runs active
+               WHERE active.sample_id = r.sample_id AND active.status = 'active' AND active.id != r.id)
+                AS other_active_count
+       FROM runs r
+       JOIN samples s ON s.id = r.sample_id
+       WHERE r.id = ? AND r.sample_id = ?`,
+    ).bind(runId, sampleId).first<{
+      id: string;
+      run_kind: "process" | "metrology";
+      status: "active" | "complete" | "cancelled" | "superseded";
+      predecessor_run_id: string | null;
+      anchor_step_id: string | null;
+      sequence_no: number;
+      template_name_snapshot: string;
+      template_version_snapshot: number;
+      created_at: string;
+      sample_status: SampleStatus;
+      sample_updated_at: string;
+      other_active_count: number;
+    }>(),
+    c.env.DB.prepare(
+      `SELECT target.submission_id
+       FROM comment_submission_targets target
+       WHERE target.run_id = ?
+       GROUP BY target.submission_id
+       HAVING NOT EXISTS (
+         SELECT 1 FROM comment_submission_targets other
+         WHERE other.submission_id = target.submission_id AND other.run_id != ?
+       )`,
+    ).bind(runId, runId).all<{ submission_id: string }>(),
+  ]);
+  if (!run) throw new HTTPException(404, { message: "Run not found" });
+  if (run.sample_updated_at !== input.expectedSampleUpdatedAt) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting the run." });
+  }
+
+  const matchedActivationEvent = await c.env.DB.prepare(
+    `SELECT metadata_json FROM events
+     WHERE sample_id = ? AND kind = 'status' AND created_at = ?
+       AND json_extract(metadata_json, '$.current') = 'active'
+     ORDER BY id DESC LIMIT 1`,
+  ).bind(sampleId, run.created_at).first<{ metadata_json: string }>();
+  let nextSampleStatus = run.sample_status;
+  if (run.status === "active" && Number(run.other_active_count) === 0 && run.sample_status === "active") {
+    let previousStatus: unknown;
+    try {
+      previousStatus = JSON.parse(matchedActivationEvent?.metadata_json || "{}").previous;
+    } catch {
+      previousStatus = null;
+    }
+    nextSampleStatus = isSampleStatus(previousStatus) && previousStatus !== "active"
+      ? previousStatus
+      : DEFAULT_SAMPLE_STATUS;
+  }
+
+  const now = new Date(Math.max(Date.now(), Date.parse(run.sample_updated_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const guardSql = "EXISTS (SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?)";
+  const submissionIds = deletableSubmissions.results.map((row) => row.submission_id);
+  const statements: D1PreparedStatement[] = [c.env.DB.prepare(
+    `UPDATE samples
+     SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+     WHERE id = ? AND updated_at = ?`,
+  ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt)];
+
+  statements.push(c.env.DB.prepare(
+    `UPDATE runs SET predecessor_run_id = NULL
+     WHERE id = ? AND sample_id = ? AND ${guardSql}`,
+  ).bind(runId, sampleId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE runs SET predecessor_run_id = ?
+     WHERE sample_id = ? AND predecessor_run_id = ? AND ${guardSql}`,
+  ).bind(run.predecessor_run_id, sampleId, runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE runs SET anchor_step_id = ?
+     WHERE sample_id = ? AND anchor_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+       AND ${guardSql}`,
+  ).bind(run.anchor_step_id, sampleId, runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE run_steps SET previous_step_id = ?
+     WHERE previous_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+       AND ${guardSql}`,
+  ).bind(run.anchor_step_id, runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE run_plan_revisions SET effective_after_step_id = ?
+     WHERE effective_after_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+       AND ${guardSql}`,
+  ).bind(run.anchor_step_id, runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE state_verifications SET previous_verification_id = NULL
+     WHERE previous_verification_id IN (
+       SELECT id FROM state_verifications
+       WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+     ) AND ${guardSql}`,
+  ).bind(runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE recipe_change_proposals SET source_verification_id = NULL
+     WHERE source_verification_id IN (
+       SELECT id FROM state_verifications
+       WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+     ) AND ${guardSql}`,
+  ).bind(runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `DELETE FROM state_verification_steps
+     WHERE run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+       AND ${guardSql}`,
+  ).bind(runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `UPDATE state_verifications SET run_plan_revision_id = NULL
+     WHERE run_plan_revision_id IN (SELECT id FROM run_plan_revisions WHERE run_id = ?)
+       AND ${guardSql}`,
+  ).bind(runId, sampleId, mutationId));
+  statements.push(c.env.DB.prepare(
+    `DELETE FROM state_verifications
+     WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
+       AND ${guardSql}`,
+  ).bind(runId, sampleId, mutationId));
+
+  if (submissionIds.length) {
+    const placeholders = submissionIds.map(() => "?").join(", ");
+    statements.push(c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET status = 'cancelled', error_message = NULL, cancelled_at = ?, updated_at = ?
+       WHERE id IN (${placeholders}) AND status != 'cancelled'
+         AND ${guardSql}`,
+    ).bind(now, now, ...submissionIds, sampleId, mutationId));
+    statements.push(c.env.DB.prepare(
+      `UPDATE managed_storage_objects
+       SET status = 'orphaned', orphaned_at = ?
+       WHERE id IN (
+         SELECT storage_object_id FROM comment_submission_items
+         WHERE submission_id IN (${placeholders}) AND storage_object_id IS NOT NULL
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM comment_submission_items other
+         JOIN comment_submissions cs ON cs.id = other.submission_id
+         WHERE other.storage_object_id = managed_storage_objects.id
+           AND other.submission_id NOT IN (${placeholders}) AND cs.status = 'ready'
+       )
+       AND ${guardSql}`,
+    ).bind(now, ...submissionIds, ...submissionIds, sampleId, mutationId));
+    statements.push(c.env.DB.prepare(
+      `UPDATE events
+       SET body = 'Deleted step comment', asset_key = NULL,
+           metadata_json = json_set(
+             json_remove(metadata_json, '$.thumbnailKey'),
+             '$.deletedAt', ?, '$.deletedBy', ?, '$.sourceRunDeleted', 1
+           )
+       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') IN (${placeholders})
+         AND ${guardSql}`,
+    ).bind(now, userEmail, sampleId, ...submissionIds, sampleId, mutationId));
+  }
+
+  statements.push(c.env.DB.prepare(
+    `UPDATE events
+     SET asset_key = NULL,
+         metadata_json = json_set(
+           json_remove(metadata_json, '$.thumbnailKey'),
+           '$.runDeletedAt', ?, '$.runDeletedBy', ?
+         )
+     WHERE sample_id = ? AND json_extract(metadata_json, '$.runId') = ?
+       AND ${guardSql}`,
+  ).bind(now, userEmail, sampleId, runId, sampleId, mutationId));
+  const runDeleteIndex = statements.length;
+  statements.push(c.env.DB.prepare(
+    `DELETE FROM runs
+     WHERE id = ? AND sample_id = ? AND ${guardSql}`,
+  ).bind(runId, sampleId, sampleId, mutationId));
+  const auditEventIndex = statements.length;
+  statements.push(c.env.DB.prepare(
+    `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+     SELECT ?, ?, 'run', ?, ?, ?, ?
+     WHERE ${guardSql} AND NOT EXISTS (
+       SELECT 1 FROM runs WHERE id = ? AND sample_id = ?
+     )`,
+  ).bind(
+    crypto.randomUUID(),
+    sampleId,
+    `Deleted ${run.run_kind} run · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
+    JSON.stringify({
+      action: "run_deleted",
+      deletedRunId: runId,
+      runKind: run.run_kind,
+      sequenceNo: Number(run.sequence_no),
+      templateName: run.template_name_snapshot,
+      templateVersion: Number(run.template_version_snapshot),
+    }),
+    userEmail,
+    now,
+    sampleId,
+    mutationId,
+    runId,
+    sampleId,
+  ));
+
+  const results = await c.env.DB.batch(statements);
+  if (!results[0].meta.changes || !results[runDeleteIndex].meta.changes || !results[auditEventIndex].meta.changes) {
+    throw new HTTPException(409, { message: "The run changed while it was being deleted. Reload and try again." });
+  }
+  return c.json({ ok: true, updatedAt: now });
 });
 
 app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
