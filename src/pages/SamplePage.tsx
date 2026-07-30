@@ -263,6 +263,7 @@ export function SamplePage() {
         </article>
       </div>
 
+      <div className="sample-notes-slot">
       <section className="card sample-notes-card" id="sample-notes">
         <div className="section-heading sample-notes-heading">
           <div><h2>Notes &amp; observations</h2><p>Important comments, observations, and exceptions from this sample and its processing runs.</p></div>
@@ -306,6 +307,7 @@ export function SamplePage() {
           </div>
         </article>)}</div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
       </section>
+      </div>
     </section>
 
     <section className="sample-secondary-grid">

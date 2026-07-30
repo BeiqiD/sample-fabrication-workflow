@@ -771,15 +771,16 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-current-structure > div:first-child { min-width: 0; }
 .sample-current-structure .sample-state-thumbnail { width: 96px; height: 72px; }
 .structure-source-link { width: fit-content; margin-top: 4px; text-decoration: none; }
-.sample-notes-card { min-width: 0; display: flex; flex-direction: column; padding: 22px; }
-.sample-notes-heading { align-items: start; margin: 0 0 16px; }
-.sample-note-composer { display: grid; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-warm); }
+.sample-notes-slot { min-width: 0; position: relative; }
+.sample-notes-card { position: absolute; inset: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; padding: 22px; }
+.sample-notes-heading { flex: 0 0 auto; align-items: start; margin: 0 0 16px; }
+.sample-note-composer { flex: 0 0 auto; display: grid; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-warm); }
 .sample-note-composer > .card-label { margin: 0 4px; }
 .sample-note-composer > small { margin: 0 4px; overflow-wrap: anywhere; color: var(--muted); font-size: var(--font-meta); }
 .sample-note-composer .grid-comment-composer { background: var(--paper); }
 .sample-note-composer .grid-comment-composer textarea { font-size: 13px; }
 .sample-note-composer .comment-add-button { min-width: 72px; }
-.sample-notes-list { max-height: 650px; margin: 20px -4px 0 0; padding-right: 8px; overflow-y: auto; scrollbar-color: var(--line-strong) transparent; }
+.sample-notes-list { min-height: 0; flex: 1 1 auto; margin: 20px -4px 0 0; padding-right: 8px; overflow-y: auto; scrollbar-color: var(--line-strong) transparent; }
 .sample-note { padding: 16px 2px 16px 14px; border-top: 1px solid var(--line); border-left: 3px solid var(--accent); }
 .sample-note:first-child { border-top-color: transparent; }
 .sample-note-deviation, .sample-note-blocked_step { border-left-color: var(--warning); }
@@ -1011,7 +1012,9 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .sample-priority-grid { display: flex; flex-direction: column; }
   .sample-priority-sidebar { display: contents; }
   .sample-details-card { order: 1; }
-  .sample-notes-card { order: 2; width: 100%; }
+  .sample-notes-slot { position: static; order: 2; width: 100%; }
+  .sample-notes-card { position: static; width: 100%; overflow: visible; }
+  .sample-notes-list { flex: 0 1 auto; max-height: 650px; }
   .sample-current-structure { order: 3; width: 100%; }
   .sample-secondary-grid { grid-template-columns: 1fr; }
   .sample-run-summary { grid-template-columns: minmax(0, 1fr) auto; }
