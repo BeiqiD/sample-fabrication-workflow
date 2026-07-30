@@ -18,6 +18,8 @@ import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 import { selectSamplePageRuns } from "../lib/sample-run-selection";
 
+const SAMPLE_NOTES_PREVIEW_COUNT = 5;
+
 function runProgress(run: SampleRun) {
   const currentSteps = run.steps.filter((step) => step.planStatus === "current");
   const completed = currentSteps.filter((step) => step.status === "done" || step.status === "skipped").length;
@@ -75,6 +77,7 @@ export function SamplePage() {
   const [sampleDeleteError, setSampleDeleteError] = useState("");
   const [deletingSample, setDeletingSample] = useState(false);
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -83,7 +86,25 @@ export function SamplePage() {
     } catch (error) { setError((error as Error).message); }
   }, [sampleId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    setShowAllNotes(false);
+    void load();
+  }, [load]);
+
+  async function refreshNotes() {
+    setShowAllNotes(false);
+    await load();
+  }
+
+  function toggleNotes() {
+    const nextExpanded = !showAllNotes;
+    setShowAllNotes(nextExpanded);
+    if (!nextExpanded) {
+      requestAnimationFrame(() => {
+        document.getElementById("sample-notes")?.scrollIntoView({ block: "start" });
+      });
+    }
+  }
 
   async function deleteRecord() {
     if (!sample || !recordToDelete) return;
@@ -276,12 +297,12 @@ export function SamplePage() {
             placeholder="Observation about this sample, independent of a process step…"
             submitLabel="Add note"
             context={{ kind: "sample", sampleId: sample.id, expectedUpdatedAt: sample.updatedAt }}
-            onSubmitted={load}
+            onSubmitted={refreshNotes}
           />
-          <CommentSubmissionRecovery submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={load} />
+          <CommentSubmissionRecovery submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={refreshNotes} />
           <small>Saved directly to this sample.</small>
         </div>
-        {notes.length ? <div className="sample-notes-list">{notes.map((note) => <article className={`sample-note sample-note-${note.kind}`} key={note.id}>
+        {notes.length ? <div className={`sample-notes-list ${showAllNotes ? "is-expanded" : "is-collapsed"}`} id="sample-notes-list">{notes.map((note) => <article className={`sample-note sample-note-${note.kind}`} key={note.id}>
           <div className="sample-note-heading">
             <div><p className="card-label">{note.label}</p><p className="sample-note-context">{note.context}</p></div>
             <time>{new Date(note.createdAt).toLocaleString()}</time>
@@ -306,6 +327,15 @@ export function SamplePage() {
             </div>
           </div>
         </article>)}</div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
+        {notes.length > SAMPLE_NOTES_PREVIEW_COUNT && <button
+          type="button"
+          className="sample-notes-toggle"
+          aria-controls="sample-notes-list"
+          aria-expanded={showAllNotes}
+          onClick={toggleNotes}
+        >
+          {showAllNotes ? `Show recent ${SAMPLE_NOTES_PREVIEW_COUNT}` : `Show all ${notes.length} notes`}
+        </button>}
       </section>
       </div>
     </section>

@@ -86,11 +86,17 @@ describe("sample overview notes", () => {
     expect(styles).toMatch(/\.sample-notes-list\s*\{[^}]*min-height:\s*0[^}]*flex:\s*1 1 auto[^}]*overflow-y:\s*auto/);
   });
 
-  it("restores content-driven Notes sizing below the wide tier", () => {
+  it("uses a five-note touch preview without nested scrolling below the wide tier", () => {
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-slot\s*\{[^}]*position:\s*static[^}]*order:\s*2/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-card\s*\{[^}]*position:\s*static[^}]*overflow:\s*visible/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*flex:\s*0 1 auto[^}]*max-height:\s*650px/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*max-height:\s*none[^}]*overflow:\s*visible/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*flex:\s*0 1 auto[^}]*max-height:\s*none[^}]*overflow:\s*visible/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\.is-collapsed > \.sample-note:nth-child\(n \+ 6\)\s*\{[^}]*display:\s*none/);
+    expect(styles).toMatch(/\.sample-notes-toggle\s*\{[^}]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-toggle\s*\{[^}]*min-height:\s*44px[^}]*display:\s*inline-flex/);
+    expect(samplePage).toMatch(/const SAMPLE_NOTES_PREVIEW_COUNT = 5/);
+    expect(samplePage).toMatch(/Show recent \$\{SAMPLE_NOTES_PREVIEW_COUNT\}/);
+    expect(samplePage).toMatch(/Show all \$\{notes\.length\} notes/);
+    expect(samplePage).toMatch(/aria-controls="sample-notes-list"[\s\S]*?aria-expanded=\{showAllNotes\}/);
   });
 });
 
