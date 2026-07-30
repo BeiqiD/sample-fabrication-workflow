@@ -30,7 +30,6 @@ interface CommentComposerProps {
   context: CreateCommentSubmissionInput["context"];
   onSubmitted: () => Promise<void>;
   onCancel?: () => void;
-  placeholder?: string;
   submitLabel?: string;
 }
 
@@ -209,7 +208,6 @@ export function CommentComposer({
   context,
   onSubmitted,
   onCancel,
-  placeholder,
   submitLabel = "Add",
 }: CommentComposerProps) {
   const [body, setBody] = useState("");
@@ -615,7 +613,7 @@ export function CommentComposer({
           const files = [...event.clipboardData.files];
           if (files.length) void insertAsCommentImages(files);
         }}
-        placeholder={placeholder ?? (onCancel ? "Add to checked samples…" : "Add a comment…")}
+        placeholder="Add a comment…"
       />
       <input
         ref={imageInputRef}

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const styles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
 const samplePage = readFileSync(new URL("./pages/SamplePage.tsx", import.meta.url), "utf8");
+const commentComposer = readFileSync(new URL("./components/CommentComposer.tsx", import.meta.url), "utf8");
 
 describe("responsive layout tiers", () => {
   it("uses only the documented medium and narrow breakpoints", () => {
@@ -90,20 +91,24 @@ describe("sample overview notes", () => {
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-slot\s*\{[^}]*position:\s*static[^}]*order:\s*2/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-card\s*\{[^}]*position:\s*static[^}]*overflow:\s*visible/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*flex:\s*0 1 auto[^}]*max-height:\s*none[^}]*overflow:\s*visible/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\.is-collapsed > \.sample-note:nth-child\(n \+ 6\)\s*\{[^}]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\.is-collapsed > \.sample-note-preview-overflow\s*\{[^}]*display:\s*none/);
     expect(styles).toMatch(/\.sample-notes-toggle\s*\{[^}]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-toggle\s*\{[^}]*min-height:\s*44px[^}]*display:\s*inline-flex/);
     expect(samplePage).toMatch(/const SAMPLE_NOTES_PREVIEW_COUNT = 5/);
+    expect(samplePage).toMatch(/notes\.map\(\(note, index\)[\s\S]*?index === SAMPLE_NOTES_PREVIEW_COUNT[\s\S]*?className="sample-notes-toggle"[\s\S]*?<article className=\{`sample-note[^`]*sample-note-preview-overflow/);
     expect(samplePage).toMatch(/Show recent \$\{SAMPLE_NOTES_PREVIEW_COUNT\}/);
     expect(samplePage).toMatch(/Show all \$\{notes\.length\} notes/);
     expect(samplePage).toMatch(/aria-controls="sample-notes-list"[\s\S]*?aria-expanded=\{showAllNotes\}/);
+    expect(samplePage).not.toMatch(/scrollIntoView/);
   });
 });
 
 describe("run workflow actions", () => {
-  it("keeps wide controls on one row and medium controls on two stable rows", () => {
+  it("keeps wide and medium controls on one row, with compact medium menu triggers", () => {
     expect(styles).toMatch(/\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(260px,\s*420px\) 210px minmax\(0,\s*1fr\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(220px,\s*420px\) 210px/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(180px,\s*420px\) minmax\(0,\s*1fr\) auto[^}]*grid-template-areas:\s*"title picker status actions"/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-control-menus \.run-action-menu-trigger\s*\{[^}]*width:\s*46px/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-control-menus \.run-action-menu-label\s*\{[^}]*position:\s*absolute/);
     expect(styles).toMatch(/\.run-controls-picker select\s*\{[^}]*height:\s*42px/);
     expect(styles).toMatch(/\.run-controls-picker strong\s*\{[^}]*height:\s*42px/);
   });
@@ -123,6 +128,15 @@ describe("run workflow actions", () => {
     expect(styles).toMatch(/\.run-action-menu-item\s*\{[^}]*grid-template-columns:\s*22px minmax\(0,\s*1fr\)/);
     expect(styles).toMatch(/\.run-action-menu-item\.danger\s*\{[^}]*border-color:[^}]*var\(--danger\)[^}]*color:\s*var\(--danger\)/);
     expect(styles).toMatch(/\.run-action-menu-item-copy\s*\{[^}]*display:\s*grid/);
+  });
+});
+
+describe("comment composer placeholder", () => {
+  it("uses one placeholder in every comment context", () => {
+    expect(commentComposer).toMatch(/placeholder="Add a comment…"/);
+    expect(commentComposer).not.toMatch(/placeholder\s*\?\?/);
+    expect(commentComposer).not.toMatch(/placeholder\?:\s*string/);
+    expect(samplePage).not.toMatch(/placeholder="Observation about this sample/);
   });
 });
 
