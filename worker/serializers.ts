@@ -8,6 +8,7 @@ type SampleRow = {
   status: SampleSummary["status"];
   location: string | null;
   parent_id: string | null;
+  inherited_state_hash?: string | null;
   pinned: number;
   created_at?: string;
   updated_at: string;
@@ -27,6 +28,7 @@ export function sampleSummary(row: SampleRow): SampleSummary {
     status: row.status,
     location: row.location,
     parentId: row.parent_id,
+    inheritedStateHash: row.inherited_state_hash ?? null,
     pinned: Boolean(row.pinned),
     createdAt: row.created_at ?? row.updated_at,
     updatedAt: row.updated_at,
