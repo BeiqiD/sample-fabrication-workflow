@@ -1,4 +1,4 @@
-import { Fragment, type FormEvent, useCallback, useEffect, useState } from "react";
+import { Fragment, type FormEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
@@ -18,7 +18,7 @@ import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 import { selectSamplePageRuns } from "../lib/sample-run-selection";
 
-const SAMPLE_NOTES_PREVIEW_COUNT = 5;
+const SAMPLE_NOTES_PREVIEW_COUNT = 3;
 
 function runProgress(run: SampleRun) {
   const currentSteps = run.steps.filter((step) => step.planStatus === "current");
@@ -78,6 +78,8 @@ export function SamplePage() {
   const [deletingSample, setDeletingSample] = useState(false);
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
+  const notesListRef = useRef<HTMLDivElement>(null);
+  const pendingNotesViewportTopRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -91,13 +93,26 @@ export function SamplePage() {
     void load();
   }, [load]);
 
+  useLayoutEffect(() => {
+    const previousTop = pendingNotesViewportTopRef.current;
+    if (!showAllNotes || previousTop === null) return;
+    pendingNotesViewportTopRef.current = null;
+
+    const nextTop = notesListRef.current?.getBoundingClientRect().top;
+    if (nextTop === undefined) return;
+
+    const viewportShift = nextTop - previousTop;
+    if (Math.abs(viewportShift) > 0.5) window.scrollBy(0, viewportShift);
+  }, [showAllNotes]);
+
   async function refreshNotes() {
     setShowAllNotes(false);
     await load();
   }
 
-  function toggleNotes() {
-    setShowAllNotes((expanded) => !expanded);
+  function expandNotes() {
+    pendingNotesViewportTopRef.current = notesListRef.current?.getBoundingClientRect().top ?? null;
+    setShowAllNotes(true);
   }
 
   async function deleteRecord() {
@@ -295,15 +310,15 @@ export function SamplePage() {
           <CommentSubmissionRecovery submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={refreshNotes} />
           <small>Saved directly to this sample.</small>
         </div>
-        {notes.length ? <div className={`sample-notes-list ${showAllNotes ? "is-expanded" : "is-collapsed"}`} id="sample-notes-list">{notes.map((note, index) => <Fragment key={note.id}>
-          {index === SAMPLE_NOTES_PREVIEW_COUNT && <button
+        {notes.length ? <div ref={notesListRef} className={`sample-notes-list ${showAllNotes ? "is-expanded" : "is-collapsed"}`} id="sample-notes-list">{notes.map((note, index) => <Fragment key={note.id}>
+          {!showAllNotes && index === SAMPLE_NOTES_PREVIEW_COUNT && <button
             type="button"
             className="sample-notes-toggle"
             aria-controls="sample-notes-list"
-            aria-expanded={showAllNotes}
-            onClick={toggleNotes}
+            aria-expanded="false"
+            onClick={expandNotes}
           >
-            {showAllNotes ? `Show recent ${SAMPLE_NOTES_PREVIEW_COUNT}` : `Show all ${notes.length} notes`}
+            {`Show all ${notes.length} notes`}
           </button>}
           <article className={`sample-note sample-note-${note.kind}${index >= SAMPLE_NOTES_PREVIEW_COUNT ? " sample-note-preview-overflow" : ""}`}>
           <div className="sample-note-heading">
@@ -330,7 +345,17 @@ export function SamplePage() {
             </div>
           </div>
           </article>
-        </Fragment>)}</div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
+        </Fragment>)}
+          {showAllNotes && notes.length > SAMPLE_NOTES_PREVIEW_COUNT && <button
+            type="button"
+            className="sample-notes-toggle"
+            aria-controls="sample-notes-list"
+            aria-expanded="true"
+            onClick={() => setShowAllNotes(false)}
+          >
+            {`Show recent ${SAMPLE_NOTES_PREVIEW_COUNT}`}
+          </button>}
+        </div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
       </section>
       </div>
     </section>
