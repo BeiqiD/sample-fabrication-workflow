@@ -801,6 +801,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-note-footer > div { flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
 .sample-note-footer .text-button { font-size: 11px; text-decoration: none; }
 .danger-text-button { color: var(--danger); }
+.sample-notes-toggle { display: none; }
 .notes-empty { flex: 1 1 auto; display: grid; place-items: center; min-height: 150px; margin-top: 18px; padding: 24px; border-top: 1px solid var(--line); color: var(--muted); text-align: center; }
 .notes-empty p { margin: 0; color: var(--ink); font-weight: 650; }
 .notes-empty span { font-size: 12px; }
@@ -1014,7 +1015,9 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .sample-details-card { order: 1; }
   .sample-notes-slot { position: static; order: 2; width: 100%; }
   .sample-notes-card { position: static; width: 100%; overflow: visible; }
-  .sample-notes-list { flex: 0 1 auto; max-height: 650px; }
+  .sample-notes-list { flex: 0 1 auto; max-height: none; overflow: visible; }
+  .sample-notes-list.is-collapsed > .sample-note:nth-child(n + 6) { display: none; }
+  .sample-notes-toggle { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; margin-top: 4px; padding: 10px 14px; border: 0; border-top: 1px solid var(--line); color: var(--accent); background: transparent; font-size: 12px; font-weight: 680; }
   .sample-current-structure { order: 3; width: 100%; }
   .sample-secondary-grid { grid-template-columns: 1fr; }
   .sample-run-summary { grid-template-columns: minmax(0, 1fr) auto; }
@@ -1103,7 +1106,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .composer-actions { align-items: stretch; flex-direction: column; }
   .form-actions { flex-wrap: wrap; }
   .sample-notes-card { padding: 16px; }
-  .sample-notes-list { max-height: none; margin-right: 0; padding-right: 0; overflow: visible; }
+  .sample-notes-list { margin-right: 0; padding-right: 0; }
   .sample-note { padding-left: 10px; }
   .sample-note-heading, .sample-note-footer { align-items: flex-start; flex-direction: column; }
   .sample-note-heading time { white-space: normal; }

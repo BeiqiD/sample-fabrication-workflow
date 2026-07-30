@@ -24,8 +24,8 @@ Content-driven behavior is not a viewport tier. In particular:
 - horizontally scrollable Process grids remain scrollable whenever their
   content is wider than the viewport;
 - wide Notes & observations takes its height from the left priority column and
-  scrolls its note list internally; medium retains the existing scroll limit,
-  while narrow expands naturally;
+  scrolls its note list internally; medium and narrow use the page scroll,
+  showing the five most recent notes by default with an option to show all;
 - text may wrap inside content regions, but button labels do not wrap inside a
   button.
 
@@ -95,6 +95,13 @@ additional Notes content scrolls inside the remaining list area and must not
 increase the overview height. The two cards in the left column size to their own
 content, and their gap remains fixed rather than absorbing height from Notes.
 
+In medium and narrow layouts, Notes & observations must not create a nested
+scroll region. The five most recent notes are shown in full by default. When
+more notes exist, a touch-sized `Show all N notes` control reveals the complete
+list in the normal page flow; it changes to `Show recent 5` when expanded.
+Collapsing returns the viewport to the Notes section. Adding a note restores the
+five-note view so the newest entry remains immediately visible.
+
 ## Templates
 
 | Tier | Template lists | Template detail |
@@ -121,4 +128,7 @@ At each width:
 - button text must not wrap inside buttons;
 - no isolated final button may fall onto a new row by accident;
 - narrow-only icon and comment behavior must change only at `720px`;
-- wide Sample priority cards must not stretch internally when Notes grows.
+- wide Sample priority cards must not stretch internally when Notes grows;
+- medium and narrow Notes must show five entries by default without nested
+  scrolling, while wide Notes continues to show every entry inside its fixed
+  scroll region.
