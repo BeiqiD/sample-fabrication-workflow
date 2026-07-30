@@ -70,7 +70,7 @@ No directory row may require the desktop minimum width in the medium tier.
 | Tier | Run controls | Process grid | Process plan interaction |
 | --- | --- | --- | --- |
 | Wide | Title, picker, status, and actions on one row | Existing content-driven desktop widths | Full labels and inline comments |
-| Medium | Title/picker/status first, action group on a second row | Approximately 230px Process plan track and 300px minimum sample tracks | Full labels and inline comments |
+| Medium | Title, picker, status, and icon-only action-menu triggers on one row | Approximately 230px Process plan track and 300px minimum sample tracks | Full labels and inline comments |
 | Narrow | Existing picker plus icon menu triggers | 88px Process plan track and 270px sample tracks | Icon actions and comment pop-out |
 
 The following behavior is narrow-only and must not be moved to the medium tier:
@@ -79,7 +79,10 @@ The following behavior is narrow-only and must not be moved to the medium tier:
 - icon-only Process plan Done/Comment actions;
 - hidden inline Process plan comments;
 - the Process plan comment pop-out;
-- icon-only run-menu triggers.
+
+Run-menu triggers become icon-only in both medium and narrow tiers so the
+complete control group remains on one row. Their menu items retain full labels
+and descriptions.
 
 ## Sample detail
 
@@ -99,7 +102,8 @@ In medium and narrow layouts, Notes & observations must not create a nested
 scroll region. The five most recent notes are shown in full by default. When
 more notes exist, a touch-sized `Show all N notes` control reveals the complete
 list in the normal page flow; it changes to `Show recent 5` when expanded.
-Collapsing returns the viewport to the Notes section. Adding a note restores the
+The control stays immediately after the five-note preview, and older notes
+expand below it without moving the viewport. Adding a note restores the
 five-note view so the newest entry remains immediately visible.
 
 ## Templates

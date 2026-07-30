@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { Fragment, type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
@@ -97,13 +97,7 @@ export function SamplePage() {
   }
 
   function toggleNotes() {
-    const nextExpanded = !showAllNotes;
-    setShowAllNotes(nextExpanded);
-    if (!nextExpanded) {
-      requestAnimationFrame(() => {
-        document.getElementById("sample-notes")?.scrollIntoView({ block: "start" });
-      });
-    }
+    setShowAllNotes((expanded) => !expanded);
   }
 
   async function deleteRecord() {
@@ -294,7 +288,6 @@ export function SamplePage() {
           <p className="card-label">Add a note or observation</p>
           <CommentComposer
             label="Add a note or observation"
-            placeholder="Observation about this sample, independent of a process step…"
             submitLabel="Add note"
             context={{ kind: "sample", sampleId: sample.id, expectedUpdatedAt: sample.updatedAt }}
             onSubmitted={refreshNotes}
@@ -302,7 +295,17 @@ export function SamplePage() {
           <CommentSubmissionRecovery submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={refreshNotes} />
           <small>Saved directly to this sample.</small>
         </div>
-        {notes.length ? <div className={`sample-notes-list ${showAllNotes ? "is-expanded" : "is-collapsed"}`} id="sample-notes-list">{notes.map((note) => <article className={`sample-note sample-note-${note.kind}`} key={note.id}>
+        {notes.length ? <div className={`sample-notes-list ${showAllNotes ? "is-expanded" : "is-collapsed"}`} id="sample-notes-list">{notes.map((note, index) => <Fragment key={note.id}>
+          {index === SAMPLE_NOTES_PREVIEW_COUNT && <button
+            type="button"
+            className="sample-notes-toggle"
+            aria-controls="sample-notes-list"
+            aria-expanded={showAllNotes}
+            onClick={toggleNotes}
+          >
+            {showAllNotes ? `Show recent ${SAMPLE_NOTES_PREVIEW_COUNT}` : `Show all ${notes.length} notes`}
+          </button>}
+          <article className={`sample-note sample-note-${note.kind}${index >= SAMPLE_NOTES_PREVIEW_COUNT ? " sample-note-preview-overflow" : ""}`}>
           <div className="sample-note-heading">
             <div><p className="card-label">{note.label}</p><p className="sample-note-context">{note.context}</p></div>
             <time>{new Date(note.createdAt).toLocaleString()}</time>
@@ -326,16 +329,8 @@ export function SamplePage() {
               {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Delete note</button>}
             </div>
           </div>
-        </article>)}</div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
-        {notes.length > SAMPLE_NOTES_PREVIEW_COUNT && <button
-          type="button"
-          className="sample-notes-toggle"
-          aria-controls="sample-notes-list"
-          aria-expanded={showAllNotes}
-          onClick={toggleNotes}
-        >
-          {showAllNotes ? `Show recent ${SAMPLE_NOTES_PREVIEW_COUNT}` : `Show all ${notes.length} notes`}
-        </button>}
+          </article>
+        </Fragment>)}</div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
       </section>
       </div>
     </section>
