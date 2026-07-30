@@ -529,6 +529,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .grid-comment-composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); background: var(--input); }
 .grid-comment-composer.dragging { border-color: var(--accent); background: var(--accent-soft); }
 .comment-composer-row { min-width: 0; display: flex; align-items: flex-end; gap: 4px; }
+.comment-composer-tools { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; }
+.grid-comment-composer.adaptive-toolbar-layout .comment-composer-row { flex-wrap: wrap; }
+.grid-comment-composer.adaptive-toolbar-layout textarea { width: auto; flex: 1 1 52px; }
+.grid-comment-composer.adaptive-toolbar-layout.is-expanded textarea { width: 100%; flex: 0 0 100%; }
+.grid-comment-composer.adaptive-toolbar-layout.is-expanded .comment-composer-tools { margin-left: auto; }
 .grid-comment-composer textarea { min-width: 52px; min-height: 32px; max-height: 112px; padding: 7px 6px; overflow-y: auto; border: 0; border-radius: 5px; background: transparent; box-shadow: none; font-size: 12px; line-height: 1.45; resize: none; }
 .grid-comment-composer textarea:focus { border: 0; box-shadow: none; }
 .comment-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
@@ -549,9 +554,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .comment-cancel-button { color: var(--muted); font-size: 18px; }
 .comment-add-button { min-width: 42px; min-height: 32px; flex: 0 0 auto; padding: 5px 7px; }
 .recipe-cell .grid-comment-composer { margin-top: 7px; }
-.recipe-cell .comment-composer-row { flex-wrap: wrap; }
-.recipe-cell .grid-comment-composer textarea { flex-basis: 100%; }
-.recipe-cell .image-button { margin-left: auto; }
 .comment-drop-overlay { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; border: 2px dashed var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 94%, transparent); font-size: 12px; font-weight: 750; pointer-events: none; }
 .comment-image-error { display: block; padding: 0 8px 6px; color: var(--danger); font-size: 9px; }
 .pending-draft-section, .local-submission-list { display: grid; gap: 7px; margin: 8px 4px 2px; padding-top: 8px; border-top: 1px solid var(--line); }

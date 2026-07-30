@@ -873,6 +873,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 {!readOnly && commonCommentsOpen && <CommentComposer
                   label="Add to checked samples"
                   context={{ kind: "run_steps", scope: "common", targets: commonTargets }}
+                  adaptiveToolbarLayout
                   onCancel={() => setCommonCommentRow(null)}
                   onSubmitted={async () => {
                     setCommonCommentRow(null);
@@ -968,7 +969,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, commentContex
     {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
-    {!readOnly && <CommentComposer label="Individual comment" context={commentContext} onSubmitted={onCommentSubmitted} />}
+    {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
     <CommentSubmissionRecovery submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
     <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
   </>;

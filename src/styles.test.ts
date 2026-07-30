@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const styles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
 const samplePage = readFileSync(new URL("./pages/SamplePage.tsx", import.meta.url), "utf8");
 const commentComposer = readFileSync(new URL("./components/CommentComposer.tsx", import.meta.url), "utf8");
+const multiSampleRunGrid = readFileSync(new URL("./components/MultiSampleRunGrid.tsx", import.meta.url), "utf8");
 
 describe("responsive layout tiers", () => {
   it("uses only the documented medium and narrow breakpoints", () => {
@@ -137,6 +138,26 @@ describe("comment composer placeholder", () => {
     expect(commentComposer).not.toMatch(/placeholder\s*\?\?/);
     expect(commentComposer).not.toMatch(/placeholder\?:\s*string/);
     expect(samplePage).not.toMatch(/placeholder="Observation about this sample/);
+  });
+});
+
+describe("Process grid comment composer", () => {
+  it("expands from the rendered text width and keeps its complete toolbar together", () => {
+    expect(commentComposer).toMatch(/adaptiveToolbarLayout\?:\s*boolean/);
+    expect(commentComposer).toMatch(/textareaUsesMultipleVisualLines/);
+    expect(commentComposer).toMatch(/new ResizeObserver\(expandWhenTextWraps\)/);
+    expect(commentComposer).toMatch(/hasDraftItems \|\| preparing \|\| showLinkForm/);
+    expect(commentComposer).toMatch(/className="comment-composer-tools"/);
+    expect(styles).toMatch(/\.grid-comment-composer\.adaptive-toolbar-layout \.comment-composer-row\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(styles).toMatch(/\.grid-comment-composer\.adaptive-toolbar-layout\.is-expanded textarea\s*\{[^}]*width:\s*100%[^}]*flex:\s*0 0 100%/);
+    expect(styles).toMatch(/\.grid-comment-composer\.adaptive-toolbar-layout\.is-expanded \.comment-composer-tools\s*\{[^}]*margin-left:\s*auto/);
+    expect(styles).not.toMatch(/\.recipe-cell \.grid-comment-composer textarea\s*\{[^}]*flex-basis:\s*100%/);
+  });
+
+  it("enables adaptive layout only for the two inline Process grid composers", () => {
+    expect(multiSampleRunGrid.match(/adaptiveToolbarLayout/g)).toHaveLength(2);
+    expect(commentComposer).toMatch(/setToolbarExpanded\(false\)[\s\S]*?requestAnimationFrame\(resizeTextarea\)/);
+    expect(commentComposer).toMatch(/!body\.trim\(\) && !hasDraftItems && !preparing && !showLinkForm && !showAttachmentMenu/);
   });
 });
 
