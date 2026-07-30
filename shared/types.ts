@@ -25,6 +25,7 @@ export interface SampleSummary {
   status: SampleStatus;
   location: string | null;
   parentId: string | null;
+  inheritedStateHash: string | null;
   pinned: boolean;
   createdAt: string;
   updatedAt: string;

@@ -111,6 +111,7 @@ function sample(overrides: Partial<SampleDetail> = {}): SampleDetail {
     status: "active",
     location: "Box A",
     parentId: null,
+    inheritedStateHash: null,
     parent: null,
     children: [],
     pinned: false,

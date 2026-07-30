@@ -12,6 +12,7 @@ import { SplitSampleDialog } from "../components/SplitSampleDialog";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
+import { currentStructurePresentation } from "../lib/currentStructure";
 import { exportSample } from "../lib/exportSample";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
@@ -168,6 +169,7 @@ export function SamplePage() {
     ? `?run=${encodeURIComponent(activeProcessRun.id)}`
     : "?action=start"}`;
   const metrologyActionLabel = activeMetrologyRun ? "Continue metrology" : "Start metrology";
+  const currentStructure = currentStructurePresentation(sample);
 
   return <div className="page sample-overview-page">
     <Link className="back-link" to="/samples">← Samples</Link>
@@ -253,8 +255,8 @@ export function SamplePage() {
         <article className="card sample-current-structure">
           <div className="card-copy">
             <h2 className="card-title">Current structure</h2>
-            <p className="card-value">{sample.currentStateStepTitle ? `After ${sample.currentStateStepTitle}` : sample.latestWorkflowName ? "Latest recorded substrate" : "No process structure yet"}</p>
-            <p className="card-meta">{sample.latestWorkflowName ? `${sample.latestWorkflowName}${sample.latestWorkflowVersion ? ` · v${sample.latestWorkflowVersion}` : ""}` : "Start a process run to establish the first substrate snapshot."}</p>
+            <p className="card-value">{currentStructure.title}</p>
+            <p className="card-meta">{currentStructure.detail}</p>
             {latestProcessRun && <Link className="text-button structure-source-link" to={`/processing/${sample.id}?run=${encodeURIComponent(latestProcessRun.id)}`}>Open source run</Link>}
           </div>
           <SampleStateThumbnail sample={sample} />

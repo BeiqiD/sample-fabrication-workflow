@@ -68,6 +68,7 @@ function sample(id: string): SampleDetail {
     status: "active",
     location: null,
     parentId: null,
+    inheritedStateHash: null,
     pinned: false,
     updatedAt: "2026-01-01T00:00:00.000Z",
     latestWorkflowName: null,
