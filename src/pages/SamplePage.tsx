@@ -2,6 +2,7 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
+import { CommentAttachmentList } from "../components/CommentAttachmentList";
 import { CommentComposer, CommentSubmissionRecovery } from "../components/CommentComposer";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DiagramGallery } from "../components/MultiSampleRunGrid";
@@ -27,11 +28,6 @@ function runStatusLabel(status: SampleRun["status"]) {
   if (status === "cancelled") return "Cancelled";
   if (status === "superseded") return "Superseded";
   return "Active";
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function runStructureFrames(run: SampleRun) {
@@ -295,14 +291,7 @@ export function SamplePage() {
               label={`${note.label} photo`}
               kind="photo"
             /></div>}
-            {note.attachments.length > 0 && <div className="sample-note-attachments">
-              <small>Attachments</small>
-              {note.attachments.map((attachment) => attachment.kind === "link"
-                ? <a href={attachment.url} target="_blank" rel="noreferrer" key={attachment.id}>↗ {attachment.title}</a>
-                : attachment.downloadUrl
-                  ? <a href={attachment.downloadUrl} key={attachment.id}>📎 {attachment.filename} · {formatBytes(attachment.byteSize)}</a>
-                  : <span className={`attachment-status status-${attachment.status}`} key={attachment.id}>📎 {attachment.filename} · {attachment.status}</span>)}
-            </div>}
+            <CommentAttachmentList attachments={note.attachments} className="sample-note-attachments" />
           </div>
           <div className="sample-note-footer">
             <span>{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>

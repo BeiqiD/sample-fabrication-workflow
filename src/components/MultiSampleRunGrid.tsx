@@ -11,8 +11,10 @@ import {
   type RunGridColumn,
 } from "../lib/runGrid";
 import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
+import { CommentAttachmentList } from "./CommentAttachmentList";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { DialogCloseIcon } from "./DialogCloseIcon";
 import { FileDropzone } from "./FileDropzone";
 import { MetrologyTemplateForm } from "./MetrologyTemplateForm";
 import { ProcessPlanCommentButton } from "./ProcessPlanCommentButton";
@@ -185,7 +187,7 @@ export function DiagramGallery({ keys, label, kind = "diagram", size = "compact"
           <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
         </div>
         <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
-        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer">×</button>
+        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer"><DialogCloseIcon /></button>
       </div>
       <div
         className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
@@ -247,7 +249,7 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
       <div className="recipe-details-handle" aria-hidden="true" />
       <div className="recipe-details-heading">
         <div><p className="dialog-kicker">Process step {number}</p><h2 id="recipe-details-title">{step.plannedTitle || step.title}</h2>{step.plannedToolName && <small>{step.plannedToolName}</small>}</div>
-        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close process-step details">×</button>
+        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close process-step details"><DialogCloseIcon /></button>
       </div>
       <div className={`recipe-details-content${hasPlannedCopy && hasPlannedDiagrams ? " has-diagrams" : ""}`}>
         {hasPlannedCopy && <div className="recipe-details-copy">
@@ -281,22 +283,9 @@ function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, commo
       </div>
       {(imageKeys.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : [comment.assetKey!]} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
     </div>
-    {attachments.length > 0 && <div className="comment-attachment-list">
-      <small>Attachments</small>
-      {attachments.map((attachment) => attachment.kind === "link"
-        ? <a href={attachment.url} target="_blank" rel="noreferrer" key={attachment.id}>↗ {attachment.title}</a>
-        : attachment.downloadUrl
-          ? <a href={attachment.downloadUrl} key={attachment.id}>📎 {attachment.filename} · {formatBytes(attachment.byteSize)}</a>
-          : <span className={`attachment-status status-${attachment.status}`} key={attachment.id}>📎 {attachment.filename} · {attachment.status}</span>)}
-    </div>}
+    <CommentAttachmentList attachments={attachments} />
     {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
   </div>;
-}
-
-function formatBytes(bytes: number) {
-  if (!bytes) return "";
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function recoverableFromComments(comments: RunStepComment[]) {
@@ -383,7 +372,7 @@ function ProcessPlanCommentDialog({
           <h2 id="process-plan-comment-title">{stepName}</h2>
           <small>{targets.length} checked sample{targets.length === 1 ? "" : "s"}</small>
         </div>
-        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close process-plan comments">×</button>
+        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close process-plan comments"><DialogCloseIcon /></button>
       </div>
       <div className="process-plan-comment-content">
         {!readOnly && targets.length > 0 && <CommentComposer
@@ -502,7 +491,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
 
   return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="step-drawer" role="dialog" aria-modal="true" aria-labelledby="step-drawer-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? metrology ? "Edit metrology record" : "Correct execution" : "Add fabrication step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? metrology ? "Edit metrology record" : "Correct execution" : "Add fabrication step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}><DialogCloseIcon /></button></div>
       <p className="muted">{editing ? metrology ? "Keep the result in comments and attachments; tool and parameters remain optional." : "Record what actually happened. The process plan stays unchanged." : "This fabrication step belongs only to this sample run."}</p>
       <form className="drawer-form" onSubmit={save}>
         {isTemplateStep ? <div className="locked-step-title"><small>Process step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>{metrology ? "Record title" : "Step name"}<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
@@ -570,7 +559,7 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
 
   return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingId) onClose(); }}>
     <aside className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}>×</button></div>
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}><DialogCloseIcon /></button></div>
       <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
       {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
         <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
@@ -797,7 +786,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       <div className="run-grid" style={{ "--sample-columns": columns.length } as React.CSSProperties}>
         <div className="run-grid-header recipe-column" ref={fullHeader}>
           <strong>{primaryRun.runKind === "metrology" ? "Record type" : "Process plan"}</strong>
-          <small>{primaryRun.runKind === "metrology" ? "Independent of fabrication" : "Common actions use checked samples"}</small>
+          <small>{primaryRun.runKind === "metrology" ? "Standalone" : "Common actions use checked samples"}</small>
         </div>
         {columns.map((column) => <div className="run-grid-header sample-column-header" key={column.sample.id}>
           <label><input type="checkbox" checked={selected.has(column.sample.id)} disabled={!column.run || readOnly} onChange={() => toggleColumn(column.sample.id)} /><span><strong>{column.sample.title}</strong><small>{column.sample.code}</small></span></label>

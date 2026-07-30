@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type MetrologyTemplateSummary } from "../lib/api";
+import { DialogCloseIcon } from "./DialogCloseIcon";
 
 interface StandaloneMetrologyDialogProps {
   sampleId: string;
@@ -72,7 +73,7 @@ export function StandaloneMetrologyDialog({
     >
       <div className="run-start-dialog-heading">
         <div><p className="dialog-kicker">Independent run</p><h2 id={titleId}>Choose a metrology template</h2></div>
-        <button type="button" className="drawer-close" disabled={starting} onClick={onClose} aria-label="Close">×</button>
+        <button type="button" className="drawer-close" disabled={starting} onClick={onClose} aria-label="Close"><DialogCloseIcon /></button>
       </div>
       <p className="muted">This creates a standalone result record and does not change the active fabrication process or sample structure.</p>
       <label className="search-box metrology-template-search">

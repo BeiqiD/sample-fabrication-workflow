@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
+import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
@@ -58,6 +59,8 @@ export function ProcessingWorkspacePage() {
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
   const [confirmingRunFinish, setConfirmingRunFinish] = useState(false);
   const [finishRunError, setFinishRunError] = useState("");
+  const [confirmingRunDelete, setConfirmingRunDelete] = useState(false);
+  const [deleteRunError, setDeleteRunError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +83,8 @@ export function ProcessingWorkspacePage() {
     setSampleResults([]);
     setConfirmingRunFinish(false);
     setFinishRunError("");
+    setConfirmingRunDelete(false);
+    setDeleteRunError("");
   }, [selectedRun?.id]);
 
   useEffect(() => {
@@ -272,6 +277,21 @@ export function ProcessingWorkspacePage() {
     finally { setAssigning(false); }
   }
 
+  async function deleteSelectedRun() {
+    if (!sample || !selectedRun) return;
+    setAssigning(true); setDeleteRunError(""); setError("");
+    try {
+      await api.deleteRun(sample.id, selectedRun.id, {
+        expectedSampleUpdatedAt: sample.updatedAt,
+      });
+      const nextRun = sample.runs.find((run) => run.id !== selectedRun.id) ?? null;
+      setConfirmingRunDelete(false);
+      updateSearchParams({ run: nextRun?.id ?? "" });
+      await load();
+    } catch (error) { setDeleteRunError((error as Error).message); }
+    finally { setAssigning(false); }
+  }
+
   function openTransition(mode: "start" | "update" | "reopen") {
     setTransitionMode(mode);
     setProcessFamilyQuery("");
@@ -348,6 +368,18 @@ export function ProcessingWorkspacePage() {
       icon: <ActionIcon name="plan-update" />,
       disabled: assigning,
       onSelect: () => openTransition("reopen"),
+    };
+    if (action === "delete_run") return {
+      id: action,
+      label: "Delete run",
+      description: "Permanently remove this run",
+      icon: <ActionIcon name="delete" />,
+      danger: true,
+      disabled: assigning,
+      onSelect: () => {
+        setDeleteRunError("");
+        setConfirmingRunDelete(true);
+      },
     };
     return {
       id: action,
@@ -443,9 +475,24 @@ export function ProcessingWorkspacePage() {
         }}
         onConfirm={() => void finishActiveRun()}
       />}
+      {confirmingRunDelete && selectedRun && <ConfirmDeleteDialog
+        eyebrow={`Delete ${selectedRun.runKind} run`}
+        title={`Delete this ${selectedRun.runKind} run?`}
+        description="The run and its steps, comments, attachment associations, plan revisions, and verification records will be removed. Existing timeline entries remain as read-only history; detached files follow the normal retention period before cleanup."
+        summary={selectedRunLabel}
+        deleting={assigning}
+        error={deleteRunError}
+        confirmLabel="Delete run"
+        busyLabel="Deleting…"
+        onCancel={() => {
+          setConfirmingRunDelete(false);
+          setDeleteRunError("");
+        }}
+        onConfirm={() => void deleteSelectedRun()}
+      />}
       {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !assigning) setTransitionMode(null); }}>
         <section className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
-          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close">×</button></div>
+          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close"><DialogCloseIcon /></button></div>
           <p className="muted">{transitionMode === "start" ? "This creates an independent process run. Earlier runs remain completed." : "Only a newer version of the same process template can continue this run; completed steps remain frozen."}</p>
           <div className={`process-template-picker ${transitionMode === "start" ? "" : "fixed-family"}`}>
             {transitionMode === "start" && <section className="process-template-picker-column">

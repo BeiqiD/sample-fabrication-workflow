@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MAX_SPLIT_PIECES, SAMPLE_CREATION_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleStatus, type SplitSamplePieceInput } from "../../shared/types";
 import { api } from "../lib/api";
 import { createSplitPieceDrafts } from "../lib/splitSamples";
+import { DialogCloseIcon } from "./DialogCloseIcon";
 
 export function SplitSampleDialog({ sample, onCancel, onComplete }: {
   sample: SampleDetail;
@@ -88,7 +89,7 @@ export function SplitSampleDialog({ sample, onCancel, onComplete }: {
     <section className="split-dialog" role="dialog" aria-modal="true" aria-labelledby="split-dialog-title">
       <div className="split-dialog-heading">
         <div><p className="dialog-kicker">Split sample</p><h2 id="split-dialog-title">{sample.code} · {sample.title}</h2></div>
-        <button type="button" className="drawer-close" aria-label="Close split dialog" disabled={saving} onClick={onCancel}>×</button>
+        <button type="button" className="drawer-close" aria-label="Close split dialog" disabled={saving} onClick={onCancel}><DialogCloseIcon /></button>
       </div>
 
       {stage === "setup" ? <>
