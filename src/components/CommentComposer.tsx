@@ -31,6 +31,7 @@ interface CommentComposerProps {
   onSubmitted: () => Promise<void>;
   onCancel?: () => void;
   submitLabel?: string;
+  adaptiveToolbarLayout?: boolean;
 }
 
 export function CommentSubmissionRecovery({
@@ -198,6 +199,18 @@ function inferredLinkTitle(value: string) {
   }
 }
 
+function textareaUsesMultipleVisualLines(textarea: HTMLTextAreaElement) {
+  if (textarea.value.includes("\n")) return true;
+  const styles = window.getComputedStyle(textarea);
+  const lineHeight = Number.parseFloat(styles.lineHeight);
+  const paddingTop = Number.parseFloat(styles.paddingTop);
+  const paddingBottom = Number.parseFloat(styles.paddingBottom);
+  if (![lineHeight, paddingTop, paddingBottom].every(Number.isFinite)) {
+    return textarea.scrollHeight > textarea.clientHeight + 1;
+  }
+  return textarea.scrollHeight > Math.ceil(lineHeight + paddingTop + paddingBottom) + 1;
+}
+
 async function fileSha256(file: File) {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
   return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -209,6 +222,7 @@ export function CommentComposer({
   onSubmitted,
   onCancel,
   submitLabel = "Add",
+  adaptiveToolbarLayout = false,
 }: CommentComposerProps) {
   const [body, setBody] = useState("");
   const [images, setImages] = useState<DraftImage[]>([]);
@@ -221,6 +235,7 @@ export function CommentComposer({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<AnchoredMenuPosition | null>(null);
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [toolbarExpanded, setToolbarExpanded] = useState(false);
   const [storage, setStorage] = useState<ManagedStorageStatus | null>(null);
   const [submissions, setSubmissions] = useState<LocalSubmission[]>([]);
   const submissionsRef = useRef(submissions);
@@ -231,14 +246,42 @@ export function CommentComposer({
   const attachmentTriggerRef = useRef<HTMLButtonElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRowRef = useRef<HTMLDivElement>(null);
   const storageReady = storage?.available === true;
   const storageMessage = storage?.message ?? "Checking file storage connection…";
+  const hasDraftItems = images.length > 0 || attachments.length > 0 || links.length > 0 || rejected.length > 0;
 
   useEffect(() => { submissionsRef.current = submissions; }, [submissions]);
   useEffect(() => { imagesRef.current = images; }, [images]);
   useEffect(() => {
     void loadManagedStorageStatus().then(setStorage);
   }, []);
+  useEffect(() => {
+    if (adaptiveToolbarLayout && (hasDraftItems || preparing || showLinkForm)) {
+      setToolbarExpanded(true);
+    }
+  }, [adaptiveToolbarLayout, hasDraftItems, preparing, showLinkForm]);
+  useLayoutEffect(() => {
+    if (!adaptiveToolbarLayout || toolbarExpanded) return;
+    const row = composerRowRef.current;
+    const textarea = textareaRef.current;
+    if (!row || !textarea) return;
+
+    function expandWhenTextWraps() {
+      const currentTextarea = textareaRef.current;
+      if (currentTextarea?.value && textareaUsesMultipleVisualLines(currentTextarea)) {
+        setToolbarExpanded(true);
+      }
+    }
+
+    expandWhenTextWraps();
+    const observer = new ResizeObserver(expandWhenTextWraps);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [adaptiveToolbarLayout, toolbarExpanded]);
+  useLayoutEffect(() => {
+    if (toolbarExpanded) resizeTextarea();
+  }, [toolbarExpanded]);
   useEffect(() => () => {
     for (const image of imagesRef.current) URL.revokeObjectURL(image.previewUrl);
     for (const controller of uploadControllers.current.values()) controller.abort();
@@ -312,8 +355,16 @@ export function CommentComposer({
     textarea.style.height = `${Math.min(112, textarea.scrollHeight)}px`;
   }
 
+  function handleTextareaInput(textarea: HTMLTextAreaElement) {
+    if (adaptiveToolbarLayout && !toolbarExpanded && textarea.value && textareaUsesMultipleVisualLines(textarea)) {
+      setToolbarExpanded(true);
+    }
+    resizeTextarea();
+  }
+
   async function insertAsCommentImages(files: File[]) {
     if (!files.length) return;
+    if (adaptiveToolbarLayout) setToolbarExpanded(true);
     setPreparing(true);
     setDraftError("");
     for (const file of files) {
@@ -352,7 +403,10 @@ export function CommentComposer({
         accepted.push({ id: crypto.randomUUID(), file });
       }
     }
-    if (accepted.length) setAttachments((current) => [...current, ...accepted]);
+    if (accepted.length) {
+      if (adaptiveToolbarLayout) setToolbarExpanded(true);
+      setAttachments((current) => [...current, ...accepted]);
+    }
   }
 
   function removeImage(id: string) {
@@ -536,6 +590,7 @@ export function CommentComposer({
     setAttachments([]);
     setLinks([]);
     setRejected([]);
+    setToolbarExpanded(false);
     requestAnimationFrame(resizeTextarea);
     void startSubmission(input, local);
   }
@@ -589,7 +644,7 @@ export function CommentComposer({
   }
 
   return <form
-    className={`grid-comment-composer${dragging ? " dragging" : ""}`}
+    className={`grid-comment-composer${dragging ? " dragging" : ""}${adaptiveToolbarLayout ? " adaptive-toolbar-layout" : ""}${adaptiveToolbarLayout && toolbarExpanded ? " is-expanded" : ""}`}
     onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
     onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
     onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }}
@@ -599,15 +654,22 @@ export function CommentComposer({
       void insertAsCommentImages([...event.dataTransfer.files]);
     }}
     onSubmit={submit}
+    onBlur={(event) => {
+      if (!adaptiveToolbarLayout) return;
+      if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+      if (!body.trim() && !hasDraftItems && !preparing && !showLinkForm && !showAttachmentMenu) {
+        setToolbarExpanded(false);
+      }
+    }}
   >
     {dragging && <div className="comment-drop-overlay">Drop files to prepare comment images</div>}
-    <div className="comment-composer-row">
+    <div ref={composerRowRef} className="comment-composer-row">
       <textarea
         ref={textareaRef}
         rows={1}
         aria-label={label}
         value={body}
-        onInput={resizeTextarea}
+        onInput={(event) => handleTextareaInput(event.currentTarget)}
         onChange={(event) => setBody(event.target.value)}
         onPaste={(event) => {
           const files = [...event.clipboardData.files];
@@ -637,49 +699,55 @@ export function CommentComposer({
           event.target.value = "";
         }}
       />
-      <button type="button" className="comment-tool-button image-button" onClick={() => imageInputRef.current?.click()} title="Add comment images">
-        <span className="comment-image-icon" aria-hidden="true" /><span className="visually-hidden">Add comment images</span>
-      </button>
-      <div className="comment-attachment-control">
-        <button
-          ref={attachmentTriggerRef}
-          type="button"
-          className="comment-tool-button"
-          onClick={() => setShowAttachmentMenu((value) => !value)}
-          title="Add attachment"
-          aria-haspopup="menu"
-          aria-expanded={showAttachmentMenu}
-        >
-          <span className="comment-attach-icon" aria-hidden="true" /><span className="visually-hidden">Add attachment</span>
+      <div className="comment-composer-tools">
+        <button type="button" className="comment-tool-button image-button" onClick={() => imageInputRef.current?.click()} title="Add comment images">
+          <span className="comment-image-icon" aria-hidden="true" /><span className="visually-hidden">Add comment images</span>
         </button>
-        {showAttachmentMenu && createPortal(<div
-          ref={attachmentMenuRef}
-          className="attachment-menu"
-          role="menu"
-          aria-label="Attachment options"
-          data-placement={attachmentMenuPosition?.placement}
-          style={{
-            left: attachmentMenuPosition?.left ?? 0,
-            top: attachmentMenuPosition?.top ?? 0,
-            visibility: attachmentMenuPosition ? "visible" : "hidden",
-          }}
-        >
+        <div className="comment-attachment-control">
           <button
+            ref={attachmentTriggerRef}
             type="button"
-            role="menuitem"
-            disabled={!storageReady}
-            onClick={() => { setShowAttachmentMenu(false); attachmentInputRef.current?.click(); }}
+            className="comment-tool-button"
+            onClick={() => setShowAttachmentMenu((value) => !value)}
+            title="Add attachment"
+            aria-haspopup="menu"
+            aria-expanded={showAttachmentMenu}
           >
-            Upload attachment
+            <span className="comment-attach-icon" aria-hidden="true" /><span className="visually-hidden">Add attachment</span>
           </button>
-          <button type="button" role="menuitem" onClick={() => { setShowAttachmentMenu(false); setShowLinkForm(true); }}>Add attachment link</button>
-          {!storageReady && <p>{storageMessage}</p>}
-        </div>, document.body)}
+          {showAttachmentMenu && createPortal(<div
+            ref={attachmentMenuRef}
+            className="attachment-menu"
+            role="menu"
+            aria-label="Attachment options"
+            data-placement={attachmentMenuPosition?.placement}
+            style={{
+              left: attachmentMenuPosition?.left ?? 0,
+              top: attachmentMenuPosition?.top ?? 0,
+              visibility: attachmentMenuPosition ? "visible" : "hidden",
+            }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              disabled={!storageReady}
+              onClick={() => { setShowAttachmentMenu(false); attachmentInputRef.current?.click(); }}
+            >
+              Upload attachment
+            </button>
+            <button type="button" role="menuitem" onClick={() => {
+              setShowAttachmentMenu(false);
+              if (adaptiveToolbarLayout) setToolbarExpanded(true);
+              setShowLinkForm(true);
+            }}>Add attachment link</button>
+            {!storageReady && <p>{storageMessage}</p>}
+          </div>, document.body)}
+        </div>
+        {onCancel && <button type="button" className="comment-cancel-button" onClick={onCancel} aria-label="Cancel common comment" title="Cancel">×</button>}
+        <button className="button primary compact-button comment-add-button" disabled={preparing || (!body.trim() && !images.length && !attachments.length && !links.length)}>
+          {preparing ? "Preparing…" : submitLabel}
+        </button>
       </div>
-      {onCancel && <button type="button" className="comment-cancel-button" onClick={onCancel} aria-label="Cancel common comment" title="Cancel">×</button>}
-      <button className="button primary compact-button comment-add-button" disabled={preparing || (!body.trim() && !images.length && !attachments.length && !links.length)}>
-        {preparing ? "Preparing…" : submitLabel}
-      </button>
     </div>
 
     {showLinkForm && <LinkAttachmentForm

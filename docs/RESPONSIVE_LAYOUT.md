@@ -21,6 +21,10 @@ Content-driven behavior is not a viewport tier. In particular:
 
 - the Process grid may change column sizing according to the number of visible
   samples;
+- inline Process grid comment composers keep short text and their tools on one
+  row, then move the complete tool group below a full-width textarea when the
+  text begins to wrap at the composer's actual width; images and attachments
+  also lock this expanded state until the draft is cleared and focus leaves;
 - horizontally scrollable Process grids remain scrollable whenever their
   content is wider than the viewport;
 - wide Notes & observations takes its height from the left priority column and
@@ -83,6 +87,13 @@ The following behavior is narrow-only and must not be moved to the medium tier:
 Run-menu triggers become icon-only in both medium and narrow tiers so the
 complete control group remains on one row. Their menu items retain full labels
 and descriptions.
+
+The adaptive inline comment layout is independent of these viewport tiers. It
+uses the rendered composer width because sample count can narrow a Process grid
+column even on a wide screen. It applies to the inline Process plan and
+individual sample-step composers only. The narrow Process plan comment dialog,
+Sample Notes, and comment composers outside the Process grid retain their
+existing layout.
 
 ## Sample detail
 
