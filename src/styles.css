@@ -761,7 +761,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .split-piece-description { grid-column: 1 / -1; }
 .sample-overview-page, .sample-timeline-page { width: min(var(--content-width), calc(100% - 40px)); }
 .sample-priority-grid { display: grid; grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); gap: 28px; align-items: stretch; }
-.sample-priority-sidebar { min-width: 0; display: grid; gap: 16px; }
+.sample-priority-sidebar { min-width: 0; display: grid; align-content: space-between; gap: 16px; }
 .sample-details-card { position: static; }
 .sample-details-card .sample-location-value { color: var(--ink); font-size: 16px; font-weight: 680; }
 .sample-danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px -18px -18px; padding: 16px 18px; border-top: 1px solid color-mix(in srgb, var(--danger) 28%, var(--line)); border-radius: 0 0 12px 12px; background: color-mix(in srgb, var(--danger-soft) 55%, var(--paper)); }
