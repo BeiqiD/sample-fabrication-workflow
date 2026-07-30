@@ -29,7 +29,7 @@ Content-driven behavior is not a viewport tier. In particular:
   content is wider than the viewport;
 - wide Notes & observations takes its height from the left priority column and
   scrolls its note list internally; medium and narrow use the page scroll,
-  showing the five most recent notes by default with an option to show all;
+  showing the three most recent notes by default with an option to show all;
 - text may wrap inside content regions, but button labels do not wrap inside a
   button.
 
@@ -110,12 +110,12 @@ increase the overview height. The two cards in the left column size to their own
 content, and their gap remains fixed rather than absorbing height from Notes.
 
 In medium and narrow layouts, Notes & observations must not create a nested
-scroll region. The five most recent notes are shown in full by default. When
+scroll region. The three most recent notes are shown in full by default. When
 more notes exist, a touch-sized `Show all N notes` control reveals the complete
-list in the normal page flow; it changes to `Show recent 5` when expanded.
-The control stays immediately after the five-note preview, and older notes
-expand below it without moving the viewport. Adding a note restores the
-five-note view so the newest entry remains immediately visible.
+list in the normal page flow. Expanding replaces that control with the older
+notes without moving content above the expansion point, and `Show recent 3`
+appears only at the bottom of the complete list. Adding a note restores the
+three-note view so the newest entry remains immediately visible.
 
 ## Templates
 

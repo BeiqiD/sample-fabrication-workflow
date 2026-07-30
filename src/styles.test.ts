@@ -88,18 +88,20 @@ describe("sample overview notes", () => {
     expect(styles).toMatch(/\.sample-notes-list\s*\{[^}]*min-height:\s*0[^}]*flex:\s*1 1 auto[^}]*overflow-y:\s*auto/);
   });
 
-  it("uses a five-note touch preview without nested scrolling below the wide tier", () => {
+  it("uses a three-note touch preview without nested scrolling below the wide tier", () => {
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-slot\s*\{[^}]*position:\s*static[^}]*order:\s*2/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-card\s*\{[^}]*position:\s*static[^}]*overflow:\s*visible/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*flex:\s*0 1 auto[^}]*max-height:\s*none[^}]*overflow:\s*visible/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\.is-collapsed > \.sample-note-preview-overflow\s*\{[^}]*display:\s*none/);
     expect(styles).toMatch(/\.sample-notes-toggle\s*\{[^}]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-toggle\s*\{[^}]*min-height:\s*44px[^}]*display:\s*inline-flex/);
-    expect(samplePage).toMatch(/const SAMPLE_NOTES_PREVIEW_COUNT = 5/);
-    expect(samplePage).toMatch(/notes\.map\(\(note, index\)[\s\S]*?index === SAMPLE_NOTES_PREVIEW_COUNT[\s\S]*?className="sample-notes-toggle"[\s\S]*?<article className=\{`sample-note[^`]*sample-note-preview-overflow/);
+    expect(samplePage).toMatch(/const SAMPLE_NOTES_PREVIEW_COUNT = 3/);
+    expect(samplePage).toMatch(/notes\.map\(\(note, index\)[\s\S]*?!showAllNotes && index === SAMPLE_NOTES_PREVIEW_COUNT[\s\S]*?className="sample-notes-toggle"[\s\S]*?<article className=\{`sample-note[^`]*sample-note-preview-overflow/);
+    expect(samplePage).toMatch(/<\/Fragment>\)\}\s*\{showAllNotes && notes\.length > SAMPLE_NOTES_PREVIEW_COUNT[\s\S]*?className="sample-notes-toggle"/);
     expect(samplePage).toMatch(/Show recent \$\{SAMPLE_NOTES_PREVIEW_COUNT\}/);
     expect(samplePage).toMatch(/Show all \$\{notes\.length\} notes/);
-    expect(samplePage).toMatch(/aria-controls="sample-notes-list"[\s\S]*?aria-expanded=\{showAllNotes\}/);
+    expect(samplePage).toMatch(/pendingNotesViewportTopRef\.current = notesListRef\.current\?\.getBoundingClientRect\(\)\.top \?\? null[\s\S]*?setShowAllNotes\(true\)/);
+    expect(samplePage).toMatch(/const viewportShift = nextTop - previousTop[\s\S]*?window\.scrollBy\(0, viewportShift\)/);
     expect(samplePage).not.toMatch(/scrollIntoView/);
   });
 });
