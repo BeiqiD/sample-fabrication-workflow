@@ -76,6 +76,24 @@ describe("sample header actions", () => {
   });
 });
 
+describe("sample overview notes", () => {
+  it("uses the left priority column to set the wide Notes height", () => {
+    expect(samplePage).toMatch(/className="sample-notes-slot"[\s\S]*?className="card sample-notes-card"/);
+    expect(styles).toMatch(/\.sample-notes-slot\s*\{[^}]*position:\s*relative/);
+    expect(styles).toMatch(/\.sample-notes-card\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*overflow:\s*hidden/);
+    expect(styles).toMatch(/\.sample-notes-heading\s*\{[^}]*flex:\s*0 0 auto/);
+    expect(styles).toMatch(/\.sample-note-composer\s*\{[^}]*flex:\s*0 0 auto/);
+    expect(styles).toMatch(/\.sample-notes-list\s*\{[^}]*min-height:\s*0[^}]*flex:\s*1 1 auto[^}]*overflow-y:\s*auto/);
+  });
+
+  it("restores content-driven Notes sizing below the wide tier", () => {
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-slot\s*\{[^}]*position:\s*static[^}]*order:\s*2/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-card\s*\{[^}]*position:\s*static[^}]*overflow:\s*visible/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*flex:\s*0 1 auto[^}]*max-height:\s*650px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.sample-notes-list\s*\{[^}]*max-height:\s*none[^}]*overflow:\s*visible/);
+  });
+});
+
 describe("run workflow actions", () => {
   it("keeps wide controls on one row and medium controls on two stable rows", () => {
     expect(styles).toMatch(/\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(260px,\s*420px\) 210px minmax\(0,\s*1fr\)/);

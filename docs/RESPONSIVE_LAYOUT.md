@@ -23,8 +23,9 @@ Content-driven behavior is not a viewport tier. In particular:
   samples;
 - horizontally scrollable Process grids remain scrollable whenever their
   content is wider than the viewport;
-- Notes & observations grows with its content and uses its existing scroll
-  limit;
+- wide Notes & observations takes its height from the left priority column and
+  scrolls its note list internally; medium retains the existing scroll limit,
+  while narrow expands naturally;
 - text may wrap inside content regions, but button labels do not wrap inside a
   button.
 
@@ -89,8 +90,10 @@ The following behavior is narrow-only and must not be moved to the medium tier:
 | Narrow | All header actions are icon-only | Existing phone order and spacing | Existing compact run summary |
 
 In the wide layout, Notes & observations and the left priority column retain a
-shared bottom edge. The two cards in the left column size to their own content;
-extra height belongs between those cards and must never stretch their contents.
+shared bottom edge. The left priority column alone sets their shared height;
+additional Notes content scrolls inside the remaining list area and must not
+increase the overview height. The two cards in the left column size to their own
+content, and their gap remains fixed rather than absorbing height from Notes.
 
 ## Templates
 
