@@ -31,6 +31,10 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("sample-workflow-theme", theme);
+
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const canvasColor = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim();
+    if (themeColor && canvasColor) themeColor.content = canvasColor;
   }, [theme]);
 
   return (
