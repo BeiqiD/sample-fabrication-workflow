@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { installProcessPlanCommentDraftGuard } from "./lib/process-plan-comment-draft-guard";
 import "./styles.css";
+import "./palette.css";
 
 installProcessPlanCommentDraftGuard();
 
