@@ -13,6 +13,7 @@ import { EmptyState } from "../components/EmptyState";
 import { PaginationControls } from "../components/PaginationControls";
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
+import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
 import {
   activeSampleDirectorySettingCount,
@@ -173,7 +174,7 @@ export function SamplesPage() {
     </div>
     <label className="search-box sample-directory-search">
       <span>Search</span>
-      <input autoFocus type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search samples…" />
+      <input autoFocus={shouldAutoFocusPageField()} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search samples…" />
     </label>
     <div className="sample-directory-toolbar">
       <p>{loading ? "Loading samples…" : <><strong>{pagination.total}</strong> {pagination.total === 1 ? "sample" : "samples"}</>}</p>

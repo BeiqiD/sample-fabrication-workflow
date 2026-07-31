@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { FileDropzone } from "../components/FileDropzone";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { api, type MetrologyTemplateInput, type TemplateDetail } from "../lib/api";
+import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import { templateDetailPath } from "../lib/templateRoutes";
 
 export function MetrologyTemplatePage() {
@@ -93,6 +94,7 @@ export function MetrologyTemplatePage() {
     <MetrologyTemplateForm
       title="Template details"
       submitLabel="Save changes"
+      autoFocusTitle={shouldAutoFocusPageField()}
       initialValue={{
         name: template.name,
         toolName: step.toolName || "",
