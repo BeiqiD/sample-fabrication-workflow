@@ -50,7 +50,7 @@
   --accent: #aab7e8;
   --accent-contrast: #111416;
   --accent-soft: #29314a;
-  --status-contrast: #111416;
+  --status-contrast: #0c1611;
   --media-panel: #0f1214;
   --media-toolbar: #181d20;
   --floating-shadow-soft: rgba(0, 0, 0, .28);
@@ -60,7 +60,7 @@
   --overlay: rgba(0, 0, 0, .68);
 }
 
-/* Status marks must not inherit foreground decisions from the interface accent. */
+/* Preserve the original status-mark foreground independently from the new accent. */
 .done-mark,
 .state-symbol {
   color: var(--status-contrast);
