@@ -26,7 +26,9 @@ const interfaceTokens = [
   "status-contrast",
   "media-panel",
   "media-toolbar",
+  "floating-shadow-soft",
   "floating-shadow",
+  "floating-shadow-strong",
   "shadow",
   "overlay",
 ];
@@ -151,6 +153,11 @@ describe("interface palette", () => {
     expect(app).toMatch(/getPropertyValue\("--canvas"\)/);
     expect(palette).toMatch(/\.photo-lightbox \.image-lightbox-panel\s*\{[^}]*var\(--media-panel\)/s);
     expect(palette).toMatch(/\.image-lightbox-toolbar\s*\{[^}]*var\(--media-toolbar\)/s);
+    expect(palette).toMatch(/\.attachment-menu\s*\{[^}]*var\(--floating-shadow-soft\)/s);
+    expect(palette).toMatch(/\.step-drawer\s*\{[^}]*var\(--floating-shadow-soft\)/s);
+    expect(palette).toMatch(/\.process-plan-comment-dialog\s*\{[^}]*var\(--floating-shadow\)/s);
     expect(palette).toMatch(/\.run-action-menu-panel\s*\{[^}]*var\(--floating-shadow\)/s);
+    expect(palette).toMatch(/\.confirm-dialog,\s*\.run-start-dialog,\s*\.split-dialog\s*\{[^}]*var\(--floating-shadow\)/s);
+    expect(palette).toMatch(/\.recipe-details-sheet\s*\{[^}]*var\(--floating-shadow-strong\)/s);
   });
 });
