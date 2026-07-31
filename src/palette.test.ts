@@ -101,6 +101,8 @@ describe("interface palette", () => {
     expect(palette).toContain("--accent-soft: #e3e4f1;");
     expect(palette).toContain("--accent: #aab7e8;");
     expect(palette).toContain("--accent-soft: #29314a;");
+    expect(palette).toContain("--status-contrast: #ffffff;");
+    expect(palette).toContain("--status-contrast: #0c1611;");
   });
 
   it("keeps interface text and accent contrast above the WCAG AA text threshold", () => {
