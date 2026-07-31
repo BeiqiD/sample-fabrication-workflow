@@ -1,0 +1,54 @@
+/*
+ * Interface palette only.
+ *
+ * Workflow meaning stays in the semantic tokens declared in styles.css:
+ * success, warning, danger, info, and neutral. Keeping those tokens out of
+ * this file prevents a visual theme change from changing sample or step state.
+ */
+:root {
+  color: #202522;
+  background: #f7f8f6;
+  --canvas: #f7f8f6;
+  --paper: #ffffff;
+  --surface: #f0f2f0;
+  --surface-muted: #e8ebe8;
+  --surface-warm: #f4f4ef;
+  --input: #ffffff;
+  --ink: #202522;
+  --muted: #69716d;
+  --line: #d9deda;
+  --line-strong: #c3cbc6;
+  --accent: #4f5d95;
+  --accent-contrast: #ffffff;
+  --accent-soft: #e3e4f1;
+  --status-contrast: #ffffff;
+  --shadow: rgba(31, 37, 34, .08);
+  --overlay: rgba(17, 20, 22, .48);
+}
+
+:root[data-theme="dark"] {
+  color: #eef2f0;
+  background: #111416;
+  --canvas: #111416;
+  --paper: #181c1f;
+  --surface: #1f2529;
+  --surface-muted: #262d32;
+  --surface-warm: #1c2022;
+  --input: #14181a;
+  --ink: #eef2f0;
+  --muted: #9fa8a3;
+  --line: #343c41;
+  --line-strong: #4a555c;
+  --accent: #aab7e8;
+  --accent-contrast: #111416;
+  --accent-soft: #29314a;
+  --status-contrast: #111416;
+  --shadow: rgba(0, 0, 0, .30);
+  --overlay: rgba(0, 0, 0, .68);
+}
+
+/* Status marks must not inherit foreground decisions from the interface accent. */
+.done-mark,
+.state-symbol {
+  color: var(--status-contrast);
+}
