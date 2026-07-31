@@ -255,7 +255,7 @@ export function TemplatesPage() {
               </div>
             </header>
             <div className="template-version-list">{visibleVersions.map((template) => <article className="template-version-row" key={template.id}>
-              <Link className="template-version-link" to={`/templates/${template.id}`} aria-label={`${template.locked ? "View" : "Edit"} ${template.name} version ${template.version}`}>
+              <Link className="template-version-link" to={`/templates/${template.id}`} aria-label={`Open ${template.name} version ${template.version}`}>
                 <div className="template-version-identity">
                   <div className="card-title-line"><strong>v{template.version}</strong>{template.version === family.latestVersion && <span className="meta-badge">Latest</span>}</div>
                   <small>{template.sourceFilename || "Manually created version"}</small>
@@ -263,9 +263,11 @@ export function TemplatesPage() {
                 <div className="template-version-fact"><small>Initial substrate</small><span>{initialSubstrateLabel(template)}</span></div>
                 <div className="template-version-fact"><small>State</small><span className={`template-state ${template.locked ? "locked" : "draft"}`}>{template.locked ? "Locked" : "Editable"}</span></div>
                 <div className="template-version-fact"><small>Steps</small><span>{template.stepCount}</span></div>
-                <span className="text-button template-row-open" aria-hidden="true">{template.locked ? "View" : "Edit"} →</span>
               </Link>
-              {!template.locked && <div className="template-row-actions"><button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeProcessTemplate(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button></div>}
+              <div className="template-row-actions">
+                <Link className="text-button template-row-edit" to={`/templates/${template.id}`}>{template.locked ? "View" : "Edit"} →</Link>
+                {!template.locked && <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeProcessTemplate(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button>}
+              </div>
             </article>)}</div>
           </section>;
         })}
@@ -282,15 +284,17 @@ export function TemplatesPage() {
       {metrologyError && <p className="error-banner">{metrologyError}</p>}
       {metrologyLoading ? <p className="muted">Loading metrology templates…</p> : metrologyTemplates.length ? <div className="metrology-template-list">
         {metrologyTemplates.map((template) => <article className="card metrology-template-row" id={`metrology-template-${template.id}`} key={template.id}>
-          <Link className="metrology-template-link" to={`/templates/metrology/${template.id}`} aria-label={`Edit ${template.name} metrology template`}>
+          <Link className="metrology-template-link" to={`/templates/metrology/${template.id}`} aria-label={`Open ${template.name} metrology template`}>
             <div className="metrology-template-identity"><p className="card-label">Metrology</p><h3 className="card-title">{template.name}</h3></div>
             <div className="metrology-template-summary">
               <span><small>Tool</small><strong>{template.toolName || "Optional"}</strong></span>
               <span><small>Default content</small><strong>{template.hasDefaultContent ? "Defined" : "Empty"}</strong></span>
             </div>
-            <span className="text-button template-row-open" aria-hidden="true">Edit →</span>
           </Link>
-          <div className="template-row-actions"><button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeMetrologyTemplate(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button></div>
+          <div className="template-row-actions">
+            <Link className="text-button template-row-edit" to={`/templates/metrology/${template.id}`}>Edit →</Link>
+            <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeMetrologyTemplate(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button>
+          </div>
         </article>)}
       </div> : <div className="card"><p className="muted padded">{hasQuery ? "No matching metrology templates." : "No metrology templates yet."}</p></div>}
       <PaginationControls pagination={metrologyPagination} label="Metrology template pages" disabled={metrologyLoading} onPageChange={(page) => changePage("metrologyPage", page, "metrology-templates")} />
