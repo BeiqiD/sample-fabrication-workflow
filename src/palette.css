@@ -27,7 +27,9 @@
   --status-contrast: #ffffff;
   --media-panel: #15191c;
   --media-toolbar: #202529;
+  --floating-shadow-soft: rgba(17, 20, 22, .16);
   --floating-shadow: rgba(17, 20, 22, .22);
+  --floating-shadow-strong: rgba(17, 20, 22, .26);
   --shadow: rgba(31, 37, 34, .08);
   --overlay: rgba(17, 20, 22, .48);
 }
@@ -51,7 +53,9 @@
   --status-contrast: #111416;
   --media-panel: #0f1214;
   --media-toolbar: #181d20;
+  --floating-shadow-soft: rgba(0, 0, 0, .28);
   --floating-shadow: rgba(0, 0, 0, .36);
+  --floating-shadow-strong: rgba(0, 0, 0, .44);
   --shadow: rgba(0, 0, 0, .30);
   --overlay: rgba(0, 0, 0, .68);
 }
@@ -101,6 +105,28 @@
   background: var(--media-toolbar);
 }
 
+.attachment-menu {
+  box-shadow: 0 12px 30px var(--floating-shadow-soft);
+}
+
+.step-drawer {
+  box-shadow: -12px 0 40px var(--floating-shadow-soft);
+}
+
+.process-plan-comment-dialog {
+  box-shadow: 0 -14px 44px var(--floating-shadow);
+}
+
 .run-action-menu-panel {
   box-shadow: 0 12px 34px var(--floating-shadow);
+}
+
+.confirm-dialog,
+.run-start-dialog,
+.split-dialog {
+  box-shadow: 0 20px 70px var(--floating-shadow);
+}
+
+.recipe-details-sheet {
+  box-shadow: 0 -16px 50px var(--floating-shadow-strong);
 }
