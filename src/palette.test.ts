@@ -132,7 +132,8 @@ describe("interface palette", () => {
     expect(palette).toMatch(/\.cell-actions button\.done-action,\s*\.recipe-actions > \.button\.primary\.recipe-icon-action\s*\{[^}]*var\(--success\)/s);
     expect(palette).toMatch(/\.state-action-panel:not\(\.add-action-panel\) button:first-child\s*\{[^}]*var\(--success\)/s);
     expect(palette).toMatch(/\.state-action-panel:not\(\.add-action-panel\) button:last-child\s*\{[^}]*var\(--danger\)/s);
-    expect(multiSampleRunGrid).toMatch(/className="done-action"[\s\S]*?>Done</);
+    expect(multiSampleRunGrid).toMatch(/className="done-action"[\s\S]*?: "Done"/);
+    expect(multiSampleRunGrid.match(/button primary compact-button recipe-icon-action/g)).toHaveLength(1);
     expect(multiSampleRunGrid).toMatch(/className="button primary compact-button recipe-icon-action"[\s\S]*?Done ·/);
     expect(multiSampleRunGrid).toMatch(/className="state-action-panel add-action-panel"[\s\S]*?Fabrication[\s\S]*?Metrology/);
     expect(multiSampleRunGrid).toMatch(/className="state-action-panel"[\s\S]*?State verified[\s\S]*?State mismatch/);
