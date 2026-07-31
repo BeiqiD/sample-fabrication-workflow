@@ -51,6 +51,12 @@ The `720px` boundary has functional meaning. JavaScript viewport checks must use
 the same boundary and are only allowed when interaction changes, not merely for
 styling.
 
+Page-load autofocus is input-capability driven rather than width-driven.
+Standalone pages may autofocus a primary field only when the primary pointer is
+fine and supports hover. Touch-style primary input waits for an explicit tap, so
+navigation never opens the on-screen keyboard. Input dialogs opened by a user
+action may continue to autofocus their first useful field.
+
 ## Samples directory
 
 | Tier | Directory row | Filters |
@@ -144,6 +150,6 @@ At each width:
 - no isolated final button may fall onto a new row by accident;
 - narrow-only icon and comment behavior must change only at `720px`;
 - wide Sample priority cards must not stretch internally when Notes grows;
-- medium and narrow Notes must show five entries by default without nested
+- medium and narrow Notes must show three entries by default without nested
   scrolling, while wide Notes continues to show every entry inside its fixed
   scroll region.

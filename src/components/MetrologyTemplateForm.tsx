@@ -15,6 +15,7 @@ export function MetrologyTemplateForm({
   onSubmit,
   onCancel,
   embedded = false,
+  autoFocusTitle = true,
 }: {
   initialValue?: MetrologyTemplateInput;
   title: string;
@@ -22,6 +23,7 @@ export function MetrologyTemplateForm({
   onSubmit: (input: MetrologyTemplateInput) => Promise<void>;
   onCancel: () => void;
   embedded?: boolean;
+  autoFocusTitle?: boolean;
 }) {
   const [name, setName] = useState(initialValue.name);
   const [toolName, setToolName] = useState(initialValue.toolName);
@@ -51,7 +53,7 @@ export function MetrologyTemplateForm({
     <div className="metrology-form-heading">
       <div><p className="card-label">Metrology template</p><h3 className="card-title">{title}</h3></div>
     </div>
-    <label><span>Template title</span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Raman" /></label>
+    <label><span>Template title</span><input autoFocus={autoFocusTitle} value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Raman" /></label>
     <label><span>Tool <small className="optional-label">Optional</small></span><input value={toolName} onChange={(event) => setToolName(event.target.value)} placeholder="Instrument or tool" /></label>
     <label><span>Parameters <small className="optional-label">Optional</small></span><textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} placeholder="Default settings, if useful" /></label>
     <label><span>Comments <small className="optional-label">Optional</small></span><textarea rows={4} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder="Default note for this record" /></label>
