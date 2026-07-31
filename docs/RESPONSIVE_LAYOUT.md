@@ -131,9 +131,11 @@ three-note view so the newest entry remains immediately visible.
 | Medium | Identity first, facts on explicit rows | Title above the action group |
 | Narrow | Same information structure with narrow spacing | Existing phone layout |
 
-Template Edit/Delete/Archive labels remain visible in every tier. Template
-picker dialogs remain two-column in medium and become one-column only in
-narrow.
+Template Edit/Delete/Archive labels remain visible in every tier. Edit/View and
+Delete share one baseline-aligned action group so title height cannot shift one
+action independently. Process-step Edit/Delete actions also remain in one
+non-wrapping group, while long step titles wrap in the remaining space. Template
+picker dialogs remain two-column in medium and become one-column only in narrow.
 
 ## Boundary checks
 

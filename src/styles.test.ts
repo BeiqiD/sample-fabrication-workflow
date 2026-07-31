@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 const styles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
 const samplePage = readFileSync(new URL("./pages/SamplePage.tsx", import.meta.url), "utf8");
+const templatePage = readFileSync(new URL("./pages/TemplatePage.tsx", import.meta.url), "utf8");
+const templatesPage = readFileSync(new URL("./pages/TemplatesPage.tsx", import.meta.url), "utf8");
 const commentComposer = readFileSync(new URL("./components/CommentComposer.tsx", import.meta.url), "utf8");
 const multiSampleRunGrid = readFileSync(new URL("./components/MultiSampleRunGrid.tsx", import.meta.url), "utf8");
 
@@ -176,9 +178,15 @@ describe("medium content layouts", () => {
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-run-card \.sample-run-summary\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto 18px/);
   });
 
-  it("uses an explicit second information row for template versions", () => {
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-link\s*\{[^}]*grid-template-columns:\s*minmax\(160px,\s*1\.4fr\)\s*minmax\(110px,\s*\.8fr\)\s*minmax\(70px,\s*\.5fr\) auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-identity\s*\{[^}]*grid-column:\s*1\s*\/\s*-2/);
+  it("uses an explicit second information row and one aligned action group for templates", () => {
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-link\s*\{[^}]*grid-template-columns:\s*minmax\(160px,\s*1\.4fr\)\s*minmax\(110px,\s*\.8fr\)\s*minmax\(70px,\s*\.5fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-identity\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.template-version-fact\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
+    expect(styles).toMatch(/\.template-row-actions\s*\{[^}]*align-items:\s*baseline[^}]*gap:\s*16px/);
+    expect(templatesPage.match(/className="text-button template-row-edit"/g)).toHaveLength(2);
+    expect(templatesPage).not.toMatch(/template-row-open/);
+    expect(styles).toMatch(/\.template-step-actions\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*align-items:\s*baseline[^}]*flex-wrap:\s*nowrap/);
+    expect(styles).toMatch(/\.template-step-body \.card-title-row > div:first-child\s*\{[^}]*min-width:\s*0/);
+    expect(templatePage).toMatch(/className="template-step-actions"[^]*?editing \? "Cancel" : "Edit"[^]*?Delete step<\/button><\/div>/);
   });
 });
