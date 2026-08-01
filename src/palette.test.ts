@@ -126,6 +126,7 @@ describe("interface palette", () => {
       ["#68716c", "#f4f5f4"],
       ["#526e89", "#fafbfa"],
       ["#526e89", "#e8eef3"],
+      ["#f7f8f6", "#526e89"],
       ["#1b1f21", "#849eb8"],
       ["#3e4541", "#f7f8f6"],
       ["#c9cfcc", "#141719"],
@@ -166,7 +167,7 @@ describe("interface palette", () => {
   it("keeps ambiguous controls grayscale until they are interacted with", () => {
     expect(styles).toMatch(/\.button\.primary\s*\{[^}]*border-color:\s*var\(--control-strong\)[^}]*background:\s*var\(--control-strong\)[^}]*color:\s*var\(--control-strong-contrast\)/s);
     expect(styles).toMatch(/\.button:hover:not\(:disabled\)\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
-    expect(styles).toMatch(/\.button\.primary:hover:not\(:disabled\),\s*\.button\.primary\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*background:\s*var\(--accent-fill\)/s);
+    expect(styles).toMatch(/\.button\.primary:hover:not\(:disabled\),\s*\.button\.primary\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*color:\s*var\(--control-strong-contrast\)[^}]*background:\s*var\(--accent\)/s);
     expect(styles).toMatch(/\.text-button\s*\{[^}]*color:\s*var\(--ink\)/s);
     expect(styles).toMatch(/\.text-button:hover:not\(:disabled\)\s*\{[^}]*color:\s*var\(--accent\)/s);
     expect(styles).toMatch(/\.eyebrow\s*\{[^}]*color:\s*var\(--muted\)/s);
