@@ -101,7 +101,7 @@ export function ProcessingPage() {
   return <div className="page processing-page">
     <div className="page-heading">
       <div><p className="eyebrow">Cleanroom workspace</p><h1>Processing</h1><p className="lead">Continue active process runs, or open a completed run for reference.</p></div>
-      <div className="header-actions"><Link className="button" to="/samples/new">New sample</Link><Link className="button" to="/samples">All samples</Link></div>
+      <div className="header-actions"><Link className="button primary" to="/samples/new">New sample</Link><Link className="button" to="/samples">All samples</Link></div>
     </div>
     <div className="processing-controls">
       <div className="segmented-control" aria-label="Filter processing runs">
