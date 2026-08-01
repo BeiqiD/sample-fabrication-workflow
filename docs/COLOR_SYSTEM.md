@@ -45,6 +45,20 @@ Status meanings follow the product domain rather than a universal color conventi
 - `Complete` is blue because the sample or run has left its active phase; it is not a success action.
 - `Stored`, `Consumed`, `Ready`, `Draft`, `Locked`, `Pinned`, and generic `Change` labels are neutral unless an additional condition makes them warning or danger states.
 
+Passive lifecycle labels use one consistent tonal-badge treatment even when Sample and Process/Run expose different status names. The soft background carries most of the semantic color, while the text uses a darker, low-saturation ink from the same color family. This keeps green, blue, amber, red, and neutral labels distinguishable without making descriptive text look like an action or alert.
+
+| Status ink | Light | Dark | Soft background |
+| --- | --- | --- | --- |
+| Success | `#52665C` | `#A7B9B0` | Success soft |
+| Warning | `#706149` | `#C2B49E` | Warning soft |
+| Danger | `#755D5B` | `#C0AAA8` | Danger soft |
+| Info | `#566875` | `#A7B6C0` | Info soft |
+| Neutral | `#5F6A64` | `#A4AFA8` | Neutral soft |
+
+These labels have no border. Their written status, pill shape, and tonal surface already provide sufficient separation, so adding an outline would create redundant emphasis. Danger labels such as `Lost`, `Blocked`, or `Cancelled` follow the same visual intensity as other passive statuses: a dusty red ink on a soft red surface, not the saturated danger treatment reserved for destructive controls, blocking messages, or immediate errors. Sample and Run labels may retain different type sizes for their surrounding layouts, but must use the same foreground/background mapping.
+
+This tonal-label rule does not weaken semantic operations or the Process grid. Done, Delete, Mismatch, error messages, and colored Process-grid state cells continue to use their stronger semantic treatments because they either cause a visible state change, demand attention, or support dense status scanning.
+
 Status icon foreground contrast is independent from the interaction accent. It remains `#F7F8F6` in light mode and `#0C1611` in dark mode.
 
 ### 2. Process-grid state colors
@@ -187,7 +201,8 @@ Before merging any color-system change:
 5. Confirm hover, focus, open, and selected treatments are consistent across pages.
 6. Confirm identical actions, especially `New sample`, use the same variant everywhere.
 7. Confirm Process-grid status coloring and `Active` green / `Complete` blue mappings remain intact.
-8. Confirm action-result colors still match their resulting visible state.
-9. Search for legacy hard-coded colors, tinted shadows, and default-state accent uses.
-10. Check browser chrome, favicon, dialogs, drawers, menus, and media surfaces.
-11. Verify contrast and ensure color is not the sole state cue.
+8. Confirm passive Sample and Run status labels use borderless tonal ink/background pairs with the same visual intensity.
+9. Confirm action-result colors still match their resulting visible state.
+10. Search for legacy hard-coded colors, tinted shadows, and default-state accent uses.
+11. Check browser chrome, favicon, dialogs, drawers, menus, and media surfaces.
+12. Verify contrast and ensure color is not the sole state cue.
