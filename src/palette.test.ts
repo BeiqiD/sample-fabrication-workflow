@@ -52,6 +52,14 @@ const semanticTokens = [
   "neutral-soft",
 ];
 
+const statusInkTokens = [
+  "status-success-ink",
+  "status-warning-ink",
+  "status-danger-ink",
+  "status-info-ink",
+  "status-neutral-ink",
+];
+
 const lockedSemanticValues = [
   "--success: #177252;",
   "--success-soft: #e3f3eb;",
@@ -140,6 +148,38 @@ describe("interface palette", () => {
     }
   });
 
+  it("uses accessible low-saturation ink for passive lifecycle status labels", () => {
+    for (const token of statusInkTokens) {
+      expect(Array.from(styles.matchAll(new RegExp(`--${token}\\s*:`, "g")))).toHaveLength(2);
+    }
+
+    const pairs = [
+      ["#52665c", "#e3f3eb"],
+      ["#706149", "#fff3d9"],
+      ["#755d5b", "#fbe7e5"],
+      ["#566875", "#e8f3fa"],
+      ["#5f6a64", "#edf0ee"],
+      ["#a7b9b0", "#1b382c"],
+      ["#c2b49e", "#3a2c16"],
+      ["#c0aaa8", "#3b2221"],
+      ["#a7b6c0", "#1d3340"],
+      ["#a4afa8", "#252d28"],
+    ];
+    for (const [foreground, background] of pairs) {
+      expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    }
+
+    expect(styles).toMatch(/\.status\s*\{[^}]*border:\s*0[^}]*var\(--status-neutral-ink\)/s);
+    expect(styles).toMatch(/\.run-status\s*\{[^}]*border:\s*0[^}]*var\(--status-neutral-ink\)/s);
+    expect(styles).toMatch(/\.status-active\s*\{[^}]*var\(--status-success-ink\)[^}]*var\(--success-soft\)/s);
+    expect(styles).toMatch(/\.run-status-active\s*\{[^}]*var\(--status-success-ink\)[^}]*var\(--success-soft\)/s);
+    expect(styles).toMatch(/\.run-status-complete\s*\{[^}]*var\(--status-info-ink\)[^}]*var\(--info-soft\)/s);
+    expect(styles).toMatch(/\.run-status-cancelled\s*\{[^}]*var\(--status-danger-ink\)[^}]*var\(--danger-soft\)/s);
+    expect(styles).toMatch(/\.status-stored,\s*\.status-consumed\s*\{[^}]*var\(--status-neutral-ink\)[^}]*var\(--neutral-soft\)/s);
+    expect(styles).toMatch(/\.status-lost,\s*\.status-blocked\s*\{[^}]*var\(--status-danger-ink\)[^}]*var\(--danger-soft\)/s);
+    expect(styles).toContain(".sample-directory-state > span:not(.status)");
+  });
+
   it("does not redefine colors that communicate workflow meaning", () => {
     for (const token of semanticTokens) {
       expect(palette).not.toMatch(new RegExp(`--${token}\\s*:`));
@@ -184,9 +224,9 @@ describe("interface palette", () => {
   });
 
   it("keeps product status mappings and Process-grid state surfaces intact", () => {
-    expect(styles).toMatch(/\.run-status-active\s*\{[^}]*var\(--success\)/s);
-    expect(styles).toMatch(/\.run-status-complete\s*\{[^}]*var\(--info\)/s);
-    expect(styles).toMatch(/\.run-status-ready\s*\{[^}]*var\(--neutral\)/s);
+    expect(styles).toMatch(/\.run-status-active\s*\{[^}]*var\(--success-soft\)/s);
+    expect(styles).toMatch(/\.run-status-complete\s*\{[^}]*var\(--info-soft\)/s);
+    expect(styles).toMatch(/\.run-status-ready\s*\{[^}]*var\(--neutral-soft\)/s);
     expect(styles).toMatch(/\.sample-pinned\s*\{[^}]*var\(--neutral\)/s);
     expect(styles).toMatch(/\.template-state\.draft\s*\{[^}]*var\(--neutral\)/s);
     expect(styles).toMatch(/\.sample-step-cell\.step-status-in_progress\s*\{[^}]*var\(--info\)/s);
