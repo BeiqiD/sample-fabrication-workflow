@@ -6,6 +6,8 @@ const palette = readFileSync(new URL("./palette.css", import.meta.url), "utf8");
 const main = readFileSync(new URL("./main.tsx", import.meta.url), "utf8");
 const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
 const multiSampleRunGrid = readFileSync(new URL("./components/MultiSampleRunGrid.tsx", import.meta.url), "utf8");
+const processingPage = readFileSync(new URL("./pages/ProcessingPage.tsx", import.meta.url), "utf8");
+const samplesPage = readFileSync(new URL("./pages/SamplesPage.tsx", import.meta.url), "utf8");
 const favicon = readFileSync(new URL("../public/favicon.svg", import.meta.url), "utf8");
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
@@ -20,6 +22,8 @@ const interfaceTokens = [
   "muted",
   "line",
   "line-strong",
+  "control-strong",
+  "control-strong-contrast",
   "accent",
   "accent-contrast",
   "accent-soft",
@@ -99,20 +103,32 @@ describe("interface palette", () => {
 
     expect(palette).toContain("--accent: #4f5d95;");
     expect(palette).toContain("--accent-soft: #e3e4f1;");
+    expect(palette).toContain("--canvas: #f4f5f4;");
+    expect(palette).toContain("--paper: #fafbfa;");
+    expect(palette).toContain("--surface-warm: #f7f8f7;");
+    expect(palette).toContain("--control-strong: #3e4541;");
+    expect(palette).toContain("--control-strong-contrast: #f7f8f6;");
     expect(palette).toContain("--accent: #aab7e8;");
     expect(palette).toContain("--accent-soft: #29314a;");
-    expect(palette).toContain("--status-contrast: #ffffff;");
+    expect(palette).toContain("--control-strong: #bfc6c2;");
+    expect(palette).toContain("--control-strong-contrast: #1b1f21;");
+    expect(palette).toContain("--status-contrast: #f7f8f6;");
     expect(palette).toContain("--status-contrast: #0c1611;");
   });
 
   it("keeps interface text and accent contrast above the WCAG AA text threshold", () => {
     const pairs = [
-      ["#202522", "#f7f8f6"],
-      ["#69716d", "#f7f8f6"],
-      ["#4f5d95", "#ffffff"],
-      ["#eef2f0", "#111416"],
-      ["#9fa8a3", "#111416"],
-      ["#aab7e8", "#111416"],
+      ["#303633", "#f4f5f4"],
+      ["#303633", "#fafbfa"],
+      ["#68716c", "#f4f5f4"],
+      ["#4f5d95", "#fafbfa"],
+      ["#4f5d95", "#e3e4f1"],
+      ["#3e4541", "#f7f8f6"],
+      ["#c9cfcc", "#141719"],
+      ["#969f9a", "#141719"],
+      ["#aab7e8", "#141719"],
+      ["#aab7e8", "#29314a"],
+      ["#bfc6c2", "#1b1f21"],
     ];
     for (const [foreground, background] of pairs) {
       expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
@@ -143,15 +159,46 @@ describe("interface palette", () => {
     expect(multiSampleRunGrid).toMatch(/className="state-action-panel"[\s\S]*?State verified[\s\S]*?State mismatch/);
   });
 
-  it("leaves ambiguous primary actions on the interface accent", () => {
-    expect(styles).toMatch(/\.button\.primary\s*\{[^}]*background:\s*var\(--accent\)/s);
+  it("keeps ambiguous controls grayscale until they are interacted with", () => {
+    expect(styles).toMatch(/\.button\.primary\s*\{[^}]*border-color:\s*var\(--control-strong\)[^}]*background:\s*var\(--control-strong\)[^}]*color:\s*var\(--control-strong-contrast\)/s);
+    expect(styles).toMatch(/\.button:hover:not\(:disabled\)\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
+    expect(styles).toMatch(/\.button\.primary:hover:not\(:disabled\),\s*\.button\.primary\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*background:\s*var\(--accent\)/s);
+    expect(styles).toMatch(/\.text-button\s*\{[^}]*color:\s*var\(--ink\)/s);
+    expect(styles).toMatch(/\.text-button:hover:not\(:disabled\)\s*\{[^}]*color:\s*var\(--accent\)/s);
+    expect(styles).toMatch(/\.eyebrow\s*\{[^}]*color:\s*var\(--muted\)/s);
+    expect(styles).toMatch(/\.sample-code\s*\{[^}]*color:\s*var\(--ink\)/s);
     expect(palette).not.toMatch(/(?:^|\n)\.button\.primary\s*\{/);
   });
 
+  it("uses indigo for persistent interaction states and gives dropdown triggers hover feedback", () => {
+    expect(styles).toMatch(/\.segmented-control button\.selected\s*\{[^}]*color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
+    expect(styles).toMatch(/\.template-picker-list > button\.selected\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
+    expect(styles).toMatch(/\.button:not\(\.primary, \.danger\)\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*var\(--accent\)/s);
+    expect(styles).toMatch(/\.cell-actions button\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*var\(--accent\)/s);
+    expect(styles).toMatch(/\.comment-tool-button\[aria-expanded="true"\]\s*\{[^}]*var\(--accent\)/s);
+  });
+
+  it("keeps product status mappings and Process-grid state surfaces intact", () => {
+    expect(styles).toMatch(/\.run-status-active\s*\{[^}]*var\(--success\)/s);
+    expect(styles).toMatch(/\.run-status-complete\s*\{[^}]*var\(--info\)/s);
+    expect(styles).toMatch(/\.run-status-ready\s*\{[^}]*var\(--neutral\)/s);
+    expect(styles).toMatch(/\.sample-pinned\s*\{[^}]*var\(--neutral\)/s);
+    expect(styles).toMatch(/\.template-state\.draft\s*\{[^}]*var\(--neutral\)/s);
+    expect(styles).toMatch(/\.sample-step-cell\.step-status-in_progress\s*\{[^}]*var\(--info\)/s);
+    expect(styles).toMatch(/\.sample-step-cell\.step-status-done\s*\{[^}]*var\(--success\)/s);
+    expect(styles).toMatch(/\.sample-step-cell\.step-status-skipped\s*\{[^}]*var\(--warning\)/s);
+    expect(styles).toMatch(/\.sample-step-cell\.step-status-blocked\s*\{[^}]*var\(--danger\)/s);
+  });
+
+  it("uses the same emphasized New sample action on every page-level entry", () => {
+    expect(samplesPage).toContain('className="button primary" to="/samples/new">New sample</Link>');
+    expect(processingPage).toContain('className="button primary" to="/samples/new">New sample</Link>');
+  });
+
   it("updates non-component and hard-coded surfaces that carried the old palette", () => {
-    expect(favicon).toContain('fill="#202522"');
+    expect(favicon).toContain('fill="#3e4541"');
     expect(favicon).not.toContain("#1d2521");
-    expect(indexHtml).toContain('name="theme-color" content="#f7f8f6"');
+    expect(indexHtml).toContain('name="theme-color" content="#f4f5f4"');
     expect(app).toMatch(/getPropertyValue\("--canvas"\)/);
     expect(palette).toMatch(/\.photo-lightbox \.image-lightbox-panel\s*\{[^}]*var\(--media-panel\)/s);
     expect(palette).toMatch(/\.image-lightbox-toolbar\s*\{[^}]*var\(--media-toolbar\)/s);

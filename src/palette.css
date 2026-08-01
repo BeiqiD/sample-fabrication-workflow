@@ -5,26 +5,28 @@
  *    success, warning, danger, info, and neutral.
  * 2. An action inherits one of those colors only when its visible result has a
  *    clear one-to-one mapping to that state (Done, Verified, Mismatch, Delete).
- * 3. Ambiguous creation, editing, saving, navigation, and upload actions use
- *    the interface accent instead of pretending to predict their outcome.
+ * 3. Ambiguous creation, editing, saving, navigation, and upload actions are
+ *    grayscale by default. The interface accent marks interaction state only.
  */
 :root {
-  color: #202522;
-  background: #f7f8f6;
-  --canvas: #f7f8f6;
-  --paper: #ffffff;
-  --surface: #f0f2f0;
-  --surface-muted: #e8ebe8;
-  --surface-warm: #f4f4ef;
-  --input: #ffffff;
-  --ink: #202522;
-  --muted: #69716d;
-  --line: #d9deda;
-  --line-strong: #c3cbc6;
+  color: #303633;
+  background: #f4f5f4;
+  --canvas: #f4f5f4;
+  --paper: #fafbfa;
+  --surface: #eef0ee;
+  --surface-muted: #e4e7e4;
+  --surface-warm: #f7f8f7;
+  --input: #fafbfa;
+  --ink: #303633;
+  --muted: #68716c;
+  --line: #d6dbd7;
+  --line-strong: #bec6c1;
+  --control-strong: #3e4541;
+  --control-strong-contrast: #f7f8f6;
   --accent: #4f5d95;
-  --accent-contrast: #ffffff;
+  --accent-contrast: #f7f8f6;
   --accent-soft: #e3e4f1;
-  --status-contrast: #ffffff;
+  --status-contrast: #f7f8f6;
   --media-panel: #15191c;
   --media-toolbar: #202529;
   --floating-shadow-soft: rgba(17, 20, 22, .16);
@@ -35,20 +37,22 @@
 }
 
 :root[data-theme="dark"] {
-  color: #eef2f0;
-  background: #111416;
-  --canvas: #111416;
-  --paper: #181c1f;
-  --surface: #1f2529;
-  --surface-muted: #262d32;
-  --surface-warm: #1c2022;
-  --input: #14181a;
-  --ink: #eef2f0;
-  --muted: #9fa8a3;
-  --line: #343c41;
-  --line-strong: #4a555c;
+  color: #c9cfcc;
+  background: #141719;
+  --canvas: #141719;
+  --paper: #1b1f21;
+  --surface: #22272a;
+  --surface-muted: #2a3033;
+  --surface-warm: #1f2325;
+  --input: #181c1e;
+  --ink: #c9cfcc;
+  --muted: #969f9a;
+  --line: #383f43;
+  --line-strong: #515b61;
+  --control-strong: #bfc6c2;
+  --control-strong-contrast: #1b1f21;
   --accent: #aab7e8;
-  --accent-contrast: #111416;
+  --accent-contrast: #1b1f21;
   --accent-soft: #29314a;
   --status-contrast: #0c1611;
   --media-panel: #0f1214;
@@ -74,8 +78,8 @@
   background: var(--success);
 }
 
-.cell-actions button.done-action:hover,
-.recipe-actions > .button.primary.recipe-icon-action:hover {
+.cell-actions button.done-action:hover:not(:disabled),
+.recipe-actions > .button.primary.recipe-icon-action:hover:not(:disabled) {
   border-color: var(--success);
   color: var(--success);
   background: var(--success-soft);
@@ -92,7 +96,7 @@
   background: var(--danger-soft);
 }
 
-.state-action-panel:not(.add-action-panel) button:hover {
+.state-action-panel:not(.add-action-panel) button:hover:not(:disabled) {
   box-shadow: inset 0 0 0 1px currentColor;
 }
 

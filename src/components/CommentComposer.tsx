@@ -867,7 +867,7 @@ function LinkAttachmentForm({
     <label>Title<input required value={title} onChange={(event) => setTitle(event.target.value)} /></label>
     <label>Description<textarea rows={2} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
     <div>
-      <button type="button" onClick={onCancel}>Cancel</button>
+      <button type="button" className="button compact-button" onClick={onCancel}>Cancel</button>
       <button type="button" className="button primary compact-button" disabled={!url || !title.trim()} onClick={() => onAdd({ url, title: title.trim(), description: description.trim() })}>Add link</button>
     </div>
   </div>;

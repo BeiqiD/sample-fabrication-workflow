@@ -416,12 +416,12 @@ export function ProcessingWorkspacePage() {
     <section className="execution-workspace">
       <div className="execution-heading">
         <div><h2>Samples in this view</h2><p>Use checked columns for common confirmation and comments. Every correction remains sample-specific.</p></div>
-        <button className="button primary" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}>+ Add sample</button>
+        <button className="button primary" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}>+ Add sample</button>
       </div>
       <div className="visible-samples">
         {samples.map((item, index) => <div className="visible-sample" key={item.id}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}
       </div>
-      {showSamplePicker && <div className="card sample-picker-popover">
+      {showSamplePicker && <div className="card sample-picker-popover" id="sample-picker-popover">
         <label>{selectedRun?.runKind === "metrology" ? "Find a sample with matching metrology" : "Find a sample assigned to this process"}<input autoFocus value={sampleQuery} onChange={(event) => setSampleQuery(event.target.value)} placeholder="Search matching samples…" /></label>
         <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>
       </div>}
