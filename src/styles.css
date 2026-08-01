@@ -133,7 +133,7 @@ p { line-height: 1.55; }
 .button.primary { border-color: var(--control-strong); background: var(--control-strong); color: var(--control-strong-contrast); }
 .button.danger { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
 .button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-.button.primary:hover:not(:disabled), .button.primary[aria-expanded="true"]:not(:disabled) { border-color: var(--accent); color: var(--accent-contrast); background: var(--accent-fill); }
+.button.primary:hover:not(:disabled), .button.primary[aria-expanded="true"]:not(:disabled) { border-color: var(--accent); color: var(--control-strong-contrast); background: var(--accent); }
 .button.danger:hover:not(:disabled) { border-color: var(--danger); color: var(--status-contrast); background: var(--danger); }
 .button:not(.primary, .danger)[aria-expanded="true"]:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .button:focus-visible, .text-button:focus-visible, .back-link:focus-visible, .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

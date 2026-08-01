@@ -103,13 +103,15 @@ Controls use three non-semantic emphasis levels:
 
 | Control | Default | Hover / active |
 | --- | --- | --- |
-| Emphasized button | Graphite fill with a softened off-white contrast | Slate-blue fill |
+| Emphasized button | Graphite fill with a softened off-white contrast | A darker slate-blue fill that preserves the foreground polarity in light mode |
 | Standard button or dropdown trigger | Paper, ink, and a standard line | Slate-blue text/border and soft blue-gray background |
 | Text action or inline link | Ink or muted ink; inline links remain identifiable by underline | Slate blue |
 
 All enabled controls, including dropdown triggers, must provide hover feedback. A dropdown is identified by its caret or menu icon and by a persistent open state, not by withholding hover behavior.
 
 The same action should use the same variant across pages. For example, every page-level `New sample` action is emphasized; it must not be slate blue on one page and gray on another.
+
+In the light theme, an emphasized button keeps light text while its graphite fill shifts to the darker slate-blue foreground token on hover. It must not invert into the lighter reference fill with dark text: preserving foreground polarity makes the interaction feel like a change of state rather than a replacement control. The dark theme already uses a light control on a dark surface, so its hover treatment continues to use the lighter slate-blue accent with dark text.
 
 Selected filters, segmented options, picker rows, current navigation items, and open menu triggers may retain the slate-blue accent until the state changes. Color is accompanied by a background, border, icon, label, or `aria-*` state so it is never the sole indicator.
 
@@ -133,6 +135,16 @@ The project keeps a small internal visual system instead of adopting a fully sty
 - Shared button, text-action, link, badge, and focus rules remain project CSS.
 - Complex behavior such as Dropdown Menu, Dialog, Popover, or Select may progressively use unstyled open-source primitives when accessibility or positioning warrants it.
 - Any primitive must consume the same grayscale, interaction, and semantic tokens; it must not introduce a second visual system.
+
+## Future palette families
+
+The current release intentionally ships one interface palette with light and dark modes. It does not include a palette picker, arbitrary color controls, preference persistence, or a second set of component overrides.
+
+If user-selectable palettes are added later, each option should be a complete, reviewed token family rather than a single accent substitution. A palette family must define the full grayscale ladder, control contrast, accent reference, readable accent foreground, soft accent surface, overlays, shadows, and both light and dark values. Components should continue to consume semantic token names without knowing which family is active.
+
+The preferred implementation boundary is a root-level palette identifier, separate from the existing light/dark mode identifier. Switching the palette should replace token values only; it must not add palette-specific component selectors or duplicate component CSS. Workflow meanings such as Process-grid states, `Active`, `Complete`, `Done`, `Mismatch`, and destructive actions remain a separate semantic layer and must not change merely because the user selects another interface palette.
+
+Before a new palette becomes selectable, validate its complete light/dark pair for contrast, component states, media surfaces, browser metadata, and workflow-color separation. This makes a future palette picker a controlled extension of the token system rather than a redesign of every component.
 
 ## Non-component surfaces
 
