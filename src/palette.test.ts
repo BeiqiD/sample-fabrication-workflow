@@ -25,6 +25,7 @@ const interfaceTokens = [
   "control-strong",
   "control-strong-contrast",
   "accent",
+  "accent-fill",
   "accent-contrast",
   "accent-soft",
   "status-contrast",
@@ -101,15 +102,17 @@ describe("interface palette", () => {
       expect(Array.from(palette.matchAll(new RegExp(`--${token}\\s*:`, "g")))).toHaveLength(2);
     }
 
-    expect(palette).toContain("--accent: #4f5d95;");
-    expect(palette).toContain("--accent-soft: #e3e4f1;");
+    expect(palette).toContain("--accent: #526e89;");
+    expect(Array.from(palette.matchAll(/--accent-fill: #849eb8;/g))).toHaveLength(2);
+    expect(palette).toContain("--accent-contrast: #1b1f21;");
+    expect(palette).toContain("--accent-soft: #e8eef3;");
     expect(palette).toContain("--canvas: #f4f5f4;");
     expect(palette).toContain("--paper: #fafbfa;");
     expect(palette).toContain("--surface-warm: #f7f8f7;");
     expect(palette).toContain("--control-strong: #3e4541;");
     expect(palette).toContain("--control-strong-contrast: #f7f8f6;");
-    expect(palette).toContain("--accent: #aab7e8;");
-    expect(palette).toContain("--accent-soft: #29314a;");
+    expect(palette).toContain("--accent: #849eb8;");
+    expect(palette).toContain("--accent-soft: #26333f;");
     expect(palette).toContain("--control-strong: #bfc6c2;");
     expect(palette).toContain("--control-strong-contrast: #1b1f21;");
     expect(palette).toContain("--status-contrast: #f7f8f6;");
@@ -121,13 +124,14 @@ describe("interface palette", () => {
       ["#303633", "#f4f5f4"],
       ["#303633", "#fafbfa"],
       ["#68716c", "#f4f5f4"],
-      ["#4f5d95", "#fafbfa"],
-      ["#4f5d95", "#e3e4f1"],
+      ["#526e89", "#fafbfa"],
+      ["#526e89", "#e8eef3"],
+      ["#1b1f21", "#849eb8"],
       ["#3e4541", "#f7f8f6"],
       ["#c9cfcc", "#141719"],
       ["#969f9a", "#141719"],
-      ["#aab7e8", "#141719"],
-      ["#aab7e8", "#29314a"],
+      ["#849eb8", "#141719"],
+      ["#849eb8", "#26333f"],
       ["#bfc6c2", "#1b1f21"],
     ];
     for (const [foreground, background] of pairs) {
@@ -162,7 +166,7 @@ describe("interface palette", () => {
   it("keeps ambiguous controls grayscale until they are interacted with", () => {
     expect(styles).toMatch(/\.button\.primary\s*\{[^}]*border-color:\s*var\(--control-strong\)[^}]*background:\s*var\(--control-strong\)[^}]*color:\s*var\(--control-strong-contrast\)/s);
     expect(styles).toMatch(/\.button:hover:not\(:disabled\)\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
-    expect(styles).toMatch(/\.button\.primary:hover:not\(:disabled\),\s*\.button\.primary\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*background:\s*var\(--accent\)/s);
+    expect(styles).toMatch(/\.button\.primary:hover:not\(:disabled\),\s*\.button\.primary\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*background:\s*var\(--accent-fill\)/s);
     expect(styles).toMatch(/\.text-button\s*\{[^}]*color:\s*var\(--ink\)/s);
     expect(styles).toMatch(/\.text-button:hover:not\(:disabled\)\s*\{[^}]*color:\s*var\(--accent\)/s);
     expect(styles).toMatch(/\.eyebrow\s*\{[^}]*color:\s*var\(--muted\)/s);
@@ -170,7 +174,7 @@ describe("interface palette", () => {
     expect(palette).not.toMatch(/(?:^|\n)\.button\.primary\s*\{/);
   });
 
-  it("uses indigo for persistent interaction states and gives dropdown triggers hover feedback", () => {
+  it("uses the interaction accent for persistent states and gives dropdown triggers hover feedback", () => {
     expect(styles).toMatch(/\.segmented-control button\.selected\s*\{[^}]*color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
     expect(styles).toMatch(/\.template-picker-list > button\.selected\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
     expect(styles).toMatch(/\.button:not\(\.primary, \.danger\)\[aria-expanded="true"\]:not\(:disabled\)\s*\{[^}]*var\(--accent\)/s);

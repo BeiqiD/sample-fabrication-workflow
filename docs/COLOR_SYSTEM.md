@@ -4,14 +4,14 @@ This document defines the interface and workflow color roles used by Sample Fabr
 
 ## Design direction
 
-The interface is grayscale first. A small number of carefully chosen light and dark neutrals establish hierarchy; mineral indigo appears only as interaction feedback. Workflow colors remain available where color carries domain meaning.
+The interface is grayscale first. A small number of carefully chosen light and dark neutrals establish hierarchy; a muted slate-blue accent appears only as interaction feedback. Workflow colors remain available where color carries domain meaning.
 
 Do not default to pure black and pure white merely to force hierarchy. Long-reading surfaces should use a comfortable text/background pair, while small icons, media controls, status foregrounds, or other roles may use pure black or white when that produces the clearest result. This is a readability decision, not a ban on either endpoint. Typography, spacing, borders, and measured differences between adjacent grays should carry most of the hierarchy.
 
 The intended visual order is:
 
 1. content and structure are understandable in grayscale;
-2. hover, focus, open, and selected states reveal mineral indigo;
+2. hover, focus, open, and selected states reveal the slate-blue interaction accent;
 3. workflow colors identify meaningful sample, run, or step states;
 4. large colored areas are concentrated in the Process grid, where they encode progress rather than decoration.
 
@@ -73,22 +73,29 @@ The grayscale system is intentionally small. Each level has a structural job rat
 
 Use spacing, weight, and this limited surface ladder before introducing another gray token. The usual hierarchy is canvas → paper → surface → muted surface; not every component needs all four.
 
-### 4. Mineral-indigo interaction color
+### 4. Slate-blue interaction color
 
-Mineral indigo does not describe content. It means that the user is interacting with, has selected, or has focused something.
+The slate-blue accent does not describe content. It means that the user is interacting with, has selected, or has focused something. Its reference color is `#849EB8`; role-specific derivatives keep that color's character while preserving readable text and controls.
 
 | State | Treatment |
 | --- | --- |
 | Default | Grayscale only |
-| Hover | Indigo text or border with a very light indigo background where useful |
-| Pressed | Stronger indigo treatment or a subtle pressed surface |
-| Open / Selected / Current | Stable indigo text, border, or soft background; visibly stronger than hover |
-| Focus-visible | Indigo focus ring |
+| Hover | Slate-blue text or border with a very light blue-gray background where useful |
+| Pressed | Stronger slate-blue treatment or a subtle pressed surface |
+| Open / Selected / Current | Stable slate-blue text, border, or soft background; visibly stronger than hover |
+| Focus-visible | Slate-blue focus ring |
 | Disabled | Muted grayscale, no hover treatment |
 
-The accent values are `#4F5D95` / `#E3E4F1` in light mode and `#AAB7E8` / `#29314A` in dark mode.
+| Accent role | Light | Dark | Use |
+| --- | --- | --- | --- |
+| Reference / fill | `#849EB8` | `#849EB8` | Canonical accent and filled interaction state |
+| Foreground / line | `#526E89` | `#849EB8` | Readable text, icons, borders, and focus rings |
+| Soft surface | `#E8EEF3` | `#26333F` | Hover, open, and selected backgrounds |
+| On fill | `#1B1F21` | `#1B1F21` | Text and icons on the reference-color fill |
 
-Titles, eyebrow labels, sample codes, step numbers, comments, ordinary badges, and inactive icons must not be permanently indigo. They are content, not interaction state.
+The light-theme foreground is intentionally darker than the reference color because `#849EB8` alone does not meet the WCAG AA threshold for normal-size text on the paper surface. The reference color remains visible in filled hover states and compact selected indicators. This separation also makes future accent changes predictable: choose one reference color, then derive accessible foreground and soft-surface roles from it.
+
+Titles, eyebrow labels, sample codes, step numbers, comments, ordinary badges, and inactive icons must not permanently use the slate-blue accent. They are content, not interaction state.
 
 ## Control behavior
 
@@ -96,15 +103,15 @@ Controls use three non-semantic emphasis levels:
 
 | Control | Default | Hover / active |
 | --- | --- | --- |
-| Emphasized button | Graphite fill with a softened off-white contrast | Indigo fill |
-| Standard button or dropdown trigger | Paper, ink, and a standard line | Indigo text/border and soft indigo background |
-| Text action or inline link | Ink or muted ink; inline links remain identifiable by underline | Indigo |
+| Emphasized button | Graphite fill with a softened off-white contrast | Slate-blue fill |
+| Standard button or dropdown trigger | Paper, ink, and a standard line | Slate-blue text/border and soft blue-gray background |
+| Text action or inline link | Ink or muted ink; inline links remain identifiable by underline | Slate blue |
 
 All enabled controls, including dropdown triggers, must provide hover feedback. A dropdown is identified by its caret or menu icon and by a persistent open state, not by withholding hover behavior.
 
-The same action should use the same variant across pages. For example, every page-level `New sample` action is emphasized; it must not be indigo on one page and gray on another.
+The same action should use the same variant across pages. For example, every page-level `New sample` action is emphasized; it must not be slate blue on one page and gray on another.
 
-Selected filters, segmented options, picker rows, current navigation items, and open menu triggers may remain indigo until the state changes. Color is accompanied by a background, border, icon, label, or `aria-*` state so it is never the sole indicator.
+Selected filters, segmented options, picker rows, current navigation items, and open menu triggers may retain the slate-blue accent until the state changes. Color is accompanied by a background, border, icon, label, or `aria-*` state so it is never the sole indicator.
 
 ## Action-result colors
 
@@ -117,7 +124,7 @@ Current examples:
 - **State mismatch** uses danger red because it creates a red Mismatch badge.
 - Destructive actions use danger red because their consequence is destructive and persistent.
 
-Do not apply semantic colors merely because an operation is expected to succeed. Add Sample, Add step, Start process, Save, Correct, Upload, Split, Assign, Update plan, and Export are neutral controls by default and become indigo only through interaction.
+Do not apply semantic colors merely because an operation is expected to succeed. Add Sample, Add step, Start process, Save, Correct, Upload, Split, Assign, Update plan, and Export are neutral controls by default and reveal the slate-blue accent only through interaction.
 
 ## Framework strategy
 
@@ -151,7 +158,7 @@ Color must not be the only state indicator. Statuses also use labels, icons, bor
 - Interface token overrides live in `src/palette.css` and load after `src/styles.css`.
 - Shared component behavior lives in `src/styles.css`; workflow semantic token definitions remain there.
 - Do not redefine workflow semantic tokens in `src/palette.css`.
-- Do not use `--accent` for static content. Its allowed roles are hover, focus, open, selected, current, checked, dragging, and other explicit interaction states.
+- Do not use `--accent` or `--accent-fill` for static content. Their allowed roles are hover, focus, open, selected, current, checked, dragging, and other explicit interaction states.
 - Process-grid semantic surfaces use success, warning, danger, info, and neutral tokens rather than interface accent.
 - New hard-coded interface colors should be avoided. Add a named token only when an existing structural level genuinely cannot express the role.
 - Before changing the palette, inspect the full repository for hard-coded colors, shadows, browser metadata, assets, and duplicated action variants.
@@ -163,7 +170,7 @@ Before merging any color-system change:
 
 1. Confirm all interface tokens have both light and dark values.
 2. Confirm the grayscale hierarchy remains limited and each surface level has a distinct job.
-3. Confirm static content and default non-semantic controls do not use mineral indigo.
+3. Confirm static content and default non-semantic controls do not use the slate-blue accent.
 4. Confirm every enabled button and dropdown trigger has hover feedback.
 5. Confirm hover, focus, open, and selected treatments are consistent across pages.
 6. Confirm identical actions, especially `New sample`, use the same variant everywhere.
