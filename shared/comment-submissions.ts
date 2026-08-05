@@ -1,4 +1,5 @@
 import type { CommentSubmissionItemInput, CreateCommentSubmissionInput } from "./types";
+import { isTiffMetadata } from "./tiff";
 
 export const MAX_COMMENT_IMAGE_SOURCE_BYTES = 5 * 1024 * 1024;
 export const MAX_COMMENT_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -62,10 +63,12 @@ export function validateCommentSubmissionInput(input: unknown): string | null {
 
   const ids = new Set<string>();
   const kinds = new Map<string, CommentSubmissionItemInput["kind"]>();
+  const itemsById = new Map<string, CommentSubmissionItemInput>();
   for (const item of candidate.items) {
     if (!item || typeof item !== "object" || !validCommonItem(item) || ids.has(item.id)) return "A submission item is invalid";
     ids.add(item.id);
     kinds.set(item.id, item.kind);
+    itemsById.set(item.id, item);
     if (item.kind === "comment_image") {
       if (!item.filename || !item.mimeType.startsWith("image/") || item.byteSize < 1
         || item.byteSize > MAX_COMMENT_IMAGE_UPLOAD_BYTES || !item.originalFilename
@@ -88,6 +91,14 @@ export function validateCommentSubmissionInput(input: unknown): string | null {
     }
     if (item.kind === "attachment" && item.relatedCommentImageId && kinds.get(item.relatedCommentImageId) !== "comment_image") {
       return "A related comment image is missing";
+    }
+    if (item.kind === "comment_image" && isTiffMetadata(item.originalFilename, item.originalMimeType)) {
+      const original = item.relatedAttachmentId ? itemsById.get(item.relatedAttachmentId) : undefined;
+      if (!original || original.kind !== "attachment" || original.relatedCommentImageId !== item.id
+        || original.filename !== item.originalFilename || original.mimeType !== item.originalMimeType
+        || original.byteSize !== item.originalByteSize) {
+        return "A TIFF preview requires its unchanged original attachment";
+      }
     }
   }
   return null;

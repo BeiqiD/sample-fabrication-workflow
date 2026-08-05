@@ -16,6 +16,7 @@ import type {
 import { sha256Hex } from "../shared/content-addressing";
 import { managedObjectKey, managedStorage, managedStorageStatus } from "./managed-storage";
 import type { Env } from "./types";
+import { isTiffMetadata } from "../shared/tiff";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 
@@ -399,6 +400,19 @@ routes.delete("/comment-submissions/:submissionId/items/:itemId", async (c) => {
   const submission = await ownedSubmission(c, submissionId);
   if (submission.status === "ready" || submission.status === "cancelled") {
     throw new HTTPException(409, { message: "Completed submissions cannot be changed" });
+  }
+  const requiredOriginal = await c.env.DB.prepare(
+    `SELECT image.original_filename, image.original_mime_type
+     FROM comment_submission_items original
+     JOIN comment_submission_items image
+       ON image.submission_id = original.submission_id
+      AND image.kind = 'comment_image'
+      AND image.related_item_id = original.id
+      AND image.status <> 'cancelled'
+     WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'`,
+  ).bind(itemId, submissionId).first<{ original_filename: string; original_mime_type: string }>();
+  if (requiredOriginal && isTiffMetadata(requiredOriginal.original_filename, requiredOriginal.original_mime_type)) {
+    throw new HTTPException(409, { message: "The original TIFF is required while its comment preview is present" });
   }
   const now = new Date().toISOString();
   const result = await c.env.DB.prepare(
