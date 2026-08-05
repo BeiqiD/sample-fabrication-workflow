@@ -11,6 +11,7 @@ import type {
 import { MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
 import { api } from "../lib/api";
 import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
+import { commentUploadQueue } from "../lib/commentUploadQueue";
 import { prepareCommentImage } from "../lib/images";
 
 let managedStorageStatusPromise: Promise<ManagedStorageStatus> | null = null;
@@ -65,9 +66,9 @@ export function CommentSubmissionRecovery({
         sha256 = await fileSha256(selected);
       }
       setErrors((current) => ({ ...current, [item.id]: "" }));
-      await api.uploadCommentSubmissionItem(submission.id, item.id, upload, sha256, (value) => {
+      await commentUploadQueue.run(() => api.uploadCommentSubmissionItem(submission.id, item.id, upload, sha256, (value) => {
         setProgress((current) => ({ ...current, [item.id]: value }));
-      });
+      }));
       await api.finalizeCommentSubmission(submission.id).catch(() => undefined);
       await onSubmitted();
     } catch (error) {
@@ -241,6 +242,7 @@ export function CommentComposer({
   const submissionsRef = useRef(submissions);
   const imagesRef = useRef(images);
   const uploadControllers = useRef(new Map<string, AbortController>());
+  const submissionQueueControllers = useRef(new Map<string, AbortController>());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const attachmentTriggerRef = useRef<HTMLButtonElement>(null);
@@ -285,6 +287,7 @@ export function CommentComposer({
   useEffect(() => () => {
     for (const image of imagesRef.current) URL.revokeObjectURL(image.previewUrl);
     for (const controller of uploadControllers.current.values()) controller.abort();
+    for (const controller of submissionQueueControllers.current.values()) controller.abort();
   }, []);
   useLayoutEffect(() => {
     if (!showAttachmentMenu) return;
@@ -417,8 +420,9 @@ export function CommentComposer({
     });
   }
 
-  async function uploadItem(submissionId: string, item: LocalUploadItem) {
+  async function uploadItem(submissionId: string, item: LocalUploadItem, submissionSignal?: AbortSignal) {
     if (!item.file || item.kind === "link" || item.status === "removed" || item.status === "ready") return true;
+    if (submissionSignal?.aborted) return false;
     let sha256 = item.sha256;
     try {
       if (item.kind === "attachment" && !sha256) {
@@ -426,14 +430,21 @@ export function CommentComposer({
         sha256 = await fileSha256(item.file);
         updateUploadItem(submissionId, item.id, (current) => ({ ...current, sha256 }));
       }
+      if (submissionSignal?.aborted) return false;
       updateUploadItem(submissionId, item.id, (current) => ({ ...current, status: "uploading", progress: 0, error: "" }));
       const controllerKey = `${submissionId}:${item.id}`;
       const controller = new AbortController();
+      const abortUpload = () => controller.abort();
+      submissionSignal?.addEventListener("abort", abortUpload, { once: true });
       uploadControllers.current.set(controllerKey, controller);
-      await api.uploadCommentSubmissionItem(submissionId, item.id, item.file, sha256, (progress) => {
-        updateUploadItem(submissionId, item.id, (current) => ({ ...current, progress }));
-      }, controller.signal);
-      uploadControllers.current.delete(controllerKey);
+      try {
+        await api.uploadCommentSubmissionItem(submissionId, item.id, item.file, sha256, (progress) => {
+          updateUploadItem(submissionId, item.id, (current) => ({ ...current, progress }));
+        }, controller.signal);
+      } finally {
+        submissionSignal?.removeEventListener("abort", abortUpload);
+        uploadControllers.current.delete(controllerKey);
+      }
       updateUploadItem(submissionId, item.id, (current) => ({ ...current, status: "ready", progress: 100, sha256, error: "" }));
       return true;
     } catch (error) {
@@ -464,10 +475,23 @@ export function CommentComposer({
   }
 
   async function startSubmission(input: CreateCommentSubmissionInput, local: LocalSubmission) {
+    const queueController = new AbortController();
+    submissionQueueControllers.current.set(local.id, queueController);
     try {
       await api.createCommentSubmission(input);
       updateSubmission(local.id, (submission) => ({ ...submission, status: "uploading", error: "" }));
-      const results = await Promise.all(local.items.map((item) => uploadItem(local.id, item)));
+      const results = await Promise.all(local.items.map(async (item) => {
+        try {
+          return await commentUploadQueue.run(
+            () => uploadItem(local.id, item, queueController.signal),
+            queueController.signal,
+          );
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return false;
+          throw error;
+        }
+      }));
+      if (queueController.signal.aborted) return;
       if (results.every(Boolean)) await finalizeIfComplete(local.id);
       else updateSubmission(local.id, (submission) => ({ ...submission, status: "failed", error: "Upload incomplete" }));
     } catch (error) {
@@ -476,6 +500,10 @@ export function CommentComposer({
         status: "failed",
         error: error instanceof Error ? error.message : "The comment submission could not be created",
       }));
+    } finally {
+      if (submissionQueueControllers.current.get(local.id) === queueController) {
+        submissionQueueControllers.current.delete(local.id);
+      }
     }
   }
 
@@ -599,7 +627,20 @@ export function CommentComposer({
     const submission = submissionsRef.current.find((candidate) => candidate.id === submissionId);
     const item = submission?.items.find((candidate) => candidate.id === itemId);
     if (!item) return;
-    if (await uploadItem(submissionId, item)) await finalizeIfComplete(submissionId);
+    const queueController = new AbortController();
+    submissionQueueControllers.current.set(submissionId, queueController);
+    try {
+      if (await commentUploadQueue.run(
+        () => uploadItem(submissionId, item, queueController.signal),
+        queueController.signal,
+      )) await finalizeIfComplete(submissionId);
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
+    } finally {
+      if (submissionQueueControllers.current.get(submissionId) === queueController) {
+        submissionQueueControllers.current.delete(submissionId);
+      }
+    }
   }
 
   async function retrySubmission(submissionId: string) {
@@ -627,6 +668,7 @@ export function CommentComposer({
 
   async function cancelSubmission(submissionId: string) {
     try {
+      submissionQueueControllers.current.get(submissionId)?.abort();
       for (const [key, controller] of uploadControllers.current) {
         if (key.startsWith(`${submissionId}:`)) {
           controller.abort();

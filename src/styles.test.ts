@@ -40,6 +40,12 @@ describe("processing action menus", () => {
     expect(multiSampleRunGrid).toMatch(/data-background-locked=\{lockedByAnotherStep/);
     expect(styles).toMatch(/\.cell-actions button\[data-background-locked="true"\]:disabled\s*\{[^}]*opacity:\s*1/);
   });
+
+  it("offers checked-sample common actions on metrology rows", () => {
+    expect(multiSampleRunGrid).toMatch(/supportsCommonActions\s*=\s*row\.kind\s*===\s*"template"\s*\|\|\s*row\.kind\s*===\s*"metrology"/);
+    expect(multiSampleRunGrid).toMatch(/context=\{commonCommentContext\}/);
+    expect(multiSampleRunGrid).toContain("Metrology comment");
+  });
 });
 
 describe("sample filter panel", () => {

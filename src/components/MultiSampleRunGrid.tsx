@@ -372,6 +372,7 @@ function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepC
 
 function ProcessPlanCommentDialog({
   stepName,
+  commentContext,
   targets,
   comments,
   recovery,
@@ -382,6 +383,7 @@ function ProcessPlanCommentDialog({
   onDeleteAsset,
 }: {
   stepName: string;
+  commentContext: "process-plan" | "metrology";
   targets: RunStepCommentContext["targets"];
   comments: CommonCommentGroup[];
   recovery: CommentSubmission[];
@@ -392,6 +394,9 @@ function ProcessPlanCommentDialog({
   onDeleteAsset: (comment: RunStepComment) => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const metrology = commentContext === "metrology";
+  const dialogLabel = metrology ? "Metrology comment" : "Process plan comment";
+  const commentSubject = metrology ? "metrology record" : "process step";
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -417,11 +422,11 @@ function ProcessPlanCommentDialog({
       <div className="process-plan-comment-handle" aria-hidden="true" />
       <div className="process-plan-comment-heading">
         <div>
-          <p className="dialog-kicker">Process plan comment</p>
+          <p className="dialog-kicker">{dialogLabel}</p>
           <h2 id="process-plan-comment-title">{stepName}</h2>
           <small>{targets.length} checked sample{targets.length === 1 ? "" : "s"}</small>
         </div>
-        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close process-plan comments"><DialogCloseIcon /></button>
+        <button ref={closeButtonRef} type="button" className="drawer-close" onClick={onClose} aria-label={`Close ${commentContext} comments`}><DialogCloseIcon /></button>
       </div>
       <div className="process-plan-comment-content">
         {!readOnly && targets.length > 0 && <CommentComposer
@@ -435,7 +440,7 @@ function ProcessPlanCommentDialog({
         />}
         {!readOnly && targets.length === 0 && <p className="muted process-plan-comment-empty-selection">Check one or more samples in the grid to add a common comment.</p>}
         <CommentSubmissionRecovery submissions={recovery} onSubmitted={onSubmitted} />
-        <section className="process-plan-comment-history" aria-label="Existing process-plan comments">
+        <section className="process-plan-comment-history" aria-label={`Existing ${commentContext} comments`}>
           <div className="process-plan-comment-history-heading">
             <small>Execution comments</small>
             {comments.length > 0 && <span className="section-count">{comments.length}</span>}
@@ -450,7 +455,7 @@ function ProcessPlanCommentDialog({
               onDelete={() => onDelete(comment)}
               onDeleteAsset={comment.assetKey ? () => onDeleteAsset(comment) : undefined}
             />)}</div>
-            : <p className="muted process-plan-comment-empty">No comments on this process step yet.</p>}
+            : <p className="muted process-plan-comment-empty">No comments on this {commentSubject} yet.</p>}
         </section>
       </div>
     </section>
@@ -1157,7 +1162,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       <div className="run-grid" style={{ "--sample-columns": columns.length } as React.CSSProperties}>
         <div className="run-grid-header recipe-column" ref={fullHeader}>
           <strong>{primaryRun.runKind === "metrology" ? "Record type" : "Process plan"}</strong>
-          <small>{primaryRun.runKind === "metrology" ? "Standalone" : "Common actions use checked samples"}</small>
+          <small>Common actions use checked samples</small>
         </div>
         {columns.map((column) => <div className="run-grid-header sample-column-header" key={column.sample.id}>
           <label><input type="checkbox" checked={selected.has(column.sample.id)} disabled={!column.run || readOnly} onChange={() => toggleColumn(column.sample.id)} /><span><strong>{column.sample.title}</strong><small>{column.sample.code}</small></span></label>
@@ -1187,6 +1192,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
           const recipeNumber = rows.slice(0, rowIndex + 1).filter((candidate) => candidate.kind === "template").length;
           const rowLeadStep = row.steps.find((step): step is RunStep => Boolean(step));
           const stepName = row.recipeStep?.plannedTitle || row.recipeStep?.title || rowLeadStep?.title || "Process step";
+          const supportsCommonActions = row.kind === "template" || row.kind === "metrology";
+          const commonCommentContext = row.kind === "metrology" ? "metrology" : "process-plan";
           return <Fragment key={row.key}>
             {section && <>
               <div className="run-grid-section-mobile-index recipe-column">Section {section.number}</div>
@@ -1227,6 +1234,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
               <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
+              </>}
+              {supportsCommonActions && <>
               {!readOnly && <div className="recipe-actions">
                 <button type="button" className="button primary compact-button recipe-icon-action" title={pendingAction === `confirm:${row.key}` ? "Saving…" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-label={pendingAction === `confirm:${row.key}` ? "Saving confirmed steps" : `Confirm ${eligibleCount} selected sample step${eligibleCount === 1 ? "" : "s"} as done`} aria-busy={pendingAction === `confirm:${row.key}`} disabled={!eligibleCount || pendingAction !== null} onClick={() => void confirmSteps(row.key, entries)}><ProcessingActionIcon name="done" /><span className="recipe-action-label">{pendingAction === `confirm:${row.key}` ? "Saving…" : `Done · ${eligibleCount}`}</span></button>
                 <ProcessPlanCommentButton
@@ -1234,6 +1243,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   hasContent={hasCommonContent}
                   expanded={commonCommentsOpen}
                   disabled={!commonTargets.length && !(mobileRunGrid && hasCommonContent)}
+                  context={commonCommentContext}
                   onClick={() => setCommonCommentRow(commonCommentsOpen ? null : row.key)}
                 />
               </div>}
@@ -1243,6 +1253,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   hasContent
                   expanded={commonCommentsOpen}
                   disabled={false}
+                  context={commonCommentContext}
                   onClick={() => setCommonCommentRow(commonCommentsOpen ? null : row.key)}
                 />
               </div>}
@@ -1273,6 +1284,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               </div>}
               {mobileRunGrid && commonCommentsOpen && <ProcessPlanCommentDialog
                 stepName={stepName}
+                commentContext={commonCommentContext}
                 targets={commonTargets}
                 comments={readyCommonGroups}
                 recovery={commonRecovery}
