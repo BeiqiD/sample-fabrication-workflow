@@ -34,6 +34,12 @@ describe("processing action menus", () => {
       /\.add-action-panel button\s*\{[^}]*min-height:/,
     );
   });
+
+  it("keeps unrelated sample actions visually stable during an individual save", () => {
+    expect(multiSampleRunGrid).toMatch(/pendingRunStepActionTargets\(pendingAction, step\.id\)/);
+    expect(multiSampleRunGrid).toMatch(/data-background-locked=\{lockedByAnotherStep/);
+    expect(styles).toMatch(/\.cell-actions button\[data-background-locked="true"\]:disabled\s*\{[^}]*opacity:\s*1/);
+  });
 });
 
 describe("sample filter panel", () => {
