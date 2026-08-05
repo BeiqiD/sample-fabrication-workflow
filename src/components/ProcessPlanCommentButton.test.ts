@@ -35,4 +35,17 @@ describe("ProcessPlanCommentButton", () => {
     expect(processPlanCommentButtonLabel(0, true)).toBe("Open process-plan comments, incomplete upload available");
     expect(processPlanCommentButtonLabel(1, true)).toBe("Open process-plan comments, 1 existing comment");
   });
+
+  it("uses metrology wording for metrology-row comments", () => {
+    const markup = renderToStaticMarkup(createElement(ProcessPlanCommentButton, {
+      commentCount: 2,
+      context: "metrology",
+      expanded: false,
+      disabled: false,
+      onClick: () => undefined,
+    }));
+
+    expect(markup).toContain('aria-label="Open metrology comments, 2 existing comments"');
+    expect(markup).not.toContain("process-plan");
+  });
 });
