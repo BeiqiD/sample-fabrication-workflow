@@ -12,6 +12,7 @@ import {
   type RunGridColumn,
 } from "../lib/runGrid";
 import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
+import { pendingRunStepActionTargets } from "../lib/runGridActions";
 import { CommentAttachmentList } from "./CommentAttachmentList";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
@@ -1338,7 +1339,9 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, commentContex
   const readyComments = individualComments.filter((comment) => (comment.status ?? "ready") === "ready");
   const [showStateActions, setShowStateActions] = useState(false);
   const [showAddActions, setShowAddActions] = useState(false);
-  const busy = pendingAction !== null;
+  const actionsLocked = pendingAction !== null;
+  const pendingForStep = pendingRunStepActionTargets(pendingAction, step.id);
+  const lockedByAnotherStep = actionsLocked && !pendingForStep;
   const metrology = step.entryKind === "metrology";
   return <>
     <div className="cell-status-row">
@@ -1346,13 +1349,13 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, commentContex
       <div className="cell-badges">{metrology ? <span className="change-badge metrology-badge">Metrology</span> : step.origin === "ad_hoc" && <span className="change-badge">Ad hoc</span>}{step.stateVerification && <span className={`verification-badge ${step.stateVerification.result}`}>{step.stateVerification.result === "matched" ? "Verified" : "Mismatch"} · {step.stateVerification.coveredRunStepIds.length}</span>}</div>
     </div>
     {!readOnly && <div className={`cell-actions${metrology ? " metrology-cell-actions" : ""}`}>
-      <button type="button" className="done-action" disabled={busy || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
-      <button type="button" disabled={busy} onClick={onEdit}>Correct</button>
-      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} disabled={busy || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
-      {!metrology && <button type="button" disabled={busy} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
+      <button type="button" className="done-action" aria-busy={pendingAction === `done:${step.id}`} data-background-locked={lockedByAnotherStep && step.status !== "done" || undefined} disabled={actionsLocked || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
+      <button type="button" data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} onClick={onEdit}>Correct</button>
+      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} data-background-locked={lockedByAnotherStep && column.run?.status === "active" || undefined} disabled={actionsLocked || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
+      {!metrology && <button type="button" aria-busy={pendingAction === `verify:${step.id}`} data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
     </div>}
-    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={busy} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={busy} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
-    {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={busy} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
+    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
+    {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
