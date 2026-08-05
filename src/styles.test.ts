@@ -165,6 +165,28 @@ describe("Process grid comment composer", () => {
   });
 });
 
+describe("Jump to current", () => {
+  it("keeps one portal-mounted, icon-only action outside the horizontal scroller", () => {
+    expect(multiSampleRunGrid).toMatch(/title="Jump to current"[\s\S]*?aria-label="Jump to current"/);
+    expect(multiSampleRunGrid).toMatch(/createPortal\([\s\S]*?className=\{`jump-to-current-anchor/);
+    expect(multiSampleRunGrid).toMatch(/className="run-grid-scroll"[\s\S]*?\{jumpButton\}/);
+    expect(multiSampleRunGrid).toMatch(/rowAnchors\.current\.set\(row\.key, node\)/);
+    expect(multiSampleRunGrid).toMatch(/stepCellAnchors\.current\.set\(cellKey, node\)/);
+  });
+
+  it("fixes a neutral 48px action to the viewport and preserves mobile safe area", () => {
+    expect(styles).toMatch(/\.jump-to-current-anchor\s*\{[^}]*position:\s*fixed[^}]*right:\s*20px[^}]*bottom:\s*20px[^}]*z-index:\s*20[^}]*width:\s*48px[^}]*height:\s*48px/);
+    expect(styles).toMatch(/\.jump-to-current-anchor button\s*\{[^}]*width:\s*48px[^}]*height:\s*48px[^}]*var\(--line-strong\)[^}]*var\(--muted\)[^}]*var\(--paper\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.jump-to-current-anchor\s*\{[^}]*right:\s*16px[^}]*bottom:\s*calc\(16px \+ env\(safe-area-inset-bottom\)\)/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.jump-to-current-anchor/);
+  });
+
+  it("provides a temporary non-semantic cell highlight", () => {
+    expect(styles).toMatch(/\.sample-step-cell\.jump-current-highlight::after\s*\{[^}]*var\(--accent\)[^}]*animation:\s*jump-current-highlight 1s/);
+    expect(multiSampleRunGrid).toMatch(/JUMP_HIGHLIGHT_DURATION = 1000/);
+  });
+});
+
 describe("medium content layouts", () => {
   it("uses stable Process grid tracks without enabling phone-only interactions", () => {
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?--recipe-width:\s*230px;\s*--sample-width:\s*300px/);
