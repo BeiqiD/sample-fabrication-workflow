@@ -50,7 +50,7 @@ function clamp(value: number, minimum: number, maximum: number) {
 }
 
 function JumpToCurrentIcon() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     <circle cx="12" cy="12" r="3.25" />
     <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
   </svg>;
@@ -781,8 +781,11 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
         setDirectionAllowed(true);
         return;
       }
-      const buttonEngaged = Boolean(jumpButtonAnchor.current?.matches(":hover")
-        || jumpButtonAnchor.current?.contains(document.activeElement));
+      const button = jumpButtonAnchor.current?.querySelector("button");
+      const preciseHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches
+        && Boolean(jumpButtonAnchor.current?.matches(":hover"));
+      const keyboardFocus = Boolean(button?.matches(":focus-visible"));
+      const buttonEngaged = preciseHover || keyboardFocus;
       if (buttonEngaged) return;
 
       const direction: -1 | 1 = delta > 0 ? 1 : -1;
@@ -1124,7 +1127,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
         title="Jump to current"
         aria-label="Jump to current"
         tabIndex={jumpButtonVisible ? 0 : -1}
-        onClick={() => void jumpToCurrent()}
+        onClick={(event) => {
+          if (event.detail > 0) event.currentTarget.blur();
+          void jumpToCurrent();
+        }}
       >
         <JumpToCurrentIcon />
       </button>
