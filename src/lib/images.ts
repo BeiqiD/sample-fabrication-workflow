@@ -1,5 +1,13 @@
+import { MAX_COMMENT_IMAGE_SOURCE_BYTES } from "../../shared/comment-submissions";
+import { isTiffMetadata } from "../../shared/tiff";
+
 const MAX_EDGE = 1600;
-export const MAX_COMMENT_IMAGE_SOURCE_BYTES = 5 * 1024 * 1024;
+
+export { MAX_COMMENT_IMAGE_SOURCE_BYTES };
+
+export function isTiffFile(file: Pick<File, "name" | "type">) {
+  return isTiffMetadata(file.name, file.type);
+}
 
 export class CommentImagePreparationError extends Error {
   constructor(message: string, readonly canAttach = true) {
@@ -39,7 +47,19 @@ export async function compressCommentImage(file: File): Promise<{ main: File; th
 
 export async function prepareCommentImage(file: File): Promise<File> {
   if (file.size > MAX_COMMENT_IMAGE_SOURCE_BYTES) {
-    throw new CommentImagePreparationError("This image is larger than 5 MB and cannot be inserted as a comment image.");
+    throw new CommentImagePreparationError(isTiffFile(file)
+      ? "This TIFF is larger than 5 MB and will be attached without a preview."
+      : "This image is larger than 5 MB and cannot be inserted as a comment image.");
+  }
+  if (isTiffFile(file)) {
+    try {
+      const { prepareTiffCommentImage } = await import("./tiffPreview");
+      return await prepareTiffCommentImage(file);
+    } catch (error) {
+      throw new CommentImagePreparationError(error instanceof Error
+        ? `TIFF preview unavailable: ${error.message}`
+        : "TIFF preview unavailable: the file could not be decoded.");
+    }
   }
   if (!file.type.startsWith("image/") || /(?:tiff?|raw|dng|cr2|nef|arw)/i.test(file.type)) {
     throw new CommentImagePreparationError("This file cannot be inserted as a comment image.");

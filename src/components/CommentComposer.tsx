@@ -8,11 +8,12 @@ import type {
   CreateCommentSubmissionInput,
   ManagedStorageStatus,
 } from "../../shared/types";
-import { MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
+import { MAX_COMMENT_SUBMISSION_ITEMS, MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
+import { isTiffMetadata } from "../../shared/tiff";
 import { api } from "../lib/api";
 import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
 import { commentUploadQueue } from "../lib/commentUploadQueue";
-import { prepareCommentImage } from "../lib/images";
+import { isTiffFile, prepareCommentImage } from "../lib/images";
 
 let managedStorageStatusPromise: Promise<ManagedStorageStatus> | null = null;
 
@@ -33,6 +34,16 @@ interface CommentComposerProps {
   onCancel?: () => void;
   submitLabel?: string;
   adaptiveToolbarLayout?: boolean;
+}
+
+function isRequiredTiffOriginal(
+  submission: CommentSubmission,
+  item: CommentImage | Extract<CommentAttachment, { kind: "file" }>,
+) {
+  if ("assetKey" in item || !item.relatedCommentImageId) return false;
+  const relatedImage = submission.images.find((image) => image.id === item.relatedCommentImageId);
+  return Boolean(relatedImage && relatedImage.status !== "cancelled"
+    && isTiffMetadata(relatedImage.originalFilename, relatedImage.originalMimeType));
 }
 
 export function CommentSubmissionRecovery({
@@ -118,7 +129,7 @@ export function CommentSubmissionRecovery({
                 if (selected) void retryFile(submission, item, selected);
                 event.target.value = "";
               }} /></label>
-              <button type="button" onClick={() => void removeItem(submission.id, item.id)}>Remove</button>
+              {!isRequiredTiffOriginal(submission, item) && <button type="button" onClick={() => void removeItem(submission.id, item.id)}>Remove</button>}
             </div>}
           </div>)}
           {submission.attachments.filter((attachment) => attachment.kind === "link").map((link) => <div className="upload-item status-ready" key={link.id}>
@@ -137,11 +148,13 @@ interface DraftImage {
   processed: File;
   previewUrl: string;
   attachOriginal: boolean;
+  originalRequired: boolean;
 }
 
 interface DraftAttachment {
   id: string;
   file: File;
+  previewNote?: string;
 }
 
 interface DraftLink {
@@ -168,6 +181,8 @@ interface LocalUploadItem {
   status: LocalItemStatus;
   error: string;
   sha256: string | null;
+  required: boolean;
+  pairedItemId: string | null;
 }
 
 interface LocalSubmission {
@@ -366,30 +381,65 @@ export function CommentComposer({
   }
 
   async function insertAsCommentImages(files: File[]) {
-    if (!files.length) return;
+    if (!files.length || preparing) return;
     if (adaptiveToolbarLayout) setToolbarExpanded(true);
     setPreparing(true);
     setDraftError("");
-    for (const file of files) {
-      try {
-        const processed = await prepareCommentImage(file);
-        const id = crypto.randomUUID();
-        setImages((current) => [...current, {
-          id,
-          original: file,
-          processed,
-          previewUrl: URL.createObjectURL(processed),
-          attachOriginal: false,
-        }]);
-      } catch (error) {
-        setRejected((current) => [...current, {
-          id: crypto.randomUUID(),
-          file,
-          reason: error instanceof Error ? error.message : "This file cannot be inserted as a comment image.",
-        }]);
+    let checkedStorage = storage;
+    const fallbackAttachments: DraftAttachment[] = [];
+    const rejectedFiles: RejectedDraftFile[] = [];
+    try {
+      for (const file of files) {
+        const tiff = isTiffFile(file);
+        if (tiff && !checkedStorage) {
+          checkedStorage = await loadManagedStorageStatus();
+          setStorage(checkedStorage);
+        }
+        if (tiff && !checkedStorage?.available) {
+          rejectedFiles.push({ id: crypto.randomUUID(), file, reason: checkedStorage?.message || storageMessage });
+          continue;
+        }
+        if (tiff && file.size > MAX_MANAGED_ATTACHMENT_BYTES) {
+          rejectedFiles.push({
+            id: crypto.randomUUID(),
+            file,
+            reason: "This TIFF is larger than 100 MB and cannot be uploaded through the web interface.",
+          });
+          continue;
+        }
+        try {
+          const processed = await prepareCommentImage(file);
+          const id = crypto.randomUUID();
+          setImages((current) => [...current, {
+            id,
+            original: file,
+            processed,
+            previewUrl: URL.createObjectURL(processed),
+            attachOriginal: tiff,
+            originalRequired: tiff,
+          }]);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "This file cannot be inserted as a comment image.";
+          if (tiff && checkedStorage?.available) {
+            fallbackAttachments.push({
+              id: crypto.randomUUID(),
+              file,
+              previewNote: reason.includes("will be attached without a preview")
+                ? reason
+                : `${reason} The original TIFF will be attached without a preview.`,
+            });
+          } else {
+            rejectedFiles.push({ id: crypto.randomUUID(), file, reason });
+          }
+        }
       }
+      if (fallbackAttachments.length) {
+        setAttachments((current) => [...current, ...fallbackAttachments]);
+      }
+      if (rejectedFiles.length) setRejected((current) => [...current, ...rejectedFiles]);
+    } finally {
+      setPreparing(false);
     }
-    setPreparing(false);
   }
 
   function addAttachments(files: File[]) {
@@ -514,6 +564,12 @@ export function CommentComposer({
       setDraftError(storageMessage);
       return;
     }
+    const itemCount = images.reduce((count, image) => count + (image.attachOriginal ? 2 : 1), 0)
+      + attachments.length + links.length;
+    if (itemCount > MAX_COMMENT_SUBMISSION_ITEMS) {
+      setDraftError(`A comment can contain at most ${MAX_COMMENT_SUBMISSION_ITEMS} uploaded items. TIFF previews count as a preview and an original attachment.`);
+      return;
+    }
     const submissionId = crypto.randomUUID();
     const itemInputs: CommentSubmissionItemInput[] = [];
     const localItems: LocalUploadItem[] = [];
@@ -541,6 +597,8 @@ export function CommentComposer({
         status: "waiting",
         error: "",
         sha256: null,
+        required: false,
+        pairedItemId: originalItemId ?? null,
       });
       if (originalItemId) {
         itemInputs.push({
@@ -561,6 +619,8 @@ export function CommentComposer({
           status: "waiting",
           error: "",
           sha256: null,
+          required: image.originalRequired,
+          pairedItemId: imageItemId,
         });
       }
     }
@@ -583,6 +643,8 @@ export function CommentComposer({
         status: "waiting",
         error: "",
         sha256: null,
+        required: false,
+        pairedItemId: null,
       });
     }
     for (const link of links) {
@@ -597,6 +659,8 @@ export function CommentComposer({
         status: "ready",
         error: "",
         sha256: null,
+        required: false,
+        pairedItemId: null,
       });
     }
 
@@ -652,7 +716,14 @@ export function CommentComposer({
   async function removeFailedItem(submissionId: string, itemId: string) {
     try {
       await api.removeCommentSubmissionItem(submissionId, itemId);
-      updateUploadItem(submissionId, itemId, (item) => ({ ...item, status: "removed", error: "" }));
+      updateSubmission(submissionId, (submission) => ({
+        ...submission,
+        items: submission.items.map((item) => {
+          if (item.id === itemId) return { ...item, status: "removed", error: "" };
+          if (item.pairedItemId === itemId) return { ...item, required: false };
+          return item;
+        }),
+      }));
       await finalizeIfComplete(submissionId);
     } catch (error) {
       if (error instanceof Error && error.message === "Comment submission not found") {
@@ -723,8 +794,9 @@ export function CommentComposer({
         ref={imageInputRef}
         className="comment-file-input"
         type="file"
-        accept="image/*"
+        accept="image/*,.tif,.tiff,image/tiff"
         multiple
+        disabled={preparing}
         onChange={(event) => {
           void insertAsCommentImages([...(event.target.files ?? [])]);
           event.target.value = "";
@@ -742,7 +814,7 @@ export function CommentComposer({
         }}
       />
       <div className="comment-composer-tools">
-        <button type="button" className="comment-tool-button image-button" onClick={() => imageInputRef.current?.click()} title="Add comment images">
+        <button type="button" className="comment-tool-button image-button" disabled={preparing} onClick={() => imageInputRef.current?.click()} title="Add comment images">
           <span className="comment-image-icon" aria-hidden="true" /><span className="visually-hidden">Add comment images</span>
         </button>
         <div className="comment-attachment-control">
@@ -809,18 +881,18 @@ export function CommentComposer({
             <strong>{image.original.name}</strong>
             <span>Comment image: {fileType(image.processed)} · {formatSize(image.processed.size)}</span>
             <span>{image.attachOriginal
-              ? `Original attachment: ${fileType(image.original)} · ${formatSize(image.original.size)} · unchanged`
+              ? `${image.originalRequired ? "Original TIFF attachment" : "Original attachment"}: ${fileType(image.original)} · ${formatSize(image.original.size)} · ${image.originalRequired ? "required · " : ""}unchanged`
               : `Original: ${fileType(image.original)} · ${formatSize(image.original.size)}`}</span>
           </div>
           <div className="pending-card-actions">
-            <button
+            {!image.originalRequired && <button
               type="button"
               disabled={!storageReady}
               title={!storageReady ? storageMessage : undefined}
               onClick={() => setImages((current) => current.map((candidate) => candidate.id === image.id ? { ...candidate, attachOriginal: !candidate.attachOriginal } : candidate))}
             >
               {image.attachOriginal ? "Detach original" : "Attach original"}
-            </button>
+            </button>}
             <button type="button" onClick={() => removeImage(image.id)}>Remove</button>
           </div>
         </article>)}
@@ -847,7 +919,11 @@ export function CommentComposer({
       <div className="pending-attachment-list">
         {attachments.map((attachment) => <div className="pending-attachment" key={attachment.id}>
           <span className="attachment-kind-icon" aria-hidden="true">📎</span>
-          <div><strong>{attachment.file.name}</strong><span>{fileType(attachment.file)} · {formatSize(attachment.file.size)} · Original file</span></div>
+          <div>
+            <strong>{attachment.file.name}</strong>
+            <span>{fileType(attachment.file)} · {formatSize(attachment.file.size)} · Original file</span>
+            {attachment.previewNote && <span>{attachment.previewNote}</span>}
+          </div>
           <button type="button" onClick={() => setAttachments((current) => current.filter((candidate) => candidate.id !== attachment.id))}>Remove</button>
         </div>)}
         {links.map((link) => <div className="pending-attachment" key={link.id}>
@@ -874,13 +950,13 @@ export function CommentComposer({
             <span className="upload-item-state">{item.status === "ready" ? "✓" : item.status === "failed" ? "!" : item.status === "hashing" ? "…" : item.status === "waiting" ? "○" : `${item.progress}%`}</span>
             <div>
               <strong>{item.filename}</strong>
-              <span>{item.kind === "comment_image" ? "Comment image" : item.kind === "attachment" ? "Original attachment" : "Attachment link"} · {item.status === "hashing" ? "Checking file hash" : item.status}</span>
+              <span>{item.kind === "comment_image" ? "Comment image" : item.kind === "attachment" ? (item.required ? "Required original TIFF" : "Original attachment") : "Attachment link"} · {item.status === "hashing" ? "Checking file hash" : item.status}</span>
               {item.status === "uploading" && <progress max={100} value={item.progress} />}
               {item.error && <span className="upload-item-error">{item.error}</span>}
             </div>
             {item.status === "failed" && <div className="upload-item-actions">
               <button type="button" onClick={() => void retryItem(submission.id, item.id)}>Retry</button>
-              <button type="button" onClick={() => void removeFailedItem(submission.id, item.id)}>Remove</button>
+              {!item.required && <button type="button" onClick={() => void removeFailedItem(submission.id, item.id)}>Remove</button>}
             </div>}
           </div>)}
         </div>

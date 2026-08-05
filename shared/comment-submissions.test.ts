@@ -107,4 +107,49 @@ describe("comment submission validation", () => {
       byteSize: 1_024,
     }])).toBe(true);
   });
+
+  it("requires a TIFF preview to include its matching unchanged original", () => {
+    const preview = {
+      id: "image-tiff",
+      kind: "comment_image" as const,
+      filename: "surface.webp",
+      mimeType: "image/webp",
+      byteSize: 120_000,
+      originalFilename: "surface.tif",
+      originalMimeType: "application/octet-stream",
+      originalByteSize: 3_600_000,
+      relatedAttachmentId: "original-tiff",
+    };
+    expect(validateCommentSubmissionInput({
+      id: "submission-123",
+      body: "SEM image",
+      context: sampleContext,
+      items: [preview],
+    })).toBe("A related original attachment is missing");
+    expect(validateCommentSubmissionInput({
+      id: "submission-123",
+      body: "SEM image",
+      context: sampleContext,
+      items: [preview, {
+        id: "original-tiff",
+        kind: "attachment",
+        filename: "surface.tif",
+        mimeType: "application/octet-stream",
+        byteSize: 3_600_000,
+      }],
+    })).toBe("A TIFF preview requires its unchanged original attachment");
+    expect(validateCommentSubmissionInput({
+      id: "submission-123",
+      body: "SEM image",
+      context: sampleContext,
+      items: [preview, {
+        id: "original-tiff",
+        kind: "attachment",
+        filename: "surface.tif",
+        mimeType: "application/octet-stream",
+        byteSize: 3_600_000,
+        relatedCommentImageId: "image-tiff",
+      }],
+    })).toBeNull();
+  });
 });
