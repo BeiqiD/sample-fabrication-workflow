@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RunStep, SampleDetail, SampleRun } from "../../shared/types";
-import { buildRunGrid, runGridSectionProgress, visibleRunGridSections } from "./runGrid";
+import { buildRunGrid, findCurrentRunGridRow, runGridSectionProgress, visibleRunGridSections } from "./runGrid";
 
 function step(id: string, position: number, overrides: Partial<RunStep> = {}): RunStep {
   return {
@@ -88,6 +88,51 @@ function sample(id: string): SampleDetail {
 }
 
 describe("multi-sample run grid", () => {
+  it("finds the first row with a non-terminal step across all matching samples", () => {
+    const rows = buildRunGrid([
+      {
+        sample: sample("a"),
+        run: run("a-run", [
+          step("clean", 1000, { status: "done" }),
+          step("coat", 2000, { status: "blocked" }),
+          step("develop", 3000, { status: "done" }),
+        ]),
+      },
+      {
+        sample: sample("b"),
+        run: run("b-run", [
+          step("clean-b", 1000, { logicalStepKey: "clean", status: "skipped" }),
+          step("coat-b", 2000, { logicalStepKey: "coat", status: "in_progress" }),
+          step("develop-b", 3000, { logicalStepKey: "develop", status: "pending" }),
+        ]),
+      },
+      {
+        sample: sample("c"),
+        run: run("c-run", [
+          step("clean-c", 1000, { logicalStepKey: "clean", status: "done" }),
+          step("coat-c", 2000, { logicalStepKey: "coat", status: "pending" }),
+          step("develop-c", 3000, { logicalStepKey: "develop", status: "pending" }),
+        ]),
+      },
+      { sample: sample("d"), run: null },
+    ]);
+
+    expect(findCurrentRunGridRow(rows)).toEqual({
+      row: rows[1],
+      rowIndex: 1,
+      unfinishedColumnIndexes: [0, 1, 2],
+    });
+  });
+
+  it("has no current row when every existing step is done or skipped", () => {
+    const rows = buildRunGrid([
+      { sample: sample("a"), run: run("a-run", [step("one", 1000, { status: "done" })]) },
+      { sample: sample("b"), run: run("b-run", [step("one-b", 1000, { logicalStepKey: "one", status: "skipped" })]) },
+    ]);
+
+    expect(findCurrentRunGridRow(rows)).toBeNull();
+  });
+
   it("aligns template rows by logical key across recipe versions and different positions", () => {
     const rows = buildRunGrid([
       { sample: sample("a"), run: run("a-run", [step("one", 1000), step("two", 2000)]) },

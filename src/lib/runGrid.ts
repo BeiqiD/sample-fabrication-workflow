@@ -14,6 +14,12 @@ export interface RunGridRow {
   steps: Array<RunStep | null>;
 }
 
+export interface CurrentRunGridRow {
+  row: RunGridRow;
+  rowIndex: number;
+  unfinishedColumnIndexes: number[];
+}
+
 function orderedSteps(run: SampleRun | null) {
   return run ? [...run.steps].filter((step) => step.planStatus === "current")
     .sort((left, right) => left.position - right.position) : [];
@@ -91,6 +97,17 @@ export function buildRunGrid(columns: RunGridColumn[]): RunGridRow[] {
     }
   }
   return rows;
+}
+
+export function findCurrentRunGridRow(rows: RunGridRow[]): CurrentRunGridRow | null {
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
+    const unfinishedColumnIndexes = row.steps.flatMap((step, columnIndex) => (
+      step && step.status !== "done" && step.status !== "skipped" ? [columnIndex] : []
+    ));
+    if (unfinishedColumnIndexes.length > 0) return { row, rowIndex, unfinishedColumnIndexes };
+  }
+  return null;
 }
 
 export interface RunGridSection extends SectionGroup {}

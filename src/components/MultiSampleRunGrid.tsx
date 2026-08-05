@@ -6,6 +6,7 @@ import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
 import {
   buildRunGrid,
+  findCurrentRunGridRow,
   runGridSectionProgress,
   visibleRunGridSections,
   type RunGridColumn,
@@ -38,6 +39,53 @@ type DeleteRequest =
 type RecipeDetailsState = { step: RunStep; number: number } | null;
 type CommonCommentGroup = { comment: RunStepComment; codes: string[] };
 type RunStepCommentContext = Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
+type JumpButtonGeometry = { baseEligible: boolean; overlapsGrid: boolean };
+
+const JUMP_SCROLL_DOWN_THRESHOLD = 30;
+const JUMP_SCROLL_UP_THRESHOLD = 14;
+const JUMP_HIGHLIGHT_DURATION = 1000;
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function JumpToCurrentIcon() {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="3.25" />
+    <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+  </svg>;
+}
+
+function waitForScrollToSettle(scroller: HTMLDivElement) {
+  return new Promise<void>((resolve) => {
+    const startedAt = performance.now();
+    let lastWindowY = window.scrollY;
+    let lastScrollerX = scroller.scrollLeft;
+    let stableFrames = 0;
+    let moved = false;
+
+    function check(now: number) {
+      const windowY = window.scrollY;
+      const scrollerX = scroller.scrollLeft;
+      const stable = Math.abs(windowY - lastWindowY) < .5 && Math.abs(scrollerX - lastScrollerX) < .5;
+      if (stable) stableFrames += 1;
+      else {
+        moved = true;
+        stableFrames = 0;
+      }
+      lastWindowY = windowY;
+      lastScrollerX = scrollerX;
+
+      if ((now - startedAt > 120 && stableFrames >= 4 && (moved || now - startedAt > 250)) || now - startedAt > 1600) {
+        resolve();
+        return;
+      }
+      window.requestAnimationFrame(check);
+    }
+
+    window.requestAnimationFrame(check);
+  });
+}
 
 function target(column: RunGridColumn, step: RunStep) {
   if (!column.run) throw new Error("This sample has no matching run");
@@ -580,6 +628,8 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
 
 export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
+  const currentRow = useMemo(() => findCurrentRunGridRow(rows), [rows]);
+  const currentRowSignature = currentRow ? `${currentRow.row.key}:${currentRow.unfinishedColumnIndexes.join(",")}` : "";
   const sectionByStart = useMemo(
     () => new Map(visibleRunGridSections(rows).map((section, index) => [
       section.startIndex,
@@ -599,11 +649,188 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   const [error, setError] = useState("");
   const [scrollState, setScrollState] = useState({ overflow: false, left: false, right: false });
   const [showStickyNames, setShowStickyNames] = useState(false);
+  const [jumpButtonGeometry, setJumpButtonGeometry] = useState<JumpButtonGeometry>({ baseEligible: false, overlapsGrid: false });
+  const [jumpDirectionAllowed, setJumpDirectionAllowed] = useState(true);
+  const [highlightedCellKey, setHighlightedCellKey] = useState<string | null>(null);
   const card = useRef<HTMLElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const fullHeader = useRef<HTMLDivElement>(null);
   const stickySampleTrack = useRef<HTMLDivElement>(null);
+  const jumpButtonAnchor = useRef<HTMLDivElement>(null);
+  const rowAnchors = useRef(new Map<string, HTMLElement>());
+  const stepCellAnchors = useRef(new Map<string, HTMLElement>());
+  const jumpBaseEligible = useRef(false);
+  const jumpScrollDirection = useRef<{ direction: -1 | 0 | 1; distance: number }>({ direction: 0, distance: 0 });
+  const lastWindowScrollY = useRef(typeof window === "undefined" ? 0 : window.scrollY);
+  const programmaticJump = useRef(false);
+  const jumpSequence = useRef(0);
+  const highlightTimer = useRef<number | null>(null);
   const closeRecipeDetails = useCallback(() => setRecipeDetails(null), []);
+
+  const setDirectionAllowed = useCallback((allowed: boolean) => {
+    setJumpDirectionAllowed((current) => current === allowed ? current : allowed);
+  }, []);
+
+  const resetJumpScrollDirection = useCallback(() => {
+    jumpScrollDirection.current = { direction: 0, distance: 0 };
+  }, []);
+
+  const jumpOverlapsGrid = useCallback(() => {
+    const node = scroller.current;
+    const buttonNode = jumpButtonAnchor.current;
+    const gridNode = node?.querySelector<HTMLElement>(".run-grid");
+    if (!node || !buttonNode || !gridNode) return false;
+
+    const buttonRect = buttonNode.getBoundingClientRect();
+    const scrollerRect = node.getBoundingClientRect();
+    const gridRect = gridNode.getBoundingClientRect();
+    const contentLeft = Math.max(0, scrollerRect.left, gridRect.left);
+    const contentRight = Math.min(window.innerWidth, scrollerRect.right, gridRect.right);
+    const contentTop = Math.max(0, scrollerRect.top, gridRect.top);
+    const contentBottom = Math.min(window.innerHeight, scrollerRect.bottom, gridRect.bottom);
+    const overlapWidth = Math.min(buttonRect.right, contentRight) - Math.max(buttonRect.left, contentLeft);
+    const overlapHeight = Math.min(buttonRect.bottom, contentBottom) - Math.max(buttonRect.top, contentTop);
+    return overlapWidth > 6 && overlapHeight > 6;
+  }, []);
+
+  const syncJumpButton = useCallback(() => {
+    const node = scroller.current;
+    const target = currentRow;
+    const rowNode = target ? rowAnchors.current.get(target.row.key) : null;
+    const topbar = document.querySelector<HTMLElement>(".topbar");
+    const stickyNames = card.current?.querySelector<HTMLElement>(".run-grid-sticky-names");
+    const modalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]'));
+    const activeElement = document.activeElement;
+    const mobileEditorActive = mobileRunGrid && activeElement instanceof HTMLElement
+      && activeElement.matches('textarea, select, [contenteditable]:not([contenteditable="false"]), input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"])');
+    let baseEligible = false;
+
+    if (node && target && rowNode && !modalOpen && !mobileEditorActive) {
+      const scrollerRect = node.getBoundingClientRect();
+      const rowRect = rowNode.getBoundingClientRect();
+      const viewportTop = Math.max(0, topbar?.getBoundingClientRect().bottom || 0)
+        + (showStickyNames ? stickyNames?.offsetHeight || 36 : 0);
+      const gridIntersectsViewport = scrollerRect.bottom > viewportTop + 1 && scrollerRect.top < window.innerHeight - 1;
+      const sampleViewportLeft = Math.max(0, scrollerRect.left, Math.min(rowRect.right, scrollerRect.right));
+      const sampleViewportRight = Math.min(window.innerWidth, scrollerRect.right);
+      const unfinishedCells = target.unfinishedColumnIndexes.flatMap((columnIndex) => {
+        const cell = stepCellAnchors.current.get(`${target.row.key}:${columns[columnIndex]?.sample.id}`);
+        return cell ? [cell] : [];
+      });
+      const horizontallyClear = sampleViewportRight > sampleViewportLeft
+        && unfinishedCells.some((cell) => {
+          const rect = cell.getBoundingClientRect();
+          const center = rect.left + rect.width / 2;
+          return center >= sampleViewportLeft && center <= sampleViewportRight;
+        });
+      const usableHeight = Math.max(0, window.innerHeight - viewportTop);
+      const tallRow = rowRect.height >= usableHeight - 32;
+      const maximumWindowScroll = Math.max(0, Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - window.innerHeight);
+      const tallRowTarget = clamp(window.scrollY + rowRect.top - viewportTop - 16, 0, maximumWindowScroll);
+      const verticallyClear = tallRow
+        ? Math.abs(window.scrollY - tallRowTarget) <= 2
+        : rowRect.top >= viewportTop - 1 && rowRect.bottom <= window.innerHeight + 1;
+      baseEligible = gridIntersectsViewport && unfinishedCells.length > 0 && !(verticallyClear && horizontallyClear);
+    }
+
+    const overlapsGrid = baseEligible && jumpOverlapsGrid();
+    const wasBaseEligible = jumpBaseEligible.current;
+    jumpBaseEligible.current = baseEligible;
+    if ((baseEligible && !wasBaseEligible) || !overlapsGrid || window.scrollY <= 8) {
+      resetJumpScrollDirection();
+      setDirectionAllowed(true);
+    }
+    setJumpButtonGeometry((current) => (
+      current.baseEligible === baseEligible && current.overlapsGrid === overlapsGrid
+        ? current
+        : { baseEligible, overlapsGrid }
+    ));
+  }, [columns, currentRow, jumpOverlapsGrid, mobileRunGrid, resetJumpScrollDirection, setDirectionAllowed, showStickyNames]);
+
+  useEffect(() => {
+    jumpSequence.current += 1;
+    programmaticJump.current = false;
+    setDirectionAllowed(true);
+    resetJumpScrollDirection();
+    setHighlightedCellKey(null);
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = null;
+  }, [currentRow?.row.key, resetJumpScrollDirection, setDirectionAllowed]);
+
+  useEffect(() => {
+    const node = scroller.current;
+    if (!node) return;
+    let animationFrame = 0;
+    const scheduleSync = () => {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0;
+        syncJumpButton();
+      });
+    };
+    const onWindowScroll = () => {
+      const nextScrollY = window.scrollY;
+      const delta = nextScrollY - lastWindowScrollY.current;
+      lastWindowScrollY.current = nextScrollY;
+      scheduleSync();
+      if (programmaticJump.current || !jumpBaseEligible.current || Math.abs(delta) < .5) return;
+
+      const overlapsGrid = jumpOverlapsGrid();
+      if (!overlapsGrid || nextScrollY <= 8) {
+        resetJumpScrollDirection();
+        setDirectionAllowed(true);
+        return;
+      }
+      const buttonEngaged = Boolean(jumpButtonAnchor.current?.matches(":hover")
+        || jumpButtonAnchor.current?.contains(document.activeElement));
+      if (buttonEngaged) return;
+
+      const direction: -1 | 1 = delta > 0 ? 1 : -1;
+      const accumulated = jumpScrollDirection.current.direction === direction
+        ? jumpScrollDirection.current.distance + Math.abs(delta)
+        : Math.abs(delta);
+      jumpScrollDirection.current = { direction, distance: accumulated };
+      if (direction === 1 && accumulated >= JUMP_SCROLL_DOWN_THRESHOLD) setDirectionAllowed(false);
+      if (direction === -1 && accumulated >= JUMP_SCROLL_UP_THRESHOLD) setDirectionAllowed(true);
+    };
+    const onFocusChange = () => window.requestAnimationFrame(scheduleSync);
+    const resizeObserver = new ResizeObserver(scheduleSync);
+    const mutationObserver = new MutationObserver(scheduleSync);
+    const rowNode = currentRow ? rowAnchors.current.get(currentRow.row.key) : null;
+    const gridNode = node.querySelector<HTMLElement>(".run-grid");
+    [card.current, node, gridNode, rowNode, jumpButtonAnchor.current].forEach((element) => {
+      if (element) resizeObserver.observe(element);
+    });
+    currentRow?.unfinishedColumnIndexes.forEach((columnIndex) => {
+      const cell = stepCellAnchors.current.get(`${currentRow.row.key}:${columns[columnIndex]?.sample.id}`);
+      if (cell) resizeObserver.observe(cell);
+    });
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    lastWindowScrollY.current = window.scrollY;
+    window.addEventListener("scroll", onWindowScroll, { passive: true });
+    window.addEventListener("resize", scheduleSync);
+    window.visualViewport?.addEventListener("resize", scheduleSync);
+    node.addEventListener("scroll", scheduleSync, { passive: true });
+    document.addEventListener("focusin", onFocusChange);
+    document.addEventListener("focusout", onFocusChange);
+    scheduleSync();
+    return () => {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      window.removeEventListener("scroll", onWindowScroll);
+      window.removeEventListener("resize", scheduleSync);
+      window.visualViewport?.removeEventListener("resize", scheduleSync);
+      node.removeEventListener("scroll", scheduleSync);
+      document.removeEventListener("focusin", onFocusChange);
+      document.removeEventListener("focusout", onFocusChange);
+    };
+  }, [columns, currentRow, currentRowSignature, jumpOverlapsGrid, resetJumpScrollDirection, setDirectionAllowed, syncJumpButton]);
+
+  useEffect(() => () => {
+    jumpSequence.current += 1;
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+  }, []);
 
   useEffect(() => {
     const currentNode = scroller.current;
@@ -682,6 +909,122 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     const columnWidth = sampleHeader.getBoundingClientRect().width;
     const nextColumn = Math.round(node.scrollLeft / columnWidth) + direction;
     node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: "smooth" });
+  }
+
+  async function jumpToCurrent() {
+    const node = scroller.current;
+    const freshTarget = findCurrentRunGridRow(rows);
+    const rowNode = freshTarget ? rowAnchors.current.get(freshTarget.row.key) : null;
+    if (!node || !freshTarget || !rowNode) return;
+
+    const unfinishedCells = freshTarget.unfinishedColumnIndexes.flatMap((columnIndex) => {
+      const column = columns[columnIndex];
+      const key = column ? `${freshTarget.row.key}:${column.sample.id}` : "";
+      const cell = key ? stepCellAnchors.current.get(key) : null;
+      return cell ? [{ cell, columnIndex, key }] : [];
+    });
+    if (!unfinishedCells.length) return;
+
+    const scrollerRect = node.getBoundingClientRect();
+    const rowRect = rowNode.getBoundingClientRect();
+    const sampleViewportLeft = Math.max(0, scrollerRect.left, Math.min(rowRect.right, scrollerRect.right));
+    const sampleViewportRight = Math.min(window.innerWidth, scrollerRect.right);
+    if (sampleViewportRight <= sampleViewportLeft) return;
+    const sampleViewportCenter = (sampleViewportLeft + sampleViewportRight) / 2;
+    const visibleCells = unfinishedCells.filter(({ cell }) => {
+      const rect = cell.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      return center >= sampleViewportLeft && center <= sampleViewportRight;
+    });
+    const candidates = visibleCells.length ? visibleCells : unfinishedCells;
+    let chosenCell = candidates[0];
+    let chosenDistance = Number.POSITIVE_INFINITY;
+    for (const candidate of candidates) {
+      const rect = candidate.cell.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      const distance = visibleCells.length
+        ? Math.abs(center - sampleViewportCenter)
+        : center < sampleViewportLeft
+          ? sampleViewportLeft - center
+          : center > sampleViewportRight
+            ? center - sampleViewportRight
+            : 0;
+      if (distance < chosenDistance) {
+        chosenCell = candidate;
+        chosenDistance = distance;
+      }
+    }
+
+    const topbarBottom = Math.max(0, document.querySelector<HTMLElement>(".topbar")?.getBoundingClientRect().bottom || 0);
+    const stickyNames = card.current?.querySelector<HTMLElement>(".run-grid-sticky-names");
+    const stickyNamesHeight = stickyNames?.offsetHeight || 36;
+    const documentHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    const maximumWindowScroll = Math.max(0, documentHeight - window.innerHeight);
+    const absoluteRowTop = window.scrollY + rowRect.top;
+    const fullHeaderRect = fullHeader.current?.getBoundingClientRect();
+    const cardRect = card.current?.getBoundingClientRect();
+    const absoluteHeaderBottom = fullHeaderRect ? window.scrollY + fullHeaderRect.bottom : 0;
+    const absoluteCardBottom = cardRect ? window.scrollY + cardRect.bottom : 0;
+
+    function verticalTarget(stickyNamesVisible: boolean) {
+      const usableTop = topbarBottom + (stickyNamesVisible ? stickyNamesHeight : 0);
+      const usableHeight = Math.max(0, window.innerHeight - usableTop);
+      const tallRow = rowRect.height >= usableHeight - 32;
+      const desired = tallRow
+        ? absoluteRowTop - usableTop - 16
+        : absoluteRowTop + rowRect.height / 2 - (usableTop + window.innerHeight) / 2;
+      return clamp(desired, 0, maximumWindowScroll);
+    }
+
+    function stickyNamesWillShowAt(windowScrollY: number) {
+      if (!fullHeaderRect || !cardRect) return false;
+      return absoluteHeaderBottom - windowScrollY <= topbarBottom + stickyNamesHeight
+        && absoluteCardBottom - windowScrollY > topbarBottom + stickyNamesHeight;
+    }
+
+    let windowTarget = verticalTarget(false);
+    let predictedStickyNames = stickyNamesWillShowAt(windowTarget);
+    windowTarget = verticalTarget(predictedStickyNames);
+    const revisedStickyNames = stickyNamesWillShowAt(windowTarget);
+    if (revisedStickyNames !== predictedStickyNames) {
+      predictedStickyNames = revisedStickyNames;
+      windowTarget = verticalTarget(predictedStickyNames);
+    }
+
+    const chosenRect = chosenCell.cell.getBoundingClientRect();
+    const chosenCenter = chosenRect.left + chosenRect.width / 2;
+    const shouldScrollHorizontally = visibleCells.length === 0;
+    const horizontalTarget = shouldScrollHorizontally
+      ? clamp(node.scrollLeft + chosenCenter - sampleViewportCenter, 0, Math.max(0, node.scrollWidth - node.clientWidth))
+      : node.scrollLeft;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const behavior: ScrollBehavior = reducedMotion ? "auto" : "smooth";
+    const sequence = jumpSequence.current + 1;
+    jumpSequence.current = sequence;
+    programmaticJump.current = true;
+    setHighlightedCellKey(null);
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = null;
+
+    window.scrollTo({ top: windowTarget, behavior });
+    if (shouldScrollHorizontally) node.scrollTo({ left: horizontalTarget, behavior });
+
+    if (reducedMotion) {
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+    } else {
+      await waitForScrollToSettle(node);
+    }
+    if (jumpSequence.current !== sequence) return;
+
+    programmaticJump.current = false;
+    lastWindowScrollY.current = window.scrollY;
+    resetJumpScrollDirection();
+    setHighlightedCellKey(chosenCell.key);
+    highlightTimer.current = window.setTimeout(() => {
+      setHighlightedCellKey((current) => current === chosenCell.key ? null : current);
+      highlightTimer.current = null;
+    }, JUMP_HIGHLIGHT_DURATION);
+    window.requestAnimationFrame(syncJumpButton);
   }
 
   async function confirmSteps(rowKey: string, entries: Array<{ column: RunGridColumn; step: RunStep }>) {
@@ -768,7 +1111,28 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   }
 
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
-  return <article className={`run-grid-card ${layoutClass}`} ref={card}>
+  const jumpButtonVisible = Boolean(currentRow && jumpButtonGeometry.baseEligible
+    && (!jumpButtonGeometry.overlapsGrid || jumpDirectionAllowed));
+  const jumpButton = typeof document === "undefined" || !currentRow ? null : createPortal(
+    <div
+      ref={jumpButtonAnchor}
+      className={`jump-to-current-anchor${jumpButtonVisible ? " is-visible" : ""}`}
+      aria-hidden={!jumpButtonVisible}
+    >
+      <button
+        type="button"
+        title="Jump to current"
+        aria-label="Jump to current"
+        tabIndex={jumpButtonVisible ? 0 : -1}
+        onClick={() => void jumpToCurrent()}
+      >
+        <JumpToCurrentIcon />
+      </button>
+    </div>,
+    document.body,
+  );
+  return <>
+  <article className={`run-grid-card ${layoutClass}`} ref={card}>
     <div className="run-grid-toolbar">
       <div><p className="card-label">{primaryRun.runKind === "metrology" ? "Metrology" : `${primaryRun.templateType} · plan r${primaryRun.planRevisionNumber}`} · run {primaryRun.sequenceNo}</p><h3 className="card-title">{primaryRun.templateName}{primaryRun.runKind === "process" ? ` v${primaryRun.templateVersion}` : ""}</h3><small>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
@@ -845,7 +1209,13 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               })}
             </>}
             <div className="run-grid-row" style={{ display: "contents" }}>
-            <div className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}${row.kind === "metrology" ? " metrology-recipe-cell" : ""}`}>
+            <div
+              ref={(node) => {
+                if (node) rowAnchors.current.set(row.key, node);
+                else rowAnchors.current.delete(row.key);
+              }}
+              className={`recipe-cell recipe-column${row.kind === "ad_hoc" ? " additional-step-recipe-cell" : ""}${row.kind === "metrology" ? " metrology-recipe-cell" : ""}`}
+            >
               {row.kind !== "template" ? <div className={`recipe-step-heading additional-step-heading${row.kind === "metrology" ? " metrology-step-heading" : ""}`}><span>{row.kind === "metrology" ? "M" : "+"}</span><div><strong>{row.kind === "metrology" ? "Metrology" : "Additional step"}</strong><small>{row.kind === "metrology" ? rowLeadStep?.title : "Not part of the process template"}</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
@@ -909,7 +1279,15 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
             </div>
             {columns.map((column, columnIndex) => {
               const step = row.steps[columnIndex];
-              return <div className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}${row.kind === "ad_hoc" ? " additional-step-cell" : ""}${row.kind === "metrology" ? " metrology-step-cell" : ""}`} key={`${row.key}:${column.sample.id}`}>
+              const cellKey = `${row.key}:${column.sample.id}`;
+              return <div
+                ref={(node) => {
+                  if (node) stepCellAnchors.current.set(cellKey, node);
+                  else stepCellAnchors.current.delete(cellKey);
+                }}
+                className={`sample-step-cell${step ? ` step-status-${step.status}` : " empty-cell"}${row.kind === "ad_hoc" ? " additional-step-cell" : ""}${row.kind === "metrology" ? " metrology-step-cell" : ""}${highlightedCellKey === cellKey ? " jump-current-highlight" : ""}`}
+                key={cellKey}
+              >
                 {step ? renderStepContent(column, step) : <span className="not-applicable">—</span>}
               </div>;
             })}
@@ -936,7 +1314,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       onCancel={() => { setDeleteRequest(null); setDeleteError(""); }}
       onConfirm={() => void confirmDelete()}
     />}
-  </article>;
+  </article>
+  {jumpButton}
+  </>;
 }
 
 function StepCell({ column, step, pendingAction, onDone, onVerify, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
