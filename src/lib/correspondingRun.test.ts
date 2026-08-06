@@ -18,6 +18,8 @@ function run(id: string, sequenceNo: number, overrides: Partial<SampleRun> = {})
     anchorStepId: null,
     sequenceNo,
     runGroupId: `group:${id}`,
+    initialStateHash: null,
+    initialStateImageKeys: [],
     createdAt: `2026-08-${String(sequenceNo).padStart(2, "0")}T00:00:00.000Z`,
     completedAt: `2026-08-${String(sequenceNo).padStart(2, "0")}T01:00:00.000Z`,
     steps: [],
