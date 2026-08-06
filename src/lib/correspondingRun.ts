@@ -1,8 +1,14 @@
 import type { SampleRun } from "../../shared/types";
 
-function matchingSeries(runs: SampleRun[], selectedRun: SampleRun) {
+function sameRunSelection(candidate: SampleRun, selectedRun: SampleRun) {
+  return candidate.runKind === selectedRun.runKind
+    && candidate.recipeFamilyId === selectedRun.recipeFamilyId
+    && candidate.status === selectedRun.status;
+}
+
+function matchingMetrologySeries(runs: SampleRun[], selectedRun: SampleRun) {
   return runs
-    .filter((run) => run.runKind === selectedRun.runKind
+    .filter((run) => run.runKind === "metrology"
       && run.recipeFamilyId === selectedRun.recipeFamilyId)
     .sort((left, right) => left.sequenceNo - right.sequenceNo
       || left.createdAt.localeCompare(right.createdAt)
@@ -14,10 +20,14 @@ export function correspondingRunForSelectedRun(
   primaryRuns: SampleRun[],
   candidateRuns: SampleRun[],
 ) {
-  const primarySeries = matchingSeries(primaryRuns, selectedRun);
+  if (selectedRun.runKind !== "metrology") {
+    return candidateRuns.find((candidate) => sameRunSelection(candidate, selectedRun)) ?? null;
+  }
+
+  const primarySeries = matchingMetrologySeries(primaryRuns, selectedRun);
   const occurrence = primarySeries.findIndex((run) => run.id === selectedRun.id);
   if (occurrence < 0) return null;
 
-  const candidate = matchingSeries(candidateRuns, selectedRun)[occurrence] ?? null;
+  const candidate = matchingMetrologySeries(candidateRuns, selectedRun)[occurrence] ?? null;
   return candidate?.status === selectedRun.status ? candidate : null;
 }
