@@ -15,6 +15,7 @@ import {
   type ProcessTemplateFamilySummary,
   type ProcessTemplateVersionSummary,
 } from "../lib/api";
+import { correspondingRunForSelectedRun } from "../lib/correspondingRun";
 import {
   availableProcessTemplateVersions,
   selectedProcessTemplateVersionId,
@@ -442,7 +443,7 @@ export function ProcessingWorkspacePage() {
         </div>
       </div>
 
-      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : item.runs.find((candidate) => candidate.runKind === selectedRun.runKind && candidate.recipeFamilyId === selectedRun.recipeFamilyId && candidate.status === selectedRun.status) ?? null }))} onSaved={load} readOnly={!selectedRunIsEditable} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
+      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs) }))} onSaved={load} readOnly={!selectedRunIsEditable} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
       {showMetrologyPicker && <StandaloneMetrologyDialog
         sampleId={sampleId}
         onClose={() => setShowMetrologyPicker(false)}
