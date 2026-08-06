@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { returnedEveryConfirmationTarget } from "./run-step-confirmation";
+import { confirmationEventBody, returnedEveryConfirmationTarget } from "./run-step-confirmation";
 
 describe("run step confirmation results", () => {
   it("accepts the exact set of steps returned by the atomic update", () => {
@@ -10,5 +10,17 @@ describe("run step confirmation results", () => {
     expect(returnedEveryConfirmationTarget([{ id: "step-a" }], ["step-a", "step-b"])).toBe(false);
     expect(returnedEveryConfirmationTarget([{ id: "step-a" }, { id: "step-a" }], ["step-a", "step-b"])).toBe(false);
     expect(returnedEveryConfirmationTarget([{ step_id: "step-a" }], ["step-a"])).toBe(false);
+  });
+});
+
+describe("run step confirmation timeline copy", () => {
+  it("records the confirmed step name instead of a count", () => {
+    expect(confirmationEventBody(["Spin coat HSQ"]))
+      .toBe("Confirmed as done: Spin coat HSQ");
+  });
+
+  it("preserves every step name when one sample confirms multiple steps", () => {
+    expect(confirmationEventBody(["Solvent clean", "Anneal"]))
+      .toBe("Confirmed as done: Solvent clean; Anneal");
   });
 });

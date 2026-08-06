@@ -7,3 +7,10 @@ export function returnedEveryConfirmationTarget(rows: unknown, stepIds: string[]
   )));
   return returnedIds.size === stepIds.length && stepIds.every((id) => returnedIds.has(id));
 }
+
+export function confirmationEventBody(stepNames: string[]) {
+  const names = stepNames.map((name) => name.trim()).filter(Boolean);
+  return names.length
+    ? `Confirmed as done: ${names.join("; ")}`
+    : "Confirmed step as done";
+}
