@@ -51,7 +51,7 @@ function clamp(value: number, minimum: number, maximum: number) {
 }
 
 function JumpToCurrentIcon() {
-  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+  return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     <circle cx="12" cy="12" r="3.25" />
     <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
   </svg>;
