@@ -38,6 +38,7 @@
   --status-danger-ink: #755d5b;
   --status-info-ink: #566875;
   --status-neutral-ink: #5f6a64;
+  --jump-current: #c86f69;
   --shadow: rgba(24, 34, 28, .08);
   --overlay: rgba(14, 20, 17, .46);
   --font-label: 11px;
@@ -85,6 +86,7 @@
   --status-danger-ink: #c0aaa8;
   --status-info-ink: #a7b6c0;
   --status-neutral-ink: #a4afa8;
+  --jump-current: #e08b84;
   --shadow: rgba(0, 0, 0, .28);
   --overlay: rgba(0, 0, 0, .66);
 }
@@ -327,12 +329,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .grid-scroll-buttons button:disabled { opacity: .35; cursor: default; }
 .jump-to-current-anchor { position: fixed; right: 20px; bottom: 20px; z-index: 20; width: 28px; height: 28px; visibility: hidden; pointer-events: none; transition: visibility 0s linear .16s; }
 .jump-to-current-anchor.is-visible { visibility: visible; pointer-events: auto; transition-delay: 0s; }
-.jump-to-current-anchor button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--muted); background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: 0 4px 14px var(--floating-shadow-soft); opacity: 0; transform: translateY(6px); transition: opacity .16s ease, transform .16s ease, border-color .14s ease, color .14s ease, background .14s ease; backdrop-filter: blur(12px); }
+.jump-to-current-anchor button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid currentColor; border-radius: 50%; color: var(--jump-current); background: transparent; box-shadow: 0 4px 14px var(--floating-shadow-soft); opacity: 0; transform: translateY(6px); transition: opacity .16s ease, transform .16s ease, color .14s ease; }
 .jump-to-current-anchor.is-visible button { opacity: 1; transform: translateY(0); }
-.jump-to-current-anchor button:focus-visible { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-.jump-to-current-anchor button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.jump-to-current-anchor button:focus-visible { color: var(--danger); background: transparent; outline: 2px solid currentColor; outline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
-  .jump-to-current-anchor button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .jump-to-current-anchor button:hover { color: var(--danger); background: transparent; }
 }
 .grid-error { margin: 12px 16px; }
 .run-grid-sticky-names { position: sticky; top: var(--run-grid-sticky-top); z-index: 8; height: 36px; margin-bottom: -36px; display: flex; overflow: hidden; border-bottom: 1px solid var(--line-strong); background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: 0 5px 14px var(--shadow); opacity: 0; pointer-events: none; transform: translateY(-4px); visibility: hidden; transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s; backdrop-filter: blur(12px); }
