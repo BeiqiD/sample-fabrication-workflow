@@ -26,8 +26,14 @@ function dispatchFiles(input: HTMLInputElement | null, files: File[]) {
   if (!input) return false;
   const transfer = new DataTransfer();
   files.forEach((file) => transfer.items.add(file));
-  input.files = transfer.files;
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+  const wasDisabled = input.disabled;
+  if (wasDisabled) input.disabled = false;
+  try {
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  } finally {
+    if (wasDisabled) input.disabled = true;
+  }
   return true;
 }
 
