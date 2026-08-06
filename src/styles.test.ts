@@ -186,12 +186,13 @@ describe("Jump to current", () => {
     expect(multiSampleRunGrid).toMatch(/stepCellAnchors\.current\.set\(cellKey, node\)/);
   });
 
-  it("fixes a compact coral-red 28px action to the viewport and preserves mobile safe area", () => {
+  it("fixes a compact solid-coral 28px action to the viewport and preserves mobile safe area", () => {
     expect(styles).toMatch(/\.jump-to-current-anchor\s*\{[^}]*position:\s*fixed[^}]*right:\s*20px[^}]*bottom:\s*20px[^}]*z-index:\s*20[^}]*width:\s*28px[^}]*height:\s*28px/);
-    expect(styles).toMatch(/--jump-current:\s*#c86f69/);
-    expect(styles).toMatch(/:root\[data-theme="dark"\][\s\S]*?--jump-current:\s*#e08b84/);
-    expect(styles).toMatch(/\.jump-to-current-anchor button\s*\{[^}]*width:\s*28px[^}]*height:\s*28px[^}]*border:\s*1px solid currentColor[^}]*color:\s*var\(--jump-current\)[^}]*background:\s*color-mix\(in srgb, var\(--surface\) 90%, transparent\)[^}]*box-shadow:\s*0 2px 8px var\(--shadow\)[^}]*backdrop-filter:\s*blur\(6px\)/);
-    expect(styles).toMatch(/\.jump-to-current-anchor button:focus-visible\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--surface\) 92%, var\(--jump-current\) 8%\)[^}]*outline:\s*2px solid currentColor/);
+    expect(styles).toMatch(/--jump-current-background:\s*#c86f69[^}]*--jump-current-icon:\s*#fff/);
+    expect(styles).toMatch(/:root\[data-theme="dark"\][\s\S]*?--jump-current-background:\s*#e08b84[^}]*--jump-current-icon:\s*#000/);
+    expect(styles).toMatch(/\.jump-to-current-anchor button\s*\{[^}]*width:\s*28px[^}]*height:\s*28px[^}]*border:\s*0[^}]*color:\s*var\(--jump-current-icon\)[^}]*background:\s*var\(--jump-current-background\)[^}]*box-shadow:\s*0 2px 8px var\(--shadow\)/);
+    expect(multiSampleRunGrid).toMatch(/<svg width="17" height="17"[^>]*stroke="currentColor"/);
+    expect(styles).toMatch(/\.jump-to-current-anchor button:focus-visible\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--jump-current-background\) 92%, var\(--ink\) 8%\)[^}]*outline:\s*2px solid var\(--jump-current-background\)/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.jump-to-current-anchor\s*\{[^}]*right:\s*16px[^}]*bottom:\s*calc\(16px \+ env\(safe-area-inset-bottom\)\)/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.jump-to-current-anchor/);
   });
@@ -201,7 +202,7 @@ describe("Jump to current", () => {
     expect(multiSampleRunGrid).toMatch(/button\?\.matches\(":focus-visible"\)/);
     expect(multiSampleRunGrid).toMatch(/event\.detail > 0\) event\.currentTarget\.blur\(\)/);
     expect(multiSampleRunGrid).not.toMatch(/jumpButtonAnchor\.current\?\.contains\(document\.activeElement\)/);
-    expect(styles).toMatch(/@media \(hover:\s*hover\) and \(pointer:\s*fine\)\s*\{[\s\S]*?\.jump-to-current-anchor button:hover\s*\{[^}]*var\(--jump-current\) 8%/);
+    expect(styles).toMatch(/@media \(hover:\s*hover\) and \(pointer:\s*fine\)\s*\{[\s\S]*?\.jump-to-current-anchor button:hover\s*\{[^}]*var\(--jump-current-background\) 92%/);
   });
 
   it("provides a temporary non-semantic cell highlight", () => {
