@@ -60,6 +60,7 @@ export function installCommentFileRouting() {
   }, true);
 
   document.addEventListener("paste", (event) => {
+    if (!(event.target instanceof HTMLTextAreaElement)) return;
     const composer = commentComposer(event.target);
     const files = [...(event.clipboardData?.files ?? [])];
     if (!composer || !files.length || !routeFiles(composer, files)) return;
