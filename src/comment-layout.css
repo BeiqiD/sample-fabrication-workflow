@@ -1,0 +1,38 @@
+.comment-drop-overlay {
+  font-size: 0;
+}
+
+.comment-drop-overlay::after {
+  content: "Drop images or attachments";
+  font-size: 12px;
+}
+
+.common-comments .common-comment .comment-card-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding-right: 38px;
+}
+
+.common-comments .common-comment .comment-card-copy,
+.common-comments .common-comment .comment-thumbnail-gallery {
+  min-width: 0;
+  width: 100%;
+}
+
+.common-comments .common-comment .comment-thumbnail-gallery .grid-diagrams {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 72px);
+  gap: 6px;
+  justify-content: start;
+  margin-top: 0;
+}
+
+.common-comments .common-comment .comment-thumbnail-gallery .grid-diagram-item,
+.common-comments .common-comment .comment-thumbnail-gallery .grid-diagram-item > button:first-child {
+  width: 72px;
+}
+
+.common-comments .common-comment .comment-thumbnail-gallery .grid-diagram-item > button:first-child {
+  height: 58px;
+}
