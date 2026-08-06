@@ -25,9 +25,10 @@ describe("comment file routing", () => {
     });
   });
 
-  it("intercepts drop and paste before the image-only React handlers", () => {
+  it("intercepts drop and comment-textarea paste before the image-only React handlers", () => {
     expect(routingSource).toMatch(/document\.addEventListener\("drop"[\s\S]*?, true\)/);
     expect(routingSource).toMatch(/document\.addEventListener\("paste"[\s\S]*?, true\)/);
+    expect(routingSource).toContain("event.target instanceof HTMLTextAreaElement");
     expect(routingSource).toContain("input.comment-file-input[accept]");
     expect(routingSource).toContain("input.comment-file-input:not([accept])");
     expect(mainSource).toContain("installCommentFileRouting();");
