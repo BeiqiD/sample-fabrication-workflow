@@ -62,4 +62,25 @@ describe("corresponding run selection", () => {
       [run("candidate-sem-1", 1), candidate],
     )).toBeNull();
   });
+
+  it("keeps the existing status-based matching for process runs", () => {
+    const selected = run("primary-process-active", 8, {
+      runKind: "process",
+      recipeFamilyId: "process-family",
+      status: "active",
+      completedAt: null,
+    });
+    const candidate = run("candidate-process-active", 3, {
+      runKind: "process",
+      recipeFamilyId: "process-family",
+      status: "active",
+      completedAt: null,
+    });
+
+    expect(correspondingRunForSelectedRun(
+      selected,
+      [run("primary-process-old", 2, { runKind: "process", recipeFamilyId: "process-family" }), selected],
+      [run("candidate-process-old", 1, { runKind: "process", recipeFamilyId: "process-family" }), candidate],
+    )?.id).toBe("candidate-process-active");
+  });
 });
