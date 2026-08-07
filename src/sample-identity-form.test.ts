@@ -20,7 +20,7 @@ describe("sample identity form normalization", () => {
   });
 
   it("uses the same identity order in Sample details before the extra Pinned field", () => {
-    const start = samplePage.indexOf('<form className="detail-form sample-identity-form"');
+    const start = samplePage.indexOf('<form className="detail-form sample-identity-form sample-details-edit-form"');
     const form = samplePage.slice(start, samplePage.indexOf("</form>", start));
     expectOrder(form, ['value={sample.code}', 'name="title"', 'name="status"', 'name="location"', 'name="description"', 'name="pinned"']);
   });
