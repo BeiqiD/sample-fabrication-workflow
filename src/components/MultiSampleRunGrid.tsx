@@ -4,6 +4,7 @@ import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepC
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import {
   buildRunGrid,
   findCurrentRunGridRow,
@@ -281,21 +282,12 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
   const { step, number } = state;
   const hasPlannedCopy = Boolean(step.plannedParametersText || step.plannedCommentsText);
   const hasPlannedDiagrams = step.plannedImageKeys.length > 0;
+  const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-    function onKeyDown(event: KeyboardEvent) { if (event.key === "Escape") onClose(); }
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
+  useModalDialog({ dialogRef, initialFocusRef: closeButtonRef, onClose });
 
   return createPortal(<div className="recipe-details-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="recipe-details-sheet" role="dialog" aria-modal="true" aria-labelledby="recipe-details-title">
+    <section ref={dialogRef} className="recipe-details-sheet" role="dialog" aria-modal="true" aria-labelledby="recipe-details-title">
       <div className="recipe-details-handle" aria-hidden="true" />
       <div className="recipe-details-heading">
         <div><p className="dialog-kicker">Process step {number}</p><h2 id="recipe-details-title">{step.plannedTitle || step.title}</h2>{step.plannedToolName && <small>{step.plannedToolName}</small>}</div>
@@ -394,32 +386,17 @@ function ProcessPlanCommentDialog({
   onDelete: (comment: RunStepComment) => void;
   onDeleteAsset: (comment: RunStepComment) => void;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const metrology = commentContext === "metrology";
   const dialogLabel = metrology ? "Metrology comment" : "Process plan comment";
   const commentSubject = metrology ? "metrology record" : "process step";
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
+  useModalDialog({ dialogRef, initialFocusRef: closeButtonRef, onClose });
 
   return createPortal(<div className="process-plan-comment-backdrop" role="presentation" onMouseDown={(event) => {
     if (event.target === event.currentTarget) onClose();
   }}>
-    <section className="process-plan-comment-dialog" role="dialog" aria-modal="true" aria-labelledby="process-plan-comment-title">
+    <section ref={dialogRef} className="process-plan-comment-dialog" role="dialog" aria-modal="true" aria-labelledby="process-plan-comment-title">
       <div className="process-plan-comment-handle" aria-hidden="true" />
       <div className="process-plan-comment-heading">
         <div>
@@ -501,8 +478,11 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   const [image, setImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLElement>(null);
+  const initialFieldRef = useRef<HTMLElement>(null);
   const metrology = step?.entryKind === "metrology";
   const isTemplateStep = step?.origin === "template" && !metrology;
+  useModalDialog({ dialogRef, initialFocusRef: initialFieldRef, onClose, blocked: saving });
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -544,20 +524,20 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
     finally { setSaving(false); }
   }
 
-  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <aside className="step-drawer" role="dialog" aria-modal="true" aria-labelledby="step-drawer-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? metrology ? "Edit metrology record" : "Correct execution" : "Add fabrication step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}><DialogCloseIcon /></button></div>
+  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onClose(); }}>
+    <aside ref={dialogRef} className="step-drawer" role="dialog" aria-modal="true" aria-labelledby="step-drawer-title">
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="step-drawer-title">{editing ? metrology ? "Edit metrology record" : "Correct execution" : "Add fabrication step"}</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={saving} onClick={onClose}><DialogCloseIcon /></button></div>
       <p className="muted">{editing ? metrology ? "Keep the result in comments and attachments; tool and parameters remain optional." : "Record what actually happened. The process plan stays unchanged." : "This fabrication step belongs only to this sample run."}</p>
       <form className="drawer-form" onSubmit={save}>
-        {isTemplateStep ? <div className="locked-step-title"><small>Process step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>{metrology ? "Record title" : "Step name"}<input autoFocus value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
-        {editing && <label>Status<select value={status} onChange={(event) => setStatus(event.target.value as StepStatus)}>{STATUSES.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select></label>}
+        {isTemplateStep ? <div className="locked-step-title"><small>Process step</small><strong>{step?.plannedTitle || step?.title}</strong></div> : <label>{metrology ? "Record title" : "Step name"}<input ref={(node) => { initialFieldRef.current = node; }} value={title} onChange={(event) => setTitle(event.target.value)} /></label>}
+        {editing && <label>Status<select ref={isTemplateStep ? (node) => { initialFieldRef.current = node; } : undefined} value={status} onChange={(event) => setStatus(event.target.value as StepStatus)}>{STATUSES.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select></label>}
         <label>{metrology ? "Tool" : "Actual tool"}<input value={toolName} onChange={(event) => setToolName(event.target.value)} placeholder={step?.plannedToolName || "Tool used"} /></label>
         <label>{metrology ? "Parameters" : "Actual parameters"}<textarea rows={4} value={parametersText} onChange={(event) => setParametersText(event.target.value)} placeholder={step?.plannedParametersText || "Time, temperature, settings…"} /></label>
         <label>{metrology ? "Result note" : "What happened"}<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder={metrology ? "Optional result summary" : "Execution detail, not a plan edit"} /></label>
         {!metrology && <label>Reason for deviation<textarea rows={3} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} /></label>}
         <FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label={metrology ? "Add a result image" : "Add an execution image"} />
         {error && <p className="error-banner">{error}</p>}
-        <div className="form-actions"><button type="button" className="button" onClick={onClose}>Cancel</button><button className="button primary" disabled={saving}>{saving ? "Saving…" : editing ? "Save correction" : "Add step"}</button></div>
+        <div className="form-actions"><button type="button" className="button" disabled={saving} onClick={onClose}>Cancel</button><button className="button primary" disabled={saving}>{saving ? "Saving…" : editing ? "Save correction" : "Add step"}</button></div>
       </form>
     </aside>
   </div>;
@@ -574,6 +554,9 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  useModalDialog({ dialogRef, initialFocusRef: searchRef, onClose, blocked: Boolean(savingId) });
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -613,11 +596,11 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   }
 
   return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingId) onClose(); }}>
-    <aside className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" onClick={onClose}><DialogCloseIcon /></button></div>
+    <aside ref={dialogRef} className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={Boolean(savingId)} onClick={onClose}><DialogCloseIcon /></button></div>
       <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
       {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
-        <label className="search-box metrology-template-search"><span>Search templates</span><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
         <div className="metrology-picker-list">
           {templates.map((template) => <button type="button" key={template.id} disabled={Boolean(savingId)} onClick={() => void add(template.id)}>
             <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.hasDefaultContent ? " · default content" : ""}</small></span>
