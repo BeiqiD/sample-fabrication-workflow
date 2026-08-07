@@ -33,8 +33,15 @@ function unregisterModal(dialog: HTMLElement) {
   bodyOverflowBeforeFirstModal = null;
 }
 
+function hasLaterUnregisteredModal(dialog: HTMLElement) {
+  const openModals = [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')];
+  const dialogIndex = openModals.indexOf(dialog);
+  if (dialogIndex < 0) return false;
+  return openModals.slice(dialogIndex + 1).some((candidate) => !modalStack.includes(candidate));
+}
+
 function isTopModal(dialog: HTMLElement) {
-  return modalStack[modalStack.length - 1] === dialog;
+  return modalStack[modalStack.length - 1] === dialog && !hasLaterUnregisteredModal(dialog);
 }
 
 export function useModalDialog({
