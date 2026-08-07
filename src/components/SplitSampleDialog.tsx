@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { MAX_SPLIT_PIECES, SAMPLE_CREATION_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleStatus, type SplitSamplePieceInput } from "../../shared/types";
 import { api } from "../lib/api";
 import { createSplitPieceDrafts } from "../lib/splitSamples";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import "../sample-identity-form.css";
 import "../split-sample-dialog.css";
 import { DialogCloseIcon } from "./DialogCloseIcon";
@@ -18,23 +19,9 @@ export function SplitSampleDialog({ sample, onCancel, onComplete }: {
   const [pieces, setPieces] = useState<SplitSamplePieceInput[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
-  const onCancelRef = useRef(onCancel);
-  onCancelRef.current = onCancel;
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    firstInputRef.current?.focus();
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !saving) onCancelRef.current();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [saving]);
+  useModalDialog({ dialogRef, initialFocusRef: firstInputRef, onClose: onCancel, blocked: saving });
 
   function preparePieces() {
     const location = commonLocation.trim();
@@ -88,7 +75,7 @@ export function SplitSampleDialog({ sample, onCancel, onComplete }: {
   }
 
   return <div className="split-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onCancel(); }}>
-    <section className="split-dialog" role="dialog" aria-modal="true" aria-labelledby="split-dialog-title">
+    <section ref={dialogRef} className="split-dialog" role="dialog" aria-modal="true" aria-labelledby="split-dialog-title">
       <div className="split-dialog-heading">
         <div><p className="dialog-kicker">Split sample</p><h2 id="split-dialog-title">{sample.code} · {sample.title}</h2></div>
         <button type="button" className="drawer-close" aria-label="Close split dialog" disabled={saving} onClick={onCancel}><DialogCloseIcon /></button>
