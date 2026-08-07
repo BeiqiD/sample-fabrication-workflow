@@ -10,14 +10,15 @@ describe("sample page layout refinements", () => {
     expect(layout).not.toMatch(/\.sample-details-card\s*\{[^}]*min-height:/s);
     expect(sizing).toContain("getBoundingClientRect().height");
     expect(sizing).toContain("sampleDetailsViewHeight");
-    expect(sizing).toContain("card.clientHeight - card.scrollHeight");
+    expect(sizing).toContain("card.style.height = `${baseline}px`");
     expect(main).toContain("installSampleDetailsEditSizing();");
   });
 
-  it("lets Description absorb the remaining edit height without changing field rhythm", () => {
+  it("lets Description absorb the measured remaining edit height without changing field rhythm", () => {
     expect(layout).toMatch(/data-sample-details-edit-height-locked[^}]*overflow:\s*hidden/s);
     expect(layout).toMatch(/data-sample-details-edit-height-locked[\s\S]*textarea\[name="description"\][^}]*min-height:\s*0[^}]*resize:\s*none/s);
     expect(sizing).toContain("MIN_DESCRIPTION_HEIGHT = 48");
+    expect(sizing).toContain("cardRect.bottom - paddingBottom - formRect.bottom");
   });
 
   it("uses the same field hierarchy in read-only and edit typography", () => {
