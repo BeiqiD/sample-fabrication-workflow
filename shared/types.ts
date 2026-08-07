@@ -459,6 +459,7 @@ export interface SplitSampleInput {
 
 export interface UpdateSampleInput {
   title?: string;
+  description?: string;
   status?: SampleStatus;
   location?: string;
   pinned?: boolean;
