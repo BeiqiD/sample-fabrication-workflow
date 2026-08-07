@@ -17,6 +17,7 @@ import { exportSample } from "../lib/exportSample";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 import { selectSamplePageRuns } from "../lib/sample-run-selection";
+import "../sample-identity-form.css";
 
 const SAMPLE_NOTES_PREVIEW_COUNT = 3;
 
@@ -272,12 +273,12 @@ export function SamplePage() {
       <div className="sample-priority-sidebar">
         <aside className="card facts sample-details-card">
           <div className="card-title-row"><h2 className="card-title">Sample details</h2><button className="text-button" onClick={() => setEditingDetails((value) => !value)}>{editingDetails ? "Cancel" : "Edit"}</button></div>
-          {editingDetails ? <form className="detail-form" onSubmit={updateDetails}>
+          {editingDetails ? <form className="detail-form sample-identity-form" onSubmit={updateDetails}>
             <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
             <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} /></label>
-            <label>Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} placeholder="Purpose, structure, or other sample context" /></label>
             <label>Status<select name="status" defaultValue={sample.status}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
             <label>Location<input name="location" defaultValue={sample.location || ""} placeholder="Box, lab, or tool" /></label>
+            <label>Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} placeholder="Purpose, structure, or other sample context" /></label>
             <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} />Pinned</label>
             <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>
           </form> : <dl><dt>Location</dt><dd className="sample-location-value">{sample.location || "—"}</dd><dt>Sample code</dt><dd>{sample.code}</dd><dt>Sample name</dt><dd>{sample.title}</dd><dt>Status</dt><dd>{SAMPLE_STATUS_LABELS[sample.status]}</dd><dt>Pinned</dt><dd>{sample.pinned ? "Yes" : "No"}</dd><dt>Parent</dt><dd>{sample.parent ? <Link to={`/samples/${sample.parent.id}`}>{sample.parent.code}</Link> : "—"}</dd><dt>Children</dt><dd>{sample.children.length ? sample.children.map((child) => <Link key={child.id} to={`/samples/${child.id}`}>{child.code}</Link>) : "—"}</dd><dt>Created</dt><dd>{new Date(sample.createdAt).toLocaleString()}</dd></dl>}

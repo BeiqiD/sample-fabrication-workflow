@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MAX_SPLIT_PIECES, SAMPLE_CREATION_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleStatus, type SplitSamplePieceInput } from "../../shared/types";
 import { api } from "../lib/api";
 import { createSplitPieceDrafts } from "../lib/splitSamples";
+import "../sample-identity-form.css";
 import { DialogCloseIcon } from "./DialogCloseIcon";
 
 export function SplitSampleDialog({ sample, onCancel, onComplete }: {
@@ -107,7 +108,7 @@ export function SplitSampleDialog({ sample, onCancel, onComplete }: {
         <div className="split-piece-list">
           {pieces.map((piece, index) => <details className="split-piece" key={index} open={index === 0}>
             <summary><span>Piece {index + 1}</span><strong>{piece.code || "Code required"}</strong><small>{piece.status} · {piece.location || "Location required"}</small></summary>
-            <div className="split-piece-fields">
+            <div className="split-piece-fields sample-identity-form">
               <label>Sample code<input value={piece.code} required maxLength={100} onChange={(event) => updatePiece(index, "code", event.target.value)} /></label>
               <label>Sample name<input value={piece.title} required maxLength={200} onChange={(event) => updatePiece(index, "title", event.target.value)} /></label>
               <label>Status<select value={piece.status} onChange={(event) => updatePiece(index, "status", event.target.value as SampleStatus)}>{SAMPLE_CREATION_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
