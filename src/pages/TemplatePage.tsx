@@ -8,6 +8,7 @@ import { api, type TemplateDetail, type TemplateStepRecord } from "../lib/api";
 import { compressLayerStackImage } from "../lib/images";
 import { templateDetailPath } from "../lib/templateRoutes";
 import { sectionHeaderAtGroupStart } from "../lib/template-sections";
+import "../template-page-layout.css";
 
 function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDetail; step: TemplateStepRecord; onSaved: () => Promise<void> }) {
   const [name, setName] = useState(step.name);
@@ -20,6 +21,26 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   const [error, setError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  function beginEdit() {
+    setName(step.name);
+    setToolName(step.toolName || "");
+    setParametersText(step.parametersText || "");
+    setCommentsText(step.commentsText || "");
+    setImage(null);
+    setError("");
+    setEditing(true);
+  }
+
+  function cancelEdit() {
+    setName(step.name);
+    setToolName(step.toolName || "");
+    setParametersText(step.parametersText || "");
+    setCommentsText(step.commentsText || "");
+    setImage(null);
+    setError("");
+    setEditing(false);
+  }
 
   async function save() {
     setSaving(true); setError("");
@@ -45,22 +66,49 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
     finally { setSaving(false); }
   }
 
-  return <article className="card template-step-card">
+  return <article className={`card template-step-card${editing ? " is-editing" : ""}`}>
     <div className="template-step-number">{step.stepNumber || step.position + 1}</div>
     <div className="template-step-body">
-      <div className="card-title-row"><div><h3 className="card-title">{step.name}</h3>{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>{!template.locked && !template.archived && <div className="template-step-actions"><button type="button" className="text-button" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</button><button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button></div>}</div>
+      <div className="card-title-row">
+        {editing
+          ? <div className="template-step-heading-editor">
+            <label className="template-step-heading-control">
+              <span>Step name</span>
+              <input className="template-step-title-input" value={name} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <label className="template-step-heading-control">
+              <span>Tool</span>
+              <input className="template-step-tool-input" value={toolName} placeholder="Optional" onChange={(event) => setToolName(event.target.value)} />
+            </label>
+          </div>
+          : <div><h3 className="card-title">{step.name}</h3>{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>}
+        {!template.locked && !template.archived && <div className="template-step-actions">
+          <button type="button" className="text-button" onClick={editing ? cancelEdit : beginEdit}>{editing ? "Cancel" : "Edit"}</button>
+          <button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button>
+        </div>}
+      </div>
       <div className={step.imageKeys.length > 0 ? "template-step-content has-diagrams" : "template-step-content"}>
-        <dl className="template-detail-list"><dt>Parameters</dt><dd>{step.parametersText || "—"}</dd><dt>Comments</dt><dd>{step.commentsText || "—"}</dd></dl>
+        {editing
+          ? <div className="template-step-fields template-step-fields-edit">
+            <label className="template-step-field">
+              <span>Parameters</span>
+              <textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} />
+            </label>
+            <label className="template-step-field">
+              <span>Comments</span>
+              <textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} />
+            </label>
+            <div className="template-step-edit-extras">
+              <FileDropzone compact accept="image/*" file={image} onFile={setImage} label="Drop another diagram" />
+              <div className="template-step-edit-actions"><button type="button" className="button primary" disabled={saving || !name.trim()} onClick={() => void save()}>{saving ? "Saving…" : "Save step"}</button></div>
+            </div>
+          </div>
+          : <div className="template-step-fields template-step-fields-view">
+            <div className="template-step-field"><span>Parameters</span><p>{step.parametersText || "—"}</p></div>
+            <div className="template-step-field"><span>Comments</span><p>{step.commentsText || "—"}</p></div>
+          </div>}
         {step.imageKeys.length > 0 && <DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" />}
       </div>
-      {editing && <div className="step-form">
-        <label>Step name<input value={name} onChange={(event) => setName(event.target.value)} /></label>
-        <label>Tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} /></label>
-        <label>Parameters<textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} /></label>
-        <label>Comments<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} /></label>
-        <FileDropzone compact accept="image/*" file={image} onFile={setImage} label="Drop another diagram" />
-        <button type="button" className="button primary" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Save step"}</button>
-      </div>}
       {error && <p className="error-banner">{error}</p>}
     </div>
     {confirmingDelete && <ConfirmDeleteDialog title="Delete this template step?" description="The complete step, including all of its diagrams, will be removed from this unused template version. Shared file data will remain unchanged." summary={step.name} deleting={saving} error={deleteError} eyebrow="Delete step" confirmLabel="Delete step" onCancel={() => { setConfirmingDelete(false); setDeleteError(""); }} onConfirm={() => void deleteStep()} />}
