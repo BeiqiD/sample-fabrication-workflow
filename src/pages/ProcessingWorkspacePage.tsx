@@ -372,8 +372,8 @@ export function ProcessingWorkspacePage() {
     };
     if (action === "delete_run") return {
       id: action,
-      label: "Delete run",
-      description: "Permanently remove this run",
+      label: "Move run to trash",
+      description: "Hide this run without removing its history",
       icon: <ActionIcon name="delete" />,
       danger: true,
       disabled: assigning,
@@ -477,14 +477,15 @@ export function ProcessingWorkspacePage() {
         onConfirm={() => void finishActiveRun()}
       />}
       {confirmingRunDelete && selectedRun && <ConfirmDeleteDialog
-        eyebrow={`Delete ${selectedRun.runKind} run`}
-        title={`Delete this ${selectedRun.runKind} run?`}
-        description="The run and its steps, comments, attachment associations, plan revisions, and verification records will be removed. Existing timeline entries remain as read-only history; detached files follow the normal retention period before cleanup."
+        eyebrow={`Move ${selectedRun.runKind} run to trash`}
+        title={`Move this ${selectedRun.runKind} run to trash?`}
+        description="The run will be hidden from ordinary views. Its steps, comments, attachments, plan revisions, verification records, and identity remain intact so it can be restored."
         summary={selectedRunLabel}
         deleting={assigning}
         error={deleteRunError}
-        confirmLabel="Delete run"
-        busyLabel="Deleting…"
+        confirmLabel="Move to trash"
+        busyLabel="Moving…"
+        irreversible={false}
         onCancel={() => {
           setConfirmingRunDelete(false);
           setDeleteRunError("");

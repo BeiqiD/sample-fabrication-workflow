@@ -165,7 +165,7 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
     `WITH latest_run AS (
        SELECT id, sequence_no, initial_state_hash
        FROM runs
-       WHERE sample_id = ? AND run_kind = 'process'
+       WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL
        ORDER BY sequence_no DESC LIMIT 1
      ),
      candidates AS (
@@ -174,7 +174,7 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
        FROM run_steps rs
        JOIN latest_run lr ON lr.id = rs.run_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE rs.status = 'done'
+       WHERE rs.status = 'done' AND rs.deleted_at IS NULL
          AND rs.entry_kind = 'fabrication'
          AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
          AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
@@ -192,8 +192,8 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
        FROM run_steps rs
        JOIN runs r ON r.id = rs.run_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE r.sample_id = ? AND r.run_kind = 'process'
-         AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+       WHERE r.sample_id = ? AND r.run_kind = 'process' AND r.deleted_at IS NULL
+         AND rs.entry_kind = 'fabrication' AND rs.status = 'done' AND rs.deleted_at IS NULL
          AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
          AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
            SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
@@ -242,7 +242,7 @@ const sampleOverviewSelect = `
            SELECT COALESCE(rs.title, sd.name)
            FROM run_steps rs
            LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-           WHERE rs.run_id = r.id AND rs.plan_status = 'current'
+           WHERE rs.run_id = r.id AND rs.plan_status = 'current' AND rs.deleted_at IS NULL
              AND rs.entry_kind = 'fabrication'
              AND rs.status NOT IN ('done', 'skipped')
            ORDER BY rs.position
@@ -254,6 +254,7 @@ const sampleOverviewSelect = `
              FROM run_steps rs
              LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
              WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+               AND rs.deleted_at IS NULL
                AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
                  SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
@@ -269,6 +270,7 @@ const sampleOverviewSelect = `
                JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
                JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
                WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+                 AND rs.deleted_at IS NULL
                  AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
              ),
@@ -280,7 +282,7 @@ const sampleOverviewSelect = `
                  (
                    SELECT rs.expected_state_hash
                    FROM run_steps rs
-                   WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication'
+                   WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.deleted_at IS NULL
                      AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
                      AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                    ORDER BY rs.position DESC LIMIT 1
@@ -290,6 +292,7 @@ const sampleOverviewSelect = `
                    SELECT rs.expected_state_hash
                    FROM run_steps rs JOIN runs earlier ON earlier.id = rs.run_id
                    WHERE earlier.sample_id = s.id AND earlier.run_kind = 'process'
+                     AND earlier.deleted_at IS NULL AND rs.deleted_at IS NULL
                      AND earlier.sequence_no < r.sequence_no
                      AND rs.entry_kind = 'fabrication'
                      AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
@@ -303,11 +306,11 @@ const sampleOverviewSelect = `
            )
          ) AS current_state_thumbnail_key
   FROM samples s
-  LEFT JOIN runs r ON r.sample_id = s.id
+  LEFT JOIN runs r ON r.sample_id = s.id AND r.deleted_at IS NULL
     AND r.sequence_no = (
       SELECT MAX(latest.sequence_no)
       FROM runs latest
-      WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+      WHERE latest.sample_id = s.id AND latest.run_kind = 'process' AND latest.deleted_at IS NULL
     )
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
   LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
@@ -325,7 +328,7 @@ const sampleDirectoryBaseSelect = `
   LEFT JOIN runs r ON r.id = (
     SELECT latest.id
     FROM runs latest
-    WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+    WHERE latest.sample_id = s.id AND latest.run_kind = 'process' AND latest.deleted_at IS NULL
     ORDER BY latest.sequence_no DESC
     LIMIT 1
   )
@@ -485,6 +488,7 @@ app.get("/samples", async (c) => {
             AND matching_run.recipe_family_id = ?
             AND matching_run.run_kind = ?
             AND matching_run.status = ?
+            AND matching_run.deleted_at IS NULL
         )`
     : "";
   const filterSql = `(${baseFilterSql})${matchingRunFilterSql}`;
@@ -501,7 +505,7 @@ app.get("/samples", async (c) => {
            SELECT COALESCE(rs.title, sd.name)
            FROM run_steps rs
            LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-           WHERE rs.run_id = filtered_samples.latest_run_id
+           WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
              AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
              AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
              AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
@@ -516,7 +520,7 @@ app.get("/samples", async (c) => {
              FROM run_steps rs
              JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
              JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
-             WHERE rs.run_id = filtered_samples.latest_run_id
+             WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
                AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
                AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
              ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
@@ -529,7 +533,7 @@ app.get("/samples", async (c) => {
                (
                  SELECT rs.expected_state_hash
                  FROM run_steps rs
-                 WHERE rs.run_id = filtered_samples.latest_run_id
+                 WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
                    AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
                    AND rs.expected_state_hash IS NOT NULL
                    AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
@@ -541,7 +545,8 @@ app.get("/samples", async (c) => {
                  FROM run_steps rs
                  JOIN runs earlier ON earlier.id = rs.run_id
                  WHERE earlier.sample_id = filtered_samples.id
-                   AND earlier.run_kind = 'process'
+                   AND earlier.run_kind = 'process' AND earlier.deleted_at IS NULL
+                   AND rs.deleted_at IS NULL
                    AND (
                      filtered_samples.latest_run_sequence IS NULL
                      OR earlier.sequence_no < filtered_samples.latest_run_sequence
@@ -572,7 +577,7 @@ app.get("/samples", async (c) => {
              SELECT COALESCE(rs.title, sd.name)
              FROM run_steps rs
              LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-             WHERE rs.run_id = filtered_samples.latest_run_id
+             WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
                AND rs.plan_status = 'current'
                AND rs.entry_kind = 'fabrication'
                AND rs.status NOT IN ('done', 'skipped')
@@ -820,7 +825,7 @@ app.get("/samples/:id", async (c) => {
        FROM runs r
        LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
        LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
-       LEFT JOIN run_steps rs ON rs.run_id = r.id
+       LEFT JOIN run_steps rs ON rs.run_id = r.id AND rs.deleted_at IS NULL
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
        LEFT JOIN template_steps original_ts ON original_ts.id = rs.template_step_id
        LEFT JOIN run_step_plan_links current_link
@@ -828,7 +833,7 @@ app.get("/samples/:id", async (c) => {
         AND current_link.run_step_id = rs.id
        LEFT JOIN template_steps current_ts ON current_ts.id = current_link.template_step_id
        LEFT JOIN step_definitions current_sd ON current_sd.hash = current_ts.definition_hash
-       WHERE r.sample_id = ?
+       WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, rs.position ASC`,
     ).bind(id).all<Record<string, unknown>>(),
     c.env.DB.prepare(
@@ -843,14 +848,15 @@ app.get("/samples/:id", async (c) => {
          JOIN state_representation_assets sra ON sra.state_hash =
            CASE WHEN current_ts.id IS NOT NULL THEN current_ts.expected_state_hash ELSE rs.expected_state_hash END
          JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-         WHERE r.sample_id = ?
+         WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          UNION ALL
          SELECT rsa.run_step_id, 'execution' AS role, a.r2_key, rsa.position, rsa.created_at
          FROM run_step_assets rsa
          JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
          JOIN run_steps rs ON rs.id = rsa.run_step_id
          JOIN runs r ON r.id = rs.run_id
-         WHERE r.sample_id = ? AND rsa.role = 'execution'
+         WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND rsa.role = 'execution'
        ) ORDER BY run_step_id, role, position, created_at`,
     ).bind(id, id).all<{ run_step_id: string; role: "planned" | "execution"; r2_key: string }>(),
     c.env.DB.prepare(
@@ -858,7 +864,7 @@ app.get("/samples/:id", async (c) => {
        FROM runs r
        JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-       WHERE r.sample_id = ?
+       WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, sra.position, a.id`,
     ).bind(id).all<{ run_id: string; r2_key: string }>(),
     c.env.DB.prepare(
@@ -868,7 +874,8 @@ app.get("/samples/:id", async (c) => {
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
        LEFT JOIN assets ca ON ca.id = rsc.asset_id AND ca.status = 'ready'
-       WHERE r.sample_id = ?
+       WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND rsc.deleted_at IS NULL
        ORDER BY rsc.created_at, rsc.id`,
     ).bind(id).all<{
       id: string; run_step_id: string; scope: "common" | "individual";
@@ -877,13 +884,21 @@ app.get("/samples/:id", async (c) => {
     }>(),
     c.env.DB.prepare(
       `SELECT sv.* FROM state_verifications sv
-       WHERE sv.sample_id = ? ORDER BY sv.created_at, sv.id`,
+       JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+       JOIN runs endpoint_run ON endpoint_run.id = endpoint.run_id
+       WHERE sv.sample_id = ? AND endpoint_run.deleted_at IS NULL
+         AND endpoint.deleted_at IS NULL
+       ORDER BY sv.created_at, sv.id`,
     ).bind(id).all<Record<string, unknown>>(),
     c.env.DB.prepare(
       `SELECT svs.verification_id, svs.run_step_id, svs.ordinal
        FROM state_verification_steps svs
        JOIN state_verifications sv ON sv.id = svs.verification_id
-       WHERE sv.sample_id = ? ORDER BY sv.created_at, svs.ordinal`,
+       JOIN run_steps covered_step ON covered_step.id = svs.run_step_id
+       JOIN runs covered_run ON covered_run.id = covered_step.run_id
+       WHERE sv.sample_id = ? AND covered_run.deleted_at IS NULL
+         AND covered_step.deleted_at IS NULL
+       ORDER BY sv.created_at, svs.ordinal`,
     ).bind(id).all<{ verification_id: string; run_step_id: string; ordinal: number }>(),
     c.env.DB.prepare(
       `SELECT DISTINCT cs.*
@@ -905,7 +920,10 @@ app.get("/samples/:id", async (c) => {
       `SELECT cst.submission_id, cst.run_step_id
        FROM comment_submission_targets cst
        JOIN comment_submissions cs ON cs.id = cst.submission_id
+       JOIN run_steps rs ON rs.id = cst.run_step_id
+       JOIN runs r ON r.id = rs.run_id
        WHERE cst.sample_id = ? AND cs.status <> 'cancelled'
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        ORDER BY cs.created_at, cst.run_step_id`,
     ).bind(id).all<{ submission_id: string; run_step_id: string }>(),
   ]);
@@ -1279,6 +1297,12 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
   const verificationId = typeof metadata.verificationId === "string" ? metadata.verificationId : null;
   const stepId = typeof metadata.stepId === "string" ? metadata.stepId : null;
   const runId = typeof metadata.runId === "string" ? metadata.runId : null;
+  if (runId) {
+    const liveRun = await c.env.DB.prepare(
+      "SELECT id FROM runs WHERE id = ? AND sample_id = ? AND deleted_at IS NULL",
+    ).bind(runId, sampleId).first<{ id: string }>();
+    if (!liveRun) throw new HTTPException(404, { message: "Active timeline source not found" });
+  }
   const affectedSampleIds = operationGroupId && sourceAction === "step_comment"
     ? (await c.env.DB.prepare(
       `SELECT DISTINCT sample_id FROM events
@@ -1382,7 +1406,7 @@ app.post("/samples/:id/runs/preview", async (c) => {
          AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = template_versions.id AND i.status != 'ready')`,
     ).bind(templateVersionId).first<{ id: string; name: string; version: number; initial_state_hash: string | null; content_json: string | null }>(),
     c.env.DB.prepare(
-      "SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1",
+      "SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL ORDER BY sequence_no DESC LIMIT 1",
     ).bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -1447,7 +1471,7 @@ app.post("/samples/:id/runs", async (c) => {
     ).bind(templateVersionId).all<{ id: string; position: number; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare(
       `SELECT id, status, sequence_no
-       FROM runs WHERE sample_id = ? AND run_kind = 'process'
+       FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL
        ORDER BY sequence_no DESC LIMIT 1`,
     ).bind(sampleId).first<{ id: string; status: "active" | "complete" | "cancelled" | "superseded"; sequence_no: number }>(),
     c.env.DB.prepare("SELECT COALESCE(MAX(sequence_no), 0) AS sequence_no FROM runs WHERE sample_id = ?")
@@ -1489,6 +1513,7 @@ app.post("/samples/:id/runs", async (c) => {
   const anchor = latestRun ? await c.env.DB.prepare(
     `SELECT id FROM run_steps
      WHERE run_id = ? AND entry_kind = 'fabrication' AND actualized_at IS NOT NULL
+       AND deleted_at IS NULL
      ORDER BY position DESC LIMIT 1`,
   ).bind(latestRun.id).first<{ id: string }>() : null;
   const statements: D1PreparedStatement[] = [
@@ -1504,10 +1529,12 @@ app.post("/samples/:id/runs", async (c) => {
          AND NOT EXISTS (
            SELECT 1 FROM runs active
            WHERE active.sample_id = s.id AND active.status = 'active' AND active.run_kind = 'process'
+             AND active.deleted_at IS NULL
          )
          AND COALESCE((
            SELECT id FROM runs latest
            WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+             AND latest.deleted_at IS NULL
            ORDER BY sequence_no DESC LIMIT 1
          ), '')
              = COALESCE(?, '')`,
@@ -1566,12 +1593,12 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
   }
   const [run, sample, unfinished] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process'",
+      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL",
     ).bind(runId, sampleId).first<{ id: string; template_name_snapshot: string; template_version_snapshot: number; status: string }>(),
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT id FROM run_steps
-       WHERE run_id = ? AND entry_kind = 'fabrication'
+       WHERE run_id = ? AND entry_kind = 'fabrication' AND deleted_at IS NULL
          AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
        ORDER BY position, id`,
     ).bind(runId).all<{ id: string }>(),
@@ -1599,11 +1626,12 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
       `UPDATE run_steps
        SET status = 'skipped', actualized_at = COALESCE(actualized_at, ?),
            updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE run_id = ? AND entry_kind = 'fabrication'
+       WHERE run_id = ? AND entry_kind = 'fabrication' AND deleted_at IS NULL
          AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
          AND EXISTS (
            SELECT 1 FROM runs
            WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'
+             AND deleted_at IS NULL
          )
          AND EXISTS (
            SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?
@@ -1612,6 +1640,7 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
     c.env.DB.prepare(
       `UPDATE runs SET status = 'complete', completed_at = COALESCE(completed_at, ?)
        WHERE id = ? AND sample_id = ? AND run_kind = 'process'
+         AND deleted_at IS NULL
          AND status IN ('active', 'complete')
          AND NOT EXISTS (
            SELECT 1 FROM run_steps
@@ -1629,6 +1658,7 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
          AND EXISTS (
            SELECT 1 FROM runs r
            WHERE r.id = ? AND r.sample_id = s.id AND r.status = 'complete'
+             AND r.deleted_at IS NULL
          )`,
     ).bind(
       crypto.randomUUID(),
@@ -1663,42 +1693,30 @@ app.delete("/samples/:sampleId/runs/:runId", async (c) => {
   if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
     throw new HTTPException(400, { message: "The current sample revision is required" });
   }
-  const [run, deletableSubmissions] = await Promise.all([
-    c.env.DB.prepare(
-      `SELECT r.id, r.run_kind, r.status, r.predecessor_run_id, r.anchor_step_id,
-              r.sequence_no, r.template_name_snapshot, r.template_version_snapshot, r.created_at,
-              s.status AS sample_status, s.updated_at AS sample_updated_at,
-              (SELECT COUNT(*) FROM runs active
-               WHERE active.sample_id = r.sample_id AND active.status = 'active' AND active.id != r.id)
-                AS other_active_count
-       FROM runs r
-       JOIN samples s ON s.id = r.sample_id
-       WHERE r.id = ? AND r.sample_id = ?`,
-    ).bind(runId, sampleId).first<{
-      id: string;
-      run_kind: "process" | "metrology";
-      status: "active" | "complete" | "cancelled" | "superseded";
-      predecessor_run_id: string | null;
-      anchor_step_id: string | null;
-      sequence_no: number;
-      template_name_snapshot: string;
-      template_version_snapshot: number;
-      created_at: string;
-      sample_status: SampleStatus;
-      sample_updated_at: string;
-      other_active_count: number;
-    }>(),
-    c.env.DB.prepare(
-      `SELECT target.submission_id
-       FROM comment_submission_targets target
-       WHERE target.run_id = ?
-       GROUP BY target.submission_id
-       HAVING NOT EXISTS (
-         SELECT 1 FROM comment_submission_targets other
-         WHERE other.submission_id = target.submission_id AND other.run_id != ?
-       )`,
-    ).bind(runId, runId).all<{ submission_id: string }>(),
-  ]);
+  const run = await c.env.DB.prepare(
+    `SELECT r.id, r.run_kind, r.status, r.sequence_no,
+            r.template_name_snapshot, r.template_version_snapshot, r.created_at,
+            s.status AS sample_status, s.updated_at AS sample_updated_at,
+            (SELECT COUNT(*) FROM runs active
+             WHERE active.sample_id = r.sample_id
+               AND active.status = 'active'
+               AND active.deleted_at IS NULL
+               AND active.id != r.id) AS other_active_count
+     FROM runs r
+     JOIN samples s ON s.id = r.sample_id
+     WHERE r.id = ? AND r.sample_id = ? AND r.deleted_at IS NULL`,
+  ).bind(runId, sampleId).first<{
+    id: string;
+    run_kind: "process" | "metrology";
+    status: "active" | "complete" | "cancelled" | "superseded";
+    sequence_no: number;
+    template_name_snapshot: string;
+    template_version_snapshot: number;
+    created_at: string;
+    sample_status: SampleStatus;
+    sample_updated_at: string;
+    other_active_count: number;
+  }>();
   if (!run) throw new HTTPException(404, { message: "Run not found" });
   if (run.sample_updated_at !== input.expectedSampleUpdatedAt) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting the run." });
@@ -1727,146 +1745,140 @@ app.delete("/samples/:sampleId/runs/:runId", async (c) => {
   const userEmail = c.get("userEmail");
   const mutationId = crypto.randomUUID();
   const guardSql = "EXISTS (SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?)";
-  const submissionIds = deletableSubmissions.results.map((row) => row.submission_id);
-  const statements: D1PreparedStatement[] = [c.env.DB.prepare(
-    `UPDATE samples
-     SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND updated_at = ?`,
-  ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt)];
-
-  statements.push(c.env.DB.prepare(
-    `UPDATE runs SET predecessor_run_id = NULL
-     WHERE id = ? AND sample_id = ? AND ${guardSql}`,
-  ).bind(runId, sampleId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE runs SET predecessor_run_id = ?
-     WHERE sample_id = ? AND predecessor_run_id = ? AND ${guardSql}`,
-  ).bind(run.predecessor_run_id, sampleId, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE runs SET anchor_step_id = ?
-     WHERE sample_id = ? AND anchor_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(run.anchor_step_id, sampleId, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE run_steps SET previous_step_id = ?
-     WHERE previous_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(run.anchor_step_id, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE run_plan_revisions SET effective_after_step_id = ?
-     WHERE effective_after_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(run.anchor_step_id, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE state_verifications SET previous_verification_id = NULL
-     WHERE previous_verification_id IN (
-       SELECT id FROM state_verifications
-       WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-     ) AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE recipe_change_proposals SET source_verification_id = NULL
-     WHERE source_verification_id IN (
-       SELECT id FROM state_verifications
-       WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-     ) AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `DELETE FROM state_verification_steps
-     WHERE run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE state_verifications SET run_plan_revision_id = NULL
-     WHERE run_plan_revision_id IN (SELECT id FROM run_plan_revisions WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `DELETE FROM state_verifications
-     WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-
-  if (submissionIds.length) {
-    const placeholders = submissionIds.map(() => "?").join(", ");
-    statements.push(c.env.DB.prepare(
-      `UPDATE comment_submissions
-       SET status = 'cancelled', error_message = NULL, cancelled_at = ?, updated_at = ?
-       WHERE id IN (${placeholders}) AND status != 'cancelled'
-         AND ${guardSql}`,
-    ).bind(now, now, ...submissionIds, sampleId, mutationId));
-    statements.push(c.env.DB.prepare(
-      `UPDATE managed_storage_objects
-       SET status = 'orphaned', orphaned_at = ?
-       WHERE id IN (
-         SELECT storage_object_id FROM comment_submission_items
-         WHERE submission_id IN (${placeholders}) AND storage_object_id IS NOT NULL
-       )
-       AND NOT EXISTS (
-         SELECT 1 FROM comment_submission_items other
-         JOIN comment_submissions cs ON cs.id = other.submission_id
-         WHERE other.storage_object_id = managed_storage_objects.id
-           AND other.submission_id NOT IN (${placeholders}) AND cs.status = 'ready'
-       )
-       AND ${guardSql}`,
-    ).bind(now, ...submissionIds, ...submissionIds, sampleId, mutationId));
-    statements.push(c.env.DB.prepare(
-      `UPDATE events
-       SET body = 'Deleted step comment', asset_key = NULL,
-           metadata_json = json_set(
-             json_remove(metadata_json, '$.thumbnailKey'),
-             '$.deletedAt', ?, '$.deletedBy', ?, '$.sourceRunDeleted', 1
-           )
-       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') IN (${placeholders})
-         AND ${guardSql}`,
-    ).bind(now, userEmail, sampleId, ...submissionIds, sampleId, mutationId));
-  }
-
-  statements.push(c.env.DB.prepare(
-    `UPDATE events
-     SET asset_key = NULL,
-         metadata_json = json_set(
-           json_remove(metadata_json, '$.thumbnailKey'),
-           '$.runDeletedAt', ?, '$.runDeletedBy', ?
-         )
-     WHERE sample_id = ? AND json_extract(metadata_json, '$.runId') = ?
-       AND ${guardSql}`,
-  ).bind(now, userEmail, sampleId, runId, sampleId, mutationId));
-  const runDeleteIndex = statements.length;
-  statements.push(c.env.DB.prepare(
-    `DELETE FROM runs
-     WHERE id = ? AND sample_id = ? AND ${guardSql}`,
-  ).bind(runId, sampleId, sampleId, mutationId));
-  const auditEventIndex = statements.length;
-  statements.push(c.env.DB.prepare(
-    `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-     SELECT ?, ?, 'run', ?, ?, ?, ?
-     WHERE ${guardSql} AND NOT EXISTS (
-       SELECT 1 FROM runs WHERE id = ? AND sample_id = ?
-     )`,
-  ).bind(
-    crypto.randomUUID(),
-    sampleId,
-    `Deleted ${run.run_kind} run · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
-    JSON.stringify({
-      action: "run_deleted",
-      deletedRunId: runId,
-      runKind: run.run_kind,
-      sequenceNo: Number(run.sequence_no),
-      templateName: run.template_name_snapshot,
-      templateVersion: Number(run.template_version_snapshot),
-    }),
-    userEmail,
-    now,
-    sampleId,
-    mutationId,
-    runId,
-    sampleId,
-  ));
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE samples
+       SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND updated_at = ?`,
+    ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
+    c.env.DB.prepare(
+      `UPDATE runs SET deleted_at = ?, deleted_by = ?
+       WHERE id = ? AND sample_id = ? AND deleted_at IS NULL AND ${guardSql}`,
+    ).bind(now, userEmail, runId, sampleId, sampleId, mutationId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'run', ?, ?, ?, ?
+       WHERE ${guardSql} AND EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND sample_id = ? AND deleted_at = ?
+       )`,
+    ).bind(
+      crypto.randomUUID(),
+      sampleId,
+      `Moved ${run.run_kind} run to trash · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
+      JSON.stringify({
+        action: "run_deleted",
+        deletedRunId: runId,
+        runKind: run.run_kind,
+        sequenceNo: Number(run.sequence_no),
+        templateName: run.template_name_snapshot,
+        templateVersion: Number(run.template_version_snapshot),
+        recoverable: true,
+      }),
+      userEmail,
+      now,
+      sampleId,
+      mutationId,
+      runId,
+      sampleId,
+      now,
+    ),
+  ];
 
   const results = await c.env.DB.batch(statements);
-  if (!results[0].meta.changes || !results[runDeleteIndex].meta.changes || !results[auditEventIndex].meta.changes) {
+  if (results.some((result) => !result.meta.changes)) {
     throw new HTTPException(409, { message: "The run changed while it was being deleted. Reload and try again." });
+  }
+  return c.json({ ok: true, updatedAt: now });
+});
+
+app.post("/samples/:sampleId/runs/:runId/restore", async (c) => {
+  const { sampleId, runId } = c.req.param();
+  const input = await c.req.json<DeleteRunInput>().catch(() => null);
+  if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
+    throw new HTTPException(400, { message: "The current sample revision is required" });
+  }
+  const run = await c.env.DB.prepare(
+    `SELECT r.id, r.run_kind, r.status, r.sequence_no, r.deleted_at,
+            r.template_name_snapshot, r.template_version_snapshot,
+            s.status AS sample_status, s.updated_at AS sample_updated_at,
+            (SELECT COUNT(*) FROM runs active
+             WHERE active.sample_id = r.sample_id
+               AND active.run_kind = 'process'
+               AND active.status = 'active'
+               AND active.deleted_at IS NULL
+               AND active.id != r.id) AS active_process_count
+     FROM runs r
+     JOIN samples s ON s.id = r.sample_id
+     WHERE r.id = ? AND r.sample_id = ? AND r.deleted_at IS NOT NULL`,
+  ).bind(runId, sampleId).first<{
+    id: string;
+    run_kind: "process" | "metrology";
+    status: "active" | "complete" | "cancelled" | "superseded";
+    sequence_no: number;
+    deleted_at: string;
+    template_name_snapshot: string;
+    template_version_snapshot: number;
+    sample_status: SampleStatus;
+    sample_updated_at: string;
+    active_process_count: number;
+  }>();
+  if (!run) throw new HTTPException(404, { message: "Run not found in trash" });
+  if (run.sample_updated_at !== input.expectedSampleUpdatedAt) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before restoring the run." });
+  }
+  if (run.run_kind === "process" && run.status === "active" && Number(run.active_process_count) > 0) {
+    throw new HTTPException(409, { message: "Finish or move the current active process run to trash before restoring this run." });
+  }
+
+  const now = new Date(Math.max(
+    Date.now(),
+    Date.parse(run.sample_updated_at) + 1,
+    Date.parse(run.deleted_at) + 1,
+  )).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const nextSampleStatus = run.status === "active" ? "active" : run.sample_status;
+  const guardSql = "EXISTS (SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?)";
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE samples
+       SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND updated_at = ?`,
+    ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
+    c.env.DB.prepare(
+      `UPDATE runs SET deleted_at = NULL, deleted_by = NULL
+       WHERE id = ? AND sample_id = ? AND deleted_at = ? AND ${guardSql}`,
+    ).bind(runId, sampleId, run.deleted_at, sampleId, mutationId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'run', ?, ?, ?, ?
+       WHERE ${guardSql} AND EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND sample_id = ? AND deleted_at IS NULL
+       )`,
+    ).bind(
+      crypto.randomUUID(),
+      sampleId,
+      `Restored ${run.run_kind} run · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
+      JSON.stringify({
+        action: "run_restored",
+        restoredRunId: runId,
+        runKind: run.run_kind,
+        sequenceNo: Number(run.sequence_no),
+        templateName: run.template_name_snapshot,
+        templateVersion: Number(run.template_version_snapshot),
+      }),
+      userEmail,
+      now,
+      sampleId,
+      mutationId,
+      runId,
+      sampleId,
+    ),
+  ]);
+  if (results.some((result) => !result.meta.changes)) {
+    throw new HTTPException(409, { message: "The run changed while it was being restored. Reload and try again." });
   }
   return c.json({ ok: true, updatedAt: now });
 });
@@ -1878,7 +1890,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   const context = await loadPlanContext(c.env.DB, sampleId, runId, templateVersionId);
   const [sample, latestRun, currentState] = await Promise.all([
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
-    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
+    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -1973,7 +1985,7 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   const context = await loadPlanContext(c.env.DB, sampleId, runId, input.templateVersionId);
   const [sample, latestRun, currentState] = await Promise.all([
     c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
-    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
+    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -2086,8 +2098,11 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
        SELECT ?, r.id, ?, ?, ?, ?, ?, ?
        FROM runs r JOIN samples s ON s.id = r.sample_id
        WHERE r.id = ? AND r.sample_id = ? AND r.current_plan_revision_id = ?
-         AND r.status = ? AND s.updated_at = ?
-         AND (? = 0 OR NOT EXISTS (SELECT 1 FROM runs successor WHERE successor.predecessor_run_id = r.id))`,
+         AND r.status = ? AND r.deleted_at IS NULL AND s.updated_at = ?
+         AND (? = 0 OR NOT EXISTS (
+           SELECT 1 FROM runs successor
+           WHERE successor.predecessor_run_id = r.id AND successor.deleted_at IS NULL
+         ))`,
     ).bind(revisionId, Number(context.run.revision_no) + 1, input.templateVersionId,
       executionHead?.id ?? null, input.reason?.trim() || "Imported process-template version update", userEmail, now,
       runId, sampleId, input.substrateConfirmation.expectedCurrentPlanRevisionId,
@@ -2161,13 +2176,17 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
               template_name_snapshot = ?, template_type_snapshot = ?, template_version_snapshot = ?,
               status = 'active', completed_at = NULL
        WHERE id = ? AND sample_id = ? AND status = ?
+         AND deleted_at IS NULL
          AND EXISTS (SELECT 1 FROM run_plan_revisions WHERE id = ?)`,
     ).bind(revisionId, input.templateVersionId, context.nextTemplate.name, context.nextTemplate.template_type,
       context.nextTemplate.version, runId, sampleId, reopening ? "complete" : "active", revisionId),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, ?, 'plan', ?, ?, ?, ?
-       WHERE EXISTS (SELECT 1 FROM runs WHERE id = ? AND current_plan_revision_id = ?)`,
+       WHERE EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND current_plan_revision_id = ? AND deleted_at IS NULL
+       )`,
     ).bind(crypto.randomUUID(), sampleId,
       `${reopening ? "Reopened process run with" : "Updated active plan to"} ${context.nextTemplate.name} v${context.nextTemplate.version}`,
       JSON.stringify({ runId, planRevisionId: revisionId, fromTemplateVersionId: context.run.current_template_version_id,
@@ -2183,7 +2202,10 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
         } }), userEmail, now, runId, revisionId),
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?
-       WHERE id = ? AND EXISTS (SELECT 1 FROM runs WHERE id = ? AND current_plan_revision_id = ?)`,
+       WHERE id = ? AND EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND current_plan_revision_id = ? AND deleted_at IS NULL
+       )`,
     ).bind(userEmail, now, sampleId, runId, revisionId),
   );
   if (statements.length > 49) throw new HTTPException(413, { message: "This plan update is too large for one atomic operation" });
@@ -2223,7 +2245,8 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
             rs.deviation_note, rs.origin, rs.updated_at
      FROM run_steps rs JOIN runs r ON r.id = rs.run_id
      LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?`,
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?
+       AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(stepId, runId, sampleId).first<Record<string, string | null>>();
   if (!step) throw new HTTPException(404, { message: "Run step not found" });
   if (step.updated_at !== input.expectedUpdatedAt) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before saving." });
@@ -2243,12 +2266,17 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
     c.env.DB.prepare(
       `UPDATE run_steps SET status = ?, title = ?, tool_name = ?, parameters_text = ?, comments_text = ?,
        deviation_note = ?, notes = ?, actualized_at = COALESCE(actualized_at, ?), updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE id = ? AND updated_at = ?`,
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM runs
+           WHERE runs.id = run_steps.run_id AND runs.deleted_at IS NULL
+         )`,
     ).bind(input.status, titleOverride, toolOverride, parametersOverride, commentsOverride, deviationNote, notes, now, userEmail, mutationId, now, stepId, input.expectedUpdatedAt),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, r.sample_id, 'step', ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?`,
+       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(crypto.randomUUID(), `${title}: ${input.status.replace("_", " ")}${deviationNote ? ` — deviation: ${deviationNote}` : notes ? ` — ${notes}` : ""}`, JSON.stringify({
       runId, stepId, action: "updated", origin: step.origin,
       previous: { title: step.title, status: step.status, toolName: step.tool_name, parametersText: step.parameters_text, commentsText: step.comments_text, deviationNote: step.deviation_note, notes: step.notes },
@@ -2263,17 +2291,20 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
      WHERE EXISTS (
        SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )`,
   ).bind(crypto.randomUUID(), stepId, asset.id, stepId, userEmail, now, stepId, runId, sampleId, mutationId));
   if (asset) statements.push(c.env.DB.prepare(
     `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
      SELECT ?, r.sample_id, 'image', ?, ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?`,
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+       AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(crypto.randomUUID(), `Execution diagram for step: ${title}`, asset.r2_key, JSON.stringify({ runId, stepId }), userEmail, now, stepId, runId, sampleId, mutationId));
   statements.push(c.env.DB.prepare(
     `UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND EXISTS (
        SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )`,
   ).bind(userEmail, now, sampleId, stepId, runId, sampleId, mutationId));
   const results = await c.env.DB.batch(statements);
@@ -2292,7 +2323,8 @@ app.delete("/samples/:sampleId/runs/:runId/steps/:stepId/assets", async (c) => {
      JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
      LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
      JOIN assets a ON a.id = rsa.asset_id
-     WHERE rsa.run_step_id = ? AND r.id = ? AND r.sample_id = ? AND a.r2_key = ?`,
+     WHERE rsa.run_step_id = ? AND r.id = ? AND r.sample_id = ? AND a.r2_key = ?
+       AND r.deleted_at IS NULL AND rs.deleted_at IS NULL AND rsa.deleted_at IS NULL`,
   ).bind(stepId, runId, sampleId, input.assetKey).first<{ id: string; title: string | null; planned_title: string | null; updated_at: string; sample_updated_at: string }>();
   if (!attachment) throw new HTTPException(404, { message: "Execution image not found" });
   const now = new Date(Math.max(Date.now(), Date.parse(attachment.updated_at) + 1, Date.parse(attachment.sample_updated_at) + 1)).toISOString();
@@ -2327,8 +2359,8 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
   const definition = await hashStepDefinition({ name: title, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
   const [run, stepRows, asset] = await Promise.all([
-    c.env.DB.prepare("SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'").bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
-    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? ORDER BY position").bind(runId).all<{ id: string; position: number }>(),
+    c.env.DB.prepare("SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active' AND deleted_at IS NULL").bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
+    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? AND deleted_at IS NULL ORDER BY position").bind(runId).all<{ id: string; position: number }>(),
     input.assetKey ? c.env.DB.prepare("SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
@@ -2364,7 +2396,7 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     "INSERT INTO run_step_assets (id, run_step_id, asset_id, role, position, actor_email, created_at) VALUES (?, ?, ?, 'execution', 0, ?, ?)",
   ).bind(crypto.randomUUID(), stepId, asset.id, userEmail, now));
   statements.push(
-    c.env.DB.prepare("UPDATE runs SET status = 'active', completed_at = NULL WHERE id = ? AND sample_id = ?").bind(runId, sampleId),
+    c.env.DB.prepare("UPDATE runs SET status = 'active', completed_at = NULL WHERE id = ? AND sample_id = ? AND deleted_at IS NULL").bind(runId, sampleId),
     c.env.DB.prepare(
       "INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at) VALUES (?, ?, 'step', ?, ?, ?, ?)",
     ).bind(crypto.randomUUID(), sampleId, `Added ad hoc step: ${title}`, JSON.stringify({ runId, stepId, action: "added", afterStepId: input.afterStepId ?? null, deviationNote: input.deviationNote.trim() || null }), userEmail, now),
@@ -2388,7 +2420,7 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
   }
   const [run, template, stepRows] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'",
+      "SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active' AND deleted_at IS NULL",
     ).bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
     c.env.DB.prepare(
       `SELECT tv.id, tv.name, tv.version, tv.recipe_family_id,
@@ -2401,7 +2433,7 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
       id: string; name: string; version: number; recipe_family_id: string;
       template_step_id: string; logical_step_key: string; definition_hash: string;
     }>(),
-    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? ORDER BY position")
+    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? AND deleted_at IS NULL ORDER BY position")
       .bind(runId).all<{ id: string; position: number }>(),
   ]);
   if (!run) throw new HTTPException(404, { message: "Active process run not found" });
@@ -2421,6 +2453,7 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
        SELECT ?, r.id, ?, ?, 'pending', 'ad_hoc', 'metrology', ?, ?, ?, ?, ?, ?, ?
        FROM runs r JOIN template_versions tv ON tv.id = ?
        WHERE r.id = ? AND r.sample_id = ? AND r.run_kind = 'process' AND r.status = 'active'
+         AND r.deleted_at IS NULL
          AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL`,
     ).bind(stepId, input.afterStepId ?? run.anchor_step_id, position, template.template_step_id,
       template.logical_step_key, template.definition_hash, now, now, userEmail, now,
@@ -2543,7 +2576,8 @@ app.post("/run-step-comments", async (c) => {
      FROM requested q
      JOIN runs r ON r.id = q.run_id AND r.sample_id = q.sample_id
      JOIN run_steps rs ON rs.id = q.step_id AND rs.run_id = q.run_id
-     WHERE rs.updated_at = q.expected_updated_at`,
+     WHERE rs.updated_at = q.expected_updated_at
+       AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>(),
   assetKey ? c.env.DB.prepare(
     "SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?",
@@ -2562,7 +2596,8 @@ app.post("/run-step-comments", async (c) => {
        (id, run_step_id, scope, operation_group_id, body, asset_id, actor_email, created_at)
      SELECT ?, rs.id, ?, ?, ?, ?, ?, ?
      FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.updated_at = ?`,
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.updated_at = ?
+       AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(
     crypto.randomUUID(), input.scope, operationGroupId, body, commentAsset?.id ?? null, userEmail, now,
     target.stepId, target.runId, target.sampleId, target.expectedUpdatedAt,
@@ -2602,7 +2637,8 @@ app.delete("/run-step-comments/:id/asset", async (c) => {
      JOIN run_steps rs ON rs.id = rsc.run_step_id
      JOIN runs r ON r.id = rs.run_id
      LEFT JOIN assets a ON a.id = rsc.asset_id
-     WHERE rsc.id = ?`,
+     WHERE rsc.id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+       AND rsc.deleted_at IS NULL`,
   ).bind(commentId).first<{ id: string; scope: "common" | "individual"; operation_group_id: string | null; r2_key: string | null }>();
   if (!comment) throw new HTTPException(404, { message: "Step comment not found" });
   if (!comment.r2_key) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
@@ -2660,7 +2696,8 @@ app.delete("/run-step-comments/:id", async (c) => {
      FROM run_step_comments rsc
      JOIN run_steps rs ON rs.id = rsc.run_step_id
      JOIN runs r ON r.id = rs.run_id
-     WHERE rsc.id = ?`,
+     WHERE rsc.id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+       AND rsc.deleted_at IS NULL`,
   ).bind(commentId).first<{
     id: string; scope: "common" | "individual"; operation_group_id: string | null;
   }>();
@@ -2752,6 +2789,7 @@ app.post("/run-steps/confirm", async (c) => {
        JOIN runs r ON r.id = q.run_id AND r.sample_id = q.sample_id
        JOIN run_steps rs ON rs.id = q.step_id AND rs.run_id = q.run_id
        WHERE rs.updated_at = q.expected_updated_at AND rs.status IN ('pending', 'in_progress')
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )
      UPDATE run_steps
      SET status = 'done', actualized_at = COALESCE(actualized_at, ?), updated_by = ?, last_mutation_id = ?, updated_at = ?
@@ -2805,7 +2843,8 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
        FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?
          AND r.run_kind = 'process' AND rs.entry_kind = 'fabrication'
-         AND rs.plan_status = 'current'`,
+         AND rs.plan_status = 'current'
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(stepId, runId, sampleId).first<{
       id: string; status: StepStatus; updated_at: string; expected_state_hash: string | null;
       position: number; sequence_no: number; current_plan_revision_id: string;
@@ -2817,13 +2856,17 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
     c.env.DB.prepare(
       `SELECT sv.id, sv.after_run_step_id
        FROM state_verifications sv
+       JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+       JOIN runs endpoint_run ON endpoint_run.id = endpoint.run_id
        WHERE sv.sample_id = ? AND sv.status = 'valid'
+         AND endpoint_run.deleted_at IS NULL AND endpoint.deleted_at IS NULL
        ORDER BY sv.created_at DESC, sv.id DESC LIMIT 1`,
     ).bind(sampleId).first<{ id: string; after_run_step_id: string }>(),
     c.env.DB.prepare(
       `SELECT rs.id, rs.status, rs.plan_status, rs.actualized_at, r.sequence_no, rs.position
        FROM runs r JOIN run_steps rs ON rs.run_id = r.id
        WHERE r.sample_id = ? AND r.run_kind = 'process' AND rs.entry_kind = 'fabrication'
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        ORDER BY r.sequence_no, rs.position`,
     ).bind(sampleId).all<{
       id: string; status: StepStatus; plan_status: "current" | "superseded";
@@ -2853,7 +2896,11 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
     c.env.DB.prepare(
       `UPDATE run_steps SET status = CASE WHEN ? THEN 'done' ELSE status END,
               actualized_at = COALESCE(actualized_at, ?), updated_by = ?, updated_at = ?
-       WHERE id = ? AND run_id = ? AND updated_at = ?`,
+       WHERE id = ? AND run_id = ? AND updated_at = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM runs
+           WHERE runs.id = run_steps.run_id AND runs.deleted_at IS NULL
+         )`,
     ).bind(input.completeStep ? 1 : 0, now, userEmail, now, stepId, runId, input.expectedUpdatedAt),
     c.env.DB.prepare(
       `INSERT INTO state_verifications

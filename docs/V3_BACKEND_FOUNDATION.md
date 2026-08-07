@@ -93,18 +93,27 @@ deployment. Credentials and Access secrets must never be committed.
 
 ## Delivery sequence
 
-This first change is additive only: it introduces lifecycle columns, visible-row
-indexes, schema tests, and this contract. It does not change route behavior or
-run migrations remotely.
+The additive foundation introduced lifecycle columns, visible-row indexes,
+schema tests, and this contract without changing route behavior. The first
+route conversion now applies those boundaries to Runs:
 
-Subsequent changes will:
+- ordinary Run deletion sets `deleted_at` and `deleted_by` without removing or
+  rewiring steps, comments, attachment occurrences, plan revisions,
+  verifications, or successor links;
+- ordinary reads and mutations exclude deleted Runs and deleted steps;
+- restoration clears the deletion metadata on the same Run identity and
+  rejects an active process conflict;
+- live-run uniqueness and lifecycle triggers ignore deleted Runs;
+- the five historical built-in metrology presets are retired; referenced
+  presets are archived so existing Run history remains valid.
 
-1. convert ordinary Run deletion and reads to soft-delete/restore semantics;
-2. convert Sample, Comment, attachment-occurrence, and Recipe deletion paths;
-3. add cleanup reachability guards and permanent-delete protection;
-4. add `reference_targets`, backlinks, and the batch read-only resolver;
-5. add object-level deep links and deterministic reference search;
-6. add Project-owned data and views.
+The remaining sequence is:
+
+1. convert Sample, Comment, attachment-occurrence, and Recipe deletion paths;
+2. add cleanup reachability guards and permanent-delete protection;
+3. add `reference_targets`, backlinks, and the batch read-only resolver;
+4. add object-level deep links and deterministic reference search;
+5. add Project-owned data and views.
 
 Project UI, semantic search, source editing from Project, fixed Project
 hierarchies, and LLM write access are outside this foundation.

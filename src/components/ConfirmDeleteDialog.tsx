@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import "../modal-form-controls.css";
 
-export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", confirmation, onCancel, onConfirm }: {
+export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", irreversible = true, confirmation, onCancel, onConfirm }: {
   title: string;
   description: string;
   summary: string;
@@ -11,6 +11,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
   eyebrow?: string;
   confirmLabel?: string;
   busyLabel?: string;
+  irreversible?: boolean;
   confirmation?: {
     label: string;
     target: string;
@@ -34,7 +35,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
     <section ref={dialogRef} className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description">
       <p className="eyebrow">{eyebrow}</p>
       <h2 id="confirm-delete-title">{title}</h2>
-      <p id="confirm-delete-description">{description} This cannot be undone.</p>
+      <p id="confirm-delete-description">{description}{irreversible ? " This cannot be undone." : ""}</p>
       <blockquote>{summary.length > 180 ? `${summary.slice(0, 180)}…` : summary}</blockquote>
       {confirmation && <label className="confirm-dialog-confirmation">{confirmation.label}
         <input ref={confirmationRef} value={confirmation.value} autoComplete="off" spellCheck={false} disabled={deleting} onChange={(event) => confirmation.onChange(event.target.value)} />

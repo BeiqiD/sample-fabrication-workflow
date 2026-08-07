@@ -115,8 +115,19 @@ function deleteRequest(env: Env, runId: string, expectedSampleUpdatedAt: string)
   ), env, {} as ExecutionContext);
 }
 
-describe("delete run route", () => {
-  it("removes an active run while preserving text timeline history and orphaning its files", async () => {
+function restoreRequest(env: Env, runId: string, expectedSampleUpdatedAt: string) {
+  return worker.fetch(new Request(
+    `https://samples.run/api/samples/sample-1/runs/${runId}/restore`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedSampleUpdatedAt }),
+    },
+  ), env, {} as ExecutionContext);
+}
+
+describe("run trash and restore routes", () => {
+  it("hides and restores an active run without destroying its execution graph or files", async () => {
     const database = createDatabase();
     addSample(database);
     database.exec(`
@@ -185,22 +196,24 @@ describe("delete run route", () => {
          '2026-07-30T10:06:00.000Z');
     `);
 
-    const response = await deleteRequest(testEnv(database), "run-delete", "2026-07-30T10:05:00.000Z");
+    const env = testEnv(database);
+    const response = await deleteRequest(env, "run-delete", "2026-07-30T10:05:00.000Z");
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ ok: true, updatedAt: expect.any(String) });
-    expect(database.prepare("SELECT COUNT(*) AS count FROM runs WHERE id = 'run-delete'").get())
-      .toEqual({ count: 0 });
+    const deletedPayload = await response.json() as { ok: true; updatedAt: string };
+    expect(deletedPayload).toMatchObject({ ok: true, updatedAt: expect.any(String) });
+    expect(database.prepare("SELECT deleted_at, deleted_by FROM runs WHERE id = 'run-delete'").get())
+      .toEqual({ deleted_at: deletedPayload.updatedAt, deleted_by: "local-development" });
     expect(database.prepare("SELECT COUNT(*) AS count FROM run_steps WHERE id = 'step-delete'").get())
-      .toEqual({ count: 0 });
+      .toEqual({ count: 1 });
     expect(database.prepare("SELECT COUNT(*) AS count FROM run_step_comments WHERE id = 'comment-delete'").get())
-      .toEqual({ count: 0 });
+      .toEqual({ count: 1 });
     expect(database.prepare("SELECT COUNT(*) AS count FROM run_step_assets WHERE id = 'step-asset'").get())
-      .toEqual({ count: 0 });
+      .toEqual({ count: 1 });
     expect(database.prepare("SELECT status FROM comment_submissions WHERE id = 'submission-delete'").get())
-      .toEqual({ status: "cancelled" });
+      .toEqual({ status: "ready" });
     expect(database.prepare("SELECT status FROM managed_storage_objects WHERE id = 'storage-1'").get())
-      .toEqual({ status: "orphaned" });
+      .toEqual({ status: "ready" });
     expect(database.prepare("SELECT status FROM assets WHERE id = 'asset-1'").get())
       .toEqual({ status: "ready" });
     expect(database.prepare("SELECT status FROM samples WHERE id = 'sample-1'").get())
@@ -210,18 +223,40 @@ describe("delete run route", () => {
       "SELECT body, asset_key, metadata_json FROM events WHERE id = 'run-event'",
     ).get() as { body: string; asset_key: string | null; metadata_json: string };
     expect(runEvent.body).toBe("Executed a step");
-    expect(runEvent.asset_key).toBeNull();
-    expect(JSON.parse(runEvent.metadata_json)).toMatchObject({
+    expect(runEvent.asset_key).toBe("asset-key");
+    expect(JSON.parse(runEvent.metadata_json)).toEqual({
       runId: "run-delete",
-      runDeletedAt: expect.any(String),
-      runDeletedBy: "local-development",
+      stepId: "step-delete",
+      thumbnailKey: "thumb-key",
     });
-    expect(JSON.parse(runEvent.metadata_json)).not.toHaveProperty("thumbnailKey");
     expect(database.prepare("SELECT body FROM events WHERE id = 'comment-event'").get())
-      .toEqual({ body: "Deleted step comment" });
+      .toEqual({ body: "Step comment: Delete this comment" });
     expect(database.prepare(
       "SELECT COUNT(*) AS count FROM events WHERE json_extract(metadata_json, '$.action') = 'run_deleted'",
     ).get()).toEqual({ count: 1 });
+
+    const hiddenResponse = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1",
+    ), env, {} as ExecutionContext);
+    const hiddenDetail = await hiddenResponse.json() as { runs: Array<{ id: string }> };
+    expect(hiddenResponse.status).toBe(200);
+    expect(hiddenDetail.runs).toEqual([]);
+
+    const restoredResponse = await restoreRequest(env, "run-delete", deletedPayload.updatedAt);
+    expect(restoredResponse.status).toBe(200);
+    const restoredPayload = await restoredResponse.json() as { ok: true; updatedAt: string };
+    expect(database.prepare("SELECT deleted_at, deleted_by FROM runs WHERE id = 'run-delete'").get())
+      .toEqual({ deleted_at: null, deleted_by: null });
+    expect(database.prepare("SELECT status FROM samples WHERE id = 'sample-1'").get())
+      .toEqual({ status: "active" });
+    expect(restoredPayload.updatedAt > deletedPayload.updatedAt).toBe(true);
+
+    const restoredDetail = await (await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1",
+    ), env, {} as ExecutionContext)).json() as { runs: Array<{ id: string; steps: unknown[] }> };
+    expect(restoredDetail.runs).toHaveLength(1);
+    expect(restoredDetail.runs[0]).toMatchObject({ id: "run-delete" });
+    expect(restoredDetail.runs[0].steps).toHaveLength(1);
     database.close();
   });
 
@@ -291,13 +326,13 @@ describe("delete run route", () => {
     expect(database.prepare("SELECT status FROM managed_storage_objects WHERE id = 'storage-shared'").get())
       .toEqual({ status: "ready" });
     expect(database.prepare("SELECT id FROM run_step_comments ORDER BY id").all())
-      .toEqual([{ id: "comment-keep" }]);
-    expect(database.prepare("SELECT run_id FROM comment_submission_targets").all())
-      .toEqual([{ run_id: "run-keep" }]);
+      .toEqual([{ id: "comment-delete" }, { id: "comment-keep" }]);
+    expect(database.prepare("SELECT run_id FROM comment_submission_targets ORDER BY run_id").all())
+      .toEqual([{ run_id: "run-delete" }, { run_id: "run-keep" }]);
     database.close();
   });
 
-  it("reconnects a later process run and removes only deleted-run verification entities", async () => {
+  it("preserves successor links and verification identities while the run is hidden", async () => {
     const database = createDatabase();
     addSample(database);
     database.exec(`
@@ -381,19 +416,19 @@ describe("delete run route", () => {
     expect(database.prepare(
       "SELECT predecessor_run_id, anchor_step_id FROM runs WHERE id = 'run-after'",
     ).get()).toEqual({
-      predecessor_run_id: "run-before",
-      anchor_step_id: "step-before",
+      predecessor_run_id: "run-delete",
+      anchor_step_id: "step-delete",
     });
     expect(database.prepare("SELECT previous_step_id FROM run_steps WHERE id = 'step-after'").get())
-      .toEqual({ previous_step_id: "step-before" });
+      .toEqual({ previous_step_id: "step-delete" });
     expect(database.prepare("SELECT COUNT(*) AS count FROM state_verifications WHERE id = 'verification-delete'").get())
-      .toEqual({ count: 0 });
+      .toEqual({ count: 1 });
     expect(database.prepare(
       "SELECT previous_verification_id FROM state_verifications WHERE id = 'verification-after'",
-    ).get()).toEqual({ previous_verification_id: null });
+    ).get()).toEqual({ previous_verification_id: "verification-delete" });
     expect(database.prepare(
-      "SELECT run_step_id FROM state_verification_steps WHERE verification_id = 'verification-after'",
-    ).all()).toEqual([{ run_step_id: "step-after" }]);
+      "SELECT run_step_id FROM state_verification_steps WHERE verification_id = 'verification-after' ORDER BY ordinal",
+    ).all()).toEqual([{ run_step_id: "step-delete" }, { run_step_id: "step-after" }]);
     expect(database.prepare("SELECT body FROM events WHERE id = 'preserved-event'").get())
       .toEqual({ body: "Finished deleted run" });
     expect(database.prepare("SELECT status FROM samples WHERE id = 'sample-1'").get())

@@ -172,9 +172,10 @@ routes.post("/comment-submissions", async (c) => {
   } else {
     const targets = input.context.targets;
     const rows = await c.env.DB.prepare(
-      `SELECT rs.id, rs.updated_at, r.id AS run_id, r.sample_id
+       `SELECT rs.id, rs.updated_at, r.id AS run_id, r.sample_id
        FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-       WHERE rs.id IN (${targets.map(() => "?").join(", ")})`,
+       WHERE rs.id IN (${targets.map(() => "?").join(", ")})
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(...targets.map((target) => target.stepId)).all<{
       id: string; updated_at: string; run_id: string; sample_id: string;
     }>();
@@ -461,10 +462,23 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
       "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
     ).bind(userEmail, now, submission.sample_id));
   } else {
-    const targets = await c.env.DB.prepare(
-      `SELECT sample_id, run_id, run_step_id
-       FROM comment_submission_targets WHERE submission_id = ? ORDER BY run_step_id`,
-    ).bind(submissionId).all<{ sample_id: string; run_id: string; run_step_id: string }>();
+    const [targets, targetCount] = await Promise.all([
+      c.env.DB.prepare(
+        `SELECT cst.sample_id, cst.run_id, cst.run_step_id
+         FROM comment_submission_targets cst
+         JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+         JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+         WHERE cst.submission_id = ?
+           AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         ORDER BY cst.run_step_id`,
+      ).bind(submissionId).all<{ sample_id: string; run_id: string; run_step_id: string }>(),
+      c.env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM comment_submission_targets WHERE submission_id = ?",
+      ).bind(submissionId).first<{ count: number }>(),
+    ]);
+    if (targets.results.length !== Number(targetCount?.count ?? 0)) {
+      throw new HTTPException(409, { message: "A target run was moved to trash before this comment was finalized." });
+    }
     const operationGroupId = targets.results.length > 1 ? crypto.randomUUID() : null;
     for (const target of targets.results) statements.push(c.env.DB.prepare(
       `INSERT INTO run_step_comments
