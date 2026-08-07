@@ -9,10 +9,11 @@ class SqliteD1Statement {
     private readonly database: DatabaseSync,
     readonly query: string,
     readonly bindings: unknown[] = [],
+    private readonly beforeRun?: () => void,
   ) {}
 
   bind(...bindings: unknown[]) {
-    return new SqliteD1Statement(this.database, this.query, bindings);
+    return new SqliteD1Statement(this.database, this.query, bindings, this.beforeRun);
   }
 
   private statement(): StatementSync {
@@ -28,6 +29,7 @@ class SqliteD1Statement {
   }
 
   async run() {
+    this.beforeRun?.();
     return this.execute();
   }
 
@@ -41,10 +43,11 @@ class SqliteD1Database {
   constructor(
     readonly database: DatabaseSync,
     private readonly beforeBatch?: () => void,
+    private readonly beforeRun?: () => void,
   ) {}
 
   prepare(query: string) {
-    return new SqliteD1Statement(this.database, query);
+    return new SqliteD1Statement(this.database, query, [], this.beforeRun);
   }
 
   async batch(statements: SqliteD1Statement[]) {
@@ -120,10 +123,14 @@ function addRun(database: DatabaseSync, id = "run-1", sampleId = "sample-1") {
   `);
 }
 
-function testEnv(database: DatabaseSync, beforeBatch?: () => void): Env {
+function testEnv(
+  database: DatabaseSync,
+  beforeBatch?: () => void,
+  beforeRun?: () => void,
+): Env {
   return {
     AUTH_MODE: "disabled",
-    DB: new SqliteD1Database(database, beforeBatch),
+    DB: new SqliteD1Database(database, beforeBatch, beforeRun),
     ASSETS: {},
   } as unknown as Env;
 }
@@ -363,12 +370,12 @@ describe("source lifecycle routes", () => {
     database.exec(`
       INSERT INTO comment_submissions
         (id, context_kind, scope, body, status, actor_email, created_at, updated_at,
-         deleted_at, deleted_by)
+         deleted_at, deleted_by, deletion_operation_id)
       VALUES
         ('submission-race', 'run_steps', 'common', 'Race observation', 'ready',
          'local-development',
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
-         '2026-08-07T10:07:00.000Z', 'local-development');
+         '2026-08-07T10:07:00.000Z', 'local-development', 'canonical-race-delete');
       INSERT INTO comment_submission_targets
         (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
       VALUES
@@ -376,12 +383,13 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:05:00.000Z');
       INSERT INTO run_step_comments
         (id, run_step_id, scope, operation_group_id, body, submission_id,
-         actor_email, created_at, updated_at, deleted_at, deleted_by)
+         actor_email, created_at, updated_at, deleted_at, deleted_by,
+         deletion_operation_id)
       VALUES
         ('comment-race', 'step-1', 'common', 'submission-race', 'Race observation',
          'submission-race', 'local-development',
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
-         '2026-08-07T10:07:00.000Z', 'local-development');
+         '2026-08-07T10:07:00.000Z', 'local-development', 'canonical-race-delete');
     `);
     let movedToTrash = false;
     const env = testEnv(database, () => {
@@ -650,12 +658,12 @@ describe("source lifecycle routes", () => {
     database.exec(`
       INSERT INTO run_step_comments
         (id, run_step_id, scope, operation_group_id, body, created_at,
-         updated_at, deleted_at, deleted_by)
+         updated_at, deleted_at, deleted_by, deletion_operation_id)
       VALUES
         ('common-race', 'step-1', 'common', 'common-race-group',
          'Shared observation', '2026-08-07T10:06:00.000Z',
          '2026-08-07T10:07:00.000Z', '2026-08-07T10:07:00.000Z',
-         'local-development');
+         'local-development', 'common-race-delete');
     `);
     let movedToTrash = false;
     const env = testEnv(database, () => {
@@ -681,6 +689,517 @@ describe("source lifecycle routes", () => {
       `SELECT COUNT(*) AS count FROM events
        WHERE json_extract(metadata_json, '$.action') = 'step_comment_restored'`,
     ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("keeps Comment finalize atomic when a target Run moves to trash", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO comment_submissions
+        (id, context_kind, scope, body, status, actor_email, created_at, updated_at)
+      VALUES
+        ('submission-finalize-race', 'run_steps', 'individual', 'Uploaded observation',
+         'uploading', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('submission-finalize-race', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z');
+    `);
+    let postRaceState: { step_updated_at: string; sample_updated_at: string } | undefined;
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+      ).run();
+      postRaceState = database.prepare(
+        `SELECT rs.updated_at AS step_updated_at, s.updated_at AS sample_updated_at
+         FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id WHERE rs.id = 'step-1'`,
+      ).get() as { step_updated_at: string; sample_updated_at: string };
+    });
+
+    const response = await request(
+      env,
+      "/comment-submissions/submission-finalize-race/finalize",
+      { method: "POST" },
+    );
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      `SELECT status, last_mutation_id FROM comment_submissions
+       WHERE id = 'submission-finalize-race'`,
+    ).get()).toEqual({ status: "uploading", last_mutation_id: null });
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM run_step_comments WHERE submission_id = 'submission-finalize-race'",
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.submissionId') = 'submission-finalize-race'`,
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare(
+      `SELECT rs.updated_at AS step_updated_at, s.updated_at AS sample_updated_at
+       FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id WHERE rs.id = 'step-1'`,
+    ).get()).toEqual(postRaceState);
+    database.close();
+  });
+
+  it("does not add an ad-hoc Step after its Run moves to trash", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      UPDATE run_steps SET status = 'pending' WHERE id = 'step-1';
+      UPDATE runs SET status = 'active', completed_at = NULL WHERE id = 'run-1';
+    `);
+    let sampleUpdatedAt = "";
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+      ).run();
+      sampleUpdatedAt = String(database.prepare(
+        "SELECT updated_at FROM samples WHERE id = 'sample-1'",
+      ).get()?.updated_at);
+    });
+
+    const response = await request(env, "/samples/sample-1/runs/run-1/steps", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Race step",
+        toolName: "",
+        parametersText: "",
+        commentsText: "",
+        deviationNote: "",
+        afterStepId: "step-1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM run_steps WHERE run_id = 'run-1'").get())
+      .toEqual({ count: 1 });
+    expect(database.prepare(
+      "SELECT status, last_mutation_id FROM runs WHERE id = 'run-1'",
+    ).get()).toEqual({ status: "active", last_mutation_id: null });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'added'`,
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare("SELECT updated_at FROM samples WHERE id = 'sample-1'").get())
+      .toEqual({ updated_at: sampleUpdatedAt });
+    database.close();
+  });
+
+  it("does not reactivate a Run that finishes while an ad-hoc Step is being added", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      UPDATE run_steps SET status = 'pending' WHERE id = 'step-1';
+      UPDATE runs SET status = 'active', completed_at = NULL WHERE id = 'run-1';
+    `);
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE runs SET status = 'complete', completed_at = '2026-08-07T10:08:00.000Z'
+         WHERE id = 'run-1'`,
+      ).run();
+    });
+
+    const response = await request(env, "/samples/sample-1/runs/run-1/steps", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Late step",
+        toolName: "",
+        parametersText: "",
+        commentsText: "",
+        deviationNote: "",
+        afterStepId: "step-1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      "SELECT status, completed_at, last_mutation_id FROM runs WHERE id = 'run-1'",
+    ).get()).toEqual({
+      status: "complete",
+      completed_at: "2026-08-07T10:08:00.000Z",
+      last_mutation_id: null,
+    });
+    expect(database.prepare("SELECT COUNT(*) AS count FROM run_steps WHERE run_id = 'run-1'").get())
+      .toEqual({ count: 1 });
+    database.close();
+  });
+
+  it("does not add an ad-hoc Step after its insertion point changes", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      UPDATE run_steps SET status = 'pending' WHERE id = 'step-1';
+      UPDATE runs SET status = 'active', completed_at = NULL WHERE id = 'run-1';
+    `);
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE run_steps SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'step-1'`,
+      ).run();
+    });
+
+    const response = await request(env, "/samples/sample-1/runs/run-1/steps", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Detached step",
+        toolName: "",
+        parametersText: "",
+        commentsText: "",
+        deviationNote: "",
+        afterStepId: "step-1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM run_steps WHERE run_id = 'run-1' AND id <> 'step-1'",
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare(
+      "SELECT last_mutation_id FROM runs WHERE id = 'run-1'",
+    ).get()).toEqual({ last_mutation_id: null });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'added'`,
+    ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("does not add embedded metrology after the process Run finishes", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      UPDATE run_steps SET status = 'pending' WHERE id = 'step-1';
+      UPDATE runs SET status = 'active', completed_at = NULL WHERE id = 'run-1';
+    `);
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE runs SET status = 'complete', completed_at = '2026-08-07T10:08:00.000Z'
+         WHERE id = 'run-1'`,
+      ).run();
+    });
+
+    const response = await request(env, "/samples/sample-1/runs/run-1/metrology", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        templateVersionId: "template-metrology",
+        afterStepId: "step-1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM run_steps WHERE run_id = 'run-1' AND entry_kind = 'metrology'",
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare(
+      "SELECT status, last_mutation_id FROM runs WHERE id = 'run-1'",
+    ).get()).toEqual({ status: "complete", last_mutation_id: null });
+    database.close();
+  });
+
+  it.each(["run", "sample"] as const)(
+    "keeps State verification atomic when its %s moves to trash",
+    async (deletedAncestor) => {
+      const database = createDatabase();
+      addSample(database);
+      addRun(database);
+      let stepUpdatedAt = "";
+      const env = testEnv(database, () => {
+        if (deletedAncestor === "run") {
+          database.prepare(
+            `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+             deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+          ).run();
+        } else {
+          database.prepare(
+            `UPDATE samples SET deleted_at = '2026-08-07T10:08:00.000Z',
+             deleted_by = 'other@example.com' WHERE id = 'sample-1'`,
+          ).run();
+        }
+        stepUpdatedAt = String(database.prepare(
+          "SELECT updated_at FROM run_steps WHERE id = 'step-1'",
+        ).get()?.updated_at);
+      });
+
+      const response = await request(
+        env,
+        "/samples/sample-1/runs/run-1/steps/step-1/verify-state",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            result: "mismatched",
+            note: "Race",
+            expectedUpdatedAt: "2026-08-07T10:05:00.000Z",
+            completeStep: false,
+          }),
+        },
+      );
+
+      expect(response.status).toBe(409);
+      expect(database.prepare("SELECT COUNT(*) AS count FROM state_verifications").get())
+        .toEqual({ count: 0 });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM state_verification_steps").get())
+        .toEqual({ count: 0 });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM recipe_change_proposals").get())
+        .toEqual({ count: 0 });
+      expect(database.prepare(
+        "SELECT COUNT(*) AS count FROM events WHERE kind = 'verification'",
+      ).get()).toEqual({ count: 0 });
+      expect(database.prepare(
+        "SELECT updated_at, last_mutation_id FROM run_steps WHERE id = 'step-1'",
+      ).get()).toEqual({ updated_at: stepUpdatedAt, last_mutation_id: null });
+      database.close();
+    },
+  );
+
+  it("keeps execution-image restore atomic when the Run moves to trash", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES
+        ('restore-asset', 'restore-key', 'restore.png', 'image/png', 10, 'ready',
+         'restore-hash', '2026-08-07T10:06:00.000Z');
+      INSERT INTO run_step_assets
+        (id, run_step_id, asset_id, role, created_at, deleted_at, deleted_by)
+      VALUES
+        ('restore-occurrence', 'step-1', 'restore-asset', 'execution',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         'local-development');
+      INSERT INTO events
+        (id, sample_id, kind, body, asset_key, metadata_json, created_at)
+      VALUES
+        ('restore-source-event', 'sample-1', 'image', 'Execution image', NULL,
+         '{"runId":"run-1","stepId":"step-1","runStepAssetId":"restore-occurrence","assetDeletedAt":"2026-08-07T10:07:00.000Z"}',
+         '2026-08-07T10:06:00.000Z');
+    `);
+    let postRaceState: { step_updated_at: string; sample_updated_at: string } | undefined;
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+      ).run();
+      postRaceState = database.prepare(
+        `SELECT rs.updated_at AS step_updated_at, s.updated_at AS sample_updated_at
+         FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id WHERE rs.id = 'step-1'`,
+      ).get() as { step_updated_at: string; sample_updated_at: string };
+    });
+
+    const response = await request(
+      env,
+      "/samples/sample-1/runs/run-1/steps/step-1/assets/restore",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ assetKey: "restore-key" }),
+      },
+    );
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      `SELECT deleted_at, last_mutation_id FROM run_step_assets
+       WHERE id = 'restore-occurrence'`,
+    ).get()).toEqual({
+      deleted_at: "2026-08-07T10:07:00.000Z",
+      last_mutation_id: null,
+    });
+    expect(database.prepare(
+      "SELECT asset_key FROM events WHERE id = 'restore-source-event'",
+    ).get()).toEqual({ asset_key: null });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'execution_attachment_restored'`,
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare(
+      `SELECT rs.updated_at AS step_updated_at, s.updated_at AS sample_updated_at
+       FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id WHERE rs.id = 'step-1'`,
+    ).get()).toEqual(postRaceState);
+    database.close();
+  });
+
+  it("guards direct Comment-item restore at the mutation statement", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO comment_submissions
+        (id, context_kind, scope, body, status, actor_email, created_at, updated_at)
+      VALUES
+        ('submission-item-race', 'run_steps', 'individual', 'Attachment',
+         'ready', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('submission-item-race', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z');
+      INSERT INTO comment_submission_items
+        (id, submission_id, kind, status, position, filename,
+         created_at, updated_at, deleted_at, deleted_by)
+      VALUES
+        ('item-race', 'submission-item-race', 'attachment', 'ready', 0,
+         'result.dat', '2026-08-07T10:06:00.000Z',
+         '2026-08-07T10:07:00.000Z', '2026-08-07T10:07:00.000Z',
+         'local-development');
+    `);
+    let movedToTrash = false;
+    const env = testEnv(database, undefined, () => {
+      if (movedToTrash) return;
+      movedToTrash = true;
+      database.prepare(
+        `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+      ).run();
+    });
+
+    const response = await request(
+      env,
+      "/comment-submissions/submission-item-race/items/item-race/restore",
+      { method: "POST" },
+    );
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      "SELECT deleted_at FROM comment_submission_items WHERE id = 'item-race'",
+    ).get()).toEqual({ deleted_at: "2026-08-07T10:07:00.000Z" });
+    database.close();
+  });
+
+  it("keeps timeline attachment deletion atomic when its Run moves to trash", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES
+        ('timeline-asset', 'timeline-key', 'timeline.png', 'image/png', 10, 'ready',
+         'timeline-hash', '2026-08-07T10:06:00.000Z');
+      INSERT INTO run_step_assets (id, run_step_id, asset_id, role, created_at)
+      VALUES
+        ('timeline-occurrence', 'step-1', 'timeline-asset', 'execution',
+         '2026-08-07T10:06:00.000Z');
+      INSERT INTO events
+        (id, sample_id, kind, body, asset_key, metadata_json, created_at)
+      VALUES
+        ('timeline-event', 'sample-1', 'image', 'Execution image', 'timeline-key',
+         '{"runId":"run-1","stepId":"step-1","runStepAssetId":"timeline-occurrence"}',
+         '2026-08-07T10:06:00.000Z');
+    `);
+    const env = testEnv(database, () => {
+      database.prepare(
+        `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+      ).run();
+    });
+
+    const response = await request(
+      env,
+      "/samples/sample-1/events/timeline-event/asset",
+      { method: "DELETE" },
+    );
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      `SELECT deleted_at, last_mutation_id FROM run_step_assets
+       WHERE id = 'timeline-occurrence'`,
+    ).get()).toEqual({ deleted_at: null, last_mutation_id: null });
+    expect(database.prepare(
+      "SELECT asset_key FROM events WHERE id = 'timeline-event'",
+    ).get()).toEqual({ asset_key: "timeline-key" });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'image_attachment_deleted'`,
+    ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("uses deletion operation identity when timestamps and actors collide", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO run_steps
+        (id, run_id, position, status, origin, entry_kind, title, created_at, updated_at)
+      VALUES
+        ('step-2', 'run-1', 2000, 'done', 'template', 'fabrication', 'Step 2',
+         '2026-08-07T10:05:00.000Z', '2026-08-07T10:05:00.000Z');
+      INSERT INTO comment_submissions
+        (id, context_kind, scope, body, status, actor_email, created_at, updated_at,
+         deleted_at, deleted_by, deletion_operation_id)
+      VALUES
+        ('submission-collision', 'run_steps', 'common', 'Collision', 'ready',
+         'local-development', '2026-08-07T10:06:00.000Z',
+         '2026-08-07T10:07:00.000Z', '2026-08-07T10:07:00.000Z',
+         'local-development', 'canonical-delete-op');
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('submission-collision', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z'),
+        ('submission-collision', 'sample-1', 'run-1', 'step-2',
+         '2026-08-07T10:05:00.000Z');
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, operation_group_id, body, submission_id,
+         actor_email, created_at, updated_at, deleted_at, deleted_by,
+         deletion_operation_id)
+      VALUES
+        ('collision-independent', 'step-1', 'common', 'collision-group', 'Collision',
+         'submission-collision', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'local-development',
+         'independent-delete-op'),
+        ('collision-canonical', 'step-2', 'common', 'collision-group', 'Collision',
+         'submission-collision', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'local-development',
+         'canonical-delete-op');
+    `);
+
+    const response = await request(
+      testEnv(database),
+      "/comment-submissions/submission-collision/restore",
+      { method: "POST" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(database.prepare(
+      `SELECT id, deleted_at, deletion_operation_id
+       FROM run_step_comments
+       WHERE id IN ('collision-independent', 'collision-canonical')
+       ORDER BY id`,
+    ).all()).toEqual([
+      {
+        id: "collision-canonical",
+        deleted_at: null,
+        deletion_operation_id: null,
+      },
+      {
+        id: "collision-independent",
+        deleted_at: "2026-08-07T10:07:00.000Z",
+        deletion_operation_id: "independent-delete-op",
+      },
+    ]);
     database.close();
   });
 
