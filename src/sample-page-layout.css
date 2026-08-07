@@ -1,9 +1,14 @@
-.sample-details-card {
-  min-height: 640px;
-}
-
 .sample-details-card textarea[name="description"] {
   min-height: 128px;
+}
+
+.sample-details-card[data-sample-details-edit-height-locked="true"] {
+  overflow: hidden;
+}
+
+.sample-details-card[data-sample-details-edit-height-locked="true"] textarea[name="description"] {
+  min-height: 0;
+  resize: none;
 }
 
 .sample-details-card dl dt,
