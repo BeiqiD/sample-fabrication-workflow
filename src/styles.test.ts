@@ -233,6 +233,6 @@ describe("medium content layouts", () => {
     expect(templatesPage).not.toMatch(/template-row-open/);
     expect(styles).toMatch(/\.template-step-actions\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*align-items:\s*baseline[^}]*flex-wrap:\s*nowrap/);
     expect(styles).toMatch(/\.template-step-body \.card-title-row > div:first-child\s*\{[^}]*min-width:\s*0/);
-    expect(templatePage).toMatch(/className="template-step-actions"[^]*?editing \? "Cancel" : "Edit"[^]*?Delete step<\/button><\/div>/);
+    expect(templatePage).toMatch(/className="template-step-actions"[^]*?editing \? "Cancel" : "Edit"[^]*?Delete step<\/button>\s*<\/div>/);
   });
 });
