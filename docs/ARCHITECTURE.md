@@ -14,7 +14,7 @@ flowchart TD
 
 ## Security boundary
 
-- Production is fail-closed: `AUTH_MODE` is `access` in `wrangler.jsonc`.
+- Production is fail-closed: `AUTH_MODE=access` is a Cloudflare Runtime Variable. Account-specific runtime values are preserved across Wrangler deployments and are never committed to the repository.
 - Every API route except the shallow `/api/health` endpoint validates the `Cf-Access-Jwt-Assertion` signature, issuer, and application audience against the team's rotating JWKS.
 - `ALLOWED_EMAILS` can add an application-level email allowlist after JWT validation.
 - Unsafe browser requests must have the same `Origin` as the Worker.
