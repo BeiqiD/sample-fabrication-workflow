@@ -157,6 +157,7 @@ export function SamplePage() {
     try {
       await api.updateSample(sampleId, {
         title: String(form.get("title")),
+        description: String(form.get("description")),
         status: String(form.get("status")) as SampleStatus,
         location: String(form.get("location")),
         pinned: form.get("pinned") === "on",
@@ -274,6 +275,7 @@ export function SamplePage() {
           {editingDetails ? <form className="detail-form" onSubmit={updateDetails}>
             <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
             <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} /></label>
+            <label>Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} placeholder="Purpose, structure, or other sample context" /></label>
             <label>Status<select name="status" defaultValue={sample.status}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
             <label>Location<input name="location" defaultValue={sample.location || ""} placeholder="Box, lab, or tool" /></label>
             <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} />Pinned</label>
