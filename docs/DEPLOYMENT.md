@@ -27,46 +27,23 @@ The binding names are part of the application contract:
 
 The resource names and IDs behind those bindings are installation-specific. The R2 bucket stores workbooks, diagrams, and compressed inline images. Do not create a second R2 bucket for unchanged original attachments; those use the optional `ManagedStorage` adapter.
 
-## 2. Replace the deployment configuration
+## 2. Configure the deployment environment
 
-Before connecting the fork to Workers Builds, edit `wrangler.jsonc` in the fork. A minimal fresh-installation configuration looks like this:
+The checked-in `wrangler.jsonc` contains only application-level configuration. It deliberately omits Worker names, routes, D1 and R2 resource identifiers, and authentication values.
 
-```jsonc
-{
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "<YOUR_WORKER_NAME>",
-  "main": "./worker/index.ts",
-  "compatibility_date": "2026-07-20",
-  "workers_dev": true,
-  "preview_urls": false,
-  "triggers": {
-    "crons": ["17 3 * * *"]
-  },
-  "assets": {
-    "not_found_handling": "single-page-application"
-  },
-  "vars": {
-    "AUTH_MODE": "access"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "<YOUR_D1_DATABASE_NAME>",
-      "database_id": "<YOUR_D1_DATABASE_ID>"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "ASSETS",
-      "bucket_name": "<YOUR_R2_BUCKET_NAME>"
-    }
-  ]
-}
-```
+In the Worker's **Settings → Builds → Variables and secrets**, add these Build Variables:
 
-Use `workers_dev: true` for the initial deployment, or replace it with a route/custom-domain configuration that belongs to your account. Remove any route inherited from the source repository. The Worker name in Cloudflare and `name` in `wrangler.jsonc` must match.
+| Variable | Value |
+|---|---|
+| `DEPLOY_WORKER_NAME` | The existing Worker name |
+| `DEPLOY_D1_DATABASE_NAME` | The existing D1 database name |
+| `DEPLOY_D1_DATABASE_ID` | The existing D1 database UUID |
+| `DEPLOY_R2_BUCKET_NAME` | The existing private R2 bucket name |
+| `DEPLOY_WORKERS_DEV` | `true` for a `workers.dev` deployment; otherwise `false` |
 
-Do not commit authentication secrets, storage passwords, or Access identifiers to `wrangler.jsonc`.
+These identifiers are not credentials, so Build Variables are sufficient. The build generates `.wrangler/deploy.jsonc`, which is ignored by Git. Missing or malformed variables stop the build before migration or deployment; the generator never guesses or provisions a resource.
+
+Do not add deployment identifiers back to `wrangler.jsonc`. Do not commit authentication secrets, storage passwords, Access identifiers, generated configuration, or deployment hostnames.
 
 ## 3. Connect the fork to Cloudflare Workers Builds
 
@@ -79,15 +56,15 @@ In **Cloudflare Dashboard → Workers & Pages**:
 
    ```text
    Build command:
-   npm run build
+   npm run build:deploy
 
    Deploy command:
-   npx wrangler d1 migrations apply DB --remote && npx wrangler deploy
+   npm run deploy:remote
    ```
 
 5. Under **Settings → Build → Branch control**, disable builds for non-production branches.
 
-The deploy command intentionally applies D1 migrations before deploying the new Worker. Because the commands are joined with `&&`, a failed migration prevents code that expects the new schema from being deployed.
+The deploy command regenerates the configuration, applies D1 migrations, and deploys the Worker with the same generated file. Because the commands are joined with `&&`, a failed migration prevents code that expects the new schema from being deployed.
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
 
@@ -99,9 +76,10 @@ Before storing real sample data:
 2. Add an Allow policy for the intended people or identity groups.
 3. Copy the Access team domain and the application's Audience (AUD) tag.
 4. Open the Worker, then go to **Settings → Variables and Secrets**.
-5. Add these as encrypted secrets:
+5. Add these Runtime Variables:
 
    ```text
+   AUTH_MODE=access
    ACCESS_TEAM_DOMAIN=https://<YOUR_TEAM>.cloudflareaccess.com
    ACCESS_AUD=<YOUR_ACCESS_APPLICATION_AUD>
    ```
@@ -114,14 +92,16 @@ Before storing real sample data:
 
 `ALLOWED_EMAILS` is a second allowlist checked after the Access JWT has been validated. It is not a replacement for an Access policy.
 
+These values describe the runtime environment but are not credentials. Actual tokens, passwords, and client secrets must use encrypted Secrets instead. The base Wrangler configuration sets `keep_vars: true`, so deployments preserve Runtime Variables managed in the Cloudflare dashboard.
+
 The application is fail-closed when `AUTH_MODE=access`: protected API routes reject requests if Access is absent, misconfigured, or supplies an invalid issuer/audience.
 
 ## 5. Deploy and verify
 
-Push or merge the sanitized configuration to `main`. Workers Builds should:
+Push or merge the application version to the production branch configured in Workers Builds. It should:
 
 1. Install dependencies.
-2. Run `npm run build`.
+2. Run `npm run build:deploy`.
 3. Apply every unapplied file in `migrations/` to the bound remote D1 database.
 4. Deploy the Worker only after migrations succeed.
 
@@ -185,11 +165,10 @@ npm run dev
 
 `AUTH_MODE=disabled` is only for local development. Local D1/R2 simulations do not contain production data by default.
 
-An operator who prefers Wrangler can deploy from a trusted checkout:
+An operator who prefers Wrangler can export the required `DEPLOY_*` values in a trusted shell and deploy from a trusted checkout:
 
 ```bash
 npm run verify
-npm run db:migrate:remote
 npm run deploy
 ```
 
@@ -204,10 +183,10 @@ Confirm the active Cloudflare account and every binding before applying remote m
 
 ## Security checklist
 
-- No credentials are committed to Git. A fork replaces every inherited account identifier, resource ID, and deployment hostname before its first build.
+- No credentials or installation-specific identifiers are committed to Git. Each environment supplies its own Build Variables, Runtime Variables, and Secrets in Cloudflare.
 - The complete application hostname is covered by Access.
 - The Worker validates the Access JWT issuer and audience.
-- Sensitive runtime values are encrypted Worker secrets.
+- Sensitive runtime values are encrypted Worker Secrets; non-secret runtime configuration uses Runtime Variables.
 - D1 and R2 belong to the installing account and are not shared with another deployment.
 - Preview branches cannot migrate or write production storage.
 - Original-file credentials stay server-side and are never returned to the browser.

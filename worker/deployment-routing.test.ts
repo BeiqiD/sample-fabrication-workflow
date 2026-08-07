@@ -1,18 +1,17 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 describe("deployment routing", () => {
   const configuration = JSON.parse(
     readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
   ) as {
-    name?: string;
-    workers_dev?: boolean;
+    keep_vars?: boolean;
     routes?: unknown[];
-    vars?: {
-      AUTH_MODE?: string;
-      ACCESS_TEAM_DOMAIN?: string;
-      ACCESS_AUD?: string;
-    };
+    vars?: Record<string, string>;
     assets?: {
       not_found_handling?: string;
       run_worker_first?: string[];
@@ -33,27 +32,66 @@ describe("deployment routing", () => {
     expect(configuration.assets?.run_worker_first).toContain("/api/*");
   });
 
-  it("keeps the v3 foundation deployment isolated from the current production environment", () => {
-    expect(configuration.name).toBe("sample-workflow-v3");
-    expect(configuration.workers_dev).toBe(true);
+  it("keeps installation-specific deployment values out of version control", () => {
+    expect(configuration).not.toHaveProperty("name");
+    expect(configuration).not.toHaveProperty("workers_dev");
     expect(configuration.routes).toBeUndefined();
-    expect(configuration.vars).toEqual({
-      AUTH_MODE: "access",
-      ACCESS_TEAM_DOMAIN: "https://beiqi.cloudflareaccess.com",
-      ACCESS_AUD: "625b87dd55952b81bdf006a5c8a221961b9c2033af1257c75ab639b10234b1f8",
+    expect(configuration.vars).toBeUndefined();
+    expect(configuration.d1_databases).toBeUndefined();
+    expect(configuration.r2_buckets).toBeUndefined();
+    expect(configuration.keep_vars).toBe(true);
+  });
+
+  it("generates one deployment config from explicit Cloudflare Build Variables", () => {
+    const directory = mkdtempSync(join(tmpdir(), "sample-workflow-config-"));
+    const output = join(directory, "deploy.jsonc");
+    const script = fileURLToPath(
+      new URL("../scripts/generate-wrangler-config.mjs", import.meta.url),
+    );
+
+    try {
+      execFileSync(process.execPath, [script, "--output", output], {
+        cwd: fileURLToPath(new URL("..", import.meta.url)),
+        env: {
+          DEPLOY_WORKER_NAME: "example-worker",
+          DEPLOY_D1_DATABASE_NAME: "example-database",
+          DEPLOY_D1_DATABASE_ID: "12345678-1234-4234-8234-123456789abc",
+          DEPLOY_R2_BUCKET_NAME: "example-assets",
+          DEPLOY_WORKERS_DEV: "true",
+        },
+      });
+
+      const generated = JSON.parse(readFileSync(output, "utf8"));
+      expect(generated.name).toBe("example-worker");
+      expect(generated.workers_dev).toBe(true);
+      expect(generated.keep_vars).toBe(true);
+      expect(generated.vars).toBeUndefined();
+      expect(generated.d1_databases).toEqual([
+        {
+          binding: "DB",
+          database_name: "example-database",
+          database_id: "12345678-1234-4234-8234-123456789abc",
+        },
+      ]);
+      expect(generated.r2_buckets).toEqual([
+        { binding: "ASSETS", bucket_name: "example-assets" },
+      ]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a required deployment value is missing", () => {
+    const script = fileURLToPath(
+      new URL("../scripts/generate-wrangler-config.mjs", import.meta.url),
+    );
+    const result = spawnSync(process.execPath, [script], {
+      cwd: fileURLToPath(new URL("..", import.meta.url)),
+      env: {},
+      encoding: "utf8",
     });
-    expect(configuration.d1_databases).toEqual([
-      {
-        binding: "DB",
-        database_name: "sample-workflow-db-v3",
-        database_id: "b12527ac-e422-47ce-aca3-c34be8b6c6a6",
-      },
-    ]);
-    expect(configuration.r2_buckets).toEqual([
-      {
-        binding: "ASSETS",
-        bucket_name: "sample-workflow-assets-v3",
-      },
-    ]);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("DEPLOY_WORKER_NAME");
   });
 });
