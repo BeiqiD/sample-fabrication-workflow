@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { PaginationMeta } from "../../shared/types";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { PaginationControls } from "../components/PaginationControls";
 import {
@@ -16,6 +17,10 @@ const FabubloxImporter = lazy(() => import("../components/FabubloxImporter")
   .then((module) => ({ default: module.FabubloxImporter })));
 const EMPTY_PROCESS_PAGINATION: PaginationMeta = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
 const EMPTY_METROLOGY_PAGINATION: PaginationMeta = { page: 1, pageSize: 25, total: 0, totalPages: 1 };
+
+type PendingTemplateRemoval =
+  | { kind: "process"; template: ProcessTemplateVersionSummary }
+  | { kind: "metrology"; template: MetrologyTemplateSummary };
 
 function initialSubstrateLabel(template: ProcessTemplateVersionSummary) {
   if (template.hasInitialSubstrateStep) {
@@ -39,9 +44,10 @@ export function TemplatesPage() {
   const [metrologyLoading, setMetrologyLoading] = useState(true);
   const [processError, setProcessError] = useState("");
   const [metrologyError, setMetrologyError] = useState("");
-  const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
   const [removingId, setRemovingId] = useState("");
+  const [pendingRemoval, setPendingRemoval] = useState<PendingTemplateRemoval | null>(null);
+  const [removalError, setRemovalError] = useState("");
   const [creatingMetrology, setCreatingMetrology] = useState(false);
   const [imported, setImported] = useState<{ id: string; name: string; version: number } | null>(null);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(() => new Set());
@@ -138,44 +144,43 @@ export function TemplatesPage() {
     await api.createMetrologyTemplate(input);
     setCreatingMetrology(false);
     setNotice(`Created ${input.name.trim()}.`);
-    setActionError("");
     updateSearchParams((next) => next.delete("metrologyPage"), true);
     setMetrologyRefresh((value) => value + 1);
   }
 
   async function removeProcessTemplate(template: ProcessTemplateVersionSummary) {
-    if (!window.confirm(`Permanently delete unused ${template.name} v${template.version}? Its import source and shared files will be retained.`)) return;
     setRemovingId(template.id);
-    setActionError("");
+    setRemovalError("");
     setNotice("");
     try {
       const result = await api.removeTemplate(template.id);
       setNotice(result.disposition === "deleted"
         ? `Deleted ${template.name} v${template.version}.`
         : `${template.name} was already used and has been removed from future selection; existing records remain unchanged.`);
+      setPendingRemoval(null);
       setExpandedFamilies(new Set());
       setFamilyVersions({});
       setProcessRefresh((value) => value + 1);
     } catch (error) {
-      setActionError((error as Error).message);
+      setRemovalError((error as Error).message);
     } finally {
       setRemovingId("");
     }
   }
 
   async function removeMetrologyTemplate(template: MetrologyTemplateSummary) {
-    if (!window.confirm(`Delete the ${template.name} metrology template? Existing records and runs will remain unchanged.`)) return;
     setRemovingId(template.id);
-    setActionError("");
+    setRemovalError("");
     setNotice("");
     try {
       const result = await api.removeTemplate(template.id);
       setNotice(result.disposition === "deleted"
         ? `Deleted ${template.name}.`
         : `${template.name} was already used and has been removed from future selection; existing records remain unchanged.`);
+      setPendingRemoval(null);
       setMetrologyRefresh((value) => value + 1);
     } catch (error) {
-      setActionError((error as Error).message);
+      setRemovalError((error as Error).message);
     } finally {
       setRemovingId("");
     }
@@ -220,7 +225,6 @@ export function TemplatesPage() {
     <div className="page-heading">
       <div><p className="eyebrow">Reusable workflow content</p><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
     </div>
-    {actionError && <p className="error-banner">{actionError}</p>}
     {notice && <p className="success-banner">{notice}</p>}
     {imported && <p className="success-banner">Imported <strong>{imported.name} v{imported.version}</strong>. <Link to={`/templates/${imported.id}`}>Open the new version →</Link></p>}
     <label className="search-box">
@@ -266,7 +270,7 @@ export function TemplatesPage() {
               </Link>
               <div className="template-row-actions">
                 <Link className="text-button template-row-edit" to={`/templates/${template.id}`}>{template.locked ? "View" : "Edit"} →</Link>
-                {!template.locked && <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeProcessTemplate(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button>}
+                {!template.locked && <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => { setRemovalError(""); setPendingRemoval({ kind: "process", template }); }}>{removingId === template.id ? "Deleting…" : "Delete"}</button>}
               </div>
             </article>)}</div>
           </section>;
@@ -293,11 +297,28 @@ export function TemplatesPage() {
           </Link>
           <div className="template-row-actions">
             <Link className="text-button template-row-edit" to={`/templates/metrology/${template.id}`}>Edit →</Link>
-            <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => void removeMetrologyTemplate(template)}>{removingId === template.id ? "Deleting…" : "Delete"}</button>
+            <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => { setRemovalError(""); setPendingRemoval({ kind: "metrology", template }); }}>{removingId === template.id ? "Deleting…" : "Delete"}</button>
           </div>
         </article>)}
       </div> : <div className="card"><p className="muted padded">{hasQuery ? "No matching metrology templates." : "No metrology templates yet."}</p></div>}
       <PaginationControls pagination={metrologyPagination} label="Metrology template pages" disabled={metrologyLoading} onPageChange={(page) => changePage("metrologyPage", page, "metrology-templates")} />
     </section>
+    {pendingRemoval && <ConfirmDeleteDialog
+      title={pendingRemoval.kind === "process" ? "Delete this process template version?" : "Delete this metrology template?"}
+      description={pendingRemoval.kind === "process"
+        ? "The unused version will be permanently deleted. If it has already been used, existing records will remain and it will only be removed from future selection. Its import source and shared files will be retained."
+        : "The template will be removed from future use. Existing records and runs will remain unchanged."}
+      summary={pendingRemoval.kind === "process"
+        ? `${pendingRemoval.template.name} · v${pendingRemoval.template.version}`
+        : pendingRemoval.template.name}
+      deleting={removingId === pendingRemoval.template.id}
+      error={removalError}
+      eyebrow={pendingRemoval.kind === "process" ? "Delete process template" : "Delete metrology template"}
+      confirmLabel="Delete template"
+      onCancel={() => { setPendingRemoval(null); setRemovalError(""); }}
+      onConfirm={() => void (pendingRemoval.kind === "process"
+        ? removeProcessTemplate(pendingRemoval.template)
+        : removeMetrologyTemplate(pendingRemoval.template))}
+    />}
   </div>;
 }
