@@ -1,11 +1,12 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 describe("deployment routing", () => {
+  const projectRoot = fileURLToPath(new URL("..", import.meta.url));
   const configuration = JSON.parse(
     readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
   ) as {
@@ -20,6 +21,7 @@ describe("deployment routing", () => {
       binding?: string;
       database_name?: string;
       database_id?: string;
+      migrations_dir?: string;
     }>;
     r2_buckets?: Array<{
       binding?: string;
@@ -51,7 +53,7 @@ describe("deployment routing", () => {
 
     try {
       execFileSync(process.execPath, [script, "--output", output], {
-        cwd: fileURLToPath(new URL("..", import.meta.url)),
+        cwd: projectRoot,
         env: {
           DEPLOY_WORKER_NAME: "example-worker",
           DEPLOY_D1_DATABASE_NAME: "example-database",
@@ -66,13 +68,16 @@ describe("deployment routing", () => {
       expect(generated.workers_dev).toBe(true);
       expect(generated.keep_vars).toBe(true);
       expect(generated.vars).toBeUndefined();
-      expect(generated.d1_databases).toEqual([
+      expect(generated.d1_databases).toMatchObject([
         {
           binding: "DB",
           database_name: "example-database",
           database_id: "12345678-1234-4234-8234-123456789abc",
         },
       ]);
+      expect(
+        resolve(dirname(output), generated.d1_databases[0].migrations_dir),
+      ).toBe(resolve(projectRoot, "migrations"));
       expect(generated.r2_buckets).toEqual([
         { binding: "ASSETS", bucket_name: "example-assets" },
       ]);
@@ -93,5 +98,20 @@ describe("deployment routing", () => {
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("DEPLOY_WORKER_NAME");
+  });
+
+  it("deploys the Vite build output after applying migrations with the generated config", () => {
+    const packageConfiguration = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { scripts?: Record<string, string> };
+    const deployCommand = packageConfiguration.scripts?.["deploy:remote"];
+
+    expect(deployCommand).toContain(
+      "wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
+    );
+    expect(deployCommand).toMatch(/&& wrangler deploy$/);
+    expect(deployCommand).not.toContain(
+      "wrangler deploy --config .wrangler/deploy.jsonc",
+    );
   });
 });
