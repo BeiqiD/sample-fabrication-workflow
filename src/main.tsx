@@ -4,7 +4,6 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { installCommentFileRouting } from "./lib/comment-file-routing";
 import { installProcessPlanCommentDraftGuard } from "./lib/process-plan-comment-draft-guard";
-import { installSampleDetailsEditSizing } from "./lib/sample-details-edit-sizing";
 import "./styles.css";
 import "./palette.css";
 import "./comment-layout.css";
@@ -13,7 +12,6 @@ import "./processing-form-roles.css";
 
 installCommentFileRouting();
 installProcessPlanCommentDraftGuard();
-installSampleDetailsEditSizing();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
