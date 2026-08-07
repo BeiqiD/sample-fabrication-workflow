@@ -1,0 +1,16 @@
+.step-drawer .drawer-form input:not([type="checkbox"]),
+.step-drawer .drawer-form textarea,
+.step-drawer .drawer-form select {
+  font-size: var(--font-body);
+  line-height: 1.45;
+}
+
+.run-controls-picker select {
+  font-size: var(--font-body);
+  line-height: 1.4;
+}
+
+.process-family-search input {
+  font-size: var(--font-body);
+  line-height: 1.45;
+}

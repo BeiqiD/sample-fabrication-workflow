@@ -9,6 +9,7 @@ import "./styles.css";
 import "./palette.css";
 import "./comment-layout.css";
 import "./sample-page-layout.css";
+import "./processing-form-roles.css";
 
 installCommentFileRouting();
 installProcessPlanCommentDraftGuard();
