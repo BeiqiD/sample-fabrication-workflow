@@ -64,7 +64,7 @@ In **Cloudflare Dashboard → Workers & Pages**:
 
 5. Under **Settings → Build → Branch control**, disable builds for non-production branches.
 
-The deploy command regenerates the configuration, applies D1 migrations, and deploys the Worker with the same generated file. Because the commands are joined with `&&`, a failed migration prevents code that expects the new schema from being deployed.
+The deploy command regenerates the configuration, applies D1 migrations with that file, and then deploys the Worker bundle and static assets produced by the Vite build. Because the commands are joined with `&&`, a failed migration prevents code that expects the new schema from being deployed.
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
 
