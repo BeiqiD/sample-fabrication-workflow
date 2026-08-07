@@ -7,6 +7,7 @@ import { installProcessPlanCommentDraftGuard } from "./lib/process-plan-comment-
 import "./styles.css";
 import "./palette.css";
 import "./comment-layout.css";
+import "./sample-page-layout.css";
 
 installCommentFileRouting();
 installProcessPlanCommentDraftGuard();
