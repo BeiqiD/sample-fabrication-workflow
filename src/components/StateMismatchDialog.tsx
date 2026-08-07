@@ -47,7 +47,7 @@ export function StateMismatchDialog({
         {error && <p className="error-banner">{error}</p>}
         <div className="form-actions">
           <button type="button" className="button" disabled={busy} onClick={onCancel}>Cancel</button>
-          <button type="submit" className="button danger" disabled={busy}>{busy ? "Saving…" : "Record mismatch"}</button>
+          <button type="submit" className="button primary" disabled={busy}>{busy ? "Saving…" : "Record mismatch"}</button>
         </div>
       </form>
     </section>
