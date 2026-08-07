@@ -100,7 +100,7 @@ describe("processing sample API", () => {
     });
   });
 
-  it("moves a run to trash against the loaded sample revision", async () => {
+  it("deletes a run against the loaded sample revision", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       ok: true,
       updatedAt: "2026-07-29T10:15:00.000Z",

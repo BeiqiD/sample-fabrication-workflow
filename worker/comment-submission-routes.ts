@@ -79,7 +79,7 @@ function itemBindings(item: CommentSubmissionItemInput, submissionId: string, po
 async function ownedSubmission(c: Context<AppBindings>, id: string) {
   const submission = await c.env.DB.prepare(
     `SELECT id, context_kind, sample_id, scope, body, status, actor_email
-     FROM comment_submissions WHERE id = ?`,
+     FROM comment_submissions WHERE id = ? AND deleted_at IS NULL`,
   ).bind(id).first<SubmissionRow>();
   if (!submission) throw new HTTPException(404, { message: "Comment submission not found" });
   if (submission.actor_email && submission.actor_email !== c.get("userEmail")) {
@@ -95,15 +95,17 @@ async function markItemFailed(env: Env, submissionId: string, itemId: string, me
       `UPDATE comment_submission_items
        SET status = 'failed', error_message = ?, updated_at = ?
        WHERE id = ? AND submission_id = ? AND status NOT IN ('ready', 'cancelled')
+         AND deleted_at IS NULL
          AND EXISTS (
            SELECT 1 FROM comment_submissions cs
-           WHERE cs.id = comment_submission_items.submission_id AND cs.status <> 'cancelled'
+           WHERE cs.id = comment_submission_items.submission_id
+             AND cs.status <> 'cancelled' AND cs.deleted_at IS NULL
          )`,
     ).bind(message.slice(0, 1_000), now, itemId, submissionId),
     env.DB.prepare(
       `UPDATE comment_submissions
        SET status = 'failed', error_message = ?, updated_at = ?
-       WHERE id = ? AND status NOT IN ('ready', 'cancelled')`,
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL`,
     ).bind("One or more files could not be uploaded", now, submissionId),
   ]);
 }
@@ -116,14 +118,14 @@ async function managedKeyForSubmission(
   filename: string,
 ) {
   if (submission.sample_id) {
-    const sample = await env.DB.prepare("SELECT id, code FROM samples WHERE id = ?")
+    const sample = await env.DB.prepare("SELECT id, code FROM samples WHERE id = ? AND deleted_at IS NULL")
       .bind(submission.sample_id).first<{ id: string; code: string }>();
     return managedObjectKey(submissionId, itemId, filename, sample ?? undefined);
   }
   const samples = await env.DB.prepare(
     `SELECT DISTINCT s.id, s.code
      FROM comment_submission_targets cst
-     JOIN samples s ON s.id = cst.sample_id
+     JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
      WHERE cst.submission_id = ?
      ORDER BY s.code, s.id
      LIMIT 2`,
@@ -155,15 +157,16 @@ routes.post("/comment-submissions", async (c) => {
   }
 
   const existing = await c.env.DB.prepare(
-    "SELECT id, actor_email FROM comment_submissions WHERE id = ?",
-  ).bind(input.id).first<{ id: string; actor_email: string | null }>();
+    "SELECT id, actor_email, deleted_at FROM comment_submissions WHERE id = ?",
+  ).bind(input.id).first<{ id: string; actor_email: string | null; deleted_at: string | null }>();
   if (existing) {
+    if (existing.deleted_at) throw new HTTPException(409, { message: "Submission ID belongs to a deleted comment" });
     if (existing.actor_email !== c.get("userEmail")) throw new HTTPException(409, { message: "Submission ID is already in use" });
     return c.json({ id: existing.id, deduplicated: true });
   }
 
   if (input.context.kind === "sample") {
-    const sample = await c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?")
+    const sample = await c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL")
       .bind(input.context.sampleId).first<{ updated_at: string }>();
     if (!sample) throw new HTTPException(404, { message: "Sample not found" });
     if (sample.updated_at !== input.context.expectedUpdatedAt) {
@@ -174,8 +177,9 @@ routes.post("/comment-submissions", async (c) => {
     const rows = await c.env.DB.prepare(
        `SELECT rs.id, rs.updated_at, r.id AS run_id, r.sample_id
        FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
        WHERE rs.id IN (${targets.map(() => "?").join(", ")})
-         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(...targets.map((target) => target.stepId)).all<{
       id: string; updated_at: string; run_id: string; sample_id: string;
     }>();
@@ -243,7 +247,8 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
             csi.byte_size, csi.asset_id, csi.storage_object_id, cs.actor_email
      FROM comment_submission_items csi
      JOIN comment_submissions cs ON cs.id = csi.submission_id
-     WHERE csi.id = ? AND csi.submission_id = ?`,
+     WHERE csi.id = ? AND csi.submission_id = ?
+       AND csi.deleted_at IS NULL AND cs.deleted_at IS NULL`,
   ).bind(itemId, submissionId).first<ItemRow>();
   if (!item) throw new HTTPException(404, { message: "Upload item not found" });
   if (item.kind === "link") throw new HTTPException(400, { message: "Link attachments do not receive file content" });
@@ -260,7 +265,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `UPDATE comment_submission_items SET status = 'uploading', error_message = NULL, updated_at = ?
-     WHERE id = ? AND submission_id = ? AND status <> 'ready'`,
+     WHERE id = ? AND submission_id = ? AND status <> 'ready' AND deleted_at IS NULL`,
   ).bind(now, itemId, submissionId).run();
 
   try {
@@ -303,9 +308,11 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
                  WHERE cs.id = comment_submission_items.submission_id AND cs.status = 'cancelled'
                ) THEN 'cancelled' ELSE 'ready' END,
              asset_id = ?, sha256 = ?, error_message = NULL, updated_at = ?
-         WHERE id = ? AND submission_id = ?`,
+         WHERE id = ? AND submission_id = ? AND deleted_at IS NULL`,
       ).bind(assetId, sha256, new Date().toISOString(), itemId, submissionId).run();
-      const latest = await c.env.DB.prepare("SELECT status FROM comment_submissions WHERE id = ?")
+      const latest = await c.env.DB.prepare(
+        "SELECT status FROM comment_submissions WHERE id = ? AND deleted_at IS NULL",
+      )
         .bind(submissionId).first<{ status: string }>();
       if (latest?.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
       return c.json({ ok: true, deduplicated });
@@ -362,9 +369,11 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
                WHERE cs.id = comment_submission_items.submission_id AND cs.status = 'cancelled'
              ) THEN 'cancelled' ELSE 'ready' END,
            storage_object_id = ?, sha256 = ?, error_message = NULL, updated_at = ?
-       WHERE id = ? AND submission_id = ?`,
+       WHERE id = ? AND submission_id = ? AND deleted_at IS NULL`,
     ).bind(storageObjectId, sha256, new Date().toISOString(), itemId, submissionId).run();
-    const latest = await c.env.DB.prepare("SELECT status FROM comment_submissions WHERE id = ?")
+    const latest = await c.env.DB.prepare(
+      "SELECT status FROM comment_submissions WHERE id = ? AND deleted_at IS NULL",
+    )
       .bind(submissionId).first<{ status: string }>();
     if (latest?.status === "cancelled") {
       await c.env.DB.prepare(
@@ -399,30 +408,61 @@ routes.delete("/comment-submissions/:submissionId/items/:itemId", async (c) => {
   const submissionId = c.req.param("submissionId");
   const itemId = c.req.param("itemId");
   const submission = await ownedSubmission(c, submissionId);
-  if (submission.status === "ready" || submission.status === "cancelled") {
-    throw new HTTPException(409, { message: "Completed submissions cannot be changed" });
-  }
+  if (submission.status === "cancelled") throw new HTTPException(409, { message: "Cancelled submissions cannot be changed" });
   const requiredOriginal = await c.env.DB.prepare(
     `SELECT image.original_filename, image.original_mime_type
      FROM comment_submission_items original
      JOIN comment_submission_items image
-       ON image.submission_id = original.submission_id
+      ON image.submission_id = original.submission_id
       AND image.kind = 'comment_image'
       AND image.related_item_id = original.id
-      AND image.status <> 'cancelled'
-     WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'`,
+      AND image.status <> 'cancelled' AND image.deleted_at IS NULL
+     WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'
+       AND original.deleted_at IS NULL`,
   ).bind(itemId, submissionId).first<{ original_filename: string; original_mime_type: string }>();
   if (requiredOriginal && isTiffMetadata(requiredOriginal.original_filename, requiredOriginal.original_mime_type)) {
     throw new HTTPException(409, { message: "The original TIFF is required while its comment preview is present" });
   }
   const now = new Date().toISOString();
+  if (submission.status === "ready") {
+    const result = await c.env.DB.prepare(
+      `UPDATE comment_submission_items
+       SET deleted_at = ?, deleted_by = ?, updated_at = ?
+       WHERE id = ? AND submission_id = ? AND deleted_at IS NULL`,
+    ).bind(now, c.get("userEmail"), now, itemId, submissionId).run();
+    if (!result.meta.changes) throw new HTTPException(404, { message: "Submission item not found" });
+    return c.json({ ok: true, updatedAt: now });
+  }
   const result = await c.env.DB.prepare(
     `UPDATE comment_submission_items
      SET status = 'cancelled', error_message = NULL, updated_at = ?
-     WHERE id = ? AND submission_id = ? AND status <> 'cancelled'`,
+     WHERE id = ? AND submission_id = ? AND status <> 'cancelled' AND deleted_at IS NULL`,
   ).bind(now, itemId, submissionId).run();
   if (!result.meta.changes) throw new HTTPException(404, { message: "Submission item not found" });
   return c.json({ ok: true });
+});
+
+routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c) => {
+  const submissionId = c.req.param("submissionId");
+  const itemId = c.req.param("itemId");
+  const item = await c.env.DB.prepare(
+    `SELECT csi.deleted_at
+     FROM comment_submission_items csi
+     JOIN comment_submissions cs ON cs.id = csi.submission_id
+     WHERE csi.id = ? AND csi.submission_id = ? AND csi.deleted_at IS NOT NULL
+       AND cs.status = 'ready' AND cs.deleted_at IS NULL`,
+  ).bind(itemId, submissionId).first<{ deleted_at: string }>();
+  if (!item) throw new HTTPException(404, { message: "Deleted attachment occurrence not found" });
+  const now = new Date(Math.max(Date.now(), Date.parse(item.deleted_at) + 1)).toISOString();
+  const result = await c.env.DB.prepare(
+    `UPDATE comment_submission_items
+     SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
+     WHERE id = ? AND submission_id = ? AND deleted_at = ?`,
+  ).bind(now, itemId, submissionId, item.deleted_at).run();
+  if (!result.meta.changes) {
+    throw new HTTPException(409, { message: "The attachment changed while it was being restored" });
+  }
+  return c.json({ ok: true, updatedAt: now });
 });
 
 routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
@@ -431,14 +471,14 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
   if (submission.status === "ready") return c.json({ ok: true, status: "ready" as const });
   if (submission.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
   const items = await c.env.DB.prepare(
-    "SELECT status FROM comment_submission_items WHERE submission_id = ?",
+    "SELECT status FROM comment_submission_items WHERE submission_id = ? AND deleted_at IS NULL",
   ).bind(submissionId).all<{ status: string }>();
   const unfinished = items.results.filter((item) => !["ready", "cancelled"].includes(item.status));
   if (unfinished.length) {
     const now = new Date().toISOString();
     await c.env.DB.prepare(
       `UPDATE comment_submissions SET status = 'failed', error_message = ?, updated_at = ?
-       WHERE id = ? AND status NOT IN ('ready', 'cancelled')`,
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL`,
     ).bind("One or more files still require attention", now, submissionId).run();
     throw new HTTPException(409, { message: "One or more files still require attention" });
   }
@@ -448,9 +488,13 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
   const statements = [c.env.DB.prepare(
     `UPDATE comment_submissions
      SET status = 'ready', error_message = NULL, completed_at = ?, updated_at = ?
-     WHERE id = ? AND status NOT IN ('ready', 'cancelled')`,
+     WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL`,
   ).bind(now, now, submissionId)];
   if (submission.context_kind === "sample" && submission.sample_id) {
+    const sample = await c.env.DB.prepare(
+      "SELECT id FROM samples WHERE id = ? AND deleted_at IS NULL",
+    ).bind(submission.sample_id).first<{ id: string }>();
+    if (!sample) throw new HTTPException(409, { message: "The target sample is no longer available" });
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
@@ -459,7 +503,7 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
       JSON.stringify({ action: "comment_submission", submissionId }), userEmail, now,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
+      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
     ).bind(userEmail, now, submission.sample_id));
   } else {
     const [targets, targetCount] = await Promise.all([
@@ -468,8 +512,9 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
          FROM comment_submission_targets cst
          JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
          JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+         JOIN samples s ON s.id = cst.sample_id
          WHERE cst.submission_id = ?
-           AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          ORDER BY cst.run_step_id`,
       ).bind(submissionId).all<{ sample_id: string; run_id: string; run_step_id: string }>(),
       c.env.DB.prepare(
@@ -500,7 +545,7 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
         userEmail, now,
       ));
       statements.push(c.env.DB.prepare(
-        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
+        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
       ).bind(userEmail, now, sampleId));
     }
   }
@@ -518,11 +563,12 @@ routes.post("/comment-submissions/:submissionId/cancel", async (c) => {
     c.env.DB.prepare(
       `UPDATE comment_submissions
        SET status = 'cancelled', error_message = NULL, cancelled_at = ?, updated_at = ?
-       WHERE id = ? AND status <> 'ready'`,
+       WHERE id = ? AND status <> 'ready' AND deleted_at IS NULL`,
     ).bind(now, now, submissionId),
     c.env.DB.prepare(
       `UPDATE comment_submission_items SET status = 'cancelled', updated_at = ?
-       WHERE submission_id = ? AND status NOT IN ('ready', 'cancelled')`,
+       WHERE submission_id = ? AND status NOT IN ('ready', 'cancelled')
+         AND deleted_at IS NULL`,
     ).bind(now, submissionId),
     c.env.DB.prepare(
       `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
@@ -545,7 +591,7 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
   const submissionId = c.req.param("submissionId");
   const submission = await c.env.DB.prepare(
     `SELECT id, context_kind, sample_id, scope, body, status, actor_email
-     FROM comment_submissions WHERE id = ?`,
+     FROM comment_submissions WHERE id = ? AND deleted_at IS NULL`,
   ).bind(submissionId).first<SubmissionRow>();
   if (!submission || submission.status === "cancelled") throw new HTTPException(404, { message: "Comment not found" });
   if (submission.status !== "ready") throw new HTTPException(409, { message: "Use cancel for an unfinished upload" });
@@ -553,9 +599,9 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
   const userEmail = c.get("userEmail");
   const statements = [c.env.DB.prepare(
     `UPDATE comment_submissions
-     SET status = 'cancelled', cancelled_at = ?, updated_at = ?
-     WHERE id = ? AND status = 'ready'`,
-  ).bind(now, now, submissionId)];
+     SET deleted_at = ?, deleted_by = ?, updated_at = ?
+     WHERE id = ? AND status = 'ready' AND deleted_at IS NULL`,
+  ).bind(now, userEmail, now, submissionId)];
   if (submission.context_kind === "sample" && submission.sample_id) {
     statements.push(c.env.DB.prepare(
       `UPDATE events
@@ -570,17 +616,21 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
       `Deleted sample comment · ${submission.body || "Files attached"}`,
       JSON.stringify({ action: "comment_submission_deleted", submissionId }), userEmail, now,
     ));
-    statements.push(c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
+    statements.push(c.env.DB.prepare(
+      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    )
       .bind(userEmail, now, submission.sample_id));
   } else {
     const targets = await c.env.DB.prepare(
       "SELECT DISTINCT sample_id, run_step_id FROM comment_submission_targets WHERE submission_id = ?",
     ).bind(submissionId).all<{ sample_id: string; run_step_id: string }>();
     statements.push(c.env.DB.prepare(
-      "DELETE FROM run_step_comments WHERE submission_id = ?",
-    ).bind(submissionId));
+      `UPDATE run_step_comments
+       SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ?
+       WHERE submission_id = ? AND deleted_at IS NULL`,
+    ).bind(now, userEmail, now, userEmail, submissionId));
     for (const target of targets.results) statements.push(c.env.DB.prepare(
-      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ?",
+      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
     ).bind(userEmail, now, target.run_step_id));
     for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
       statements.push(c.env.DB.prepare(
@@ -597,26 +647,87 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
         userEmail,
         now,
       ));
-      statements.push(c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
+      statements.push(c.env.DB.prepare(
+        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+      )
         .bind(userEmail, now, sampleId));
     }
   }
-  statements.push(c.env.DB.prepare(
-    `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
-     WHERE id IN (
-       SELECT storage_object_id FROM comment_submission_items
-       WHERE submission_id = ? AND storage_object_id IS NOT NULL
-     )
-     AND NOT EXISTS (
-       SELECT 1 FROM comment_submission_items other
-       JOIN comment_submissions cs ON cs.id = other.submission_id
-       WHERE other.storage_object_id = managed_storage_objects.id
-         AND other.submission_id <> ? AND cs.status = 'ready'
-     )`,
-  ).bind(now, submissionId, submissionId));
   const results = await c.env.DB.batch(statements);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "The comment changed while it was being deleted" });
   return c.json({ ok: true });
+});
+
+routes.post("/comment-submissions/:submissionId/restore", async (c) => {
+  const submissionId = c.req.param("submissionId");
+  const submission = await c.env.DB.prepare(
+    `SELECT id, context_kind, sample_id, scope, body, status, deleted_at
+     FROM comment_submissions WHERE id = ? AND deleted_at IS NOT NULL`,
+  ).bind(submissionId).first<SubmissionRow & { deleted_at: string }>();
+  if (!submission) throw new HTTPException(404, { message: "Deleted comment not found" });
+  if (submission.status !== "ready") throw new HTTPException(409, { message: "Only completed comments can be restored" });
+  const now = new Date(Math.max(Date.now(), Date.parse(submission.deleted_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const statements: D1PreparedStatement[] = [c.env.DB.prepare(
+    `UPDATE comment_submissions
+     SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
+     WHERE id = ? AND deleted_at = ?`,
+  ).bind(now, submissionId, submission.deleted_at)];
+  if (submission.context_kind === "sample" && submission.sample_id) {
+    statements.push(c.env.DB.prepare(
+      `UPDATE events
+       SET metadata_json = json_remove(metadata_json, '$.deletedAt', '$.deletedBy')
+       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?`,
+    ).bind(submission.sample_id, submissionId));
+    statements.push(c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples
+       WHERE id = ? AND deleted_at IS NULL`,
+    ).bind(
+      crypto.randomUUID(), submission.body || "Files attached",
+      JSON.stringify({ action: "comment_submission_restored", submissionId }),
+      userEmail, now, submission.sample_id,
+    ));
+    statements.push(c.env.DB.prepare(
+      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    ).bind(userEmail, now, submission.sample_id));
+  } else {
+    const targets = await c.env.DB.prepare(
+      `SELECT DISTINCT cst.sample_id, cst.run_step_id
+       FROM comment_submission_targets cst
+       JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
+       JOIN runs r ON r.id = cst.run_id AND r.deleted_at IS NULL
+       JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.deleted_at IS NULL
+       WHERE cst.submission_id = ?`,
+    ).bind(submissionId).all<{ sample_id: string; run_step_id: string }>();
+    statements.push(c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ?
+       WHERE submission_id = ? AND deleted_at IS NOT NULL`,
+    ).bind(now, userEmail, submissionId));
+    for (const target of targets.results) statements.push(c.env.DB.prepare(
+      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    ).bind(userEmail, now, target.run_step_id));
+    for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
+      statements.push(c.env.DB.prepare(
+        `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+         VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+      ).bind(
+        crypto.randomUUID(), sampleId,
+        `Restored ${submission.scope === "common" ? "common " : ""}step comment · ${submission.body || "Files attached"}`,
+        JSON.stringify({ action: "comment_submission_restored", submissionId }),
+        userEmail, now,
+      ));
+      statements.push(c.env.DB.prepare(
+        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+      ).bind(userEmail, now, sampleId));
+    }
+  }
+  const results = await c.env.DB.batch(statements);
+  if (!results[0].meta.changes) {
+    throw new HTTPException(409, { message: "The comment changed while it was being restored" });
+  }
+  return c.json({ ok: true, updatedAt: now });
 });
 
 routes.get("/attachments/:itemId/download", async (c) => {
@@ -625,8 +736,10 @@ routes.get("/attachments/:itemId/download", async (c) => {
     `SELECT csi.filename, mso.provider, mso.object_key, mso.mime_type
      FROM comment_submission_items csi
      JOIN managed_storage_objects mso ON mso.id = csi.storage_object_id AND mso.status = 'ready'
-     JOIN comment_submissions cs ON cs.id = csi.submission_id AND cs.status = 'ready'
-     WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'`,
+     JOIN comment_submissions cs ON cs.id = csi.submission_id
+       AND cs.status = 'ready' AND cs.deleted_at IS NULL
+     WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'
+       AND csi.deleted_at IS NULL`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Attachment not found" });
   const storage = managedStorage(c.env);

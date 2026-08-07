@@ -53,7 +53,8 @@ export async function loadPlanContext(db: D1Database, sampleId: string, runId: s
     ).bind(runId, sampleId).first<PlanContext["run"]>(),
     db.prepare(
       `SELECT id, recipe_family_id, name, template_type, version, initial_state_hash, content_json FROM template_versions
-       WHERE id = ? AND template_kind = 'process' AND archived_at IS NULL`,
+       WHERE id = ? AND template_kind = 'process'
+         AND archived_at IS NULL AND deleted_at IS NULL`,
     ).bind(templateVersionId).first<PlanContext["nextTemplate"]>(),
     db.prepare(
       `SELECT rs.id, COALESCE(sd.name, rs.title) AS name, rs.logical_step_key, rs.definition_hash, rs.position,

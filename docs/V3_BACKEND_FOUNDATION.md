@@ -94,8 +94,9 @@ deployment. Credentials and Access secrets must never be committed.
 ## Delivery sequence
 
 The additive foundation introduced lifecycle columns, visible-row indexes,
-schema tests, and this contract without changing route behavior. The first
-route conversion now applies those boundaries to Runs:
+schema tests, and this contract. The source route conversion now applies those
+boundaries to Runs, Samples, Comments, attachment occurrences, and Recipe
+revisions:
 
 - ordinary Run deletion sets `deleted_at` and `deleted_by` without removing or
   rewiring steps, comments, attachment occurrences, plan revisions,
@@ -105,15 +106,28 @@ route conversion now applies those boundaries to Runs:
   rejects an active process conflict;
 - live-run uniqueness and lifecycle triggers ignore deleted Runs;
 - the five historical built-in metrology presets are retired; referenced
-  presets are archived so existing Run history remains valid.
+  presets are archived so existing Run history remains valid;
+- deleting a Sample preserves its Runs, events, verifications, and parent/child
+  links while ordinary directory, detail, and mutation routes hide it;
+- deleting a canonical Comment preserves its target occurrences, attachment
+  items, and managed storage; deleting one occurrence does not delete the
+  canonical Comment or shared bytes;
+- execution-image and metrology-reference deletion hides only the selected
+  occurrence and restoration exposes the same occurrence ID again;
+- deleting a Recipe revision prevents new assignment without removing its
+  family, import links, or historical Run references; restoration re-enables
+  the same revision when it was not independently archived.
+
+All restoration routes clear deletion metadata in place. Exports and existing
+Run history retain deleted source identities so later reference resolution can
+surface them as read-only records.
 
 The remaining sequence is:
 
-1. convert Sample, Comment, attachment-occurrence, and Recipe deletion paths;
-2. add cleanup reachability guards and permanent-delete protection;
-3. add `reference_targets`, backlinks, and the batch read-only resolver;
-4. add object-level deep links and deterministic reference search;
-5. add Project-owned data and views.
+1. add cleanup reachability guards and permanent-delete protection;
+2. add `reference_targets`, backlinks, and the batch read-only resolver;
+3. add object-level deep links and deterministic reference search;
+4. add Project-owned data and views.
 
 Project UI, semantic search, source editing from Project, fixed Project
 hierarchies, and LLM write access are outside this foundation.

@@ -40,6 +40,7 @@ describe("reference lifecycle schema", () => {
     ]));
     expect([...columns(database, "run_step_comments")]).toEqual(expect.arrayContaining([
       "id", "submission_id", "run_step_id", "updated_at", "updated_by", "deleted_at", "deleted_by",
+      "asset_deleted_at", "asset_deleted_by",
     ]));
     database.close();
   });
