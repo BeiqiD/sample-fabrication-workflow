@@ -21,6 +21,7 @@ import { FileDropzone } from "./FileDropzone";
 import { MetrologyTemplateForm } from "./MetrologyTemplateForm";
 import { ProcessPlanCommentButton } from "./ProcessPlanCommentButton";
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
+import { StateMismatchDialog } from "./StateMismatchDialog";
 import { StepStatusIcon } from "./StepStatusIcon";
 
 const STATUSES: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
@@ -1084,19 +1085,28 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     finally { setPendingAction(null); }
   }
 
-  async function verifyState(column: RunGridColumn, step: RunStep, result: "matched" | "mismatched") {
+  async function verifyState(column: RunGridColumn, step: RunStep, result: "matched" | "mismatched", note = "") {
     if (!column.run) return;
-    const note = result === "mismatched" ? window.prompt("Describe how the observed state differs from the planned expectation:") : "";
-    if (result === "mismatched" && note === null) return;
     setPendingAction(`verify:${step.id}`); setError("");
     try {
       await api.verifyState(column.sample.id, column.run.id, step.id, {
-        result, note: note || "", expectedUpdatedAt: step.updatedAt,
+        result, note, expectedUpdatedAt: step.updatedAt,
         completeStep: ["pending", "in_progress"].includes(step.status),
       });
+    } catch (verificationError) {
+      if (result === "matched") {
+        setError((verificationError as Error).message);
+        return;
+      }
+      throw verificationError;
+    } finally {
+      setPendingAction(null);
+    }
+    try {
       await onSaved();
-    } catch (error) { setError((error as Error).message); }
-    finally { setPendingAction(null); }
+    } catch (refreshError) {
+      setError((refreshError as Error).message);
+    }
   }
 
   function renderStepContent(column: RunGridColumn, step: RunStep) {
@@ -1105,7 +1115,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       step={step}
       pendingAction={pendingAction}
       onDone={() => void markDone(column, step)}
-      onVerify={(result) => void verifyState(column, step, result)}
+      onVerifyMatched={() => void verifyState(column, step, "matched")}
+      onVerifyMismatch={(note) => verifyState(column, step, "mismatched", note)}
       commentContext={{ kind: "run_steps", scope: "individual", targets: [target(column, step)] }}
       onCommentSubmitted={onSaved}
       onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: false }); }}
@@ -1338,9 +1349,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   </>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerify, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
+function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVerifyMismatch, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
-  onDone: () => void; onVerify: (result: "matched" | "mismatched") => void;
+  onDone: () => void; onVerifyMatched: () => void; onVerifyMismatch: (note: string) => Promise<void>;
   commentContext: Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
   onCommentSubmitted: () => Promise<void>;
   onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void;
@@ -1351,6 +1362,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, commentContex
   const readyComments = individualComments.filter((comment) => (comment.status ?? "ready") === "ready");
   const [showStateActions, setShowStateActions] = useState(false);
   const [showAddActions, setShowAddActions] = useState(false);
+  const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const actionsLocked = pendingAction !== null;
   const pendingForStep = pendingRunStepActionTargets(pendingAction, step.id);
   const lockedByAnotherStep = actionsLocked && !pendingForStep;
@@ -1367,11 +1379,21 @@ function StepCell({ column, step, pendingAction, onDone, onVerify, commentContex
       {!metrology && <button type="button" aria-busy={pendingAction === `verify:${step.id}`} data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
     </div>}
     {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
-    {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerify("matched"); }}>State verified</button><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerify("mismatched"); }}>State mismatch</button></div>}
+    {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerifyMatched(); }}>State verified</button><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); setShowMismatchDialog(true); }}>State mismatch</button></div>}
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
     <CommentSubmissionRecovery submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
     <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
+    {showMismatchDialog && <StateMismatchDialog
+      sampleCode={column.sample.code}
+      stepTitle={step.plannedTitle || step.title}
+      busy={pendingAction === `verify:${step.id}`}
+      onCancel={() => setShowMismatchDialog(false)}
+      onConfirm={async (note) => {
+        await onVerifyMismatch(note);
+        setShowMismatchDialog(false);
+      }}
+    />}
   </>;
 }
