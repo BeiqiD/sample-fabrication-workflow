@@ -1,49 +1,76 @@
 # Frontend interface guidelines
 
-This document defines the layout, typography, density, interaction, and responsive rules for Sample Fabrication Workflow.
+Status: **frozen normative baseline**  
+Established code baseline: **`main` at `f7eeb932c0b6771dc2d6471077447b2297bf9017`**  
+Measured implementation reference: [`FRONTEND_AUDIT.md`](./FRONTEND_AUDIT.md)  
+Color source of truth: [`COLOR_SYSTEM.md`](./COLOR_SYSTEM.md)
 
-It complements [`COLOR_SYSTEM.md`](./COLOR_SYSTEM.md). The color document remains the source of truth for grayscale hierarchy, interaction accent behavior, workflow semantic colors, and action-result color mapping. This document focuses on geometry and information hierarchy.
+This document defines the layout, typography, density, interaction, responsive, and validation rules for Sample Fabrication Workflow.
 
-## Purpose
+The 2026-08 normalization pass is complete. These guidelines now describe the established interface rather than a plan for broad cleanup. Future changes should solve a concrete problem and preserve mature geometry outside the task's scope.
 
-The interface has already developed a recognizable visual language. The goal of this guideline is to make that language explicit without flattening useful differences between a normal reading page, a compact picker, and the high-density Process grid.
+The governing principle is:
 
-The desired outcome is **consistency by role, not uniformity by selector**.
+> **Consistency by role, not uniformity by selector.**
 
-A frontend cleanup must not automatically make every label, gap, card, image, or button the same size. Larger spacing is intentionally preserved where it improves reading. Dense controls remain dense where information throughput matters.
+A reading page, a compact picker, and the high-density Process grid are intentionally different. A smaller number of CSS values is not a product goal. Readability, information priority, interaction safety, and stable geometry are the goals.
 
-## Core principles
+## 1. Change gate
 
-### 1. Preserve proven geometry before normalizing typography
+Before modifying an established frontend component, the change must have a clear reason such as:
 
-Button groups, header actions, Process-grid controls, picker widths, image areas, and mobile action layouts are often coupled to available width and content wrapping. A typography cleanup must not silently resize or reflow these structures.
+- a reproducible usability or accessibility problem;
+- incorrect or unstable responsive behavior;
+- inconsistent representation of the same domain field;
+- a data-integrity or interaction-safety issue;
+- duplicated behavior that is demonstrably difficult to maintain;
+- a measured layout failure under representative content.
 
-Before changing an established control or layout:
+The following are not sufficient reasons on their own:
 
-1. record its current width/height and surrounding geometry;
-2. identify whether that geometry is a product constraint or an accidental implementation detail;
-3. change typography or spacing independently where possible;
-4. compare the same content cases before and after the change.
+- another component uses a different padding value;
+- two unrelated buttons have different heights;
+- a Dense workspace does not look like a Comfortable form;
+- a component-scoped stylesheet increases the stylesheet count;
+- a desire to make every label uppercase, sentence case, or the same size globally.
 
-Existing button geometry is treated as protected unless the task explicitly targets button interaction or layout.
+Every frontend PR should state:
 
-### 2. Use three density profiles
+1. the concrete problem;
+2. the affected density profile;
+3. the relevant before/after measurements;
+4. the protected geometry that remains unchanged;
+5. the viewport/content/theme cases tested.
 
-The application uses three intentional density profiles.
+## 2. Core principles
+
+### 2.1 Preserve proven geometry before normalizing typography
+
+Button groups, header actions, Process-grid controls, picker widths, image areas, and mobile action layouts are often coupled to available width and content wrapping.
+
+Before changing them:
+
+1. record the current geometry;
+2. distinguish product constraints from accidental implementation details;
+3. make the smallest local change possible;
+4. compare the same content cases before and after;
+5. avoid changing unrelated controls through broad selectors.
+
+Existing button and Process-workspace geometry is protected unless the task explicitly targets it.
+
+### 2.2 Use three density profiles
 
 | Density | Typical use | Typography | Controls | Spacing |
 | --- | --- | --- | --- | --- |
-| **Comfortable** | Sample details, new/edit forms, template details, Settings/Export, major dialogs | body/value around 14 px; labels around 12 px | standard actions around 40–42 px | generous reading rhythm; card padding typically 18–24 px |
-| **Compact** | Filters, pickers, directory rows, secondary toolbars, pagination, metadata panels | mostly 11–13 px | typically 34–40 px | gaps commonly 6–12 px |
-| **Dense** | Process grid, inline execution comments, upload queues, cell actions | mostly 9–12 px | typically 28–32 px | gaps commonly 4–9 px |
+| **Comfortable** | Sample details, ordinary forms, Template details, Settings/Export, major dialogs | labels ~12 px; body/value ~14 px | ~40–42 px | generous reading rhythm; cards typically 18–24 px padding |
+| **Compact** | Filters, pickers, directory rows, secondary toolbars, pagination | mostly 11–13 px | ~34–40 px | commonly 6–12 px gaps |
+| **Dense** | Process grid, execution comments, upload queues, cell actions | mostly 9–12 px | ~28–32 px | commonly 4–9 px gaps |
 
-These are profiles, not exact component APIs. Do not normalize a Dense control to Comfortable dimensions merely to reduce the number of CSS values.
+These are intentional profiles. Do not enlarge Dense controls to Comfortable dimensions merely to create a single scale.
 
-### 3. Reading rhythm has priority over numerical uniformity
+### 2.3 Reading rhythm has priority over numerical uniformity
 
-Normal pages should remain easy to read. The current interface benefits from visible separation between fields, cards, and sections.
-
-Recommended rhythm by density:
+Normal pages should retain visible separation between fields, cards, and sections.
 
 | Relationship | Comfortable | Compact | Dense |
 | --- | --- | --- | --- |
@@ -52,278 +79,440 @@ Recommended rhythm by density:
 | Card internal grouping | 14–24 px | 10–16 px | 6–12 px |
 | Major section separation | 26–42 px | 18–30 px | context-specific |
 
-Do not reduce line-height or vertical spacing only to make cards shorter. A shorter card is not automatically a better card.
+Do not reduce line-height or vertical spacing simply to shorten a card.
 
-## Typography roles
+### 2.4 Natural layout is the baseline
 
-The existing root tokens establish a useful hierarchy and should remain the default basis:
+Default, read-only, or collapsed states should use their natural content height. Do not introduce a large fixed minimum height merely to hide a transition difference.
 
-| Role | Current reference | Rule |
-| --- | --- | --- |
-| Page title | 34–52 px desktop; 38 px mobile | Reserved for route/page identity |
-| Page lead | 17 px desktop; 15 px mobile | Short explanatory context below the page title |
-| Section title | 22 px | Major section inside a page |
-| Card title | 18 px | Card or local-content heading |
-| Body / editable value | 14 px | Default readable value, note, and form-control text |
-| Field label | 12 px | Normal data field name; sentence case |
-| Metadata | 12 px | Timestamps, secondary context, supporting text |
-| Micro metadata | 9–11 px | Dense grid, badges, upload state, compact technical metadata only |
+When an edit state must remain geometrically stable, prefer structural parity or a structural mode stack over runtime DOM measurement.
 
-### Field labels versus classification labels
+## 3. Typography roles
 
-Two different roles must not be conflated.
+| Role | Baseline | Rule |
+| --- | ---: | --- |
+| Page title | 34–52 px desktop; 38 px mobile | Route identity only |
+| Page lead | 17 px desktop; 15 px mobile | Short explanatory context |
+| Section title | 22 px | Major page section |
+| Card title | 18 px | Card/local heading |
+| Body / editable value | 14 px | Normal readable value and form-control text |
+| Field label | 12 px | Sentence-case data field name |
+| Metadata | 12 px | Timestamp and secondary context |
+| Micro metadata | 9–11 px | Dense grid, badges, uploads, technical microcopy |
+| Classification label | 9–12 px | Eyebrow, kicker, badge, table heading; uppercase allowed |
 
-**Field labels** name editable or inspectable data, for example `Sample name`, `Location`, `Parameters`, or `Comments`.
+### 3.1 Field labels versus classification labels
+
+**Field labels** identify inspectable or editable data, for example `Sample name`, `Location`, `Parameters`, and `Comments`.
 
 - use sentence case;
-- do not add letter spacing for decoration;
-- default to approximately 12 px in Comfortable contexts;
-- keep the same label treatment in view and edit states.
+- normally use approximately 12 px in Comfortable contexts;
+- do not add decorative letter spacing;
+- retain the same role in View and Edit states.
 
-**Classification labels** identify hierarchy or category, for example page eyebrows, card kickers, table column headers, compact badges, Process-grid micro headings, or section indices.
+**Classification labels** identify hierarchy or category, for example page eyebrows, card kickers, directory headings, compact badges, Process-grid micro headings, and section indices.
 
-- uppercase is allowed;
-- letter spacing is allowed;
+- uppercase and letter spacing are allowed;
 - 9–12 px is appropriate depending on density.
 
-Uppercase must not be applied to a normal data field merely because it is rendered through a `dt` element.
+An element being rendered as `dt` is not enough reason to make it uppercase.
 
-### Control text must be explicit
+### 3.2 Control typography must be explicit
 
-The global CSS currently allows `input`, `textarea`, and `select` to inherit fonts from their parent. New or refactored form components should explicitly establish their intended control text size at the component/density level instead of accidentally inheriting a label size.
+A field label and the text inside its input are different roles.
 
-A field label and the text inside its control are different roles.
+New or refactored form families should explicitly set control typography instead of relying on accidental inheritance from a parent label. The approved ordinary-form pattern is approximately:
 
-## View/edit parity
+```text
+Field label: 12 px
+Editable value: 14 px
+```
 
-View and edit states for the same information are one component state, not two independent layouts.
+Compact and Dense forms may intentionally use smaller values, but must declare that role locally.
 
-The preferred pattern is:
+## 4. View/Edit behavior
 
-1. keep fields in the same order;
-2. keep labels in the same position and style;
-3. replace only the editable value with its input/select/textarea;
-4. keep non-editable context visible unless hiding it is necessary for the editing task;
-5. put Save/Cancel actions in a predictable local action area;
-6. avoid changing unrelated card geometry when editing starts.
+View and Edit are states of one component, not independent pages.
 
-### Height behavior
+Preferred rules:
 
-The natural read-only layout is the source of truth. Do not add a fixed minimum height to the view state only to make an edit transition look stable.
+1. keep the domain fields in a stable order;
+2. keep labels visually consistent;
+3. replace or overlay editable values locally;
+4. keep non-editable context available when it defines the component's geometry or meaning;
+5. put Save/Cancel in a predictable local area;
+6. do not move unrelated neighboring components when Edit begins;
+7. prevent accidental cancellation while an asynchronous save is in flight.
 
-If the edit controls can fit within the natural view geometry, they should adapt to that geometry. A flexible text area may absorb remaining space. If the edit form genuinely requires more room, allow an intentional expansion rather than introducing empty space in the default view.
+### 4.1 Sample-details approved pattern
 
-Runtime measurement is acceptable as a compatibility technique when current markup differs substantially between view and edit states, but structural parity is the preferred long-term solution.
+Sample details uses the complete read-only view as the natural height source. During Edit:
 
-## Controls and buttons
+- the read-only structure remains in normal flow but is visually hidden;
+- the edit form occupies the same content area;
+- Description absorbs remaining height with a 48 px minimum;
+- internal scrolling is only a fallback for unusually constrained content;
+- View, Edit, and Cancel retain the same outer height;
+- no runtime DOM-height installer is used.
 
-### Protected control geometry
+This pattern may be reused only when the hidden baseline remains semantically complete and inaccessible hidden content is handled correctly. Do not use hidden duplicate content as a generic default for every form.
 
-The current interface already has a useful control-size ladder:
+### 4.2 Template-step approved pattern
 
-| Role | Current effective range |
-| --- | --- |
-| Standard page action | about 42 px high |
-| Shell/navigation control | about 36–40 px |
-| Compact toolbar/filter/pagination control | about 34–40 px |
-| Dense Process-grid action | about 28–32 px |
-| Mobile header icon action | about 42 px square |
+Template-step editing replaces Step name, Tool, Parameters, and Comments in their existing regions. Existing diagrams and action geometry remain stable. Do not restore an appended duplicate edit form beneath read-only values.
 
-This ladder should be treated as intentional. Do not replace it with one universal button height.
+## 5. Domain-form consistency
 
-### Button variants
+The same domain object should use the same field names and preferred order wherever practical.
 
-Continue using the existing roles:
+### 5.1 Sample identity schema
 
-- emphasized neutral / `.button.primary` for the page's primary non-semantic action;
-- standard `.button` for ordinary actions;
-- `.text-button` for low-emphasis inline actions;
-- danger treatment for destructive actions;
-- workflow semantic treatment only where allowed by `COLOR_SYSTEM.md`.
+Approved order:
 
-The same action should keep the same variant across pages. A visual-normalization change must not alter button meaning or emphasis.
+```text
+Sample code
+Sample name
+Status
+Location
+Description
+```
 
-### Mobile iconization
+`Pinned` follows where that field applies. Use `Location`, not a mixture of `Location` and `Current location`.
 
-When labels are hidden on mobile and an established icon button remains, preserve the existing accessible label/title. Do not reintroduce text merely to make desktop and mobile markup visually identical.
+The schema applies to:
 
-## Cards and surfaces
+- New Sample;
+- Sample details Edit;
+- Split-piece editing.
 
-The base `.card` establishes border, radius, paper surface, and shadow. Padding is intentionally owned by the component because different cards have different reading densities.
-
-Typical Comfortable card padding is currently 18–24 px. This is a useful range, not a requirement that every card use one exact value.
-
-When two cards serve the same role, their padding and heading rhythm should converge. When their roles differ — for example a directory row versus a long-form detail card — their density may differ.
-
-Avoid introducing a new surface color or border strength just to compensate for weak spacing or hierarchy.
-
-## Forms
-
-### Comfortable forms
+### 5.2 Comfortable forms
 
 For Sample, Template, Metrology, Settings, and similar forms:
 
-- labels should use the Field-label role;
-- controls should use Body/editable-value typography;
-- label-to-control gap should normally be 6–8 px;
-- field-to-field gap should normally be 12–18 px;
-- textareas should be sized for the content role, not normalized to one row count;
-- optional text should be subordinate to the field label, not a second competing label.
+- labels use the Field-label role;
+- controls use Body/editable-value typography;
+- label-to-control gap is normally 6–8 px;
+- field-to-field gap is normally 12–18 px;
+- textarea height follows the content role;
+- optional/helper text remains visually subordinate.
 
-### Compact forms
+### 5.3 Compact and Dense forms
 
-Filters, popovers, and picker forms may use smaller control text and tighter spacing. They must remain visually distinct from Dense Process-grid editing.
+Filters, picker searches, attachment micro forms, and Process-grid editing may use smaller typography and tighter spacing.
 
-### Field naming and ordering
+Do not apply Comfortable form selectors globally to:
 
-The same domain object should use the same field names and preferred order wherever practical. Sample creation, Sample detail editing, and Split-piece editing should be treated as variants of the same Sample identity schema rather than unrelated forms.
+- Sample filters;
+- attachment-link micro forms;
+- Process-grid comments;
+- upload queues;
+- cell action menus.
 
-## Dense Process workspace
+## 6. Controls and buttons
 
-The Process grid is a deliberate exception to Comfortable-page typography.
+### 6.1 Protected control ladder
 
-Current characteristics that should be preserved unless the Process-grid task explicitly targets them:
+| Role | Baseline |
+| --- | ---: |
+| Standard page action | ~42 px high |
+| Shell/navigation | ~36–40 px |
+| Compact toolbar/filter/pagination | ~34–40 px |
+| Dense Process action | ~28–32 px |
+| Mobile Sample-header action | ~42 px square |
 
-- cell action heights around 28–29 px;
-- comment tool buttons around 32 px;
-- state and badge text around 9–10 px;
-- comment body around 12 px with micro metadata around 9 px;
-- cell and recipe-column padding optimized for multi-sample scanning;
-- narrow mobile recipe column and horizontal sample scrolling;
-- semantic state surfaces that communicate workflow state at a glance.
+There is no universal button height.
 
-Do not apply normal-page field-label or button dimensions globally to the Process grid.
+### 6.2 Button roles
 
-## Images and attachments
+Continue using the established semantic hierarchy:
 
-Image layout must be based on available width and image count, not only on the first-image case.
+- `.button.primary` for the page's emphasized non-destructive action;
+- `.button` for ordinary actions;
+- `.text-button` for low-emphasis inline actions;
+- danger treatment for destructive actions;
+- workflow semantic treatment only where permitted by `COLOR_SYSTEM.md`.
 
-General rules:
+A typography or layout cleanup must not alter action meaning or emphasis.
 
-- use a gallery/grid when several images share the same semantic role;
-- on narrow mobile content, move multi-image galleries below text rather than forcing a long right-side image rail;
-- in Dense Process-grid cells, narrow side thumbnails are allowed when they support scanning and do not crush text;
-- preserve aspect ratio intentionally for previews;
-- opening the image may use a larger lightbox without changing the compact inline representation;
-- file attachments and image previews are separate visual roles even when both originate from the same upload system.
+### 6.3 Protected groups
 
-## Responsive rules
+Do not change these as a side effect of unrelated work:
 
-The current primary breakpoints are `1200px` and `720px`. Treat these as the default responsive boundaries.
-
-Add another breakpoint only when a measured layout failure cannot be solved with intrinsic layout (`minmax`, wrapping, grid auto-fit, flex wrapping, container width, or content reordering).
-
-### Desktop → intermediate → mobile
-
-Responsive changes should preserve semantic priority rather than force pixel identity.
-
-For example:
-
-- page header actions may wrap or become icon-only;
-- directory tables may collapse column headings into row structure;
-- multi-sample grids may become horizontally scrollable;
-- image galleries may move below text;
-- dialog padding may reduce;
-- touch targets must remain usable even when labels disappear.
-
-## Dialogs, drawers, and menus
-
-Overlay width is task-dependent and should not be normalized to one modal size. Current widths already form sensible role-specific categories, from narrow destructive confirmations to wide process-transition dialogs.
-
-Behavior should be more consistent than width:
-
-- focus must enter the overlay intentionally;
-- Escape/backdrop behavior must be predictable;
-- destructive confirmation should use the shared confirmation pattern;
-- focus should be restored when practical;
-- mobile padding/max-height must prevent content from becoming inaccessible.
-
-Future destructive flows should prefer the shared `ConfirmDeleteDialog` behavior over browser-native `window.confirm()`.
-
-## CSS ownership
-
-Current load order is:
-
-1. `styles.css` — base tokens, shared components, and most page/component CSS;
-2. `palette.css` — interface color-role overrides;
-3. `comment-layout.css` — targeted comment-layout compatibility overrides;
-4. `sample-page-layout.css` — targeted Sample-page compatibility overrides.
-
-This layering is acceptable as an intermediate state, but new single-bug override files should not become the default architecture.
-
-When a component is deliberately refactored, move its stable rules toward the component's owning stylesheet/section and remove obsolete compatibility overrides. Avoid selector wars where a later file exists only to cancel an earlier rule.
-
-## Protected layout invariants
-
-Unless a task explicitly targets these areas, frontend normalization should preserve:
-
-- page-level and Sample-header button variants and target sizes;
+- Sample-header action grouping;
 - mobile icon-button grouping;
-- Process-grid column-width logic and sample-count behavior;
-- Jump-to-current size/placement/visibility behavior;
-- run-control and action-menu geometry;
-- current responsive breakpoint behavior;
+- run-control and action-menu widths;
+- Process cell action grids;
+- State action geometry;
+- Jump-to-current size, placement, and visibility rules.
+
+### 6.4 Mobile iconization
+
+When an established mobile action hides its visible label:
+
+- preserve `aria-label` and `title`;
+- maintain the existing touch target;
+- do not reintroduce text only to make desktop and mobile visually identical.
+
+## 7. Cards and surfaces
+
+The base `.card` owns border, radius, paper surface, and shadow. Padding remains component-owned.
+
+Typical Comfortable padding is 18–24 px. This is a valid range rather than a requirement for one exact value.
+
+When two cards serve the same role, their heading and padding rhythm should converge. When roles differ, density may differ.
+
+Do not introduce a new background color or border strength to compensate for weak spacing or unclear hierarchy.
+
+## 8. Dense Process workspace
+
+The Process grid is a deliberate exception to ordinary-page typography.
+
+Protected characteristics include:
+
+- cell actions around 28 px;
+- State actions around 29 px;
+- comment tools around 32 px;
+- state/badge text around 9–10 px;
+- comment body around 12 px;
+- comment metadata around 9 px;
+- narrow recipe columns and horizontal sample scrolling;
+- sample-count-dependent column widths;
+- semantic status surfaces;
+- current row and section progress geometry;
+- Jump-to-current behavior.
+
+### 8.1 Column-width baseline
+
+| Visible samples | Recipe column | Sample behavior |
+| --- | ---: | --- |
+| 1 | ~380 px | flexible |
+| 2 | ~320 px | min ~340 px each |
+| 3 | ~290 px | min ~300 px each |
+| 4+ | ~270 px | ~300 px each |
+| `<=1200px` | ~230 px | ~300 px each |
+| `<=720px` | 88 px | 270 px with horizontal overflow |
+
+A normal-page typography task must not change these values.
+
+## 9. Images and attachments
+
+Image layout must account for available width and image count, not only the one-image case.
+
+Rules:
+
+- use a gallery/grid when several images share a role;
+- on narrow mobile content, place multi-image galleries below text rather than in a long right-side rail;
+- Dense Process cells may use narrow side thumbnails when text remains readable;
+- preserve aspect ratio intentionally;
+- keep large viewing in the lightbox rather than expanding inline geometry;
+- treat file attachments and image previews as different visual roles;
+- allow explicit attachment upload of an image when the user intentionally chooses the attachment path.
+
+Established contextual sizes are documented in `FRONTEND_AUDIT.md`; do not force one universal thumbnail size.
+
+## 10. Responsive rules
+
+Primary breakpoints are:
+
+- `1200px` for intermediate desktop/tablet reflow;
+- `720px` for mobile transformation.
+
+Add another breakpoint only when measured failure remains after considering:
+
+- `minmax`;
+- wrapping;
+- grid auto-fit/auto-fill;
+- intrinsic sizing;
+- content reordering;
+- container width;
+- horizontal scrolling for intentionally wide workspaces.
+
+Responsive changes should preserve semantic priority rather than pixel identity. It is acceptable for:
+
+- header actions to wrap or become icon-only;
+- directory headings to collapse into row structure;
+- multi-sample grids to scroll horizontally;
+- image galleries to move below text;
+- dialog padding to reduce;
+- touch targets to remain large while labels disappear.
+
+## 11. Dialogs, drawers, menus, and lightboxes
+
+Overlay width is task-specific. Do not normalize all overlays to one modal width.
+
+Ordinary application overlays should use the shared `useModalDialog` behavior where applicable:
+
+- intentional initial focus;
+- Escape close;
+- focus containment;
+- background scroll locking;
+- focus restoration;
+- busy-state close blocking;
+- nested-overlay stack awareness.
+
+### 11.1 Destructive confirmation
+
+Ordinary destructive flows should use `ConfirmDeleteDialog` rather than browser-native `window.confirm()`.
+
+The remaining native confirmation in the Process-plan comment draft guard is a deliberate synchronous close interceptor. It must block an Escape/backdrop attempt before the parent overlay closes. Do not replace it with an asynchronous dialog unless the close architecture is redesigned first.
+
+### 11.2 State mismatch
+
+State mismatch uses an in-application dialog and remains bound to the exact current sample, run, and step. `State verified` remains a direct action.
+
+### 11.3 Image lightbox
+
+The image lightbox intentionally retains specialized keyboard behavior for:
+
+- Escape;
+- previous/next navigation;
+- zoom controls;
+- pan interaction.
+
+Do not force it into the ordinary modal hook unless all specialized behavior and nested-overlay interactions are preserved.
+
+## 12. CSS ownership
+
+### 12.1 Global layers
+
+Current global load order:
+
+1. `styles.css` — tokens, shared primitives, legacy route layout, Process workspace/grid, responsive rules;
+2. `palette.css` — color-role and semantic-color behavior;
+3. `comment-layout.css` — focused comment compatibility rules;
+4. `sample-page-layout.css` — Sample-page View/Edit and Notes media layout;
+5. `processing-form-roles.css` — explicit Processing form typography roles.
+
+### 12.2 Component- and route-scoped owners
+
+Current focused owners include:
+
+- `sample-identity-form.css`;
+- `template-page-layout.css`;
+- `metrology-template-form.css`;
+- `split-sample-dialog.css`;
+- `modal-form-controls.css`.
+
+### 12.3 Ownership rules
+
+- `sample-page-layout.css` is now the formal owner of Sample-page layout refinements, not a temporary height hack.
+- `comment-layout.css` remains a compatibility layer until CommentCard/CommentComposer is deliberately refactored.
+- Do not create a new single-bug stylesheet without an owner and tests.
+- Do not consolidate CSS through a mass selector move.
+- Move rules only as part of a component-led refactor with before/after verification.
+- Avoid later files whose only purpose is to cancel an earlier selector.
+
+## 13. Protected layout invariants
+
+Unless explicitly targeted, preserve:
+
+- page-level button roles and target sizes;
+- Sample-header action grouping;
+- mobile icon-button grouping;
+- generous Comfortable-page line-height and section spacing;
+- Sample-details natural View height behavior;
 - Notes & observations mobile image grid;
+- Process-grid density and column-width logic;
+- run controls and action-menu geometry;
+- Jump-to-current geometry and behavior;
+- task-specific dialog widths;
+- FileDropzone Standard/Compact dimensions;
 - image-lightbox interaction area;
-- status-pill color mapping and visual intensity;
-- card reading spacing where no concrete problem has been identified.
+- status-pill color mapping and intensity;
+- current `1200px` and `720px` breakpoint strategy.
 
-## Measurement protocol
+## 14. Measurement protocol
 
-Before changing a mature frontend component, record the current baseline.
+### 14.1 Viewport matrix
 
-### Viewport matrix
+At minimum inspect the widths relevant to the changed component:
 
-At minimum inspect:
-
-- 1440 px desktop for ordinary pages;
+- 1440 px ordinary desktop;
 - 1024 px intermediate layout;
-- 390 px common mobile width;
-- 360 px minimum supported mobile case;
-- a wide desktop viewport (approximately 1600–1920 px) for multi-sample Processing.
+- 390 px common mobile;
+- 360 px narrow mobile;
+- 320 px minimum-width stress case where applicable;
+- 1600–1920 px for wide multi-sample Processing.
 
-### Content matrix
+### 14.2 Content matrix
 
 Use representative stress cases:
 
 - short and long Sample names;
-- empty and multi-line descriptions;
-- no parent, one parent, and multiple children;
+- empty and multiline descriptions;
+- no parent, one parent, and many children;
 - 0, 1, 3, and many images;
-- attachment-only and mixed image/attachment notes;
-- 1, 2, 3, 4, and many visible Process samples;
-- long template names and long step content;
-- empty, normal, and error states;
+- attachment-only and mixed media notes;
+- 1, 2, 3, 4, and many Process samples;
+- long Template and step content;
+- empty, normal, loading, saving, and error states;
 - light and dark themes.
 
-### Geometry to record
+### 14.3 Geometry to record
 
-For a component under change, record only the dimensions that matter to its behavior:
+Record only dimensions relevant to the task:
 
-- outer width/height;
+- outer component width/height;
 - primary control height;
-- action-group width/wrapping;
+- action-group wrapping;
 - card padding;
 - label/value spacing;
-- image area dimensions;
-- text wrapping/line count;
-- neighboring component position when state changes.
+- image area;
+- text wrapping;
+- neighboring component position during state changes.
 
-Do not chase pixel equality for dimensions that do not affect hierarchy or interaction.
+Do not chase pixel equality that has no effect on hierarchy or interaction.
 
-## Review checklist
+## 15. Verification and merge requirements
 
-Before merging a frontend-normalization change:
+All frontend changes must run:
 
-1. Identify the density profile of every affected component.
-2. Confirm the change does not globally resize protected buttons or controls.
-3. Confirm field labels and classification labels are not conflated.
-4. Confirm control text does not accidentally inherit a new label size.
-5. For view/edit UI, compare field order, label position, card geometry, and unrelated context.
-6. Compare at 1440, 1024, 390, and 360 px where relevant.
-7. Test long text and multi-image cases, not only the shortest fixture.
-8. Confirm the Process grid remains dense unless it is the explicit target.
-9. Confirm existing semantic colors and action-result rules remain intact.
-10. Check both light and dark themes.
-11. Prefer measured local changes over global selector overrides.
-12. Update the frontend audit when a major component family changes density or interaction structure.
+```text
+npm test
+npm run build
+```
+
+The repository `Verify` workflow runs:
+
+```text
+npm ci
+npm test
+npm run build
+```
+
+on non-`main` branch pushes and pull requests targeting `main`.
+
+A frontend PR should not merge until the Verify job passes. A source-level regression test should protect the intended role or geometry without depending on irrelevant whitespace or formatting.
+
+## 16. Review checklist
+
+Before merging a frontend change:
+
+1. State the concrete problem being solved.
+2. Identify Comfortable, Compact, or Dense for every affected surface.
+3. Confirm protected buttons and controls were not globally resized.
+4. Confirm field and classification labels remain distinct roles.
+5. Confirm control text does not accidentally inherit label typography.
+6. For View/Edit UI, compare field order, label treatment, outer height, and neighboring layout.
+7. Test relevant desktop, intermediate, and mobile widths.
+8. Test long text and multi-image cases.
+9. Check light and dark themes.
+10. Preserve Process-grid density unless it is the explicit target.
+11. Preserve semantic colors and action-result mapping.
+12. Confirm Escape, backdrop, focus, and busy behavior for overlays.
+13. Run the full repository verification.
+14. Update `FRONTEND_AUDIT.md` only when the established baseline materially changes.
+
+## 17. Freeze policy
+
+There is no active mandate for further broad frontend normalization.
+
+After this baseline:
+
+- do not perform global typography, spacing, button, or CSS-file consolidation passes without a concrete issue;
+- prefer observation and real-use feedback over speculative cleanup;
+- make future changes component by component;
+- preserve mature geometry outside the stated scope;
+- update these guidelines only when a design rule changes, not for every local bug fix.
+
+The interface should now evolve through evidence-driven improvements rather than continued general normalization.
