@@ -23,7 +23,10 @@ function fitDescription(card: HTMLElement) {
   card.style.height = `${baseline}px`;
 
   description.style.height = `${MIN_DESCRIPTION_HEIGHT}px`;
-  const remaining = Math.max(0, card.clientHeight - card.scrollHeight);
+  const cardRect = card.getBoundingClientRect();
+  const formRect = form.getBoundingClientRect();
+  const paddingBottom = Number.parseFloat(getComputedStyle(card).paddingBottom) || 0;
+  const remaining = Math.max(0, cardRect.bottom - paddingBottom - formRect.bottom);
   description.style.height = `${MIN_DESCRIPTION_HEIGHT + remaining}px`;
 }
 
