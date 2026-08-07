@@ -11,6 +11,32 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex=\"-1\"])",
 ].join(",");
 
+const modalStack: HTMLElement[] = [];
+let bodyOverflowBeforeFirstModal: string | null = null;
+
+function registerModal(dialog: HTMLElement) {
+  const previousIndex = modalStack.indexOf(dialog);
+  if (previousIndex >= 0) modalStack.splice(previousIndex, 1);
+  if (modalStack.length === 0) bodyOverflowBeforeFirstModal = document.body.style.overflow;
+  modalStack.push(dialog);
+  document.body.style.overflow = "hidden";
+}
+
+function unregisterModal(dialog: HTMLElement) {
+  const index = modalStack.lastIndexOf(dialog);
+  if (index >= 0) modalStack.splice(index, 1);
+  if (modalStack.length > 0) {
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  document.body.style.overflow = bodyOverflowBeforeFirstModal ?? "";
+  bodyOverflowBeforeFirstModal = null;
+}
+
+function isTopModal(dialog: HTMLElement) {
+  return modalStack[modalStack.length - 1] === dialog;
+}
+
 export function useModalDialog({
   dialogRef,
   initialFocusRef,
@@ -28,37 +54,40 @@ export function useModalDialog({
   blockedRef.current = blocked;
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    document.body.style.overflow = "hidden";
+    registerModal(dialog);
 
     function focusInside() {
+      if (!isTopModal(dialog)) return;
       const preferred = initialFocusRef?.current;
-      const fallback = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ?? null;
+      const fallback = dialog.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ?? null;
       (preferred ?? fallback)?.focus();
     }
 
     focusInside();
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || blockedRef.current) return;
+      if (!isTopModal(dialog) || event.key !== "Escape" || blockedRef.current) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       onCloseRef.current();
     }
 
     function keepFocusInside(event: FocusEvent) {
+      if (!isTopModal(dialog)) return;
       const target = event.target;
-      if (!(target instanceof Node) || dialogRef.current?.contains(target)) return;
+      if (!(target instanceof Node) || dialog.contains(target)) return;
       focusInside();
     }
 
     window.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("focusin", keepFocusInside, true);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown, true);
       document.removeEventListener("focusin", keepFocusInside, true);
+      unregisterModal(dialog);
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, [dialogRef, initialFocusRef]);
