@@ -1,0 +1,13 @@
+.metrology-template-form > label,
+.metrology-reference-card > label {
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.metrology-template-form input,
+.metrology-template-form textarea,
+.metrology-reference-card textarea {
+  font-size: 14px;
+  line-height: 1.45;
+}
