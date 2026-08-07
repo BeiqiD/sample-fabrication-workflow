@@ -1,16 +1,10 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "sample-management-system",
+  "name": "sample-workflow-v3",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-07-20",
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
-  "routes": [
-    {
-      "pattern": "samples.run",
-      "custom_domain": true
-    }
-  ],
   "triggers": {
     "crons": ["17 3 * * *"]
   },
@@ -24,14 +18,14 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "samples-alpha-v2",
-      "database_id": "76926a67-6b5e-43ae-8ef2-e756b3ef4e6d"
+      "database_name": "sample-workflow-db-v3",
+      "database_id": "b12527ac-e422-47ce-aca3-c34be8b6c6a6"
     }
   ],
   "r2_buckets": [
     {
       "binding": "ASSETS",
-      "bucket_name": "samples-assets-alpha-v2"
+      "bucket_name": "sample-workflow-assets-v3"
     }
   ]
 }
