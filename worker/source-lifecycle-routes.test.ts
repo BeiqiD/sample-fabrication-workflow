@@ -38,13 +38,17 @@ class SqliteD1Statement {
 }
 
 class SqliteD1Database {
-  constructor(readonly database: DatabaseSync) {}
+  constructor(
+    readonly database: DatabaseSync,
+    private readonly beforeBatch?: () => void,
+  ) {}
 
   prepare(query: string) {
     return new SqliteD1Statement(this.database, query);
   }
 
   async batch(statements: SqliteD1Statement[]) {
+    this.beforeBatch?.();
     this.database.exec("BEGIN");
     try {
       const results = statements.map((statement) => statement.execute());
@@ -116,10 +120,10 @@ function addRun(database: DatabaseSync, id = "run-1", sampleId = "sample-1") {
   `);
 }
 
-function testEnv(database: DatabaseSync): Env {
+function testEnv(database: DatabaseSync, beforeBatch?: () => void): Env {
   return {
     AUTH_MODE: "disabled",
-    DB: new SqliteD1Database(database),
+    DB: new SqliteD1Database(database, beforeBatch),
     ASSETS: {},
   } as unknown as Env;
 }
@@ -251,6 +255,159 @@ describe("source lifecycle routes", () => {
     expect(restored.runs.flatMap((run) => run.steps).flatMap((step) => step.comments)).toEqual([
       expect.objectContaining({ submissionId: "submission-1" }),
     ]);
+    expect(database.prepare(
+      "SELECT id, updated_at FROM run_steps WHERE id IN ('step-1', 'step-2') ORDER BY id",
+    ).all()).toEqual([
+      { id: "step-1", updated_at: "2026-08-07T10:05:00.000Z" },
+      { id: "step-2", updated_at: expect.not.stringMatching(/^2026-08-07T10:05:00\\.000Z$/) },
+    ]);
+    const restoreEvent = database.prepare(
+      `SELECT metadata_json FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'comment_submission_restored'`,
+    ).get() as { metadata_json: string };
+    expect(JSON.parse(restoreEvent.metadata_json)).toEqual({
+      action: "comment_submission_restored",
+      submissionId: "submission-1",
+      stepIds: ["step-2"],
+    });
+    database.close();
+  });
+
+  it("requires the canonical Comment before restoring its occurrence or legacy image", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES
+        ('comment-asset', 'comment-image-key', 'comment.png', 'image/png', 10,
+         'ready', 'comment-image-hash', '2026-08-07T10:06:00.000Z');
+
+      INSERT INTO comment_submissions
+        (id, context_kind, scope, body, status, actor_email, created_at, updated_at)
+      VALUES
+        ('submission-guarded', 'run_steps', 'individual', 'Guarded observation',
+         'ready', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('submission-guarded', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z');
+
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, body, asset_id, submission_id, actor_email, created_at)
+      VALUES
+        ('comment-guarded', 'step-1', 'individual', 'Guarded observation',
+         'comment-asset', 'submission-guarded', 'local-development',
+         '2026-08-07T10:06:00.000Z');
+    `);
+    const env = testEnv(database);
+
+    expect((await request(env, "/run-step-comments/comment-guarded/asset", {
+      method: "DELETE",
+    })).status).toBe(200);
+    expect((await request(env, "/comment-submissions/submission-guarded", {
+      method: "DELETE",
+    })).status).toBe(200);
+
+    const occurrenceRestore = await request(
+      env,
+      "/run-step-comments/comment-guarded/restore",
+      { method: "POST" },
+    );
+    expect(occurrenceRestore.status).toBe(409);
+    expect(await occurrenceRestore.json()).toEqual({
+      error: "Restore the canonical Comment before restoring this comment",
+    });
+
+    const attachmentRestore = await request(
+      env,
+      "/run-step-comments/comment-guarded/asset/restore",
+      { method: "POST" },
+    );
+    expect(attachmentRestore.status).toBe(409);
+    expect(await attachmentRestore.json()).toEqual({
+      error: "Restore the canonical Comment before restoring this attachment",
+    });
+
+    expect(database.prepare(
+      "SELECT deleted_at IS NOT NULL AS deleted FROM run_step_comments WHERE id = 'comment-guarded'",
+    ).get()).toEqual({ deleted: 1 });
+    database.prepare(
+      "UPDATE run_step_comments SET deleted_at = NULL, deleted_by = NULL WHERE id = 'comment-guarded'",
+    ).run();
+    const hidden = await (await request(env, "/samples/sample-1")).json() as {
+      runs: Array<{ steps: Array<{ comments: unknown[] }> }>;
+    };
+    expect(hidden.runs.flatMap((run) => run.steps).flatMap((step) => step.comments)).toEqual([]);
+
+    expect((await request(env, "/comment-submissions/submission-guarded/restore", {
+      method: "POST",
+    })).status).toBe(200);
+    expect(database.prepare(
+      "SELECT deleted_at, asset_deleted_at IS NOT NULL AS asset_deleted FROM run_step_comments WHERE id = 'comment-guarded'",
+    ).get()).toEqual({ deleted_at: null, asset_deleted: 1 });
+    expect((await request(env, "/run-step-comments/comment-guarded/asset/restore", {
+      method: "POST",
+    })).status).toBe(200);
+    database.close();
+  });
+
+  it("rechecks canonical restore target visibility inside the mutation batch", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO comment_submissions
+        (id, context_kind, scope, body, status, actor_email, created_at, updated_at,
+         deleted_at, deleted_by)
+      VALUES
+        ('submission-race', 'run_steps', 'common', 'Race observation', 'ready',
+         'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'local-development');
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('submission-race', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z');
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, operation_group_id, body, submission_id,
+         actor_email, created_at, updated_at, deleted_at, deleted_by)
+      VALUES
+        ('comment-race', 'step-1', 'common', 'submission-race', 'Race observation',
+         'submission-race', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'local-development');
+    `);
+    let movedToTrash = false;
+    const env = testEnv(database, () => {
+      if (movedToTrash) return;
+      movedToTrash = true;
+      database.prepare(
+        `UPDATE samples SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'sample-1'`,
+      ).run();
+    });
+
+    const response = await request(env, "/comment-submissions/submission-race/restore", {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      "SELECT deleted_at FROM comment_submissions WHERE id = 'submission-race'",
+    ).get()).toEqual({ deleted_at: "2026-08-07T10:07:00.000Z" });
+    expect(database.prepare(
+      "SELECT deleted_at FROM run_step_comments WHERE id = 'comment-race'",
+    ).get()).toEqual({ deleted_at: "2026-08-07T10:07:00.000Z" });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'comment_submission_restored'`,
+    ).get()).toEqual({ count: 0 });
     database.close();
   });
 
@@ -482,6 +639,47 @@ describe("source lifecycle routes", () => {
     ]);
     expect(database.prepare(
       "SELECT COUNT(*) AS count FROM events WHERE json_extract(metadata_json, '$.operationGroupId') = 'common-group-1'",
+    ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("rechecks common-comment group visibility inside the restore batch", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, operation_group_id, body, created_at,
+         updated_at, deleted_at, deleted_by)
+      VALUES
+        ('common-race', 'step-1', 'common', 'common-race-group',
+         'Shared observation', '2026-08-07T10:06:00.000Z',
+         '2026-08-07T10:07:00.000Z', '2026-08-07T10:07:00.000Z',
+         'local-development');
+    `);
+    let movedToTrash = false;
+    const env = testEnv(database, () => {
+      if (movedToTrash) return;
+      movedToTrash = true;
+      database.prepare(
+        `UPDATE runs SET deleted_at = '2026-08-07T10:08:00.000Z',
+         deleted_by = 'other@example.com' WHERE id = 'run-1'`,
+      ).run();
+    });
+
+    const response = await request(env, "/run-step-comments/common-race/restore", {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(409);
+    expect(database.prepare(
+      "SELECT deleted_at FROM run_step_comments WHERE id = 'common-race'",
+    ).get()).toEqual({ deleted_at: "2026-08-07T10:07:00.000Z" });
+    expect(database.prepare("SELECT updated_at FROM run_steps WHERE id = 'step-1'").get())
+      .toEqual({ updated_at: "2026-08-07T10:05:00.000Z" });
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'step_comment_restored'`,
     ).get()).toEqual({ count: 0 });
     database.close();
   });

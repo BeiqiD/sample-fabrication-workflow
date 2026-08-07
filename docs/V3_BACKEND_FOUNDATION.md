@@ -108,8 +108,9 @@ revisions:
   latest visible process Run for the Sample;
 - live active-Run and successor uniqueness, plus lifecycle triggers, ignore
   deleted Runs without weakening uniqueness among visible Runs;
-- the five historical built-in metrology presets are retired; referenced
-  presets are archived so existing Run history remains valid;
+- the five historical built-in metrology presets are archived and renamed with
+  deterministic retired titles; their stable IDs, template steps, reference
+  files, and historical Run links are never physically deleted by this change;
 - deleting a Sample preserves its Runs, events, verifications, and parent/child
   links while ordinary directory, detail, and mutation routes hide it;
 - deleting a canonical Comment preserves its target occurrences, attachment
@@ -118,6 +119,9 @@ revisions:
 - restoring a canonical Comment restores only occurrences marked by that
   canonical delete operation; an independently deleted occurrence stays in
   trash;
+- an occurrence or legacy image cannot be restored while its canonical Comment
+  remains deleted, and ordinary Sample reads defensively hide any such
+  inconsistent row;
 - comment attachment delete and restore share the same author and target
   visibility checks; a TIFF preview cannot be visible while its required
   original occurrence remains deleted;
@@ -127,7 +131,9 @@ revisions:
   occurrence cannot repoint another deleted image event from the same step;
 - common-comment group mutations are atomic across their target graph: if any
   target Sample, Run, or Run step is deleted, the entire mutation returns
-  `409` without changing visible or hidden targets;
+  `409` without changing visible or hidden targets; the visibility and target
+  count gates are repeated inside the mutation batch before audit events or
+  timestamps are written;
 - deleting a Recipe revision prevents new assignment without removing its
   family, import links, or historical Run references; restoration re-enables
   the same revision when it was not independently archived.

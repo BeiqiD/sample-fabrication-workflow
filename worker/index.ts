@@ -67,6 +67,16 @@ async function requireVisibleCommentOperationGroup(db: D1Database, operationGrou
               WHEN s.id IS NOT NULL AND s.deleted_at IS NULL
                 AND r.id IS NOT NULL AND r.deleted_at IS NULL
                 AND rs.id IS NOT NULL AND rs.deleted_at IS NULL
+                AND (
+                  rsc.submission_id IS NULL
+                  OR EXISTS (
+                    SELECT 1
+                    FROM comment_submissions cs
+                    WHERE cs.id = rsc.submission_id
+                      AND cs.status = 'ready'
+                      AND cs.deleted_at IS NULL
+                  )
+                )
               THEN 1 ELSE 0 END), 0) AS visible_count
      FROM run_step_comments rsc
      LEFT JOIN run_steps rs ON rs.id = rsc.run_step_id
@@ -911,10 +921,15 @@ app.get("/samples/:id", async (c) => {
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
+       LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
        LEFT JOIN assets ca ON ca.id = rsc.asset_id AND ca.status = 'ready'
          AND rsc.asset_deleted_at IS NULL
        WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          AND rsc.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR (cs.status = 'ready' AND cs.deleted_at IS NULL)
+         )
        ORDER BY rsc.created_at, rsc.id`,
     ).bind(id).all<{
       id: string; run_step_id: string; scope: "common" | "individual";
@@ -2881,7 +2896,15 @@ app.delete("/run-step-comments/:id/asset", async (c) => {
      JOIN runs r ON r.id = rs.run_id
      LEFT JOIN assets a ON a.id = rsc.asset_id
      WHERE rsc.id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
-       AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL`,
+       AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+       AND (
+         rsc.submission_id IS NULL
+         OR EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = rsc.submission_id
+             AND cs.status = 'ready' AND cs.deleted_at IS NULL
+         )
+       )`,
   ).bind(commentId).first<{ id: string; scope: "common" | "individual"; operation_group_id: string | null; r2_key: string | null }>();
   if (!comment) throw new HTTPException(404, { message: "Step comment not found" });
   if (!comment.r2_key) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
@@ -2896,7 +2919,15 @@ app.delete("/run-step-comments/:id/asset", async (c) => {
        JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
        WHERE rsc.scope = 'common' AND rsc.operation_group_id = ? AND rsc.asset_id IS NOT NULL
          AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
-         AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL`,
+         AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
@@ -2904,7 +2935,15 @@ app.delete("/run-step-comments/:id/asset", async (c) => {
        JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
        WHERE rsc.id = ? AND rsc.asset_id IS NOT NULL
          AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
-         AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL`,
+         AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>();
   if (!targets.results.length) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
   const latestUpdate = Math.max(...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map(Date.parse).filter(Number.isFinite));
@@ -2912,58 +2951,140 @@ app.delete("/run-step-comments/:id/asset", async (c) => {
   const userEmail = c.get("userEmail");
   const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
   const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
   const statements: D1PreparedStatement[] = [
-    c.env.DB.prepare(`UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id IN (${stepIds.map(() => "?").join(", ")})`).bind(userEmail, now, ...stepIds),
-    removeCommonGroup
-      ? c.env.DB.prepare(
-        `UPDATE run_step_comments SET asset_deleted_at = ?, asset_deleted_by = ?
-         WHERE scope = 'common' AND operation_group_id = ? AND asset_id IS NOT NULL
-           AND asset_deleted_at IS NULL`,
-      ).bind(now, userEmail, comment.operation_group_id)
-      : c.env.DB.prepare(
-        `UPDATE run_step_comments SET asset_deleted_at = ?, asset_deleted_by = ?
-         WHERE id = ? AND asset_id IS NOT NULL AND asset_deleted_at IS NULL`,
-      ).bind(now, userEmail, comment.id),
+    c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET asset_deleted_at = ?, asset_deleted_by = ?
+       WHERE id IN (${targetPlaceholders})
+         AND deleted_at IS NULL AND asset_id IS NOT NULL AND asset_deleted_at IS NULL
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at IS NULL
+             AND candidate.asset_id IS NOT NULL
+             AND candidate.asset_deleted_at IS NULL
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(now, userEmail, ...targetIds, ...targetIds, targetIds.length),
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.asset_deleted_at = ? AND rsc.asset_deleted_by IS ?
+         )`,
+    ).bind(userEmail, now, ...stepIds, ...targetIds, now, userEmail),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
     `UPDATE events SET asset_key = NULL,
        metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
-       AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-  ).bind(now, userEmail, comment.operation_group_id));
+       AND json_extract(metadata_json, '$.operationGroupId') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.asset_deleted_at = ? AND rsc.asset_deleted_by IS ?
+       ) = ?`,
+  ).bind(
+    now,
+    userEmail,
+    comment.operation_group_id,
+    ...targetIds,
+    now,
+    userEmail,
+    targetIds.length,
+  ));
   for (const sampleId of sampleIds) {
     const sampleTarget = targets.results.find((target) => target.sample_id === sampleId);
+    const sampleTargetIds = targets.results
+      .filter((target) => target.sample_id === sampleId)
+      .map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleTargetPlaceholders})
+           AND rsc.asset_deleted_at = ? AND rsc.asset_deleted_by IS ?
+       ) = ?`,
     ).bind(crypto.randomUUID(), sampleId, `Deleted comment image attachment · ${sampleTarget?.body.trim() || "Image"}`,
-      JSON.stringify({ action: "comment_attachment_deleted", operationGroupId: comment.operation_group_id, stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }), userEmail, now));
+      JSON.stringify({ action: "comment_attachment_deleted", operationGroupId: comment.operation_group_id, stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }), userEmail, now,
+      ...sampleTargetIds, now, userEmail, sampleTargetIds.length));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-    ).bind(userEmail, now, sampleId));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.asset_deleted_at = ? AND rsc.asset_deleted_by IS ?
+         ) = ?`,
+    ).bind(
+      userEmail,
+      now,
+      sampleId,
+      ...sampleTargetIds,
+      now,
+      userEmail,
+      sampleTargetIds.length,
+    ));
   }
   const results = await c.env.DB.batch(statements);
-  if (!results[1].meta.changes) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
+  if (results[0].meta.changes !== targetIds.length) {
+    throw new HTTPException(409, { message: "The comment attachment changed while it was being deleted" });
+  }
   return c.json({ ok: true, updatedAt: now });
 });
 
 app.post("/run-step-comments/:id/asset/restore", async (c) => {
   const commentId = c.req.param("id");
   const comment = await c.env.DB.prepare(
-    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, rsc.asset_deleted_at
+    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, rsc.deleted_at,
+            rsc.asset_deleted_at, rsc.submission_id,
+            cs.status AS submission_status, cs.deleted_at AS submission_deleted_at
      FROM run_step_comments rsc
      JOIN run_steps rs ON rs.id = rsc.run_step_id
      JOIN runs r ON r.id = rs.run_id
      JOIN samples s ON s.id = r.sample_id
+     LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
      WHERE rsc.id = ? AND rsc.asset_id IS NOT NULL
-       AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NOT NULL
+       AND rsc.asset_deleted_at IS NOT NULL
        AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(commentId).first<{
     id: string; scope: "common" | "individual"; operation_group_id: string | null;
-    asset_deleted_at: string;
+    deleted_at: string | null; asset_deleted_at: string; submission_id: string | null;
+    submission_status: string | null; submission_deleted_at: string | null;
   }>();
   if (!comment) throw new HTTPException(404, { message: "Deleted comment attachment not found" });
+  if (comment.submission_id
+    && (comment.submission_status !== "ready" || comment.submission_deleted_at !== null)) {
+    throw new HTTPException(409, { message: "Restore the canonical Comment before restoring this attachment" });
+  }
+  if (comment.deleted_at !== null) {
+    throw new HTTPException(404, { message: "Deleted comment attachment not found" });
+  }
   const restoreCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
   if (restoreCommonGroup && comment.operation_group_id) {
     await requireVisibleCommentOperationGroup(c.env.DB, comment.operation_group_id);
@@ -2979,7 +3100,15 @@ app.post("/run-step-comments/:id/asset/restore", async (c) => {
        JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
        WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?
          AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at = ?
-         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.operation_group_id, comment.asset_deleted_at).all<{
       id: string; run_step_id: string; sample_id: string; r2_key: string;
       updated_at: string; sample_updated_at: string;
@@ -2993,7 +3122,15 @@ app.post("/run-step-comments/:id/asset/restore", async (c) => {
        JOIN samples s ON s.id = r.sample_id
        JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
        WHERE rsc.id = ? AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NOT NULL
-         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.id).all<{
       id: string; run_step_id: string; sample_id: string; r2_key: string;
       updated_at: string; sample_updated_at: string;
@@ -3007,19 +3144,54 @@ app.post("/run-step-comments/:id/asset/restore", async (c) => {
   const userEmail = c.get("userEmail");
   const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
   const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET asset_deleted_at = NULL, asset_deleted_by = NULL
+       WHERE id IN (${targetPlaceholders}) AND asset_deleted_at = ?
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at IS NULL
+             AND candidate.asset_deleted_at = ?
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      ...targetIds,
+      comment.asset_deleted_at,
+      ...targetIds,
+      comment.asset_deleted_at,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
       `UPDATE run_steps SET updated_by = ?, updated_at = ?
-       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
-    ).bind(userEmail, now, ...stepIds),
-    restoreCommonGroup
-      ? c.env.DB.prepare(
-        `UPDATE run_step_comments SET asset_deleted_at = NULL, asset_deleted_by = NULL
-         WHERE scope = 'common' AND operation_group_id = ? AND asset_deleted_at = ?`,
-      ).bind(comment.operation_group_id, comment.asset_deleted_at)
-      : c.env.DB.prepare(
-        "UPDATE run_step_comments SET asset_deleted_at = NULL, asset_deleted_by = NULL WHERE id = ? AND asset_deleted_at IS NOT NULL",
-      ).bind(comment.id),
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.asset_deleted_at IS NULL
+         )`,
+    ).bind(userEmail, now, ...stepIds, ...targetIds),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
     `UPDATE events SET asset_key = ?,
@@ -3027,13 +3199,36 @@ app.post("/run-step-comments/:id/asset/restore", async (c) => {
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
        AND json_extract(metadata_json, '$.operationGroupId') = ?
-       AND json_extract(metadata_json, '$.assetDeletedAt') = ?`,
-  ).bind(targets.results[0].r2_key, comment.operation_group_id, comment.asset_deleted_at));
-  for (const sampleId of sampleIds) statements.push(c.env.DB.prepare(
-    "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-  ).bind(userEmail, now, sampleId));
+       AND json_extract(metadata_json, '$.assetDeletedAt') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.asset_deleted_at IS NULL
+       ) = ?`,
+  ).bind(
+    targets.results[0].r2_key,
+    comment.operation_group_id,
+    comment.asset_deleted_at,
+    ...targetIds,
+    targetIds.length,
+  ));
+  for (const sampleId of sampleIds) {
+    const sampleTargetIds = targets.results
+      .filter((target) => target.sample_id === sampleId)
+      .map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
+    statements.push(c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.asset_deleted_at IS NULL
+         ) = ?`,
+    ).bind(userEmail, now, sampleId, ...sampleTargetIds, sampleTargetIds.length));
+  }
   const results = await c.env.DB.batch(statements);
-  if (!results[1].meta.changes) {
+  if (results[0].meta.changes !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment attachment changed while it was being restored" });
   }
   return c.json({ ok: true, updatedAt: now });
@@ -3047,7 +3242,15 @@ app.delete("/run-step-comments/:id", async (c) => {
      JOIN run_steps rs ON rs.id = rsc.run_step_id
      JOIN runs r ON r.id = rs.run_id
      WHERE rsc.id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
-       AND rsc.deleted_at IS NULL`,
+       AND rsc.deleted_at IS NULL
+       AND (
+         rsc.submission_id IS NULL
+         OR EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = rsc.submission_id
+             AND cs.status = 'ready' AND cs.deleted_at IS NULL
+         )
+       )`,
   ).bind(commentId).first<{
     id: string; scope: "common" | "individual"; operation_group_id: string | null;
   }>();
@@ -3066,7 +3269,15 @@ app.delete("/run-step-comments/:id", async (c) => {
        JOIN samples s ON s.id = r.sample_id
        WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?
          AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
-         AND rsc.deleted_at IS NULL`,
+         AND rsc.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
@@ -3075,7 +3286,15 @@ app.delete("/run-step-comments/:id", async (c) => {
        JOIN runs r ON r.id = rs.run_id
        JOIN samples s ON s.id = r.sample_id
        WHERE rsc.id = ? AND s.deleted_at IS NULL AND r.deleted_at IS NULL
-         AND rs.deleted_at IS NULL AND rsc.deleted_at IS NULL`,
+         AND rs.deleted_at IS NULL AND rsc.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>();
   if (!targets.results.length) throw new HTTPException(404, { message: "Step comment not found" });
 
@@ -3084,63 +3303,142 @@ app.delete("/run-step-comments/:id", async (c) => {
   const userEmail = c.get("userEmail");
   const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
   const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ?
+       WHERE id IN (${targetPlaceholders}) AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at IS NULL
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      now,
+      userEmail,
+      now,
+      userEmail,
+      ...targetIds,
+      ...targetIds,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
       `UPDATE run_steps SET updated_by = ?, updated_at = ?
-       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
-    ).bind(userEmail, now, ...stepIds),
-    removeCommonGroup
-      ? c.env.DB.prepare(
-        `UPDATE run_step_comments
-         SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ?
-         WHERE scope = 'common' AND operation_group_id = ? AND deleted_at IS NULL`,
-      ).bind(now, userEmail, now, userEmail, comment.operation_group_id)
-      : c.env.DB.prepare(
-        `UPDATE run_step_comments
-         SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ?
-         WHERE id = ? AND deleted_at IS NULL`,
-      ).bind(now, userEmail, now, userEmail, comment.id),
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+         )`,
+    ).bind(userEmail, now, ...stepIds, ...targetIds, now, userEmail),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
     `UPDATE events SET asset_key = NULL,
        metadata_json = json_set(metadata_json, '$.deletedAt', ?, '$.deletedBy', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
-       AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-  ).bind(now, userEmail, comment.operation_group_id));
+       AND json_extract(metadata_json, '$.operationGroupId') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+       ) = ?`,
+  ).bind(
+    now,
+    userEmail,
+    comment.operation_group_id,
+    ...targetIds,
+    now,
+    userEmail,
+    targetIds.length,
+  ));
   for (const sampleId of sampleIds) {
     const sampleTargets = targets.results.filter((target) => target.sample_id === sampleId);
     const sampleStepIds = sampleTargets.map((target) => target.run_step_id);
+    const sampleTargetIds = sampleTargets.map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
     const deletedSummary = sampleTargets[0]?.body.trim() || (sampleTargets.some((target) => target.asset_id) ? "Image attachment" : "Empty comment");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleTargetPlaceholders})
+           AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+       ) = ?`,
     ).bind(
       crypto.randomUUID(), sampleId,
       `Deleted ${removeCommonGroup ? "common " : ""}step comment · ${deletedSummary}`,
       JSON.stringify({ action: "step_comment_deleted", operationGroupId: comment.operation_group_id, stepIds: sampleStepIds, hadAsset: sampleTargets.some((target) => Boolean(target.asset_id)) }),
-      userEmail, now,
+      userEmail, now, ...sampleTargetIds, now, userEmail, sampleTargetIds.length,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-    ).bind(userEmail, now, sampleId));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+         ) = ?`,
+    ).bind(
+      userEmail,
+      now,
+      sampleId,
+      ...sampleTargetIds,
+      now,
+      userEmail,
+      sampleTargetIds.length,
+    ));
   }
 
   const results = await c.env.DB.batch(statements);
-  const deleted = results[1].meta.changes ?? 0;
-  if (!deleted) throw new HTTPException(409, { message: "The comment was already deleted" });
+  const deleted = results[0].meta.changes ?? 0;
+  if (deleted !== targetIds.length) {
+    throw new HTTPException(409, { message: "The comment changed while it was being deleted" });
+  }
   return c.json({ ok: true, deleted });
 });
 
 app.post("/run-step-comments/:id/restore", async (c) => {
   const commentId = c.req.param("id");
   const comment = await c.env.DB.prepare(
-    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, rsc.deleted_at
-     FROM run_step_comments rsc WHERE rsc.id = ? AND rsc.deleted_at IS NOT NULL`,
+    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, rsc.deleted_at,
+            rsc.submission_id, cs.status AS submission_status,
+            cs.deleted_at AS submission_deleted_at
+     FROM run_step_comments rsc
+     LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
+     WHERE rsc.id = ? AND rsc.deleted_at IS NOT NULL`,
   ).bind(commentId).first<{
-    id: string; scope: "common" | "individual"; operation_group_id: string | null; deleted_at: string;
+    id: string; scope: "common" | "individual"; operation_group_id: string | null;
+    deleted_at: string; submission_id: string | null; submission_status: string | null;
+    submission_deleted_at: string | null;
   }>();
   if (!comment) throw new HTTPException(404, { message: "Deleted step comment not found" });
+  if (comment.submission_id
+    && (comment.submission_status !== "ready" || comment.submission_deleted_at !== null)) {
+    throw new HTTPException(409, { message: "Restore the canonical Comment before restoring this comment" });
+  }
   const restoreCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
   if (restoreCommonGroup && comment.operation_group_id) {
     await requireVisibleCommentOperationGroup(c.env.DB, comment.operation_group_id);
@@ -3156,7 +3454,15 @@ app.post("/run-step-comments/:id/restore", async (c) => {
        LEFT JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
        WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?
          AND rsc.deleted_at = ?
-         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.operation_group_id, comment.deleted_at).all<{
       id: string; run_step_id: string; body: string; sample_id: string; r2_key: string | null;
       updated_at: string; sample_updated_at: string;
@@ -3170,7 +3476,15 @@ app.post("/run-step-comments/:id/restore", async (c) => {
        JOIN samples s ON s.id = r.sample_id
        LEFT JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
        WHERE rsc.id = ? AND rsc.deleted_at IS NOT NULL
-         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.id).all<{
       id: string; run_step_id: string; body: string; sample_id: string; r2_key: string | null;
       updated_at: string; sample_updated_at: string;
@@ -3184,22 +3498,63 @@ app.post("/run-step-comments/:id/restore", async (c) => {
   const userEmail = c.get("userEmail");
   const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
   const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ?
+       WHERE id IN (${targetPlaceholders}) AND deleted_at = ?
+         AND (
+           submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = run_step_comments.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at = ?
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      now,
+      userEmail,
+      ...targetIds,
+      comment.deleted_at,
+      ...targetIds,
+      comment.deleted_at,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
       `UPDATE run_steps SET updated_by = ?, updated_at = ?
-       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
-    ).bind(userEmail, now, ...stepIds),
-    restoreCommonGroup
-      ? c.env.DB.prepare(
-        `UPDATE run_step_comments
-         SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ?
-         WHERE scope = 'common' AND operation_group_id = ? AND deleted_at = ?`,
-      ).bind(now, userEmail, comment.operation_group_id, comment.deleted_at)
-      : c.env.DB.prepare(
-        `UPDATE run_step_comments
-         SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ?
-         WHERE id = ? AND deleted_at IS NOT NULL`,
-      ).bind(now, userEmail, comment.id),
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+         )`,
+    ).bind(userEmail, now, ...stepIds, ...targetIds, now),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
     `UPDATE events SET asset_key = ?,
@@ -3207,29 +3562,56 @@ app.post("/run-step-comments/:id/restore", async (c) => {
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
        AND json_extract(metadata_json, '$.operationGroupId') = ?
-       AND json_extract(metadata_json, '$.deletedAt') = ?`,
-  ).bind(targets.results[0].r2_key, comment.operation_group_id, comment.deleted_at));
+       AND json_extract(metadata_json, '$.deletedAt') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+       ) = ?`,
+  ).bind(
+    targets.results[0].r2_key,
+    comment.operation_group_id,
+    comment.deleted_at,
+    ...targetIds,
+    now,
+    targetIds.length,
+  ));
   for (const sampleId of sampleIds) {
     const sampleTarget = targets.results.find((target) => target.sample_id === sampleId);
+    const sampleTargetIds = targets.results
+      .filter((target) => target.sample_id === sampleId)
+      .map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleTargetPlaceholders})
+           AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+       ) = ?`,
     ).bind(
       crypto.randomUUID(), sampleId,
       `Restored ${restoreCommonGroup ? "common " : ""}step comment · ${sampleTarget?.body.trim() || "Image attachment"}`,
       JSON.stringify({ action: "step_comment_restored", operationGroupId: comment.operation_group_id,
         stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }),
-      userEmail, now,
+      userEmail, now, ...sampleTargetIds, now, sampleTargetIds.length,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-    ).bind(userEmail, now, sampleId));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+         ) = ?`,
+    ).bind(userEmail, now, sampleId, ...sampleTargetIds, now, sampleTargetIds.length));
   }
   const results = await c.env.DB.batch(statements);
-  if (!results[1].meta.changes) {
+  if (results[0].meta.changes !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }
-  return c.json({ ok: true, restored: results[1].meta.changes ?? 0, updatedAt: now });
+  return c.json({ ok: true, restored: results[0].meta.changes ?? 0, updatedAt: now });
 });
 
 app.post("/run-steps/confirm", async (c) => {

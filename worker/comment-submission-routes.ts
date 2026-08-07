@@ -669,45 +669,111 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
   await requireVisibleSubmissionTargets(c, submission, submissionId);
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
-  const statements = [c.env.DB.prepare(
-    `UPDATE comment_submissions
-     SET deleted_at = ?, deleted_by = ?, updated_at = ?
-     WHERE id = ? AND status = 'ready' AND deleted_at IS NULL`,
-  ).bind(now, userEmail, now, submissionId)];
+  const submissionMutation = submission.context_kind === "sample" && submission.sample_id
+    ? c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = ?, deleted_by = ?, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = comment_submissions.sample_id AND s.deleted_at IS NULL
+         )`,
+    ).bind(now, userEmail, now, submissionId)
+    : c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = ?, deleted_by = ?, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submission_targets cst
+           WHERE cst.submission_id = comment_submissions.id
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM comment_submission_targets cst
+           LEFT JOIN samples s ON s.id = cst.sample_id
+           LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+           LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+           WHERE cst.submission_id = comment_submissions.id
+             AND (
+               s.id IS NULL OR s.deleted_at IS NOT NULL
+               OR r.id IS NULL OR r.deleted_at IS NOT NULL
+               OR rs.id IS NULL OR rs.deleted_at IS NOT NULL
+             )
+         )`,
+    ).bind(now, userEmail, now, submissionId);
+  const statements: D1PreparedStatement[] = [submissionMutation];
   if (submission.context_kind === "sample" && submission.sample_id) {
     statements.push(c.env.DB.prepare(
       `UPDATE events
        SET metadata_json = json_set(metadata_json, '$.deletedAt', ?, '$.deletedBy', ?)
-       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?`,
-    ).bind(now, userEmail, submission.sample_id, submissionId));
+       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at = ? AND cs.deleted_by IS ?
+         )`,
+    ).bind(now, userEmail, submission.sample_id, submissionId, submissionId, now, userEmail));
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'comment', ?, ?, ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM comment_submissions cs
+         WHERE cs.id = ? AND cs.deleted_at = ? AND cs.deleted_by IS ?
+       )`,
     ).bind(
       crypto.randomUUID(), submission.sample_id,
       `Deleted sample comment · ${submission.body || "Files attached"}`,
       JSON.stringify({ action: "comment_submission_deleted", submissionId }), userEmail, now,
+      submissionId, now, userEmail,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at = ? AND cs.deleted_by IS ?
+         )`,
     )
-      .bind(userEmail, now, submission.sample_id));
+      .bind(userEmail, now, submission.sample_id, submissionId, now, userEmail));
   } else {
     const targets = await c.env.DB.prepare(
-      "SELECT DISTINCT sample_id, run_step_id FROM comment_submission_targets WHERE submission_id = ?",
+      `SELECT DISTINCT r.sample_id, rsc.run_step_id
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id AND rs.deleted_at IS NULL
+       JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
+       JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
+       WHERE rsc.submission_id = ? AND rsc.deleted_at IS NULL`,
     ).bind(submissionId).all<{ sample_id: string; run_step_id: string }>();
     statements.push(c.env.DB.prepare(
       `UPDATE run_step_comments
        SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ?
-       WHERE submission_id = ? AND deleted_at IS NULL`,
-    ).bind(now, userEmail, now, userEmail, submissionId));
+       WHERE submission_id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = run_step_comments.submission_id
+             AND cs.deleted_at = ? AND cs.deleted_by IS ?
+         )`,
+    ).bind(now, userEmail, now, userEmail, submissionId, now, userEmail));
     for (const target of targets.results) statements.push(c.env.DB.prepare(
-      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-    ).bind(userEmail, now, target.run_step_id));
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.run_step_id = run_steps.id AND rsc.submission_id = ?
+             AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+         )`,
+    ).bind(userEmail, now, target.run_step_id, submissionId, now, userEmail));
     for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
       statements.push(c.env.DB.prepare(
         `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-         VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+         SELECT ?, ?, 'comment', ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1
+           FROM run_step_comments rsc
+           JOIN run_steps rs ON rs.id = rsc.run_step_id
+           JOIN runs r ON r.id = rs.run_id
+           WHERE rsc.submission_id = ? AND r.sample_id = ?
+             AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+         )`,
       ).bind(
         crypto.randomUUID(), sampleId,
         `Deleted ${submission.scope === "common" ? "common " : ""}step comment · ${submission.body || "Files attached"}`,
@@ -718,11 +784,24 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
         }),
         userEmail,
         now,
+        submissionId,
+        sampleId,
+        now,
+        userEmail,
       ));
       statements.push(c.env.DB.prepare(
-        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+        `UPDATE samples SET updated_by = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+           AND EXISTS (
+             SELECT 1
+             FROM run_step_comments rsc
+             JOIN run_steps rs ON rs.id = rsc.run_step_id
+             JOIN runs r ON r.id = rs.run_id
+             WHERE rsc.submission_id = ? AND r.sample_id = samples.id
+               AND rsc.deleted_at = ? AND rsc.deleted_by IS ?
+           )`,
       )
-        .bind(userEmail, now, sampleId));
+        .bind(userEmail, now, sampleId, submissionId, now, userEmail));
     }
   }
   const results = await c.env.DB.batch(statements);
@@ -741,43 +820,94 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
   await requireVisibleSubmissionTargets(c, submission, submissionId);
   const now = new Date(Math.max(Date.now(), Date.parse(submission.deleted_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
-  const statements: D1PreparedStatement[] = [c.env.DB.prepare(
-    `UPDATE comment_submissions
-     SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
-     WHERE id = ? AND deleted_at = ?`,
-  ).bind(now, submissionId, submission.deleted_at)];
+  const submissionMutation = submission.context_kind === "sample" && submission.sample_id
+    ? c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deleted_at = ?
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = comment_submissions.sample_id AND s.deleted_at IS NULL
+         )`,
+    ).bind(now, submissionId, submission.deleted_at)
+    : c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deleted_at = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submission_targets cst
+           WHERE cst.submission_id = comment_submissions.id
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM comment_submission_targets cst
+           LEFT JOIN samples s ON s.id = cst.sample_id
+           LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+           LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+           WHERE cst.submission_id = comment_submissions.id
+             AND (
+               s.id IS NULL OR s.deleted_at IS NOT NULL
+               OR r.id IS NULL OR r.deleted_at IS NOT NULL
+               OR rs.id IS NULL OR rs.deleted_at IS NOT NULL
+             )
+         )`,
+    ).bind(now, submissionId, submission.deleted_at);
+  const statements: D1PreparedStatement[] = [submissionMutation];
   if (submission.context_kind === "sample" && submission.sample_id) {
     statements.push(c.env.DB.prepare(
       `UPDATE events
        SET metadata_json = json_remove(metadata_json, '$.deletedAt', '$.deletedBy')
        WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?
-         AND json_extract(metadata_json, '$.deletedAt') = ?`,
-    ).bind(submission.sample_id, submissionId, submission.deleted_at));
+         AND json_extract(metadata_json, '$.deletedAt') = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at IS NULL AND cs.updated_at = ?
+         )`,
+    ).bind(submission.sample_id, submissionId, submission.deleted_at, submissionId, now));
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples
-       WHERE id = ? AND deleted_at IS NULL`,
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at IS NULL AND cs.updated_at = ?
+         )`,
     ).bind(
       crypto.randomUUID(), submission.body || "Files attached",
       JSON.stringify({ action: "comment_submission_restored", submissionId }),
-      userEmail, now, submission.sample_id,
+      userEmail, now, submission.sample_id, submissionId, now,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-    ).bind(userEmail, now, submission.sample_id));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at IS NULL AND cs.updated_at = ?
+         )`,
+    ).bind(userEmail, now, submission.sample_id, submissionId, now));
   } else {
     const targets = await c.env.DB.prepare(
-      `SELECT DISTINCT cst.sample_id, cst.run_step_id
-       FROM comment_submission_targets cst
-       JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
-       JOIN runs r ON r.id = cst.run_id AND r.deleted_at IS NULL
-       JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.deleted_at IS NULL
-       WHERE cst.submission_id = ?`,
-    ).bind(submissionId).all<{ sample_id: string; run_step_id: string }>();
+      `SELECT DISTINCT r.sample_id, rsc.run_step_id
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id AND rs.deleted_at IS NULL
+       JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
+       JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
+       WHERE rsc.submission_id = ?
+         AND rsc.deleted_at = ? AND rsc.deleted_by IS ?`,
+    ).bind(
+      submissionId,
+      submission.deleted_at,
+      submission.deleted_by,
+    ).all<{ sample_id: string; run_step_id: string }>();
     statements.push(c.env.DB.prepare(
       `UPDATE run_step_comments
        SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ?
        WHERE submission_id = ? AND deleted_at = ? AND deleted_by IS ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = run_step_comments.submission_id
+             AND cs.deleted_at IS NULL AND cs.updated_at = ?
+         )
          AND EXISTS (
            SELECT 1 FROM run_steps rs
            JOIN runs r ON r.id = rs.run_id
@@ -785,23 +915,56 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
            WHERE rs.id = run_step_comments.run_step_id
              AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          )`,
-    ).bind(now, userEmail, submissionId, submission.deleted_at, submission.deleted_by));
+    ).bind(
+      now,
+      userEmail,
+      submissionId,
+      submission.deleted_at,
+      submission.deleted_by,
+      now,
+    ));
     for (const target of targets.results) statements.push(c.env.DB.prepare(
-      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-    ).bind(userEmail, now, target.run_step_id));
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.run_step_id = run_steps.id AND rsc.submission_id = ?
+             AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+         )`,
+    ).bind(userEmail, now, target.run_step_id, submissionId, now));
     for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
+      const stepIds = targets.results
+        .filter((target) => target.sample_id === sampleId)
+        .map((target) => target.run_step_id);
       statements.push(c.env.DB.prepare(
         `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-         VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+         SELECT ?, ?, 'comment', ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1
+           FROM run_step_comments rsc
+           JOIN run_steps rs ON rs.id = rsc.run_step_id
+           JOIN runs r ON r.id = rs.run_id
+           WHERE rsc.submission_id = ? AND r.sample_id = ?
+             AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+         )`,
       ).bind(
         crypto.randomUUID(), sampleId,
         `Restored ${submission.scope === "common" ? "common " : ""}step comment · ${submission.body || "Files attached"}`,
-        JSON.stringify({ action: "comment_submission_restored", submissionId }),
-        userEmail, now,
+        JSON.stringify({ action: "comment_submission_restored", submissionId, stepIds }),
+        userEmail, now, submissionId, sampleId, now,
       ));
       statements.push(c.env.DB.prepare(
-        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-      ).bind(userEmail, now, sampleId));
+        `UPDATE samples SET updated_by = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+           AND EXISTS (
+             SELECT 1
+             FROM run_step_comments rsc
+             JOIN run_steps rs ON rs.id = rsc.run_step_id
+             JOIN runs r ON r.id = rs.run_id
+             WHERE rsc.submission_id = ? AND r.sample_id = samples.id
+               AND rsc.deleted_at IS NULL AND rsc.updated_at = ?
+           )`,
+      ).bind(userEmail, now, sampleId, submissionId, now));
     }
   }
   const results = await c.env.DB.batch(statements);
