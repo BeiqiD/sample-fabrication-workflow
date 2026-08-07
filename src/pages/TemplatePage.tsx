@@ -151,6 +151,8 @@ export function TemplatePage() {
   const [version, setVersion] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const [removeError, setRemoveError] = useState("");
   const load = useCallback(async () => {
     const result = await api.getTemplate(templateId);
     if (result.template.templateKind === "metrology") {
@@ -179,20 +181,23 @@ export function TemplatePage() {
   }
 
   async function remove() {
-    const message = template?.locked
-      ? "Archive this template version? Existing process runs and history will remain unchanged, but it can no longer be used to start a run."
-      : "Permanently delete this unused template version? Its import source and shared files will be retained.";
-    if (!window.confirm(message)) return;
-    setSaving(true); setError("");
-    try { await api.removeTemplate(templateId); navigate("/templates"); }
-    catch (error) { setError((error as Error).message); setSaving(false); }
+    setSaving(true); setRemoveError("");
+    try {
+      await api.removeTemplate(templateId);
+      setConfirmingRemoval(false);
+      navigate("/templates");
+    } catch (error) {
+      setRemoveError((error as Error).message);
+      setSaving(false);
+    }
   }
 
   if (!template) return <div className="page"><p>{error || "Loading template…"}</p></div>;
   const editable = !template.locked && !template.archived;
+  const removalIsArchive = template.locked;
   return <div className="page template-detail-page">
     <Link className="back-link" to="/templates">← Templates</Link>
-    <div className="page-heading"><div><p className="eyebrow">Process template · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => void remove()}>{template.locked ? "Archive" : "Delete"}</button></div></div>
+    <div className="page-heading"><div><p className="eyebrow">Process template · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => { setRemoveError(""); setConfirmingRemoval(true); }}>{removalIsArchive ? "Archive" : "Delete"}</button></div></div>
     {template.locked && <p className="info-banner">This version was first used on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
     {editable && <section className="card template-metadata-editor"><h2 className="card-title">Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
     {error && <p className="error-banner">{error}</p>}
@@ -201,5 +206,18 @@ export function TemplatePage() {
       const sectionLabel = sectionHeaderAtGroupStart(template.steps, index);
       return <Fragment key={step.id}>{sectionLabel && <div className="process-section-header template-section-header">{sectionLabel}</div>}<TemplateStepEditor template={template} step={step} onSaved={load} /></Fragment>;
     })}{editable && <NewTemplateStep templateId={template.id} onSaved={load} />}</section>
+    {confirmingRemoval && <ConfirmDeleteDialog
+      title={removalIsArchive ? "Archive this template version?" : "Delete this template version?"}
+      description={removalIsArchive
+        ? "Existing process runs and history will remain unchanged, but this version can no longer be used to start a run."
+        : "This unused template version will be permanently deleted. Its import source and shared files will be retained."}
+      summary={`${template.name} · v${template.version}`}
+      deleting={saving}
+      error={removeError}
+      eyebrow={removalIsArchive ? "Archive template" : "Delete template"}
+      confirmLabel={removalIsArchive ? "Archive" : "Delete template"}
+      onCancel={() => { setConfirmingRemoval(false); setRemoveError(""); }}
+      onConfirm={() => void remove()}
+    />}
   </div>;
 }

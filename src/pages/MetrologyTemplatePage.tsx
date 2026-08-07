@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { api, type MetrologyTemplateInput, type TemplateDetail } from "../lib/api";
@@ -13,9 +14,13 @@ export function MetrologyTemplatePage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [confirmingTemplateDeletion, setConfirmingTemplateDeletion] = useState(false);
+  const [templateDeleteError, setTemplateDeleteError] = useState("");
   const [referenceNotes, setReferenceNotes] = useState("");
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [savingReference, setSavingReference] = useState(false);
+  const [referenceToDelete, setReferenceToDelete] = useState<{ id: string; filename: string } | null>(null);
+  const [referenceDeleteError, setReferenceDeleteError] = useState("");
   const load = useCallback(async (syncReferenceNotes = true) => {
     const result = await api.getTemplate(templateId);
     if (result.template.templateKind !== "metrology") {
@@ -58,25 +63,27 @@ export function MetrologyTemplatePage() {
     finally { setSavingReference(false); }
   }
 
-  async function deleteReference(referenceId: string) {
-    if (!window.confirm("Remove this template reference? Existing metrology runs are unaffected.")) return;
-    setSavingReference(true); setError(""); setNotice("");
+  async function deleteReference() {
+    if (!referenceToDelete) return;
+    setSavingReference(true); setReferenceDeleteError(""); setNotice("");
     try {
-      await api.deleteMetrologyTemplateReference(templateId, referenceId);
+      await api.deleteMetrologyTemplateReference(templateId, referenceToDelete.id);
+      setReferenceToDelete(null);
       await load(false);
       setNotice("Reference file removed.");
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setReferenceDeleteError((error as Error).message); }
     finally { setSavingReference(false); }
   }
 
   async function remove() {
-    if (!template || !window.confirm(`Delete the ${template.name} metrology template? Existing records and runs will remain unchanged.`)) return;
-    setDeleting(true); setError("");
+    if (!template) return;
+    setDeleting(true); setTemplateDeleteError("");
     try {
       await api.removeTemplate(template.id);
+      setConfirmingTemplateDeletion(false);
       navigate("/templates");
     } catch (error) {
-      setError((error as Error).message);
+      setTemplateDeleteError((error as Error).message);
       setDeleting(false);
     }
   }
@@ -87,7 +94,7 @@ export function MetrologyTemplatePage() {
     <Link className="back-link" to="/templates">← Templates</Link>
     <div className="page-heading">
       <div><p className="eyebrow">Metrology template</p><h1>{template.name}</h1><p className="lead">A flat reusable record. Runs keep their own snapshot when this template is used.</p></div>
-      <button type="button" className="button danger" disabled={deleting} onClick={() => void remove()}>{deleting ? "Deleting…" : "Delete"}</button>
+      <button type="button" className="button danger" disabled={deleting} onClick={() => { setTemplateDeleteError(""); setConfirmingTemplateDeletion(true); }}>{deleting ? "Deleting…" : "Delete"}</button>
     </div>
     {error && <p className="error-banner">{error}</p>}
     {notice && <p className="success-banner">{notice}</p>}
@@ -122,9 +129,31 @@ export function MetrologyTemplatePage() {
         <small>Reference files</small>
         {template.referenceAttachments.map((reference) => <div className="metrology-reference-item" key={reference.id}>
           <a href={`/api/assets/${reference.assetKey}`} target="_blank" rel="noreferrer"><strong>{reference.filename}</strong><small>{reference.mimeType} · {reference.byteSize < 1024 * 1024 ? `${Math.max(1, Math.round(reference.byteSize / 1024))} KB` : `${(reference.byteSize / (1024 * 1024)).toFixed(1)} MB`}</small></a>
-          <button type="button" className="text-button danger-text" disabled={savingReference} onClick={() => void deleteReference(reference.id)}>Remove</button>
+          <button type="button" className="text-button danger-text" disabled={savingReference} onClick={() => { setReferenceDeleteError(""); setReferenceToDelete({ id: reference.id, filename: reference.filename }); }}>Remove</button>
         </div>)}
       </div>}
     </section>
+    {referenceToDelete && <ConfirmDeleteDialog
+      title="Remove this template reference?"
+      description="The reference file will be detached from this template. Existing metrology runs are unaffected."
+      summary={referenceToDelete.filename}
+      deleting={savingReference}
+      error={referenceDeleteError}
+      eyebrow="Remove reference"
+      confirmLabel="Remove reference"
+      onCancel={() => { setReferenceToDelete(null); setReferenceDeleteError(""); }}
+      onConfirm={() => void deleteReference()}
+    />}
+    {confirmingTemplateDeletion && <ConfirmDeleteDialog
+      title={`Delete ${template.name}?`}
+      description="The metrology template will be removed from future use. Existing records and runs will remain unchanged."
+      summary={template.name}
+      deleting={deleting}
+      error={templateDeleteError}
+      eyebrow="Delete metrology template"
+      confirmLabel="Delete template"
+      onCancel={() => { setConfirmingTemplateDeletion(false); setTemplateDeleteError(""); }}
+      onConfirm={() => void remove()}
+    />}
   </div>;
 }
