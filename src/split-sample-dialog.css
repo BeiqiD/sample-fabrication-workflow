@@ -1,0 +1,12 @@
+.split-dialog .split-setup-grid > label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.split-dialog .split-setup-grid > label > input,
+.split-dialog .split-setup-grid > label > select {
+  font-size: 14px;
+  line-height: 1.45;
+}
