@@ -51,7 +51,10 @@ jobs:
         id: tests
         if: steps.install.outcome == 'success'
         continue-on-error: true
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test.log
 
       - name: Record test status
         if: steps.install.outcome == 'success'
@@ -60,20 +63,29 @@ jobs:
           STAGE_OUTCOME: ${{ steps.tests.outcome }}
         with:
           script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("test.log") ? fs.readFileSync("test.log", "utf8") : "";
+            const lines = log.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
-              state: process.env.STAGE_OUTCOME === "success" ? "success" : "failure",
-              context: "pre-pr/tests",
-              description: process.env.STAGE_OUTCOME === "success" ? "npm test passed" : "npm test failed",
+              state: outcome === "success" ? "success" : "failure",
+              context: outcome === "success" ? "pre-pr/tests" : `pre-pr/tests/${slug}`,
+              description: outcome === "success" ? "npm test passed" : detail.slice(0, 140),
             });
 
       - name: Run production build
         id: build
         if: steps.install.outcome == 'success' && steps.tests.outcome == 'success'
         continue-on-error: true
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
 
       - name: Record build status
         if: steps.install.outcome == 'success' && steps.tests.outcome == 'success'
@@ -82,13 +94,19 @@ jobs:
           STAGE_OUTCOME: ${{ steps.build.outcome }}
         with:
           script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("build.log") ? fs.readFileSync("build.log", "utf8") : "";
+            const lines = log.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+            const detail = lines.find((line) => /error TS|error:|Error:|failed/i.test(line)) || lines.at(-1) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
-              state: process.env.STAGE_OUTCOME === "success" ? "success" : "failure",
-              context: "pre-pr/build",
-              description: process.env.STAGE_OUTCOME === "success" ? "npm run build passed" : "npm run build failed",
+              state: outcome === "success" ? "success" : "failure",
+              context: outcome === "success" ? "pre-pr/build" : `pre-pr/build/${slug}`,
+              description: outcome === "success" ? "npm run build passed" : detail.slice(0, 140),
             });
 
       - name: Fail when verification did not pass
