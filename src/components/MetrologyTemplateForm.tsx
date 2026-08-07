@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import type { MetrologyTemplateInput } from "../lib/api";
+import "../metrology-template-form.css";
 
 const EMPTY_TEMPLATE: MetrologyTemplateInput = {
   name: "",
