@@ -1,523 +1,299 @@
-# Frontend component audit
+# Frontend implementation baseline
 
+Status: **frozen reference baseline**  
 Baseline date: **2026-08-07**  
-Baseline `main`: **`871d1506b161796df7fbb9b6ba22faf676ec3e53`**
+Code baseline: **`main` at `f7eeb932c0b6771dc2d6471077447b2297bf9017`**  
+Normative rules: [`FRONTEND_GUIDELINES.md`](./FRONTEND_GUIDELINES.md)  
+Color rules: [`COLOR_SYSTEM.md`](./COLOR_SYSTEM.md)
 
-This document records the current frontend structure and measured CSS geometry before a broader normalization pass. It is descriptive: [`FRONTEND_GUIDELINES.md`](./FRONTEND_GUIDELINES.md) is the normative document.
+This document records the frontend state after the 2026-08 normalization pass. It is a reference snapshot, not an automatic backlog. A difference from another component is not, by itself, a reason to change production UI.
 
-No production code change is implied by an audit finding. The purpose is to distinguish mature layout decisions from accidental inconsistency so later changes can be local and measurable.
+Future frontend work should be driven by a concrete usability, accessibility, responsive-layout, or maintainability problem. Changes should remain local, measured, and compatible with the protected geometry below.
 
-## Method
+## Baseline status
 
-Measurements in this audit come from the effective component markup and CSS rules on the baseline commit. They are **source-level measurements**, not claims that every browser will render an identical physical pixel height after font metrics and wrapping are applied.
+The normalization pass is complete for the component families it targeted:
 
-The audit focuses on values that materially affect layout:
+| Area | Current baseline |
+| --- | --- |
+| Template-step View/Edit | Editing replaces values in place; duplicate read-only/edit copies were removed |
+| Sample identity forms | Create, Sample Edit, and Split-piece forms use one field naming/order model |
+| Template and Metrology forms | Label and editable-value typography are explicitly separated |
+| Destructive actions | Ordinary deletion flows use the application confirmation dialog |
+| Split Sample | Setup and piece forms use the Comfortable form role without changing dialog geometry |
+| Processing forms | Drawer controls, run picker, and process-family search use explicit role typography |
+| Modal behavior | Ordinary dialogs and drawers share focus, Escape, scroll-lock, and focus-restoration behavior |
+| State mismatch | Browser `prompt()` was replaced with an in-application dialog bound to the exact run step |
+| Process-grid overlays | Recipe details, comment sheets, Step drawer, and Metrology picker use the shared modal behavior |
+| Modal form controls | Compact labels and 14 px editable values are explicitly separated |
+| Sample details | Natural View height is the baseline; Edit is structurally overlaid within that exact geometry |
+| Verification | Branch pushes and pull requests run install, full tests, and the production build |
 
-- viewport/content widths;
-- typography roles;
-- control target heights;
-- card/form padding and gaps;
-- responsive breakpoints;
-- image/gallery dimensions;
-- view/edit structure;
-- overlay widths;
-- Process-grid density.
+The related implementation work was completed across PRs **#102–#114**. PR #113 was a TypeScript build hotfix; PR #114 established the final Sample-details structure and verification baseline.
 
 ## Current stylesheet architecture
 
-The application currently loads frontend CSS in this order:
+### Global load order
 
-1. `src/styles.css`
-2. `src/palette.css`
-3. `src/comment-layout.css`
-4. `src/sample-page-layout.css`
+`src/main.tsx` loads the global layers in this order:
+
+1. `styles.css`
+2. `palette.css`
+3. `comment-layout.css`
+4. `sample-page-layout.css`
+5. `processing-form-roles.css`
+
+### Component- or route-scoped owners
+
+The current code also imports focused styles from their owning components or routes:
+
+| File | Owner / purpose | Status |
+| --- | --- | --- |
+| `sample-identity-form.css` | Shared Sample identity field roles | **Stable owner** |
+| `template-page-layout.css` | Process Template detail and step View/Edit layout | **Stable owner** |
+| `metrology-template-form.css` | Metrology Template form roles | **Stable owner** |
+| `split-sample-dialog.css` | Split Sample dialog geometry and field roles | **Stable owner** |
+| `modal-form-controls.css` | Typed confirmation and State-mismatch editable-value typography | **Stable owner** |
 
 ### Ownership assessment
 
 | File | Current role | Assessment |
 | --- | --- | --- |
-| `styles.css` | Tokens, shared primitives, route layouts, Process grid, dialogs, forms, responsive rules | **Primary owner**; very broad |
-| `palette.css` | Interface palette roles and color-behavior overrides | **Preserve**; paired with `COLOR_SYSTEM.md` |
-| `comment-layout.css` | Drop wording and Common-comment layout corrections | **Compatibility layer**; keep until owning rules are consolidated |
-| `sample-page-layout.css` | Sample-detail typography parity and mobile note-image correction | **Compatibility layer**; keep until Sample page is structurally refactored |
+| `styles.css` | Tokens, shared primitives, legacy route layout, Process workspace/grid, and responsive rules | **Broad primary owner; change carefully** |
+| `palette.css` | Color roles and semantic-color behavior | **Preserve; governed by `COLOR_SYSTEM.md`** |
+| `comment-layout.css` | Comment drag/drop wording and Common-comment narrow-column layout | **Compatibility layer; preserve until the comment component is deliberately refactored** |
+| `sample-page-layout.css` | Sample-page View/Edit geometry, typography parity, and mobile Notes image layout | **Formal Sample-page owner** |
+| `processing-form-roles.css` | Explicit typography roles for Processing form controls | **Focused shared role layer** |
 
-The current layering works, but another new override stylesheet should require a clear architectural reason.
+Do not add another override stylesheet for a single visual discrepancy without defining its owner, scope, tests, and eventual removal or long-term ownership.
 
-## Existing global scale
+## Frozen density model
 
-### Typography tokens
+The interface intentionally uses three densities.
 
-The root currently defines:
+| Density | Representative surfaces | Type range | Control range | Baseline decision |
+| --- | --- | ---: | ---: | --- |
+| **Comfortable** | Sample details, ordinary forms, Template details, Settings/Export, major dialogs | labels ~12 px; values/body ~14 px | ~40–42 px | Preserve generous reading rhythm |
+| **Compact** | Filters, pickers, directory rows, toolbars, pagination | mostly 11–13 px | ~34–40 px | Preserve information efficiency |
+| **Dense** | Process grid, inline execution comments, upload queues, cell actions | mostly 9–12 px | ~28–32 px | Protected workspace system |
 
-| Token/role | Value |
+These are role profiles, not values to collapse into one universal scale.
+
+## Typography baseline
+
+### Root hierarchy
+
+| Role | Baseline |
 | --- | ---: |
-| `--font-label` | 11 px |
-| `--font-meta` | 12 px |
-| `--font-body` | 14 px |
-| `--font-card-title` | 18 px |
-| `--font-section-title` | 22 px |
-| Page `h1` | `clamp(34px, 5vw, 52px)` |
-| Mobile `h1` | 38 px |
-| Page lead | 17 px desktop / 15 px mobile |
-| Eyebrow | 12 px uppercase |
+| Page title | `clamp(34px, 5vw, 52px)`; 38 px mobile |
+| Page lead | 17 px desktop; 15 px mobile |
+| Section title | 22 px |
+| Card title | 18 px |
+| Body / editable value | 14 px |
+| Field label | 12 px, sentence case |
+| Metadata | 12 px |
+| Dense micro metadata | 9–11 px |
+| Eyebrow / classification label | 9–12 px, uppercase allowed |
 
-The hierarchy itself is coherent. Most inconsistency occurs below the Card-title level in field labels and controls.
+Normal field labels and classification labels are different roles. Uppercase and letter spacing remain appropriate for eyebrows, badges, table headings, and Dense technical labels, but not for ordinary Sample/Template form fields.
+
+### Form-role baseline
+
+| Family | Current rule |
+| --- | --- |
+| Sample Create / Edit / Split piece | Canonical order: Sample code → Sample name → Status → Location → Description; Pinned follows where applicable |
+| Sample details View/Edit | 12 px labels and 14 px values/controls in both states |
+| Template step | One View/Edit field structure; readable values and controls remain aligned |
+| Metrology Template | 12 px labels / 14 px controls |
+| Processing Step drawer | 12 px labels / 14 px controls |
+| Run selector | 14 px editable and read-only value role |
+| Process-family search | 14 px within its existing compact geometry |
+| Filters | 11 px labels / 13 px controls; intentionally Compact |
+| Attachment micro forms | 9 px labels / 11 px controls; intentionally Dense |
+
+## Protected control geometry
+
+| Component / role | Baseline |
+| --- | ---: |
+| Standard `.button` | min 42 px |
+| Top navigation | min 40 px |
+| Theme toggle | 36 px |
+| Full search input | 54 px |
+| Compact search | 46 px |
+| Filter input/select | 40 px |
+| Compact button | min 34 px |
+| Pagination / segmented option | min 36 px |
+| Run picker / menu trigger | 42 px |
+| Drawer close control | 40 × 40 px |
+| Mobile Sample-header action | 42 × 42 px |
+| Grid scroll control | 34 × 34 px |
+| Comment tool | 32 × 32 px |
+| Process cell action | min 28 px |
+| State-panel action | min 29 px |
+| Mobile recipe action | 28 × 28 px |
+| Jump to current | 28 × 28 px |
+
+There is no approved global button-height normalization. A task must explicitly target a control family before these dimensions change.
+
+## Responsive baseline
+
+Primary breakpoints remain:
+
+- **1200 px**: intermediate desktop/tablet reflow;
+- **720 px**: mobile transformation.
+
+Do not add another breakpoint until intrinsic layout options have been exhausted and a measured failure remains.
 
 ### Page geometry
 
-| Role | Current measurement |
+| Role | Baseline |
 | --- | --- |
 | Standard content width | 1180 px max |
-| Standard page horizontal inset | 20 px each side via `calc(100% - 40px)` |
-| Standard page top/bottom padding | 54 / 80 px |
-| Mobile page horizontal inset | 14 px each side via `100% - 28px` |
+| Standard horizontal inset | 20 px per side |
+| Mobile horizontal inset | 14 px per side |
+| Standard page padding | 54 px top / 80 px bottom |
 | Mobile page top padding | 34 px |
-| Narrow form page max width | 650 px |
+| Narrow form page | 650 px max |
 | Wide Processing workspace | `min(1740px, 90vw)` |
 | Top bar | 68 px desktop / 56 px mobile |
-| Primary responsive breakpoints | 1200 px and 720 px |
 
-### Base card geometry
+### Multi-sample Process-grid width model
 
-The base `.card` owns a 1 px line, 14 px radius, paper surface, and low shadow. It intentionally does not force one padding value.
-
-Observed Comfortable-card padding generally falls between **18 and 24 px**:
-
-- Sample facts: 22 px;
-- Sample Notes: 22 px desktop, 16 px mobile;
-- Current structure: 18 px;
-- New Sample form: 24 px;
-- Template metadata / Metrology form: 20 px;
-- Timeline page: 24 px desktop, 16 px mobile;
-- Export archive: 24 px;
-- Step edit form: 16 px nested surface.
-
-This spread is role-based rather than inherently problematic.
-
-## Control-size inventory
-
-The interface already has a functional size ladder.
-
-| Component / selector | Height / target | Density | Status |
-| --- | ---: | --- | --- |
-| `.button` | min 42 px | Comfortable | **Preserve** |
-| Top navigation link | min 40 px | Shell | **Preserve** |
-| Theme toggle | 36 px | Shell | **Preserve** |
-| Full search input | 54 px | Comfortable | **Preserve** |
-| Compact search | 46 px | Compact | **Preserve** |
-| Filter input/select | 40 px | Compact | **Preserve** |
-| `.compact-button` | min 34 px | Compact | **Preserve** |
-| Pagination button | min 36 px | Compact | **Preserve** |
-| Segmented option | min 36 px | Compact | **Preserve** |
-| Run picker / menu trigger | 42 px | Compact workspace | **Protected** |
-| Drawer close | 40 × 40 px | Overlay | **Preserve** |
-| Mobile header icon action | 42 × 42 px | Mobile | **Protected** |
-| Grid scroll button | 34 × 34 px | Dense | **Protected** |
-| Comment tool | 32 × 32 px | Dense | **Protected** |
-| Cell action | min 28 px | Dense | **Protected** |
-| State-panel action | min 29 px | Dense | **Protected** |
-| Mobile recipe action | 28 × 28 px | Dense | **Protected** |
-| Jump to current | 28 × 28 px | Dense floating | **Protected** |
-
-### Conclusion
-
-There is no evidence that the application needs one universal button height. The current ladder maps well to the three density profiles. Future normalization should protect these sizes unless an explicit interaction problem is found.
-
-## Form typography inventory
-
-The principal inconsistency is not card size; it is that several form families establish their own label size while global controls inherit the surrounding font unless a more specific rule overrides it.
-
-| Form/context | Label | Field gap | Control text | Assessment |
-| --- | ---: | ---: | --- | --- |
-| New Sample `.form-grid` | 14 px | 18 px fields; 8 px label→control | inherits 14 px | **Normalize** |
-| Sample details edit | 12 px | 13 px fields; 6 px label→control | explicitly 14 px in compatibility CSS | **Typography mostly aligned; structure follow-up** |
-| Template step edit | 12 px | 12 px fields; 6 px label→control | inherits label unless otherwise styled | **Normalize** |
-| Template metadata edit | 12 px | 16 px groups; 6 px label→control | inherits | **Normalize** |
-| Metrology template | 12 px | 14 px fields; 6 px label→control | inherits | **Normalize** |
-| Split Sample setup/pieces | 13 px | 14–16 px grid; 7 px label→control | inherits | **Normalize** |
-| Drawer form | 12 px | 14 px fields; 6 px label→control | inherits | **Compact/comfortable boundary; review locally** |
-| Sample filters | 11 px | 12 px grid; 6 px label→control | explicit 13 px | **Preserve compact role** |
-| Attachment-link micro form | 9 px | 6 px group; 3 px label→control | explicit 11 px | **Preserve Dense role** |
-
-### Finding
-
-A global change to `input, textarea, select` would be risky because controls currently participate in multiple density profiles. The safer long-term direction is to make form families explicitly declare their control typography.
-
-## Read-only field inventory
-
-### Sample details
-
-Effective compatibility styling now uses:
-
-- field label: 12 px, sentence case, no letter spacing;
-- value: 14 px;
-- label/value rhythm aligned with the edit form.
-
-However the markup is still structurally different between view and edit:
-
-**View:** Location, Sample code, Sample name, Status, Pinned, Parent, Children, Created, Delete area.  
-**Edit:** Sample code, Sample name, Description, Status, Location, Pinned, Save.
-
-A runtime height helper currently matches Edit height to the natural View height. This is an effective compatibility fix, but it is evidence that long-term view/edit parity is still incomplete.
-
-**Classification:** `structural follow-up`.
-
-### Template step
-
-Read-only `Parameters / Comments` currently use:
-
-- label: 10 px uppercase with letter spacing;
-- value: 13.5 px;
-- mobile label/value: 9 / 12.5 px.
-
-Edit mode appends a separate Step form below the existing read-only content with 12 px sentence-case labels. The same Parameters/Comments therefore remain visible above their editable copies.
-
-**Classification:** `structural follow-up`, highest-value next parity target.
-
-### Initial substrate / transition technical details
-
-Technical `dl` blocks use approximately 12 px text with uppercase muted labels in a narrow two-column layout.
-
-This is closer to a compact technical summary than an editable field list and does not need to be normalized automatically with Sample-detail fields.
-
-**Classification:** `preserve unless readability problem appears`.
-
-## Domain-form consistency
-
-### Sample identity appears in three forms
-
-Current field order:
-
-- **New Sample:** Code → Name → Status → Current location → Description
-- **Sample details Edit:** Code → Name → Description → Status → Location → Pinned
-- **Split piece:** Code → Name → Status → Location → Description
-
-Label naming also differs (`Current location` versus `Location`).
-
-This is a semantic consistency issue independent of typography.
-
-**Classification:** `normalize`, but only when these forms are deliberately refactored. Do not globally reorder fields through CSS.
-
-## Route/component classification
-
-| Surface | Representative implementation | Density | Assessment |
-| --- | --- | --- | --- |
-| App shell/navigation | `App.tsx` | Shell / Compact | **Preserve** |
-| Samples directory | `SamplesPage.tsx` | Comfortable + Compact rows/filter | **Mostly preserve** |
-| Processing directory | `ProcessingPage.tsx` | Comfortable + Compact rows | **Mostly preserve** |
-| Templates directory | `TemplatesPage.tsx` | Comfortable + Compact rows | **Mostly preserve** |
-| New Sample | `NewSamplePage.tsx` | Comfortable | **Normalize form role later** |
-| Sample overview | `SamplePage.tsx` | Comfortable | **View/edit structural follow-up** |
-| Sample timeline | `SampleTimelinePage.tsx` / timeline components | Comfortable + Compact metadata | **Preserve** |
-| Process workspace shell | `ProcessingWorkspacePage.tsx` | Compact | **Protected geometry** |
-| Multi-sample Process grid | `MultiSampleRunGrid.tsx` | Dense | **Protected geometry/density** |
-| Process-grid comments/uploads | `CommentComposer` and related components | Dense | **Protected; local fixes only** |
-| Process template detail | `TemplatePage.tsx` | Comfortable | **Step view/edit structural follow-up** |
-| Metrology template detail | `MetrologyTemplatePage.tsx` / `MetrologyTemplateForm` | Comfortable | **Low-risk typography normalization candidate** |
-| Split Sample | `SplitSampleDialog.tsx` | Comfortable dialog | **Form normalization candidate** |
-| Delete confirmation | `ConfirmDeleteDialog.tsx` | Compact dialog | **Preferred destructive primitive** |
-| File drop | `FileDropzone.tsx` | Comfortable / Compact | **Preserve** |
-| Export | `ExportPage.tsx` | Comfortable | **Preserve** |
-
-## Sample-page measurements
-
-The Sample overview uses a two-column priority layout on desktop:
-
-| Element | Current measurement |
-| --- | --- |
-| Details/sidebar column | 280–320 px |
-| Gap to Notes | 28 px |
-| Facts card padding | 22 px |
-| Sidebar internal gap | 16 px |
-| Current-structure card padding | 18 px |
-| Structure thumbnail | 96 × 72 px |
-| Notes card padding | 22 px desktop / 16 px mobile |
-| Note composer padding | 14 px |
-| Note composer gap | 7 px |
-| Notes list top separation | 20 px |
-
-### Note images
-
-Desktop note images currently use compact right-side previews around **92 × 72 px**. The later Sample-page compatibility stylesheet overrides the old mobile right-rail rule and instead uses a full-width adaptive grid with `minmax(84px, 1fr)` and a 4:3 aspect ratio.
-
-**Classification:** current mobile behavior is `preserve`.
-
-## Directory measurements
-
-### Samples directory
-
-- row minimum height: 82 px;
-- desktop column heading: 11 px uppercase;
-- row metadata: 12 px;
-- mobile hides the heading row and restructures each item into content groups.
-
-This is an appropriate use of uppercase because the text is a table/directory classification header rather than a data field label.
-
-### Processing directory
-
-- desktop row minimum height: 122 px;
-- state thumbnail column: 120 px desktop; 92 px on mobile;
-- supporting metadata: 12 px;
-- run status: 11 px tonal badge.
-
-**Classification:** `preserve`.
-
-## Template measurements
-
-### Template-family / version directory
-
-- family heading padding: approximately 18–20 px;
-- version row minimum height: 70 px;
-- version identity: 16 px;
-- supporting labels: 11 px;
-- facts: 13 px.
-
-### Metrology directory
-
-- row minimum height: 82 px;
-- supporting label: 11 px;
-- summary value: 13 px.
-
-The two directory families are already close in density and hierarchy.
-
-**Classification:** `preserve`.
-
-### Process template step
-
-- card padding: 18 px desktop; 14 × 12 px mobile;
-- step number: 34 px desktop; 28 px mobile;
-- technical detail label/value: 10 / 13.5 px desktop; 9 / 12.5 px mobile;
-- nested edit form: 16 px padding, 12 px gap, 12 px labels.
-
-The component is visually coherent in either state individually, but view/edit parity is weak because the edit UI is appended rather than substituted.
-
-## Process-workspace measurements
-
-### Page and run controls
-
-- wide page: `min(1740px, 90vw)`;
-- run-control grid padding: 12 × 14 px;
-- run picker/control height: 42 px;
-- run action menu trigger: 42 px;
-- run action item minimum height: 42 px;
-- action-item title/meta: 12 / 10 px.
-
-At mobile widths the run control preserves a 40 px select and 46 px menu-trigger width, with text labels hidden where needed.
-
-**Classification:** `protected geometry`.
-
-### Multi-sample grid width model
-
-Desktop defaults:
-
-| Visible samples | Recipe column | Sample column / width behavior |
+| Visible samples | Recipe column | Sample column behavior |
 | --- | ---: | --- |
-| 1 | 380 px | flexible; grid max around 1100 px |
-| 2 | 320 px | min 340 px each |
-| 3 | 290 px | min 300 px each |
-| 4+ | default around 270 px | default sample width around 300 px |
+| 1 | ~380 px | flexible; grid max around 1100 px |
+| 2 | ~320 px | min ~340 px each |
+| 3 | ~290 px | min ~300 px each |
+| 4+ | ~270 px | default ~300 px each |
+| `<=1200px` | ~230 px | ~300 px each |
+| `<=720px` | **88 px** | **270 px**, horizontal overflow |
 
-Intermediate (`<=1200px`) uses approximately 230 px recipe / 300 px sample columns.
+This width model and the Process-grid Density are protected.
 
-Mobile (`<=720px`) uses **88 px recipe / 270 px sample** columns and horizontal overflow for multi-sample grids.
+## Component-family baseline
 
-These numbers encode actual multi-sample usability and must not be changed as a side effect of general frontend normalization.
-
-### Dense grid type/control baseline
-
-| Role | Current measurement |
-| --- | ---: |
-| Cell state text | 10 px |
-| State icon | 22 px |
-| Cell comment body | 12 px |
-| Comment metadata | 9 px |
-| Cell action | min 28 px, 10 px text |
-| State action | min 29 px, 10 px text |
-| Comment textarea | min 32 px, 12 px text |
-| Comment tool | 32 × 32 px |
-| Verification badge | 9 px |
-| Upload queue labels/actions | mostly 9–11 px |
-
-**Classification:** `protected Dense system`.
-
-## Overlay inventory
-
-Overlay widths already scale with task complexity and should remain role-specific.
-
-| Overlay | Current width | Padding | Assessment |
-| --- | ---: | ---: | --- |
-| Confirm delete | max 440 px | 22 px | **Preferred destructive primitive** |
-| Step / picker drawer | max 520 px | 24 px desktop / 18 px mobile | **Preserve** |
-| Process-plan comment sheet | max 620 px | 18 px | **Preserve** |
-| Standalone metrology dialog | max 640 px | inherited dialog family | **Preserve** |
-| Split Sample | max 760 px | 24 px desktop / 18 px mobile | **Preserve width; normalize fields later** |
-| Start-process dialog | max 820 px | 24 px desktop / 18 px mobile | **Preserve** |
-| Transition-template dialog | max 860 px | task-specific | **Preserve** |
-
-### Behavior inconsistency
-
-`ConfirmDeleteDialog` provides a real application dialog pattern, including focus handling and optional typed confirmation. Some Template and Metrology deletion flows still use browser-native `window.confirm()`.
-
-**Classification:** `behavior normalization candidate`. Widths do not need to be unified.
-
-## Media and upload measurements
-
-| Component | Current measurement | Assessment |
+| Surface | Density | Baseline status |
 | --- | --- | --- |
-| Standard FileDropzone | min 168 px; 24 px padding | **Preserve** |
-| Compact FileDropzone | min 92 px; 12 × 14 px padding | **Preserve** |
-| Selected-file preview | 64 × 64 px | **Preserve** |
-| Normal grid photo thumbnail | 48 × 48 px | Density-specific |
-| Common execution comment | 72 × 58 px stacked gallery | **Preserve local fix** |
-| Sample Note mobile gallery | adaptive min 84 px cells, 4:3 | **Preserve** |
-| Template initial-state preview | 200 × 104 px desktop; 108 × 76 px mobile | **Preserve unless media task targets it** |
+| App shell/navigation | Shell / Compact | Preserve |
+| Samples directory | Comfortable + Compact | Preserve current row and filter density |
+| Processing directory | Comfortable + Compact | Preserve |
+| Templates directory | Comfortable + Compact | Preserve |
+| New Sample | Comfortable | Canonical Sample identity form |
+| Sample overview | Comfortable | Structurally stable View/Edit; preserve natural View height |
+| Sample timeline | Comfortable + Compact metadata | Preserve |
+| Template detail | Comfortable | Step View/Edit normalized; preserve diagram and action geometry |
+| Metrology Template | Comfortable | Explicit form roles |
+| Split Sample | Comfortable dialog | Explicit setup/piece form roles; preserve width and buttons |
+| Process workspace shell | Compact | Protected geometry |
+| Multi-sample Process grid | Dense | Protected density and column calculations |
+| Process-grid comments/uploads | Dense | Local fixes only; no Comfortable-form normalization |
+| FileDropzone | Comfortable / Compact | Preserve both established sizes |
+| Export/Settings surface | Comfortable | Preserve until that route is deliberately expanded |
 
-Image sizing is currently context-sensitive. A future media primitive should preserve this distinction rather than force one universal thumbnail size.
+## Sample-details baseline
 
-## Responsive inventory
+The Sample-details card now follows this structure:
 
-### 1200 px breakpoint
+- the complete read-only view remains in normal document flow and defines the natural card height;
+- entering Edit hides that view visually but keeps its geometry;
+- the edit form is positioned within the same content area;
+- Description uses the remaining edit height with a 48 px minimum;
+- internal form scrolling exists only as a fallback for unusually short or heavily wrapped cards;
+- returning to View restores the identical natural height;
+- there is no fixed View minimum height and no runtime DOM-height installer.
 
-Used primarily for intermediate desktop/tablet reflow:
+This is the approved baseline. Do not reintroduce global minimum heights or runtime measurement merely to make a new field fit.
 
-- hide brand title;
-- reduce directory columns;
-- stack some header layouts;
-- reduce Process recipe width to around 230 px;
-- simplify Template/Metrology directory rows.
+## Images and attachments
 
-### 720 px breakpoint
+| Context | Baseline |
+| --- | --- |
+| Standard grid photo | 48 × 48 px |
+| Common execution comment | stacked gallery, approximately 72 × 58 px thumbnails |
+| Sample Note desktop | compact contextual preview |
+| Sample Note mobile | full-width adaptive grid, minimum ~84 px cells, 4:3 |
+| Template initial state | 200 × 104 px desktop; 108 × 76 px mobile |
+| Standard FileDropzone | min ~168 px; 24 px padding |
+| Compact FileDropzone | min ~92 px; 12 × 14 px padding |
+| Selected-file preview | 64 × 64 px |
 
-Used for true mobile transformation:
+Image sizing is context-sensitive. Do not force one universal thumbnail primitive across Dense grid evidence, Sample notes, and Template diagrams.
 
-- top bar 56 px and icon navigation;
-- page inset becomes 14 px;
-- page headers stack;
-- primary Sample actions become 42 px icon buttons;
-- directory headings disappear;
-- Process recipe column shrinks to 88 px;
-- dialog padding reduces;
-- Template-step dimensions shrink;
-- FileDropzone compact mode stacks;
-- image galleries may change layout.
+## Overlay and interaction baseline
 
-The breakpoint strategy is currently simple and should be preserved.
+| Overlay | Width baseline | Decision |
+| --- | ---: | --- |
+| Confirmation / State mismatch | max ~440 px | Preserve |
+| Step / picker drawer | max ~520 px | Preserve |
+| Process-plan comment sheet | max ~620 px | Preserve |
+| Standalone Metrology | max ~640 px | Preserve |
+| Split Sample | max ~760 px | Preserve |
+| Start Process | max ~820 px | Preserve |
+| Transition Template | max ~860 px | Preserve |
 
-## CSS compatibility overrides
+Ordinary overlays use the shared `useModalDialog` behavior for:
 
-### `comment-layout.css`
+- background scroll locking;
+- Escape handling;
+- focus containment;
+- initial focus;
+- focus restoration;
+- busy-state close blocking where applicable;
+- nested-overlay stack behavior.
 
-Current responsibilities:
+The image lightbox intentionally retains a specialized keyboard model because it also owns previous/next and zoom shortcuts.
 
-- change comment drop overlay wording to `Drop images or attachments`;
-- stack Common execution comment text and thumbnails in the narrow Process-plan column;
-- set Common thumbnails to approximately 72 × 58 px.
+## Deliberate exceptions
 
-This file is a local compatibility layer and should not become a general-purpose component stylesheet.
+These are not active defects:
 
-### `sample-page-layout.css`
+1. **Unsaved Process-plan comment guard:** the remaining browser-native confirmation is a synchronous close guard that must be able to block Escape/backdrop dismissal before an asynchronous dialog can replace the interaction.
+2. **Image lightbox:** specialized keyboard and zoom behavior remains separate from ordinary modal behavior.
+3. **`comment-layout.css`:** remains a compatibility layer until CommentCard/CommentComposer is deliberately refactored.
+4. **Broad `styles.css`:** remains a large legacy/shared owner; it should be reduced only through component-led work, not a mass selector move.
 
-Current responsibilities:
+## Verification baseline
 
-- normalize Sample-detail view/edit label/value typography;
-- support runtime Edit-height locking without a fixed View min-height;
-- convert mobile Note images from the legacy right rail into an adaptive full-width grid.
+`.github/workflows/verify.yml` runs on non-`main` branch pushes and pull requests targeting `main`:
 
-The typography and mobile gallery rules are valid behavior. The runtime height lock should become unnecessary if Sample-details view/edit markup is eventually made structurally parallel.
+```text
+npm ci
+npm test
+npm run build
+```
 
-## Findings by priority
+The production build includes strict TypeScript compilation and Vite output generation.
 
-### A — Structural parity, high value
+PR #114 additionally validated Sample-details layout across:
 
-#### A1. Template-step view/edit parity
+- widths: 320, 360, 390, 768, and 1180 px;
+- light and dark themes;
+- short, long-wrapped, and many-child content cases.
 
-Why it matters:
+The verified properties were:
 
-- same data appears twice during Edit;
-- label typography changes between view and edit;
-- edit expansion changes card geometry substantially.
+- unchanged natural read-only height;
+- equal View/Edit/Cancel heights;
+- Description minimum height of 48 px;
+- no normal-case internal edit scrolling;
+- Delete area retained at the bottom of the natural card.
 
-Recommended future direction: keep one field layout and replace values in place.
+## Freeze and change gate
 
-Risk: medium because images, delete actions, and mobile layout share the card.
+This baseline is considered stable. Before changing a mature component family:
 
-#### A2. Sample-details markup parity
+1. identify a concrete user-facing or maintenance problem;
+2. identify the component's density profile;
+3. measure only the geometry relevant to that problem;
+4. state which protected geometry must remain unchanged;
+5. test representative width, content, and theme cases;
+6. run the full repository verification;
+7. update this audit only when the implementation baseline materially changes.
 
-Current typography and height behavior are now acceptable, but the view and edit field sets still differ.
+A general desire for visual uniformity is not sufficient justification for changing established buttons, spacing, breakpoints, Process-grid density, or task-specific overlay widths.
 
-Recommended future direction: keep Parent/Children/Created visible while editable fields switch in place; consider a stable local action area for Save/Cancel.
+## Current open work
 
-Risk: medium. Do not undo the natural-height baseline while refactoring.
+There is **no active broad frontend-normalization backlog** at this baseline.
 
-### B — Form-role normalization, medium value
-
-#### B1. Sample Create / Edit / Split schema
-
-Normalize field names/order and explicitly separate label typography from control typography.
-
-Risk: low to medium; avoid changing action/button layout.
-
-#### B2. Template / Metrology form control typography
-
-Explicitly establish control text size rather than relying on label inheritance.
-
-Risk: low if done per form family and geometry is measured before/after.
-
-### C — Behavior primitive consistency
-
-#### C1. Destructive confirmation
-
-Prefer the shared in-app confirmation dialog for remaining browser-native delete confirmations.
-
-Risk: medium because focus/backdrop/async states need correct handling.
-
-### D — CSS ownership cleanup
-
-Move stable compatibility rules toward owning components when those components are deliberately refactored. Do not start with a mass selector rewrite.
-
-Risk: high if attempted globally; low when paired with a component refactor.
-
-## Explicit preserve list
-
-The audit found no current reason to normalize these systems globally:
-
-- Button geometry and variants;
-- mobile Sample-header icon grouping;
-- Samples and Processing directory row density;
-- Process workspace run controls;
-- MultiSampleRunGrid density and width calculations;
-- Jump to current geometry;
-- status-pill color system;
-- Process-grid status surfaces;
-- FileDropzone standard/compact sizes;
-- task-specific dialog widths;
-- current mobile Notes image grid;
-- generous Comfortable-page line-height and section spacing.
-
-## Recommended implementation sequence
-
-When moving beyond this documentation baseline, use this order:
-
-1. **Template-step view/edit parity** — one contained component with a clear current mismatch.
-2. **Sample identity form schema** — align Create / Edit / Split names, order, and explicit typography while preserving buttons.
-3. **Sample-details structural parity** — simplify/remove runtime sizing once markup can naturally match.
-4. **Metrology/Template form typography** — explicit control roles, low-risk local cleanup.
-5. **Destructive confirmation behavior** — replace remaining `window.confirm()` flows with the shared primitive.
-6. **CSS ownership cleanup** — only after the affected components have stabilized.
-
-Do not begin with a global typography, button, or spacing rewrite.
-
-## Measurement checklist for each follow-up
-
-For every component refactor above, capture before/after at relevant widths:
-
-- outer card/component width and height;
-- control height and action-group wrapping;
-- field label/value positions;
-- neighboring component top position before/after state change;
-- long-text wrapping;
-- 0/1/many image behavior;
-- mobile 390 px and 360 px layout;
-- light/dark appearance.
-
-The refactor is successful when the target inconsistency improves **without moving unrelated mature geometry**.
+Future work should be issue-driven. The most likely architecture cleanup is moving stable comment compatibility rules into an owning Comment component when that component is deliberately refactored. That should not be started as a standalone CSS consolidation project.
