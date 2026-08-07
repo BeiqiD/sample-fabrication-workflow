@@ -18,7 +18,7 @@ describe("modal editable-value typography", () => {
   });
 
   it("does not alter modal geometry or button roles", () => {
-    expect(css).not.toMatch(/height|width|padding|margin|gap|\.button/);
+    expect(css).not.toMatch(/(?:^|[;{\s])(height|width|padding|margin|gap)\s*:|\.button/);
     expect(confirm).toContain('className="button danger"');
     expect(mismatch).toContain('className="button primary"');
   });

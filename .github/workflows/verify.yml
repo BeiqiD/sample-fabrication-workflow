@@ -1,0 +1,117 @@
+name: Verify
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        run: npm ci
+
+      - name: Record dependency status
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.install.outcome }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: process.env.STAGE_OUTCOME === "success" ? "success" : "failure",
+              context: "pre-pr/install",
+              description: process.env.STAGE_OUTCOME === "success" ? "npm ci passed" : "npm ci failed",
+            });
+
+      - name: Run tests
+        id: tests
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test.log
+
+      - name: Record test status
+        if: steps.install.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.tests.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("test.log") ? fs.readFileSync("test.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const location = lines.find((line) => /(?:^|\s)src\/[^\s]+\.test\.ts:\d+:\d+/.test(line));
+            const detail = location || lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: outcome === "success" ? "pre-pr/tests" : `pre-pr/tests/${slug}`,
+              description: outcome === "success" ? "npm test passed" : detail.slice(0, 140),
+            });
+
+      - name: Run production build
+        id: build
+        if: steps.install.outcome == 'success' && steps.tests.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+
+      - name: Record build status
+        if: steps.install.outcome == 'success' && steps.tests.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.build.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("build.log") ? fs.readFileSync("build.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const detail = lines.find((line) => /error TS|error:|Error:|failed/i.test(line)) || lines.at(-1) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: outcome === "success" ? "pre-pr/build" : `pre-pr/build/${slug}`,
+              description: outcome === "success" ? "npm run build passed" : detail.slice(0, 140),
+            });
+
+      - name: Fail when verification did not pass
+        if: steps.install.outcome != 'success' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
+        run: exit 1
