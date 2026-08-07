@@ -79,6 +79,18 @@ Deleting an upper-level source must not physically cascade through Sample → Ru
 → Step → Comment/Attachment. Existing references continue to resolve deleted
 sources as read-only records.
 
+## Isolated preview deployment
+
+The integration branch `v2/backend-foundation` is deployed only to the
+isolated `sample-workflow-v3` Worker. Its D1 database and R2 bucket are
+separate from the frozen site on `main`; non-production branch builds remain
+disabled.
+
+The Worker name, D1 database name and ID, R2 bucket name, hostname, and Access
+audience are deployment-specific identifiers. A fork or another Cloudflare
+account must replace every one of them before its first remote migration or
+deployment. Credentials and Access secrets must never be committed.
+
 ## Delivery sequence
 
 This first change is additive only: it introduces lifecycle columns, visible-row
