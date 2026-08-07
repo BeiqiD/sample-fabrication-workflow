@@ -1,0 +1,5 @@
+.confirm-dialog-confirmation > input,
+.confirm-dialog-confirmation > textarea {
+  font-size: var(--font-body);
+  line-height: 1.45;
+}

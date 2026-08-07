@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useModalDialog } from "../lib/use-modal-dialog";
+import "../modal-form-controls.css";
 
 export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", confirmation, onCancel, onConfirm }: {
   title: string;

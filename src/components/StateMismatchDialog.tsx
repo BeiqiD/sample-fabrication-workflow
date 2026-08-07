@@ -1,5 +1,6 @@
 import { type FormEvent, useRef, useState } from "react";
 import { useModalDialog } from "../lib/use-modal-dialog";
+import "../modal-form-controls.css";
 
 export function StateMismatchDialog({
   sampleCode,
