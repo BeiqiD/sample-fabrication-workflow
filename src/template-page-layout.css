@@ -83,12 +83,7 @@
 
   .template-step-field > p,
   .template-step-field textarea,
-  .template-step-title-input,
   .template-step-tool-input {
     font-size: 13.5px;
-  }
-
-  .template-step-title-input {
-    font-size: 16px;
   }
 }
