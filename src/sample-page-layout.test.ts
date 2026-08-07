@@ -3,12 +3,21 @@ import { describe, expect, it } from "vitest";
 
 const layout = readFileSync(new URL("./sample-page-layout.css", import.meta.url), "utf8");
 const main = readFileSync(new URL("./main.tsx", import.meta.url), "utf8");
+const sizing = readFileSync(new URL("./lib/sample-details-edit-sizing.ts", import.meta.url), "utf8");
 
 describe("sample page layout refinements", () => {
-  it("keeps Sample details stable while switching between view and edit modes", () => {
-    expect(layout).toMatch(/\.sample-details-card\s*\{[^}]*min-height:\s*640px/s);
-    expect(layout).toMatch(/\.sample-details-card textarea\[name="description"\]\s*\{[^}]*min-height:\s*128px/s);
-    expect(main).toContain('import "./sample-page-layout.css"');
+  it("uses the natural read-only Sample details height as the edit baseline", () => {
+    expect(layout).not.toMatch(/\.sample-details-card\s*\{[^}]*min-height:/s);
+    expect(sizing).toContain("getBoundingClientRect().height");
+    expect(sizing).toContain("sampleDetailsViewHeight");
+    expect(sizing).toContain("card.clientHeight - card.scrollHeight");
+    expect(main).toContain("installSampleDetailsEditSizing();");
+  });
+
+  it("lets Description absorb the remaining edit height without changing field rhythm", () => {
+    expect(layout).toMatch(/data-sample-details-edit-height-locked[^}]*overflow:\s*hidden/s);
+    expect(layout).toMatch(/data-sample-details-edit-height-locked[\s\S]*textarea\[name="description"\][^}]*min-height:\s*0[^}]*resize:\s*none/s);
+    expect(sizing).toContain("MIN_DESCRIPTION_HEIGHT = 48");
   });
 
   it("uses the same field hierarchy in read-only and edit typography", () => {
