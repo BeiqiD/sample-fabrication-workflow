@@ -13,7 +13,9 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "AUTH_MODE": "access"
+    "AUTH_MODE": "access",
+    "ACCESS_TEAM_DOMAIN": "https://beiqi.cloudflareaccess.com",
+    "ACCESS_AUD": "625b87dd55952b81bdf006a5c8a221961b9c2033af1257c75ab639b10234b1f8"
   },
   "d1_databases": [
     {

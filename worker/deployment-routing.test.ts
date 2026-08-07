@@ -8,6 +8,11 @@ describe("deployment routing", () => {
     name?: string;
     workers_dev?: boolean;
     routes?: unknown[];
+    vars?: {
+      AUTH_MODE?: string;
+      ACCESS_TEAM_DOMAIN?: string;
+      ACCESS_AUD?: string;
+    };
     assets?: {
       not_found_handling?: string;
       run_worker_first?: string[];
@@ -32,6 +37,11 @@ describe("deployment routing", () => {
     expect(configuration.name).toBe("sample-workflow-v3");
     expect(configuration.workers_dev).toBe(true);
     expect(configuration.routes).toBeUndefined();
+    expect(configuration.vars).toEqual({
+      AUTH_MODE: "access",
+      ACCESS_TEAM_DOMAIN: "https://beiqi.cloudflareaccess.com",
+      ACCESS_AUD: "625b87dd55952b81bdf006a5c8a221961b9c2033af1257c75ab639b10234b1f8",
+    });
     expect(configuration.d1_databases).toEqual([
       {
         binding: "DB",
