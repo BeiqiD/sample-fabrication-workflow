@@ -103,8 +103,11 @@ revisions:
   verifications, or successor links;
 - ordinary reads and mutations exclude deleted Runs and deleted steps;
 - restoration clears the deletion metadata on the same Run identity and
-  rejects an active process conflict;
-- live-run uniqueness and lifecycle triggers ignore deleted Runs;
+  returns `409` when its predecessor already has another visible successor;
+- a deleted active process Run can be restored only when it would again be the
+  latest visible process Run for the Sample;
+- live active-Run and successor uniqueness, plus lifecycle triggers, ignore
+  deleted Runs without weakening uniqueness among visible Runs;
 - the five historical built-in metrology presets are retired; referenced
   presets are archived so existing Run history remains valid;
 - deleting a Sample preserves its Runs, events, verifications, and parent/child
@@ -112,8 +115,19 @@ revisions:
 - deleting a canonical Comment preserves its target occurrences, attachment
   items, and managed storage; deleting one occurrence does not delete the
   canonical Comment or shared bytes;
+- restoring a canonical Comment restores only occurrences marked by that
+  canonical delete operation; an independently deleted occurrence stays in
+  trash;
+- comment attachment delete and restore share the same author and target
+  visibility checks; a TIFF preview cannot be visible while its required
+  original occurrence remains deleted;
 - execution-image and metrology-reference deletion hides only the selected
   occurrence and restoration exposes the same occurrence ID again;
+- execution-image timeline entries carry `runStepAssetId`, so restoring one
+  occurrence cannot repoint another deleted image event from the same step;
+- common-comment group mutations are atomic across their target graph: if any
+  target Sample, Run, or Run step is deleted, the entire mutation returns
+  `409` without changing visible or hidden targets;
 - deleting a Recipe revision prevents new assignment without removing its
   family, import links, or historical Run references; restoration re-enables
   the same revision when it was not independently archived.
@@ -121,6 +135,10 @@ revisions:
 All restoration routes clear deletion metadata in place. Exports and existing
 Run history retain deleted source identities so later reference resolution can
 surface them as read-only records.
+
+The verification workflow runs for pull requests targeting both `main` and
+`v2/backend-foundation`, so an integration PR is rechecked when either its head
+or its integration base changes.
 
 The remaining sequence is:
 

@@ -25,18 +25,27 @@ function migratedDatabase() {
   return database;
 }
 
-function insertRun(database: DatabaseSync, id: string, sequence: number, deletedAt: string | null) {
+function insertRun(
+  database: DatabaseSync,
+  id: string,
+  sequence: number,
+  deletedAt: string | null,
+  predecessorRunId: string | null = null,
+  status: "active" | "complete" = "active",
+) {
   database.prepare(
     `INSERT INTO runs
-      (id, sample_id, recipe_family_id, template_version_id, sequence_no, run_group_id,
+      (id, sample_id, recipe_family_id, template_version_id, predecessor_run_id, sequence_no, run_group_id,
        run_kind, template_name_snapshot, template_type_snapshot, template_version_snapshot,
        status, created_at, deleted_at, deleted_by)
-     VALUES (?, 'sample-1', 'family-1', 'template-1', ?, ?, 'process',
-       'Process', 'process', 1, 'active', ?, ?, ?)`,
+     VALUES (?, 'sample-1', 'family-1', 'template-1', ?, ?, ?, 'process',
+       'Process', 'process', 1, ?, ?, ?, ?)`,
   ).run(
     id,
+    predecessorRunId,
     sequence,
     `group-${sequence}`,
+    status,
     `2026-08-07T10:0${sequence}:00.000Z`,
     deletedAt,
     deletedAt ? "operator@example.com" : null,
@@ -53,6 +62,21 @@ describe("run soft-delete schema", () => {
       .toEqual([{ id: "run-deleted" }, { id: "run-live" }]);
     expect(() => database.prepare(
       "UPDATE runs SET deleted_at = NULL, deleted_by = NULL WHERE id = 'run-deleted'",
+    ).run()).toThrow();
+    database.close();
+  });
+
+  it("lets a visible run replace a deleted successor without weakening live successor uniqueness", () => {
+    const database = migratedDatabase();
+    insertRun(database, "run-root", 1, null, null, "complete");
+    insertRun(database, "run-deleted-successor", 2, "2026-08-07T10:03:00.000Z", "run-root", "complete");
+
+    expect(() => insertRun(database, "run-live-successor", 3, null, "run-root", "complete"))
+      .not.toThrow();
+    expect(() => insertRun(database, "run-second-live-successor", 4, null, "run-root", "complete"))
+      .toThrow();
+    expect(() => database.prepare(
+      "UPDATE runs SET deleted_at = NULL, deleted_by = NULL WHERE id = 'run-deleted-successor'",
     ).run()).toThrow();
     database.close();
   });

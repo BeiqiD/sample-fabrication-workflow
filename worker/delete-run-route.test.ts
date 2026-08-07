@@ -435,4 +435,138 @@ describe("run trash and restore routes", () => {
       .toEqual({ status: "active" });
     database.close();
   });
+
+  it("returns 409 instead of restoring a run whose predecessor already has a visible successor", async () => {
+    const database = createDatabase();
+    addSample(database);
+    database.exec(`
+      INSERT INTO runs
+        (id, sample_id, recipe_family_id, template_version_id, predecessor_run_id,
+         sequence_no, run_group_id, template_name_snapshot, template_type_snapshot,
+         template_version_snapshot, status, created_at, run_kind, deleted_at, deleted_by)
+      VALUES
+        ('run-root', 'sample-1', 'family-process', 'template-process', NULL,
+         1, 'group-root', 'Process', 'process', 1, 'complete',
+         '2026-07-30T10:01:00.000Z', 'process', NULL, NULL),
+        ('run-deleted', 'sample-1', 'family-process', 'template-process', 'run-root',
+         2, 'group-deleted', 'Process', 'process', 1, 'complete',
+         '2026-07-30T10:02:00.000Z', 'process', '2026-07-30T10:03:00.000Z', 'operator@example.com'),
+        ('run-replacement', 'sample-1', 'family-process', 'template-process', 'run-root',
+         3, 'group-replacement', 'Process', 'process', 1, 'complete',
+         '2026-07-30T10:04:00.000Z', 'process', NULL, NULL);
+    `);
+
+    const response = await restoreRequest(testEnv(database), "run-deleted", "2026-07-30T10:00:00.000Z");
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "Another visible run already succeeds this run's predecessor.",
+    });
+    expect(database.prepare("SELECT deleted_at FROM runs WHERE id = 'run-deleted'").get())
+      .toEqual({ deleted_at: "2026-07-30T10:03:00.000Z" });
+    database.close();
+  });
+
+  it("starts a replacement run after a deleted non-first run", async () => {
+    const database = createDatabase();
+    addSample(database);
+    database.exec(`
+      INSERT INTO state_representations
+        (hash, representation_type, content_json, created_at)
+      VALUES
+        ('state-initial', 'diagram', '{}', '2026-07-30T10:00:00.000Z');
+
+      UPDATE template_versions
+      SET initial_state_hash = 'state-initial',
+          content_json = '{"initialSubstrateStep":{"stepNumber":"0","name":"Substrate Stack"}}'
+      WHERE id = 'template-process';
+
+      INSERT INTO step_definitions (hash, name, canonical_json, created_at)
+      VALUES ('definition-process', 'Process step', '{}', '2026-07-30T10:00:00.000Z');
+
+      INSERT INTO template_steps
+        (id, template_version_id, logical_step_key, position, definition_hash)
+      VALUES
+        ('template-step-process', 'template-process', 'process:1', 1000, 'definition-process');
+
+      INSERT INTO runs
+        (id, sample_id, recipe_family_id, template_version_id, predecessor_run_id,
+         sequence_no, run_group_id, template_name_snapshot, template_type_snapshot,
+         template_version_snapshot, status, created_at, run_kind, deleted_at, deleted_by)
+      VALUES
+        ('run-root', 'sample-1', 'family-process', 'template-process', NULL,
+         1, 'group-root', 'Process', 'process', 1, 'complete',
+         '2026-07-30T10:01:00.000Z', 'process', NULL, NULL),
+        ('run-deleted', 'sample-1', 'family-process', 'template-process', 'run-root',
+         2, 'group-deleted', 'Process', 'process', 1, 'complete',
+         '2026-07-30T10:02:00.000Z', 'process', '2026-07-30T10:03:00.000Z', 'operator@example.com');
+    `);
+    const env = testEnv(database);
+
+    const response = await worker.fetch(new Request(
+      "https://samples.run/api/samples/sample-1/runs",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          templateVersionId: "template-process",
+          substrateConfirmation: {
+            confirmed: true,
+            expectedSampleUpdatedAt: "2026-07-30T10:00:00.000Z",
+            expectedPreviousStateHash: null,
+            expectedTemplateStructureKey: "initial-substrate:template-process",
+            expectedTemplateStateHash: "state-initial",
+            expectedLatestRunId: "run-root",
+          },
+        }),
+      },
+    ), env, {} as ExecutionContext);
+
+    expect(response.status).toBe(201);
+    const payload = await response.json() as { id: string };
+    expect(database.prepare(
+      "SELECT predecessor_run_id, sequence_no, deleted_at FROM runs WHERE id = ?",
+    ).get(payload.id)).toEqual({
+      predecessor_run_id: "run-root",
+      sequence_no: 3,
+      deleted_at: null,
+    });
+    expect(database.prepare(
+      "SELECT id, predecessor_run_id, deleted_at FROM runs WHERE predecessor_run_id = 'run-root' ORDER BY sequence_no",
+    ).all()).toEqual([
+      { id: "run-deleted", predecessor_run_id: "run-root", deleted_at: "2026-07-30T10:03:00.000Z" },
+      { id: payload.id, predecessor_run_id: "run-root", deleted_at: null },
+    ]);
+    database.close();
+  });
+
+  it("does not restore an older active process run after a newer visible process run exists", async () => {
+    const database = createDatabase();
+    addSample(database);
+    database.exec(`
+      INSERT INTO runs
+        (id, sample_id, recipe_family_id, template_version_id, predecessor_run_id,
+         sequence_no, run_group_id, template_name_snapshot, template_type_snapshot,
+         template_version_snapshot, status, created_at, run_kind, deleted_at, deleted_by)
+      VALUES
+        ('run-old-active', 'sample-1', 'family-process', 'template-process', NULL,
+         1, 'group-old', 'Process', 'process', 1, 'active',
+         '2026-07-30T10:01:00.000Z', 'process', '2026-07-30T10:02:00.000Z', 'operator@example.com'),
+        ('run-new-complete', 'sample-1', 'family-process', 'template-process', 'run-old-active',
+         2, 'group-new', 'Process', 'process', 1, 'complete',
+         '2026-07-30T10:03:00.000Z', 'process', NULL, NULL);
+    `);
+
+    const response = await restoreRequest(testEnv(database), "run-old-active", "2026-07-30T10:00:00.000Z");
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "An active process run can only be restored when it is the latest visible process run.",
+    });
+    expect(database.prepare("SELECT status, deleted_at FROM runs WHERE id = 'run-old-active'").get())
+      .toEqual({ status: "active", deleted_at: "2026-07-30T10:02:00.000Z" });
+    expect(database.prepare("SELECT status FROM samples WHERE id = 'sample-1'").get())
+      .toEqual({ status: "stored" });
+    database.close();
+  });
 });

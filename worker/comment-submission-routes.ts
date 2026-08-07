@@ -88,6 +88,85 @@ async function ownedSubmission(c: Context<AppBindings>, id: string) {
   return submission;
 }
 
+async function requireVisibleSubmissionTargets(
+  c: Context<AppBindings>,
+  submission: Pick<SubmissionRow, "context_kind" | "sample_id">,
+  submissionId: string,
+) {
+  if (submission.context_kind === "sample") {
+    const sample = submission.sample_id
+      ? await c.env.DB.prepare("SELECT id FROM samples WHERE id = ? AND deleted_at IS NULL")
+        .bind(submission.sample_id).first<{ id: string }>()
+      : null;
+    if (!sample) throw new HTTPException(409, { message: "The comment target is no longer available" });
+    return;
+  }
+  const counts = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS target_count,
+            COALESCE(SUM(CASE
+              WHEN s.id IS NOT NULL AND s.deleted_at IS NULL
+                AND r.id IS NOT NULL AND r.deleted_at IS NULL
+                AND rs.id IS NOT NULL AND rs.deleted_at IS NULL
+              THEN 1 ELSE 0 END), 0) AS visible_count
+     FROM comment_submission_targets cst
+     LEFT JOIN samples s ON s.id = cst.sample_id
+     LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+     LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+     WHERE cst.submission_id = ?`,
+  ).bind(submissionId).first<{ target_count: number; visible_count: number }>();
+  if (!counts || Number(counts.target_count) < 1
+    || Number(counts.visible_count) !== Number(counts.target_count)) {
+    throw new HTTPException(409, { message: "One or more comment targets are no longer available" });
+  }
+}
+
+async function requireCommentItemDependency(
+  c: Context<AppBindings>,
+  submissionId: string,
+  itemId: string,
+  action: "delete" | "restore",
+) {
+  if (action === "delete") {
+    const requiredOriginal = await c.env.DB.prepare(
+      `SELECT image.original_filename, image.original_mime_type
+       FROM comment_submission_items original
+       JOIN comment_submission_items image
+        ON image.submission_id = original.submission_id
+        AND image.kind = 'comment_image'
+        AND image.related_item_id = original.id
+        AND image.status <> 'cancelled' AND image.deleted_at IS NULL
+       WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'
+         AND original.deleted_at IS NULL`,
+    ).bind(itemId, submissionId).first<{ original_filename: string; original_mime_type: string }>();
+    if (requiredOriginal && isTiffMetadata(requiredOriginal.original_filename, requiredOriginal.original_mime_type)) {
+      throw new HTTPException(409, { message: "The original TIFF is required while its comment preview is present" });
+    }
+    return;
+  }
+
+  const preview = await c.env.DB.prepare(
+    `SELECT image.original_filename, image.original_mime_type,
+            original.id AS original_id, original.status AS original_status,
+            original.deleted_at AS original_deleted_at
+     FROM comment_submission_items image
+     LEFT JOIN comment_submission_items original
+       ON original.id = image.related_item_id
+       AND original.submission_id = image.submission_id
+       AND original.kind = 'attachment'
+     WHERE image.id = ? AND image.submission_id = ? AND image.kind = 'comment_image'`,
+  ).bind(itemId, submissionId).first<{
+    original_filename: string;
+    original_mime_type: string;
+    original_id: string | null;
+    original_status: string | null;
+    original_deleted_at: string | null;
+  }>();
+  if (preview && isTiffMetadata(preview.original_filename, preview.original_mime_type)
+    && (!preview.original_id || preview.original_status !== "ready" || preview.original_deleted_at !== null)) {
+    throw new HTTPException(409, { message: "Restore the original TIFF before restoring its comment preview" });
+  }
+}
+
 async function markItemFailed(env: Env, submissionId: string, itemId: string, message: string) {
   const now = new Date().toISOString();
   await env.DB.batch([
@@ -409,20 +488,8 @@ routes.delete("/comment-submissions/:submissionId/items/:itemId", async (c) => {
   const itemId = c.req.param("itemId");
   const submission = await ownedSubmission(c, submissionId);
   if (submission.status === "cancelled") throw new HTTPException(409, { message: "Cancelled submissions cannot be changed" });
-  const requiredOriginal = await c.env.DB.prepare(
-    `SELECT image.original_filename, image.original_mime_type
-     FROM comment_submission_items original
-     JOIN comment_submission_items image
-      ON image.submission_id = original.submission_id
-      AND image.kind = 'comment_image'
-      AND image.related_item_id = original.id
-      AND image.status <> 'cancelled' AND image.deleted_at IS NULL
-     WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'
-       AND original.deleted_at IS NULL`,
-  ).bind(itemId, submissionId).first<{ original_filename: string; original_mime_type: string }>();
-  if (requiredOriginal && isTiffMetadata(requiredOriginal.original_filename, requiredOriginal.original_mime_type)) {
-    throw new HTTPException(409, { message: "The original TIFF is required while its comment preview is present" });
-  }
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
+  await requireCommentItemDependency(c, submissionId, itemId, "delete");
   const now = new Date().toISOString();
   if (submission.status === "ready") {
     const result = await c.env.DB.prepare(
@@ -445,6 +512,10 @@ routes.delete("/comment-submissions/:submissionId/items/:itemId", async (c) => {
 routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c) => {
   const submissionId = c.req.param("submissionId");
   const itemId = c.req.param("itemId");
+  const submission = await ownedSubmission(c, submissionId);
+  if (submission.status !== "ready") throw new HTTPException(409, { message: "Only completed comment attachments can be restored" });
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
+  await requireCommentItemDependency(c, submissionId, itemId, "restore");
   const item = await c.env.DB.prepare(
     `SELECT csi.deleted_at
      FROM comment_submission_items csi
@@ -595,6 +666,7 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
   ).bind(submissionId).first<SubmissionRow>();
   if (!submission || submission.status === "cancelled") throw new HTTPException(404, { message: "Comment not found" });
   if (submission.status !== "ready") throw new HTTPException(409, { message: "Use cancel for an unfinished upload" });
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
   const statements = [c.env.DB.prepare(
@@ -661,11 +733,12 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
 routes.post("/comment-submissions/:submissionId/restore", async (c) => {
   const submissionId = c.req.param("submissionId");
   const submission = await c.env.DB.prepare(
-    `SELECT id, context_kind, sample_id, scope, body, status, deleted_at
+    `SELECT id, context_kind, sample_id, scope, body, status, deleted_at, deleted_by
      FROM comment_submissions WHERE id = ? AND deleted_at IS NOT NULL`,
-  ).bind(submissionId).first<SubmissionRow & { deleted_at: string }>();
+  ).bind(submissionId).first<SubmissionRow & { deleted_at: string; deleted_by: string | null }>();
   if (!submission) throw new HTTPException(404, { message: "Deleted comment not found" });
   if (submission.status !== "ready") throw new HTTPException(409, { message: "Only completed comments can be restored" });
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
   const now = new Date(Math.max(Date.now(), Date.parse(submission.deleted_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
   const statements: D1PreparedStatement[] = [c.env.DB.prepare(
@@ -677,8 +750,9 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
     statements.push(c.env.DB.prepare(
       `UPDATE events
        SET metadata_json = json_remove(metadata_json, '$.deletedAt', '$.deletedBy')
-       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?`,
-    ).bind(submission.sample_id, submissionId));
+       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?
+         AND json_extract(metadata_json, '$.deletedAt') = ?`,
+    ).bind(submission.sample_id, submissionId, submission.deleted_at));
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples
@@ -703,8 +777,15 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
     statements.push(c.env.DB.prepare(
       `UPDATE run_step_comments
        SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ?
-       WHERE submission_id = ? AND deleted_at IS NOT NULL`,
-    ).bind(now, userEmail, submissionId));
+       WHERE submission_id = ? AND deleted_at = ? AND deleted_by IS ?
+         AND EXISTS (
+           SELECT 1 FROM run_steps rs
+           JOIN runs r ON r.id = rs.run_id
+           JOIN samples s ON s.id = r.sample_id
+           WHERE rs.id = run_step_comments.run_step_id
+             AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         )`,
+    ).bind(now, userEmail, submissionId, submission.deleted_at, submission.deleted_by));
     for (const target of targets.results) statements.push(c.env.DB.prepare(
       "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
     ).bind(userEmail, now, target.run_step_id));

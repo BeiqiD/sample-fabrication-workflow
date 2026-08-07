@@ -3,10 +3,15 @@
 -- lifecycle rollups.
 
 DROP INDEX runs_one_active_process_per_sample_idx;
+DROP INDEX runs_single_successor_idx;
 
 CREATE UNIQUE INDEX runs_one_active_process_per_sample_idx
 ON runs(sample_id)
 WHERE status = 'active' AND run_kind = 'process' AND deleted_at IS NULL;
+
+CREATE UNIQUE INDEX runs_single_successor_idx
+ON runs(predecessor_run_id)
+WHERE predecessor_run_id IS NOT NULL AND deleted_at IS NULL;
 
 DROP TRIGGER runs_activate_sample_after_insert;
 DROP TRIGGER runs_activate_sample_after_reopen;

@@ -178,6 +178,12 @@ describe("source lifecycle routes", () => {
     addSample(database);
     addRun(database);
     database.exec(`
+      INSERT INTO run_steps
+        (id, run_id, position, status, origin, entry_kind, title, created_at, updated_at)
+      VALUES
+        ('step-2', 'run-1', 2000, 'done', 'template', 'fabrication', 'Step 2',
+         '2026-08-07T10:05:00.000Z', '2026-08-07T10:05:00.000Z');
+
       INSERT INTO managed_storage_objects
         (id, provider, object_key, original_name, mime_type, byte_size, sha256, status, created_at)
       VALUES
@@ -193,7 +199,8 @@ describe("source lifecycle routes", () => {
       INSERT INTO comment_submission_targets
         (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
       VALUES
-        ('submission-1', 'sample-1', 'run-1', 'step-1', '2026-08-07T10:05:00.000Z');
+        ('submission-1', 'sample-1', 'run-1', 'step-1', '2026-08-07T10:05:00.000Z'),
+        ('submission-1', 'sample-1', 'run-1', 'step-2', '2026-08-07T10:05:00.000Z');
 
       INSERT INTO comment_submission_items
         (id, submission_id, kind, status, position, filename, storage_object_id, created_at, updated_at)
@@ -202,10 +209,12 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, submission_id, created_at)
+        (id, run_step_id, scope, body, submission_id, created_at, deleted_at, deleted_by)
       VALUES
         ('comment-1', 'step-1', 'individual', 'Observation', 'submission-1',
-         '2026-08-07T10:06:00.000Z');
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z', 'earlier@example.com'),
+        ('comment-2', 'step-2', 'individual', 'Observation', 'submission-1',
+         '2026-08-07T10:06:00.000Z', NULL, NULL);
     `);
     const env = testEnv(database);
 
@@ -214,8 +223,11 @@ describe("source lifecycle routes", () => {
       "SELECT deleted_at IS NOT NULL AS deleted FROM comment_submissions WHERE id = 'submission-1'",
     ).get()).toEqual({ deleted: 1 });
     expect(database.prepare(
-      "SELECT deleted_at IS NOT NULL AS deleted FROM run_step_comments WHERE id = 'comment-1'",
-    ).get()).toEqual({ deleted: 1 });
+      "SELECT id, deleted_at, deleted_by FROM run_step_comments ORDER BY id",
+    ).all()).toEqual([
+      { id: "comment-1", deleted_at: "2026-08-07T10:07:00.000Z", deleted_by: "earlier@example.com" },
+      { id: "comment-2", deleted_at: expect.any(String), deleted_by: "local-development" },
+    ]);
     expect(database.prepare("SELECT status FROM managed_storage_objects WHERE id = 'storage-1'").get())
       .toEqual({ status: "ready" });
     expect(database.prepare("SELECT status, deleted_at FROM comment_submission_items WHERE id = 'item-1'").get())
@@ -227,10 +239,16 @@ describe("source lifecycle routes", () => {
     expect(hidden.runs[0].steps[0].comments).toEqual([]);
 
     expect((await request(env, "/comment-submissions/submission-1/restore", { method: "POST" })).status).toBe(200);
+    expect(database.prepare(
+      "SELECT id, deleted_at, deleted_by FROM run_step_comments ORDER BY id",
+    ).all()).toEqual([
+      { id: "comment-1", deleted_at: "2026-08-07T10:07:00.000Z", deleted_by: "earlier@example.com" },
+      { id: "comment-2", deleted_at: null, deleted_by: null },
+    ]);
     const restored = await (await request(env, "/samples/sample-1")).json() as {
       runs: Array<{ steps: Array<{ comments: Array<{ submissionId: string }> }> }>;
     };
-    expect(restored.runs[0].steps[0].comments).toEqual([
+    expect(restored.runs.flatMap((run) => run.steps).flatMap((step) => step.comments)).toEqual([
       expect.objectContaining({ submissionId: "submission-1" }),
     ]);
     database.close();
@@ -244,11 +262,24 @@ describe("source lifecycle routes", () => {
       INSERT INTO assets
         (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
       VALUES
-        ('asset-1', 'image-key', 'image.png', 'image/png', 10, 'ready', 'asset-hash',
-         '2026-08-07T10:06:00.000Z');
+        ('asset-1', 'image-key-a', 'image-a.png', 'image/png', 10, 'ready', 'asset-hash-a',
+         '2026-08-07T10:06:00.000Z'),
+        ('asset-2', 'image-key-b', 'image-b.png', 'image/png', 11, 'ready', 'asset-hash-b',
+         '2026-08-07T10:07:00.000Z');
 
       INSERT INTO run_step_assets (id, run_step_id, asset_id, role, created_at)
-      VALUES ('step-asset-1', 'step-1', 'asset-1', 'execution', '2026-08-07T10:06:00.000Z');
+      VALUES
+        ('step-asset-1', 'step-1', 'asset-1', 'execution', '2026-08-07T10:06:00.000Z'),
+        ('step-asset-2', 'step-1', 'asset-2', 'execution', '2026-08-07T10:07:00.000Z');
+
+      INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, created_at)
+      VALUES
+        ('asset-event-1', 'sample-1', 'image', 'Image A', 'image-key-a',
+         '{"runId":"run-1","stepId":"step-1","runStepAssetId":"step-asset-1"}',
+         '2026-08-07T10:06:00.000Z'),
+        ('asset-event-2', 'sample-1', 'image', 'Image B', 'image-key-b',
+         '{"runId":"run-1","stepId":"step-1","runStepAssetId":"step-asset-2"}',
+         '2026-08-07T10:07:00.000Z');
 
       INSERT INTO metrology_template_references
         (id, template_version_id, asset_id, display_name, created_at)
@@ -261,20 +292,55 @@ describe("source lifecycle routes", () => {
     expect((await request(env, "/samples/sample-1/runs/run-1/steps/step-1/assets", {
       method: "DELETE",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ assetKey: "image-key" }),
+      body: JSON.stringify({ assetKey: "image-key-a" }),
+    })).status).toBe(200);
+    expect((await request(env, "/samples/sample-1/runs/run-1/steps/step-1/assets", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assetKey: "image-key-b" }),
     })).status).toBe(200);
     expect(database.prepare(
-      "SELECT deleted_at IS NOT NULL AS deleted FROM run_step_assets WHERE id = 'step-asset-1'",
-    ).get()).toEqual({ deleted: 1 });
+      "SELECT id, deleted_at IS NOT NULL AS deleted FROM run_step_assets ORDER BY id",
+    ).all()).toEqual([
+      { id: "step-asset-1", deleted: 1 },
+      { id: "step-asset-2", deleted: 1 },
+    ]);
 
     expect((await request(env, "/samples/sample-1/runs/run-1/steps/step-1/assets/restore", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ assetKey: "image-key" }),
+      body: JSON.stringify({ assetKey: "image-key-a" }),
     })).status).toBe(200);
     expect(database.prepare(
-      "SELECT deleted_at, deleted_by FROM run_step_assets WHERE id = 'step-asset-1'",
-    ).get()).toEqual({ deleted_at: null, deleted_by: null });
+      "SELECT id, deleted_at IS NULL AS visible FROM run_step_assets ORDER BY id",
+    ).all()).toEqual([
+      { id: "step-asset-1", visible: 1 },
+      { id: "step-asset-2", visible: 0 },
+    ]);
+    const imageEvents = database.prepare(
+      "SELECT id, asset_key, metadata_json FROM events WHERE id IN ('asset-event-1', 'asset-event-2') ORDER BY id",
+    ).all() as Array<{ id: string; asset_key: string | null; metadata_json: string }>;
+    expect(imageEvents.map((event) => ({
+      id: event.id,
+      assetKey: event.asset_key,
+      metadata: JSON.parse(event.metadata_json),
+    }))).toEqual([
+      {
+        id: "asset-event-1",
+        assetKey: "image-key-a",
+        metadata: { runId: "run-1", stepId: "step-1", runStepAssetId: "step-asset-1" },
+      },
+      {
+        id: "asset-event-2",
+        assetKey: null,
+        metadata: expect.objectContaining({
+          runId: "run-1",
+          stepId: "step-1",
+          runStepAssetId: "step-asset-2",
+          assetDeletedAt: expect.any(String),
+        }),
+      },
+    ]);
 
     expect((await request(env, "/metrology-templates/template-metrology/references/reference-1", {
       method: "DELETE",
@@ -288,6 +354,135 @@ describe("source lifecycle routes", () => {
     expect(database.prepare(
       "SELECT deleted_at, deleted_by FROM metrology_template_references WHERE id = 'reference-1'",
     ).get()).toEqual({ deleted_at: null, deleted_by: null });
+    database.close();
+  });
+
+  it("enforces attachment ownership and restores a TIFF preview only after its original", async () => {
+    const database = createDatabase();
+    addSample(database);
+    database.exec(`
+      INSERT INTO comment_submissions
+        (id, context_kind, sample_id, body, status, actor_email, created_at, updated_at)
+      VALUES
+        ('submission-owned', 'sample', 'sample-1', 'Owned attachment', 'ready',
+         'other@example.com', '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z'),
+        ('submission-tiff', 'sample', 'sample-1', 'TIFF attachment', 'ready',
+         'local-development', '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+
+      INSERT INTO comment_submission_items
+        (id, submission_id, kind, status, position, filename, mime_type, byte_size,
+         original_filename, original_mime_type, original_byte_size,
+         created_at, updated_at, deleted_at, deleted_by)
+      VALUES
+        ('owned-item', 'submission-owned', 'attachment', 'ready', 0,
+         'owned.dat', 'application/octet-stream', 5,
+         'owned.dat', 'application/octet-stream', 5,
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'other@example.com'),
+        ('preview-tiff', 'submission-tiff', 'comment_image', 'ready', 0,
+         'scan-preview.png', 'image/png', 10,
+         'scan.tiff', 'image/tiff', 100,
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'local-development'),
+        ('original-tiff', 'submission-tiff', 'attachment', 'ready', 1,
+         'scan.tiff', 'image/tiff', 100,
+         'scan.tiff', 'image/tiff', 100,
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
+         '2026-08-07T10:07:00.000Z', 'local-development');
+
+      UPDATE comment_submission_items
+      SET related_item_id = 'original-tiff'
+      WHERE id = 'preview-tiff';
+      UPDATE comment_submission_items
+      SET related_item_id = 'preview-tiff'
+      WHERE id = 'original-tiff';
+    `);
+    const env = testEnv(database);
+
+    const ownershipResponse = await request(
+      env,
+      "/comment-submissions/submission-owned/items/owned-item/restore",
+      { method: "POST" },
+    );
+    expect(ownershipResponse.status).toBe(403);
+    expect(database.prepare("SELECT deleted_at FROM comment_submission_items WHERE id = 'owned-item'").get())
+      .toEqual({ deleted_at: "2026-08-07T10:07:00.000Z" });
+
+    const previewFirst = await request(
+      env,
+      "/comment-submissions/submission-tiff/items/preview-tiff/restore",
+      { method: "POST" },
+    );
+    expect(previewFirst.status).toBe(409);
+    expect(await previewFirst.json()).toEqual({
+      error: "Restore the original TIFF before restoring its comment preview",
+    });
+
+    expect((await request(
+      env,
+      "/comment-submissions/submission-tiff/items/original-tiff/restore",
+      { method: "POST" },
+    )).status).toBe(200);
+    expect((await request(
+      env,
+      "/comment-submissions/submission-tiff/items/preview-tiff/restore",
+      { method: "POST" },
+    )).status).toBe(200);
+    expect(database.prepare(
+      "SELECT id, deleted_at FROM comment_submission_items WHERE submission_id = 'submission-tiff' ORDER BY position",
+    ).all()).toEqual([
+      { id: "preview-tiff", deleted_at: null },
+      { id: "original-tiff", deleted_at: null },
+    ]);
+    database.close();
+  });
+
+  it("rejects a common-comment group mutation when any target ancestor is deleted", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO runs
+        (id, sample_id, recipe_family_id, template_version_id, predecessor_run_id,
+         sequence_no, run_group_id, template_name_snapshot, template_type_snapshot,
+         template_version_snapshot, status, created_at, run_kind, deleted_at, deleted_by)
+      VALUES
+        ('run-2', 'sample-1', 'family-process', 'template-process', 'run-1',
+         2, 'group-2', 'Process', 'process', 1, 'complete',
+         '2026-08-07T10:06:00.000Z', 'process',
+         '2026-08-07T10:08:00.000Z', 'local-development');
+
+      INSERT INTO run_steps
+        (id, run_id, position, status, origin, entry_kind, title, created_at, updated_at)
+      VALUES
+        ('step-2', 'run-2', 1000, 'done', 'template', 'fabrication', 'Step 2',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, operation_group_id, body, created_at)
+      VALUES
+        ('common-visible', 'step-1', 'common', 'common-group-1', 'Shared observation',
+         '2026-08-07T10:07:00.000Z'),
+        ('common-hidden', 'step-2', 'common', 'common-group-1', 'Shared observation',
+         '2026-08-07T10:07:00.000Z');
+    `);
+    const env = testEnv(database);
+
+    const response = await request(env, "/run-step-comments/common-visible", { method: "DELETE" });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "A common comment target is no longer available. Restore every target before changing the group.",
+    });
+    expect(database.prepare(
+      "SELECT id, deleted_at FROM run_step_comments WHERE operation_group_id = 'common-group-1' ORDER BY id",
+    ).all()).toEqual([
+      { id: "common-hidden", deleted_at: null },
+      { id: "common-visible", deleted_at: null },
+    ]);
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM events WHERE json_extract(metadata_json, '$.operationGroupId') = 'common-group-1'",
+    ).get()).toEqual({ count: 0 });
     database.close();
   });
 
