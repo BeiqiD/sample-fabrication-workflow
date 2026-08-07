@@ -813,31 +813,44 @@ routes.post("/comment-submissions/:submissionId/cancel", async (c) => {
   const submission = await ownedSubmission(c, submissionId);
   if (submission.status === "ready") throw new HTTPException(409, { message: "A completed comment cannot be cancelled" });
   const now = new Date().toISOString();
-  await c.env.DB.batch([
+  const mutationId = crypto.randomUUID();
+  const results = await c.env.DB.batch([
     c.env.DB.prepare(
       `UPDATE comment_submissions
-       SET status = 'cancelled', error_message = NULL, cancelled_at = ?, updated_at = ?
-       WHERE id = ? AND status <> 'ready' AND deleted_at IS NULL`,
-    ).bind(now, now, submissionId),
+       SET status = 'cancelled', error_message = NULL, cancelled_at = ?,
+           last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL`,
+    ).bind(now, mutationId, now, submissionId),
     c.env.DB.prepare(
       `UPDATE comment_submission_items SET status = 'cancelled', updated_at = ?
        WHERE submission_id = ? AND status NOT IN ('ready', 'cancelled')
-         AND deleted_at IS NULL`,
-    ).bind(now, submissionId),
+         AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = comment_submission_items.submission_id
+             AND cs.status = 'cancelled' AND cs.last_mutation_id = ?
+         )`,
+    ).bind(now, submissionId, mutationId),
     c.env.DB.prepare(
       `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
        WHERE id IN (
-         SELECT storage_object_id FROM comment_submission_items
-         WHERE submission_id = ? AND storage_object_id IS NOT NULL
+         SELECT csi.storage_object_id
+         FROM comment_submission_items csi
+         JOIN comment_submissions cs ON cs.id = csi.submission_id
+         WHERE csi.submission_id = ? AND csi.storage_object_id IS NOT NULL
+           AND cs.status = 'cancelled' AND cs.last_mutation_id = ?
        )
        AND NOT EXISTS (
          SELECT 1 FROM comment_submission_items other
          JOIN comment_submissions cs ON cs.id = other.submission_id
          WHERE other.storage_object_id = managed_storage_objects.id
-           AND other.submission_id <> ? AND cs.status = 'ready'
+           AND cs.status = 'ready'
        )`,
-    ).bind(now, submissionId, submissionId),
+    ).bind(now, submissionId, mutationId),
   ]);
+  if (!results[0].meta.changes) {
+    throw new HTTPException(409, { message: "This submission changed while it was being cancelled" });
+  }
   return c.json({ ok: true });
 });
 
@@ -1226,6 +1239,33 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }
   return c.json({ ok: true, updatedAt: now });
+});
+
+routes.get("/exports/attachments/:itemId", async (c) => {
+  const itemId = c.req.param("itemId");
+  const row = await c.env.DB.prepare(
+    `SELECT COALESCE(csi.filename, mso.original_name, 'attachment') AS filename,
+            mso.provider, mso.object_key, mso.mime_type
+     FROM comment_submission_items csi
+     JOIN managed_storage_objects mso ON mso.id = csi.storage_object_id AND mso.status = 'ready'
+     WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'`,
+  ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
+  if (!row) throw new HTTPException(404, { message: "Export attachment not found" });
+  const storage = managedStorage(c.env);
+  if (!storage || storage.provider !== row.provider) throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  const object = await storage.get(row.object_key);
+  if (!object) throw new HTTPException(404, { message: "Attachment object not found" });
+  const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+  const encoded = encodeURIComponent(row.filename);
+  return new Response(object.body, {
+    headers: {
+      "content-type": object.contentType || row.mime_type,
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`,
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    },
+  });
 });
 
 routes.get("/attachments/:itemId/download", async (c) => {

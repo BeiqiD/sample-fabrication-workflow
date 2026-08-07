@@ -1422,11 +1422,47 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
   const verificationId = typeof metadata.verificationId === "string" ? metadata.verificationId : null;
   const stepId = typeof metadata.stepId === "string" ? metadata.stepId : null;
   const runId = typeof metadata.runId === "string" ? metadata.runId : null;
+  const eventRunStepAssetId = typeof metadata.runStepAssetId === "string" ? metadata.runStepAssetId : null;
   if (runId) {
     const liveRun = await c.env.DB.prepare(
       "SELECT id FROM runs WHERE id = ? AND sample_id = ? AND deleted_at IS NULL",
     ).bind(runId, sampleId).first<{ id: string }>();
     if (!liveRun) throw new HTTPException(404, { message: "Active timeline source not found" });
+  }
+  let executionOccurrenceId: string | null = null;
+  if (stepId && runId && event.kind === "image") {
+    const occurrences = eventRunStepAssetId
+      ? (await c.env.DB.prepare(
+        `SELECT rsa.id
+         FROM run_step_assets rsa
+         JOIN assets a ON a.id = rsa.asset_id
+         JOIN run_steps rs ON rs.id = rsa.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.role = 'execution'
+           AND a.r2_key = ? AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
+      ).bind(
+        eventRunStepAssetId, stepId, event.asset_key,
+        stepId, runId, sampleId,
+      ).all<{ id: string }>()).results
+      : (await c.env.DB.prepare(
+        `SELECT rsa.id
+         FROM run_step_assets rsa
+         JOIN assets a ON a.id = rsa.asset_id
+         JOIN run_steps rs ON rs.id = rsa.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND a.r2_key = ?
+           AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
+      ).bind(stepId, event.asset_key, stepId, runId, sampleId).all<{ id: string }>()).results;
+    if (occurrences.length !== 1) {
+      throw new HTTPException(409, { message: "This execution image no longer identifies one attachment occurrence" });
+    }
+    executionOccurrenceId = occurrences[0].id;
   }
   const affectedEvents = operationGroupId && sourceAction === "step_comment"
     ? (await c.env.DB.prepare(
@@ -1437,6 +1473,23 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
          AND asset_key = ?
        ORDER BY id`,
     ).bind(operationGroupId, event.asset_key).all<{ id: string; sample_id: string }>()).results
+    : executionOccurrenceId && stepId && runId && event.kind === "image"
+      ? (await c.env.DB.prepare(
+        `SELECT id, sample_id
+         FROM events
+         WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+           AND (
+             json_extract(metadata_json, '$.runStepAssetId') = ?
+             OR (
+               json_extract(metadata_json, '$.runStepAssetId') IS NULL
+               AND json_extract(metadata_json, '$.runId') = ?
+               AND json_extract(metadata_json, '$.stepId') = ?
+             )
+           )
+         ORDER BY id`,
+      ).bind(
+        sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
+      ).all<{ id: string; sample_id: string }>()).results
     : [{ id: eventId, sample_id: sampleId }];
   const affectedSampleIds = [...new Set(affectedEvents.map((row) => row.sample_id))];
   if (!affectedEvents.length) {
@@ -1588,53 +1641,77 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
       verificationId, sampleId, event.asset_key,
       eventId, sampleId, deletionOperationId,
     ));
-  } else if (stepId && runId && event.kind === "image") {
+  } else if (stepId && runId && event.kind === "image" && executionOccurrenceId) {
     statements.push(c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL,
+      `WITH candidate_events AS MATERIALIZED (
+         SELECT id
+         FROM events
+         WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+           AND (
+             json_extract(metadata_json, '$.runStepAssetId') = ?
+             OR (
+               json_extract(metadata_json, '$.runStepAssetId') IS NULL
+               AND json_extract(metadata_json, '$.runId') = ?
+               AND json_extract(metadata_json, '$.stepId') = ?
+             )
+           )
+       ),
+       valid_occurrence AS MATERIALIZED (
+         SELECT rsa.id
+         FROM run_step_assets rsa
+         JOIN assets a ON a.id = rsa.asset_id
+         JOIN run_steps rs ON rs.id = rsa.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.role = 'execution'
+           AND a.r2_key = ? AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND r.deleted_at IS NULL AND s.deleted_at IS NULL
+       )
+       UPDATE events SET asset_key = NULL,
          metadata_json = json_set(
-           metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
+           metadata_json, '$.runStepAssetId', ?,
+           '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
            '$.assetDeletionOperationId', ?
          )
-       WHERE id = ? AND sample_id = ? AND asset_key = ?
-         AND EXISTS (
-           SELECT 1
-           FROM run_step_assets rsa
-           JOIN run_steps rs ON rs.id = rsa.run_step_id
-           JOIN runs r ON r.id = rs.run_id
-           JOIN samples s ON s.id = r.sample_id
-           WHERE rsa.run_step_id = ? AND rsa.deleted_at IS NULL
-             AND rsa.asset_id = (SELECT id FROM assets WHERE r2_key = ?)
-             AND rs.id = ? AND r.id = ? AND s.id = ?
-             AND s.deleted_at IS NULL AND r.deleted_at IS NULL
-             AND rs.deleted_at IS NULL
-         )`,
+       WHERE id IN (SELECT id FROM candidate_events)
+         AND (SELECT COUNT(*) FROM candidate_events) = ?
+         AND EXISTS (SELECT 1 FROM valid_occurrence)`,
     ).bind(
-      now, userEmail, deletionOperationId,
-      eventId, sampleId, event.asset_key,
-      stepId, event.asset_key, stepId, runId, sampleId,
+      sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
+      executionOccurrenceId, stepId, event.asset_key, stepId, runId, sampleId,
+      executionOccurrenceId, now, userEmail, deletionOperationId,
+      affectedEventIds.length,
     ));
     statements.push(c.env.DB.prepare(
       `UPDATE run_step_assets
        SET deleted_at = ?, deleted_by = ?, last_mutation_id = ?
-       WHERE run_step_id = ? AND deleted_at IS NULL
+       WHERE id = ? AND run_step_id = ? AND deleted_at IS NULL
          AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
-         AND EXISTS (
-           SELECT 1 FROM events source
-           WHERE source.id = ? AND source.sample_id = ?
+         AND (
+           SELECT COUNT(*) FROM events source
+           WHERE source.sample_id = ? AND source.kind = 'image'
+             AND json_valid(source.metadata_json)
+             AND json_extract(source.metadata_json, '$.runStepAssetId') = ?
              AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
-         )`,
+         ) = ?`,
     ).bind(
       now, userEmail, deletionOperationId,
-      stepId, event.asset_key, eventId, sampleId, deletionOperationId,
+      executionOccurrenceId, stepId, event.asset_key,
+      sampleId, executionOccurrenceId, deletionOperationId, affectedEventIds.length,
     ));
     statements.push(c.env.DB.prepare(
       `UPDATE run_steps SET updated_by = ?, updated_at = ?
        WHERE id = ? AND run_id = ? AND deleted_at IS NULL
          AND EXISTS (
            SELECT 1 FROM run_step_assets rsa
-           WHERE rsa.run_step_id = run_steps.id AND rsa.last_mutation_id = ?
+           WHERE rsa.id = ? AND rsa.run_step_id = run_steps.id
+             AND rsa.last_mutation_id = ?
          )`,
-    ).bind(userEmail, now, stepId, runId, deletionOperationId));
+    ).bind(
+      userEmail, now, stepId, runId,
+      executionOccurrenceId, deletionOperationId,
+    ));
   } else if (isSampleRecordEvent(event.kind, metadata)) {
     const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
     statements.push(c.env.DB.prepare(
@@ -1663,6 +1740,39 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
     const sampleEventIds = affectedEvents
       .filter((row) => row.sample_id === affectedSampleId)
       .map((row) => row.id);
+    if (executionOccurrenceId) {
+      statements.push(c.env.DB.prepare(
+        `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+         SELECT ?, ?, 'comment', ?, ?, ?, ?
+         WHERE (
+           SELECT COUNT(*) FROM events source
+           WHERE source.sample_id = ? AND source.kind = 'image'
+             AND json_valid(source.metadata_json)
+             AND json_extract(source.metadata_json, '$.runStepAssetId') = ?
+             AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+         ) = ?`,
+      ).bind(
+        crypto.randomUUID(), affectedSampleId, `Deleted image attachment · ${event.body?.trim() || "Image"}`,
+        JSON.stringify({ action: "image_attachment_deleted", originalEventId: eventId, sourceAction, hadAsset: true }),
+        userEmail, now,
+        affectedSampleId, executionOccurrenceId, deletionOperationId, sampleEventIds.length,
+      ));
+      statements.push(c.env.DB.prepare(
+        `UPDATE samples SET updated_by = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+           AND (
+             SELECT COUNT(*) FROM events source
+             WHERE source.sample_id = samples.id AND source.kind = 'image'
+               AND json_valid(source.metadata_json)
+               AND json_extract(source.metadata_json, '$.runStepAssetId') = ?
+               AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+           ) = ?`,
+      ).bind(
+        userEmail, now, affectedSampleId,
+        executionOccurrenceId, deletionOperationId, sampleEventIds.length,
+      ));
+      continue;
+    }
     const sampleEventPlaceholders = sampleEventIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
@@ -4341,12 +4451,14 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
   const userEmail = c.get("userEmail");
   const verificationId = crypto.randomUUID();
   const note = input.note.trim() || null;
-  const coveredValues = covered.map(() => "(?, ?)").join(", ");
-  const coveredBindings = covered.flatMap((step, index) => [step.id, index]);
-  const coveredPlaceholders = covered.map(() => "?").join(", ");
+  const coveredJson = JSON.stringify(covered.map((step, ordinal) => ({ stepId: step.id, ordinal })));
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
-      `UPDATE run_steps SET status = CASE WHEN ? THEN 'done' ELSE status END,
+      `WITH covered AS MATERIALIZED (
+         SELECT CAST(json_extract(value, '$.stepId') AS TEXT) AS run_step_id
+         FROM json_each(?)
+       )
+       UPDATE run_steps SET status = CASE WHEN ? THEN 'done' ELSE status END,
               actualized_at = COALESCE(actualized_at, ?), updated_by = ?,
               last_mutation_id = ?, updated_at = ?
        WHERE id = ? AND run_id = ? AND updated_at = ? AND deleted_at IS NULL
@@ -4360,13 +4472,14 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
            FROM run_steps covered_step
            JOIN runs covered_run ON covered_run.id = covered_step.run_id
            JOIN samples covered_sample ON covered_sample.id = covered_run.sample_id
-           WHERE covered_step.id IN (${coveredPlaceholders})
+           WHERE covered_step.id IN (SELECT run_step_id FROM covered)
              AND covered_run.sample_id = ?
              AND covered_sample.deleted_at IS NULL
              AND covered_run.deleted_at IS NULL
              AND covered_step.deleted_at IS NULL
          ) = ?`,
     ).bind(
+      coveredJson,
       input.completeStep ? 1 : 0,
       now,
       userEmail,
@@ -4377,7 +4490,6 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
       input.expectedUpdatedAt,
       runId,
       sampleId,
-      ...covered.map((step) => step.id),
       sampleId,
       covered.length,
     ),
@@ -4408,7 +4520,11 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
       verificationId,
     ),
     c.env.DB.prepare(
-      `WITH covered(run_step_id, ordinal) AS (VALUES ${coveredValues})
+      `WITH covered AS MATERIALIZED (
+         SELECT CAST(json_extract(value, '$.stepId') AS TEXT) AS run_step_id,
+                CAST(json_extract(value, '$.ordinal') AS INTEGER) AS ordinal
+         FROM json_each(?)
+       )
        INSERT INTO state_verification_steps (verification_id, run_step_id, ordinal)
        SELECT ?, covered.run_step_id, covered.ordinal
        FROM covered
@@ -4435,9 +4551,9 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
              ON candidate_sample.id = candidate_run.sample_id
              AND candidate_sample.deleted_at IS NULL
            WHERE candidate_sample.id = ?
-         ) = ?`,
+       ) = ?`,
     ).bind(
-      ...coveredBindings,
+      coveredJson,
       verificationId,
       sampleId,
       verificationId,
@@ -4587,7 +4703,7 @@ app.get("/exports/all", async (c) => {
       filename: String(item.filename || object.original_name || "attachment"),
       byteSize: Number(item.byte_size || object.byte_size || 0),
       sha256: String(item.sha256 || object.sha256 || ""),
-      downloadUrl: `/api/attachments/${encodeURIComponent(String(item.id))}/download`,
+      downloadUrl: `/api/exports/attachments/${encodeURIComponent(String(item.id))}`,
     }];
   });
   return c.json({

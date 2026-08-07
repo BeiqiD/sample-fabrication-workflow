@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "./index";
 import type { Env } from "./types";
 
@@ -17,6 +17,9 @@ class SqliteD1Statement {
   }
 
   private statement(): StatementSync {
+    if (this.bindings.length > 100) {
+      throw new Error(`D1 allows at most 100 bound parameters; received ${this.bindings.length}`);
+    }
     return this.database.prepare(this.query);
   }
 
@@ -34,10 +37,16 @@ class SqliteD1Statement {
   }
 
   execute() {
-    const result = this.statement().run(...this.bindings);
+    const statement = this.statement();
+    if (/^\s*SELECT\b/i.test(this.query)) {
+      return { success: true, meta: { changes: 0 }, results: statement.all(...this.bindings) };
+    }
+    const result = statement.run(...this.bindings);
     return { success: true, meta: { changes: Number(result.changes) }, results: [] };
   }
 }
+
+afterEach(() => vi.unstubAllGlobals());
 
 class SqliteD1Database {
   constructor(
@@ -137,6 +146,38 @@ function testEnv(
 
 function request(env: Env, path: string, init?: RequestInit) {
   return worker.fetch(new Request(`https://samples.run/api${path}`, init), env, {} as ExecutionContext);
+}
+
+function managedStorageEnv(
+  database: DatabaseSync,
+  beforeBatch?: () => void,
+) {
+  return {
+    ...testEnv(database, beforeBatch),
+    MANAGED_STORAGE_PROVIDER: "switchdrive",
+    SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/test-user/",
+    SWITCHDRIVE_USERNAME: "test-user",
+    SWITCHDRIVE_APP_PASSWORD: "test-password",
+  } as Env;
+}
+
+function addActualizedVerificationSteps(database: DatabaseSync, count: number) {
+  database.prepare(
+    `UPDATE run_steps
+     SET actualized_at = '2026-08-07T10:05:00.000Z'
+     WHERE id = 'step-1'`,
+  ).run();
+  const insert = database.prepare(
+    `INSERT INTO run_steps
+      (id, run_id, position, status, origin, entry_kind, title,
+       actualized_at, created_at, updated_at)
+     VALUES (?, 'run-1', ?, 'done', 'template', 'fabrication', ?,
+       '2026-08-07T10:05:00.000Z',
+       '2026-08-07T10:05:00.000Z', '2026-08-07T10:05:00.000Z')`,
+  );
+  for (let index = 2; index <= count; index += 1) {
+    insert.run(`step-${index}`, index * 1000, `Step ${index}`);
+  }
 }
 
 describe("source lifecycle routes", () => {
@@ -279,6 +320,79 @@ describe("source lifecycle routes", () => {
     });
     database.close();
   });
+
+  it.each(["item", "canonical"] as const)(
+    "exports managed attachment bytes after the %s source is soft-deleted",
+    async (deletedSource) => {
+      const database = createDatabase();
+      addSample(database);
+      database.exec(`
+        INSERT INTO managed_storage_objects
+          (id, provider, object_key, original_name, mime_type, byte_size,
+           sha256, status, created_at)
+        VALUES
+          ('export-storage', 'switchdrive', 'exports/result.dat', 'result.dat',
+           'application/octet-stream', 14, 'export-hash', 'ready',
+           '2026-08-07T10:06:00.000Z');
+
+        INSERT INTO comment_submissions
+          (id, context_kind, sample_id, scope, body, status, created_at, updated_at)
+        VALUES
+          ('export-submission', 'sample', 'sample-1', NULL, 'Archived result',
+           'ready', '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+
+        INSERT INTO comment_submission_items
+          (id, submission_id, kind, status, position, filename, mime_type,
+           byte_size, sha256, storage_object_id, created_at, updated_at)
+        VALUES
+          ('export-item', 'export-submission', 'attachment', 'ready', 0,
+           'result.dat', 'application/octet-stream', 14, 'export-hash',
+           'export-storage', '2026-08-07T10:06:00.000Z',
+           '2026-08-07T10:06:00.000Z');
+      `);
+      if (deletedSource === "item") {
+        database.prepare(
+          `UPDATE comment_submission_items
+           SET deleted_at = '2026-08-07T10:07:00.000Z', deleted_by = 'local-development'
+           WHERE id = 'export-item'`,
+        ).run();
+      } else {
+        database.prepare(
+          `UPDATE comment_submissions
+           SET deleted_at = '2026-08-07T10:07:00.000Z', deleted_by = 'local-development'
+           WHERE id = 'export-submission'`,
+        ).run();
+      }
+      vi.stubGlobal("fetch", vi.fn(async () => new Response("archived-bytes", {
+        status: 200,
+        headers: {
+          "content-type": "application/octet-stream",
+          etag: "export-etag",
+        },
+      })));
+      const env = managedStorageEnv(database);
+
+      const manifestResponse = await request(env, "/exports/all");
+      expect(manifestResponse.status).toBe(200);
+      const manifest = await manifestResponse.json() as {
+        managedAttachments: Array<{ itemId: string; downloadUrl: string }>;
+      };
+      expect(manifest.managedAttachments).toEqual([
+        expect.objectContaining({
+          itemId: "export-item",
+          downloadUrl: "/api/exports/attachments/export-item",
+        }),
+      ]);
+
+      const attachmentResponse = await request(
+        env,
+        manifest.managedAttachments[0].downloadUrl.replace(/^\/api/, ""),
+      );
+      expect(attachmentResponse.status).toBe(200);
+      expect(await attachmentResponse.text()).toBe("archived-bytes");
+      database.close();
+    },
+  );
 
   it("requires the canonical Comment before restoring its occurrence or legacy image", async () => {
     const database = createDatabase();
@@ -748,6 +862,84 @@ describe("source lifecycle routes", () => {
     database.close();
   });
 
+  it("does not orphan a ready Comment attachment when Finalize wins a Cancel race", async () => {
+    const database = createDatabase();
+    addSample(database);
+    database.exec(`
+      INSERT INTO managed_storage_objects
+        (id, provider, object_key, original_name, mime_type, byte_size,
+         sha256, status, created_at)
+      VALUES
+        ('cancel-storage', 'switchdrive', 'comments/result.dat', 'result.dat',
+         'application/octet-stream', 11, 'cancel-hash', 'ready',
+         '2026-08-07T10:06:00.000Z');
+
+      INSERT INTO comment_submissions
+        (id, context_kind, sample_id, scope, body, status, actor_email,
+         created_at, updated_at)
+      VALUES
+        ('cancel-race', 'sample', 'sample-1', NULL, 'Uploaded result',
+         'uploading', 'local-development',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+
+      INSERT INTO comment_submission_items
+        (id, submission_id, kind, status, position, filename, mime_type,
+         byte_size, sha256, storage_object_id, created_at, updated_at)
+      VALUES
+        ('cancel-item', 'cancel-race', 'attachment', 'ready', 0, 'result.dat',
+         'application/octet-stream', 11, 'cancel-hash', 'cancel-storage',
+         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
+    `);
+    let finalized = false;
+    const env = managedStorageEnv(database, () => {
+      if (finalized) return;
+      finalized = true;
+      database.prepare(
+        `UPDATE comment_submissions
+         SET status = 'ready', completed_at = '2026-08-07T10:07:00.000Z',
+             last_mutation_id = 'finalize-won', updated_at = '2026-08-07T10:07:00.000Z'
+         WHERE id = 'cancel-race'`,
+      ).run();
+      database.prepare(
+        `INSERT INTO events
+          (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+         VALUES
+          ('cancel-race-event', 'sample-1', 'comment', 'Uploaded result',
+           '{"action":"comment_submission","submissionId":"cancel-race"}',
+           'local-development', '2026-08-07T10:07:00.000Z')`,
+      ).run();
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("ready-bytes", {
+      status: 200,
+      headers: { "content-type": "application/octet-stream" },
+    })));
+
+    const cancelResponse = await request(
+      env,
+      "/comment-submissions/cancel-race/cancel",
+      { method: "POST" },
+    );
+
+    expect(cancelResponse.status).toBe(409);
+    expect(database.prepare(
+      "SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'cancel-race'",
+    ).get()).toEqual({ status: "ready", last_mutation_id: "finalize-won" });
+    expect(database.prepare(
+      "SELECT status FROM comment_submission_items WHERE id = 'cancel-item'",
+    ).get()).toEqual({ status: "ready" });
+    expect(database.prepare(
+      "SELECT status, orphaned_at FROM managed_storage_objects WHERE id = 'cancel-storage'",
+    ).get()).toEqual({ status: "ready", orphaned_at: null });
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM events WHERE id = 'cancel-race-event'",
+    ).get()).toEqual({ count: 1 });
+
+    const downloadResponse = await request(env, "/attachments/cancel-item/download");
+    expect(downloadResponse.status).toBe(200);
+    expect(await downloadResponse.text()).toBe("ready-bytes");
+    database.close();
+  });
+
   it("does not add an ad-hoc Step after its Run moves to trash", async () => {
     const database = createDatabase();
     addSample(database);
@@ -968,6 +1160,41 @@ describe("source lifecycle routes", () => {
     },
   );
 
+  it.each([48, 180])(
+    "verifies state across %i covered steps within D1's 100-parameter limit",
+    async (coveredStepCount) => {
+      const database = createDatabase();
+      addSample(database);
+      addRun(database);
+      addActualizedVerificationSteps(database, coveredStepCount);
+
+      const response = await request(
+        testEnv(database),
+        `/samples/sample-1/runs/run-1/steps/step-${coveredStepCount}/verify-state`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            result: "matched",
+            note: `Covered ${coveredStepCount} steps`,
+            expectedUpdatedAt: "2026-08-07T10:05:00.000Z",
+            completeStep: false,
+          }),
+        },
+      );
+
+      expect(response.status).toBe(201);
+      const payload = await response.json() as {
+        verification: { id: string; coveredRunStepIds: string[] };
+      };
+      expect(payload.verification.coveredRunStepIds).toHaveLength(coveredStepCount);
+      expect(database.prepare(
+        "SELECT COUNT(*) AS count FROM state_verification_steps WHERE verification_id = ?",
+      ).get(payload.verification.id)).toEqual({ count: coveredStepCount });
+      database.close();
+    },
+  );
+
   it("keeps execution-image restore atomic when the Run moves to trash", async () => {
     const database = createDatabase();
     addSample(database);
@@ -1131,6 +1358,112 @@ describe("source lifecycle routes", () => {
       `SELECT COUNT(*) AS count FROM events
        WHERE json_extract(metadata_json, '$.action') = 'image_attachment_deleted'`,
     ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("deletes one execution occurrence and every timeline event that references it", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES
+        ('shared-timeline-asset', 'shared-timeline-key', 'shared.png', 'image/png',
+         10, 'ready', 'shared-timeline-hash', '2026-08-07T10:06:00.000Z');
+      INSERT INTO run_step_assets (id, run_step_id, asset_id, role, created_at)
+      VALUES
+        ('shared-timeline-occurrence', 'step-1', 'shared-timeline-asset', 'execution',
+         '2026-08-07T10:06:00.000Z');
+      INSERT INTO events
+        (id, sample_id, kind, body, asset_key, metadata_json, created_at)
+      VALUES
+        ('shared-timeline-event-a', 'sample-1', 'image', 'Execution image A',
+         'shared-timeline-key',
+         '{"runId":"run-1","stepId":"step-1","runStepAssetId":"shared-timeline-occurrence"}',
+         '2026-08-07T10:06:00.000Z'),
+        ('shared-timeline-event-b', 'sample-1', 'image', 'Execution image B',
+         'shared-timeline-key',
+         '{"runId":"run-1","stepId":"step-1","runStepAssetId":"shared-timeline-occurrence"}',
+         '2026-08-07T10:07:00.000Z');
+    `);
+
+    const response = await request(
+      testEnv(database),
+      "/samples/sample-1/events/shared-timeline-event-a/asset",
+      { method: "DELETE" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(database.prepare(
+      `SELECT deleted_at IS NOT NULL AS deleted, last_mutation_id IS NOT NULL AS mutated
+       FROM run_step_assets WHERE id = 'shared-timeline-occurrence'`,
+    ).get()).toEqual({ deleted: 1, mutated: 1 });
+    expect(database.prepare(
+      `SELECT id, asset_key,
+              json_extract(metadata_json, '$.runStepAssetId') AS occurrence_id,
+              json_extract(metadata_json, '$.assetDeletionOperationId') IS NOT NULL AS marked
+       FROM events
+       WHERE id IN ('shared-timeline-event-a', 'shared-timeline-event-b')
+       ORDER BY id`,
+    ).all()).toEqual([
+      {
+        id: "shared-timeline-event-a",
+        asset_key: null,
+        occurrence_id: "shared-timeline-occurrence",
+        marked: 1,
+      },
+      {
+        id: "shared-timeline-event-b",
+        asset_key: null,
+        occurrence_id: "shared-timeline-occurrence",
+        marked: 1,
+      },
+    ]);
+    expect(database.prepare(
+      `SELECT COUNT(*) AS count FROM events
+       WHERE json_extract(metadata_json, '$.action') = 'image_attachment_deleted'`,
+    ).get()).toEqual({ count: 1 });
+    database.close();
+  });
+
+  it("resolves a legacy execution-image event to one occurrence before deletion", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    database.exec(`
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES
+        ('legacy-timeline-asset', 'legacy-timeline-key', 'legacy.png', 'image/png',
+         10, 'ready', 'legacy-timeline-hash', '2026-08-07T10:06:00.000Z');
+      INSERT INTO run_step_assets (id, run_step_id, asset_id, role, created_at)
+      VALUES
+        ('legacy-timeline-occurrence', 'step-1', 'legacy-timeline-asset', 'execution',
+         '2026-08-07T10:06:00.000Z');
+      INSERT INTO events
+        (id, sample_id, kind, body, asset_key, metadata_json, created_at)
+      VALUES
+        ('legacy-timeline-event', 'sample-1', 'image', 'Legacy execution image',
+         'legacy-timeline-key', '{"runId":"run-1","stepId":"step-1"}',
+         '2026-08-07T10:06:00.000Z');
+    `);
+
+    const response = await request(
+      testEnv(database),
+      "/samples/sample-1/events/legacy-timeline-event/asset",
+      { method: "DELETE" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(database.prepare(
+      `SELECT asset_key,
+              json_extract(metadata_json, '$.runStepAssetId') AS occurrence_id
+       FROM events WHERE id = 'legacy-timeline-event'`,
+    ).get()).toEqual({ asset_key: null, occurrence_id: "legacy-timeline-occurrence" });
+    expect(database.prepare(
+      "SELECT deleted_at IS NOT NULL AS deleted FROM run_step_assets WHERE id = 'legacy-timeline-occurrence'",
+    ).get()).toEqual({ deleted: 1 });
     database.close();
   });
 
