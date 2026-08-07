@@ -1,5 +1,46 @@
+.sample-details-card {
+  min-height: 640px;
+}
+
 .sample-details-card textarea[name="description"] {
   min-height: 128px;
+}
+
+.sample-details-card dl dt,
+.sample-details-card .detail-form label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sample-details-card dl dt {
+  margin-top: 10px;
+}
+
+.sample-details-card dl dt:first-of-type {
+  margin-top: 0;
+}
+
+.sample-details-card dl dd,
+.sample-details-card .detail-form input,
+.sample-details-card .detail-form textarea,
+.sample-details-card .detail-form select {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sample-details-card .sample-location-value {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.sample-details-card .detail-form input:not([type="checkbox"]),
+.sample-details-card .detail-form select {
+  min-height: 40px;
 }
 
 @media (max-width: 720px) {
