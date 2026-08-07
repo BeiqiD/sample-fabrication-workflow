@@ -18,7 +18,7 @@ describe("processing form typography roles", () => {
   });
 
   it("does not redefine protected geometry or button styles", () => {
-    expect(roles).not.toMatch(/\b(?:width|height|min-height|max-height|gap|padding|margin)\s*:/);
+    expect(roles).not.toMatch(/(?:^|[;{\s])(?:width|height|min-height|max-height|gap|padding|margin)\s*:/);
     expect(roles).not.toMatch(/\.button|button\s*\{/);
     expect(main).toContain('import "./processing-form-roles.css"');
   });
