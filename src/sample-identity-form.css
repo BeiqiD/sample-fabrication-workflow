@@ -1,0 +1,13 @@
+.sample-identity-form label:not(.checkbox-label) {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.sample-identity-form input:not([type="checkbox"]),
+.sample-identity-form textarea,
+.sample-identity-form select {
+  font-size: 14px;
+  line-height: 1.45;
+}
