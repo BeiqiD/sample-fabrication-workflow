@@ -1,0 +1,94 @@
+.template-detail-page .template-step-heading-editor {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(150px, .65fr);
+  gap: 10px;
+}
+
+.template-step-heading-control,
+.template-step-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.template-step-heading-control > span,
+.template-step-field > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.template-step-title-input,
+.template-step-tool-input,
+.template-step-field textarea,
+.template-detail-page .step-form input,
+.template-detail-page .step-form textarea,
+.template-detail-page .template-metadata-editor input {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.template-step-title-input,
+.template-step-tool-input {
+  min-height: 40px;
+}
+
+.template-step-title-input {
+  font-size: var(--font-card-title);
+  font-weight: 680;
+  line-height: 1.3;
+}
+
+.template-step-fields {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.template-step-field > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.template-step-field textarea {
+  min-height: 86px;
+}
+
+.template-step-edit-extras {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.template-step-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .template-detail-page .template-step-heading-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .template-step-fields {
+    gap: 12px;
+  }
+
+  .template-step-field > p,
+  .template-step-field textarea,
+  .template-step-title-input,
+  .template-step-tool-input {
+    font-size: 13.5px;
+  }
+
+  .template-step-title-input {
+    font-size: 16px;
+  }
+}
