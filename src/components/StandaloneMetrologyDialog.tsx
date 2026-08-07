@@ -1,6 +1,7 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type MetrologyTemplateSummary } from "../lib/api";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import { DialogCloseIcon } from "./DialogCloseIcon";
 
 interface StandaloneMetrologyDialogProps {
@@ -20,6 +21,10 @@ export function StandaloneMetrologyDialog({
   const [loading, setLoading] = useState(true);
   const [startingTemplateId, setStartingTemplateId] = useState("");
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const starting = Boolean(startingTemplateId);
+  useModalDialog({ dialogRef, initialFocusRef: searchRef, onClose, blocked: starting });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -56,8 +61,6 @@ export function StandaloneMetrologyDialog({
     }
   }
 
-  const starting = Boolean(startingTemplateId);
-
   return <div
     className="run-start-dialog-backdrop"
     role="presentation"
@@ -66,6 +69,7 @@ export function StandaloneMetrologyDialog({
     }}
   >
     <section
+      ref={dialogRef}
       className="run-start-dialog transition-template-dialog standalone-metrology-dialog"
       role="dialog"
       aria-modal="true"
@@ -78,7 +82,7 @@ export function StandaloneMetrologyDialog({
       <p className="muted">This creates a standalone result record and does not change the active fabrication process or sample structure.</p>
       <label className="search-box metrology-template-search">
         <span>Search templates</span>
-        <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" />
+        <input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" />
       </label>
       <div className="metrology-picker-list standalone-metrology-list">
         {templates.map((template) => <button

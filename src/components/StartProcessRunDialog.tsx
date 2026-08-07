@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { RunStartPreview } from "../../shared/types";
+import { useModalDialog } from "../lib/use-modal-dialog";
 import { DialogCloseIcon } from "./DialogCloseIcon";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
 
@@ -19,21 +20,9 @@ export function StartProcessRunDialog({ preview, action, starting, error, onCanc
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useRef<HTMLElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    cancelRef.current?.focus();
-    function keyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !starting) onCancel();
-    }
-    window.addEventListener("keydown", keyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", keyDown);
-    };
-  }, [onCancel, starting]);
+  useModalDialog({ dialogRef, initialFocusRef: cancelRef, onClose: onCancel, blocked: starting });
 
   const actionLabel = action === "start" ? "Start new process run" : action === "reopen" ? "Reopen process run" : "Update process";
   const updating = action !== "start";
@@ -43,7 +32,7 @@ export function StartProcessRunDialog({ preview, action, starting, error, onCanc
   return <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => {
     if (event.target === event.currentTarget && !starting) onCancel();
   }}>
-    <section className="run-start-dialog" role="dialog" aria-modal="true" aria-labelledby="run-start-title">
+    <section ref={dialogRef} className="run-start-dialog" role="dialog" aria-modal="true" aria-labelledby="run-start-title">
       <div className="run-start-dialog-heading">
         <div><p className="dialog-kicker">{actionLabel}</p><h2 id="run-start-title">Does this structure handoff match what you expect?</h2></div>
         <button type="button" className="drawer-close" disabled={starting} onClick={onCancel} aria-label="Close"><DialogCloseIcon /></button>
