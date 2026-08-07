@@ -163,27 +163,65 @@ describe("Process grid comment composer", () => {
     expect(commentComposer).toMatch(/textareaUsesMultipleVisualLines/);
     expect(commentComposer).toMatch(/new ResizeObserver\(expandWhenTextWraps\)/);
     expect(commentComposer).toMatch(/hasDraftItems \|\| preparing \|\| showLinkForm/);
-    expect(commentComposer).toMatch(/expanded \? "comment-composer-expanded" : ""/);
-    expect(commentComposer).toMatch(/adaptiveToolbarLayout \? "comment-composer-adaptive" : ""/);
-    expect(multiSampleRunGrid.match(/adaptiveToolbarLayout/g)).toHaveLength(2);
-    expect(styles).toMatch(/\.grid-comment-composer\.comment-composer-adaptive:not\(\.comment-composer-expanded\) \.comment-composer-tools\s*\{[^}]*flex-wrap:\s*nowrap/);
-    expect(styles).toMatch(/\.grid-comment-composer\.comment-composer-adaptive \.comment-composer-actions\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*auto auto/);
-    expect(styles).toMatch(/\.grid-comment-composer\.comment-composer-adaptive \.comment-submit-button\s*\{[^}]*min-width:\s*50px[^}]*white-space:\s*nowrap/);
+    expect(commentComposer).toMatch(/className="comment-composer-tools"/);
+    expect(styles).toMatch(/\.grid-comment-composer\.adaptive-toolbar-layout \.comment-composer-row\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(styles).toMatch(/\.grid-comment-composer\.adaptive-toolbar-layout\.is-expanded textarea\s*\{[^}]*width:\s*100%[^}]*flex:\s*0 0 100%/);
+    expect(styles).toMatch(/\.grid-comment-composer\.adaptive-toolbar-layout\.is-expanded \.comment-composer-tools\s*\{[^}]*margin-left:\s*auto/);
+    expect(styles).not.toMatch(/\.recipe-cell \.grid-comment-composer textarea\s*\{[^}]*flex-basis:\s*100%/);
   });
 
-  it("keeps compact icon buttons and one-row actions in wide cells", () => {
-    expect(styles).toMatch(/\.grid-comment-composer \.comment-composer-tool\s*\{[^}]*width:\s*32px[^}]*height:\s*32px/);
-    expect(styles).toMatch(/\.grid-comment-composer \.comment-link-trigger\s*\{[^}]*width:\s*32px[^}]*height:\s*32px/);
-    expect(styles).toMatch(/\.grid-comment-composer \.comment-composer-actions\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap/);
-    expect(styles).toMatch(/\.grid-comment-composer \.comment-composer-tool-label\s*\{[^}]*position:\s*absolute/);
+  it("enables adaptive layout only for the two inline Process grid composers", () => {
+    expect(multiSampleRunGrid.match(/adaptiveToolbarLayout/g)).toHaveLength(2);
+    expect(commentComposer).toMatch(/setToolbarExpanded\(false\)[\s\S]*?requestAnimationFrame\(resizeTextarea\)/);
+    expect(commentComposer).toMatch(/!body\.trim\(\) && !hasDraftItems && !preparing && !showLinkForm && !showAttachmentMenu/);
   });
 });
 
-describe("step and template action alignment", () => {
-  it("keeps Process-cell action labels on one line", () => {
-    expect(styles).toMatch(/\.cell-actions\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.cell-actions button\s*\{[^}]*white-space:\s*nowrap/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.cell-actions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+describe("Jump to current", () => {
+  it("keeps one portal-mounted, icon-only action outside the horizontal scroller", () => {
+    expect(multiSampleRunGrid).toMatch(/title="Jump to current"[\s\S]*?aria-label="Jump to current"/);
+    expect(multiSampleRunGrid).toMatch(/createPortal\([\s\S]*?className=\{`jump-to-current-anchor/);
+    expect(multiSampleRunGrid).toMatch(/className="run-grid-scroll"[\s\S]*?\{jumpButton\}/);
+    expect(multiSampleRunGrid).toMatch(/rowAnchors\.current\.set\(row\.key, node\)/);
+    expect(multiSampleRunGrid).toMatch(/stepCellAnchors\.current\.set\(cellKey, node\)/);
+  });
+
+  it("fixes a compact solid-coral 28px action to the viewport and preserves mobile safe area", () => {
+    expect(styles).toMatch(/\.jump-to-current-anchor\s*\{[^}]*position:\s*fixed[^}]*right:\s*20px[^}]*bottom:\s*20px[^}]*z-index:\s*20[^}]*width:\s*28px[^}]*height:\s*28px/);
+    expect(styles).toMatch(/--jump-current-background:\s*#c86f69[^}]*--jump-current-icon:\s*#fff/);
+    expect(styles).toMatch(/:root\[data-theme="dark"\][\s\S]*?--jump-current-background:\s*#e08b84[^}]*--jump-current-icon:\s*#000/);
+    expect(styles).toMatch(/\.jump-to-current-anchor button\s*\{[^}]*width:\s*28px[^}]*height:\s*28px[^}]*border:\s*0[^}]*color:\s*var\(--jump-current-icon\)[^}]*background:\s*var\(--jump-current-background\)[^}]*box-shadow:\s*0 2px 8px var\(--shadow\)/);
+    expect(multiSampleRunGrid).toMatch(/<svg width="17" height="17"[^>]*stroke="currentColor"/);
+    expect(styles).toMatch(/\.jump-to-current-anchor button:focus-visible\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--jump-current-background\) 92%, var\(--ink\) 8%\)[^}]*outline:\s*2px solid var\(--jump-current-background\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.jump-to-current-anchor\s*\{[^}]*right:\s*16px[^}]*bottom:\s*calc\(16px \+ env\(safe-area-inset-bottom\)\)/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.jump-to-current-anchor/);
+  });
+
+  it("does not let sticky touch hover or pointer focus keep the action visible", () => {
+    expect(multiSampleRunGrid).toMatch(/matchMedia\("\(hover: hover\) and \(pointer: fine\)"\)/);
+    expect(multiSampleRunGrid).toMatch(/button\?\.matches\(":focus-visible"\)/);
+    expect(multiSampleRunGrid).toMatch(/event\.detail > 0\) event\.currentTarget\.blur\(\)/);
+    expect(multiSampleRunGrid).not.toMatch(/jumpButtonAnchor\.current\?\.contains\(document\.activeElement\)/);
+    expect(styles).toMatch(/@media \(hover:\s*hover\) and \(pointer:\s*fine\)\s*\{[\s\S]*?\.jump-to-current-anchor button:hover\s*\{[^}]*var\(--jump-current-background\) 92%/);
+  });
+
+  it("provides a temporary non-semantic cell highlight", () => {
+    expect(styles).toMatch(/\.sample-step-cell\.jump-current-highlight::after\s*\{[^}]*var\(--accent\)[^}]*animation:\s*jump-current-highlight 1s/);
+    expect(multiSampleRunGrid).toMatch(/JUMP_HIGHLIGHT_DURATION = 1000/);
+  });
+});
+
+describe("medium content layouts", () => {
+  it("uses stable Process grid tracks without enabling phone-only interactions", () => {
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?--recipe-width:\s*230px;\s*--sample-width:\s*300px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?--recipe-width:\s*88px;\s*--sample-width:\s*270px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.process-plan-comment-inline\s*\{[^}]*display:\s*none/);
+  });
+
+  it("stacks Sample priority and secondary regions and makes run summaries explicit two-row grids", () => {
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-priority-grid\s*\{[^}]*flex-direction:\s*column/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-secondary-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-run-card \.sample-run-summary\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto 18px/);
   });
 
   it("uses an explicit second information row and one aligned action group for templates", () => {
@@ -195,6 +233,6 @@ describe("step and template action alignment", () => {
     expect(templatesPage).not.toMatch(/template-row-open/);
     expect(styles).toMatch(/\.template-step-actions\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*align-items:\s*baseline[^}]*flex-wrap:\s*nowrap/);
     expect(styles).toMatch(/\.template-step-body \.card-title-row > div:first-child\s*\{[^}]*min-width:\s*0/);
-    expect(templatePage).toMatch(/className="template-step-actions"[^]*?editing \? "Cancel" : "Edit"[^]*?Delete step<\/button>\s*<\/div>/);
+    expect(templatePage).toMatch(/className="template-step-actions"[^]*?editing \? "Cancel" : "Edit"[^]*?Delete step<\/button><\/div>/);
   });
 });
