@@ -61,8 +61,9 @@ export function useModalDialog({
   blockedRef.current = blocked;
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+    const dialogElement = dialogRef.current;
+    if (!dialogElement) return;
+    const dialog: HTMLElement = dialogElement;
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     registerModal(dialog);
 
