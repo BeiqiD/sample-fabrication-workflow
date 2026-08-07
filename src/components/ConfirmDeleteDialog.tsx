@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useModalDialog } from "../lib/use-modal-dialog";
 
 export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", confirmation, onCancel, onConfirm }: {
   title: string;
@@ -21,42 +22,12 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
   const dialogRef = useRef<HTMLElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmationRef = useRef<HTMLInputElement>(null);
-  const onCancelRef = useRef(onCancel);
-  onCancelRef.current = onCancel;
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    document.body.style.overflow = "hidden";
-
-    const focusInitialControl = () => {
-      if (confirmation) confirmationRef.current?.focus();
-      else cancelRef.current?.focus();
-    };
-    focusInitialControl();
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || deleting) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      onCancelRef.current();
-    }
-
-    function keepFocusInside(event: FocusEvent) {
-      const target = event.target;
-      if (!(target instanceof Node) || dialogRef.current?.contains(target)) return;
-      focusInitialControl();
-    }
-
-    window.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("focusin", keepFocusInside, true);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("focusin", keepFocusInside, true);
-      if (previouslyFocused?.isConnected) previouslyFocused.focus();
-    };
-  }, [confirmation, deleting]);
+  useModalDialog({
+    dialogRef,
+    initialFocusRef: confirmation ? confirmationRef : cancelRef,
+    onClose: onCancel,
+    blocked: deleting,
+  });
 
   return <div className="confirm-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) onCancel(); }}>
     <section ref={dialogRef} className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description">
