@@ -3,6 +3,7 @@ import { MAX_SPLIT_PIECES, SAMPLE_CREATION_STATUSES, SAMPLE_STATUS_LABELS, type 
 import { api } from "../lib/api";
 import { createSplitPieceDrafts } from "../lib/splitSamples";
 import "../sample-identity-form.css";
+import "../split-sample-dialog.css";
 import { DialogCloseIcon } from "./DialogCloseIcon";
 
 export function SplitSampleDialog({ sample, onCancel, onComplete }: {
