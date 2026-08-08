@@ -26,6 +26,21 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Correct generated TypeScript newline escaping
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/scripts/apply-reference-search-specificity.py')
+          text = path.read_text(encoding='utf-8')
+          old = 'timeSql.map((condition) => `AND (${condition})`).join("\\n")'
+          new = 'timeSql.map((condition) => `AND (${condition})`).join("\\\\n")'
+          if text.count(old) != 1:
+              raise RuntimeError(f'expected one newline-escape anchor, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Apply deterministic ranking patch
         run: python .github/scripts/apply-reference-search-specificity.py
 
