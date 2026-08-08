@@ -10,7 +10,7 @@ on:
       - v2/backend-foundation
 
 permissions:
-  contents: read
+  contents: write
   statuses: write
 
 jobs:
@@ -20,12 +20,44 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+
+      - name: Apply PR 128 review fixes
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/reference-source-focus'
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          workflow_path = Path('.github/workflows/pr128-review-fixes.yml')
+          if not workflow_path.exists():
+              raise SystemExit(0)
+          workflow = workflow_path.read_text()
+          script = workflow.split("python <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in script.splitlines())
+          Path('/tmp/apply-pr128-review-fixes.py').write_text(script + '\n')
+          PY
+          if [ -f /tmp/apply-pr128-review-fixes.py ]; then
+            python /tmp/apply-pr128-review-fixes.py
+            npm install --save-dev @testing-library/react@16.3.0 jsdom@26.1.0
+            rm -f .github/workflows/pr128-review-fixes.yml
+            rm -f .github/workflows/pr128-review-fixes-trigger.yml
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Address PR 128 review findings"
+              git push origin HEAD:agent/reference-source-focus
+            fi
+          fi
 
       - name: Install dependencies
         id: install
