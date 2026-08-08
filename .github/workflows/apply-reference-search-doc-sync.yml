@@ -18,364 +18,255 @@ jobs:
         with:
           ref: agent/deterministic-reference-search
 
-      - name: Synchronize Phase 2C documentation
+      - name: Synchronize authoritative Phase 2C documentation
         shell: python
         run: |
           from pathlib import Path
+          from textwrap import dedent
 
-          def read(path):
-              return path.read_text(encoding="utf-8")
-
-          def write(path, text):
-              path.write_text(text, encoding="utf-8")
+          def normalized(value):
+              return dedent(value).strip() + "\n\n"
 
           def replace_section(path, start_heading, end_heading, replacement):
-              text = read(path)
-              if replacement.strip() in text:
-                  return
+              text = path.read_text(encoding="utf-8")
               start = text.find(start_heading)
               end = text.find(end_heading, start + len(start_heading)) if start >= 0 else -1
               if start < 0 or end < 0:
-                  raise SystemExit(f"Could not locate section {start_heading!r} in {path}")
-              write(path, text[:start] + replacement.rstrip() + "\n\n" + text[end:])
+                  raise SystemExit(f"Missing section boundary in {path}: {start_heading!r}")
+              path.write_text(
+                  text[:start] + normalized(replacement) + text[end:],
+                  encoding="utf-8",
+              )
 
           def replace_tail(path, start_heading, replacement):
-              text = read(path)
-              if replacement.strip() in text:
-                  return
+              text = path.read_text(encoding="utf-8")
               start = text.find(start_heading)
               if start < 0:
-                  raise SystemExit(f"Could not locate tail {start_heading!r} in {path}")
-              write(path, text[:start] + replacement.rstrip() + "\n")
-
-          def replace_once(path, old, new):
-              text = read(path)
-              if new in text:
-                  return
-              if text.count(old) != 1:
-                  raise SystemExit(f"Expected exactly one occurrence in {path}: {old!r}")
-              write(path, text.replace(old, new))
+                  raise SystemExit(f"Missing tail boundary in {path}: {start_heading!r}")
+              path.write_text(text[:start] + normalized(replacement).rstrip() + "\n", encoding="utf-8")
 
           project = Path("docs/PROJECT_DESIGN_FOUNDATION.md")
           replace_section(
               project,
               "### Deterministic search and insertion\n",
               "## Lifecycle and history\n",
-              '''### Deterministic search and insertion
+              '''
+              ### Deterministic search and insertion
 
-          Phase 2C is split so the shared discovery contract is reviewed before a
-          browser surface or Project write path depends on it.
+              Phase 2C is split so the shared discovery contract is reviewed before a
+              browser surface or Project write path depends on it.
 
-          #### Phase 2C1: deterministic search foundation
+              #### Phase 2C1: deterministic search foundation
 
-          PR #129 adds one read-only search service over the nine current reference
-          target types. It searches authoritative source tables directly, applies the
-          new-reference lifecycle policy, ranks results through explicit tiers, and
-          revalidates selected candidates through the existing batch resolver.
+              PR #129 adds one read-only search service over the nine current reference
+              target types. It searches authoritative source tables directly, applies the
+              new-reference lifecycle policy, ranks results through explicit tiers, and
+              revalidates selected candidates through the existing batch resolver.
 
-          The first source search covers:
+              The first source search covers Sample, Run, Run Step, canonical Comment,
+              Comment occurrence, Comment attachment, execution image, metrology
+              reference, and Recipe revision identities. It supports type, Sample, and
+              time filters. Canonical Comment body search returns the logical Comment;
+              canonical occurrences remain searchable by exact occurrence ID, while
+              legacy occurrences without a logical Comment retain body search.
 
-          - Sample stable ID, code, title, description, location, and status;
-          - Run stable ID, Template snapshot, kind/status, and Sample context;
-          - Run Step title, notes, parameters, imported comments, deviation, tool, and
-            Sample/Run context;
-          - canonical ready Comment bodies and deterministic contexts;
-          - exact canonical Comment-occurrence IDs plus body search for legacy
-            occurrences that have no logical Comment identity;
-          - attachment names, descriptions, owning Comment, and source contexts;
-          - execution-image occurrence IDs, filenames, and Step context;
-          - metrology-reference occurrence IDs, filenames, and exact Recipe revision;
-          - Recipe revision ID, name/version, source filename, kind/type, and archive
-            state; and
-          - type, Sample, and time filters.
+              Ranking is explainable and deterministic: exact stable ID, exact primary
+              title/code/filename, primary prefix, target-owned content, then weaker
+              metadata. Ties use target timestamp, the closed type order, and stable ID.
+              Search is read-only, creates no registry row, and returns the exact
+              `ReferenceTarget` selection payload plus current resolver destinations.
 
-          Ranking is explainable and deterministic: exact stable ID, exact primary
-          title/code/filename, primary prefix, target-owned content, then weaker
-          metadata. Ties use target timestamp, the closed type order, and stable ID.
-          Search is read-only, creates no registry row, and returns the exact
-          `ReferenceTarget` selection payload plus the current resolved destination.
+              #### Phase 2C2: global search and reusable selection UI
 
-          #### Phase 2C2: global search and reusable selection UI
+              The following slice adds a URL-owned global Search page and a reusable
+              result picker that consumes the Phase 2C1 API without changing ranking or
+              lifecycle behavior.
 
-          The following slice adds a URL-owned global Search page and a reusable result
-          picker that consumes the Phase 2C1 API without changing ranking or lifecycle
-          behavior. It may expose `Open source` immediately and a selection callback for
-          later Project use.
+              Actual `Add to project` persistence remains a Phase 3 server operation. The
+              Project-item creation route re-resolves and registers the target, then
+              creates `project_items.reference_target_id` under one authoritative owner.
+              Search does not create a placeholder usage row or imply that selecting a
+              result has already inserted it.
 
-          Actual `Add to project` persistence remains a Phase 3 server operation. The
-          Project-item creation route re-resolves and registers the target, then creates
-          `project_items.reference_target_id` under one authoritative owner. Search does
-          not create a placeholder usage row or imply that selecting a result has
-          already inserted it.
-
-          A Comment result selects that Comment; ancestors remain source context and are
-          not silently inserted. Semantic, embedding, fuzzy, or model-ranked search is
-          later work.''',
+              A Comment result selects that Comment; ancestors remain source context and
+              are not silently inserted. Semantic, embedding, fuzzy, or model-ranked
+              search is later work.
+              ''',
           )
 
           replace_section(
               project,
               "## Implementation roadmap\n",
               "## First-version non-goals\n",
-              '''## Implementation roadmap
+              '''
+              ## Implementation roadmap
 
-          The deterministic search contract is reviewed before its global UI and before
-          Project insertion. Each phase has a clear exit condition:
+              The deterministic search contract is reviewed before its global UI and
+              before Project insertion. Each phase has a clear exit condition:
 
-          | Phase | Scope | Current state |
-          |---|---|---|
-          | 0. Reference identity | Target list, canonical Comment, attachment occurrence/blob boundary, lifecycle vocabulary | Complete |
-          | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
-          | 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
-          | 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts, unified middleware, workerd runtime smoke | Complete after PR #125 and the reference-runtime completion slice |
-          | 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | Complete after PR #128 |
-          | 2B1. Canonical destinations | Opaque route codec, resolver destination fields, lifecycle-aware read-only Reference page | Complete in PR #127 |
-          | 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Complete in PR #128 |
-          | 2C. Deterministic search and selection | Shared explainable search/read model plus reusable selection surface | In progress |
-          | 2C1. Search foundation | Nine-type read-only candidate service, lifecycle filters, deterministic ranking, resolver revalidation, Worker/D1 gate | Implemented in Draft PR #129; pending review |
-          | 2C2. Global search and picker | URL-owned Search page and reusable result-selection UI | Next after 2C1 |
-          | 3. Project and Text | Project data, `project_items` backlinks, authoritative target registration/insertion, Project-owned content, Text workspace, Inspector, export | Not started |
-          | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
-          | 5. Later capabilities | Revision pinning, semantic search, LLM insight, advanced consistency tooling | Deferred |
+              | Phase | Scope | Current state |
+              |---|---|---|
+              | 0. Reference identity | Target list, canonical Comment, attachment occurrence/blob boundary, lifecycle vocabulary | Complete |
+              | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
+              | 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
+              | 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts, unified middleware, workerd runtime smoke | Complete after PR #125 and the reference-runtime completion slice |
+              | 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | Complete after PR #128 |
+              | 2B1. Canonical destinations | Opaque route codec, resolver destination fields, lifecycle-aware read-only Reference page | Complete in PR #127 |
+              | 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Complete in PR #128 |
+              | 2C. Deterministic search and selection | Shared explainable search/read model plus reusable selection surface | In progress |
+              | 2C1. Search foundation | Nine-type read-only candidate service, lifecycle filters, deterministic ranking, resolver revalidation, Worker/D1 gate | Implemented in Draft PR #129; pending review |
+              | 2C2. Global search and picker | URL-owned Search page and reusable result-selection UI | Next after 2C1 |
+              | 3. Project and Text | Project data, `project_items` backlinks, authoritative target registration/insertion, Project-owned content, Text workspace, Inspector, export | Not started |
+              | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
+              | 5. Later capabilities | Revision pinning, semantic search, LLM insight, advanced consistency tooling | Deferred |
 
-          Within those phases, the dependency order is:
+              Within those phases, the dependency order is:
 
-          1. stable object identity;
-          2. source deletion lifecycle;
-          3. blob reachability, export integrity, and physical-delete protection;
-          4. Recipe revision and execution snapshot verification;
-          5. sparse registry and base read-only resolution;
-          6. opaque canonical destinations and lifecycle-aware read-only pages;
-          7. exact Step, Comment, attachment, execution-image, and metrology focus;
-          8. deterministic search service, lifecycle policy, and ranking;
-          9. global search and reusable result-selection UI;
-          10. Project contents, items, backlinks, authoritative insertion, and local edges;
-          11. Text and Inspector;
-          12. Map;
-          13. later revision, semantic, and insight capabilities.
+              1. stable object identity;
+              2. source deletion lifecycle;
+              3. blob reachability, export integrity, and physical-delete protection;
+              4. Recipe revision and execution snapshot verification;
+              5. sparse registry and base read-only resolution;
+              6. opaque canonical destinations and lifecycle-aware read-only pages;
+              7. exact Step, Comment, attachment, execution-image, and metrology focus;
+              8. deterministic search service, lifecycle policy, and ranking;
+              9. global search and reusable result-selection UI;
+              10. Project contents, items, backlinks, authoritative insertion, and local edges;
+              11. Text and Inspector;
+              12. Map;
+              13. later revision, semantic, and insight capabilities.
 
-          Recipe revision and Run snapshot foundations already exist; step 4 is
-          verification of those boundaries rather than a Recipe redesign.''',
+              Recipe revision and Run snapshot foundations already exist; step 4 is
+              verification of those boundaries rather than a Recipe redesign.
+              ''',
           )
 
           architecture = Path("docs/ARCHITECTURE.md")
-          architecture_text = read(architecture)
-          search_invariants = '''## Deterministic reference search invariants
-
-          - Search covers exactly the closed nine-type v1 reference set and returns the
-            same stable `ReferenceTarget` identity used by the resolver and canonical
-            destination model.
-          - The first implementation reads authoritative source tables directly. It
-            adds no denormalized index, FTS table, background synchronizer, Queue,
-            Workflow, Durable Object, or second Worker.
-          - New-reference discovery excludes deleted sources and deleted required
-            Sample/Run/Step ancestors. A common Comment remains discoverable when at
-            least one deterministic context is active. Archived but not deleted Recipe
-            revisions and their metrology references remain historical targets.
-          - Canonical Comment body search returns the logical ready Comment rather than
-            duplicating one result per occurrence. Canonical occurrences remain
-            addressable by exact occurrence ID; legacy occurrences without a logical
-            Comment retain body search.
-          - Ranking uses explicit tiers: exact ID, exact primary field, primary prefix,
-            target-owned content, then weaker metadata. Ties use timestamp, the closed
-            type order, and stable ID; no model judgement or database row order is used.
-          - Candidate work is bounded per selected type. Top candidates are revalidated
-            through the existing batch resolver before return, so a lifecycle or
-            structural change cannot produce a stale selectable result.
-          - Search reads do not register targets, update validation timestamps, or
-            mutate source rows. Phase 3 re-resolves and registers at Project-item write
-            time under `project_items.reference_target_id`.
-          - Search responses contain canonical application destinations but no R2 key,
-            managed-storage object key, provider locator, credential, or temporary URL.
-
-          '''
-          if "## Deterministic reference search invariants\n" not in architecture_text:
+          text = architecture.read_text(encoding="utf-8")
+          if "## Deterministic reference search invariants\n" not in text:
               marker = "## Blob lifecycle invariants\n"
-              if marker not in architecture_text:
+              if marker not in text:
                   raise SystemExit("Architecture blob-lifecycle marker not found")
-              architecture_text = architecture_text.replace(marker, search_invariants + marker, 1)
+              block = normalized('''
+              ## Deterministic reference search invariants
+
+              - Search covers exactly the closed nine-type v1 reference set and returns
+                the same stable `ReferenceTarget` identity used by the resolver and
+                canonical destination model.
+              - The first implementation reads authoritative source tables directly and
+                adds no denormalized index, FTS table, background synchronizer, Queue,
+                Workflow, Durable Object, or second Worker.
+              - New-reference discovery excludes deleted sources and deleted required
+                Sample/Run/Step ancestors. A common Comment remains discoverable when at
+                least one deterministic context is active. Archived but not deleted
+                Recipe revisions and metrology references remain historical targets.
+              - Canonical Comment body search returns the logical ready Comment rather
+                than duplicating one result per occurrence. Canonical occurrences remain
+                addressable by exact occurrence ID; legacy occurrences without a logical
+                Comment retain body search.
+              - Ranking uses explicit exact-ID, exact-primary, primary-prefix,
+                target-content, and metadata tiers. Ties use timestamp, closed type
+                order, and stable ID.
+              - Candidate work is bounded per selected type. Top candidates are
+                revalidated through the existing batch resolver before return.
+              - Search reads do not register targets or mutate source rows. Phase 3
+                re-resolves and registers at Project-item write time.
+              - Search responses contain canonical application destinations but no R2
+                key, managed-storage object key, provider locator, credential, or
+                temporary URL.
+              ''')
+              text = text.replace(marker, block + marker, 1)
           old_limit = "- Resolver IDs are passed through `json_each(?)`; the domain batch is capped at 200 without consuming one binding per target.\n"
-          new_limit = old_limit + "- Deterministic search accepts at most eight tokens and 50 returned results, caps each type's candidate query, and revalidates at most 200 candidates. Query count grows with selected target types rather than matching rows.\n"
-          if new_limit not in architecture_text:
-              if old_limit not in architecture_text:
+          search_limit = "- Deterministic search accepts at most eight tokens and 50 returned results, caps each type's candidate query, and revalidates at most 200 candidates. Query count grows with selected target types rather than matching rows.\n"
+          if search_limit not in text:
+              if old_limit not in text:
                   raise SystemExit("Architecture resolver limit marker not found")
-              architecture_text = architecture_text.replace(old_limit, new_limit, 1)
-          search_link = "See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md) for the Phase 2C search boundary."
-          if search_link not in architecture_text:
-              architecture_text = architecture_text.rstrip() + "\n\n" + search_link + "\n"
-          write(architecture, architecture_text)
+              text = text.replace(old_limit, old_limit + search_limit, 1)
+          link = "See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md) for the Phase 2C search boundary."
+          if link not in text:
+              text = text.rstrip() + "\n\n" + link + "\n"
+          architecture.write_text(text, encoding="utf-8")
 
           replace_tail(
               Path("docs/V3_BACKEND_FOUNDATION.md"),
               "## Delivery sequence\n",
-              '''## Delivery sequence
+              '''
+              ## Delivery sequence
 
-          The remaining sequence after Phase 2B is:
+              The remaining sequence after Phase 2B is:
 
-          1. validate the exact merged `v2/backend-foundation` integration head and,
-             when intentionally activating v3, follow
-             [the blob operations runbook](./BLOB_LIFECYCLE_OPERATIONS.md);
-          2. complete Phase 2C1: deterministic read-only reference search, lifecycle
-             filtering, explainable ranking, and resolver revalidation;
-          3. complete Phase 2C2: the URL-owned global Search page and reusable result
-             selection surface;
-          4. add Project-owned data, authoritative target registration and
-             `project_items` insertion/backlinks, Text, and Inspector;
-          5. add the dynamically loaded Map after its data model and read paths are
-             stable.
+              1. validate the exact merged `v2/backend-foundation` integration head and,
+                 when intentionally activating v3, follow
+                 [the blob operations runbook](./BLOB_LIFECYCLE_OPERATIONS.md);
+              2. complete Phase 2C1: deterministic read-only reference search,
+                 lifecycle filtering, explainable ranking, and resolver revalidation;
+              3. complete Phase 2C2: the URL-owned global Search page and reusable
+                 result-selection surface;
+              4. add Project-owned data, authoritative target registration and
+                 `project_items` insertion/backlinks, Text, and Inspector;
+              5. add the dynamically loaded Map after its data model and read paths are
+                 stable.
 
-          Project UI, semantic search, source editing from Project, fixed Project
-          hierarchies, force delete, and LLM write access remain outside this
-          foundation.''',
+              Project UI, semantic search, source editing from Project, fixed Project
+              hierarchies, force delete, and LLM write access remain outside this
+              foundation.
+              ''',
           )
 
           replace_tail(
               Path("docs/REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md"),
               "## Follow-on status\n",
-              '''## Follow-on status
+              '''
+              ## Follow-on status
 
-          After this completed Phase 2A slice:
+              After this completed Phase 2A slice:
 
-          1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in PR
-             #127.
-          2. **Phase 2B2 — source focus integration:** complete in merged PR #128.
-          3. **Phase 2B — object-level deep links:** complete after PR #128.
-          4. **Phase 2C1 — deterministic search foundation:** implemented in Draft PR
-             #129. It adds the nine-type read-only candidate service, explainable
-             ranking, lifecycle/Sample/time filters, resolver revalidation, and real
-             Worker/D1 search verification.
-          5. **Phase 2C2 — global search and reusable picker UI:** next after 2C1.
-          6. **Phase 3 — Project-owned data, authoritative target registration,
-             `project_items` backlinks/insertion, Text, and Inspector:** not started.
-          7. **Phase 4 — dynamically loaded Map placements and edges:** not started.
+              1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in
+                 PR #127.
+              2. **Phase 2B2 — source focus integration:** complete in merged PR #128.
+              3. **Phase 2B — object-level deep links:** complete after PR #128.
+              4. **Phase 2C1 — deterministic search foundation:** implemented in Draft
+                 PR #129 with the nine-type read-only candidate service, explainable
+                 ranking, lifecycle/Sample/time filters, resolver revalidation, and real
+                 Worker/D1 search verification.
+              5. **Phase 2C2 — global search and reusable picker UI:** next after 2C1.
+              6. **Phase 3 — Project-owned data, authoritative target registration,
+                 `project_items` backlinks/insertion, Text, and Inspector:** not started.
+              7. **Phase 4 — dynamically loaded Map placements and edges:** not started.
 
-          Map remains last so its interaction model is built on stable source identity,
-          resolution, canonical navigation, deterministic search, Project-item identity,
-          and read paths rather than becoming the persistent data model itself.''',
-          )
-
-          deep_link = Path("docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md")
-          replace_once(
-              deep_link,
-              "Status: completed Phase 2B1 record; PR #128 completes Phase 2B2 and closes Phase 2B on merge",
-              "Status: completed Phase 2B record; PR #127 completed Phase 2B1 and PR #128 completed Phase 2B2",
-          )
-          deep_text = read(deep_link)
-          deep_start = deep_text.find("PR #127 satisfies Phase 2B1")
-          if deep_start >= 0:
-              write(deep_link, deep_text[:deep_start] + '''PR #127 satisfies Phase 2B1 after the canonical codec review correction. PR
-          #128 satisfies Phase 2B2 after correcting focus reapplication, Template loader
-          coupling, and the authenticated media boundary. Phase 2B is complete.
-
-          ## Next phase
-
-          Phase 2C1 establishes deterministic read-only reference search, lifecycle
-          filtering, explainable ranking, stable selection payloads, and Worker/D1
-          verification. Phase 2C2 then adds the global Search page and reusable picker.
-          Actual Project insertion remains deferred to Phase 3, where
-          `project_items.reference_target_id` provides the authoritative owner.
-          ''')
-
-          focus = Path("docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md")
-          replace_once(
-              focus,
-              "Status: implemented in Draft PR #128; merge closes Phase 2B",
-              "Status: completed in merged PR #128; Phase 2B is closed",
-          )
-          replace_tail(
-              focus,
-              "## Next phase\n",
-              '''## Completion and next phase
-
-          PR #128 merged after review confirmed the focus/data signature, Template
-          loader isolation, authenticated media policy, and mounted Back/Forward
-          regression coverage. Phase 2B is therefore closed.
-
-          Phase 2C is split into two reviewable boundaries. Phase 2C1 establishes the
-          read-only nine-type search service, lifecycle filtering, deterministic
-          ranking, stable selection payload, and Worker/D1 gate. Phase 2C2 adds the
-          global Search page and reusable picker UI. Actual Project registration and
-          insertion remains Phase 3 work under `project_items.reference_target_id`.''',
-          )
-
-          replace_tail(
-              Path("docs/BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md"),
-              "## Completion and next phase\n",
-              '''## Completion and next phase
-
-          The blob-lifecycle slice completed in PR #123, and PR #124 corrected its
-          D1/workerd migration compatibility. PR #125 and its completion slice added
-          the registry/runtime boundary, while PRs #127/#128 completed Phase 2B
-          navigation and exact source focus.
-
-          Actual Project backlinks remain intentionally deferred until
-          `project_items.reference_target_id` exists. The remaining product sequence is:
-
-          1. Phase 2C1 deterministic reference search foundation;
-          2. Phase 2C2 global search and reusable result-selection UI;
-          3. Project-owned data, authoritative target registration,
-             `project_items` backlinks/insertion, Text, and Inspector;
-          4. Map after the data/read model is stable.
-
-          Every future Project attachment must extend the existing retention, export,
-          edge-creation, and permanent-delete blocker contracts before deployment.''',
-          )
-
-          replace_tail(
-              Path("docs/BLOB_LIFECYCLE_OPERATIONS.md"),
-              "## Next implementation boundary\n",
-              '''## Next implementation boundary
-
-          PR #125 and its completion slice established the registry/runtime boundary,
-          while PRs #127/#128 completed Phase 2B navigation and source focus. Actual
-          Project backlinks remain deferred until `project_items.reference_target_id`
-          exists. The remaining product sequence is:
-
-          1. Phase 2C1 deterministic reference search foundation;
-          2. Phase 2C2 global search and reusable result-selection UI;
-          3. Project-owned data, authoritative target registration,
-             `project_items` backlinks/insertion, Text, and Inspector;
-          4. Map after the data/read model is stable.
-
-          Every future Project attachment occurrence must add an ordinary branch to
-          `blob_retention_edges`, guarded edge-creation tests, export occurrence mapping,
-          and permanent-delete blockers before deployment.''',
+              Map remains last so its interaction model is built on stable source
+              identity, resolution, canonical navigation, deterministic search,
+              Project-item identity, and read paths rather than becoming the persistent
+              data model itself.
+              ''',
           )
 
           data_model = Path("docs/DATA_MODEL.md")
-          data_text = read(data_model)
-          data_note = '''
+          text = data_model.read_text(encoding="utf-8")
+          marker = "See [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md)."
+          note = """
 
           Phase 2C1 deterministic search adds no table or mutable index. It reads the
-          authoritative source and occurrence rows through bounded type-specific queries,
-          then revalidates candidates through the resolver. A materialized or FTS index
-          is deferred until real scale justifies its synchronization and restore cost.
-          See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md).
-          '''
-          if "Phase 2C1 deterministic search adds no table" not in data_text:
-              marker = "See [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md)."
-              if marker not in data_text:
+          authoritative source and occurrence rows through bounded type-specific
+          queries, then revalidates candidates through the resolver. A materialized or
+          FTS index is deferred until real scale justifies its synchronization and
+          restore cost. See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md).
+          """
+          if "Phase 2C1 deterministic search adds no table" not in text:
+              if marker not in text:
                   raise SystemExit("Data model reference-plan marker not found")
-              data_text = data_text.replace(marker, marker + data_note, 1)
-              write(data_model, data_text)
+              text = text.replace(marker, marker + dedent(note).rstrip(), 1)
+              data_model.write_text(text, encoding="utf-8")
 
           readme = Path("README.md")
-          readme_text = read(readme)
-          search_plan_link = "- [Deterministic reference search implementation plan](./docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md)"
-          if search_plan_link not in readme_text:
+          text = readme.read_text(encoding="utf-8")
+          search_link = "- [Deterministic reference search implementation plan](./docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md)"
+          if search_link not in text:
               marker = "- [Reference source-focus implementation plan](./docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md)"
-              if marker not in readme_text:
+              if marker not in text:
                   raise SystemExit("README source-focus link not found")
-              readme_text = readme_text.replace(marker, marker + "\n" + search_plan_link, 1)
-              write(readme, readme_text)
-
-          verify = Path(".github/workflows/verify.yml")
-          verify_text = read(verify)
-          verify_text = verify_text.replace(
-              '.replace(/^-+|-+$/g, "-").replace(/^-+|-+$/g, "")',
-              '.replace(/^-+|-+$/g, "")',
-          )
-          write(verify, verify_text)
+              text = text.replace(marker, marker + "\n" + search_link, 1)
+              readme.write_text(text, encoding="utf-8")
 
       - name: Commit synchronized docs and remove this workflow
         shell: bash
@@ -383,6 +274,6 @@ jobs:
           rm .github/workflows/apply-reference-search-doc-sync.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs .github/workflows/verify.yml .github/workflows/apply-reference-search-doc-sync.yml
+          git add README.md docs .github/workflows/apply-reference-search-doc-sync.yml
           git commit -m "Synchronize deterministic search phase documentation"
           git push origin HEAD:agent/deterministic-reference-search
