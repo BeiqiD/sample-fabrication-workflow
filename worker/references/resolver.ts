@@ -9,6 +9,7 @@ import {
   isReferenceTarget,
   MAX_REFERENCE_RESOLUTION_TARGETS,
 } from "../../shared/reference-types";
+import { buildReferenceDestination } from "../../shared/reference-destinations";
 import { REFERENCE_ADAPTERS } from "./adapters";
 
 type RegistryRow = {
@@ -21,6 +22,8 @@ type RegistryRow = {
   tombstoned_at: string | null;
   last_known_contexts_json: string;
 };
+
+type ReferenceResolutionWithoutDestination = Omit<ReferenceResolution, "destination">;
 
 export class ReferenceResolutionInputError extends Error {
   constructor(
@@ -55,6 +58,15 @@ function registryEntry(row: RegistryRow): ReferenceTargetRegistryEntry {
     lastValidatedAt: row.last_validated_at,
     tombstonedAt: row.tombstoned_at,
     lastKnownContexts: parseContexts(row.last_known_contexts_json),
+  };
+}
+
+function withDestination(
+  resolution: ReferenceResolutionWithoutDestination,
+): ReferenceResolution {
+  return {
+    ...resolution,
+    destination: buildReferenceDestination(resolution),
   };
 }
 
@@ -124,29 +136,29 @@ export async function resolveReferences(
     const key = referenceTargetKey(target);
     const registered = registry.get(key);
     if (registered?.tombstonedAt) {
-      return {
+      return withDestination({
         target,
         resolution: "tombstoned",
         source: null,
         contexts: registered.lastKnownContexts,
-      };
+      });
     }
 
     const record = resolvedByType.get(target.type)?.get(target.id);
     if (!record) {
-      return {
+      return withDestination({
         target,
         resolution: registered ? "inconsistent" : "not_found",
         source: null,
         contexts: registered?.lastKnownContexts ?? [],
-      };
+      });
     }
 
-    return {
+    return withDestination({
       target,
       resolution: record.consistent ? "resolved" : "inconsistent",
       source: record.source,
       contexts: record.contexts,
-    };
+    });
   });
 }

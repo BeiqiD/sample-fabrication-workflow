@@ -2,7 +2,7 @@
 
 Status: completed Phase 2A implementation contract and record
 
-Last reviewed: 2026-08-08 after reference-runtime consolidation
+Last reviewed: 2026-08-08 after PR #127 canonical-destination review
 
 This document defines the exact scope of the first reference-registry and
 read-only resolution implementation. It follows the completed source lifecycle,
@@ -279,9 +279,14 @@ contexts[]
 Lifecycle metadata and resolution are separate. A Step under a deleted Run is
 still `resolved`; the deleted ancestor is represented in its context.
 
-The following enriched fields are intentionally deferred:
+PR #127 Phase 2B1 subsequently enriches this base result with a versioned opaque
+canonical `referenceUrl`, lifecycle-aware destination mode, one safe
+`openSourceUrl` when available, and ordered per-context source destinations.
+Those fields are defined in
+[reference deep-link implementation plan](./REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md).
 
-- `openSourceUrl` and archived destinations belong to the deep-link slice;
+The following enriched fields remain deferred:
+
 - expandable child summaries belong to Project/Inspector reads;
 - backlink counts belong to the Project-item relationship.
 
@@ -349,8 +354,10 @@ loads the same reference graph used by the host suite, bundles the unified core
 Worker, and invokes `POST /api/references/resolve` through
 Miniflare/workerd. The smoke covers all nine v1 adapters, common-Comment
 contexts, locator non-disclosure, the shared same-origin guard, and 200 distinct
-Sample targets. Runtime resolver SQL is therefore workerd-executed rather than
-merely inferred to be compatible from host SQLite.
+Sample targets. PR #127 extends the same smoke with opaque canonical destination
+fields and collision-sensitive unusual stable IDs. Runtime resolver SQL is
+therefore workerd-executed rather than merely inferred to be compatible from
+host SQLite.
 
 ## Target-specific rules
 
@@ -570,7 +577,11 @@ This slice keeps the following documents synchronized:
   single-batch export invariants plus the unified middleware/runtime shape;
 - blob implementation/operations documents: the next boundary now begins with
   deep links rather than re-listing the registry as unimplemented;
-- `README.md`: implementation-plan link where appropriate.
+- `README.md`: implementation-plan links where appropriate.
+
+PR #127 keeps this completed Phase 2A record synchronized with the Phase 2B1
+implementation record rather than leaving object-level deep links listed as
+unstarted work.
 
 ## Completion criteria
 
@@ -597,15 +608,21 @@ The PR is complete when:
 13. the PR targets only `v2/backend-foundation`;
 14. no remote D1 migration or Worker deployment is run.
 
-## Next slices
+## Follow-on status
 
-After this slice:
+After this completed Phase 2A slice:
 
-1. object-level deep links and archived read-only destinations;
-2. deterministic search and reference insertion;
-3. Project-owned data, `project_items` backlinks, Text, and Inspector;
-4. dynamically loaded Map placements and edges.
+1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in PR
+   #127. It adds the opaque canonical route codec, resolver destination fields,
+   and the read-only Reference page.
+2. **Phase 2B2 — source focus integration:** next. It consumes the stable hints
+   for exact Step centering, Comment highlighting, attachment/execution-image
+   preview, and metrology-reference focus.
+3. **Phase 2C — deterministic search and reference insertion:** not started.
+4. **Phase 3 — Project-owned data, `project_items` backlinks, Text, and
+   Inspector:** not started.
+5. **Phase 4 — dynamically loaded Map placements and edges:** not started.
 
 Map remains last so its interaction model is built on stable source identity,
-resolution, Project-item identity, and read paths rather than becoming the
-persistent data model itself.
+resolution, canonical navigation, Project-item identity, and read paths rather
+than becoming the persistent data model itself.

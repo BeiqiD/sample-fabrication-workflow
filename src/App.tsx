@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
 
@@ -13,6 +14,7 @@ const MetrologyTemplatePage = lazy(() => import("./pages/MetrologyTemplatePage")
 const ProcessingPage = lazy(() => import("./pages/ProcessingPage").then((module) => ({ default: module.ProcessingPage })));
 const ProcessingWorkspacePage = lazy(() => import("./pages/ProcessingWorkspacePage").then((module) => ({ default: module.ProcessingWorkspacePage })));
 const SampleTimelinePage = lazy(() => import("./pages/SampleTimelinePage").then((module) => ({ default: module.SampleTimelinePage })));
+const ReferencePage = lazy(() => import("./pages/ReferencePage").then((module) => ({ default: module.ReferencePage })));
 
 const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
   { to: "/processing", label: "Processing", icon: "processing" },
@@ -67,6 +69,7 @@ export function App() {
         <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/processing" replace />} />
+            <Route path={REFERENCE_ROUTE_PATTERN} element={<ReferencePage />} />
             <Route path="/processing" element={<ProcessingPage />} />
             <Route path="/processing/:sampleId" element={<ProcessingWorkspacePage />} />
             <Route path="/samples" element={<SamplesPage />} />

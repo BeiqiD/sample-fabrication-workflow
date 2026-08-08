@@ -151,14 +151,58 @@ try {
   assert.equal(mixedResponse.status, 200, JSON.stringify(mixedPayload));
   assert.deepEqual(mixedPayload.results.map((result) => result.target), mixedTargets);
   assert(mixedPayload.results.every((result) => result.resolution === "resolved"));
+  const mixedReferenceUrls = mixedPayload.results.map((result) => result.destination.referenceUrl);
+  assert.equal(new Set(mixedReferenceUrls).size, mixedTargets.length);
+  assert(mixedPayload.results.every((result) => (
+    new RegExp(`^/references/${result.target.type}/r1_[A-Za-z0-9_-]*$`)
+      .test(result.destination.referenceUrl)
+  )), "every workerd result must include an opaque canonical reference destination");
+
+  const sample = mixedPayload.results.find((result) => result.target.type === "sample");
+  const runResolution = mixedPayload.results.find((result) => result.target.type === "run");
+  const step = mixedPayload.results.find((result) => result.target.type === "run_step");
   const comment = mixedPayload.results.find((result) => result.target.type === "comment");
   const commentAttachment = mixedPayload.results.find(
     (result) => result.target.type === "comment_attachment",
   );
+  assert(sample, "Sample adapter result must be present");
+  assert(runResolution, "Run adapter result must be present");
+  assert(step, "Run-step adapter result must be present");
   assert(comment, "common Comment adapter result must be present");
   assert(commentAttachment, "Comment-attachment adapter result must be present");
+  assert.equal(sample.destination.openSourceUrl, "/samples/reference-sample-a");
+  assert.equal(runResolution.destination.openSourceUrl, "/processing/reference-sample-a?run=reference-run-a");
+  assert.equal(
+    step.destination.openSourceUrl,
+    "/processing/reference-sample-a?run=reference-run-a&step=reference-step-a&reference=run_step%3Areference-step-a",
+  );
   assert.equal(comment.contexts.length, 2, "common Comment contexts must be preserved");
   assert.deepEqual(commentAttachment.contexts, comment.contexts);
+  assert.equal(comment.destination.openSourceUrl, null, "multi-context Comment must not choose one source");
+  assert.equal(comment.destination.contextOpenSourceUrls.length, 2);
+  assert(comment.destination.contextOpenSourceUrls.every((url) => url?.startsWith("/processing/")));
+
+  const opaqueTargets = [
+    ".",
+    "..",
+    "/",
+    "%2F",
+    "?",
+    "#",
+    "id with space",
+    "样品/α",
+    "id%2Fencoded",
+    "id/encoded",
+  ].map((id) => ({ type: "sample", id }));
+  const opaqueResponse = await postReferences(miniflare, opaqueTargets);
+  const opaquePayload = await opaqueResponse.json();
+  assert.equal(opaqueResponse.status, 200, JSON.stringify(opaquePayload));
+  assert.deepEqual(opaquePayload.results.map((result) => result.target), opaqueTargets);
+  assert(opaquePayload.results.every((result) => result.resolution === "not_found"));
+  const opaqueUrls = opaquePayload.results.map((result) => result.destination.referenceUrl);
+  assert.equal(new Set(opaqueUrls).size, opaqueTargets.length, "distinct stable IDs must not collide");
+  assert(opaqueUrls.every((url) => /^\/references\/sample\/r1_[A-Za-z0-9_-]*$/.test(url)));
+
   const serialized = JSON.stringify(mixedPayload);
   assert(!serialized.includes("reference/private/"));
   assert(!serialized.includes("r2_key"));
@@ -174,8 +218,12 @@ try {
   assert.equal(batchPayload.results.length, 200);
   assert.deepEqual(batchPayload.results.map((result) => result.target), batchTargets);
   assert(batchPayload.results.every((result) => result.resolution === "resolved"));
+  assert(batchPayload.results.every((result) => result.destination.mode === "source"));
+  assert(batchPayload.results.every((result) => (
+    result.destination.openSourceUrl === `/samples/${result.target.id}`
+  )));
 
-  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, and 200-target batch.");
+  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);
