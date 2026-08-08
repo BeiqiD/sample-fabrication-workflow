@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { decodeReferenceRouteId } from "../../shared/reference-destinations";
 import {
   isReferenceTarget,
   type ReferenceResolution,
@@ -77,9 +78,9 @@ function referenceState(resolution: ReferenceResolution): ReferenceState {
   }
   if (resolution.destination.mode === "archived") {
     return {
-      label: "Archived context",
+      label: "Read-only context",
       tone: "warning",
-      message: "The source is resolved, but every available source path contains a deleted or archived ancestor. The context remains read-only here.",
+      message: "The source is resolved, but no identity-safe ordinary source destination is available. The exact context remains read-only here.",
     };
   }
   return {
@@ -96,16 +97,17 @@ function segmentLifecycle(segment: ReferenceResolution["contexts"][number]["segm
 }
 
 export function ReferencePage() {
-  const { type = "", id = "" } = useParams();
+  const { type = "", encodedId = "" } = useParams();
+  const id = decodeReferenceRouteId(encodedId);
   const [resolution, setResolution] = useState<ReferenceResolution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const target = { type, id };
-    if (!isReferenceTarget(target) || id.trim() !== id) {
+    const target = id === null ? null : { type, id };
+    if (!target || !isReferenceTarget(target) || target.id.trim() !== target.id) {
       setResolution(null);
-      setError("This is not a valid reference target.");
+      setError("This is not a valid canonical reference target.");
       setLoading(false);
       return;
     }
