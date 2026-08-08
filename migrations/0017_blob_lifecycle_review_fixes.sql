@@ -206,7 +206,8 @@ WHEN NULLIF(TRIM(CASE WHEN json_valid(NEW.metadata_json)
   THEN json_extract(NEW.metadata_json, '$.thumbnailKey') END), '') IS NOT NULL
   AND CASE WHEN json_valid(OLD.metadata_json)
         THEN json_extract(OLD.metadata_json, '$.thumbnailKey') END
-      IS NOT json_extract(NEW.metadata_json, '$.thumbnailKey')
+      IS NOT CASE WHEN json_valid(NEW.metadata_json)
+        THEN json_extract(NEW.metadata_json, '$.thumbnailKey') END
 BEGIN
   SELECT RAISE(ABORT, 'blob locator is unavailable') WHERE EXISTS (
     SELECT 1 FROM blob_gc_ledger
