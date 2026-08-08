@@ -6,7 +6,6 @@ import {
   type NormalizedReferenceSearchInput,
   type ReferenceSearchMatchTier,
   type ReferenceSearchResult,
-  type SearchReferencesInput,
   type SearchReferencesResponse,
 } from "../../shared/reference-search";
 import {
@@ -30,6 +29,14 @@ const MATCH_TIER_BY_NUMBER: Record<number, ReferenceSearchMatchTier> = {
   2: "prefix_primary",
   3: "content",
   4: "metadata",
+};
+
+const MATCH_TIER_ORDER: Record<ReferenceSearchMatchTier, number> = {
+  exact_id: 0,
+  exact_primary: 1,
+  prefix_primary: 2,
+  content: 3,
+  metadata: 4,
 };
 
 const TARGET_TYPE_ORDER = new Map(
@@ -115,7 +122,7 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
   if (!input || typeof input !== "object") {
     throw new ReferenceSearchInputError("invalid_input", "Reference search input is required");
   }
-  const candidate = input as Partial<SearchReferencesInput>;
+  const candidate = input as Record<string, unknown>;
   if (typeof candidate.query !== "string") {
     throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
   }
@@ -131,20 +138,25 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
     throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
   }
 
+  const requestedTypes = candidate.types;
   let types: ReferenceTargetType[];
-  if (candidate.types === undefined || candidate.types.length === 0) {
+  if (requestedTypes === undefined
+    || (Array.isArray(requestedTypes) && requestedTypes.length === 0)) {
     types = [...REFERENCE_TARGET_TYPES];
   } else {
-    if (!Array.isArray(candidate.types) || !candidate.types.every(isReferenceTargetType)) {
+    if (!Array.isArray(requestedTypes) || !requestedTypes.every(isReferenceTargetType)) {
       throw new ReferenceSearchInputError("invalid_types", "Reference search contains an unknown target type");
     }
-    const requested = new Set(candidate.types);
+    const requested = new Set(requestedTypes as ReferenceTargetType[]);
     types = REFERENCE_TARGET_TYPES.filter((type) => requested.has(type));
   }
 
-  const sampleId = candidate.sampleId ?? null;
+  const rawSampleId = candidate.sampleId;
+  const sampleId = rawSampleId === undefined || rawSampleId === null ? null : rawSampleId;
   if (sampleId !== null
-    && (!isReferenceTarget({ type: "sample", id: sampleId }) || sampleId.trim() !== sampleId)) {
+    && (typeof sampleId !== "string"
+      || !isReferenceTarget({ type: "sample", id: sampleId })
+      || sampleId.trim() !== sampleId)) {
     throw new ReferenceSearchInputError("invalid_sample", "Reference search Sample filter is invalid");
   }
 
@@ -157,8 +169,13 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
     );
   }
 
-  const limit = candidate.limit ?? DEFAULT_REFERENCE_SEARCH_LIMIT;
-  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_REFERENCE_SEARCH_LIMIT) {
+  const limit = candidate.limit === undefined
+    ? DEFAULT_REFERENCE_SEARCH_LIMIT
+    : candidate.limit;
+  if (typeof limit !== "number"
+    || !Number.isInteger(limit)
+    || limit < 1
+    || limit > MAX_REFERENCE_SEARCH_LIMIT) {
     throw new ReferenceSearchInputError(
       "invalid_limit",
       `Reference search limit must be between 1 and ${MAX_REFERENCE_SEARCH_LIMIT}`,
@@ -288,7 +305,7 @@ const commentContextSql = `
     WHEN cs.context_kind = 'sample' THEN COALESCE((
       SELECT COALESCE(s.id, '') || ' ' || COALESCE(s.code, '') || ' ' || COALESCE(s.title, '')
       FROM samples s
-      WHERE s.id = cs.sample_id
+      WHERE s.id = cs.sample_id AND s.deleted_at IS NULL
     ), '')
     ELSE COALESCE((
       SELECT GROUP_CONCAT(
@@ -299,9 +316,9 @@ const commentContextSql = `
         ' '
       )
       FROM comment_submission_targets cst
-      JOIN samples s ON s.id = cst.sample_id
-      JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
-      JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+      JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
+      JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id AND r.deleted_at IS NULL
+      JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id AND rs.deleted_at IS NULL
       LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
       WHERE cst.submission_id = cs.id
     ), '')
@@ -578,8 +595,8 @@ function candidateLimit(resultLimit: number) {
 }
 
 function compareCandidates(left: SearchCandidate, right: SearchCandidate) {
-  const leftTier = Object.values(MATCH_TIER_BY_NUMBER).indexOf(left.tier);
-  const rightTier = Object.values(MATCH_TIER_BY_NUMBER).indexOf(right.tier);
+  const leftTier = MATCH_TIER_ORDER[left.tier];
+  const rightTier = MATCH_TIER_ORDER[right.tier];
   if (leftTier !== rightTier) return leftTier - rightTier;
 
   const leftTime = left.matchedAt ?? "";
