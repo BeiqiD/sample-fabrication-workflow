@@ -7,8 +7,10 @@ const searchPage = readFileSync(new URL("./pages/SearchPage.tsx", import.meta.ur
 const searchSurface = readFileSync(new URL("./components/ReferenceSearchSurface.tsx", import.meta.url), "utf8");
 const searchStyles = readFileSync(new URL("./reference-search.css", import.meta.url), "utf8");
 
-describe("global reference Search page contract", () => {
-  it("registers one lazy Search route and a discoverable primary navigation item", () => {
+describe("temporary reference Search browser contract", () => {
+  it("registers one removable integration route and placeholder navigation item", () => {
+    expect(app).toContain("Temporary integration browser. Phase 3 mounts the reusable surface inside Project.");
+    expect(app).toContain("Phase 3 replaces this temporary destination with Project.");
     expect(app).toContain('const SearchPage = lazy(() => import("./pages/SearchPage")');
     expect(app).toContain('{ to: "/search", label: "Search", icon: "search" }');
     expect(app).toContain('<Route path="/search" element={<SearchPage />} />');
@@ -16,7 +18,7 @@ describe("global reference Search page contract", () => {
     expect(navigationIcon).toMatch(/search:\s*<>[\s\S]*?<circle[\s\S]*?<path/);
   });
 
-  it("keeps committed state in the URL and delegates reusable behavior to the surface", () => {
+  it("keeps the temporary page thin and delegates durable behavior to the reusable surface", () => {
     expect(searchPage).toContain("useSearchParams");
     expect(searchPage).toContain("referenceSearchStateFromParams");
     expect(searchPage).toContain("referenceSearchParamsFromState");
@@ -26,7 +28,7 @@ describe("global reference Search page contract", () => {
     expect(searchSurface).not.toMatch(/Add to project/i);
   });
 
-  it("compacts the theme control so five mobile navigation destinations fit", () => {
+  it("compacts the theme control while the temporary fifth destination exists", () => {
     expect(app).toContain('import "./reference-search.css"');
     expect(searchStyles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.topbar \.theme-toggle\s*\{[^}]*min-width:\s*40px[^}]*width:\s*40px/);
     expect(searchStyles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.topbar \.theme-toggle small\s*\{[^}]*position:\s*absolute/);
