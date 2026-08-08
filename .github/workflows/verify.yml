@@ -2,11 +2,10 @@ name: Verify
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches:
+      - agent/reference-source-focus
   pull_request:
     branches:
-      - main
       - v2/backend-foundation
 
 permissions:
@@ -14,7 +13,7 @@ permissions:
 
 jobs:
   apply-review-fixes:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/reference-source-focus'
+    if: github.ref_name == 'agent/reference-source-focus' || github.head_ref == 'agent/reference-source-focus'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
