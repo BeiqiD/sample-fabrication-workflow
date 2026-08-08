@@ -77,8 +77,8 @@ deploy it until the
 complete.
 
 The normative requirements are in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md), and the next code slice
-is specified in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md), and the current code
+slice is tracked in
 [blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
 The gate requires one concurrency-safe retention-edge definition across
 submission cancellation, scheduled cleanup, complete export, and future
@@ -100,7 +100,8 @@ the complete test suite, and the deployment build before touching remote D1 or
 storage. Passing an ordinary build or using resources isolated from `main` does
 not waive the gate.
 
-Until the implementation and dedicated tests are merged:
+Until the implementation and dedicated tests are merged and the exact
+integration head passes the gate:
 
 - do not apply v3 migrations to a remote D1 database;
 - do not deploy the v3 Worker;

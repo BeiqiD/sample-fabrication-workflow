@@ -421,18 +421,16 @@ describe("source lifecycle routes", () => {
       const manifestResponse = await request(env, "/exports/all");
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
-        managedAttachments: Array<{ itemId: string; downloadUrl: string }>;
+        blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
       };
-      expect(manifest.managedAttachments).toEqual([
-        expect.objectContaining({
-          itemId: "export-item",
-          downloadUrl: "/api/exports/attachments/export-item",
-        }),
-      ]);
+      const exportedBlob = manifest.blobs.find((blob) => blob.blobRecordIds.includes("export-storage"));
+      expect(exportedBlob).toEqual(expect.objectContaining({
+        downloadUrl: "/api/exports/managed/export-storage",
+      }));
 
       const attachmentResponse = await request(
         env,
-        manifest.managedAttachments[0].downloadUrl.replace(/^\/api/, ""),
+        exportedBlob!.downloadUrl!.replace(/^\/api/, ""),
       );
       expect(attachmentResponse.status).toBe(200);
       expect(await attachmentResponse.text()).toBe("archived-bytes");

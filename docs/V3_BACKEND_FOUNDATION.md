@@ -10,8 +10,8 @@ The product model and full phase order are defined in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Physical byte
 retention, complete export, and permanent-delete safety are defined
 normatively in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The concrete next
-implementation is specified in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The current
+implementation is tracked in
 [blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
 
 ## Scope of the foundation
@@ -53,7 +53,7 @@ rewires. PR #120 came before Project work so that:
 - permanent deletion can be guarded by backlinks rather than foreign-key
   cascade.
 
-The next blob lifecycle slice is the remaining prerequisite: hidden and
+The current blob lifecycle slice is the remaining prerequisite: hidden and
 unfinished sources may still protect physical bytes, so cleanup and export must
 share one reachability definition before Project attachments add more edges.
 
@@ -167,7 +167,7 @@ Do not duplicate those rules in this document. The normative definition is
 
 ## Permanent deletion boundary
 
-Ordinary Delete remains recoverable. The next backend slice hard-disables
+Ordinary Delete remains recoverable. The current backend slice hard-disables
 accidental physical deletion of stable source tables and adds blocker
 infrastructure, but it does not expose a privileged destructive endpoint.
 
@@ -223,9 +223,10 @@ committed.
 
 The remaining sequence is:
 
-1. implement the shared blob reachability, cleanup, export, physical-delete
-   protection, and deployment gate in
-   [the next backend PR](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md);
+1. merge the shared blob reachability, cleanup, export, physical-delete
+   protection, and deployment gate described in
+   [the current backend PR](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md), then
+   validate the exact integration head;
 2. add `reference_targets`, backlinks, and the batch read-only resolver;
 3. add object-level deep links and deterministic reference search;
 4. add Project-owned data, Text, and Inspector;

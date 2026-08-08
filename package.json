@@ -10,13 +10,17 @@
     "build": "npm run config:local && tsc -b && vite build",
     "build:deploy": "npm run config:deploy && tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build:deploy && npm run deploy:remote",
-    "deploy:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc && wrangler deploy",
+    "deploy": "npm run deploy:remote",
+    "deploy:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote && wrangler deploy",
     "verify": "npm test && npm run build",
     "cf-typegen": "npm run config:local && wrangler types --config .wrangler/deploy.jsonc",
     "db:migrate:local": "npm run config:local && wrangler d1 migrations apply DB --local --config .wrangler/deploy.jsonc",
-    "db:migrate:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
-    "test": "vitest run"
+    "db:migrate:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
+    "internal:db:migrate:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
+    "test": "vitest run",
+    "test:blob-lifecycle": "vitest run worker/blob-reachability.test.ts worker/blob-gc.test.ts worker/blob-export.test.ts worker/permanent-delete-protection.test.ts",
+    "verify:blob-lifecycle": "npm run test:blob-lifecycle",
+    "verify:v3-deployment": "npm run verify:blob-lifecycle && npm test && npm run build:deploy"
   },
   "dependencies": {
     "hono": "^4.12.31",

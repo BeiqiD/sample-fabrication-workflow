@@ -507,7 +507,7 @@ condition:
 |---|---|---|
 | 0. Reference identity | Target list, canonical Comment, attachment occurrence/blob boundary, lifecycle vocabulary | Complete |
 | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
-| 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Next PR |
+| 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Implemented in current PR; pending merge and integration-head gate |
 | 2. Read and locate | Registry, backlinks, batch resolver, deep links, deterministic search | Not started |
 | 3. Project and Text | Project data, Project-owned content, Text workspace, Inspector, insertion, export | Not started |
 | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |

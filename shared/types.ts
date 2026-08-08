@@ -489,18 +489,43 @@ export interface CreateRecordInput {
   thumbnailKey?: string;
 }
 
+export type BlobExportOutcome =
+  | "packaged"
+  | "missing"
+  | "provider_unavailable"
+  | "metadata_not_ready"
+  | "download_failed"
+  | "size_mismatch"
+  | "hash_mismatch";
+
+export interface BlobExportOccurrence {
+  sourceType: string;
+  sourceId: string;
+  occurrenceType: string;
+  occurrenceId: string;
+  retentionReason: string;
+  retainUntil: string | null;
+}
+
+export interface FullExportBlobEntry {
+  locatorId: string;
+  storeKind: "r2" | "managed";
+  provider: string;
+  objectKey: string;
+  blobRecordIds: string[];
+  filename: string;
+  expectedByteSize: number | null;
+  expectedSha256: string | null;
+  sourceOccurrences: BlobExportOccurrence[];
+  downloadUrl: string | null;
+  initialOutcome: Exclude<BlobExportOutcome, "packaged"> | null;
+}
+
 export interface FullExportManifest {
-  schemaVersion: 2;
+  schemaVersion: 3;
   exportedAt: string;
   tables: Record<string, Array<Record<string, unknown>>>;
-  assetKeys: string[];
-  managedAttachments: Array<{
-    itemId: string;
-    filename: string;
-    byteSize: number;
-    sha256: string;
-    downloadUrl: string;
-  }>;
+  blobs: FullExportBlobEntry[];
 }
 
 export interface FabubloxSection {

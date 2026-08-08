@@ -1,6 +1,6 @@
 # Blob lifecycle implementation plan
 
-Status: concrete plan for the next backend PR
+Status: implemented in the current backend PR; pending review and integration-head verification
 
 This document translates
 [the blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) into an implementable
@@ -9,7 +9,7 @@ file layout during review, but its boundaries and exit criteria should remain.
 
 ## Goal
 
-The next PR makes blob reachability executable rather than descriptive. It
+This PR makes blob reachability executable rather than descriptive. It
 centralizes retention edges, makes retryability explicit, refactors Cancel and
 scheduled cleanup onto the same query, makes complete export tolerant of
 missing bytes, and prevents accidental physical deletion of stable sources.
@@ -17,14 +17,14 @@ missing bytes, and prevents accidental physical deletion of stable sources.
 It targets `v2/backend-foundation` only. It does not run remote migrations or
 deploy the v3 Worker.
 
-## Why this is the next PR
+## Why this PR follows the source-lifecycle foundation
 
 PR #120 established stable IDs, canonical Comments, occurrence identities, and
 soft-delete/restore behavior. Those changes make future Project references
 possible, but they also mean a row can be hidden while its bytes remain part of
 history and export.
 
-The current cleanup implementation independently infers reachability from
+Before this PR, cleanup independently inferred reachability from
 submission status, while export independently enumerates keys. That is safe only
 while the system has few source types and no Project references. The next phase
 must establish one extension point before `reference_targets` and Project-owned
@@ -51,9 +51,9 @@ The PR does not include:
 - a generalized content-management rewrite;
 - production or remote v3 migration/deployment.
 
-## Current seams to replace
+## Implementation seams
 
-The implementation should remove duplicated lifecycle knowledge from these
+The implementation removes duplicated lifecycle knowledge from these
 areas:
 
 - `worker/comment-upload-cleanup.ts`, which currently protects only selected
@@ -427,6 +427,19 @@ contract tests -> complete tests -> deploy build -> remote migration -> deploy
 
 No command may apply a migration and then discover that the blob contract tests
 failed.
+
+## Current implementation status
+
+The current PR implements the migration, shared reachability modules, guarded
+two-phase GC, retry closure, Cancel integration, availability-aware export,
+physical-delete triggers, and the repository deployment gate described above.
+Its dedicated suites cover shared and retryable retention, claim/edge races,
+provider deletion convergence, export warnings and integrity checks, the D1
+binding limit, and delete-without-cascade protection.
+
+This status does not authorize a remote migration or deployment. The exact
+merged integration head must still pass the dedicated check, complete tests,
+and deployment build before an operator may use the gated remote commands.
 
 ## Recommended commit sequence
 

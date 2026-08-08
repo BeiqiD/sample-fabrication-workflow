@@ -15,6 +15,12 @@ import type {
 } from "../shared/types";
 import { sha256Hex } from "../shared/content-addressing";
 import { managedObjectKey, managedStorage, managedStorageStatus } from "./managed-storage";
+import {
+  listItemBlobLocators,
+  listSubmissionBlobLocators,
+  markOrphanCandidate,
+  retryUntil,
+} from "./blob-lifecycle/reachability";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
 
@@ -28,6 +34,8 @@ type SubmissionRow = {
   body: string;
   status: "draft" | "uploading" | "ready" | "failed" | "cancelled";
   actor_email: string | null;
+  retry_until: string | null;
+  retry_closed_at: string | null;
 };
 
 type ItemRow = {
@@ -137,7 +145,8 @@ function itemBindings(item: CommentSubmissionItemInput, submissionId: string, po
 
 async function ownedSubmission(c: Context<AppBindings>, id: string) {
   const submission = await c.env.DB.prepare(
-    `SELECT id, context_kind, sample_id, scope, body, status, actor_email
+    `SELECT id, context_kind, sample_id, scope, body, status, actor_email,
+            retry_until, retry_closed_at
      FROM comment_submissions WHERE id = ? AND deleted_at IS NULL`,
   ).bind(id).first<SubmissionRow>();
   if (!submission) throw new HTTPException(404, { message: "Comment submission not found" });
@@ -227,8 +236,10 @@ async function requireCommentItemDependency(
 }
 
 async function markItemFailed(env: Env, submissionId: string, itemId: string, message: string) {
-  const now = new Date().toISOString();
-  await env.DB.batch([
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const retryDeadline = retryUntil(nowDate);
+  const results = await env.DB.batch([
     env.DB.prepare(
       `UPDATE comment_submission_items
        SET status = 'failed', error_message = ?, updated_at = ?
@@ -237,15 +248,18 @@ async function markItemFailed(env: Env, submissionId: string, itemId: string, me
          AND EXISTS (
            SELECT 1 FROM comment_submissions cs
            WHERE cs.id = comment_submission_items.submission_id
-             AND cs.status <> 'cancelled' AND cs.deleted_at IS NULL
+             AND cs.status <> 'cancelled' AND cs.retry_closed_at IS NULL
+             AND cs.deleted_at IS NULL
          )`,
     ).bind(message.slice(0, 1_000), now, itemId, submissionId),
     env.DB.prepare(
       `UPDATE comment_submissions
-       SET status = 'failed', error_message = ?, updated_at = ?
-       WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL`,
-    ).bind("One or more files could not be uploaded", now, submissionId),
+       SET status = 'failed', error_message = ?, retry_until = ?, updated_at = ?
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled')
+         AND retry_closed_at IS NULL AND deleted_at IS NULL`,
+    ).bind("One or more files could not be uploaded", retryDeadline, now, submissionId),
   ]);
+  return Boolean(results[1].meta.changes);
 }
 
 async function managedKeyForSubmission(
@@ -328,13 +342,16 @@ routes.post("/comment-submissions", async (c) => {
     })) throw new HTTPException(409, { message: "One or more process steps changed before the comment was submitted." });
   }
 
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const retryDeadline = retryUntil(nowDate);
   const userEmail = c.get("userEmail");
   const submissionMutation = input.context.kind === "sample"
     ? c.env.DB.prepare(
       `INSERT OR IGNORE INTO comment_submissions
-       (id, context_kind, sample_id, scope, body, status, actor_email, created_at, updated_at)
-       SELECT ?, 'sample', s.id, NULL, ?, 'uploading', ?, ?, ?
+       (id, context_kind, sample_id, scope, body, status, actor_email,
+        created_at, updated_at, retry_until)
+       SELECT ?, 'sample', s.id, NULL, ?, 'uploading', ?, ?, ?, ?
        FROM samples s
        WHERE s.id = ? AND s.updated_at = ? AND s.deleted_at IS NULL`,
     ).bind(
@@ -343,6 +360,7 @@ routes.post("/comment-submissions", async (c) => {
       userEmail,
       now,
       now,
+      retryDeadline,
       input.context.sampleId,
       input.context.expectedUpdatedAt,
     )
@@ -361,8 +379,9 @@ routes.post("/comment-submissions", async (c) => {
          WHERE rs.updated_at = q.expected_updated_at
        )
        INSERT OR IGNORE INTO comment_submissions
-       (id, context_kind, sample_id, scope, body, status, actor_email, created_at, updated_at)
-       SELECT ?, 'run_steps', NULL, ?, ?, 'uploading', ?, ?, ?
+       (id, context_kind, sample_id, scope, body, status, actor_email,
+        created_at, updated_at, retry_until)
+       SELECT ?, 'run_steps', NULL, ?, ?, 'uploading', ?, ?, ?, ?
        WHERE (SELECT COUNT(*) FROM valid) = ?`,
     ).bind(
       ...input.context.targets.flatMap((target) => [
@@ -377,6 +396,7 @@ routes.post("/comment-submissions", async (c) => {
       userEmail,
       now,
       now,
+      retryDeadline,
       input.context.targets.length,
     );
   const statements = [submissionMutation];
@@ -438,6 +458,9 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
   const submission = await ownedSubmission(c, submissionId);
   if (submission.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
   if (submission.status === "ready") return c.json({ ok: true, deduplicated: true });
+  if (submission.retry_closed_at) {
+    throw new HTTPException(409, { message: "The retry window for this upload is closed" });
+  }
 
   const item = await c.env.DB.prepare(
     `SELECT csi.id, csi.submission_id, csi.kind, csi.status, csi.filename, csi.mime_type,
@@ -459,11 +482,31 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     await markItemFailed(c.env, submissionId, itemId, "The uploaded file does not match the confirmed draft");
     throw new HTTPException(400, { message: "The uploaded file does not match the confirmed draft" });
   }
-  const now = new Date().toISOString();
-  await c.env.DB.prepare(
-    `UPDATE comment_submission_items SET status = 'uploading', error_message = NULL, updated_at = ?
-     WHERE id = ? AND submission_id = ? AND status <> 'ready' AND deleted_at IS NULL`,
-  ).bind(now, itemId, submissionId).run();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const retryDeadline = retryUntil(nowDate);
+  const retryResults = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET status = 'uploading', error_message = NULL, retry_until = ?, updated_at = ?
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled')
+         AND retry_closed_at IS NULL AND deleted_at IS NULL`,
+    ).bind(retryDeadline, now, submissionId),
+    c.env.DB.prepare(
+      `UPDATE comment_submission_items
+       SET status = 'uploading', error_message = NULL, updated_at = ?
+       WHERE id = ? AND submission_id = ? AND status <> 'ready' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = comment_submission_items.submission_id
+             AND cs.status = 'uploading' AND cs.retry_until = ?
+             AND cs.retry_closed_at IS NULL
+         )`,
+    ).bind(now, itemId, submissionId, retryDeadline),
+  ]);
+  if (!retryResults[0].meta.changes || !retryResults[1].meta.changes) {
+    throw new HTTPException(409, { message: "This upload changed before the retry could start" });
+  }
 
   try {
     if (item.kind === "comment_image") {
@@ -474,7 +517,14 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
       if (buffer.byteLength !== item.byte_size) throw new HTTPException(400, { message: "Comment image size changed during upload" });
       const sha256 = await sha256Hex(buffer);
       const existing = await c.env.DB.prepare(
-        "SELECT id, r2_key FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+        `SELECT id, r2_key FROM assets a
+         WHERE sha256 = ? AND status = 'ready'
+           AND NOT EXISTS (
+             SELECT 1 FROM blob_gc_ledger bg
+             WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+               AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+           )
+         ORDER BY a.created_at DESC LIMIT 1`,
       ).bind(sha256).first<{ id: string; r2_key: string }>();
       let assetId = existing?.id;
       let deduplicated = Boolean(existing);
@@ -490,7 +540,14 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
         } catch (error) {
           await c.env.ASSETS.delete(key);
           const winner = await c.env.DB.prepare(
-            "SELECT id FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+            `SELECT id FROM assets a
+             WHERE sha256 = ? AND status = 'ready'
+               AND NOT EXISTS (
+                 SELECT 1 FROM blob_gc_ledger bg
+                 WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+                   AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+               )
+             ORDER BY a.created_at DESC LIMIT 1`,
           ).bind(sha256).first<{ id: string }>();
           if (!winner) throw error;
           assetId = winner.id;
@@ -511,7 +568,13 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
         "SELECT status FROM comment_submissions WHERE id = ? AND deleted_at IS NULL",
       )
         .bind(submissionId).first<{ status: string }>();
-      if (latest?.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
+      if (latest?.status === "cancelled") {
+        const locators = await listItemBlobLocators(c.env.DB, submissionId, itemId);
+        for (const locator of locators) {
+          await markOrphanCandidate(c.env.DB, locator, crypto.randomUUID(), new Date());
+        }
+        throw new HTTPException(409, { message: "This upload was cancelled" });
+      }
       return c.json({ ok: true, deduplicated });
     }
 
@@ -522,7 +585,15 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     if (!storage) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
     const existing = await c.env.DB.prepare(
       `SELECT id FROM managed_storage_objects
-       WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status = 'ready' LIMIT 1`,
+       WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status IN ('ready', 'orphaned')
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'managed'
+             AND bg.provider = managed_storage_objects.provider
+             AND bg.object_key = managed_storage_objects.object_key
+             AND bg.state IN ('deleting', 'deleted')
+         )
+       ORDER BY created_at DESC LIMIT 1`,
     ).bind(storage.provider, sha256, item.byte_size).first<{ id: string }>();
     let storageObjectId = existing?.id;
     let deduplicated = Boolean(existing);
@@ -551,7 +622,15 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
         await storage.delete(key);
         const winner = await c.env.DB.prepare(
           `SELECT id FROM managed_storage_objects
-           WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status = 'ready' LIMIT 1`,
+           WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status IN ('ready', 'orphaned')
+             AND NOT EXISTS (
+               SELECT 1 FROM blob_gc_ledger bg
+               WHERE bg.store_kind = 'managed'
+                 AND bg.provider = managed_storage_objects.provider
+                 AND bg.object_key = managed_storage_objects.object_key
+                 AND bg.state IN ('deleting', 'deleted')
+             )
+           ORDER BY created_at DESC LIMIT 1`,
         ).bind(storage.provider, sha256, item.byte_size).first<{ id: string }>();
         if (!winner) throw error;
         storageObjectId = winner.id;
@@ -573,15 +652,10 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     )
       .bind(submissionId).first<{ status: string }>();
     if (latest?.status === "cancelled") {
-      await c.env.DB.prepare(
-        `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
-         WHERE id = ? AND status = 'ready'
-           AND NOT EXISTS (
-             SELECT 1 FROM comment_submission_items csi
-             JOIN comment_submissions cs ON cs.id = csi.submission_id
-             WHERE csi.storage_object_id = managed_storage_objects.id AND cs.status = 'ready'
-           )`,
-      ).bind(new Date().toISOString(), storageObjectId).run();
+      const locators = await listItemBlobLocators(c.env.DB, submissionId, itemId);
+      for (const locator of locators) {
+        await markOrphanCandidate(c.env.DB, locator, crypto.randomUUID(), new Date());
+      }
       throw new HTTPException(409, { message: "This upload was cancelled" });
     }
     return c.json({ ok: true, deduplicated });
@@ -595,9 +669,19 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
 routes.post("/comment-submissions/:submissionId/items/:itemId/fail", async (c) => {
   const submissionId = c.req.param("submissionId");
   const itemId = c.req.param("itemId");
-  await ownedSubmission(c, submissionId);
+  const submission = await ownedSubmission(c, submissionId);
+  if (submission.retry_closed_at || ["ready", "cancelled"].includes(submission.status)) {
+    throw new HTTPException(409, { message: "This upload no longer accepts retry updates" });
+  }
   const input = await c.req.json<{ error?: string }>().catch((): { error?: string } => ({}));
-  await markItemFailed(c.env, submissionId, itemId, input.error?.trim() || "The upload did not reach the server");
+  if (!await markItemFailed(
+    c.env,
+    submissionId,
+    itemId,
+    input.error?.trim() || "The upload did not reach the server",
+  )) {
+    throw new HTTPException(409, { message: "The retry window for this upload is closed" });
+  }
   return c.json({ ok: true });
 });
 
@@ -632,6 +716,10 @@ routes.delete("/comment-submissions/:submissionId/items/:itemId", async (c) => {
      WHERE id = ? AND submission_id = ? AND status <> 'cancelled' AND deleted_at IS NULL`,
   ).bind(now, itemId, submissionId).run();
   if (!result.meta.changes) throw new HTTPException(404, { message: "Submission item not found" });
+  const locators = await listItemBlobLocators(c.env.DB, submissionId, itemId);
+  for (const locator of locators) {
+    await markOrphanCandidate(c.env.DB, locator, crypto.randomUUID(), new Date(now));
+  }
   return c.json({ ok: true });
 });
 
@@ -673,6 +761,9 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
   const submission = await ownedSubmission(c, submissionId);
   if (submission.status === "ready") return c.json({ ok: true, status: "ready" as const });
   if (submission.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
+  if (submission.retry_closed_at) {
+    throw new HTTPException(409, { message: "The retry window for this upload is closed" });
+  }
   const items = await c.env.DB.prepare(
     "SELECT status FROM comment_submission_items WHERE submission_id = ? AND deleted_at IS NULL",
   ).bind(submissionId).all<{ status: string }>();
@@ -692,10 +783,11 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
   const statements = [c.env.DB.prepare(
     `UPDATE comment_submissions
      SET status = 'ready', error_message = NULL, completed_at = ?, updated_at = ?,
-         last_mutation_id = ?
+         last_mutation_id = ?, retry_closed_at = ?, retry_closed_by = ?
      WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL
+       AND retry_closed_at IS NULL
        AND ${visibleSubmissionTargetsSql("comment_submissions")}`,
-  ).bind(now, now, mutationId, submissionId)];
+  ).bind(now, now, mutationId, now, userEmail, submissionId)];
   if (submission.context_kind === "sample" && submission.sample_id) {
     const sample = await c.env.DB.prepare(
       "SELECT id FROM samples WHERE id = ? AND deleted_at IS NULL",
@@ -844,9 +936,10 @@ routes.post("/comment-submissions/:submissionId/cancel", async (c) => {
     c.env.DB.prepare(
       `UPDATE comment_submissions
        SET status = 'cancelled', error_message = NULL, cancelled_at = ?,
-           last_mutation_id = ?, updated_at = ?
-       WHERE id = ? AND status NOT IN ('ready', 'cancelled') AND deleted_at IS NULL`,
-    ).bind(now, mutationId, now, submissionId),
+           last_mutation_id = ?, retry_closed_at = ?, retry_closed_by = ?, updated_at = ?
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled')
+         AND retry_closed_at IS NULL AND deleted_at IS NULL`,
+    ).bind(now, mutationId, now, c.get("userEmail"), now, submissionId),
     c.env.DB.prepare(
       `UPDATE comment_submission_items SET status = 'cancelled', updated_at = ?
        WHERE submission_id = ? AND status NOT IN ('ready', 'cancelled')
@@ -857,25 +950,13 @@ routes.post("/comment-submissions/:submissionId/cancel", async (c) => {
              AND cs.status = 'cancelled' AND cs.last_mutation_id = ?
          )`,
     ).bind(now, submissionId, mutationId),
-    c.env.DB.prepare(
-      `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
-       WHERE id IN (
-         SELECT csi.storage_object_id
-         FROM comment_submission_items csi
-         JOIN comment_submissions cs ON cs.id = csi.submission_id
-         WHERE csi.submission_id = ? AND csi.storage_object_id IS NOT NULL
-           AND cs.status = 'cancelled' AND cs.last_mutation_id = ?
-       )
-       AND NOT EXISTS (
-         SELECT 1 FROM comment_submission_items other
-         JOIN comment_submissions cs ON cs.id = other.submission_id
-         WHERE other.storage_object_id = managed_storage_objects.id
-           AND cs.status = 'ready'
-       )`,
-    ).bind(now, submissionId, mutationId),
   ]);
   if (!results[0].meta.changes) {
     throw new HTTPException(409, { message: "This submission changed while it was being cancelled" });
+  }
+  const locators = await listSubmissionBlobLocators(c.env.DB, submissionId);
+  for (const locator of locators) {
+    await markOrphanCandidate(c.env.DB, locator, crypto.randomUUID(), new Date(now));
   }
   return c.json({ ok: true });
 });
