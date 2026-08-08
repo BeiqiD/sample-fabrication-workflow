@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
 
@@ -68,7 +69,7 @@ export function App() {
         <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/processing" replace />} />
-            <Route path="/references/:type/:id" element={<ReferencePage />} />
+            <Route path={REFERENCE_ROUTE_PATTERN} element={<ReferencePage />} />
             <Route path="/processing" element={<ProcessingPage />} />
             <Route path="/processing/:sampleId" element={<ProcessingWorkspacePage />} />
             <Route path="/samples" element={<SamplesPage />} />
