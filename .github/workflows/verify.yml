@@ -88,6 +88,7 @@ jobs:
           set -o pipefail
           npm run test:reference-foundation 2>&1 | tee reference-foundation.log
           npm run verify:reference-worker 2>&1 | tee -a reference-foundation.log
+          npm run verify:reference-search-worker 2>&1 | tee -a reference-foundation.log
 
       - name: Record reference foundation status
         if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success'
@@ -166,7 +167,7 @@ jobs:
             const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
             const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
             const detail = lines.find((line) => /error TS|error:|Error:|failed/i.test(line)) || lines.at(-1) || "failure";
-            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
