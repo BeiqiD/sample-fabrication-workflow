@@ -8,6 +8,34 @@ import {
   SqliteD1Database,
 } from "./reference-test-support";
 
+class CountingSqliteD1Database extends SqliteD1Database {
+  batchCount = 0;
+  directQueryCount = 0;
+  private inBatch = false;
+
+  override recordQuery() {
+    super.recordQuery();
+    if (this.inBatch) return;
+    this.directQueryCount += 1;
+  }
+
+  override async batch(statements: D1PreparedStatement[]) {
+    this.batchCount += 1;
+    this.inBatch = true;
+    try {
+      return await super.batch(statements);
+    } finally {
+      this.inBatch = false;
+    }
+  }
+
+  resetCounts() {
+    this.resetQueryCount();
+    this.batchCount = 0;
+    this.directQueryCount = 0;
+  }
+}
+
 const executionContext = {
   waitUntil: () => undefined,
   passThroughOnException: () => undefined,
@@ -17,13 +45,13 @@ const executionContext = {
 function fixture() {
   const database = referenceTestDatabase();
   seedReferenceGraph(database);
-  const d1 = new SqliteD1Database(database);
+  const d1 = new CountingSqliteD1Database(database);
   const env: Env = {
     AUTH_MODE: "disabled",
     DB: d1 as unknown as D1Database,
     ASSETS: {} as R2Bucket,
   };
-  return { database, env };
+  return { database, d1, env };
 }
 
 function post(env: Env, body: unknown) {
@@ -89,14 +117,15 @@ describe("reference resolution route", () => {
     database.close();
   });
 
-  it("adds registry rows to the complete table export without creating blob occurrences", async () => {
-    const { database, env } = fixture();
+  it("exports registry rows inside the core table-snapshot batch without blob occurrences", async () => {
+    const { database, d1, env } = fixture();
     database.prepare(`
       INSERT INTO reference_targets
         (id, target_type, target_id, first_registered_at, last_validated_at, last_known_contexts_json)
       VALUES ('registry-export', 'sample', ?,
               '2026-08-08T00:00:00.000Z', '2026-08-08T00:00:00.000Z', '[]')
     `).run(REFERENCE_FIXTURE_IDS.sampleA);
+    d1.resetCounts();
 
     const response = await worker.fetch(
       new Request("https://app.test/api/exports/all"),
@@ -110,6 +139,8 @@ describe("reference resolution route", () => {
     };
 
     expect(response.status).toBe(200);
+    expect(d1.batchCount).toBe(1);
+    expect(d1.directQueryCount).toBe(0);
     expect(payload.schemaVersion).toBe(3);
     expect(payload.tables.reference_targets).toEqual([
       expect.objectContaining({
