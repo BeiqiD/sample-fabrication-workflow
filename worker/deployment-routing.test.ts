@@ -100,16 +100,25 @@ describe("deployment routing", () => {
     expect(result.stderr).toContain("DEPLOY_WORKER_NAME");
   });
 
-  it("deploys the Vite build output after applying migrations with the generated config", () => {
+  it("gates remote migration and deployment before touching Cloudflare resources", () => {
     const packageConfiguration = JSON.parse(
       readFileSync(new URL("../package.json", import.meta.url), "utf8"),
     ) as { scripts?: Record<string, string> };
     const deployCommand = packageConfiguration.scripts?.["deploy:remote"];
+    const migrateCommand = packageConfiguration.scripts?.["db:migrate:remote"];
+    const internalMigrate = packageConfiguration.scripts?.["internal:db:migrate:remote"];
+    const gate = packageConfiguration.scripts?.["verify:v3-deployment"];
 
-    expect(deployCommand).toContain(
+    expect(gate).toBe("npm run verify:blob-lifecycle && npm test && npm run build:deploy");
+    expect(migrateCommand).toBe(
+      "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
+    );
+    expect(internalMigrate).toContain(
       "wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
     );
-    expect(deployCommand).toMatch(/&& wrangler deploy$/);
+    expect(deployCommand).toBe(
+      "npm run verify:v3-deployment && npm run internal:db:migrate:remote && wrangler deploy",
+    );
     expect(deployCommand).not.toContain(
       "wrangler deploy --config .wrangler/deploy.jsonc",
     );

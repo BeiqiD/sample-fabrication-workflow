@@ -1,6 +1,6 @@
 # v3 backend foundation
 
-Status: source identity and lifecycle contract
+Status: source identity, recoverable lifecycle, and blob-safety contract
 
 This document locks the source identities and recoverable lifecycle boundaries
 used by the Project-ready backend rebuild. The v3 database is new and empty; no
@@ -8,18 +8,20 @@ alpha-v2 data migration or compatibility import is provided.
 
 The product model and full phase order are defined in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Physical byte
-retention, complete export, and permanent-delete safety are defined
-normatively in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The concrete next
-implementation is specified in
-[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
+retention, complete export, and permanent-delete safety are defined normatively
+in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The implementation is
+recorded in
+[blob lifecycle implementation record](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md),
+and activation/operations are defined in
+[blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md).
 
 ## Scope of the foundation
 
-The first backend stage establishes stable source identities before adding
-Projects, a reference resolver, backlinks, or search. Existing frontend routes
-and response shapes remain the compatibility boundary while the backend is
-converted in small changes.
+The first backend stages establish stable source identities and safe byte
+retention before adding Projects, a reference resolver, backlinks, or search.
+Existing frontend routes and response shapes remain the compatibility boundary
+while the backend is converted in small changes.
 
 Initial reference target types are:
 
@@ -38,7 +40,7 @@ Initial reference target types are:
 Project, Project content, and Project attachment identities are added only after
 these source lifecycles and the blob lifecycle gate are enforced.
 
-## Why the lifecycle conversion preceded Project
+## Why lifecycle conversion preceded Project
 
 A Project item is a durable reference, not a copied snapshot. It therefore
 cannot safely target a source that ordinary Delete physically removes or
@@ -53,9 +55,10 @@ rewires. PR #120 came before Project work so that:
 - permanent deletion can be guarded by backlinks rather than foreign-key
   cascade.
 
-The next blob lifecycle slice is the remaining prerequisite: hidden and
-unfinished sources may still protect physical bytes, so cleanup and export must
-share one reachability definition before Project attachments add more edges.
+The blob-lifecycle safety slice closes the corresponding physical-byte boundary:
+hidden, unfinished, archived, soft-deleted, and shared sources may still protect
+bytes, so cleanup and export now share one reachability definition before
+Project attachments add more edges.
 
 ## Canonical Comments
 
@@ -78,13 +81,15 @@ timeline rather than a canonical Comment store.
 
 ## Attachment occurrences and blobs
 
-Projects and search results reference the occurrence of an attachment in its
-source context, never an R2 key or shared blob row.
+Projects and search results reference an attachment occurrence in its source
+context, never an R2 key or shared blob row.
 
 - `comment_submission_items`, `run_step_assets`, and
   `metrology_template_references` are stable occurrence records.
-- `assets` and `managed_storage_objects` are storage/blob records used for
-  content addressing, deduplication, retrieval, and garbage collection.
+- `assets` and `managed_storage_objects` are blob records used for content
+  addressing, deduplication, retrieval, and garbage collection.
+- Sample-record primary images and thumbnails remain compatibility event edges;
+  the thumbnail key is independently retained and guarded.
 - Renaming or changing occurrence description keeps the occurrence ID.
 - Replacing file bytes creates a new occurrence identity.
 - Soft-deleting one occurrence does not release shared bytes.
@@ -124,7 +129,7 @@ resolve deleted sources as read-only records.
   latest visible process Run for the Sample;
 - live active-Run and successor uniqueness ignore deleted Runs without
   weakening uniqueness among visible Runs;
-- the historical built-in metrology presets are archived and renamed without
+- historical built-in metrology presets are archived and renamed without
   deleting stable IDs, Template steps, reference files, or Run history;
 - deleting a Sample preserves its Runs, events, verifications, and parent/child
   links while ordinary directory, detail, and mutation routes hide it;
@@ -146,30 +151,32 @@ All restoration routes clear deletion metadata in place. Exports and existing
 Run history retain deleted source identities so later reference resolution can
 surface them as read-only records.
 
-## Blob lifecycle dependency
+## Blob lifecycle foundation
 
-Source lifecycle is complete, but the physical-byte lifecycle remains a hard
-prerequisite for Project and deployment.
+The physical-byte lifecycle implementation establishes:
 
-The dedicated contract fixes:
-
-- the exact active, unfinished, retryable, archived, and soft-deleted states
-  that retain bytes;
-- one shared retention-edge surface for Cancel, scheduled cleanup, export, and
+- exact active, unfinished, retryable, archived, and soft-deleted states that
+  retain bytes;
+- one `blob_retention_edges` surface for Cancel, scheduled cleanup, export, and
   future permanent-delete planning;
-- a concurrency-safe orphan/deletion state machine;
-- non-fatal missing-blob export warnings;
-- conflict-first permanent-delete behavior and physical-delete protection;
-- the required shared-object, race, missing-object, export, and deletion tests.
+- a concurrency-safe `orphaned → deleting → deleted` ledger;
+- guarded edge creation and deduplication around claimed/terminal locators;
+- Sample-record thumbnail retention;
+- non-fatal missing/unavailable/integrity export warnings;
+- hard physical-delete protection and total internal blocker queries;
+- migration repairs for malformed historical metadata and legacy managed-object
+  duplicate states;
+- dedicated lifecycle, migration, race, export, and deletion tests.
 
 Do not duplicate those rules in this document. The normative definition is
 [BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
 
 ## Permanent deletion boundary
 
-Ordinary Delete remains recoverable. The next backend slice hard-disables
-accidental physical deletion of stable source tables and adds blocker
-infrastructure, but it does not expose a privileged destructive endpoint.
+Ordinary Delete remains recoverable. The blob-lifecycle implementation
+hard-disables accidental physical deletion of stable source tables and adds
+blocker infrastructure, but it does not expose a privileged destructive
+endpoint.
 
 A future permanent-delete endpoint remains disabled until all of the following
 exist:
@@ -189,22 +196,23 @@ handled by the ordinary blob GC flow, not deleted in the request.
 Do not run a remote v3 migration or deploy the integration branch until all of
 the following are true:
 
-- the blob lifecycle contract has an implementation and dedicated test suite;
+- the exact integration-head commit passes `npm run verify:v3-deployment`;
 - Cancel and scheduled cleanup use the same reachability surface;
 - unfinished, retryable, shared, archived, and soft-deleted ready sources are
   protected;
 - complete export packages available blobs and records unavailable bytes as
   warnings without losing table data;
 - accidental physical source deletion is blocked;
-- the dedicated blob-lifecycle check, complete test suite, and deployment build
-  pass against the exact integration head.
+- the complete ordered migration set, including compatibility repairs, has
+  passed the dedicated SQLite migration suites;
+- a fresh full-system backup and the applicable D1 recovery bookmark have been
+  recorded;
+- generated configuration points only to isolated v3 resources.
 
-The repository must expose a dedicated gate such as
-`npm run verify:blob-lifecycle`, and remote migration/deployment commands must
-run it before touching remote resources.
-
-This gate applies even though the v3 Worker, D1 database, and R2 bucket are
-isolated from `main`.
+Remote migration/deployment commands run the lifecycle gate, complete test
+suite, and deployment build before touching remote resources. This requirement
+applies even though the v3 Worker, D1 database, and R2 bucket are isolated from
+`main`.
 
 ## Isolated preview deployment
 
@@ -223,9 +231,9 @@ committed.
 
 The remaining sequence is:
 
-1. implement the shared blob reachability, cleanup, export, physical-delete
-   protection, and deployment gate in
-   [the next backend PR](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md);
+1. validate the exact merged `v2/backend-foundation` integration head and, when
+   intentionally activating v3, follow
+   [the blob operations runbook](./BLOB_LIFECYCLE_OPERATIONS.md);
 2. add `reference_targets`, backlinks, and the batch read-only resolver;
 3. add object-level deep links and deterministic reference search;
 4. add Project-owned data, Text, and Inspector;

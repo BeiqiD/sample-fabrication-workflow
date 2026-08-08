@@ -5,7 +5,7 @@ import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepres
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isSampleRecordEvent } from "../shared/sample-records";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
-import { collectExportAssetKeys } from "./export-data";
+import { buildBlobExportPlan } from "./export-data";
 import { authenticateRequest } from "./auth";
 import { bulkInsertStatements } from "./d1-bulk";
 import { contentLengthWithin, escapedLikePattern, sameOriginOrNonBrowser } from "./request-guards";
@@ -19,6 +19,8 @@ import { validateSubstrateTransition } from "./run-start";
 import { resolvePlanUpdateStructureTarget } from "./plan-update";
 import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
+import { refreshOrphanGrace } from "./blob-lifecycle/reachability";
+import { getBlob } from "./blob-lifecycle/storage";
 import { managedStorageStatus } from "./managed-storage";
 import { directoryFilterValue, likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, sampleDirectorySort, searchTokens } from "./directory-query";
 import {
@@ -58,6 +60,10 @@ function validRunStepTargets(value: unknown): value is RunStepTarget[] {
     keys.add(key);
   }
   return true;
+}
+
+function isBlobLocatorUnavailable(error: unknown) {
+  return String(error).includes("blob locator is unavailable");
 }
 
 async function requireVisibleCommentOperationGroup(db: D1Database, operationGroupId: string) {
@@ -103,6 +109,9 @@ async function deleteR2KeysInBatches(bucket: R2Bucket, keys: string[]) {
 
 app.onError((error, c) => {
   if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
+  if (isBlobLocatorUnavailable(error)) {
+    return c.json({ error: "The selected file is being cleaned up. Retry with a new upload." }, 409);
+  }
   console.error(error);
   return c.json({ error: "Unexpected server error" }, 500);
 });
@@ -1287,7 +1296,13 @@ app.post("/samples/:id/records", async (c) => {
   if (assetKeys.length) {
     const placeholders = assetKeys.map(() => "?").join(", ");
     const result = await c.env.DB.prepare(
-      `SELECT r2_key FROM assets WHERE status = 'ready' AND r2_key IN (${placeholders})`,
+      `SELECT r2_key FROM assets a
+       WHERE status = 'ready' AND r2_key IN (${placeholders})
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )`,
     ).bind(...assetKeys).all<{ r2_key: string }>();
     if (new Set(result.results.map((row) => row.r2_key)).size !== new Set(assetKeys).size) {
       throw new HTTPException(400, { message: "One or more uploaded assets are unavailable" });
@@ -2710,7 +2725,14 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   const title = input.title.trim();
   if (!title) throw new HTTPException(400, { message: "Step title is required" });
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000 || input.notes.length > 10_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
-  const asset = input.assetKey ? await c.env.DB.prepare("SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
+  const asset = input.assetKey ? await c.env.DB.prepare(
+    `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       )`,
+  ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
   const runStepAssetId = asset
     ? (await c.env.DB.prepare(
@@ -3032,7 +3054,14 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     ).bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
     c.env.DB.prepare("SELECT id, position, updated_at FROM run_steps WHERE run_id = ? AND deleted_at IS NULL ORDER BY position")
       .bind(runId).all<{ id: string; position: number; updated_at: string }>(),
-    input.assetKey ? c.env.DB.prepare("SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
+    input.assetKey ? c.env.DB.prepare(
+      `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )`,
+    ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
@@ -3415,7 +3444,12 @@ app.post("/run-step-comments", async (c) => {
        AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>(),
   assetKey ? c.env.DB.prepare(
-    "SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?",
+    `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       )`,
   ).bind(assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null)]);
   if (matched.results.length !== input.targets.length) {
     throw new HTTPException(404, { message: "One or more sample steps were not found" });
@@ -4410,7 +4444,12 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
       recipe_family_id: string; template_version_id: string;
     }>(),
     input.assetKey ? c.env.DB.prepare(
-      "SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?",
+      `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )`,
     ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
     c.env.DB.prepare(
       `SELECT sv.id, sv.after_run_step_id
@@ -4625,9 +4664,23 @@ app.post("/assets", async (c) => {
   if (buffer.byteLength > 10 * 1024 * 1024) throw new HTTPException(413, { message: "Asset uploads are limited to 10 MB" });
   const sha256 = await digestSha256(buffer);
   const existing = await c.env.DB.prepare(
-    "SELECT id, r2_key FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+    `SELECT id, r2_key FROM assets a
+     WHERE sha256 = ? AND status = 'ready'
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       )
+     ORDER BY a.created_at DESC LIMIT 1`,
   ).bind(sha256).first<{ id: string; r2_key: string }>();
-  if (existing) return c.json({ id: existing.id, key: existing.r2_key, deduplicated: true });
+  if (existing && await refreshOrphanGrace(c.env.DB, {
+    storeKind: "r2",
+    provider: "r2",
+    objectKey: existing.r2_key,
+    blobRecordId: existing.id,
+  }, crypto.randomUUID(), new Date())) {
+    return c.json({ id: existing.id, key: existing.r2_key, deduplicated: true });
+  }
 
   const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const id = crypto.randomUUID();
@@ -4640,11 +4693,23 @@ app.post("/assets", async (c) => {
     ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
   } catch (error) {
     await c.env.ASSETS.delete(key);
-    if (String(error).includes("UNIQUE")) {
-      const winner = await c.env.DB.prepare(
-        "SELECT id, r2_key FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
-      ).bind(sha256).first<{ id: string; r2_key: string }>();
-      if (winner) return c.json({ id: winner.id, key: winner.r2_key, deduplicated: true });
+    const winner = await c.env.DB.prepare(
+      `SELECT id, r2_key FROM assets a
+       WHERE sha256 = ? AND status = 'ready'
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )
+       ORDER BY a.created_at DESC LIMIT 1`,
+    ).bind(sha256).first<{ id: string; r2_key: string }>();
+    if (winner && await refreshOrphanGrace(c.env.DB, {
+      storeKind: "r2",
+      provider: "r2",
+      objectKey: winner.r2_key,
+      blobRecordId: winner.id,
+    }, crypto.randomUUID(), new Date())) {
+      return c.json({ id: winner.id, key: winner.r2_key, deduplicated: true });
     }
     throw error;
   }
@@ -4652,7 +4717,18 @@ app.post("/assets", async (c) => {
 });
 
 app.get("/assets/:key{.+}", async (c) => {
-  const object = await c.env.ASSETS.get(c.req.param("key"));
+  const key = c.req.param("key");
+  const available = await c.env.DB.prepare(
+    `SELECT 1 AS available FROM assets a
+     WHERE a.r2_key = ? AND a.status = 'ready'
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       ) LIMIT 1`,
+  ).bind(key).first<{ available: number }>();
+  if (!available) throw new HTTPException(404, { message: "Asset not found" });
+  const object = await c.env.ASSETS.get(key);
   if (!object) throw new HTTPException(404, { message: "Asset not found" });
   const headers = new Headers();
   object.writeHttpMetadata(headers);
@@ -4661,6 +4737,78 @@ app.get("/assets/:key{.+}", async (c) => {
   headers.set("x-content-type-options", "nosniff");
   if (!headers.get("content-type")?.startsWith("image/")) headers.set("content-disposition", "attachment");
   return new Response(object.body, { headers });
+});
+
+app.get("/exports/r2/:key{.+}", async (c) => {
+  const key = c.req.param("key");
+  const registered = await c.env.DB.prepare(
+    `SELECT 1 AS registered
+     WHERE (
+       EXISTS (SELECT 1 FROM assets WHERE r2_key = ?)
+       OR EXISTS (SELECT 1 FROM imports WHERE workbook_asset_key = ? OR manifest_asset_key = ?)
+       OR EXISTS (SELECT 1 FROM template_versions WHERE source_asset_key = ?)
+       OR EXISTS (SELECT 1 FROM events WHERE asset_key = ?)
+       OR EXISTS (
+         SELECT 1 FROM blob_retention_edges
+         WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ?
+       )
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM blob_gc_ledger
+       WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ? AND state = 'deleted'
+     )`,
+  ).bind(key, key, key, key, key, key, key).first<{ registered: number }>();
+  if (!registered) throw new HTTPException(404, { message: "Export blob not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "r2", provider: "r2", objectKey: key, blobRecordId: null,
+  });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Export blob is missing" });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "R2 is unavailable" });
+  }
+  return new Response(object.body, {
+    headers: {
+      "content-type": object.contentType,
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    },
+  });
+});
+
+app.get("/exports/managed/:objectId", async (c) => {
+  const objectId = c.req.param("objectId");
+  const row = await c.env.DB.prepare(
+    `SELECT mso.id, mso.provider, mso.object_key, mso.mime_type
+     FROM managed_storage_objects mso
+     WHERE mso.id = ? AND mso.status IN ('ready', 'orphaned')
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
+           AND bg.object_key = mso.object_key AND bg.state = 'deleted'
+       )`,
+  ).bind(objectId).first<{
+    id: string; provider: string; object_key: string; mime_type: string;
+  }>();
+  if (!row) throw new HTTPException(404, { message: "Export blob not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "managed",
+    provider: row.provider,
+    objectKey: row.object_key,
+    blobRecordId: row.id,
+  });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Export blob is missing" });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "Managed storage is unavailable" });
+  }
+  return new Response(object.body, {
+    headers: {
+      "content-type": object.contentType || row.mime_type,
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    },
+  });
 });
 
 app.get("/exports/all", async (c) => {
@@ -4689,29 +4837,19 @@ app.get("/exports/all", async (c) => {
     comment_submission_targets: "SELECT * FROM comment_submission_targets ORDER BY submission_id, run_step_id",
     comment_submission_items: "SELECT * FROM comment_submission_items ORDER BY submission_id, position",
     managed_storage_objects: "SELECT * FROM managed_storage_objects ORDER BY created_at, id",
+    blob_gc_ledger: "SELECT * FROM blob_gc_ledger ORDER BY store_kind, provider, object_key",
+    blob_retention_edges: `SELECT * FROM blob_retention_edges
+      ORDER BY store_kind, provider, object_key, source_type, source_id, occurrence_type, occurrence_id`,
   } as const;
   const names = Object.keys(tableQueries);
   const results = await c.env.DB.batch(Object.values(tableQueries).map((sql) => c.env.DB.prepare(sql)));
   const entries = names.map((name, index) => [name, results[index].results ?? []] as const);
   const tables = Object.fromEntries(entries) as Record<string, Array<Record<string, unknown>>>;
-  const managedAttachments = (tables.comment_submission_items ?? []).flatMap((item) => {
-    if (item.kind !== "attachment" || item.status !== "ready" || typeof item.storage_object_id !== "string") return [];
-    const object = (tables.managed_storage_objects ?? []).find((candidate) => candidate.id === item.storage_object_id);
-    if (!object || object.status !== "ready") return [];
-    return [{
-      itemId: String(item.id),
-      filename: String(item.filename || object.original_name || "attachment"),
-      byteSize: Number(item.byte_size || object.byte_size || 0),
-      sha256: String(item.sha256 || object.sha256 || ""),
-      downloadUrl: `/api/exports/attachments/${encodeURIComponent(String(item.id))}`,
-    }];
-  });
   return c.json({
-    schemaVersion: 2,
+    schemaVersion: 3,
     exportedAt: new Date().toISOString(),
     tables,
-    assetKeys: collectExportAssetKeys(tables.assets, tables.imports),
-    managedAttachments,
+    blobs: buildBlobExportPlan(tables),
   });
 });
 
@@ -4855,10 +4993,15 @@ app.post("/imports/fabublox", async (c) => {
       ...imageInputs.map(({ image, file, buffer, sha256 }) => ({ kind: "image" as const, localId: image.localId, originalName: file.name, mimeType: file.type || image.mimeType, buffer, sha256, image })),
     ];
     const hashes = [...new Set(candidates.map((candidate) => candidate.sha256))];
-    const placeholders = hashes.map(() => "?").join(", ");
     const existingRows = await c.env.DB.prepare(
-      `SELECT id, r2_key, sha256 FROM assets WHERE status = 'ready' AND sha256 IN (${placeholders})`,
-    ).bind(...hashes).all<{ id: string; r2_key: string; sha256: string }>();
+      `SELECT id, r2_key, sha256 FROM assets a
+       WHERE status = 'ready' AND sha256 IN (SELECT value FROM json_each(?))
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )`,
+    ).bind(JSON.stringify(hashes)).all<{ id: string; r2_key: string; sha256: string }>();
     const existingByHash = new Map<string, { assetId: string; key: string }>(
       existingRows.results.map((asset) => [asset.sha256, { assetId: asset.id, key: asset.r2_key }]),
     );
@@ -4938,8 +5081,9 @@ app.post("/imports/fabublox", async (c) => {
     const stateHashes = [...states.keys()];
     const existingStateHashes = new Set<string>();
     if (stateHashes.length) {
-      const rows = await c.env.DB.prepare(`SELECT hash FROM state_representations WHERE hash IN (${stateHashes.map(() => "?").join(", ")})`)
-        .bind(...stateHashes).all<{ hash: string }>();
+      const rows = await c.env.DB.prepare(
+        "SELECT hash FROM state_representations WHERE hash IN (SELECT value FROM json_each(?))",
+      ).bind(JSON.stringify(stateHashes)).all<{ hash: string }>();
       rows.results.forEach((row) => existingStateHashes.add(row.hash));
     }
 
@@ -5513,7 +5657,14 @@ app.post("/metrology-templates/:id/references", async (c) => {
   }
 
   const existingAsset = await c.env.DB.prepare(
-    "SELECT id, r2_key, original_name, mime_type, byte_size FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+    `SELECT id, r2_key, original_name, mime_type, byte_size FROM assets a
+     WHERE sha256 = ? AND status = 'ready'
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       )
+     ORDER BY a.created_at DESC LIMIT 1`,
   ).bind(sha256).first<{
     id: string; r2_key: string; original_name: string; mime_type: string; byte_size: number;
   }>();
@@ -5537,7 +5688,14 @@ app.post("/metrology-templates/:id/references", async (c) => {
       await c.env.ASSETS.delete(key);
       if (!String(error).includes("UNIQUE")) throw error;
       asset = await c.env.DB.prepare(
-        "SELECT id, r2_key, original_name, mime_type, byte_size FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
+        `SELECT id, r2_key, original_name, mime_type, byte_size FROM assets a
+         WHERE sha256 = ? AND status = 'ready'
+           AND NOT EXISTS (
+             SELECT 1 FROM blob_gc_ledger bg
+             WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+               AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+           )
+         ORDER BY a.created_at DESC LIMIT 1`,
       ).bind(sha256).first<{
         id: string; r2_key: string; original_name: string; mime_type: string; byte_size: number;
       }>();
@@ -5759,7 +5917,14 @@ app.post("/templates/:id/steps", async (c) => {
     ).bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
     c.env.DB.prepare("SELECT logical_step_key, definition_hash, expected_state_hash, position FROM template_steps WHERE template_version_id = ? ORDER BY position")
       .bind(templateId).all<{ logical_step_key: string; definition_hash: string; expected_state_hash: string | null; position: number }>(),
-    input.assetKey ? c.env.DB.prepare("SELECT id, sha256 FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
+    input.assetKey ? c.env.DB.prepare(
+      `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )`,
+    ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
   if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
@@ -5818,7 +5983,14 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
       .bind(stepId, templateId).first<{ id: string; logical_step_key: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare("SELECT id, logical_step_key, definition_hash, expected_state_hash FROM template_steps WHERE template_version_id = ? ORDER BY position")
       .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
-    input.assetKey ? c.env.DB.prepare("SELECT id, sha256 FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
+    input.assetKey ? c.env.DB.prepare(
+      `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )`,
+    ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
   if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });

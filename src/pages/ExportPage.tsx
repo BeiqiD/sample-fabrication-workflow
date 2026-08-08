@@ -15,10 +15,10 @@ export function ExportPage() {
 
   return <div className="page export-page">
     <p className="eyebrow">Backup</p><h1>Export all data</h1>
-    <p className="lead">Download a versioned ZIP containing every database table and every stored asset. Files use relative paths and contain no temporary or authentication URLs.</p>
+    <p className="lead">Download a versioned ZIP containing every database table and every available stored asset. Missing or unavailable bytes are recorded as warnings without discarding the database backup.</p>
     <section className="card export-card">
       <h2 className="card-title">Full system archive</h2>
-      <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, and comment images with thumbnails.</p>
+      <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
       <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
       {progress && <p className="muted">Assets: {progress.completed} / {progress.total}</p>}
       {error && <p className="error-banner">{error}</p>}
