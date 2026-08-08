@@ -10,7 +10,7 @@ interface BlockerRow {
   blocker_state: string;
 }
 
-const blockerSql: Partial<Record<PermanentDeleteTarget["sourceType"], string>> = {
+const blockerSql: Record<PermanentDeleteTarget["sourceType"], string> = {
   sample: `
     SELECT 'sample_runs' AS relation, 'run' AS blocker_type, id AS blocker_id,
            CASE WHEN deleted_at IS NULL THEN status ELSE 'deleted' END AS blocker_state
@@ -65,7 +65,18 @@ const blockerSql: Partial<Record<PermanentDeleteTarget["sourceType"], string>> =
     FROM state_verification_steps WHERE run_step_id = ?
     UNION ALL
     SELECT 'plan_links', 'run_step_plan_link', run_plan_revision_id || ':' || template_step_id, relation
-    FROM run_step_plan_links WHERE run_step_id = ?`,
+    FROM run_step_plan_links WHERE run_step_id = ?
+    UNION ALL
+    SELECT 'next_steps', 'run_step', id,
+           CASE WHEN deleted_at IS NULL THEN status ELSE 'deleted' END
+    FROM run_steps WHERE previous_step_id = ?
+    UNION ALL
+    SELECT 'run_anchors', 'run', id,
+           CASE WHEN deleted_at IS NULL THEN status ELSE 'deleted' END
+    FROM runs WHERE anchor_step_id = ?
+    UNION ALL
+    SELECT 'revision_boundaries', 'run_plan_revision', id, 'durable'
+    FROM run_plan_revisions WHERE effective_after_step_id = ?`,
   comment_submission: `
     SELECT 'comment_items' AS relation, 'comment_submission_item' AS blocker_type, id AS blocker_id,
            CASE WHEN deleted_at IS NULL THEN status ELSE 'deleted' END AS blocker_state
@@ -78,12 +89,29 @@ const blockerSql: Partial<Record<PermanentDeleteTarget["sourceType"], string>> =
     SELECT 'comment_targets', 'comment_submission_target', submission_id || ':' || run_step_id, 'durable'
     FROM comment_submission_targets WHERE submission_id = ?`,
   run_step_comment: `
+    SELECT 'owning_step', 'run_step', run_step_id, 'durable'
+    FROM run_step_comments WHERE id = ?
+    UNION ALL
     SELECT 'canonical_comment', 'comment_submission', submission_id, 'durable'
     FROM run_step_comments WHERE id = ? AND submission_id IS NOT NULL`,
   comment_submission_item: `
+    SELECT 'canonical_comment', 'comment_submission', submission_id, 'durable'
+    FROM comment_submission_items WHERE id = ?
+    UNION ALL
     SELECT 'related_comment_item', 'comment_submission_item', id,
            CASE WHEN deleted_at IS NULL THEN status ELSE 'deleted' END
     FROM comment_submission_items WHERE related_item_id = ?`,
+  run_step_asset: `
+    SELECT 'owning_step', 'run_step', run_step_id, 'durable'
+    FROM run_step_assets WHERE id = ?
+    UNION ALL
+    SELECT 'timeline_events', 'event', id, 'audit'
+    FROM events
+    WHERE json_valid(metadata_json)
+      AND json_extract(metadata_json, '$.runStepAssetId') = ?`,
+  metrology_template_reference: `
+    SELECT 'owning_template', 'template_version', template_version_id, 'durable'
+    FROM metrology_template_references WHERE id = ?`,
   template_version: `
     SELECT 'template_steps' AS relation, 'template_step' AS blocker_type, id AS blocker_id, 'durable' AS blocker_state
     FROM template_steps WHERE template_version_id = ?
@@ -100,7 +128,10 @@ const blockerSql: Partial<Record<PermanentDeleteTarget["sourceType"], string>> =
     UNION ALL
     SELECT 'metrology_references', 'metrology_template_reference', id,
            CASE WHEN deleted_at IS NULL THEN 'active' ELSE 'deleted' END
-    FROM metrology_template_references WHERE template_version_id = ?`,
+    FROM metrology_template_references WHERE template_version_id = ?
+    UNION ALL
+    SELECT 'recipe_change_proposals', 'recipe_change_proposal', id, status
+    FROM recipe_change_proposals WHERE source_template_version_id = ?`,
 };
 
 function bindingCount(sql: string) {
@@ -112,7 +143,9 @@ export async function listPermanentDeleteBlockers(
   target: PermanentDeleteTarget,
 ): Promise<PermanentDeleteBlocker[]> {
   const sql = blockerSql[target.sourceType];
-  if (!sql) return [];
+  if (!sql) {
+    throw new Error(`Permanent-delete blocker planning is not implemented for ${String(target.sourceType)}`);
+  }
   const rows = await db.prepare(sql).bind(...Array(bindingCount(sql)).fill(target.sourceId)).all<BlockerRow>();
   return rows.results.map((row) => ({
     sourceType: target.sourceType,
