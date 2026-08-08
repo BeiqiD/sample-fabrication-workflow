@@ -80,6 +80,7 @@ const generated = {
       binding: "DB",
       database_name: values.databaseName,
       database_id: values.databaseId,
+      migrations_dir: relativeToOutput("migrations"),
     },
   ],
   r2_buckets: [
