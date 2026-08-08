@@ -1,12 +1,16 @@
 PRAGMA foreign_keys = ON;
 
 -- The first blob-lifecycle review identified one additional R2 occurrence:
--- sample-record thumbnails stored in events.metadata_json. Rebuild the derived
--- retention surface so thumbnails are retained and explicit retry closure is
--- authoritative for every unfinished submission state.
+-- sample-record thumbnails stored in events.metadata_json. Rebuild the D1-safe
+-- leaf views so thumbnails are retained and explicit retry closure is
+-- authoritative for every unfinished submission state. Cloudflare workerd
+-- limits each compound SELECT to five terms, so no leaf exceeds five.
 DROP VIEW blob_retention_edges;
+DROP VIEW blob_retention_edges_r2_occurrences;
+DROP VIEW blob_retention_edges_comment_items;
+DROP VIEW blob_retention_edges_direct_keys;
 
-CREATE VIEW blob_retention_edges AS
+CREATE VIEW blob_retention_edges_r2_occurrences AS
 SELECT
   'r2' AS store_kind,
   'r2' AS provider,
@@ -55,14 +59,20 @@ SELECT
   'state_verification_evidence', sv.id,
   'verification_evidence', NULL
 FROM state_verifications sv
-JOIN assets a ON a.id = sv.evidence_asset_id
+JOIN assets a ON a.id = sv.evidence_asset_id;
 
-UNION ALL
+CREATE VIEW blob_retention_edges_comment_items AS
 SELECT
-  'r2', 'r2', a.r2_key, a.id,
-  'comment_submission', cs.id,
-  'comment_submission_item', csi.id,
-  'ready_comment_item', NULL
+  'r2' AS store_kind,
+  'r2' AS provider,
+  a.r2_key AS object_key,
+  a.id AS blob_record_id,
+  'comment_submission' AS source_type,
+  cs.id AS source_id,
+  'comment_submission_item' AS occurrence_type,
+  csi.id AS occurrence_id,
+  'ready_comment_item' AS retention_reason,
+  NULL AS retain_until
 FROM comment_submission_items csi
 JOIN comment_submissions cs ON cs.id = csi.submission_id
 JOIN assets a ON a.id = csi.asset_id
@@ -107,14 +117,20 @@ JOIN comment_submissions cs ON cs.id = csi.submission_id
 JOIN managed_storage_objects mso ON mso.id = csi.storage_object_id
 WHERE csi.status <> 'cancelled'
   AND cs.retry_closed_at IS NULL
-  AND cs.status IN ('draft', 'uploading', 'failed')
+  AND cs.status IN ('draft', 'uploading', 'failed');
 
-UNION ALL
+CREATE VIEW blob_retention_edges_direct_keys AS
 SELECT
-  'r2', 'r2', e.asset_key, a.id,
-  'sample', e.sample_id,
-  'event', e.id,
-  'legacy_event_asset', NULL
+  'r2' AS store_kind,
+  'r2' AS provider,
+  e.asset_key AS object_key,
+  a.id AS blob_record_id,
+  'sample' AS source_type,
+  e.sample_id AS source_id,
+  'event' AS occurrence_type,
+  e.id AS occurrence_id,
+  'legacy_event_asset' AS retention_reason,
+  NULL AS retain_until
 FROM events e
 LEFT JOIN assets a ON a.r2_key = e.asset_key
 WHERE e.asset_key IS NOT NULL AND e.asset_key <> ''
@@ -165,6 +181,13 @@ SELECT
 FROM template_versions tv
 LEFT JOIN assets a ON a.r2_key = tv.source_asset_key
 WHERE tv.source_asset_key IS NOT NULL AND tv.source_asset_key <> '';
+
+CREATE VIEW blob_retention_edges AS
+SELECT * FROM blob_retention_edges_r2_occurrences
+UNION ALL
+SELECT * FROM blob_retention_edges_comment_items
+UNION ALL
+SELECT * FROM blob_retention_edges_direct_keys;
 
 CREATE INDEX events_thumbnail_asset_key_idx
 ON events(
