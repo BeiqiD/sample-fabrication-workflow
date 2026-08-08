@@ -78,6 +78,46 @@ Containers, or a second Worker.
 - Actual Project backlinks are deferred to `project_items.reference_target_id`; no parallel generic usage table is introduced before Project-item identity exists.
 - Registry rows reject physical deletion. Permanent deletion and tombstone creation remain disabled.
 
+## Deterministic reference search invariants
+
+- Search covers exactly the closed nine-type v1 reference set and returns
+  the same stable `ReferenceTarget` identity used by the resolver and
+  canonical destination model.
+- The first implementation reads authoritative source tables directly and
+  adds no denormalized index, FTS table, background synchronizer, Queue,
+  Workflow, Durable Object, or second Worker.
+- New-reference discovery excludes deleted sources and deleted required
+  Sample/Run/Step ancestors. A common Comment remains discoverable when at
+  least one deterministic context is active. Archived but not deleted
+  Recipe revisions and metrology references remain historical targets.
+- Canonical Comment body search returns the logical ready Comment rather
+  than duplicating one result per occurrence. Canonical occurrences remain
+  addressable by exact occurrence ID; legacy occurrences without a logical
+  Comment retain body search.
+- Ranking exposes exact-ID, exact-primary, primary-prefix, target-content,
+  and metadata tiers. Candidate backends also carry one private specificity:
+  byte-exact ID, folded ID, byte-exact primary, folded primary, prefix, content,
+  then metadata. SQL candidate caps and cross-type merging use that same order
+  before timestamp, closed type order, and stable ID.
+- Query count, bindings, returned candidates, and resolver work are bounded per
+  selected type. The first source-scan backend still examines work proportional
+  to source-table size; result `LIMIT` does not make scan CPU independent of data
+  volume.
+- Matching uses byte-exact `BINARY` identity/title branches and an explicit
+  ASCII-only fold for fallback text comparison. It does not use locale-dependent
+  JavaScript casing, silently truncate tokens, or treat `\`, `%`, and `_` as
+  wildcard syntax. NFC and NFD remain distinct in the source-scan backend.
+- Candidate discovery is behind a runtime-neutral backend interface. The current
+  backend uses portable SQLite `INSTR`, `LOWER`, `CASE`, and bound parameters;
+  D1 is one adapter. A Docker-hosted SQLite runtime can implement the same
+  interface, and a later derived FTS5 backend can replace scans without changing
+  ranking, lifecycle, selection, or resolver contracts.
+- Search reads do not register targets or mutate source rows. Phase 3
+  re-resolves and registers at Project-item write time.
+- Search responses contain canonical application destinations but no R2
+  key, managed-storage object key, provider locator, credential, or
+  temporary URL.
+
 ## Blob lifecycle invariants
 
 - Sources and occurrences own meaning. `assets` and `managed_storage_objects` own physical-byte metadata and deduplication.
@@ -105,6 +145,7 @@ Containers, or a second Worker.
 
 - Bulk inserts keep each statement below D1's 100-bound-parameter limit.
 - Resolver IDs are passed through `json_each(?)`; the domain batch is capped at 200 without consuming one binding per target.
+- Deterministic search accepts at most 200 Unicode code points, eight tokens, and 50 returned results; it caps each type's candidate output and revalidates at most 200 candidates. Query count grows with selected target types, while source-scan row examination still grows with table size until a derived FTS5 backend is introduced.
 - D1 migrations pass both host SQLite tests and Wrangler local D1/workerd verification. Resolver services remain host-tested for detailed behavior, while all nine v1 adapters, the unified middleware path, and a 200-target request also execute through the real Worker endpoint against Wrangler local D1 in Miniflare/workerd. Oversized compound `SELECT` chains are not accepted merely because host SQLite permits them.
 - A confirmed import is capped at 180 steps and 180 images, uses at most five concurrent R2 writes, and divides persistence into bounded batches behind the pending-import visibility gate.
 - Scheduled blob cleanup uses bounded discovery/deletion batches; a large backlog may require repeated daily runs rather than one unbounded execution.
@@ -112,3 +153,5 @@ Containers, or a second Worker.
 - The first deduplication implementation checks metadata and GC claim state but does not perform provider `HEAD`/`stat` before every reuse. Missing-provider self-healing is deferred to storage-integrity maintenance.
 
 See [the blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) for normative blob rules, [blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md) for monitoring and incident handling, and [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md) for the current reference boundary.
+
+See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md) for the Phase 2C search, portability, and future FTS5 boundary.

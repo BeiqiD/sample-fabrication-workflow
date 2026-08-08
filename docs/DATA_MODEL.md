@@ -124,6 +124,18 @@ Project-item identity exists.
 
 See [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md).
 
+Phase 2C1 deterministic search adds no table or mutable index. It reads the
+authoritative source and occurrence rows through type-specific SQLite queries,
+then revalidates candidates through the resolver. The current source scan bounds
+query count, bindings, candidate output, and resolver work, but rows examined
+still grow with source-table size.
+
+A later performance slice may add a rebuildable SQLite FTS5 virtual table behind
+the candidate-backend interface. That index is derived data in both D1 and a
+future Docker/self-hosted SQLite deployment: it is not an identity owner, is not
+the source of lifecycle truth, and may be omitted from canonical export and
+rebuilt after restore. See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md).
+
 ## Blob reachability and GC metadata
 
 Blob reachability is derived from source and occurrence relationships. It is

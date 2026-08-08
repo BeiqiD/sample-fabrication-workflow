@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { decodeReferenceRouteId } from "../shared/reference-destinations";
+import type { SearchReferencesResponse } from "../shared/reference-search";
 import {
   isReferenceTarget,
   MAX_REFERENCE_RESOLUTION_TARGETS,
@@ -12,6 +13,10 @@ import {
   ReferenceResolutionInputError,
   resolveReferences,
 } from "./references/resolver";
+import {
+  ReferenceSearchInputError,
+  searchReferences,
+} from "./references/search";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
@@ -87,6 +92,25 @@ routes.post("/references/resolve", async (c) => {
     return c.json(response);
   } catch (error) {
     if (error instanceof ReferenceResolutionInputError) {
+      throw new HTTPException(400, { message: error.message });
+    }
+    throw error;
+  }
+});
+
+routes.post("/references/search", async (c) => {
+  let input: unknown;
+  try {
+    input = await c.req.json<unknown>();
+  } catch {
+    throw new HTTPException(400, { message: "A valid JSON request body is required" });
+  }
+
+  try {
+    const response: SearchReferencesResponse = await searchReferences(c.env.DB, input);
+    return c.json(response);
+  } catch (error) {
+    if (error instanceof ReferenceSearchInputError) {
       throw new HTTPException(400, { message: error.message });
     }
     throw error;

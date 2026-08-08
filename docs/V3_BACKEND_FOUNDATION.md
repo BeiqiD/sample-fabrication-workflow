@@ -280,16 +280,20 @@ runbook rather than inferred from a merged PR.
 
 ## Delivery sequence
 
-The remaining sequence after the registry/base-resolver slice is:
+The remaining sequence after Phase 2B is:
 
-1. validate the exact merged `v2/backend-foundation` integration head and, when
-   intentionally activating v3, follow
+1. validate the exact merged `v2/backend-foundation` integration head and,
+   when intentionally activating v3, follow
    [the blob operations runbook](./BLOB_LIFECYCLE_OPERATIONS.md);
-2. add object-level deep links and archived read-only destinations;
-3. add deterministic reference search and insertion;
-4. add Project-owned data, `project_items` backlinks, Text, and Inspector;
+2. complete Phase 2C1: deterministic read-only reference search,
+   lifecycle filtering, explainable ranking, and resolver revalidation;
+3. complete Phase 2C2: the URL-owned global Search page and reusable
+   result-selection surface;
+4. add Project-owned data, authoritative target registration and
+   `project_items` insertion/backlinks, Text, and Inspector;
 5. add the dynamically loaded Map after its data model and read paths are
    stable.
 
 Project UI, semantic search, source editing from Project, fixed Project
-hierarchies, force delete, and LLM write access are outside this foundation.
+hierarchies, force delete, and LLM write access remain outside this
+foundation.

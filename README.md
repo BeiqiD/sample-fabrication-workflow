@@ -30,6 +30,7 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Resolve stable Sample, Run, Step, Comment, attachment-occurrence, metrology-reference, and Recipe-revision identities through one authenticated read-only batch boundary.
 - Open every current reference target through one opaque, refresh-safe canonical URL, with lifecycle-aware read-only behavior when an ordinary source route is unavailable.
 - Follow canonical references into the exact Run Step, Comment, attachment, execution image, Sample note, or metrology reference while preserving source context and browser history.
+- Search all nine current reference target types through one bounded, explainable, lifecycle-aware read-only service without creating registry rows or exposing physical storage locators.
 
 ## Architecture
 
@@ -38,7 +39,7 @@ The application deploys as one Cloudflare Worker project.
 | Component | Responsibility |
 |---|---|
 | React, React Router, Vite | Browser interface |
-| Hono on Cloudflare Workers | API, authentication checks, reference resolution, exports, scheduled cleanup, and storage orchestration |
+| Hono on Cloudflare Workers | API, authentication checks, reference resolution and search, exports, scheduled cleanup, and storage orchestration |
 | Cloudflare D1 | Samples, templates, runs, events, comments, reference registry, hashes, retention edges, GC ledger, and file metadata |
 | Private Cloudflare R2 | Imported workbooks, diagrams, and compressed inline images |
 | `ManagedStorage` adapter | Optional unchanged original files; currently supports SWITCHdrive over WebDAV |
@@ -48,7 +49,11 @@ Original-file storage is deliberately provider-neutral at the application bounda
 
 Blob reachability is derived from stable source and occurrence relationships. Soft deletion preserves those identities and their bytes. Cancel, scheduled cleanup, complete export, and future permanent-delete planning share the same retention definition; physical cleanup uses a provider-neutral D1 ledger and operation IDs.
 
-Reference resolution is similarly source-owned. The sparse `reference_targets` registry stores stable identity and validation metadata, while the batch resolver reads current source tables and returns no source-mutation capability. Attachment references use occurrence IDs and never expose provider object keys. Canonical reference navigation uses a shared versioned opaque route codec rather than relying on browser percent-decoding semantics. Source focus is URL-owned, read-only, and restored through refresh, Back, and Forward; stable execution-image reads share the ordinary asset MIME and GC safety boundary. Actual Project backlinks are deferred until `project_items` exists rather than being represented by a parallel placeholder table.
+Reference resolution is similarly source-owned. The sparse `reference_targets` registry stores stable identity and validation metadata, while the batch resolver reads current source tables and returns no source-mutation capability. Attachment references use occurrence IDs and never expose provider object keys. Canonical reference navigation uses a shared versioned opaque route codec rather than relying on browser percent-decoding semantics. Source focus is URL-owned, read-only, and restored through refresh, Back, and Forward; stable execution-image reads share the ordinary asset MIME and GC safety boundary.
+
+Deterministic reference search reads those same authoritative source and occurrence rows through type-specific queries. It uses explicit exact-ID, exact-primary, prefix, target-content, and metadata ranking tiers, then revalidates candidates through the resolver. Query count, bindings, candidates, and resolver work are bounded, while the first source-scan backend still scales its row examination with the underlying tables.
+
+The search domain contract is deployment-neutral. D1 currently supplies the portable SQLite query interface; a future Docker/self-hosted SQLite runtime can use the same contract, and a derived FTS5 backend can replace scans without becoming a second source of truth. Search reads do not register targets. Actual Project backlinks and insertion remain deferred until `project_items` exists rather than being represented by a parallel placeholder table.
 
 ## Deploy your own instance
 
@@ -89,7 +94,7 @@ The recommended workflow needs no persistent local checkout:
    ```
 
    `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store passwords and tokens as encrypted Worker Secrets.
-8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle gate, reference host tests, Wrangler migration verification, real Worker/D1 resolver smoke, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
+8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle gate, reference host tests, Wrangler migration verification, real Worker/D1 resolver and deterministic-search smokes, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
 9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
 
 `v2/backend-foundation` is an isolated integration branch, not a production branch. Its exact merged head must pass the dedicated v3 deployment gate before any isolated v3 remote migration or deployment is authorized.
@@ -156,6 +161,7 @@ The first full-export implementation builds the ZIP in browser memory. Large arc
 - [Reference registry and batch resolver implementation plan](./docs/REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md)
 - [Reference deep-link implementation plan](./docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md)
 - [Reference source-focus implementation plan](./docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md)
+- [Deterministic reference search implementation plan](./docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md)
 - [D1 SQL compatibility](./docs/D1_SQL_COMPATIBILITY.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)

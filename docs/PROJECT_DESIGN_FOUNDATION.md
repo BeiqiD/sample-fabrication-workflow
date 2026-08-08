@@ -447,23 +447,57 @@ an ordinary `404` when an existing Project reference opens them.
 
 ### Deterministic search and insertion
 
-Global search, Project insertion search, and search within one Project share
-one index/read model. The first version covers:
+Phase 2C is split so the shared discovery contract is reviewed before a
+browser surface or Project write path depends on it.
 
-- Project titles and Project-owned text;
-- Sample code, title, and description;
-- Run and Step titles;
-- Comment bodies;
-- attachment names, descriptions, and source paths;
-- Recipe titles and revisions;
-- type, Sample, and time filters.
+#### Phase 2C1: deterministic search foundation
 
-Results can expose `Open source`, `Add to project`, or `Locate in project`
-according to context. A Comment result inserts that Comment; its ancestors are
-displayed as source path, not silently inserted.
+PR #129 adds one read-only search service over the nine current reference
+target types. It searches authoritative source tables directly, applies the
+new-reference lifecycle policy, ranks results through explicit tiers, and
+revalidates selected candidates through the existing batch resolver.
 
-Initial ranking remains explainable: exact ID, exact title or filename, prefix,
-body text, then weaker metadata. Semantic search is later work.
+The first source search covers Sample, Run, Run Step, canonical Comment,
+Comment occurrence, Comment attachment, execution image, metrology
+reference, and Recipe revision identities. It supports type, Sample, and
+time filters. Canonical Comment body search returns the logical Comment;
+canonical occurrences remain searchable by exact occurrence ID, while
+legacy occurrences without a logical Comment retain body search.
+
+Ranking is explainable and deterministic: exact stable ID, exact primary
+title/code/filename, primary prefix, target-owned content, then weaker
+metadata. Ties use target timestamp, the closed type order, and stable ID.
+Search is read-only, creates no registry row, and returns the exact
+`ReferenceTarget` selection payload plus current resolver destinations.
+
+#### Phase 2C2: global search and reusable selection UI
+
+The following slice adds a URL-owned global Search page and a reusable
+result picker that consumes the Phase 2C1 API without changing ranking or
+lifecycle behavior.
+
+Actual `Add to project` persistence remains a Phase 3 server operation. The
+Project-item creation route re-resolves and registers the target, then
+creates `project_items.reference_target_id` under one authoritative owner.
+Search does not create a placeholder usage row or imply that selecting a
+result has already inserted it.
+
+The Phase 2C service is also the intended unified backend for existing and
+future search boxes, but each surface keeps a named business profile. Global
+research search may include archived Recipe revisions; a new-run Recipe picker
+must exclude them. A Sample directory may restrict the service to `sample`,
+while a Project picker returns selectable `ReferenceTarget` payloads. Existing
+page-specific searches migrate only after result, eligibility, pagination, and
+performance parity tests; unification must not erase their business rules.
+
+Candidate retrieval is replaceable. The current portable SQLite source backend
+supports D1 and a future Docker/self-hosted SQLite adapter. A later FTS5 backend
+may accelerate all profiles while preserving the same ranking tiers, lifecycle
+checks, and final resolver result.
+
+A Comment result selects that Comment; ancestors remain source context and
+are not silently inserted. Semantic, embedding, fuzzy, or model-ranked
+search is later work.
 
 ## Lifecycle and history
 
@@ -539,8 +573,8 @@ relative asset paths and contains no authenticated or temporary URLs.
 
 ## Implementation roadmap
 
-Project UI is not the next implementation step. Each phase has a clear exit
-condition:
+The deterministic search contract is reviewed before its global UI and
+before Project insertion. Each phase has a clear exit condition:
 
 | Phase | Scope | Current state |
 |---|---|---|
@@ -551,8 +585,10 @@ condition:
 | 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | Complete after PR #128 |
 | 2B1. Canonical destinations | Opaque route codec, resolver destination fields, lifecycle-aware read-only Reference page | Complete in PR #127 |
 | 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Complete in PR #128 |
-| 2C. Deterministic search | Shared search/read model and reference insertion | Next |
-| 3. Project and Text | Project data, `project_items` backlinks, Project-owned content, Text workspace, Inspector, insertion, export | Not started |
+| 2C. Deterministic search and selection | Shared explainable search/read model plus reusable selection surface | In progress |
+| 2C1. Search foundation | Nine-type read-only candidate service, lifecycle filters, deterministic ranking, resolver revalidation, Worker/D1 gate | Implemented in Draft PR #129; pending review |
+| 2C2. Global search and picker | URL-owned Search page and reusable result-selection UI | Next after 2C1 |
+| 3. Project and Text | Project data, `project_items` backlinks, authoritative target registration/insertion, Project-owned content, Text workspace, Inspector, export | Not started |
 | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
 | 5. Later capabilities | Revision pinning, semantic search, LLM insight, advanced consistency tooling | Deferred |
 
@@ -565,14 +601,15 @@ Within those phases, the dependency order is:
 5. sparse registry and base read-only resolution;
 6. opaque canonical destinations and lifecycle-aware read-only pages;
 7. exact Step, Comment, attachment, execution-image, and metrology focus;
-8. deterministic search and insertion;
-9. Project contents, items, backlinks, and local edges;
-10. Text and Inspector;
-11. Map;
-12. later revision, semantic, and insight capabilities.
+8. deterministic search service, lifecycle policy, and ranking;
+9. global search and reusable result-selection UI;
+10. Project contents, items, backlinks, authoritative insertion, and local edges;
+11. Text and Inspector;
+12. Map;
+13. later revision, semantic, and insight capabilities.
 
-Recipe revision and Run snapshot foundations already exist; the verification in
-step 4 is not a new Recipe redesign.
+Recipe revision and Run snapshot foundations already exist; step 4 is
+verification of those boundaries rather than a Recipe redesign.
 
 ## First-version non-goals
 

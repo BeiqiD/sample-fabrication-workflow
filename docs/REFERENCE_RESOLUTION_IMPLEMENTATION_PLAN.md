@@ -612,19 +612,20 @@ The PR is complete when:
 
 After this completed Phase 2A slice:
 
-1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in PR
-   #127. It adds the opaque canonical route codec, resolver destination fields,
-   and the read-only Reference page.
-2. **Phase 2B2 — source focus integration:** completed by PR #128 after its
-   lifecycle and media-boundary review corrections. It applies exact Step,
-   Comment, attachment, execution-image, and metrology-reference focus without
-   adding source mutation authority or physical locators.
-3. **Phase 2B — object-level deep links:** complete when PR #128 is merged.
-4. **Phase 2C — deterministic search and reference insertion:** next.
-5. **Phase 3 — Project-owned data, `project_items` backlinks, Text, and
-   Inspector:** not started.
-6. **Phase 4 — dynamically loaded Map placements and edges:** not started.
+1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in
+   PR #127.
+2. **Phase 2B2 — source focus integration:** complete in merged PR #128.
+3. **Phase 2B — object-level deep links:** complete after PR #128.
+4. **Phase 2C1 — deterministic search foundation:** implemented in Draft
+   PR #129 with the nine-type read-only candidate service, explainable
+   ranking, lifecycle/Sample/time filters, resolver revalidation, and real
+   Worker/D1 search verification.
+5. **Phase 2C2 — global search and reusable picker UI:** next after 2C1.
+6. **Phase 3 — Project-owned data, authoritative target registration,
+   `project_items` backlinks/insertion, Text, and Inspector:** not started.
+7. **Phase 4 — dynamically loaded Map placements and edges:** not started.
 
-Map remains last so its interaction model is built on stable source identity,
-resolution, canonical navigation, Project-item identity, and read paths rather
-than becoming the persistent data model itself.
+Map remains last so its interaction model is built on stable source
+identity, resolution, canonical navigation, deterministic search,
+Project-item identity, and read paths rather than becoming the persistent
+data model itself.
