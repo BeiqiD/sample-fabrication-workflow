@@ -12,7 +12,7 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 - A run records what was actually done. Operators can change actual parameters, skip work, document deviations, or insert ad-hoc steps while retaining the planned step for comparison.
 - Each run preserves its initial substrate structure. Later runs can continue from the sample's derived current structure or start from the new template definition.
 - Meaningful actions append to the sample timeline. Completed runs and verified sample states remain traceable as later work is added.
-- An unused template version can be edited or deleted. Once referenced by a run, it becomes historical data and can only be archived.
+- An unused template version can be edited or moved to trash. Once referenced by a run, it remains historical data and is hidden from future assignment rather than being physically removed.
 
 These rules favor a durable and honest record of each physical sample. Groups with different approval, correction, or version-ownership rules should review the model before adopting the app.
 
@@ -26,7 +26,7 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Run one process across one or several samples, with per-sample status, comments, parameter overrides, deviations, and additional steps.
 - Track current structure, verified states, process lifecycle, sample notes, and a chronological timeline.
 - Add compressed inline comment images, unchanged original-file attachments, and URL-only attachment links.
-- Export portable ZIP archives containing structured data, Markdown summaries, and assets referenced by relative paths.
+- Export versioned ZIP archives containing complete table snapshots, available physical blobs, final per-blob outcomes, and non-fatal integrity warnings.
 
 ## Architecture
 
@@ -35,50 +35,61 @@ The application deploys as one Cloudflare Worker project.
 | Component | Responsibility |
 |---|---|
 | React, React Router, Vite | Browser interface |
-| Hono on Cloudflare Workers | API, authentication checks, exports, and storage orchestration |
-| Cloudflare D1 | Samples, templates, runs, events, comments, hashes, and file metadata |
+| Hono on Cloudflare Workers | API, authentication checks, exports, scheduled cleanup, and storage orchestration |
+| Cloudflare D1 | Samples, templates, runs, events, comments, hashes, retention edges, GC ledger, and file metadata |
 | Private Cloudflare R2 | Imported workbooks, diagrams, and compressed inline images |
 | `ManagedStorage` adapter | Optional unchanged original files; currently supports SWITCHdrive over WebDAV |
 | Cloudflare Access | User authentication; the Worker validates the Access JWT again before serving protected API routes |
 
 Original-file storage is deliberately provider-neutral at the application boundary. Comment and run logic call `ManagedStorage`; provider-specific authentication and requests remain inside the adapter.
 
+Blob reachability is derived from stable source and occurrence relationships. Soft deletion preserves those identities and their bytes. Cancel, scheduled cleanup, complete export, and future permanent-delete planning share the same retention definition; physical cleanup uses a provider-neutral D1 ledger and operation IDs.
+
 ## Deploy your own instance
 
-Every installation must use its own Cloudflare account, Worker name, hostname, D1 database, R2 bucket, Access application, and secrets. Do not deploy a fork until the installation-specific values in `wrangler.jsonc` have been replaced.
+Every installation must use its own Cloudflare account, Worker name, hostname, D1 database, R2 bucket, Access application, and secrets. Installation-specific identifiers are supplied as Cloudflare Build Variables; they are not committed to `wrangler.jsonc`.
 
 The recommended workflow needs no persistent local checkout:
 
 1. Fork this repository.
 2. In Cloudflare, create one D1 database and one private R2 bucket.
-3. Edit `wrangler.jsonc` in your fork:
-   - keep the binding names `DB` and `ASSETS`, because the code uses those names;
-   - replace the Worker name, D1 database name and ID, and R2 bucket name;
-   - remove or replace any route or custom-domain entry;
-   - enable a `workers.dev` hostname or add a custom domain owned by your account.
-4. Create or connect a Cloudflare Worker to the fork. The Worker name in Cloudflare must match `name` in `wrangler.jsonc`.
+3. Create or connect a Cloudflare Worker to the fork.
+4. In **Workers Builds → Variables and secrets**, add:
+
+   ```text
+   DEPLOY_WORKER_NAME=<existing-worker-name>
+   DEPLOY_D1_DATABASE_NAME=<database-name>
+   DEPLOY_D1_DATABASE_ID=<database-uuid>
+   DEPLOY_R2_BUCKET_NAME=<private-bucket-name>
+   DEPLOY_WORKERS_DEV=true|false
+   ```
+
+   The build generates an ignored `.wrangler/deploy.jsonc`. Do not add Worker names, D1/R2 identifiers, routes, hostnames, or credentials back to the checked-in base configuration.
 5. Configure Workers Builds:
 
    ```text
    Production branch: main
-   Build command: npm run build
-   Deploy command: npx wrangler d1 migrations apply DB --remote && npx wrangler deploy
+   Build command: npm run build:deploy
+   Deploy command: npm run deploy:remote
    ```
 
-   Disable non-production branch builds unless previews have separate D1/R2 resources and a separate deploy command.
+   Disable non-production branch builds unless every preview has a separate Worker, hostname, D1 database, R2 bucket, and deployment command.
 6. Protect the application's complete hostname with a Cloudflare Access self-hosted application and an Allow policy.
 7. In the Worker's runtime **Variables and Secrets**, add:
 
    ```text
+   AUTH_MODE=access
    ACCESS_TEAM_DOMAIN=https://<YOUR_TEAM>.cloudflareaccess.com
    ACCESS_AUD=<YOUR_ACCESS_APPLICATION_AUD>
    ```
 
-   `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store deployment-specific values as encrypted secrets rather than committing them to Git.
-8. Push or merge the configuration to `main`. Workers Builds will compile the app, apply all unapplied D1 migrations, and deploy only if the migrations succeed.
+   `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store passwords and tokens as encrypted Worker Secrets.
+8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle gate, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
 9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
 
-See [the full deployment guide](./docs/DEPLOYMENT.md) for a sanitized `wrangler.jsonc` example, first-deployment checks, upgrades, recovery, and optional SWITCHdrive setup.
+`v2/backend-foundation` is an isolated integration branch, not a production branch. Its exact merged head must pass the dedicated v3 deployment gate before any isolated v3 remote migration or deployment is authorized.
+
+See [the full deployment guide](./docs/DEPLOYMENT.md) for resource setup, first-deployment checks, upgrades, recovery, and optional SWITCHdrive setup. See [blob lifecycle activation and operations](./docs/BLOB_LIFECYCLE_OPERATIONS.md) for the integration-head gate, GC monitoring, incident rules, and explicit implementation limits.
 
 ## Optional original-file storage
 
@@ -115,9 +126,17 @@ Run the full verification suite with:
 npm run verify
 ```
 
+For the v3 integration/deployment boundary, run:
+
+```bash
+npm run verify:v3-deployment
+```
+
 ## Data ownership and backup
 
-Exports contain JSON tables, Markdown summaries where applicable, and assets using relative paths; they do not depend on temporary signed URLs or a running deployment. Keep periodic full-system exports outside the deployment account.
+A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
+
+The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 ## Further documentation
 
@@ -127,7 +146,8 @@ Exports contain JSON tables, Markdown summaries where applicable, and assets usi
 - [Project, Text, and Map design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [v3 backend identity and lifecycle foundation](./docs/V3_BACKEND_FOUNDATION.md)
 - [Blob lifecycle, export integrity, and permanent-delete contract](./docs/BLOB_LIFECYCLE_CONTRACT.md)
-- [Next blob lifecycle implementation plan](./docs/BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)
+- [Blob lifecycle implementation plan](./docs/BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)
+- [Blob lifecycle activation and operations](./docs/BLOB_LIFECYCLE_OPERATIONS.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)
 - [Comment and original-file uploads](./docs/comment-file-uploads.md)
