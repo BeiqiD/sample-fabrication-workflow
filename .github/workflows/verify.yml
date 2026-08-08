@@ -2,282 +2,180 @@ name: Verify
 
 on:
   push:
-    branches:
-      - agent/reference-source-focus
+    branches-ignore:
+      - main
   pull_request:
     branches:
+      - main
       - v2/backend-foundation
 
 permissions:
-  contents: write
+  contents: read
+  statuses: write
 
 jobs:
-  apply-review-fixes:
-    if: github.ref_name == 'agent/reference-source-focus' || github.head_ref == 'agent/reference-source-focus'
-    runs-on: ubuntu-24.04
+  verify:
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/reference-source-focus
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - name: Apply reviewed code, tests, and documentation
+
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        run: npm ci
+
+      - name: Record dependency status
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.install.outcome }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: process.env.STAGE_OUTCOME === "success" ? "success" : "failure",
+              context: "pre-pr/install",
+              description: process.env.STAGE_OUTCOME === "success" ? "npm ci passed" : "npm ci failed",
+            });
+
+      - name: Run blob lifecycle contract
+        id: blob_lifecycle
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
-          python <<'PY'
-          from pathlib import Path
-          import ast
-          import re
+          set -o pipefail
+          npm run verify:blob-lifecycle 2>&1 | tee blob-lifecycle.log
 
-          workflow_path = Path('.github/workflows/pr128-review-fixes.yml')
-          if not workflow_path.exists():
-              raise SystemExit('The temporary PR 128 repair specification is missing')
+      - name: Record blob lifecycle status
+        if: steps.install.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.blob_lifecycle.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("blob-lifecycle.log") ? fs.readFileSync("blob-lifecycle.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: "pre-pr/blob-lifecycle",
+              description: outcome === "success" ? "blob lifecycle contract passed" : detail.slice(0, 140),
+            });
 
-          workflow = workflow_path.read_text()
-          script = workflow.split("python <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
-          script = '\n'.join(
-              line[10:] if line.startswith('          ') else line
-              for line in script.splitlines()
-          )
-          script = script.replace(
-              '''def replace_once(path: str, old: str, new: str) -> None:
-              value = read(path)
-              count = value.count(old)
-              if count != 1:
-                  raise RuntimeError(f"Expected one match in {path}, found {count}: {old[:80]!r}")
-              write(path, value.replace(old, new, 1))''',
-              '''def replace_once(path: str, old: str, new: str) -> None:
-              value = read(path)
-              count = value.count(old)
-              if count == 1:
-                  write(path, value.replace(old, new, 1))
-                  return
-              tokens = old.split()
-              pattern = r"\\s+".join(re.escape(token) for token in tokens)
-              matches = list(re.finditer(pattern, value, flags=re.MULTILINE | re.DOTALL))
-              if len(matches) != 1:
-                  raise RuntimeError(
-                      f"Expected one exact or whitespace-normalized match in {path}, "
-                      f"found exact={count}, normalized={len(matches)}: {old[:80]!r}"
-                  )
-              match = matches[0]
-              write(path, value[:match.start()] + new + value[match.end():])''',
-              1,
-          )
-          script = script.split('# Synchronize the authoritative Phase 2B records.', 1)[0]
-
-          class NormalizeEmbeddedTemplates(ast.NodeTransformer):
-              def visit_Constant(self, node):
-                  if isinstance(node.value, str) and '\n' in node.value:
-                      lines = node.value.split('\n')
-                      normalized = [lines[0], *[
-                          line[2:] if line.startswith('  ') else line
-                          for line in lines[1:]
-                      ]]
-                      return ast.copy_location(ast.Constant('\n'.join(normalized)), node)
-                  return node
-
-          tree = NormalizeEmbeddedTemplates().visit(ast.parse(script))
-          ast.fix_missing_locations(tree)
-          exec(compile(tree, '/tmp/apply-pr128-review-fixes.py', 'exec'), {
-              '__name__': '__main__',
-          })
-
-          def replace_required(path: str, old: str, new: str) -> None:
-              file = Path(path)
-              value = file.read_text()
-              count = value.count(old)
-              if count != 1:
-                  raise RuntimeError(f'Expected one match in {path}, found {count}: {old[:100]!r}')
-              file.write_text(value.replace(old, new, 1))
-
-          def regex_required(path: str, pattern: str, replacement: str) -> None:
-              file = Path(path)
-              value = file.read_text()
-              updated, count = re.subn(pattern, replacement, value, count=1, flags=re.MULTILINE | re.DOTALL)
-              if count != 1:
-                  raise RuntimeError(f'Expected one regex match in {path}: {pattern[:120]!r}')
-              file.write_text(updated)
-
-          project_path = 'docs/PROJECT_DESIGN_FOUNDATION.md'
-          replace_required(
-              project_path,
-              'Last reviewed: 2026-08-08 after PR #127 canonical-destination review',
-              'Last reviewed: 2026-08-08 after PR #128 source-focus review',
-          )
-          regex_required(
-              project_path,
-              r'PR #127 completes Phase 2B1 with\s+one opaque canonical destination and a lifecycle-aware read-only Reference page;\s+exact source-interface focus remains the Phase 2B2 boundary\.',
-              'PR #127 completed Phase 2B1 with one opaque canonical destination and a '
-              'lifecycle-aware read-only Reference page. PR #128 completes Phase 2B2 by '
-              'applying exact URL-owned focus in the existing Sample, Processing, and '
-              'metrology-template interfaces; together they close Phase 2B.',
-          )
-          project = Path(project_path).read_text()
-          source_focus_paragraph = (
-              'PR #128 Phase 2B2 consumes these destinations in the mature source interfaces,\n'
-              'including exact Step and Comment focus, context-preserving attachment previews,\n'
-              'stable execution-image occurrence reads, metrology-reference focus, and\n'
-              'refresh/Back/Forward restoration. The focus layer remains read-only and returns\n'
-              'no physical storage locator.\n\n'
-          )
-          if source_focus_paragraph not in project:
-              marker = 'Later Project and Inspector slices add:\n'
-              if project.count(marker) != 1:
-                  raise RuntimeError('Project design enrichment marker changed')
-              project = project.replace(marker, source_focus_paragraph + marker, 1)
-              Path(project_path).write_text(project)
-          regex_required(
-              project_path,
-              r'Phase 2B2 must integrate the stable focus hints into existing source interfaces\s+so the complete behavior supports at least:',
-              'PR #128 Phase 2B2 integrates the stable focus hints into existing source\n'
-              'interfaces. Phase 2B therefore supports at least:',
-          )
-
-          resolution_path = 'docs/REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md'
-          regex_required(
-              resolution_path,
-              r'## Follow-on status\n\nAfter this completed Phase 2A slice:\n\n.*?\n\nMap remains last',
-              '''## Follow-on status
-
-After this completed Phase 2A slice:
-
-1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in PR
-   #127. It adds the opaque canonical route codec, resolver destination fields,
-   and the read-only Reference page.
-2. **Phase 2B2 — source focus integration:** completed by PR #128 after its
-   lifecycle and media-boundary review corrections. It applies exact Step,
-   Comment, attachment, execution-image, and metrology-reference focus without
-   adding source mutation authority or physical locators.
-3. **Phase 2B — object-level deep links:** complete when PR #128 is merged.
-4. **Phase 2C — deterministic search and reference insertion:** next.
-5. **Phase 3 — Project-owned data, `project_items` backlinks, Text, and
-   Inspector:** not started.
-6. **Phase 4 — dynamically loaded Map placements and edges:** not started.
-
-Map remains last''',
-          )
-
-          deep_path = 'docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md'
-          replace_required(
-              deep_path,
-              'Status: completed Phase 2B1 implementation contract and record; Phase 2B remains in progress',
-              'Status: completed Phase 2B1 record; PR #128 completes Phase 2B2 and closes Phase 2B on merge',
-          )
-          replace_required(
-              deep_path,
-              'Last reviewed: 2026-08-08 after canonical route-codec review',
-              'Last reviewed: 2026-08-08 after PR #128 source-focus review',
-          )
-          regex_required(
-              deep_path,
-              r'PR #127 completes Phase 2B1 by adding a versioned opaque canonical route,\s+lifecycle-aware destination fields, and a generic read-only Reference page\.\s+Phase 2B remains in progress because exact Step, Comment, attachment, execution\s+image, and metrology focus behavior belongs to Phase 2B2\.',
-              'PR #127 completed Phase 2B1 by adding a versioned opaque canonical route,\n'
-              'lifecycle-aware destination fields, and a generic read-only Reference page. PR\n'
-              '#128 completes Phase 2B2 by consuming those destinations in the existing source\n'
-              'interfaces, including exact object focus, read-only previews, stable execution\n'
-              'occurrence media, and browser-history restoration.',
-          )
-          regex_required(
-              deep_path,
-              r'PR #127 satisfies Phase 2B1 after the canonical codec review correction\. Phase\s+2B as a whole remains in progress\.\s+## Next Phase 2B slice\s+.*\Z',
-              '''PR #127 satisfies Phase 2B1 after the canonical codec review correction. PR
-#128 satisfies Phase 2B2 after correcting focus reapplication, Template loader
-coupling, and the authenticated media boundary. Phase 2B is complete when #128
-is merged.
-
-## Next phase
-
-Phase 2C implements deterministic search and reference insertion on top of the
-closed resolver, canonical URL, lifecycle, source-focus, and media-safety
-contracts. Project-owned data remains deferred until that search/read-model
-boundary is reviewed.''',
-          )
-
-          source_plan_path = 'docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md'
-          replace_required(
-              source_plan_path,
-              'Status: Phase 2B2 implementation contract',
-              'Status: implemented in Draft PR #128; merge closes Phase 2B',
-          )
-          replace_required(
-              source_plan_path,
-              'Last reviewed: 2026-08-08 against `v2/backend-foundation` after PR #127',
-              'Last reviewed: 2026-08-08 after PR #128 lifecycle and media review',
-          )
-          source_plan = Path(source_plan_path).read_text()
-          if '## Review corrections before Ready' not in source_plan:
-              source_plan += '''
-
-## Review corrections before Ready
-
-PR #128 remains Draft until review confirms these merge-blocking corrections:
-
-- Processing focus uses memoized grid columns and a stable focus/data signature,
-  so unrelated parent renders do not recenter the page or reopen a closed
-  preview.
-- Template data loading is keyed only by `templateId`; route correction reads
-  the latest query through a ref, so focus history neither refetches page data
-  nor overwrites unsaved metrology notes.
-- Ordinary asset reads and stable execution-image reads share one authenticated
-  media policy: safe raster allowlist for inline content, `nosniff`, same-origin
-  resource policy, sandboxed attachment fallback, and rejection of
-  `deleting`/`deleted` GC locators.
-- Mounted React tests exercise preview closure across unrelated rerenders and
-  Template Back/Forward behavior with unsaved form state.
-
-After these corrections and document synchronization pass the complete gate,
-Phase 2C deterministic search is the next implementation boundary.
-'''
-              Path(source_plan_path).write_text(source_plan)
-
-          readme_path = 'README.md'
-          readme = Path(readme_path).read_text()
-          source_focus_bullet = (
-              '- Follow canonical references into the exact Run Step, Comment, attachment, '
-              'execution image, Sample note, or metrology reference while preserving source '
-              'context and browser history.\n'
-          )
-          if source_focus_bullet not in readme:
-              marker = '- Open every current reference target through one opaque, refresh-safe canonical URL, with lifecycle-aware read-only behavior when an ordinary source route is unavailable.\n'
-              if readme.count(marker) != 1:
-                  raise RuntimeError('README canonical reference bullet changed')
-              readme = readme.replace(marker, marker + source_focus_bullet, 1)
-          old_architecture = (
-              'Canonical reference navigation uses a shared versioned opaque route codec rather '
-              'than relying on browser percent-decoding semantics. Actual Project backlinks are deferred'
-          )
-          new_architecture = (
-              'Canonical reference navigation uses a shared versioned opaque route codec rather '
-              'than relying on browser percent-decoding semantics. Source focus is URL-owned, '
-              'read-only, and restored through refresh, Back, and Forward; stable execution-image '
-              'reads share the ordinary asset MIME and GC safety boundary. Actual Project backlinks are deferred'
-          )
-          if new_architecture not in readme:
-              if readme.count(old_architecture) != 1:
-                  raise RuntimeError('README reference architecture paragraph changed')
-              readme = readme.replace(old_architecture, new_architecture, 1)
-          source_plan_link = '- [Reference source-focus implementation plan](./docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md)\n'
-          if source_plan_link not in readme:
-              marker = '- [Reference deep-link implementation plan](./docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md)\n'
-              if readme.count(marker) != 1:
-                  raise RuntimeError('README reference documentation list changed')
-              readme = readme.replace(marker, marker + source_plan_link, 1)
-          Path(readme_path).write_text(readme)
-          PY
-      - name: Install mounted-test dependencies
-        run: npm install --save-dev @testing-library/react@16.3.0 jsdom@26.1.0
-      - name: Commit reviewed changes
+      - name: Run reference foundation contract
+        id: reference_foundation
+        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
-          rm .github/workflows/pr128-review-fixes.yml
-          rm .github/workflows/pr128-review-fixes-trigger.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Address PR 128 review findings"
-          git push origin HEAD:agent/reference-source-focus
+          set -o pipefail
+          npm run test:reference-foundation 2>&1 | tee reference-foundation.log
+          npm run verify:reference-worker 2>&1 | tee -a reference-foundation.log
+
+      - name: Record reference foundation status
+        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.reference_foundation.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("reference-foundation.log") ? fs.readFileSync("reference-foundation.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: "pre-pr/reference-foundation",
+              description: outcome === "success" ? "reference foundation passed" : detail.slice(0, 140),
+            });
+
+      - name: Run tests
+        id: tests
+        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test.log
+
+      - name: Record test status
+        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.tests.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("test.log") ? fs.readFileSync("test.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const location = lines.find((line) => /(?:^|\s)src\/[^\s]+\.test\.ts:\d+:\d+/.test(line));
+            const detail = location || lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: outcome === "success" ? "pre-pr/tests" : `pre-pr/tests/${slug}`,
+              description: outcome === "success" ? "npm test passed" : detail.slice(0, 140),
+            });
+
+      - name: Run production build
+        id: build
+        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success' && steps.tests.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+
+      - name: Record build status
+        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success' && steps.tests.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.build.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("build.log") ? fs.readFileSync("build.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const detail = lines.find((line) => /error TS|error:|Error:|failed/i.test(line)) || lines.at(-1) || "failure";
+            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: outcome === "success" ? "pre-pr/build" : `pre-pr/build/${slug}`,
+              description: outcome === "success" ? "npm run build passed" : detail.slice(0, 140),
+            });
+
+      - name: Fail when verification did not pass
+        if: steps.install.outcome != 'success' || steps.blob_lifecycle.outcome == 'failure' || steps.reference_foundation.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
+        run: exit 1
