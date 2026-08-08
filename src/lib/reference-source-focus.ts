@@ -8,6 +8,7 @@ import type {
   SampleDetail,
 } from "../../shared/types";
 import type { TemplateDetail } from "./api";
+import { correspondingRunForSelectedRun } from "./correspondingRun";
 import { buildRunGrid, type RunGridColumn, type RunGridRow } from "./runGrid";
 import { collectSampleNotes } from "./sampleNotes";
 
@@ -232,11 +233,7 @@ export function processingFocusColumns(
     ...additionalSamples.map((sample) => ({
       sample,
       run: selectedRun
-        ? sample.runs.find((run) => (
-          run.runKind === selectedRun.runKind
-          && run.recipeFamilyId === selectedRun.recipeFamilyId
-          && run.status === selectedRun.status
-        )) ?? null
+        ? correspondingRunForSelectedRun(selectedRun, primarySample.runs, sample.runs)
         : null,
     })),
   ];
