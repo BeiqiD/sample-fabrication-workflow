@@ -62,10 +62,12 @@ reasons:
 
 PR #120 established the source side of those boundaries. PR #123 completed the
 shared blob-lifecycle, export-integrity, and physical-delete protections, and PR
-#124 corrected their D1/workerd migration compatibility. PR #125 establishes the
-sparse reference registry and base batch resolver. Actual Project backlinks
-remain deferred until `project_items.reference_target_id` exists, so no
-ownerless parallel usage table is introduced.
+#124 corrected their D1/workerd migration compatibility. PR #125 established the
+sparse reference registry and base batch resolver; the Phase 2A completion
+slice then mounted reference routes into the core middleware stack and added
+real Worker/D1 resolver execution to its gate. Actual Project backlinks remain
+deferred until `project_items.reference_target_id` exists, so no ownerless
+parallel usage table is introduced.
 
 ## Product invariants
 
@@ -469,7 +471,7 @@ itself be soft-deleted without cascading into references held by another
 Project.
 
 Permanent deletion is still disabled. The source/blob lifecycle slices block
-accidental physical deletion, and PR #125 adds the registry and blocker type
+accidental physical deletion, and PR #125 added the registry and blocker type
 mapping, but Project backlinks, privileged authorization, final concurrency
 checks, and tombstone creation are not all present.
 
@@ -526,7 +528,7 @@ condition:
 | 0. Reference identity | Target list, canonical Comment, attachment occurrence/blob boundary, lifecycle vocabulary | Complete |
 | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
 | 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
-| 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts | Implemented in PR #125; pending merge and integration-head verification |
+| 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts, unified middleware, workerd runtime smoke | Complete after PR #125 and the reference-runtime completion slice |
 | 2B. Deep links | Object-level URLs and archived read-only destinations | Not started |
 | 2C. Deterministic search | Shared search/read model and reference insertion | Not started |
 | 3. Project and Text | Project data, `project_items` backlinks, Project-owned content, Text workspace, Inspector, insertion, export | Not started |

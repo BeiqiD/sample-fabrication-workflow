@@ -89,19 +89,24 @@ soft-deleted ready sources must remain protected. Full export must preserve all
 database rows, package each available blob once, and record unavailable bytes
 in `export-warnings.json` instead of aborting the ZIP.
 
-The implementation must add a dedicated check such as:
+The repository now provides dedicated focused checks:
 
 ```text
 npm run verify:blob-lifecycle
+npm run verify:reference-foundation
+npm run verify:v3-deployment
 ```
 
-The normal v3 remote-migration and deployment commands must execute that check,
-the complete test suite, and the deployment build before touching remote D1 or
-storage. Passing an ordinary build or using resources isolated from `main` does
-not waive the gate.
+The reference gate combines detailed host-SQLite tests, the ordered Wrangler
+local D1 migration check, and a Miniflare/workerd smoke that invokes the unified
+Worker's resolver endpoint with representative adapters and 200 distinct
+targets. The normal v3 remote-migration and deployment commands execute these
+checks, the complete test suite, and the deployment build before touching
+remote D1 or storage. Passing an ordinary build or using resources isolated
+from `main` does not waive the gate.
 
-Until the implementation and dedicated tests are merged and the exact
-integration head passes the gate:
+Until the exact integration head passes this gate and an operator explicitly
+authorizes activation:
 
 - do not apply v3 migrations to a remote D1 database;
 - do not deploy the v3 Worker;

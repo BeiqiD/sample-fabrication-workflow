@@ -18,6 +18,7 @@ import { loadPlanContext } from "./plan-context";
 import { validateSubstrateTransition } from "./run-start";
 import { resolvePlanUpdateStructureTarget } from "./plan-update";
 import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
+import { routes as referenceRoutes } from "./reference-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import { refreshOrphanGrace } from "./blob-lifecycle/reachability";
 import { getBlob } from "./blob-lifecycle/storage";
@@ -147,6 +148,7 @@ app.get("/ready", async (c) => {
 });
 
 app.route("/", commentSubmissionRoutes);
+app.route("/", referenceRoutes);
 
 type SampleStructureState = {
   stepId: string | null;

@@ -87,6 +87,7 @@ jobs:
         run: |
           set -o pipefail
           npm run test:reference-foundation 2>&1 | tee reference-foundation.log
+          npm run verify:reference-worker 2>&1 | tee -a reference-foundation.log
 
       - name: Record reference foundation status
         if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success'

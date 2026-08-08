@@ -311,10 +311,12 @@ checks, and tombstones.
 
 ## Next implementation boundary
 
-PR #125 implements the sparse reference registry and base batch resolver on top
-of this operational foundation. Actual Project backlinks remain deferred until
-`project_items.reference_target_id` exists. After the exact merged integration
-head passes its gate, the remaining product sequence is:
+PR #125 implemented the sparse reference registry and base batch resolver on top
+of this operational foundation. Its merged integration head passed the gate,
+and the Phase 2A completion slice closes the remaining runtime-smoke and
+middleware-consolidation follow-ups. Actual Project backlinks remain deferred
+until `project_items.reference_target_id` exists. The remaining product sequence
+is:
 
 1. object-level deep links and archived read-only destinations;
 2. deterministic reference search and insertion;

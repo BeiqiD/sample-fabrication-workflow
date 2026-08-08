@@ -30,8 +30,8 @@ describe("deployment routing", () => {
     }>;
   };
 
-  it("routes browser navigations under /api through the reference-aware Worker entry", () => {
-    expect(configuration.main).toBe("./worker/entry.ts");
+  it("routes browser navigations under /api through the unified core Worker", () => {
+    expect(configuration.main).toBe("./worker/index.ts");
     expect(configuration.assets?.not_found_handling).toBe("single-page-application");
     expect(configuration.assets?.run_worker_first).toContain("/api/*");
   });
@@ -66,7 +66,7 @@ describe("deployment routing", () => {
       });
 
       const generated = JSON.parse(readFileSync(output, "utf8"));
-      expect(resolve(dirname(output), generated.main)).toBe(resolve(projectRoot, "worker/entry.ts"));
+      expect(resolve(dirname(output), generated.main)).toBe(resolve(projectRoot, "worker/index.ts"));
       expect(generated.name).toBe("example-worker");
       expect(generated.workers_dev).toBe(true);
       expect(generated.keep_vars).toBe(true);
@@ -113,7 +113,7 @@ describe("deployment routing", () => {
     const gate = packageConfiguration.scripts?.["verify:v3-deployment"];
 
     expect(gate).toBe(
-      "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run verify:d1-migrations && npm test && npm run build:deploy",
+      "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run verify:d1-migrations && npm run verify:reference-worker && npm test && npm run build:deploy",
     );
     expect(migrateCommand).toBe(
       "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
