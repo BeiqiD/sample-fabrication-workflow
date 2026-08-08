@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SearchReferencesResponse } from "../shared/reference-search";
-import type { ReferenceSearchResult } from "../shared/reference-search";
+import type { ReferenceSearchResult, SearchReferencesResponse } from "../shared/reference-search";
 import type { ReferenceTarget } from "../shared/reference-types";
 import { ReferenceSearchSurface } from "./components/ReferenceSearchSurface";
 import { defaultReferenceSearchUiState } from "./lib/reference-search-ui";
@@ -185,5 +185,60 @@ describe("mounted reference search surface", () => {
       headers: { "content-type": "application/json" },
     }));
     expect(await screen.findByRole("heading", { name: "Current result" })).toBeTruthy();
+  });
+
+  it("retries the same committed search after a failure", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Temporary search failure" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockImplementationOnce(() => jsonResponse(response([result("sample-retry", "Recovered result")])));
+    const committed = { ...defaultReferenceSearchUiState(), query: "retry" };
+    const onChange = vi.fn();
+
+    render(<MemoryRouter>
+      <ReferenceSearchSurface value={committed} onChange={onChange} />
+    </MemoryRouter>);
+
+    expect(await screen.findByText("Temporary search failure")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    expect(await screen.findByRole("heading", { name: "Recovered result" })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenCalledWith(committed);
+  });
+
+  it("commits Clear search and returns the controlled surface to idle", async () => {
+    fetchMock.mockImplementation(() => jsonResponse(response([result("sample-clear", "Result to clear")])));
+    const initial = {
+      query: "sample-clear",
+      types: ["sample" as const],
+      sampleId: "sample-clear",
+      from: "",
+      to: "",
+    };
+
+    function Harness() {
+      const [value, setValue] = useState(initial);
+      return <ReferenceSearchSurface value={value} onChange={setValue} />;
+    }
+
+    render(<MemoryRouter><Harness /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Result to clear" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(await screen.findByRole("heading", { name: "Search the research record" })).toBeTruthy();
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the intentional no-result state", async () => {
+    fetchMock.mockImplementation(() => jsonResponse(response([])));
+    const committed = { ...defaultReferenceSearchUiState(), query: "missing" };
+
+    render(<MemoryRouter>
+      <ReferenceSearchSurface value={committed} onChange={vi.fn()} />
+    </MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "No matching references" })).toBeTruthy();
   });
 });
