@@ -156,6 +156,7 @@ The first full-export implementation builds the ZIP in browser memory. Large arc
 - [Reference registry and batch resolver implementation plan](./docs/REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md)
 - [Reference deep-link implementation plan](./docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md)
 - [Reference source-focus implementation plan](./docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md)
+- [Deterministic reference search implementation plan](./docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md)
 - [D1 SQL compatibility](./docs/D1_SQL_COMPATIBILITY.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)

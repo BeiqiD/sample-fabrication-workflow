@@ -124,6 +124,12 @@ Project-item identity exists.
 
 See [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md).
 
+Phase 2C1 deterministic search adds no table or mutable index. It reads the
+authoritative source and occurrence rows through bounded type-specific
+queries, then revalidates candidates through the resolver. A materialized or
+FTS index is deferred until real scale justifies its synchronization and
+restore cost. See [deterministic reference search implementation plan](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md).
+
 ## Blob reachability and GC metadata
 
 Blob reachability is derived from source and occurrence relationships. It is
