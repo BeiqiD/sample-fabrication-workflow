@@ -51,7 +51,9 @@ Blob reachability is derived from stable source and occurrence relationships. So
 
 Reference resolution is similarly source-owned. The sparse `reference_targets` registry stores stable identity and validation metadata, while the batch resolver reads current source tables and returns no source-mutation capability. Attachment references use occurrence IDs and never expose provider object keys. Canonical reference navigation uses a shared versioned opaque route codec rather than relying on browser percent-decoding semantics. Source focus is URL-owned, read-only, and restored through refresh, Back, and Forward; stable execution-image reads share the ordinary asset MIME and GC safety boundary.
 
-Deterministic reference search reads those same authoritative source and occurrence rows through bounded type-specific queries. It uses explicit exact-ID, exact-primary, prefix, target-content, and metadata ranking tiers, then revalidates candidates through the resolver. Search reads do not register targets. Actual Project backlinks and insertion remain deferred until `project_items` exists rather than being represented by a parallel placeholder table.
+Deterministic reference search reads those same authoritative source and occurrence rows through type-specific queries. It uses explicit exact-ID, exact-primary, prefix, target-content, and metadata ranking tiers, then revalidates candidates through the resolver. Query count, bindings, candidates, and resolver work are bounded, while the first source-scan backend still scales its row examination with the underlying tables.
+
+The search domain contract is deployment-neutral. D1 currently supplies the portable SQLite query interface; a future Docker/self-hosted SQLite runtime can use the same contract, and a derived FTS5 backend can replace scans without becoming a second source of truth. Search reads do not register targets. Actual Project backlinks and insertion remain deferred until `project_items` exists rather than being represented by a parallel placeholder table.
 
 ## Deploy your own instance
 

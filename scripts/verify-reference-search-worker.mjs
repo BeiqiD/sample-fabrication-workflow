@@ -107,6 +107,27 @@ try {
     log: new Log(LogLevel.ERROR),
   });
 
+  const database = await miniflare.getD1Database("DB");
+  const insertSample = database.prepare(`
+    INSERT INTO samples
+      (id, code, title, description, status, location, pinned, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0,
+            '2026-08-03T00:00:00.000Z', '2026-08-03T00:00:00.000Z')
+  `);
+  const longToken = "a".repeat(60);
+  const multibyteToken = "实验".repeat(30);
+  for (const row of [
+    ["id\\path", "ESCAPE-ID", "Escaped identity", "literal marker"],
+    ["literal-special", "ESCAPE-TEXT", "Literal matcher", "literal 100%_ready\\path"],
+    ["short-pattern", "SHORT-48", "Short pattern", "a".repeat(48)],
+    ["long-pattern", "LONG-60", "Long pattern", longToken],
+    ["multibyte-pattern", "WIDE-60", "Multibyte pattern", multibyteToken],
+    ["ÄBC", "UNICODE-ID", "Épitaxy", "Accented exact-case content"],
+    ["unicode-nfd", "UNICODE-NFD", "E\u0301pitaxy", "Decomposed title"],
+  ]) {
+    await insertSample.bind(...row).run();
+  }
+
   const crossOrigin = await postSearch(
     miniflare,
     { query: "Reference" },
@@ -128,6 +149,66 @@ try {
     exactPayload.results[0].resolution.destination.referenceUrl,
     /^\/references\/sample\/r1_[A-Za-z0-9_-]+$/,
   );
+
+  const escapedIdResponse = await postSearch(miniflare, {
+    query: "id\\path",
+    types: ["sample"],
+  });
+  const escapedIdPayload = await escapedIdResponse.json();
+  assert.equal(escapedIdResponse.status, 200, JSON.stringify(escapedIdPayload));
+  assert.equal(escapedIdPayload.results[0].target.id, "id\\path");
+  assert.equal(escapedIdPayload.results[0].match.tier, "exact_id");
+
+  const literalResponse = await postSearch(miniflare, {
+    query: "%_ready\\path",
+    types: ["sample"],
+  });
+  const literalPayload = await literalResponse.json();
+  assert.deepEqual(literalPayload.results.map((result) => result.target.id), ["literal-special"]);
+
+  const longResponse = await postSearch(miniflare, {
+    query: longToken,
+    types: ["sample"],
+  });
+  const longPayload = await longResponse.json();
+  assert.deepEqual(longPayload.results.map((result) => result.target.id), ["long-pattern"]);
+
+  const multibyteResponse = await postSearch(miniflare, {
+    query: multibyteToken,
+    types: ["sample"],
+  });
+  const multibytePayload = await multibyteResponse.json();
+  assert.deepEqual(multibytePayload.results.map((result) => result.target.id), ["multibyte-pattern"]);
+
+  const unicodeIdResponse = await postSearch(miniflare, {
+    query: "ÄBC",
+    types: ["sample"],
+  });
+  const unicodeIdPayload = await unicodeIdResponse.json();
+  assert.equal(unicodeIdPayload.results[0].target.id, "ÄBC");
+  assert.equal(unicodeIdPayload.results[0].match.tier, "exact_id");
+
+  const unicodeTitleResponse = await postSearch(miniflare, {
+    query: "ÉPITAXY",
+    types: ["sample"],
+  });
+  const unicodeTitlePayload = await unicodeTitleResponse.json();
+  assert.equal(unicodeTitlePayload.results[0].target.id, "ÄBC");
+  assert.equal(unicodeTitlePayload.results[0].match.tier, "exact_primary");
+
+  const differentUnicodeCaseResponse = await postSearch(miniflare, {
+    query: "épitaxy",
+    types: ["sample"],
+  });
+  const differentUnicodeCasePayload = await differentUnicodeCaseResponse.json();
+  assert(!differentUnicodeCasePayload.results.some((result) => result.target.id === "ÄBC"));
+
+  const nfdResponse = await postSearch(miniflare, {
+    query: "E\u0301PITAXY",
+    types: ["sample"],
+  });
+  const nfdPayload = await nfdResponse.json();
+  assert.equal(nfdPayload.results[0].target.id, "unicode-nfd");
 
   const commentResponse = await postSearch(miniflare, {
     query: "Shared reference Comment body",
@@ -186,8 +267,15 @@ try {
     types: ["unknown"],
   });
   assert.equal(invalidResponse.status, 400);
+  for (const from of [
+    "August 1, 2026",
+    "2026-02-30",
+    "2026-08-01T12:00:00",
+  ]) {
+    const invalidTimeResponse = await postSearch(miniflare, { query: "Reference", from });
+    assert.equal(invalidTimeResponse.status, 400, `expected invalid time rejection for ${from}`);
+  }
 
-  const database = await miniflare.getD1Database("DB");
   const registryCount = await database.prepare(
     "SELECT COUNT(*) AS count FROM reference_targets",
   ).first();
@@ -198,7 +286,7 @@ try {
   assert(!serialized.includes("r2_key"));
   assert(!serialized.includes("object_key"));
 
-  console.log("Reference search Worker/D1 smoke passed: deterministic ranking, canonical Comment selection, filters, archived references, read-only behavior, and locator non-disclosure.");
+  console.log("Reference search Worker/D1 smoke passed: portable literal matching, Unicode policy, strict timestamps, deterministic ranking, lifecycle filters, read-only behavior, and locator non-disclosure.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);

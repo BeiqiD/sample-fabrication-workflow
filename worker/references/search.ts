@@ -3,6 +3,7 @@ import {
   MAX_REFERENCE_SEARCH_LIMIT,
   MAX_REFERENCE_SEARCH_QUERY_LENGTH,
   MAX_REFERENCE_SEARCH_RESOLUTION_CANDIDATES,
+  MAX_REFERENCE_SEARCH_TOKENS,
   type NormalizedReferenceSearchInput,
   type ReferenceSearchMatchTier,
   type ReferenceSearchResult,
@@ -16,8 +17,6 @@ import {
   type ReferenceTarget,
   type ReferenceTargetType,
 } from "../../shared/reference-types";
-import { searchTokens } from "../directory-query";
-import { escapedLikePattern } from "../request-guards";
 import { referenceTargetKey, resolveReferences } from "./resolver";
 
 const SEARCH_CANDIDATE_FLOOR = 60;
@@ -71,7 +70,7 @@ type SearchCandidate = {
   matchedAt: string | null;
 };
 
-type CandidateBatch = {
+export type ReferenceSearchCandidateBatch = {
   candidates: SearchCandidate[];
   truncated: boolean;
 };
@@ -94,27 +93,95 @@ type SearchSourceSpec = {
   sampleFilter?: (sampleId: string) => SampleFilter;
 };
 
+export interface ReferenceSearchSqlDatabase {
+  prepare(query: string): {
+    bind(...values: unknown[]): {
+      all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
+    };
+  };
+}
+
 export type ReferenceSearchAdapter = (
-  db: D1Database,
+  db: ReferenceSearchSqlDatabase,
   input: NormalizedReferenceSearchInput,
   candidateLimit: number,
-) => Promise<CandidateBatch>;
+) => Promise<ReferenceSearchCandidateBatch>;
+
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const RFC3339_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|([+-])(\d{2}):(\d{2}))$/;
+
+export function asciiFoldReferenceSearchText(value: string) {
+  return value.replace(/[A-Z]/g, (character) => (
+    String.fromCharCode(character.charCodeAt(0) + 32)
+  ));
+}
+
+function referenceSearchTokens(value: string) {
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+  for (const rawToken of value.split(/\s+/)) {
+    if (!rawToken) continue;
+    const token = asciiFoldReferenceSearchText(rawToken);
+    if (seen.has(token)) continue;
+    seen.add(token);
+    tokens.push(token);
+    if (tokens.length === MAX_REFERENCE_SEARCH_TOKENS) break;
+  }
+  return tokens;
+}
+
+function isLeapYear(year: number) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function isValidCalendarDate(year: number, month: number, day: number) {
+  if (!Number.isInteger(year) || year < 1 || year > 9999) return false;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  const days = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return Number.isInteger(day) && day >= 1 && day <= days[month - 1];
+}
+
+function invalidTimestamp(field: "from" | "to"): never {
+  throw new ReferenceSearchInputError(
+    "invalid_time_range",
+    `Reference search ${field} must be YYYY-MM-DD or an RFC 3339 timestamp with an explicit timezone`,
+  );
+}
 
 function normalizeTimestamp(value: unknown, field: "from" | "to") {
   if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") {
-    throw new ReferenceSearchInputError(
-      "invalid_time_range",
-      `Reference search ${field} must be an ISO timestamp`,
-    );
+  if (typeof value !== "string") return invalidTimestamp(field);
+
+  const dateOnly = DATE_ONLY_PATTERN.exec(value);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]);
+    const day = Number(dateOnly[3]);
+    if (!isValidCalendarDate(year, month, day)) return invalidTimestamp(field);
+    return `${value}T00:00:00.000Z`;
   }
+
+  const timestamp = RFC3339_PATTERN.exec(value);
+  if (!timestamp) return invalidTimestamp(field);
+  const year = Number(timestamp[1]);
+  const month = Number(timestamp[2]);
+  const day = Number(timestamp[3]);
+  const hour = Number(timestamp[4]);
+  const minute = Number(timestamp[5]);
+  const second = Number(timestamp[6]);
+  const offsetHour = Number(timestamp[10] ?? 0);
+  const offsetMinute = Number(timestamp[11] ?? 0);
+  if (!isValidCalendarDate(year, month, day)
+    || hour > 23
+    || minute > 59
+    || second > 59
+    || offsetHour > 23
+    || offsetMinute > 59) {
+    return invalidTimestamp(field);
+  }
+
   const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
-    throw new ReferenceSearchInputError(
-      "invalid_time_range",
-      `Reference search ${field} must be an ISO timestamp`,
-    );
-  }
+  if (!Number.isFinite(parsed)) return invalidTimestamp(field);
   return new Date(parsed).toISOString();
 }
 
@@ -127,13 +194,13 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
     throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
   }
   const query = candidate.query.trim();
-  if (!query || query.length > MAX_REFERENCE_SEARCH_QUERY_LENGTH) {
+  if (!query || Array.from(query).length > MAX_REFERENCE_SEARCH_QUERY_LENGTH) {
     throw new ReferenceSearchInputError(
       "invalid_query",
       `Reference search query must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} characters`,
     );
   }
-  const tokens = searchTokens(query);
+  const tokens = referenceSearchTokens(query);
   if (!tokens.length) {
     throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
   }
@@ -184,7 +251,7 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
 
   return {
     query,
-    normalizedQuery: query.toLocaleLowerCase(),
+    normalizedQuery: asciiFoldReferenceSearchText(query),
     tokens,
     types,
     sampleId,
@@ -192,11 +259,6 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
     to,
     limit,
   };
-}
-
-function prefixLikePattern(value: string) {
-  const contains = escapedLikePattern(value);
-  return `${contains.slice(1, -1)}%`;
 }
 
 function textExpression(expression: string) {
@@ -211,22 +273,26 @@ function concatenate(expressions: string[]) {
 function allTokensSql(haystack: string, tokenCount: number) {
   return Array.from(
     { length: tokenCount },
-    () => `LOWER(${haystack}) LIKE ? ESCAPE '\\'`,
+    () => `INSTR(LOWER(${haystack}), ?) > 0`,
   ).join(" AND ");
+}
+
+function exactTextSql(expression: string) {
+  const text = textExpression(expression);
+  return `(${text} = ? COLLATE BINARY OR LOWER(${text}) = ?)`;
 }
 
 function primaryExactSql(expressions: string[]) {
   if (!expressions.length) return "0";
-  return expressions.map((expression) => (
-    `LOWER(${textExpression(expression)}) = ?`
-  )).join(" OR ");
+  return expressions.map(exactTextSql).join(" OR ");
 }
 
 function primaryPrefixSql(expressions: string[]) {
   if (!expressions.length) return "0";
-  return expressions.map((expression) => (
-    `LOWER(${textExpression(expression)}) LIKE ? ESCAPE '\\'`
-  )).join(" OR ");
+  return expressions.map((expression) => {
+    const text = textExpression(expression);
+    return `(INSTR(${text}, ?) = 1 OR INSTR(LOWER(${text}), ?) = 1)`;
+  }).join(" OR ");
 }
 
 function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
@@ -257,7 +323,8 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
     const sql = `
       SELECT CAST(${spec.idSql} AS TEXT) AS target_id,
              CASE
-               WHEN LOWER(${textExpression(spec.idSql)}) = ? THEN 0
+               WHEN (${textExpression(spec.idSql)} = ? COLLATE BINARY
+                     OR LOWER(${textExpression(spec.idSql)}) = ?) THEN 0
                WHEN (${exactPrimary}) THEN 1
                WHEN (${prefixPrimary}) THEN 2
                WHEN (${contentMatch}) THEN 3
@@ -275,14 +342,14 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
       LIMIT ?
     `;
 
-    const containsBindings = input.tokens.map(escapedLikePattern);
     const bindings: unknown[] = [
+      input.query,
       input.normalizedQuery,
-      ...spec.primarySqls.map(() => input.normalizedQuery),
-      ...spec.primarySqls.map(() => prefixLikePattern(input.normalizedQuery)),
-      ...(spec.contentSqls.length ? containsBindings : []),
+      ...spec.primarySqls.flatMap(() => [input.query, input.normalizedQuery]),
+      ...spec.primarySqls.flatMap(() => [input.query, input.normalizedQuery]),
+      ...(spec.contentSqls.length ? input.tokens : []),
       ...(spec.visibilityBindings?.(input) ?? []),
-      ...containsBindings,
+      ...input.tokens,
       ...(sampleFilter?.bindings ?? []),
       ...(input.from ? [input.from] : []),
       ...(input.to ? [input.to] : []),
@@ -479,9 +546,11 @@ export const REFERENCE_SEARCH_ADAPTERS = {
       AND r.deleted_at IS NULL
       AND s.deleted_at IS NULL
       AND (rsc.submission_id IS NULL OR (cs.status = 'ready' AND cs.deleted_at IS NULL))
-      AND (rsc.submission_id IS NULL OR LOWER(rsc.id) = ?)
+      AND (rsc.submission_id IS NULL
+        OR rsc.id = ? COLLATE BINARY
+        OR LOWER(rsc.id) = ?)
     `,
-    visibilityBindings: (input) => [input.normalizedQuery],
+    visibilityBindings: (input) => [input.query, input.normalizedQuery],
     sampleFilter: (sampleId) => ({ sql: "s.id = ?", bindings: [sampleId] }),
   }),
   comment_attachment: makeSearchAdapter({
@@ -587,6 +656,28 @@ export const REFERENCE_SEARCH_ADAPTERS = {
   }),
 } as const satisfies Record<ReferenceTargetType, ReferenceSearchAdapter>;
 
+export interface ReferenceSearchCandidateBackend {
+  readonly kind: string;
+  searchType(
+    type: ReferenceTargetType,
+    input: NormalizedReferenceSearchInput,
+    candidateLimit: number,
+  ): Promise<ReferenceSearchCandidateBatch>;
+}
+
+export interface SearchReferencesOptions {
+  candidateBackend?: ReferenceSearchCandidateBackend;
+}
+
+export function createSqliteSourceReferenceSearchBackend(
+  db: ReferenceSearchSqlDatabase,
+): ReferenceSearchCandidateBackend {
+  return {
+    kind: "sqlite-source-scan",
+    searchType: (type, input, limit) => REFERENCE_SEARCH_ADAPTERS[type](db, input, limit),
+  };
+}
+
 function candidateLimit(resultLimit: number) {
   return Math.min(
     SEARCH_CANDIDATE_CEILING,
@@ -625,11 +716,14 @@ function remainsSearchable(resolution: ReferenceResolution) {
 export async function searchReferences(
   db: D1Database,
   rawInput: unknown,
+  options: SearchReferencesOptions = {},
 ): Promise<SearchReferencesResponse> {
   const input = normalizeReferenceSearchInput(rawInput);
   const perTypeLimit = candidateLimit(input.limit);
+  const backend = options.candidateBackend
+    ?? createSqliteSourceReferenceSearchBackend(db as ReferenceSearchSqlDatabase);
   const batches = await Promise.all(input.types.map(async (type) => (
-    REFERENCE_SEARCH_ADAPTERS[type](db, input, perTypeLimit)
+    backend.searchType(type, input, perTypeLimit)
   )));
   const adapterTruncated = batches.some((batch) => batch.truncated);
   const candidates = batches.flatMap((batch) => batch.candidates).sort(compareCandidates);

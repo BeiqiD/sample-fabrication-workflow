@@ -482,6 +482,19 @@ creates `project_items.reference_target_id` under one authoritative owner.
 Search does not create a placeholder usage row or imply that selecting a
 result has already inserted it.
 
+The Phase 2C service is also the intended unified backend for existing and
+future search boxes, but each surface keeps a named business profile. Global
+research search may include archived Recipe revisions; a new-run Recipe picker
+must exclude them. A Sample directory may restrict the service to `sample`,
+while a Project picker returns selectable `ReferenceTarget` payloads. Existing
+page-specific searches migrate only after result, eligibility, pagination, and
+performance parity tests; unification must not erase their business rules.
+
+Candidate retrieval is replaceable. The current portable SQLite source backend
+supports D1 and a future Docker/self-hosted SQLite adapter. A later FTS5 backend
+may accelerate all profiles while preserving the same ranking tiers, lifecycle
+checks, and final resolver result.
+
 A Comment result selects that Comment; ancestors remain source context and
 are not silently inserted. Semantic, embedding, fuzzy, or model-ranked
 search is later work.

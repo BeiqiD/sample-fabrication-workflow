@@ -24,7 +24,7 @@ Phase 2C is split into two reviewable slices:
 1. **Phase 2C1 — deterministic search foundation**: one read-only domain search
    service and authenticated API over the nine current reference target types,
    with explainable ranking, lifecycle filtering, stable selection payloads,
-   bounded D1 work, and focused verification.
+   bounded query count/bindings/candidates/resolver work, and focused verification.
 2. **Phase 2C2 — global search and reusable picker UI**: one URL-owned Search
    page plus a reusable result-selection surface for later Project insertion.
 
@@ -68,6 +68,35 @@ No migration is required for this slice. The initial deterministic search reads
 the authoritative source tables directly. A later scale review may add an FTS
 or materialized index only if real dataset size justifies the synchronization
 cost.
+
+## Unified-search and portability boundary
+
+The search API, ranking tiers, lifecycle policy, stable `ReferenceTarget`
+payload, and resolver revalidation are platform-neutral. Global search, Sample
+or Recipe directories, and later Project pickers should reuse this domain
+service through surface-specific profiles rather than grow unrelated matchers.
+A profile may narrow types or add business eligibility: for example, global
+research search may include an archived Recipe revision while a new-run
+assignment picker must exclude it.
+
+Candidate discovery is behind `ReferenceSearchCandidateBackend`. The current
+`sqlite-source-scan` backend uses standard SQLite expressions and a narrow
+`prepare -> bind -> all` query interface; Cloudflare D1 is one adapter, not the
+search contract. A future Docker deployment can provide the same interface over
+changing API or ranking semantics.
+
+The preferred performance backend is a rebuildable SQLite FTS5 index behind the
+same candidate interface. FTS5 is an open-source SQLite module available in D1
+and in ordinary SQLite builds when enabled. The index remains derived data:
+authoritative source rows, registry identity, lifecycle checks, and final
+resolver results stay outside it. Restore imports source data first and rebuilds
+the index; the virtual table is not a second source of truth. A non-SQLite
+platform may implement the same backend contract with its own full-text engine.
+
+Phase 2C1 deliberately keeps the source-scan backend so matcher semantics can be
+reviewed independently of index synchronization. FTS5 maintenance, rebuild,
+feature detection, and scale benchmarks belong to a later performance slice,
+not to a Cloudflare-only branch in the domain service.
 
 ## Searchable targets and fields
 
@@ -123,19 +152,32 @@ The domain service accepts:
 query              required non-empty string, at most 200 characters
 types[]            optional closed v1 type subset; empty/omitted means all
 sampleId           optional exact active Sample stable ID
-from               optional inclusive ISO timestamp
-to                 optional inclusive ISO timestamp
+from               optional inclusive YYYY-MM-DD or RFC 3339 timestamp with explicit timezone
+to                 optional inclusive YYYY-MM-DD or RFC 3339 timestamp with explicit timezone
 limit              optional integer, 1..50; default 30
 ```
 
-The normalized query uses the existing deterministic token policy:
+The source-scan matcher uses a deterministic, portable token policy:
 
-- trim outer whitespace;
-- locale-lowercase for matching;
-- split on whitespace;
-- remove duplicate tokens;
-- retain at most eight tokens;
-- require every retained token to match the candidate haystack.
+- trim outer whitespace and preserve the raw query for byte-exact `BINARY`
+  identity/title matching;
+- fold only ASCII `A` through `Z`, matching standard SQLite `LOWER()` behavior;
+- treat non-ASCII code points as exact-case in this fallback backend;
+- do not silently equate NFC and NFD normalization forms;
+- split on whitespace, remove duplicate ASCII-folded tokens, and retain at most
+  eight tokens;
+- require every retained token to match literally; `\`, `%`, and `_` are data,
+  not pattern syntax;
+- accept the documented 200 Unicode-code-point query without silently
+  truncating a token.
+
+Full Unicode case folding and normalization may be supplied by a versioned FTS5
+backend later, but it must not silently change exact stable-ID identity.
+
+Date-only values mean midnight UTC. Datetimes must use `T`, seconds, and an
+explicit `Z` or numeric timezone offset; natural-language dates, invalid
+calendar dates, and timezone-less datetimes are rejected before `Date.parse()`
+is used for normalization.
 
 The service validates its own input and throws typed errors. The HTTP route only
 parses JSON and maps those domain errors to `400`; future internal Project
@@ -163,9 +205,9 @@ do not match when `sampleId` is present.
 
 Every candidate receives exactly one ranking tier:
 
-1. `exact_id` — case-insensitive exact stable-ID match;
-2. `exact_primary` — exact code, title, Recipe name/version, or filename match;
-3. `prefix_primary` — primary field begins with the complete normalized query;
+1. `exact_id` — byte-exact stable-ID match, then ASCII-case-insensitive fallback;
+2. `exact_primary` — byte-exact code/title/name/filename match, then ASCII-case-insensitive fallback;
+3. `prefix_primary` — the primary field begins with the raw or ASCII-folded complete query;
 4. `content` — every token matches the target-owned body/description/note fields;
 5. `metadata` — every token matches only context or weaker metadata.
 
@@ -186,7 +228,8 @@ scores, database row order, semantic similarity, or model judgement.
 Each selected target type owns one candidate query. Queries:
 
 - use bound values for every user-controlled value;
-- use escaped `LIKE` patterns and `ESCAPE '\\'`;
+- use literal `INSTR()` matching plus `BINARY` exact comparisons; no `LIKE` or
+  `GLOB` pattern is constructed from user input;
 - apply lifecycle, Sample, and time filters in SQL;
 - return at most a small fixed candidate cap plus one overflow row;
 - never issue one query per result;
@@ -198,8 +241,11 @@ application code, resolves at most 200 top candidates through the existing
 batch resolver, drops candidates that no longer resolve as active, and returns
 at most the requested limit.
 
-Query count is `O(number of selected target types)` with a small fixed resolver
-constant. It is independent of the number of matching objects.
+Query count, bound-parameter count, candidate output, and resolver work are
+`O(number of selected target types)` with small fixed caps. The source-scan
+backend still performs leading-substring scans whose CPU and rows examined grow
+with source-table size. `LIMIT` bounds returned candidates, not scan cost. FTS5
+is the planned portable optimization when measured scale requires it.
 
 The response reports `truncated: true` when a per-type candidate cap or the
 requested result limit may have omitted additional matches. The first version
@@ -263,7 +309,11 @@ Focused host-SQLite tests cover:
 - deleted source/ancestor exclusion;
 - common Comment visibility through any active context;
 - archived Recipe and metrology-reference behavior;
-- invalid query/type/Sample/time/limit input;
+- invalid query/type/Sample/time/limit input, including natural-language,
+  invalid-calendar, and timezone-less dates;
+- literal `\`, `%`, and `_`, 49–200-byte tokens, and multibyte text;
+- byte-exact Unicode IDs/titles, ASCII-only case folding, and distinct NFC/NFD
+  forms;
 - candidate and resolver bounds;
 - query count independent of result count;
 - no registry or source writes;
@@ -296,9 +346,12 @@ Phase 2C1 is complete when:
 7. results are revalidated through the existing resolver;
 8. search produces no registry or source writes;
 9. responses expose no physical storage locator;
-10. host SQLite, real Worker/D1 workerd, complete tests, and production build
+10. matcher behavior is identical in host SQLite and real Worker/D1 workerd;
+11. the candidate backend seam preserves the same domain contract for D1,
+    self-hosted SQLite, and a later FTS5 implementation;
+12. host SQLite, real Worker/D1 workerd, complete tests, and production build
     pass;
-11. no remote D1 migration or Worker deployment is run.
+13. no remote D1 migration or Worker deployment is run.
 
 ## Next slice
 

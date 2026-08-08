@@ -1,3 +1,24 @@
+import { describe, expect, it } from "vitest";
+import {
+  ReferenceSearchInputError,
+  createSqliteSourceReferenceSearchBackend,
+  normalizeReferenceSearchInput,
+  searchReferences,
+} from "./references/search";
+import {
+  referenceTestDatabase,
+  seedReferenceGraph,
+  SqliteD1Database,
+} from "./reference-test-support";
+
+function fixture() {
+  const database = referenceTestDatabase();
+  seedReferenceGraph(database);
+  const d1 = new SqliteD1Database(database);
+  const insert = database.prepare(`
+    INSERT INTO samples
+      (id, code, title, description, status, location, pinned, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0,
             '2026-08-03T00:00:00.000Z', '2026-08-03T00:00:00.000Z')
   `);
   const addSample = (id: string, code: string, title: string, description: string) => {
@@ -98,3 +119,13 @@ describe("reference search matcher and input boundaries", () => {
       "2026-02-30",
       "2026-08-01T12:00:00",
       "2026-08-01 12:00:00Z",
+      "2026-08-01T24:00:00Z",
+      "2026-08-01T12:00:00.1234Z",
+      "2026-08-01T12:00:00+24:00",
+    ];
+    for (const from of invalidTimes) {
+      expect(() => normalizeReferenceSearchInput({ query: "reference", from }))
+        .toThrow(ReferenceSearchInputError);
+    }
+  });
+});
