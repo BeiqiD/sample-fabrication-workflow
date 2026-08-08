@@ -22,7 +22,7 @@
 | `comment_submission_items` | Stable inline-image, original-file, or link occurrences owned by a canonical Comment. |
 | `run_step_comments` | Stable occurrence of a canonical Comment in one Run Step; legacy rows may directly carry an image asset. |
 | `metrology_template_references` | Stable reference-file occurrences attached to a metrology template. |
-| `reference_targets` | Sparse, idempotent polymorphic registry for durable external source identities. It stores identity and validation metadata, not copied source content. |
+| `reference_targets` | Sparse, idempotent polymorphic registry for durable external source identities. Its registry identity and source target are immutable; it stores validation metadata rather than copied source content. |
 | `managed_storage_objects` | Metadata for unchanged original files stored through the provider-neutral `ManagedStorage` adapter. |
 | `assets` | R2 object metadata and readiness state for imported and ordinary uploads. |
 | `blob_retention_edges` | Derived shared view of every current reason that provider bytes must remain recoverable. |
@@ -93,14 +93,25 @@ The registry stores:
 - future tombstone time;
 - last-known structural contexts for integrity reporting.
 
-It does not store authoritative titles, bodies, status, previews, file paths, or
-provider locators. Normal resolution reads current source tables through
-bounded source-specific adapters.
+The registry row ID, registry version, target type, target ID, and first
+registration time are immutable after insertion. A future Project item may keep
+a foreign key to that row, so the row cannot be updated in place to represent a
+different source. Only validation metadata, last-known contexts, and the future
+tombstone field may change.
+
+The registry does not store authoritative titles, bodies, status, previews,
+file paths, or provider locators. Normal resolution reads current source tables
+through bounded source-specific adapters.
 
 A target may have more than one context. In particular, one canonical common
 Comment and each of its attachments may belong to several Sample/Run/Step
 contexts. The read model therefore exposes ordered `contexts[]`, not one
 arbitrarily selected path.
+
+The domain resolver accepts zero to 200 targets, validates runtime target
+shape, and preserves caller order and duplicate entries. The HTTP route requires
+one to 200 targets. Query count grows with the distinct target types and a small
+fixed per-adapter constant, not with the number of target objects.
 
 The resolver preserves soft-deleted sources, deleted ancestors, and archived
 Recipe revisions as resolved read-only objects with lifecycle metadata. It
@@ -155,14 +166,15 @@ remain in table JSON as audit data.
 
 The current exporter is availability-aware:
 
+- every table/view snapshot, including `reference_targets`, is read through one
+  D1 batch;
 - metadata-not-ready rows are not treated as guaranteed bytes;
 - ready objects are deduplicated by physical locator;
 - missing or unavailable objects produce structured warnings;
 - one failed byte retrieval does not abort the entire ZIP;
 - `export-manifest.json` records final outcomes after retrieval attempts;
 - `export-warnings.json` is always written;
-- `reference_targets` rows are preserved as table data without creating blob
-  occurrences.
+- registry rows remain ordinary table data and do not create blob occurrences.
 
 The browser currently assembles the ZIP in memory. Streaming/server-side or
 desktop export remains a later scalability slice.
@@ -189,7 +201,8 @@ alpha schema. Current concurrency control uses `updated_at` and mutation IDs;
 removing the legacy column requires an explicit migration.
 
 Reference registration uses `UNIQUE(target_type, target_id)` plus
-`INSERT OR IGNORE` and then reads the canonical row. Ordinary resolution is
+`INSERT OR IGNORE` and then reads the canonical row. The database rejects any
+attempt to update a registry row's stable identity. Ordinary resolution is
 read-only; explicit registration or refresh is the only operation that updates
 validation metadata.
 
