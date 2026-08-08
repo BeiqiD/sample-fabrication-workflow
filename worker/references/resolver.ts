@@ -5,6 +5,10 @@ import type {
   ReferenceTargetRegistryEntry,
   ReferenceTargetType,
 } from "../../shared/reference-types";
+import {
+  isReferenceTarget,
+  MAX_REFERENCE_RESOLUTION_TARGETS,
+} from "../../shared/reference-types";
 import { REFERENCE_ADAPTERS } from "./adapters";
 
 type RegistryRow = {
@@ -17,6 +21,16 @@ type RegistryRow = {
   tombstoned_at: string | null;
   last_known_contexts_json: string;
 };
+
+export class ReferenceResolutionInputError extends Error {
+  constructor(
+    readonly code: "too_many_targets" | "invalid_target",
+    message: string,
+  ) {
+    super(message);
+    this.name = "ReferenceResolutionInputError";
+  }
+}
 
 export function referenceTargetKey(target: ReferenceTarget) {
   return `${target.type}\u0000${target.id}`;
@@ -42,6 +56,23 @@ function registryEntry(row: RegistryRow): ReferenceTargetRegistryEntry {
     tombstonedAt: row.tombstoned_at,
     lastKnownContexts: parseContexts(row.last_known_contexts_json),
   };
+}
+
+function validateReferenceTargets(targets: readonly ReferenceTarget[]) {
+  if (targets.length > MAX_REFERENCE_RESOLUTION_TARGETS) {
+    throw new ReferenceResolutionInputError(
+      "too_many_targets",
+      `Reference resolution accepts at most ${MAX_REFERENCE_RESOLUTION_TARGETS} targets`,
+    );
+  }
+  for (const target of targets) {
+    if (!isReferenceTarget(target) || target.id.trim() !== target.id) {
+      throw new ReferenceResolutionInputError(
+        "invalid_target",
+        "Every reference target needs a known type and valid stable ID",
+      );
+    }
+  }
 }
 
 export async function getReferenceTargets(
@@ -71,6 +102,7 @@ export async function resolveReferences(
   targets: readonly ReferenceTarget[],
 ): Promise<ReferenceResolution[]> {
   if (!targets.length) return [];
+  validateReferenceTargets(targets);
 
   const grouped = new Map<ReferenceTargetType, Set<string>>();
   for (const target of targets) {
