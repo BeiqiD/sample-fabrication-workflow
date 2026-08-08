@@ -1,31 +1,76 @@
-# Global reference search UI implementation plan
+# Project reference search surface implementation plan
 
 Status: implementation contract for Phase 2C2; active Draft PR #130
 
-Last reviewed: 2026-08-09 after PR #129 was squash-merged into
-`v2/backend-foundation` as `6877fefbd41f38339d0af26c6cbe32258ba09710`
+Last reviewed: 2026-08-09 after clarifying that Search is a Project capability,
+not a permanent standalone product area
 
 This document defines the browser surface that consumes the deterministic
 reference-search domain service completed in Phase 2C1. The service, ranking,
 lifecycle, portability, and resolver contracts remain defined in
 [deterministic reference search](./REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md).
-Product ownership and the later Project insertion boundary remain defined in
+Project ownership and the authoritative insertion boundary remain defined in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md).
+
+## Product correction
+
+Search is not intended to remain a separate top-level workspace beside Project.
+Its long-term product role is:
+
+> let a user working inside a Project quickly find any referenceable source
+> object and choose it for the current Project context.
+
+The durable Phase 2C2 deliverable is therefore the reusable search and selection
+surface, its deterministic result presentation, and its controlled state/API
+contract.
+
+The current `/search` route and Search navigation item are temporary integration
+scaffolding while Project identity and the Project workspace do not yet exist.
+They provide a complete place to exercise URL state, history, filters,
+responsive behavior, and all nine result types before Project writes are added.
+They are not a commitment to preserve a standalone global Search page.
+
+When the first Project workspace lands:
+
+- the primary navigation destination becomes Project rather than Search;
+- the search surface is mounted inside the Project page, panel, dialog, or
+  Inspector flow;
+- `/search` may redirect to the Project discovery surface, remain only as a
+  development/reference browser, or be removed after migration;
+- the search domain service and `ReferenceSearchSurface` remain unchanged;
+- Project insertion remains an authoritative server write, not a browser-side
+  consequence of searching or selecting.
 
 ## Phase boundary
 
+### Durable Phase 2C2 output
+
 Phase 2C2 adds:
 
-- one discoverable global Search page at `/search`;
-- URL-owned committed search state;
 - one controlled, reusable `ReferenceSearchSurface` component;
 - browse and single-selection result modes;
+- stable `ReferenceTarget` selection output for the future Project consumer;
 - type, Sample, and inclusive UTC-date filters;
 - deterministic result presentation from the Phase 2C1 response;
 - stale-request cancellation, explicit retry, and clear-to-idle behavior;
-- explicit loading/empty/error/truncation states;
+- explicit loading, empty, error, and truncation states;
 - keyboard-accessible controls and responsive desktop/mobile layouts;
-- focused URL-state, mounted-component, routing, history, and build verification.
+- pure state helpers that can be owned by either a route or a Project panel;
+- focused state, mounted-component, history, and build verification.
+
+### Temporary integration scaffolding
+
+Until Project exists, the PR also adds:
+
+- a discoverable `/search` reference-browser route;
+- a temporary Search navigation item;
+- URL-owned committed state for testing refresh, sharing, Back, and Forward;
+- a browse-mode page wrapper around the reusable component.
+
+This scaffolding must remain thin. Business logic must not migrate into
+`SearchPage`, and Project must not later depend on the existence of `/search`.
+
+### Explicit exclusions
 
 Phase 2C2 does not add:
 
@@ -39,15 +84,39 @@ Phase 2C2 does not add:
 - FTS5 schema, index maintenance, Queues, Workflows, or another Worker;
 - remote D1 migration or Worker deployment.
 
-The PR targets `v2/backend-foundation`. It stays Draft until the complete
-repository suite and generated merge result pass.
+The PR targets `v2/backend-foundation` and remains Draft until review is
+complete.
 
-## Product behavior
+## Intended Project interaction
 
-### Global Search page
+The first Project workspace should expose search as a direct Project action,
+for example through an `Add reference` button, command panel, or persistent
+search field. The exact visual container remains a Phase 3 UI decision, but the
+behavioral contract is fixed:
 
-The top navigation gains a Search destination. `/search` is a research discovery
-surface over the nine current stable reference target types:
+1. the user stays in the current Project context;
+2. opening discovery does not navigate away from unsaved Project work;
+3. the user searches all eligible source types through the shared service;
+4. result cards preserve source hierarchy and exact destinations;
+5. choosing a result returns its stable `ReferenceTarget`;
+6. the Project insertion route re-resolves and registers that target;
+7. only after the server creates `project_items.reference_target_id` may the UI
+   report that the reference was added;
+8. closing discovery returns to the same Project location and selection.
+
+A search result does not silently include its Sample, Run, or Step ancestors as
+separate Project items. Those remain source context. A Comment result selects
+that Comment; an attachment result selects that occurrence.
+
+The initial component supports single selection. Phase 3 may allow repeated
+selection without closing the panel, or add an explicit multi-select wrapper,
+but it must continue to pass exact stable targets to one authoritative server
+operation rather than invent a browser-owned inclusion model.
+
+## Temporary reference-browser behavior
+
+The temporary `/search` page exercises the same nine current stable target
+types:
 
 ```text
 sample
@@ -61,53 +130,54 @@ metrology_reference
 recipe_revision
 ```
 
-The page is read-only. A result can open its exact canonical Reference page and,
-when the resolver provides one, its exact source interface. The result card
-itself is not a navigation target; explicit actions avoid conflicts with later
-selection behavior and make keyboard intent clear.
+It is read-only. A result can open its canonical Reference page and, when the
+resolver provides one, its exact source interface. The result card itself is not
+a navigation target; explicit actions preserve keyboard clarity and avoid a
+gesture conflict with selection mode.
 
 An empty query shows guidance instead of issuing a request. Search uses an
 explicit submit action rather than requesting on every keystroke because the
 portable Phase 2C1 backend still performs source-table scans.
 
-### Reusable selection surface
+## Reusable component contract
 
 `ReferenceSearchSurface` is controlled by a committed search value and exposes
-one of two modes:
+two modes:
 
 - `browse`: show `Open source` and `Reference details` actions;
 - `select`: additionally show a single-selection action and return exactly the
   result's stable `ReferenceTarget` through `onSelect`.
 
-Selection does not register the target, create a Project item, or mutate the
-source. The component must never display `Added`, `Saved`, or `Add to project`.
-A later Phase 3 Project picker supplies local controlled state and sends the
-selected `ReferenceTarget` to the authoritative server insertion route.
+Selection does not register the target, create a Project item, mutate the source,
+or imply persistence. The component must never display `Added`, `Saved`, or
+`Add to project` by itself.
 
-The global Search page uses `browse` mode. The `select` contract is implemented
-and mounted-tested now so Project work does not need a second result model.
+The temporary page uses `browse` mode. The future Project discovery container
+uses `select` mode and owns any pending/selected/inserted presentation around it.
 
 ## State ownership
 
-The UI separates committed state from form draft state.
+The component separates committed state from form draft state.
 
-- `SearchPage` owns committed state through `URLSearchParams`.
-- `ReferenceSearchSurface` receives that state as `value`.
-- The surface keeps a local draft while the user edits query and filters.
-- Submit validates and emits one complete next state through `onChange`.
-- Only committed state triggers the API request.
-- Submitting the unchanged committed state explicitly retries that request.
-- Clear commits an empty query, aborts current work, and returns the controlled
-  surface to `idle` while preserving the committed filter profile.
-- Back/Forward changes the URL, replaces the controlled value, resets the draft,
-  aborts stale work, and restores the corresponding result set.
+- the host owns committed `ReferenceSearchUiState`;
+- `ReferenceSearchSurface` receives that state through `value`;
+- the surface keeps a local draft while the user edits query and filters;
+- submit validates and emits one complete next state through `onChange`;
+- only committed state triggers the API request;
+- submitting unchanged committed state explicitly retries that request;
+- Clear commits an empty query, aborts current work, and returns to `idle` while
+  preserving the host's filter profile;
+- host-state changes replace the draft, abort stale work, and restore the
+  corresponding result set.
 
-This prevents partially edited filters from changing the visible results and
-prevents one request per input event.
+For the temporary route, `SearchPage` owns committed state through
+`URLSearchParams`. A Project host may instead keep search state in Project URL
+parameters, a route-owned panel state, or a restorable workspace state. It must
+not fork the normalization, validation, request, or result contracts.
 
-## URL contract
+## Temporary URL contract
 
-The canonical browser parameters are:
+The temporary route uses:
 
 ```text
 q=<trimmed query>
@@ -122,23 +192,21 @@ Rules:
 - parameter order is deterministic;
 - repeated types are deduplicated and emitted in closed registry order;
 - selecting all types removes every `type` parameter;
-- an empty query removes `q` and produces the idle page state;
+- an empty query removes `q` and produces the idle state;
 - empty optional filters are omitted;
 - invalid external type values are ignored;
-- an external URL with no valid type leaves the default all-type profile;
-- the browser surface commits date-only values, then the request adapter converts
-  `from` to the UTC start of that date and `to` to the UTC end of that date;
+- an external URL with no valid type leaves the all-type profile;
+- browser dates are converted to complete UTC-day request bounds;
 - programmatic API clients may continue using the wider RFC 3339 contract from
   Phase 2C1;
 - `from > to`, an empty type selection, and a query beyond the shared 200-code-
-  point bound are rejected before URL mutation;
-- submitting creates a browser history entry; Back/Forward therefore restores
-  the previous committed search rather than only changing local component state.
+  point bound are rejected before committed-state mutation;
+- explicit submit creates a browser history entry so Back/Forward restores the
+  previous committed search.
 
-The URL stores the exact Sample stable ID because that is the domain filter.
-The first Phase 2C2 slice labels this advanced field explicitly. A later
-search-backed Sample chooser may improve input ergonomics without changing the
-URL, API, or selection contract.
+These parameter names are not required to become permanent top-level product
+URLs. A Project route may namespace or translate them while reusing the pure
+state helpers.
 
 ## Request lifecycle
 
@@ -151,49 +219,47 @@ For each committed non-empty query:
    explicitly retried, the query is cleared, or the component unmounts;
 5. ignore `AbortError`;
 6. render the newest successful response only;
-7. preserve the committed form values when the request fails so the user can
-   retry without re-entering filters.
+7. preserve committed values when the request fails so the user can retry.
 
-The visible states are:
+Visible states are:
 
-- `idle`: no committed query;
-- `loading`: current request in progress;
-- `success`: one or more results;
-- `empty`: successful request with no results;
-- `error`: current request failed;
-- `truncated`: success or empty response reports that a configured bound may
-  have omitted further matches.
+- `idle`;
+- `loading`;
+- `success`;
+- `empty`;
+- `error`;
+- `truncated`.
 
 No client-side re-ranking, result filtering, or hidden fallback search is
-allowed. The page renders the server order exactly.
+allowed. The component renders the server order exactly.
 
 ## Filter behavior
 
 ### Target types
 
-All nine types are selected by default. The filter panel uses checkboxes so a
-user can express any closed subset. The final selected type cannot be removed;
-this prevents a misleading state where the API would interpret an empty array as
-all types.
+All nine types are selected by default. Checkboxes express a closed subset. The
+final selected type cannot be removed, preventing the API's empty-array/all-types
+ambiguity.
+
+A future Project host may apply a named eligibility profile before rendering the
+component. It must not hide eligibility rules in result-card code.
 
 ### Sample scope
 
 The optional Sample field accepts one exact stable Sample ID. Recipe revisions
-and metrology references naturally return no matches under a Sample filter, as
-defined by Phase 2C1. The UI does not reinterpret Sample code or title as an ID.
+and metrology references naturally return no matches under a Sample filter. The
+component does not reinterpret Sample code or title as an ID.
 
 ### Time range
 
-The browser uses date inputs and stores date-only values in the URL. The request
-adapter sends `from` at 00:00:00.000Z and `to` at 23:59:59.999Z so both selected
-UTC dates are fully inclusive. The form checks ordering before committing.
-Server validation remains authoritative.
+The browser uses date inputs. The request adapter sends `from` at
+`00:00:00.000Z` and `to` at `23:59:59.999Z`, so both selected UTC dates are fully
+inclusive. Server validation remains authoritative.
 
 ### Reset
 
 `Reset filters` restores all target types and clears Sample/from/to while keeping
-the draft query. Clearing the complete search is done by submitting an empty
-query or using the query clear control; it returns the page to `idle`.
+the draft query. Clearing the query returns the host to `idle`.
 
 ## Result presentation
 
@@ -237,23 +303,24 @@ not inferred in the browser.
 - Result actions are real links or buttons, not clickable containers.
 - The selected result exposes `aria-pressed` in selection mode.
 - Focus is not moved after results load.
-- Page-load autofocus follows the existing device-aware autofocus helper.
+- Page-load autofocus follows the existing device-aware helper.
+- A future Project panel must return focus to its opening control when closed.
 
 ## Responsive layout
 
-The implementation keeps the repository's existing wide, medium, and narrow
-layout philosophy.
+The component follows the repository's wide, medium, and narrow layout tiers.
 
-- Wide: query and submit action share one row; filters use a compact grid;
-  result metadata and actions share the card header.
+- Wide: query and submit share one row; filters use a compact grid; result
+  metadata and actions share the card header.
 - Medium: type filters reduce columns and card actions may wrap.
 - Narrow: query and submit stack, filter fields become one column, actions use
-  full available width, and long IDs/context labels wrap.
+  the available width, and long IDs/context labels wrap.
 
-Adding the fifth primary navigation destination would otherwise exceed the
-320 px minimum layout. At the narrow breakpoint the existing theme toggle
-therefore becomes an icon-only 40 px control while preserving its accessible
-name and tooltip.
+The temporary fifth navigation destination would otherwise exceed the 320 px
+minimum layout. While the placeholder exists, the theme toggle becomes an
+accessible icon-only 40 px control at the narrow breakpoint. When Search is
+replaced by Project, navigation width must be re-evaluated rather than preserving
+this workaround by assumption.
 
 ## File and component plan
 
@@ -281,10 +348,9 @@ package.json
 README.md
 ```
 
-`ReferenceSearchSurface` owns request and presentation behavior but not browser
-routing. `SearchPage` is the small URL adapter. Pure URL and validation helpers
-remain outside React so they can be exhaustively unit-tested and later reused by
-a modal Project picker.
+`ReferenceSearchSurface` owns request and presentation behavior, not routing or
+Project persistence. `SearchPage` is a temporary URL adapter. Pure state and
+validation helpers remain outside React so a Project panel can reuse them.
 
 ## Verification
 
@@ -292,70 +358,79 @@ Pure tests cover:
 
 - parsing omitted/default filters;
 - type deduplication and closed ordering;
-- ignoring invalid external type values;
-- canonical URL serialization and omission of defaults;
+- invalid external type handling;
+- canonical temporary URL serialization;
 - query trimming and shared length bounds;
 - empty-type and reversed-date validation;
-- conversion of browser dates to complete UTC-day API bounds;
+- complete UTC-day API bounds;
 - normalized committed-state equality for explicit retry;
 - stable target equality.
 
 Mounted surface tests cover:
 
 - no request before a committed query exists;
-- exact POST payload for committed query/filter state;
+- exact POST payload;
 - stale request cancellation;
-- same-state retry after a request failure;
+- same-state retry after failure;
 - committed clear-to-idle behavior;
 - server result order preservation;
 - source/reference actions;
 - truncation and no-result states;
-- selection mode returning the exact stable `ReferenceTarget`;
+- selection returning the exact stable `ReferenceTarget`;
 - no Project insertion wording or mutation behavior.
 
-Mounted page tests cover:
+Mounted temporary-page tests cover:
 
-- initial committed state restored from the URL;
-- explicit submission pushing a new URL history entry;
-- browser Back restoring the previous URL, input draft, request, and result set.
+- initial state restored from the URL;
+- explicit submission pushing a history entry;
+- browser Back restoring URL, input draft, request, and results.
 
-Static page/routing tests cover:
+Static tests cover:
 
-- lazy `/search` route registration;
-- primary navigation entry and Search icon;
-- URL-owned page composition;
-- narrow theme-toggle compaction required by the fifth navigation item.
+- lazy temporary `/search` route registration;
+- placeholder navigation entry and Search icon;
+- thin URL-owned page composition;
+- narrow theme-toggle compaction while the placeholder exists.
 
-The new pure and mounted tests join `test:reference-foundation`. Normal
-`npm test`, the real Worker/D1 search smoke, TypeScript compilation, and the
-production build remain required. No migration is added.
+The new tests join `test:reference-foundation`. Normal `npm test`, real
+Worker/D1 search smoke, TypeScript compilation, and production build remain
+required. No migration is added.
 
 ## Completion criteria
 
 Phase 2C2 is complete when:
 
-1. `/search` is discoverable and refresh-safe;
-2. committed query/type/Sample/date state round-trips through the URL;
-3. Back/Forward restores the corresponding controlled search;
+1. the reusable search surface is independent from `SearchPage` routing;
+2. the component can browse and emit one exact stable `ReferenceTarget`;
+3. committed state can be supplied by a route or future Project host;
 4. empty queries issue no request;
-5. stale requests are aborted and cannot replace newer results;
-6. an unchanged committed state can be explicitly retried after failure;
-7. clearing the query commits the idle state rather than only editing a draft;
-8. browser date filters cover both complete selected UTC dates;
+5. stale requests cannot replace newer results;
+6. unchanged state can be explicitly retried;
+7. clearing commits the idle state;
+8. date filters cover both complete selected UTC dates;
 9. result order exactly matches the service response;
-10. all nine target types can be selected and filtered;
+10. all nine current target types can be filtered;
 11. canonical Reference and exact source destinations are explicit actions;
-12. selection mode returns only a stable `ReferenceTarget` and performs no write;
+12. selection performs no write and reports no false insertion success;
 13. no registry row, source row, Project placeholder, or physical locator is
     created or exposed;
-14. desktop and 320 px mobile layouts remain usable;
-15. focused reference tests, complete tests, and production build pass;
-16. the PR remains Draft for review and performs no remote migration or deploy.
+14. the temporary browser is refresh-safe and removable without changing the
+    search component or service;
+15. desktop and 320 px layouts remain usable;
+16. focused reference tests, complete tests, and production build pass;
+17. the PR remains Draft for review and performs no remote migration or deploy.
 
-## Next phase
+## Phase 3 transition
 
-Phase 3 creates Project identity and the authoritative insertion path. A Project
-picker reuses `ReferenceSearchSurface` in selection mode, then sends the selected
-`ReferenceTarget` to a server operation that re-resolves the target, registers it
-idempotently, and creates the owning `project_item` under one transaction-like
-guarded workflow. Phase 3 does not add another search model.
+Phase 3 creates Project identity, the Project workspace, and the authoritative
+insertion path. It should:
+
+- replace the temporary Search navigation destination with Project;
+- mount `ReferenceSearchSurface` within the current Project context;
+- preserve Project location while discovery is open;
+- re-resolve and register selected targets server-side;
+- create `project_items.reference_target_id` under one authoritative owner;
+- report insertion success only after that write completes;
+- decide whether `/search` redirects, remains a developer browser, or is removed.
+
+Phase 3 must not invent a second search service or duplicate the result model.
