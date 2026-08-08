@@ -143,6 +143,14 @@ export function referenceSearchParamsFromState(state: ReferenceSearchUiState) {
   return params;
 }
 
+function utcDayStart(value: string) {
+  return `${value}T00:00:00.000Z`;
+}
+
+function utcDayEnd(value: string) {
+  return `${value}T23:59:59.999Z`;
+}
+
 export function referenceSearchInputFromState(
   state: ReferenceSearchUiState,
 ): SearchReferencesInput | null {
@@ -154,8 +162,8 @@ export function referenceSearchInputFromState(
       ? {}
       : { types: normalized.types }),
     ...(normalized.sampleId ? { sampleId: normalized.sampleId } : {}),
-    ...(normalized.from ? { from: normalized.from } : {}),
-    ...(normalized.to ? { to: normalized.to } : {}),
+    ...(normalized.from ? { from: utcDayStart(normalized.from) } : {}),
+    ...(normalized.to ? { to: utcDayEnd(normalized.to) } : {}),
   };
 }
 
