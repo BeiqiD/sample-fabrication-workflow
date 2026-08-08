@@ -39,6 +39,50 @@ describe("reference target registry schema", () => {
     database.close();
   });
 
+  it("keeps registry identity immutable while allowing validation metadata updates", () => {
+    const database = referenceTestDatabase();
+    database.prepare(`
+      INSERT INTO reference_targets
+        (id, target_type, target_id, first_registered_at, last_validated_at)
+      VALUES ('registry-immutable', 'sample', 'sample-original',
+              '2026-08-08T00:00:00.000Z', '2026-08-08T00:00:00.000Z')
+    `).run();
+
+    for (const assignment of [
+      "id = 'registry-retargeted'",
+      "registry_version = 2",
+      "target_type = 'run'",
+      "target_id = 'sample-retargeted'",
+      "first_registered_at = '2026-08-09T00:00:00.000Z'",
+    ]) {
+      expect(() => database.prepare(
+        `UPDATE reference_targets SET ${assignment} WHERE id = 'registry-immutable'`,
+      ).run()).toThrow();
+    }
+    expect(() => database.prepare(`
+      UPDATE reference_targets
+      SET last_validated_at = '2026-08-08T01:00:00.000Z',
+          last_known_contexts_json = '[{"segments":[]}]',
+          tombstoned_at = '2026-08-08T02:00:00.000Z'
+      WHERE id = 'registry-immutable'
+    `).run()).not.toThrow();
+    expect(database.prepare(`
+      SELECT id, registry_version, target_type, target_id, first_registered_at,
+             last_validated_at, last_known_contexts_json, tombstoned_at
+      FROM reference_targets WHERE id = 'registry-immutable'
+    `).get()).toEqual({
+      id: "registry-immutable",
+      registry_version: 1,
+      target_type: "sample",
+      target_id: "sample-original",
+      first_registered_at: "2026-08-08T00:00:00.000Z",
+      last_validated_at: "2026-08-08T01:00:00.000Z",
+      last_known_contexts_json: '[{"segments":[]}]',
+      tombstoned_at: "2026-08-08T02:00:00.000Z",
+    });
+    database.close();
+  });
+
   it("rejects physical deletion of registry rows", () => {
     const database = referenceTestDatabase();
     database.prepare(`
