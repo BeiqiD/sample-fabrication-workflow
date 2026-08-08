@@ -1,0 +1,100 @@
+      "2026-08-01T24:00:00Z",
+      "2026-08-01T12:00:00.1234Z",
+      "2026-08-01T12:00:00+24:00",
+    ];
+    for (const from of invalidTimes) {
+      expect(() => normalizeReferenceSearchInput({ query: "reference", from }))
+        .toThrow(ReferenceSearchInputError);
+    }
+  });
+});
+'''
+
+
+CONSISTENCY_TEST = '''import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { REFERENCE_TARGET_TYPES } from "../shared/reference-types";
+import { REFERENCE_SEARCH_ADAPTERS } from "./references/search";
+
+describe("reference search target coverage", () => {
+  it("covers exactly the closed v1 reference target set", () => {
+    expect(Object.keys(REFERENCE_SEARCH_ADAPTERS)).toEqual([...REFERENCE_TARGET_TYPES]);
+  });
+
+  it("uses the portable literal matcher instead of LIKE-pattern encoding", () => {
+    const source = readFileSync(new URL("./references/search.ts", import.meta.url), "utf8");
+    expect(source).not.toContain("escapedLikePattern");
+    expect(source).not.toContain("toLocaleLowerCase");
+    expect(source).not.toMatch(/\\bLIKE\\b/);
+    expect(source).toContain("INSTR(");
+    expect(source).toContain('kind: "sqlite-source-scan"');
+  });
+});
+'''
+
+
+def update_package(text: str) -> str:
+    return replace_once(
+        text,
+        "worker/reference-search.test.ts worker/reference-search-routes.test.ts worker/reference-search-consistency.test.ts",
+        "worker/reference-search.test.ts worker/reference-search-boundaries.test.ts worker/reference-search-routes.test.ts worker/reference-search-consistency.test.ts",
+        "reference foundation test list",
+    )
+
+
+def update_worker_smoke(text: str) -> str:
+    text = replace_once(
+        text,
+        "  const crossOrigin = await postSearch(\n",
+        '''  const database = await miniflare.getD1Database("DB");
+  const insertSample = database.prepare(`
+    INSERT INTO samples
+      (id, code, title, description, status, location, pinned, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0,
+            '2026-08-03T00:00:00.000Z', '2026-08-03T00:00:00.000Z')
+  `);
+  const longToken = "a".repeat(60);
+  const multibyteToken = "实验".repeat(30);
+  for (const row of [
+    ["id\\\\path", "ESCAPE-ID", "Escaped identity", "literal marker"],
+    ["literal-special", "ESCAPE-TEXT", "Literal matcher", "literal 100%_ready\\\\path"],
+    ["short-pattern", "SHORT-48", "Short pattern", "a".repeat(48)],
+    ["long-pattern", "LONG-60", "Long pattern", longToken],
+    ["multibyte-pattern", "WIDE-60", "Multibyte pattern", multibyteToken],
+    ["ÄBC", "UNICODE-ID", "Épitaxy", "Accented exact-case content"],
+    ["unicode-nfd", "UNICODE-NFD", "E\\u0301pitaxy", "Decomposed title"],
+  ]) {
+    await insertSample.bind(...row).run();
+  }
+
+  const crossOrigin = await postSearch(
+''',
+        "workerd fixture insert",
+    )
+    text = replace_once(
+        text,
+        "  const commentResponse = await postSearch(miniflare, {\n",
+        '''  const escapedIdResponse = await postSearch(miniflare, {
+    query: "id\\\\path",
+    types: ["sample"],
+  });
+  const escapedIdPayload = await escapedIdResponse.json();
+  assert.equal(escapedIdResponse.status, 200, JSON.stringify(escapedIdPayload));
+  assert.equal(escapedIdPayload.results[0].target.id, "id\\\\path");
+  assert.equal(escapedIdPayload.results[0].match.tier, "exact_id");
+
+  const literalResponse = await postSearch(miniflare, {
+    query: "%_ready\\\\path",
+    types: ["sample"],
+  });
+  const literalPayload = await literalResponse.json();
+  assert.deepEqual(literalPayload.results.map((result) => result.target.id), ["literal-special"]);
+
+  const longResponse = await postSearch(miniflare, {
+    query: longToken,
+    types: ["sample"],
+  });
+  const longPayload = await longResponse.json();
+  assert.deepEqual(longPayload.results.map((result) => result.target.id), ["long-pattern"]);
+
+  const multibyteResponse = await postSearch(miniflare, {
