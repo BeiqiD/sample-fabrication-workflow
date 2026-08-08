@@ -74,6 +74,24 @@ describe("batch reference resolver", () => {
     database.close();
   });
 
+  it("does not reinterpret state observations as execution-image references", async () => {
+    const { database, db } = fixture();
+    database.prepare(`
+      INSERT INTO run_step_assets
+        (id, run_step_id, asset_id, role, position, created_at)
+      VALUES ('reference-state-observation', ?, 'reference-execution-asset',
+              'state_observation', 1, '2026-08-08T12:00:00.000Z')
+    `).run(REFERENCE_FIXTURE_IDS.stepA);
+
+    const [result] = await resolveReferences(db, [
+      { type: "execution_image", id: "reference-state-observation" },
+    ]);
+    expect(result.resolution).toBe("not_found");
+    expect(result.source).toBeNull();
+    expect(result.destination.openSourceUrl).toBeNull();
+    database.close();
+  });
+
   it("keeps soft-deleted sources, deleted ancestors, and archived revisions resolvable", async () => {
     const { database, db } = fixture();
     const ids = REFERENCE_FIXTURE_IDS;
