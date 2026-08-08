@@ -417,15 +417,18 @@ The following are outside this implementation and are tracked operationally in
 
 ## Completion and next phase
 
-This slice is complete when the PR head and generated merge result pass the
-lifecycle, full-test, and build checks and the exact merged integration head
-passes the same gate.
+The blob-lifecycle slice completed in PR #123, and PR #124 corrected its
+D1/workerd migration compatibility. Feature-branch success still does not
+authorize a remote operation: the exact merged integration head must pass the
+full deployment gate.
 
-The next product phase is intentionally separate:
+PR #125 implements the sparse reference registry and base batch resolver.
+Actual Project backlinks remain intentionally deferred until
+`project_items.reference_target_id` exists. The remaining product sequence is:
 
-1. `reference_targets`, backlinks, and a batch read-only resolver;
-2. object-level deep links and deterministic reference search;
-3. Project-owned data, Text, and Inspector;
+1. object-level deep links and archived read-only destinations;
+2. deterministic reference search and insertion;
+3. Project-owned data, `project_items` backlinks, Text, and Inspector;
 4. Map after the data/read model is stable.
 
 Every future Project attachment must extend the existing retention, export,
