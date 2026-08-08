@@ -32,7 +32,15 @@ export class SqliteD1Statement {
   }
 
   execute() {
-    const result = this.owner.database.prepare(this.sql).run(...this.bindings);
+    const statement = this.owner.database.prepare(this.sql);
+    if (/^\s*SELECT\b/i.test(this.sql)) {
+      return {
+        results: statement.all(...this.bindings),
+        success: true,
+        meta: { changes: 0 },
+      };
+    }
+    const result = statement.run(...this.bindings);
     return { results: [], success: true, meta: { changes: Number(result.changes) } };
   }
 }
