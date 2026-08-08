@@ -6,7 +6,10 @@ import {
   type ResolveReferencesInput,
   type ResolveReferencesResponse,
 } from "../shared/reference-types";
-import { resolveReferences } from "./references/resolver";
+import {
+  ReferenceResolutionInputError,
+  resolveReferences,
+} from "./references/resolver";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
@@ -32,8 +35,15 @@ routes.post("/references/resolve", async (c) => {
   if (!targets.every((target) => isReferenceTarget(target) && target.id.trim() === target.id)) {
     throw new HTTPException(400, { message: "Every reference target needs a known type and valid stable ID" });
   }
-  const response: ResolveReferencesResponse = {
-    results: await resolveReferences(c.env.DB, targets),
-  };
-  return c.json(response);
+  try {
+    const response: ResolveReferencesResponse = {
+      results: await resolveReferences(c.env.DB, targets),
+    };
+    return c.json(response);
+  } catch (error) {
+    if (error instanceof ReferenceResolutionInputError) {
+      throw new HTTPException(400, { message: error.message });
+    }
+    throw error;
+  }
 });
