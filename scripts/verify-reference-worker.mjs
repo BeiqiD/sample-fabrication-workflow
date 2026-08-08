@@ -151,10 +151,12 @@ try {
   assert.equal(mixedResponse.status, 200, JSON.stringify(mixedPayload));
   assert.deepEqual(mixedPayload.results.map((result) => result.target), mixedTargets);
   assert(mixedPayload.results.every((result) => result.resolution === "resolved"));
+  const mixedReferenceUrls = mixedPayload.results.map((result) => result.destination.referenceUrl);
+  assert.equal(new Set(mixedReferenceUrls).size, mixedTargets.length);
   assert(mixedPayload.results.every((result) => (
-    result.destination.referenceUrl
-      === `/references/${result.target.type}/${encodeURIComponent(result.target.id)}`
-  )), "every workerd result must include its canonical reference destination");
+    new RegExp(`^/references/${result.target.type}/r1_[A-Za-z0-9_-]*$`)
+      .test(result.destination.referenceUrl)
+  )), "every workerd result must include an opaque canonical reference destination");
 
   const sample = mixedPayload.results.find((result) => result.target.type === "sample");
   const runResolution = mixedPayload.results.find((result) => result.target.type === "run");
@@ -180,6 +182,27 @@ try {
   assert.equal(comment.destination.contextOpenSourceUrls.length, 2);
   assert(comment.destination.contextOpenSourceUrls.every((url) => url?.startsWith("/processing/")));
 
+  const opaqueTargets = [
+    ".",
+    "..",
+    "/",
+    "%2F",
+    "?",
+    "#",
+    "id with space",
+    "样品/α",
+    "id%2Fencoded",
+    "id/encoded",
+  ].map((id) => ({ type: "sample", id }));
+  const opaqueResponse = await postReferences(miniflare, opaqueTargets);
+  const opaquePayload = await opaqueResponse.json();
+  assert.equal(opaqueResponse.status, 200, JSON.stringify(opaquePayload));
+  assert.deepEqual(opaquePayload.results.map((result) => result.target), opaqueTargets);
+  assert(opaquePayload.results.every((result) => result.resolution === "not_found"));
+  const opaqueUrls = opaquePayload.results.map((result) => result.destination.referenceUrl);
+  assert.equal(new Set(opaqueUrls).size, opaqueTargets.length, "distinct stable IDs must not collide");
+  assert(opaqueUrls.every((url) => /^\/references\/sample\/r1_[A-Za-z0-9_-]*$/.test(url)));
+
   const serialized = JSON.stringify(mixedPayload);
   assert(!serialized.includes("reference/private/"));
   assert(!serialized.includes("r2_key"));
@@ -200,7 +223,7 @@ try {
     result.destination.openSourceUrl === `/samples/${result.target.id}`
   )));
 
-  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, lifecycle-aware destinations, and 200-target batch.");
+  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);
