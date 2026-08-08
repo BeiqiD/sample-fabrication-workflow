@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import worker from "./entry";
+import worker from "./index";
 import type { Env } from "./types";
 import {
   REFERENCE_FIXTURE_IDS,
@@ -114,6 +114,25 @@ describe("reference resolution route", () => {
       body: "{",
     }), env, executionContext);
     expect(response.status).toBe(400);
+    database.close();
+  });
+
+  it("inherits the core same-origin and authentication middleware", async () => {
+    const { database, env } = fixture();
+    const crossOrigin = await worker.fetch(new Request("https://app.test/api/references/resolve", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://other.test",
+      },
+      body: JSON.stringify({ targets: [{ type: "sample", id: REFERENCE_FIXTURE_IDS.sampleA }] }),
+    }), env, executionContext);
+    expect(crossOrigin.status).toBe(403);
+
+    const invalidAuth = await post({ ...env, AUTH_MODE: "invalid" as "disabled" }, {
+      targets: [{ type: "sample", id: REFERENCE_FIXTURE_IDS.sampleA }],
+    });
+    expect(invalidAuth.status).toBe(403);
     database.close();
   });
 

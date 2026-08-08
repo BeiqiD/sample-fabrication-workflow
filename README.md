@@ -87,7 +87,7 @@ The recommended workflow needs no persistent local checkout:
    ```
 
    `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store passwords and tokens as encrypted Worker Secrets.
-8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle gate, reference-foundation gate, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
+8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle gate, reference host tests, Wrangler migration verification, real Worker/D1 resolver smoke, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
 9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
 
 `v2/backend-foundation` is an isolated integration branch, not a production branch. Its exact merged head must pass the dedicated v3 deployment gate before any isolated v3 remote migration or deployment is authorized.

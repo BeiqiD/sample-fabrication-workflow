@@ -179,7 +179,7 @@ Do not duplicate those rules in this document. The normative definition is
 
 ## Reference registry and base resolver foundation
 
-PR #125 adds the first reference read boundary without adding Project data or
+PR #125 added the first reference read boundary without adding Project data or
 frontend behavior:
 
 - `reference_targets` is sparse and idempotent under
@@ -201,6 +201,13 @@ frontend behavior:
 - actual Project backlinks are deferred until
   `project_items.reference_target_id` exists.
 
+The Phase 2A completion slice mounts `/api/references/*` directly into this
+core Hono app, so reference resolution inherits the same error, same-origin,
+Access-authentication, identity, and future authorization middleware as the
+rest of the API. Its focused gate also executes every v1 resolver adapter and a
+200-target request through the bundled Worker against Wrangler local D1 in
+Miniflare/workerd.
+
 This is a base resolver. Deep-link URLs, archived read-only destinations,
 expandable Inspector children, and Project backlink counts are later enriched
 read-model fields rather than hidden requirements of PR #125.
@@ -209,7 +216,7 @@ read-model fields rather than hidden requirements of PR #125.
 
 Ordinary Delete remains recoverable. The blob-lifecycle implementation
 hard-disables accidental physical deletion of stable source tables and adds
-blocker infrastructure. PR #125 adds the registry and exact target-type mapping,
+blocker infrastructure. PR #125 added the registry and exact target-type mapping,
 but it still does not expose a privileged destructive endpoint.
 
 A future permanent-delete endpoint remains disabled until all of the following
@@ -242,14 +249,17 @@ the following are true:
 - registry identities cannot be retargeted through UPDATE;
 - the complete ordered migration set, including compatibility repairs, has
   passed both host SQLite and Wrangler local D1/workerd verification;
+- all nine v1 resolver adapters, the shared middleware path, and the
+  200-target boundary have passed the local Worker/D1 workerd smoke;
 - a fresh full-system backup and the applicable D1 recovery bookmark have been
   recorded;
 - generated configuration points only to isolated v3 resources.
 
-Remote migration/deployment commands run the blob-lifecycle gate, the
-reference-foundation gate, complete test suite, and deployment build before
-touching remote resources. This requirement applies even though the v3 Worker,
-D1 database, and R2 bucket are isolated from `main`.
+Remote migration/deployment commands run the blob-lifecycle gate, the detailed
+reference suite, Wrangler migration verification, the local Worker/D1 resolver
+smoke, the complete test suite, and the deployment build before touching remote
+resources. This requirement applies even though the v3 Worker, D1 database,
+and R2 bucket are isolated from `main`.
 
 ## Isolated preview deployment
 

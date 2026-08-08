@@ -2,7 +2,7 @@
 
 Status: operational constraint for the v3 backend
 
-Last reviewed: 2026-08-08 after the first isolated v3 activation attempt
+Last reviewed: 2026-08-08 after reference-runtime consolidation
 
 The repository uses SQLite syntax through Cloudflare D1, but production D1 is
 not equivalent to an unconstrained host SQLite build. Migrations and runtime SQL
@@ -79,9 +79,18 @@ local runtime and therefore exercises D1/workerd SQL limits.
 1. the focused SQLite lifecycle/regression suites; and
 2. the Wrangler/workerd migration application.
 
-The normal remote migration and deployment commands already depend on the blob
-lifecycle gate, so a future migration that violates D1 SQL limits must fail in
-CI before any remote D1 operation starts.
+Runtime SQL has a separate executable check. `npm run verify:reference-worker`
+creates a fresh Wrangler local D1 state, applies the ordered migrations and
+shared reference fixture, bundles the same unified Worker entry used by
+deployment, and dispatches `POST /api/references/resolve` through
+Miniflare/workerd. It covers all nine v1 adapters, a 200-distinct-target batch,
+and the shared same-origin guard.
+
+`npm run verify:reference-foundation` combines the detailed host-SQLite suite,
+the Wrangler migration check, and this runtime smoke. The normal remote
+migration and deployment commands depend on both lifecycle and reference
+verification, so incompatible migration or resolver SQL fails before any
+remote D1 operation starts.
 
 ## Recovery rule for the 2026-08-08 failed activation
 

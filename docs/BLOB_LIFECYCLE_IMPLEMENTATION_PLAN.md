@@ -422,9 +422,11 @@ D1/workerd migration compatibility. Feature-branch success still does not
 authorize a remote operation: the exact merged integration head must pass the
 full deployment gate.
 
-PR #125 implements the sparse reference registry and base batch resolver.
-Actual Project backlinks remain intentionally deferred until
-`project_items.reference_target_id` exists. The remaining product sequence is:
+PR #125 implemented the sparse reference registry and base batch resolver, and
+the Phase 2A completion slice closes its runtime-smoke and middleware-
+consolidation follow-ups. Actual Project backlinks remain intentionally deferred
+until `project_items.reference_target_id` exists. The remaining product sequence
+is:
 
 1. object-level deep links and archived read-only destinations;
 2. deterministic reference search and insertion;

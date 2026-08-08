@@ -1,8 +1,8 @@
 # Reference registry and batch resolver implementation plan
 
-Status: implementation contract and record for PR #125
+Status: completed Phase 2A implementation contract and record
 
-Last reviewed: 2026-08-08 during PR #125 review
+Last reviewed: 2026-08-08 after reference-runtime consolidation
 
 This document defines the exact scope of the first reference-registry and
 read-only resolution implementation. It follows the completed source lifecycle,
@@ -32,8 +32,11 @@ The implementation provides:
 5. a read-only API endpoint that preserves caller order and partial failures;
 6. an internal registration service for later Project-item creation;
 7. one mapping from public target types to permanent-delete blocker types;
-8. single-batch export, migration, CI, host-SQLite resolver coverage, and
-   Wrangler D1/workerd migration coverage for the new foundation.
+8. single-batch export, migration, CI, and detailed host-SQLite resolver
+   coverage;
+9. one core Hono middleware stack for reference and existing API routes; and
+10. Wrangler D1/workerd migration coverage plus real Worker/D1 execution of
+    all nine v1 resolver adapters and the 200-target boundary.
 
 The resolver reads current source data. The registry stores identity and
 validation metadata only; it is not a title, body, preview, or path snapshot.
@@ -75,6 +78,8 @@ schema, shared types, tests, CI, and documentation.
 - permanent-delete type mapping consistency;
 - complete-export table inclusion in the core table-query batch;
 - focused reference-foundation verification;
+- direct reference-router mounting in the core Hono app;
+- local Worker/D1 workerd resolver smoke coverage;
 - roadmap and data-model documentation updates.
 
 ### Excluded
@@ -89,6 +94,31 @@ schema, shared types, tests, CI, and documentation.
 - provider `HEAD`/`stat`, blob GC, or export-archive redesign;
 - frontend routes, pages, components, styles, or dependencies;
 - remote D1 migration or Worker deployment.
+
+### Phase 2A completion slice
+
+After PR #125 merged, two implementation follow-ups remained before beginning
+deep-link work:
+
+1. runtime resolver SQL had detailed host-SQLite coverage but had not been
+   invoked through a real local Worker/D1 workerd boundary; and
+2. `/api/references/*` temporarily passed through a separate entry app that
+   mirrored core error, same-origin, authentication, and identity middleware.
+
+The completion slice is intentionally limited to closing those two gaps:
+
+- mount `referenceRoutes` directly in the core Hono app;
+- make `worker/index.ts` the only Wrangler entry and remove the dispatcher;
+- share one deterministic reference graph between host and workerd tests;
+- execute all nine v1 adapters and 200 distinct targets through the real
+  endpoint against a fresh Wrangler local D1 state in Miniflare/workerd;
+- make that smoke part of CI and every remote migration/deployment gate; and
+- update architecture, compatibility, deployment, and roadmap records.
+
+It adds no schema, resolver response field, source mutation, frontend route,
+deep link, archived destination, search behavior, Project model, migration, or
+remote operation. With this slice complete, Phase 2A is closed and Phase 2B is
+the next product boundary.
 
 ## Why Project backlinks are not stored yet
 
@@ -310,12 +340,17 @@ bounded queries or D1-safe views rather than one oversized `UNION ALL` chain.
 The complete migration chain must continue to pass
 `npm run verify:d1-migrations`.
 
-Current focused resolver tests execute through `SqliteD1Database` on host
-`node:sqlite`. Wrangler local D1/workerd currently applies the complete
-migration chain but does not invoke `/api/references/resolve`. A later local
-Worker/D1 smoke test must execute representative adapters and the 200-target
-batch before this document may claim that runtime resolver SQL is
-workerd-executed.
+Focused resolver tests execute through `SqliteD1Database` on host `node:sqlite`
+for detailed lifecycle, ordering, consistency, and query-count assertions.
+Wrangler local D1/workerd separately applies the complete migration chain.
+
+`npm run verify:reference-worker` then creates a fresh Wrangler local D1 state,
+loads the same reference graph used by the host suite, bundles the unified core
+Worker, and invokes `POST /api/references/resolve` through
+Miniflare/workerd. The smoke covers all nine v1 adapters, common-Comment
+contexts, locator non-disclosure, the shared same-origin guard, and 200 distinct
+Sample targets. Runtime resolver SQL is therefore workerd-executed rather than
+merely inferred to be compatible from host SQLite.
 
 ## Target-specific rules
 
@@ -429,9 +464,9 @@ Rules:
 - unknown type, empty/whitespace-padded ID, or excessive ID length returns a
   typed domain error mapped to `400`;
 - the endpoint is authenticated by the existing application middleware;
-- the thin entry currently mirrors the core error, same-origin, Access-auth,
-  and `userEmail` middleware; changes to those policies must update both stacks
-  until the reference routes are mounted in the core Hono app;
+- reference routes are mounted in the core Hono app and inherit its error,
+  same-origin, Access-authentication, `userEmail`, and future authorization
+  middleware without a second policy stack;
 - the endpoint is read-only;
 - results preserve request order and duplicate requests;
 - one missing target does not fail the batch;
@@ -463,8 +498,8 @@ snapshot map is open to additional tables and the archive shape does not change.
 `reference_targets` is part of the core `/api/exports/all` `tableQueries` map.
 Every registry row is therefore read in the same `DB.batch` as Samples, Runs,
 Comments, occurrences, blob metadata, the GC ledger, and retention views. The
-Worker entry does not issue a second registry query or mutate a completed
-manifest.
+unified core Worker does not issue a second registry query or mutate a
+completed manifest.
 
 The export preserves IDs, validation timestamps, tombstone metadata, and
 context JSON exactly. Registry rows do not create blob occurrences or download
@@ -480,6 +515,8 @@ Focused tests cover:
 
 - the complete 0001 -> 0018 migration chain in host SQLite;
 - the same chain through Wrangler local D1/workerd;
+- all nine v1 adapters through the real Worker endpoint against Wrangler
+  local D1 in Miniflare/workerd;
 - the closed target-type constraint and JSON-array constraint;
 - rejection of registry-ID or source-identity retargeting;
 - allowed updates to validation contexts/time and the future tombstone field;
@@ -490,11 +527,13 @@ Focused tests cover:
 - logical Comment versus occurrence identity;
 - attachment occurrence versus blob identity;
 - result ordering, duplicate requests, and 200-target batches;
+- one 200-distinct-target request through workerd;
 - domain rejection of a 201-target batch and malformed runtime targets;
 - bounded query count by target-type composition;
 - no locator or provider-key leakage;
 - `not_found`, `inconsistent`, and tombstoned results;
 - read-only route behavior and validation;
+- inheritance of the core same-origin and authentication middleware;
 - registry inclusion in the core complete-export batch;
 - exact resolver/blocker/type-set consistency.
 
@@ -502,6 +541,7 @@ Repository commands are:
 
 ```text
 npm run test:reference-foundation
+npm run verify:reference-worker
 npm run verify:reference-foundation
 ```
 
@@ -527,7 +567,7 @@ This slice keeps the following documents synchronized:
 - `V3_BACKEND_FOUNDATION.md`: registry and resolver implementation state;
 - `DATA_MODEL.md`: blob lifecycle stated as implemented and registry added;
 - `ARCHITECTURE.md`: read-only reference, service-bound, registry-identity, and
-  single-batch export invariants;
+  single-batch export invariants plus the unified middleware/runtime shape;
 - blob implementation/operations documents: the next boundary now begins with
   deep links rather than re-listing the registry as unimplemented;
 - `README.md`: implementation-plan link where appropriate.
@@ -549,10 +589,13 @@ The PR is complete when:
 9. the public endpoint is read-only and order-preserving;
 10. complete export preserves registry rows in the same D1 batch as all other
     table snapshots;
-11. host-SQLite resolver tests, Wrangler local D1/workerd migration checks,
-    focused tests, the complete test suite, and production build pass;
-12. the PR targets only `v2/backend-foundation`;
-13. no remote D1 migration or Worker deployment is run.
+11. reference routes inherit the core error, auth, identity, and same-origin
+    middleware without a duplicate Worker entry;
+12. host-SQLite resolver tests, Wrangler local D1/workerd migration checks, the
+    real Worker/D1 resolver smoke, focused tests, the complete test suite, and
+    production build pass;
+13. the PR targets only `v2/backend-foundation`;
+14. no remote D1 migration or Worker deployment is run.
 
 ## Next slices
 
