@@ -3,7 +3,7 @@
 Status: product and architecture contract; physical schema and UI details remain
 subject to implementation review
 
-Last reviewed: 2026-08-08 against `v2/backend-foundation`
+Last reviewed: 2026-08-08 after PR #127 canonical-destination review
 
 This document defines how Project, Text, and Map fit into Sample Fabrication
 Workflow. It records product and identity decisions that must survive
@@ -65,9 +65,11 @@ shared blob-lifecycle, export-integrity, and physical-delete protections, and PR
 #124 corrected their D1/workerd migration compatibility. PR #125 established the
 sparse reference registry and base batch resolver; the Phase 2A completion
 slice then mounted reference routes into the core middleware stack and added
-real Worker/D1 resolver execution to its gate. Actual Project backlinks remain
-deferred until `project_items.reference_target_id` exists, so no ownerless
-parallel usage table is introduced.
+real Worker/D1 resolver execution to its gate. PR #127 completes Phase 2B1 with
+one opaque canonical destination and a lifecycle-aware read-only Reference page;
+exact source-interface focus remains the Phase 2B2 boundary. Actual Project
+backlinks remain deferred until `project_items.reference_target_id` exists, so
+no ownerless parallel usage table is introduced.
 
 ## Product invariants
 
@@ -395,22 +397,35 @@ number of source queries per adapter rather than one query per target object.
 
 ### Enriched Project read model
 
-Later deep-link, Project, and Inspector slices enrich the base result with:
+PR #127 Phase 2B1 enriches the base result with:
 
-- a precise `openSourceUrl` and archived read-only destination;
+- a versioned opaque canonical `referenceUrl` that preserves stable-ID identity;
+- lifecycle-aware destination mode;
+- one safe `openSourceUrl` when an existing source route can represent the
+  identity exactly; and
+- ordered per-context source destinations without choosing one arbitrary path.
+
+Later Project and Inspector slices add:
+
 - directly expandable child summaries where appropriate;
 - Project backlink and location counts;
 - Project/Inspector-specific navigation capabilities.
 
-These fields are deliberately not part of the PR #125 completion boundary.
-Their absence does not turn the base resolver into a copied or partial source
-record.
+These fields were deliberately not part of the PR #125 completion boundary.
+Their staged addition does not turn the base resolver into a copied or partial
+source record.
 
 ### Object-level deep links
 
 Every referenceable object needs a refresh-safe URL containing its stable ID.
-The final syntax should follow the established router, but it must support at
-least:
+PR #127 establishes `/references/:type/:encodedId` with a shared opaque,
+reversible codec and a lifecycle-aware read-only destination for all nine
+current target types. Deleted, archived, missing, inconsistent, and tombstoned
+references therefore no longer depend on ordinary source routes remaining
+visible.
+
+Phase 2B2 must integrate the stable focus hints into existing source interfaces
+so the complete behavior supports at least:
 
 | Target | Required destination |
 |---|---|
@@ -423,8 +438,8 @@ least:
 | Attachment | Preview with source context preserved |
 | Recipe revision | The exact referenced revision |
 
-Deleted sources need a read-only archived destination instead of an ordinary
-`404` when an existing Project reference opens them.
+Deleted sources keep the canonical read-only destination instead of returning
+an ordinary `404` when an existing Project reference opens them.
 
 ### Deterministic search and insertion
 
@@ -529,7 +544,9 @@ condition:
 | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
 | 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
 | 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts, unified middleware, workerd runtime smoke | Complete after PR #125 and the reference-runtime completion slice |
-| 2B. Deep links | Object-level URLs and archived read-only destinations | Not started |
+| 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | In progress |
+| 2B1. Canonical destinations | Opaque route codec, resolver destination fields, lifecycle-aware read-only Reference page | Complete in PR #127 |
+| 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Next implementation PR |
 | 2C. Deterministic search | Shared search/read model and reference insertion | Not started |
 | 3. Project and Text | Project data, `project_items` backlinks, Project-owned content, Text workspace, Inspector, insertion, export | Not started |
 | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
@@ -542,12 +559,13 @@ Within those phases, the dependency order is:
 3. blob reachability, export integrity, and physical-delete protection;
 4. Recipe revision and execution snapshot verification;
 5. sparse registry and base read-only resolution;
-6. object-level deep links and archived destinations;
-7. deterministic search and insertion;
-8. Project contents, items, backlinks, and local edges;
-9. Text and Inspector;
-10. Map;
-11. later revision, semantic, and insight capabilities.
+6. opaque canonical destinations and lifecycle-aware read-only pages;
+7. exact Step, Comment, attachment, execution-image, and metrology focus;
+8. deterministic search and insertion;
+9. Project contents, items, backlinks, and local edges;
+10. Text and Inspector;
+11. Map;
+12. later revision, semantic, and insight capabilities.
 
 Recipe revision and Run snapshot foundations already exist; the verification in
 step 4 is not a new Recipe redesign.
@@ -573,4 +591,5 @@ analysis into the record system.
 Before adding Map dependencies, verify both the repository license and each
 third-party license. React Flow and Dagre are expected to be MIT-licensed, but
 that expectation must be rechecked at the version selected for implementation.
-No Map dependency is required during the blob, resolver, search, or Text phases.
+No Map dependency is required during the blob, resolver, deep-link, search, or
+Text phases.
