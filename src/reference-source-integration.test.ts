@@ -13,6 +13,7 @@ describe("reference source-focus integration", () => {
   it("keeps Processing focus URL-owned and clears stale focus on manual Run changes", () => {
     expect(workspace).toContain('const requestedStepId = searchParams.get("step") || "";');
     expect(workspace).toContain('const requestedFocus = searchParams.get("focus");');
+    expect(workspace).toContain("const gridColumns = useMemo(() => {");
     expect(workspace).toContain("<ProcessingReferenceSourceFocus");
     expect(workspace).toContain("focusValue={requestedFocus}");
     expect(workspace).toContain("stepId={requestedStepId}");
@@ -28,9 +29,16 @@ describe("reference source-focus integration", () => {
     expect(focusComponent).not.toMatch(/api\.(?:create|update|delete|restore)|method:\s*"(?:POST|PATCH|PUT|DELETE)"/);
   });
 
-  it("preserves the focus query through process/metrology route correction", () => {
-    expect(processTemplatePage).toContain('`${templateDetailPath(templateId, "metrology")}${location.search}`');
-    expect(metrologyPage).toContain('`${templateDetailPath(templateId, "process")}${location.search}`');
+  it("preserves redirect queries without making focus history a Template loader dependency", () => {
+    expect(processTemplatePage).toContain("const locationSearchRef = useRef(location.search);");
+    expect(processTemplatePage).toContain('`${templateDetailPath(templateId, "metrology")}${locationSearchRef.current}`');
+    expect(processTemplatePage).toContain("}, [navigate, templateId]);");
+    expect(processTemplatePage).not.toContain("}, [location.search, navigate, templateId]);");
+
+    expect(metrologyPage).toContain("const locationSearchRef = useRef(location.search);");
+    expect(metrologyPage).toContain('`${templateDetailPath(templateId, "process")}${locationSearchRef.current}`');
+    expect(metrologyPage).toContain("}, [navigate, templateId]);");
+    expect(metrologyPage).not.toContain("}, [location.search, navigate, templateId]);");
   });
 
   it("uses stable occurrence media rather than exposing a physical locator", () => {
