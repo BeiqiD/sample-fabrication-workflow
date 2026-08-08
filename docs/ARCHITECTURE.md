@@ -17,9 +17,10 @@ flowchart TD
 ```
 
 The reference-aware Worker entry is deliberately thin. It routes the new
-reference-resolution endpoint, augments the complete export with registry rows,
-and delegates every existing API route and scheduled cleanup operation to the
-unchanged core Worker.
+reference-resolution endpoint and delegates every existing API route and
+scheduled cleanup operation to the core Worker. The core complete-export route
+includes `reference_targets` directly in its existing table-query batch; the
+entry performs no second export query or manifest augmentation.
 
 The blob-lifecycle and reference-foundation implementations remain inside this
 one deployment. They do not require Queues, Workflows, Durable Objects,
@@ -64,13 +65,15 @@ Containers, or a second Worker.
 
 - The v1 public target-type set is closed and shared by schema validation, resolver adapters, API validation, and permanent-delete blocker mapping.
 - `reference_targets` is sparse and idempotent under `UNIQUE(target_type, target_id)`. It stores stable identity and explicit validation metadata, not copied source content.
+- A registry row's `id`, `registry_version`, `target_type`, `target_id`, and `first_registered_at` are immutable. Validation contexts and a future tombstone may change, but an existing registry identity cannot be retargeted.
 - Raw valid source identities can resolve before registration. Registration exists for later durable consumers such as Project items.
 - Normal resolution reads source tables and never updates `last_validated_at`; display reads remain read-only.
 - Soft-deleted sources, deleted ancestors, and archived Recipe revisions remain resolved with lifecycle metadata rather than becoming accidental `404`s.
 - A canonical common Comment and its attachment occurrences may have several valid Sample/Run/Step contexts. The read model returns ordered `contexts[]` and never selects one arbitrary path.
-- Each adapter accepts a JSON-array ID binding, performs bounded source-specific SQL, and returns no blob or provider locator.
-- A batch preserves caller order and duplicates. A missing or inconsistent target does not abort unrelated results.
-- Resolver query count grows with the number of target types present, not with the number of target objects. The public batch is capped at 200 targets.
+- Each adapter accepts a JSON-array ID binding, performs a small fixed number of bounded source-specific queries, and returns no blob or provider locator.
+- Query count grows with the number of distinct target types, not with the number of target objects. Comment and Comment-attachment adapters intentionally use additional bounded context queries.
+- The domain resolver accepts zero to 200 targets, validates the runtime type/ID shape, preserves caller order and duplicates, and returns an empty result for an empty internal batch. The HTTP endpoint requires one to 200 targets.
+- A missing or inconsistent target does not abort unrelated results.
 - A live registry row whose source cannot resolve is `inconsistent`; an unregistered missing source is `not_found`; a future tombstone is `tombstoned`.
 - Actual Project backlinks are deferred to `project_items.reference_target_id`; no parallel generic usage table is introduced before Project-item identity exists.
 - Registry rows reject physical deletion. Permanent deletion and tombstone creation remain disabled.
@@ -91,8 +94,8 @@ Containers, or a second Worker.
 
 ## Export invariants
 
-- Full export reads all table/view snapshots and keeps every active, archived, failed, cancelled, and soft-deleted database row.
-- `reference_targets` is included as ordinary table data and does not create blob occurrences.
+- Full export reads all table/view snapshots through one D1 batch and keeps every active, archived, failed, cancelled, and soft-deleted database row.
+- `reference_targets` is included in that same table-snapshot batch and does not create blob occurrences.
 - Physical blobs are deduplicated by provider locator and downloaded at most once.
 - Final outcomes include packaged, missing, provider unavailable, metadata not ready, download failed, size mismatch, and hash mismatch.
 - One failed blob does not abort unrelated entries. The final ZIP always contains `export-manifest.json` and `export-warnings.json` when browser ZIP creation itself succeeds.
@@ -101,7 +104,7 @@ Containers, or a second Worker.
 ## Platform limits
 
 - Bulk inserts keep each statement below D1's 100-bound-parameter limit.
-- Resolver IDs are passed through `json_each(?)`; the public batch is capped at 200 without consuming one binding per target.
+- Resolver IDs are passed through `json_each(?)`; the domain batch is capped at 200 without consuming one binding per target.
 - D1 migrations and resolver queries must pass both host SQLite tests and Wrangler local D1/workerd verification. Oversized compound `SELECT` chains are not accepted merely because host SQLite permits them.
 - A confirmed import is capped at 180 steps and 180 images, uses at most five concurrent R2 writes, and divides persistence into bounded batches behind the pending-import visibility gate.
 - Scheduled blob cleanup uses bounded discovery/deletion batches; a large backlog may require repeated daily runs rather than one unbounded execution.
