@@ -1,0 +1,100 @@
+        "               WHEN (${textExpression(spec.idSql)} = ? COLLATE BINARY\n                     OR LOWER(${textExpression(spec.idSql)}) = ?) THEN 0\n",
+        "exact ID branch",
+    )
+    text = replace_once(
+        text,
+        "    const containsBindings = input.tokens.map(escapedLikePattern);\n    const bindings: unknown[] = [\n      input.normalizedQuery,\n      ...spec.primarySqls.map(() => input.normalizedQuery),\n      ...spec.primarySqls.map(() => prefixLikePattern(input.normalizedQuery)),\n      ...(spec.contentSqls.length ? containsBindings : []),\n      ...(spec.visibilityBindings?.(input) ?? []),\n      ...containsBindings,\n",
+        """    const bindings: unknown[] = [
+      input.query,
+      input.normalizedQuery,
+      ...spec.primarySqls.flatMap(() => [input.query, input.normalizedQuery]),
+      ...spec.primarySqls.flatMap(() => [input.query, input.normalizedQuery]),
+      ...(spec.contentSqls.length ? input.tokens : []),
+      ...(spec.visibilityBindings?.(input) ?? []),
+      ...input.tokens,
+""",
+        "literal bindings",
+    )
+    text = replace_once(
+        text,
+        "      AND (rsc.submission_id IS NULL OR LOWER(rsc.id) = ?)\n",
+        "      AND (rsc.submission_id IS NULL\n        OR rsc.id = ? COLLATE BINARY\n        OR LOWER(rsc.id) = ?)\n",
+        "occurrence exact policy",
+    )
+    text = replace_once(
+        text,
+        "    visibilityBindings: (input) => [input.normalizedQuery],\n",
+        "    visibilityBindings: (input) => [input.query, input.normalizedQuery],\n",
+        "occurrence bindings",
+    )
+    text = replace_once(
+        text,
+        "function candidateLimit(resultLimit: number) {\n",
+        """export interface ReferenceSearchCandidateBackend {
+  readonly kind: string;
+  searchType(
+    type: ReferenceTargetType,
+    input: NormalizedReferenceSearchInput,
+    candidateLimit: number,
+  ): Promise<ReferenceSearchCandidateBatch>;
+}
+
+export interface SearchReferencesOptions {
+  candidateBackend?: ReferenceSearchCandidateBackend;
+}
+
+export function createSqliteSourceReferenceSearchBackend(
+  db: ReferenceSearchSqlDatabase,
+): ReferenceSearchCandidateBackend {
+  return {
+    kind: "sqlite-source-scan",
+    searchType: (type, input, limit) => REFERENCE_SEARCH_ADAPTERS[type](db, input, limit),
+  };
+}
+
+function candidateLimit(resultLimit: number) {
+""",
+        "candidate backend seam",
+    )
+    text = replace_once(
+        text,
+        "export async function searchReferences(\n  db: D1Database,\n  rawInput: unknown,\n): Promise<SearchReferencesResponse> {\n  const input = normalizeReferenceSearchInput(rawInput);\n  const perTypeLimit = candidateLimit(input.limit);\n  const batches = await Promise.all(input.types.map(async (type) => (\n    REFERENCE_SEARCH_ADAPTERS[type](db, input, perTypeLimit)\n  )));\n",
+        """export async function searchReferences(
+  db: D1Database,
+  rawInput: unknown,
+  options: SearchReferencesOptions = {},
+): Promise<SearchReferencesResponse> {
+  const input = normalizeReferenceSearchInput(rawInput);
+  const perTypeLimit = candidateLimit(input.limit);
+  const backend = options.candidateBackend
+    ?? createSqliteSourceReferenceSearchBackend(db as ReferenceSearchSqlDatabase);
+  const batches = await Promise.all(input.types.map(async (type) => (
+    backend.searchType(type, input, perTypeLimit)
+  )));
+""",
+        "use candidate backend",
+    )
+    return text
+
+
+BOUNDARY_TEST = r'''import { describe, expect, it } from "vitest";
+import {
+  ReferenceSearchInputError,
+  createSqliteSourceReferenceSearchBackend,
+  normalizeReferenceSearchInput,
+  searchReferences,
+} from "./references/search";
+import {
+  referenceTestDatabase,
+  seedReferenceGraph,
+  SqliteD1Database,
+} from "./reference-test-support";
+
+function fixture() {
+  const database = referenceTestDatabase();
+  seedReferenceGraph(database);
+  const d1 = new SqliteD1Database(database);
+  const insert = database.prepare(`
+    INSERT INTO samples
+      (id, code, title, description, status, location, pinned, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0,
