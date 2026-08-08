@@ -1,10 +1,12 @@
-import type {
-  ReferenceContext,
-  ReferenceContextSegment,
-  ReferenceDestination,
-  ReferenceResolutionStatus,
-  ReferenceTarget,
-  ResolvedReferenceSource,
+import {
+  isReferenceTarget,
+  isReferenceTargetType,
+  type ReferenceContext,
+  type ReferenceContextSegment,
+  type ReferenceDestination,
+  type ReferenceResolutionStatus,
+  type ReferenceTarget,
+  type ResolvedReferenceSource,
 } from "./reference-types";
 
 export interface ReferenceDestinationInput {
@@ -16,6 +18,7 @@ export interface ReferenceDestinationInput {
 
 export const REFERENCE_ROUTE_PATTERN = "/references/:type/:encodedId" as const;
 export const REFERENCE_ROUTE_ID_CODEC_PREFIX = "r1_" as const;
+export const REFERENCE_SOURCE_FOCUS_QUERY_PARAM = "focus" as const;
 
 const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const EXISTING_SOURCE_PATH_ID = /^[A-Za-z0-9_-]+$/;
@@ -88,6 +91,22 @@ export function decodeReferenceRouteId(encodedId: string) {
   return encodeReferenceRouteId(id) === encodedId ? id : null;
 }
 
+export function encodeReferenceSourceFocus(target: ReferenceTarget) {
+  return `${target.type}:${encodeReferenceRouteId(target.id)}`;
+}
+
+export function decodeReferenceSourceFocus(value: unknown): ReferenceTarget | null {
+  if (typeof value !== "string") return null;
+  const separator = value.indexOf(":");
+  if (separator < 1 || separator === value.length - 1) return null;
+  const type = value.slice(0, separator);
+  if (!isReferenceTargetType(type)) return null;
+  const id = decodeReferenceRouteId(value.slice(separator + 1));
+  if (id === null) return null;
+  const target = { type, id };
+  return isReferenceTarget(target) && id.trim() === id ? target : null;
+}
+
 export function referenceUrlForTarget(target: ReferenceTarget) {
   return `/references/${target.type}/${encodeReferenceRouteId(target.id)}`;
 }
@@ -116,10 +135,6 @@ function withQuery(path: string, entries: Array<[string, string | null]>) {
   return query ? `${path}?${query}` : path;
 }
 
-function referenceHint(target: ReferenceTarget) {
-  return `${target.type}:${target.id}`;
-}
-
 function processingDestination(
   target: ReferenceTarget,
   context: ReferenceContext,
@@ -138,7 +153,10 @@ function processingDestination(
   return withQuery(`/processing/${samplePath}`, [
     ["run", run.id],
     ["step", step?.id ?? null],
-    ["reference", requireRunIdentity ? null : referenceHint(target)],
+    [
+      REFERENCE_SOURCE_FOCUS_QUERY_PARAM,
+      requireRunIdentity ? null : encodeReferenceSourceFocus(target),
+    ],
   ]);
 }
 
@@ -163,7 +181,7 @@ function contextSourceUrl(target: ReferenceTarget, context: ReferenceContext) {
       const samplePath = sample ? existingSourcePathSegment(sample.id) : null;
       return samplePath
         ? withQuery(`/samples/${samplePath}`, [
-          ["reference", referenceHint(target)],
+          [REFERENCE_SOURCE_FOCUS_QUERY_PARAM, encodeReferenceSourceFocus(target)],
         ])
         : null;
     }
@@ -173,8 +191,8 @@ function contextSourceUrl(target: ReferenceTarget, context: ReferenceContext) {
     case "metrology_reference": {
       const recipePath = recipe ? existingSourcePathSegment(recipe.id) : null;
       return recipePath
-        ? withQuery(`/templates/${recipePath}`, [
-          ["reference", referenceHint(target)],
+        ? withQuery(`/templates/metrology/${recipePath}`, [
+          [REFERENCE_SOURCE_FOCUS_QUERY_PARAM, encodeReferenceSourceFocus(target)],
         ])
         : null;
     }
