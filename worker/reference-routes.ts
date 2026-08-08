@@ -7,48 +7,57 @@ import {
   type ResolveReferencesInput,
   type ResolveReferencesResponse,
 } from "../shared/reference-types";
+import { safeMediaResponseHeaders } from "./media-response";
 import {
   ReferenceResolutionInputError,
   resolveReferences,
 } from "./references/resolver";
-import { safeMediaResponseHeaders } from "./media-response";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 
+type MediaSource = {
+  r2_key: string;
+  original_name: string;
+  mime_type: string;
+};
+
 export const routes = new Hono<AppBindings>();
 
-// Mounted before the legacy declaration in worker/index.ts so ordinary assets and
-// reference media share one fail-closed response policy during this integration slice.
+// This router is mounted before the legacy declaration in worker/index.ts, so
+// ordinary assets and reference media use the same fail-closed response policy.
 routes.get("/assets/:key{.+}", async (c) => {
-const key = c.req.param("key");
-const source = await c.env.DB.prepare(`
-  SELECT a.original_name, a.mime_type
-  FROM assets a
-  WHERE a.r2_key = ?
-    AND a.status = 'ready'
-    AND NOT EXISTS (
-      SELECT 1 FROM blob_gc_ledger bg
-      WHERE bg.store_kind = 'r2'
-        AND bg.provider = 'r2'
-        AND bg.object_key = a.r2_key
-        AND bg.state IN ('deleting', 'deleted')
-    )
-  LIMIT 1
-`).bind(key).first<{ original_name: string; mime_type: string }>();
-if (!source) throw new HTTPException(404, { message: "Asset not found" });
-const object = await c.env.ASSETS.get(key);
-if (!object) throw new HTTPException(404, { message: "Asset not found" });
-const headers = new Headers();
-object.writeHttpMetadata(headers);
-safeMediaResponseHeaders({
-  headers,
-  mimeType: source.mime_type,
-  filename: source.original_name || "asset",
-  cacheControl: "private, max-age=3600",
-  etag: object.httpEtag,
-});
-return new Response(object.body, { headers });
+  const key = c.req.param("key");
+  const source = await c.env.DB.prepare(`
+    SELECT a.r2_key, a.original_name, a.mime_type
+    FROM assets a
+    WHERE a.r2_key = ?
+      AND a.status = 'ready'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM blob_gc_ledger bg
+        WHERE bg.store_kind = 'r2'
+          AND bg.provider = 'r2'
+          AND bg.object_key = a.r2_key
+          AND bg.state IN ('deleting', 'deleted')
+      )
+    LIMIT 1
+  `).bind(key).first<MediaSource>();
+  if (!source) throw new HTTPException(404, { message: "Asset not found" });
+
+  const object = await c.env.ASSETS.get(source.r2_key);
+  if (!object) throw new HTTPException(404, { message: "Asset not found" });
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  safeMediaResponseHeaders({
+    headers,
+    mimeType: source.mime_type,
+    filename: source.original_name || "asset",
+    cacheControl: "private, max-age=3600",
+    etag: object.httpEtag,
+  });
+  return new Response(object.body, { headers });
 });
 
 routes.post("/references/resolve", async (c) => {
@@ -61,6 +70,7 @@ routes.post("/references/resolve", async (c) => {
   if (!input || typeof input !== "object" || !Array.isArray((input as Partial<ResolveReferencesInput>).targets)) {
     throw new HTTPException(400, { message: "Reference targets are required" });
   }
+
   const targets = (input as Partial<ResolveReferencesInput>).targets!;
   if (targets.length < 1 || targets.length > MAX_REFERENCE_RESOLUTION_TARGETS) {
     throw new HTTPException(400, {
@@ -70,6 +80,7 @@ routes.post("/references/resolve", async (c) => {
   if (!targets.every((target) => isReferenceTarget(target) && target.id.trim() === target.id)) {
     throw new HTTPException(400, { message: "Every reference target needs a known type and valid stable ID" });
   }
+
   try {
     const response: ResolveReferencesResponse = {
       results: await resolveReferences(c.env.DB, targets),
@@ -102,35 +113,32 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
     JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
     WHERE rsa.id = ?
       AND rs.id = ?
-            AND rsa.role = 'execution'
-    AND rsa.deleted_at IS NULL
-    AND NOT EXISTS (
-      SELECT 1 FROM blob_gc_ledger bg
-      WHERE bg.store_kind = 'r2'
-        AND bg.provider = 'r2'
-        AND bg.object_key = a.r2_key
-        AND bg.state IN ('deleting', 'deleted')
-    )
-`).bind(id, stepId).first<{
-
-    r2_key: string;
-    original_name: string;
-    mime_type: string;
-  }>();
-  if (!source) throw new HTTPException(404, { message: "Execution image not found in this Step context" });
+      AND rsa.role = 'execution'
+      AND rsa.deleted_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM blob_gc_ledger bg
+        WHERE bg.store_kind = 'r2'
+          AND bg.provider = 'r2'
+          AND bg.object_key = a.r2_key
+          AND bg.state IN ('deleting', 'deleted')
+      )
+  `).bind(id, stepId).first<MediaSource>();
+  if (!source) {
+    throw new HTTPException(404, { message: "Execution image not found in this Step context" });
+  }
 
   const object = await c.env.ASSETS.get(source.r2_key);
   if (!object) throw new HTTPException(404, { message: "Execution image bytes are unavailable" });
 
-    const headers = new Headers();
-object.writeHttpMetadata(headers);
-safeMediaResponseHeaders({
-  headers,
-  mimeType: source.mime_type,
-  filename: source.original_name || "execution-image",
-  cacheControl: "private, no-store",
-  etag: object.httpEtag,
-});
-return new Response(object.body, { headers });
-
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  safeMediaResponseHeaders({
+    headers,
+    mimeType: source.mime_type,
+    filename: source.original_name || "execution-image",
+    cacheControl: "private, no-store",
+    etag: object.httpEtag,
+  });
+  return new Response(object.body, { headers });
 });
