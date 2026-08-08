@@ -102,7 +102,7 @@ describe("reference search UI state", () => {
     expect(referenceSearchUiStateEquals(left, { ...right, to: "2026-08-10" })).toBe(false);
   });
 
-  it("converts committed state to the existing Phase 2C1 input without inventing defaults", () => {
+  it("converts browser dates to complete UTC-day bounds in the Phase 2C1 input", () => {
     const allTypes = defaultReferenceSearchUiState();
     allTypes.query = "  exact-id  ";
     expect(referenceSearchInputFromState(allTypes)).toEqual({ query: "exact-id" });
@@ -117,8 +117,8 @@ describe("reference search UI state", () => {
       query: "comment",
       types: ["comment", "comment_attachment"],
       sampleId: "sample-a",
-      from: "2026-08-01",
-      to: "2026-08-09",
+      from: "2026-08-01T00:00:00.000Z",
+      to: "2026-08-09T23:59:59.999Z",
     });
     expect(referenceSearchInputFromState(defaultReferenceSearchUiState())).toBeNull();
   });
