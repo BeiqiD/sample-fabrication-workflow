@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "main": "./worker/index.ts",
+  "main": "./worker/entry.ts",
   "compatibility_date": "2026-07-20",
   "preview_urls": false,
   "keep_vars": true,
