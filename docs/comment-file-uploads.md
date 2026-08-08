@@ -78,6 +78,17 @@ and attachment links, but cannot upload original files.
   streams the body unchanged.
 - Submission and item IDs make create, upload, retry, and finalize operations
   idempotent. Successfully uploaded items are not uploaded again.
-- Cancelled or abandoned storage objects are marked for cleanup. A scheduled
-  cleanup handler can remove provider objects after the retention period
-  without changing the composer or submission API.
+- Cancelled or explicitly expired storage objects may become cleanup
+  candidates after the retention period, but age alone does not make a
+  retryable submission unreachable.
+- A shared managed object or R2 asset remains protected while any ready,
+  soft-deleted, archived, unfinished, or retryable source can still use or
+  export it. Cancelling one deduplicated submission must not orphan bytes used
+  by another unfinished submission.
+- Cancellation and scheduled cleanup must use the same reachability predicate,
+  re-check it before physical provider deletion, and remain safe when finalize,
+  retry, or restore wins a concurrent race.
+
+The authoritative reachability, permanent-delete, export-warning, and test
+contract is maintained in
+[v3 backend foundation](./V3_BACKEND_FOUNDATION.md#blob-reachability-contract).

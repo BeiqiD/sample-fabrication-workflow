@@ -23,7 +23,9 @@ R2 object keys are stored in D1. The bucket stays private and the Worker returns
 
 Location, lifecycle status, and pinned changes are recorded by database triggers. Process-run triggers also keep the normal lifecycle synchronized: starting or reopening a run makes its sample `active`, and completing the run returns an `active` sample to `stored` without overriding an explicit `consumed` or `lost` state. This makes the current value and its append-only timeline entry part of the same statement. The update API also requires the caller's last-seen `updated_at` value and rejects stale writes.
 
-Ordinary uploads are registered after the R2 write succeeds; a failed registration removes the object. The full export covers every database table and the union of registered assets plus imported source workbook and manifest keys.
+Ordinary uploads are registered after the R2 write succeeds; a failed registration removes the object. The full export covers every database table and currently builds its byte list from registered assets plus imported source workbook and manifest keys.
+
+Before v3 deployment, byte export must become availability-aware. Ready and retained soft-deleted sources remain exportable, while failed/deleted blob rows stay in tables JSON as audit data without being treated as guaranteed objects. A physically missing object produces a structured warning in the export manifest instead of aborting the complete ZIP without explanation. Submission cancellation, scheduled cleanup, export, and future permanent deletion share the reachability contract in [v3 backend foundation](./V3_BACKEND_FOUNDATION.md#blob-reachability-contract).
 
 New `assets` rows carry a SHA-256 protected by a partial unique index. Imports resolve the workbook, normalized manifest, and every embedded image against that index before writing R2; duplicates within one upload are also collapsed. Rows created before this migration retain a null hash until a future maintenance backfill, so deduplication is guaranteed for newly received content.
 

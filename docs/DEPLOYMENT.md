@@ -68,6 +68,29 @@ The deploy command regenerates the configuration, applies D1 migrations with tha
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
 
+### v3 integration branch gate
+
+`v2/backend-foundation` is an integration branch, not the production branch.
+Even with dedicated preview resources, do not run its remote migrations or
+deploy it until the
+[v3 backend deployment gate](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate) is
+complete.
+
+In particular, the gate requires one concurrency-safe blob reachability rule
+across submission cancellation, scheduled cleanup, export, and future
+permanent deletion. Shared uploads, retryable submissions, soft-deleted export
+sources must be protected, and the same predicate must accept Project
+attachment references when those tables are introduced. Full export must
+record missing blob warnings instead of aborting without an explanation.
+
+Passing an ordinary build or using storage isolated from `main` does not waive
+this gate. Until it is complete:
+
+- do not apply v3 migrations to a remote D1 database;
+- do not deploy the v3 Worker;
+- keep non-production branch builds disabled;
+- do not change the production resources used by `main`.
+
 ## 4. Protect the application with Cloudflare Access
 
 Before storing real sample data:

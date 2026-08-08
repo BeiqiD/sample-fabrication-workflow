@@ -124,6 +124,8 @@ Exports contain JSON tables, Markdown summaries where applicable, and assets usi
 - [MVP scope](./MVP_SPEC.md)
 - [Architecture and invariants](./docs/ARCHITECTURE.md)
 - [Data model](./docs/DATA_MODEL.md)
+- [Project, Text, and Map design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
+- [v3 backend identity and lifecycle foundation](./docs/V3_BACKEND_FOUNDATION.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)
 - [Comment and original-file uploads](./docs/comment-file-uploads.md)
