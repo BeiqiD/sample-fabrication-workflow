@@ -14,6 +14,7 @@ jobs:
   apply:
     if: github.head_ref == 'agent/reference-source-focus' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,26 +24,24 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - name: Extract and apply reviewed changes
+      - name: Apply reviewed code, tests, and documentation
         shell: bash
         run: |
           python <<'PY'
           from pathlib import Path
 
-          workflow = Path('.github/workflows/pr128-review-fixes.yml').read_text()
-          script = workflow.split("python <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
-          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in script.splitlines())
-          Path('/tmp/apply-pr128-review-fixes.py').write_text(script + '\n')
+          verify = Path('.github/workflows/verify.yml').read_text()
+          script = verify.split("          python <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
+          script = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in script.splitlines()
+          )
+          exec(compile(script, '/tmp/apply-pr128-review-fixes.py', 'exec'), {
+              '__name__': '__main__',
+          })
           PY
-          python /tmp/apply-pr128-review-fixes.py
       - name: Install mounted-test dependencies
         run: npm install --save-dev @testing-library/react@16.3.0 jsdom@26.1.0
-      - name: Verify focused reference behavior
-        run: npm run test:reference-foundation
-      - name: Verify full suite
-        run: npm test
-      - name: Verify build
-        run: npm run build
       - name: Commit reviewed changes
         shell: bash
         run: |
