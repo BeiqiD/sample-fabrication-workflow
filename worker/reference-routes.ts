@@ -51,8 +51,12 @@ routes.post("/references/resolve", async (c) => {
 
 routes.get("/references/media/execution_image/:encodedId", async (c) => {
   const id = decodeReferenceRouteId(c.req.param("encodedId"));
+  const stepId = c.req.query("step") ?? "";
   if (id === null || !id || id.trim() !== id) {
     throw new HTTPException(400, { message: "A valid execution-image reference ID is required" });
+  }
+  if (!isReferenceTarget({ type: "run_step", id: stepId }) || stepId.trim() !== stepId) {
+    throw new HTTPException(400, { message: "A valid Run Step context is required" });
   }
 
   const source = await c.env.DB.prepare(`
@@ -63,14 +67,15 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
     JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
     JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
     WHERE rsa.id = ?
+      AND rs.id = ?
       AND rsa.role = 'execution'
       AND rsa.deleted_at IS NULL
-  `).bind(id).first<{
+  `).bind(id, stepId).first<{
     r2_key: string;
     original_name: string;
     mime_type: string;
   }>();
-  if (!source) throw new HTTPException(404, { message: "Execution image not found" });
+  if (!source) throw new HTTPException(404, { message: "Execution image not found in this Step context" });
 
   const object = await c.env.ASSETS.get(source.r2_key);
   if (!object) throw new HTTPException(404, { message: "Execution image bytes are unavailable" });
