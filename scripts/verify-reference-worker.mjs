@@ -210,8 +210,12 @@ try {
     new Uint8Array(await mediaResponse.arrayBuffer()),
     executionImageBytes,
   );
-  const missingMedia = await miniflare.dispatchFetch(
+  const malformedMedia = await miniflare.dispatchFetch(
     "https://app.test/api/references/media/execution_image/r1_AAAA?step=reference-step-a",
+  );
+  assert.equal(malformedMedia.status, 400);
+  const missingMedia = await miniflare.dispatchFetch(
+    "https://app.test/api/references/media/execution_image/r1_AG0AaQBzAHMAaQBuAGcALQBlAHgAZQBjAHUAdABpAG8AbgAtAGkAbQBhAGcAZQ?step=reference-step-a",
   );
   assert.equal(missingMedia.status, 404);
 
