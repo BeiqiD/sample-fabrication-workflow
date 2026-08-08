@@ -1,0 +1,345 @@
+.reference-page {
+  width: min(980px, calc(100% - 40px));
+}
+
+.reference-page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 20px;
+}
+
+.reference-page-title {
+  min-width: 0;
+}
+
+.reference-page-title h1 {
+  overflow-wrap: anywhere;
+}
+
+.reference-page-title .lead {
+  margin: -4px 0 0;
+}
+
+.reference-page-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.reference-state-badge,
+.reference-segment-lifecycle {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.reference-state-badge {
+  min-height: 28px;
+  padding: 7px 10px;
+}
+
+.reference-state-badge.success {
+  color: var(--status-success-ink);
+  background: var(--success-soft);
+}
+
+.reference-state-badge.warning {
+  color: var(--status-warning-ink);
+  background: var(--warning-soft);
+}
+
+.reference-state-badge.danger {
+  color: var(--status-danger-ink);
+  background: var(--danger-soft);
+}
+
+.reference-state-badge.neutral {
+  color: var(--status-neutral-ink);
+  background: var(--neutral-soft);
+}
+
+.reference-state-message {
+  margin: 0 0 22px;
+  padding: 13px 16px;
+  border-radius: 9px;
+  font-size: var(--font-body);
+}
+
+.reference-state-message.success {
+  color: var(--status-success-ink);
+  background: var(--success-soft);
+}
+
+.reference-state-message.warning {
+  color: var(--status-warning-ink);
+  background: var(--warning-soft);
+}
+
+.reference-state-message.danger {
+  color: var(--status-danger-ink);
+  background: var(--danger-soft);
+}
+
+.reference-state-message.neutral {
+  color: var(--status-neutral-ink);
+  background: var(--neutral-soft);
+}
+
+.reference-summary,
+.reference-empty-state {
+  padding: 22px;
+}
+
+.reference-empty-state {
+  max-width: 720px;
+}
+
+.reference-empty-state h1 {
+  margin-bottom: 22px;
+}
+
+.reference-section-heading,
+.reference-context-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.reference-section-heading h2 {
+  margin: 4px 0 0;
+}
+
+.reference-section-heading > code,
+.reference-segment-copy code {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.reference-section-heading > code {
+  max-width: 55%;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--surface);
+  font-size: 11px;
+  text-align: right;
+}
+
+.reference-excerpt {
+  max-width: 760px;
+  margin: 20px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reference-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 22px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--line);
+}
+
+.reference-metadata > div {
+  min-width: 0;
+  padding: 13px 14px;
+  background: var(--surface-warm);
+}
+
+.reference-metadata dt {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: var(--font-label);
+  font-weight: 750;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.reference-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: var(--font-body);
+  font-weight: 620;
+  line-height: 1.4;
+}
+
+.reference-no-source {
+  margin: 20px 0 0;
+}
+
+.reference-context-section {
+  margin-top: 32px;
+}
+
+.reference-context-section > .reference-section-heading {
+  margin-bottom: 14px;
+}
+
+.reference-context-list {
+  display: grid;
+  gap: 12px;
+}
+
+.reference-context-card,
+.reference-empty-context {
+  padding: 18px;
+}
+
+.reference-context-heading {
+  margin-bottom: 14px;
+}
+
+.reference-context-heading > strong {
+  font-size: var(--font-body);
+}
+
+.reference-context-heading .button {
+  min-height: 34px;
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+.reference-context-segments {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.reference-context-segments li {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 10px 12px;
+  background: var(--surface-warm);
+}
+
+.reference-context-segments li + li {
+  border-top: 1px solid var(--line);
+}
+
+.reference-segment-type {
+  color: var(--muted);
+  font-size: var(--font-label);
+  font-weight: 750;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.reference-segment-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.reference-segment-copy strong {
+  overflow-wrap: anywhere;
+  font-size: var(--font-body);
+}
+
+.reference-segment-copy code {
+  font-size: 10px;
+}
+
+.reference-segment-lifecycle {
+  min-height: 22px;
+  padding: 5px 7px;
+}
+
+.reference-segment-lifecycle.deleted {
+  color: var(--status-danger-ink);
+  background: var(--danger-soft);
+}
+
+.reference-segment-lifecycle.archived {
+  color: var(--status-warning-ink);
+  background: var(--warning-soft);
+}
+
+.reference-empty-context p {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .reference-page-heading {
+    display: grid;
+    gap: 16px;
+  }
+
+  .reference-page-actions {
+    flex-wrap: wrap;
+  }
+
+  .reference-section-heading {
+    align-items: flex-start;
+  }
+
+  .reference-section-heading > code {
+    max-width: 48%;
+  }
+
+  .reference-metadata {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reference-context-segments li {
+    grid-template-columns: 1fr auto;
+    gap: 7px 12px;
+  }
+
+  .reference-segment-type {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .reference-page {
+    width: min(100% - 24px, 980px);
+  }
+
+  .reference-summary,
+  .reference-context-card,
+  .reference-empty-context,
+  .reference-empty-state {
+    padding: 15px;
+  }
+
+  .reference-section-heading {
+    display: grid;
+    gap: 8px;
+  }
+
+  .reference-section-heading > code {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .reference-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-context-heading {
+    align-items: flex-start;
+  }
+}
