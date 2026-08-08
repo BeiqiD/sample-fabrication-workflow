@@ -114,7 +114,12 @@ function addSample(database: DatabaseSync, id = "sample-1", code = "S-1") {
   ).run(id, code);
 }
 
-function addRun(database: DatabaseSync, id = "run-1", sampleId = "sample-1") {
+function addRun(
+  database: DatabaseSync,
+  id = "run-1",
+  sampleId = "sample-1",
+  stepId = "step-1",
+) {
   database.exec(`
     INSERT INTO runs
       (id, sample_id, recipe_family_id, template_version_id, sequence_no, run_group_id,
@@ -127,9 +132,50 @@ function addRun(database: DatabaseSync, id = "run-1", sampleId = "sample-1") {
     INSERT INTO run_steps
       (id, run_id, position, status, origin, entry_kind, title, created_at, updated_at)
     VALUES
-      ('step-1', '${id}', 1000, 'done', 'template', 'fabrication', 'Step',
+      ('${stepId}', '${id}', 1000, 'done', 'template', 'fabrication', 'Step',
        '2026-08-07T10:05:00.000Z', '2026-08-07T10:05:00.000Z');
   `);
+}
+
+function addReadyManagedAttachment(
+  database: DatabaseSync,
+  {
+    submissionId,
+    itemId,
+    storageId,
+    contextKind,
+    sampleId = null,
+    scope = null,
+  }: {
+    submissionId: string;
+    itemId: string;
+    storageId: string;
+    contextKind: "sample" | "run_steps";
+    sampleId?: string | null;
+    scope?: "common" | "individual" | null;
+  },
+) {
+  database.prepare(
+    `INSERT INTO managed_storage_objects
+      (id, provider, object_key, original_name, mime_type, byte_size,
+       sha256, status, created_at)
+     VALUES (?, 'switchdrive', ?, 'result.dat', 'application/octet-stream',
+       16, ?, 'ready', '2026-08-07T10:06:00.000Z')`,
+  ).run(storageId, `comments/${storageId}.dat`, `hash-${storageId}`);
+  database.prepare(
+    `INSERT INTO comment_submissions
+      (id, context_kind, sample_id, scope, body, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'Visible attachment', 'ready',
+       '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z')`,
+  ).run(submissionId, contextKind, sampleId, scope);
+  database.prepare(
+    `INSERT INTO comment_submission_items
+      (id, submission_id, kind, status, position, filename, mime_type,
+       byte_size, sha256, storage_object_id, created_at, updated_at)
+     VALUES (?, ?, 'attachment', 'ready', 0, 'result.dat',
+       'application/octet-stream', 16, ?, ?,
+       '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z')`,
+  ).run(itemId, submissionId, `hash-${storageId}`, storageId);
 }
 
 function testEnv(
@@ -393,6 +439,134 @@ describe("source lifecycle routes", () => {
       database.close();
     },
   );
+
+  it("hides a Sample Comment attachment download after the Sample enters trash but preserves export access", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addReadyManagedAttachment(database, {
+      submissionId: "sample-download-submission",
+      itemId: "sample-download-item",
+      storageId: "sample-download-storage",
+      contextKind: "sample",
+      sampleId: "sample-1",
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("attachment-bytes", {
+      status: 200,
+      headers: { "content-type": "application/octet-stream" },
+    })));
+    const env = managedStorageEnv(database);
+
+    expect((await request(env, "/attachments/sample-download-item/download")).status).toBe(200);
+    const deletedResponse = await request(env, "/samples/sample-1", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        confirmationCode: "S-1",
+        expectedUpdatedAt: "2026-08-07T10:00:00.000Z",
+      }),
+    });
+    expect(deletedResponse.status).toBe(200);
+    expect((await request(env, "/attachments/sample-download-item/download")).status).toBe(404);
+    const exportResponse = await request(env, "/exports/attachments/sample-download-item");
+    expect(exportResponse.status).toBe(200);
+    expect(await exportResponse.text()).toBe("attachment-bytes");
+    database.close();
+  });
+
+  it("hides a run-step Comment attachment download after its only Run target enters trash but preserves export access", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    addReadyManagedAttachment(database, {
+      submissionId: "run-download-submission",
+      itemId: "run-download-item",
+      storageId: "run-download-storage",
+      contextKind: "run_steps",
+      scope: "individual",
+    });
+    database.exec(`
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('run-download-submission', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z');
+
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, body, submission_id, created_at)
+      VALUES
+        ('run-download-comment', 'step-1', 'individual', 'Visible attachment',
+         'run-download-submission', '2026-08-07T10:06:00.000Z');
+    `);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("attachment-bytes", {
+      status: 200,
+      headers: { "content-type": "application/octet-stream" },
+    })));
+    const env = managedStorageEnv(database);
+
+    expect((await request(env, "/attachments/run-download-item/download")).status).toBe(200);
+    const deletedResponse = await request(env, "/samples/sample-1/runs/run-1", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedSampleUpdatedAt: "2026-08-07T10:00:00.000Z" }),
+    });
+    expect(deletedResponse.status).toBe(200);
+    expect((await request(env, "/attachments/run-download-item/download")).status).toBe(404);
+    const exportResponse = await request(env, "/exports/attachments/run-download-item");
+    expect(exportResponse.status).toBe(200);
+    expect(await exportResponse.text()).toBe("attachment-bytes");
+    database.close();
+  });
+
+  it("keeps a common Comment attachment downloadable while at least one target remains visible", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    addSample(database, "sample-2", "S-2");
+    addRun(database, "run-2", "sample-2", "step-2");
+    addReadyManagedAttachment(database, {
+      submissionId: "common-download-submission",
+      itemId: "common-download-item",
+      storageId: "common-download-storage",
+      contextKind: "run_steps",
+      scope: "common",
+    });
+    database.exec(`
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES
+        ('common-download-submission', 'sample-1', 'run-1', 'step-1',
+         '2026-08-07T10:05:00.000Z'),
+        ('common-download-submission', 'sample-2', 'run-2', 'step-2',
+         '2026-08-07T10:05:00.000Z');
+
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, body, submission_id, created_at)
+      VALUES
+        ('common-download-comment-1', 'step-1', 'common', 'Visible attachment',
+         'common-download-submission', '2026-08-07T10:06:00.000Z'),
+        ('common-download-comment-2', 'step-2', 'common', 'Visible attachment',
+         'common-download-submission', '2026-08-07T10:06:00.000Z');
+    `);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("attachment-bytes", {
+      status: 200,
+      headers: { "content-type": "application/octet-stream" },
+    })));
+    const env = managedStorageEnv(database);
+
+    const deletedResponse = await request(env, "/samples/sample-1", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        confirmationCode: "S-1",
+        expectedUpdatedAt: "2026-08-07T10:00:00.000Z",
+      }),
+    });
+    expect(deletedResponse.status).toBe(200);
+    const downloadResponse = await request(env, "/attachments/common-download-item/download");
+    expect(downloadResponse.status).toBe(200);
+    expect(await downloadResponse.text()).toBe("attachment-bytes");
+    database.close();
+  });
 
   it("requires the canonical Comment before restoring its occurrence or legacy image", async () => {
     const database = createDatabase();

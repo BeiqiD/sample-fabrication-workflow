@@ -76,6 +76,32 @@ function visibleSubmissionTargetsSql(alias: string) {
   )`;
 }
 
+function readableSubmissionTargetsSql(alias: string) {
+  return `(
+    (
+      ${alias}.context_kind = 'sample'
+      AND EXISTS (
+        SELECT 1 FROM samples s
+        WHERE s.id = ${alias}.sample_id AND s.deleted_at IS NULL
+      )
+    )
+    OR
+    (
+      ${alias}.context_kind = 'run_steps'
+      AND EXISTS (
+        SELECT 1
+        FROM comment_submission_targets cst
+        JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
+        JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+          AND r.deleted_at IS NULL
+        JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+          AND rs.deleted_at IS NULL
+        WHERE cst.submission_id = ${alias}.id
+      )
+    )
+  )`;
+}
+
 function validTargets(value: unknown): value is RunStepTarget[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 12) return false;
   const ids = new Set<string>();
@@ -1277,7 +1303,8 @@ routes.get("/attachments/:itemId/download", async (c) => {
      JOIN comment_submissions cs ON cs.id = csi.submission_id
        AND cs.status = 'ready' AND cs.deleted_at IS NULL
      WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'
-       AND csi.deleted_at IS NULL`,
+       AND csi.deleted_at IS NULL
+       AND ${readableSubmissionTargetsSql("cs")}`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Attachment not found" });
   const storage = managedStorage(c.env);
