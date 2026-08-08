@@ -6,7 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReferenceSearchResult, SearchReferencesResponse } from "../shared/reference-search";
 import type { ReferenceTarget } from "../shared/reference-types";
 import { ReferenceSearchSurface } from "./components/ReferenceSearchSurface";
-import { defaultReferenceSearchUiState } from "./lib/reference-search-ui";
+import {
+  defaultReferenceSearchUiState,
+  type ReferenceSearchUiState,
+} from "./lib/reference-search-ui";
 
 function result(
   id: string,
@@ -210,16 +213,16 @@ describe("mounted reference search surface", () => {
 
   it("commits Clear search and returns the controlled surface to idle", async () => {
     fetchMock.mockImplementation(() => jsonResponse(response([result("sample-clear", "Result to clear")])));
-    const initial = {
+    const initial: ReferenceSearchUiState = {
       query: "sample-clear",
-      types: ["sample" as const],
+      types: ["sample"],
       sampleId: "sample-clear",
       from: "",
       to: "",
     };
 
     function Harness() {
-      const [value, setValue] = useState(initial);
+      const [value, setValue] = useState<ReferenceSearchUiState>(initial);
       return <ReferenceSearchSurface value={value} onChange={setValue} />;
     }
 
