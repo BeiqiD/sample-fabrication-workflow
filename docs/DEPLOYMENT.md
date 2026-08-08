@@ -99,8 +99,8 @@ npm run verify:v3-deployment
 
 The reference gate combines detailed host-SQLite tests, the ordered Wrangler
 local D1 migration check, and a Miniflare/workerd smoke that invokes the unified
-Worker's resolver endpoint with representative adapters and 200 distinct
-targets. The normal v3 remote-migration and deployment commands execute these
+Worker's resolver endpoint with all nine v1 adapters and 200 distinct targets.
+The normal v3 remote-migration and deployment commands execute these
 checks, the complete test suite, and the deployment build before touching
 remote D1 or storage. Passing an ordinary build or using resources isolated
 from `main` does not waive the gate.

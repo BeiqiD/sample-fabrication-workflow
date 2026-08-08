@@ -133,9 +133,13 @@ try {
 
   const mixedTargets = [
     { type: "sample", id: "reference-sample-a" },
+    { type: "run", id: "reference-run-a" },
     { type: "run_step", id: "reference-step-a" },
     { type: "comment", id: "reference-comment" },
+    { type: "comment_occurrence", id: "reference-comment-occurrence-a" },
     { type: "comment_attachment", id: "reference-comment-attachment" },
+    { type: "execution_image", id: "reference-execution-image" },
+    { type: "metrology_reference", id: "reference-metrology-reference" },
     { type: "recipe_revision", id: "reference-process-template" },
   ];
 
@@ -147,8 +151,14 @@ try {
   assert.equal(mixedResponse.status, 200, JSON.stringify(mixedPayload));
   assert.deepEqual(mixedPayload.results.map((result) => result.target), mixedTargets);
   assert(mixedPayload.results.every((result) => result.resolution === "resolved"));
-  assert.equal(mixedPayload.results[2].contexts.length, 2, "common Comment contexts must be preserved");
-  assert.deepEqual(mixedPayload.results[3].contexts, mixedPayload.results[2].contexts);
+  const comment = mixedPayload.results.find((result) => result.target.type === "comment");
+  const commentAttachment = mixedPayload.results.find(
+    (result) => result.target.type === "comment_attachment",
+  );
+  assert(comment, "common Comment adapter result must be present");
+  assert(commentAttachment, "Comment-attachment adapter result must be present");
+  assert.equal(comment.contexts.length, 2, "common Comment contexts must be preserved");
+  assert.deepEqual(commentAttachment.contexts, comment.contexts);
   const serialized = JSON.stringify(mixedPayload);
   assert(!serialized.includes("reference/private/"));
   assert(!serialized.includes("r2_key"));
@@ -165,7 +175,7 @@ try {
   assert.deepEqual(batchPayload.results.map((result) => result.target), batchTargets);
   assert(batchPayload.results.every((result) => result.resolution === "resolved"));
 
-  console.log("Reference Worker/D1 smoke passed: core middleware, representative adapters, and 200-target batch.");
+  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, and 200-target batch.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);

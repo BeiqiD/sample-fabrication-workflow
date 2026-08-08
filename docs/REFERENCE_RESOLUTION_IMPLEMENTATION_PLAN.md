@@ -36,7 +36,7 @@ The implementation provides:
    coverage;
 9. one core Hono middleware stack for reference and existing API routes; and
 10. Wrangler D1/workerd migration coverage plus real Worker/D1 execution of
-    representative resolver adapters and the 200-target boundary.
+    all nine v1 resolver adapters and the 200-target boundary.
 
 The resolver reads current source data. The registry stores identity and
 validation metadata only; it is not a title, body, preview, or path snapshot.
@@ -110,7 +110,7 @@ The completion slice is intentionally limited to closing those two gaps:
 - mount `referenceRoutes` directly in the core Hono app;
 - make `worker/index.ts` the only Wrangler entry and remove the dispatcher;
 - share one deterministic reference graph between host and workerd tests;
-- execute representative adapters and 200 distinct targets through the real
+- execute all nine v1 adapters and 200 distinct targets through the real
   endpoint against a fresh Wrangler local D1 state in Miniflare/workerd;
 - make that smoke part of CI and every remote migration/deployment gate; and
 - update architecture, compatibility, deployment, and roadmap records.
@@ -347,11 +347,10 @@ Wrangler local D1/workerd separately applies the complete migration chain.
 `npm run verify:reference-worker` then creates a fresh Wrangler local D1 state,
 loads the same reference graph used by the host suite, bundles the unified core
 Worker, and invokes `POST /api/references/resolve` through
-Miniflare/workerd. The smoke covers Sample, Run-step, common Comment,
-Comment-attachment, and Recipe-revision adapters, common-Comment contexts,
-locator non-disclosure, the shared same-origin guard, and 200 distinct Sample
-targets. Runtime resolver SQL is therefore workerd-executed rather than merely
-inferred to be compatible from host SQLite.
+Miniflare/workerd. The smoke covers all nine v1 adapters, common-Comment
+contexts, locator non-disclosure, the shared same-origin guard, and 200 distinct
+Sample targets. Runtime resolver SQL is therefore workerd-executed rather than
+merely inferred to be compatible from host SQLite.
 
 ## Target-specific rules
 
@@ -516,7 +515,7 @@ Focused tests cover:
 
 - the complete 0001 -> 0018 migration chain in host SQLite;
 - the same chain through Wrangler local D1/workerd;
-- representative adapters through the real Worker endpoint against Wrangler
+- all nine v1 adapters through the real Worker endpoint against Wrangler
   local D1 in Miniflare/workerd;
 - the closed target-type constraint and JSON-array constraint;
 - rejection of registry-ID or source-identity retargeting;

@@ -204,8 +204,8 @@ frontend behavior:
 The Phase 2A completion slice mounts `/api/references/*` directly into this
 core Hono app, so reference resolution inherits the same error, same-origin,
 Access-authentication, identity, and future authorization middleware as the
-rest of the API. Its focused gate also executes representative resolver SQL and
-a 200-target request through the bundled Worker against Wrangler local D1 in
+rest of the API. Its focused gate also executes every v1 resolver adapter and a
+200-target request through the bundled Worker against Wrangler local D1 in
 Miniflare/workerd.
 
 This is a base resolver. Deep-link URLs, archived read-only destinations,
@@ -249,7 +249,7 @@ the following are true:
 - registry identities cannot be retargeted through UPDATE;
 - the complete ordered migration set, including compatibility repairs, has
   passed both host SQLite and Wrangler local D1/workerd verification;
-- representative resolver adapters, the shared middleware path, and the
+- all nine v1 resolver adapters, the shared middleware path, and the
   200-target boundary have passed the local Worker/D1 workerd smoke;
 - a fresh full-system backup and the applicable D1 recovery bookmark have been
   recorded;

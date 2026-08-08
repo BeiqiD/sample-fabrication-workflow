@@ -83,9 +83,8 @@ Runtime SQL has a separate executable check. `npm run verify:reference-worker`
 creates a fresh Wrangler local D1 state, applies the ordered migrations and
 shared reference fixture, bundles the same unified Worker entry used by
 deployment, and dispatches `POST /api/references/resolve` through
-Miniflare/workerd. It covers representative Sample, Run-step, common Comment,
-Comment-attachment, and Recipe-revision adapters plus a 200-distinct-target
-batch and the shared same-origin guard.
+Miniflare/workerd. It covers all nine v1 adapters, a 200-distinct-target batch,
+and the shared same-origin guard.
 
 `npm run verify:reference-foundation` combines the detailed host-SQLite suite,
 the Wrangler migration check, and this runtime smoke. The normal remote
