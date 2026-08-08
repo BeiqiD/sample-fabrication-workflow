@@ -66,7 +66,7 @@ describe("deployment routing", () => {
       });
 
       const generated = JSON.parse(readFileSync(output, "utf8"));
-      expect(generated.main).toBe("./worker/entry.ts");
+      expect(resolve(dirname(output), generated.main)).toBe(resolve(projectRoot, "worker/entry.ts"));
       expect(generated.name).toBe("example-worker");
       expect(generated.workers_dev).toBe(true);
       expect(generated.keep_vars).toBe(true);
