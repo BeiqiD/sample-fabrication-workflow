@@ -201,7 +201,7 @@ try {
   const executionEncodedId = executionImage.destination.referenceUrl.split("/").at(-1);
   assert(executionEncodedId, "Execution-image canonical ID must be present");
   const mediaResponse = await miniflare.dispatchFetch(
-    `https://app.test/api/references/media/execution_image/${executionEncodedId}`,
+    `https://app.test/api/references/media/execution_image/${executionEncodedId}?step=reference-step-a`,
   );
   assert.equal(mediaResponse.status, 200);
   assert.equal(mediaResponse.headers.get("content-type"), "image/png");
@@ -211,7 +211,7 @@ try {
     executionImageBytes,
   );
   const missingMedia = await miniflare.dispatchFetch(
-    "https://app.test/api/references/media/execution_image/r1_AAAA",
+    "https://app.test/api/references/media/execution_image/r1_AAAA?step=reference-step-a",
   );
   assert.equal(missingMedia.status, 404);
 
