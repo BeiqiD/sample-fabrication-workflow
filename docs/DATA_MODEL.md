@@ -1,44 +1,165 @@
 # Data model
 
+## Current source and storage entities
+
 | Entity | Purpose |
 |---|---|
 | `samples` | A physical wafer, chip, piece, or other tracked item. Self-reference represents parent/child splitting; a child can retain the parent's structure hash at the split boundary. |
-| `events` | Append-oriented timeline records: creation, comments, images, location/status changes, and run-step activity. |
+| `events` | Append-oriented audit timeline records: creation, comments, images, location/status changes, and Run-step activity. Events are not the canonical Comment or attachment model. |
 | `recipe_families` | Legacy internal table name for the stable identity shared by successive process-template versions. |
 | `step_definitions` | SHA-256-addressed instructions; order and version are deliberately excluded from the hash. |
-| `state_representations` | SHA-256-addressed expected sample states, currently represented by ordered diagram assets. |
-| `template_versions` | Imported or cloned versions with an ordered manifest of logical step, definition, and expected-state hashes. |
-| `runs` | Ordered process runs for one physical sample, including the immutable initial substrate hash, predecessor, and anchor step. |
+| `state_representations` | SHA-256-addressed expected Sample states, currently represented by ordered diagram assets. |
+| `state_representation_assets` | Ordered attachment edges from a state representation to R2 asset metadata. |
+| `template_versions` | Imported or cloned Recipe revisions with an ordered manifest of logical Step, definition, and expected-state hashes. |
+| `template_steps` | Ordered logical references from a Recipe revision to hashed definitions and expected states. |
+| `runs` | Ordered process or metrology Runs for one physical Sample, including the immutable initial substrate hash, predecessor, and anchor Step. |
 | `run_plan_revisions` | Immutable records of which process-template version governed the unfinished plan at each revision. |
-| `run_steps` | The actual execution chain. Template-derived rows reference definitions; corrections are nullable overrides and ad-hoc rows are explicit actual steps. |
-| `run_step_plan_links` | Links process-template plan entries to stable actual run-step identities across plan revisions. |
-| `run_step_assets` | Execution and observed-state images uploaded during fabrication. |
-| `state_verifications` | Sparse observed-state anchors connected to the previous verification. |
-| `state_verification_steps` | Immutable snapshot of the actual steps covered by a verification interval. |
-| `imports` | Pending/ready/failed state for one confirmed FabuBlox workbook import. |
+| `run_steps` | The actual execution chain. Template-derived rows reference definitions; corrections are nullable overrides and ad-hoc rows are explicit actual Steps. |
+| `run_step_plan_links` | Links process-template plan entries to stable actual Run-step identities across plan revisions. |
+| `run_step_assets` | Stable execution/observation image occurrences linked to shared R2 asset metadata. |
+| `comment_submissions` | Canonical logical Comments and their upload/finalization lifecycle. A ready row owns body, author, and attached items once. |
+| `comment_submission_targets` | Canonical Comment targets in Sample/Run/Step context. |
+| `comment_submission_items` | Stable inline-image, original-file, or link occurrences owned by a canonical Comment. |
+| `run_step_comments` | Stable occurrence of a canonical Comment in one Run Step; legacy rows may directly carry an image asset. |
+| `metrology_template_references` | Stable reference-file occurrences attached to a metrology template. |
+| `managed_storage_objects` | Metadata for unchanged original files stored through the provider-neutral `ManagedStorage` adapter. |
 | `assets` | R2 object metadata and readiness state for imported and ordinary uploads. |
-| `template_steps` | Ordered logical references from a process-template version to hashed definitions and expected states. |
+| `state_verifications` | Sparse observed-state anchors connected to the previous verification. |
+| `state_verification_steps` | Immutable ordered snapshot of the actual Steps covered by a verification interval. |
+| `recipe_change_proposals` | Evidence opened by mismatched verification; included in export and used as a historical reference blocker. |
+| `imports` | Pending/ready/failed state and provenance for one confirmed FabuBlox workbook import. |
 
-R2 object keys are stored in D1. The bucket stays private and the Worker returns assets only through application routes. Exporters must replace those keys with relative paths inside the resulting ZIP.
+## Identity and lifecycle layers
 
-Location, lifecycle status, and pinned changes are recorded by database triggers. Process-run triggers also keep the normal lifecycle synchronized: starting or reopening a run makes its sample `active`, and completing the run returns an `active` sample to `stored` without overriding an explicit `consumed` or `lost` state. This makes the current value and its append-only timeline entry part of the same statement. The update API also requires the caller's last-seen `updated_at` value and rejects stale writes.
+A source or occurrence ID carries application meaning. A blob record carries
+physical-byte metadata. Those identities are deliberately separate:
 
-Ordinary uploads are registered after the R2 write succeeds; a failed registration removes the object. The full export covers every database table and the union of registered assets plus imported source workbook and manifest keys.
+```text
+source -> occurrence -> blob record -> provider object
+```
 
-New `assets` rows carry a SHA-256 protected by a partial unique index. Imports resolve the workbook, normalized manifest, and every embedded image against that index before writing R2; duplicates within one upload are also collapsed. Rows created before this migration retain a null hash until a future maintenance backfill, so deduplication is guaranteed for newly received content.
+Examples:
 
-Validated Cloudflare Access email addresses are stored on events and other mutable/imported records. Older rows created before the attribution migration remain valid with a null actor.
+```text
+canonical Comment
+  -> comment attachment occurrence
+    -> managed_storage_objects row
+      -> SWITCHdrive/WebDAV object
 
-`last_mutation_id` values are internal concurrency tokens. They allow dependent event inserts to prove that the preceding conditional update succeeded within the same transactional batch.
+Run Step
+  -> execution image occurrence
+    -> assets row
+      -> private R2 object
+```
 
-`samples.process_revision` is retained only for compatibility with the deployed alpha schema. Current concurrency control uses `updated_at` and `last_mutation_id`; application writes no longer increment the legacy column. Removing it should be a future explicit migration rather than an edit to the already-deployed initial migration.
+Ordinary Delete sets lifecycle metadata on the source or occurrence. It does
+not delete shared bytes and does not rewrite source hierarchy. Restore exposes
+the same stable ID.
 
-`recipe_change_proposals` is a legacy internal name for evidence opened by mismatched state verification. It is included in full export and prevents referenced template history from being deleted, but it does not yet have a review interface.
+The complete source identity and soft-delete contract is in
+[v3 backend foundation](./V3_BACKEND_FOUNDATION.md). Project, Text, Map, and the
+future reference registry are specified in
+[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md).
 
-A process-template version states what should happen and what state should result. A process run records what did happen. `run_step_plan_links` connect those views without treating an execution correction as a template edit.
+## Blob reachability and GC metadata
 
-Plan updates align normalized step names independently of order. Repeated names prefer exact unchanged definitions, then stable logical keys, then occurrence order. Step numbers are display metadata; parameter, note, custom-field, and diagram changes normally do not determine identity. The newest assigned template version is authoritative for every matched plan entry's order, definition, imported comments, and expected diagrams. Matched run-step identities retain their status, actual overrides, user comments, attachments, and execution images. New entries are appended to the execution chain after the execution head, while the current process-plan view projects the new template order. Removed template entries become superseded and disappear from the current process grid without deleting their execution evidence; their comments, attachments, and execution images remain available in the sample Notes & observations, history, and exports. Changes or removals affecting completed steps are also recorded as historical differences. A newly inserted step before a later actualized match is accepted and initially recorded as skipped; additions after the execution boundary remain pending.
+Blob reachability is derived from source and occurrence relationships. It is
+not stored as a mutable boolean on `assets` or `managed_storage_objects`.
+Cancel, scheduled cleanup, export, and future permanent-delete planning must
+query one shared retention-edge surface.
 
-Deleting an unused template version removes its version and ordered step rows. Individual steps may also be deleted while the version remains unused, but their diagram sets are not independently mutable. Import provenance and content-addressed assets are retained because they may be shared; a version already used by a process run is archived instead of deleted so run and plan history remain resolvable.
+The next backend slice adds a GC ledger to record orphan/deletion work without
+replacing occurrence-to-blob edges. Upload readiness, reachability, provider
+availability, and GC state remain distinct concepts.
 
-Verification is not inferred from `done`. A user may verify after any step once every current step in the interval is done or skipped. The verification stores its predecessor and an explicit ordered coverage snapshot; a mismatch also opens process-change evidence without mutating execution history.
+The normative contract and concrete implementation plan are:
+
+- [Blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md)
+- [Blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)
+
+## R2 and managed-storage behavior
+
+R2 object keys are stored in D1. The bucket stays private and the Worker returns
+assets only through application routes. Original files use the
+`ManagedStorage` adapter; provider credentials and requests stay server-side.
+
+Ordinary uploads are registered only after provider writes succeed. Newly
+received content is SHA-256-addressed and deduplicated. A failed registration
+removes the object or records a recoverable failure according to the upload
+path.
+
+A physical blob may be shared by active, unfinished, retryable, archived, or
+soft-deleted sources. The provider object therefore cannot be collected from
+one source status alone.
+
+## Complete export
+
+The full export includes every database table and packages available physical
+bytes using relative paths. Failed, deleted, orphaned, and missing blob metadata
+remain in table JSON as audit data.
+
+Before v3 deployment, the exporter must become availability-aware:
+
+- metadata-not-ready rows are not treated as guaranteed bytes;
+- ready objects are deduplicated by physical locator;
+- missing or unavailable objects produce structured warnings;
+- one failed byte retrieval does not abort the entire ZIP;
+- `export-manifest.json` records final outcomes after retrieval attempts;
+- `export-warnings.json` is always written.
+
+## Concurrency and audit
+
+Location, lifecycle status, and pinned changes are recorded by database
+triggers. Process-Run triggers keep normal lifecycle synchronized: starting or
+reopening a Run makes its Sample `active`, and completing the final active Run
+returns an `active` Sample to `stored` without overriding an explicit
+`consumed` or `lost` state.
+
+Update APIs require the caller's last-seen revision, usually `updated_at`.
+`last_mutation_id` values are internal concurrency tokens that let dependent
+writes prove that the preceding conditional mutation succeeded within the same
+D1 batch.
+
+Validated Cloudflare Access email addresses are stored on events and mutable or
+imported records. Older rows created before attribution remain valid with a
+null actor.
+
+`samples.process_revision` remains only for compatibility with the deployed
+alpha schema. Current concurrency control uses `updated_at` and mutation IDs;
+removing the legacy column requires an explicit migration.
+
+## Template and Run history
+
+A process-template version states what should happen and what state should
+result. A process Run records what did happen. `run_step_plan_links` connect
+those views without treating an execution correction as a template edit.
+
+Plan updates align normalized Step names independently of order. Repeated names
+prefer exact unchanged definitions, then stable logical keys, then occurrence
+order. Step numbers are display metadata; parameter, note, custom-field, and
+diagram changes normally do not determine identity.
+
+The newest assigned Template version is authoritative for every matched plan
+entry's order, definition, imported Comments, and expected diagrams. Matched
+Run-step identities retain status, actual overrides, user Comments,
+attachments, and execution images. Removed Template entries become superseded
+without deleting their execution evidence.
+
+A Recipe revision used by a Run remains historical data. Ordinary deletion is
+recoverable and prevents new assignment; archive and deletion do not rewrite
+existing Runs or plan revisions.
+
+## Verification
+
+Verification is not inferred from `done`. A user may verify after any Step once
+every current Step in the interval is done or skipped. The verification stores
+its predecessor and an explicit ordered coverage snapshot; a mismatch also
+opens process-change evidence without mutating execution history.
+
+## Planned Project entities
+
+Project schema does not belong in the blob-lifecycle PR. The later Project
+phase adds stable Project/content/item identities, a reference registry,
+independent Text and Map placements, and local edges. The conceptual model and
+phase order are fixed in
+[PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md).

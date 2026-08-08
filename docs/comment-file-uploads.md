@@ -1,11 +1,11 @@
 # Comment file uploads
 
-All sample notes and process-step comments use the same two-stage submission
+All Sample notes and process-Step Comments use the same two-stage submission
 model.
 
 ## Storage boundaries
 
-- Processed inline comment images use the existing private `ASSETS` R2 binding.
+- Processed inline Comment images use the existing private `ASSETS` R2 binding.
 - Original files use the `ManagedStorage` interface in
   `worker/managed-storage.ts`.
 - External links are database records only. The Worker never fetches or
@@ -18,16 +18,18 @@ continue to work without a connected file-storage provider.
 
 The first supported adapter is SWITCHdrive over its official HTTPS WebDAV
 endpoint. It uses a dedicated SWITCHdrive App Passcode, never the user's
-SWITCH edu-ID password. The Worker checks the credentials with a read-only
+SWITCH edu-ID password. The Worker checks credentials with a read-only
 `PROPFIND` request before the UI enables file attachments. File bytes are
 streamed unchanged to SWITCHdrive; parent directories are created lazily.
-Attachments belonging to one sample are placed below a human-readable
-`samples/<sample-code>--<sample-id>/comment-attachments/` folder. A comment
-shared across multiple samples is stored once below `shared-comment-attachments/`
-instead of silently duplicating the original file.
 
-Provider-specific key naming, requests, and authentication must stay inside a
-`ManagedStorage` implementation; comment routes must not contain Google Drive,
+Attachments belonging to one Sample are placed below a human-readable
+`samples/<sample-code>--<sample-id>/comment-attachments/` folder. A Comment
+shared across multiple Samples is stored once below
+`shared-comment-attachments/` instead of silently duplicating the original
+file.
+
+Provider-specific key naming, requests, and authentication stay inside a
+`ManagedStorage` implementation; Comment routes do not contain Google Drive,
 OneDrive, SWITCHdrive, or other provider-specific logic.
 
 ## Authentication
@@ -38,14 +40,14 @@ Application authentication and storage authentication are separate:
    submission.
 2. The Worker authenticates to the configured external file storage. No
    storage credential reaches the browser.
-3. An OAuth-backed adapter should keep refresh tokens in encrypted
-   server-side secrets and store only a connection/secret reference, provider,
-   account label, status, and expiry in D1. It must expose the same
-   `ManagedStorage` methods and report unavailable or expired authentication
-   through `/api/storage/status`.
+3. An OAuth-backed adapter keeps refresh tokens in encrypted server-side
+   secrets and stores only a connection/secret reference, provider, account
+   label, status, and expiry in D1. It exposes the same `ManagedStorage`
+   operations and reports unavailable or expired authentication through
+   `/api/storage/status`.
 
-Do not put OAuth access or refresh tokens in D1 records, local storage, comment
-metadata, upload URLs, or client logs.
+Do not put OAuth access or refresh tokens in D1 records, local storage, Comment
+metadata, upload URLs, exports, or client logs.
 
 ## SWITCHdrive configuration
 
@@ -66,8 +68,13 @@ user-supplied URLs.
 
 Apply `migrations/0005_comment_submissions.sql`. No additional R2 bucket is
 required. Until all SWITCHdrive secrets are configured and the WebDAV
-credential check succeeds, users can submit text, compressed comment images,
+credential check succeeds, users can submit text, compressed Comment images,
 and attachment links, but cannot upload original files.
+
+The v3 integration branch remains blocked from remote migration/deployment
+until the blob lifecycle gate in
+[v3 backend foundation](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate) is
+satisfied.
 
 ## Upload integrity
 
@@ -76,8 +83,29 @@ and attachment links, but cannot upload original files.
 - Managed attachments are sent as the original `File` body without
   transformation. The browser supplies a SHA-256 hash, and the storage adapter
   streams the body unchanged.
-- Submission and item IDs make create, upload, retry, and finalize operations
+- Submission and item IDs make create, upload, retry, and Finalize operations
   idempotent. Successfully uploaded items are not uploaded again.
-- Cancelled or abandoned storage objects are marked for cleanup. A scheduled
-  cleanup handler can remove provider objects after the retention period
-  without changing the composer or submission API.
+- Ordinary Delete of a ready Comment or attachment occurrence is soft deletion;
+  it does not remove the canonical submission, occurrence identity, or shared
+  bytes needed for Restore and complete export.
+- Cancelled or explicitly retry-closed storage objects may become cleanup
+  candidates after the retention period, but age alone does not make a
+  retryable submission unreachable.
+- Retryability must be represented by one explicit authoritative state read by
+  retry routes, Cancel, scheduled cleanup, and the retention-edge surface.
+- A shared managed object or R2 asset remains protected while any ready,
+  soft-deleted, archived, unfinished, retryable, or future Project source can
+  still use or export it.
+- Cancelling one deduplicated submission must not orphan bytes used by another
+  unfinished or retryable submission.
+- Cancel and scheduled cleanup use the same reachability predicate, re-check it
+  before physical provider deletion, and remain safe when Finalize, retry,
+  Restore, or new deduplicated attachment creation wins a concurrent race.
+- Provider deletion is scheduled work. Cancel never removes bytes directly in
+  the request path.
+
+The authoritative reachability, export-warning, permanent-delete, test, and
+migration/deployment rules are maintained in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The next implementation
+PR is planned in
+[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).

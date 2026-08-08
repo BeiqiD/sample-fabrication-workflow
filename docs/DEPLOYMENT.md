@@ -68,6 +68,45 @@ The deploy command regenerates the configuration, applies D1 migrations with tha
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
 
+### v3 integration branch gate
+
+`v2/backend-foundation` is an integration branch, not the production branch.
+Even with dedicated preview resources, do not run its remote migrations or
+deploy it until the
+[v3 backend deployment gate](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate) is
+complete.
+
+The normative requirements are in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md), and the next code slice
+is specified in
+[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
+The gate requires one concurrency-safe retention-edge definition across
+submission cancellation, scheduled cleanup, complete export, and future
+permanent-delete planning.
+
+Shared uploads, unfinished/retryable submissions, archived sources, and
+soft-deleted ready sources must remain protected. Full export must preserve all
+database rows, package each available blob once, and record unavailable bytes
+in `export-warnings.json` instead of aborting the ZIP.
+
+The implementation must add a dedicated check such as:
+
+```text
+npm run verify:blob-lifecycle
+```
+
+The normal v3 remote-migration and deployment commands must execute that check,
+the complete test suite, and the deployment build before touching remote D1 or
+storage. Passing an ordinary build or using resources isolated from `main` does
+not waive the gate.
+
+Until the implementation and dedicated tests are merged:
+
+- do not apply v3 migrations to a remote D1 database;
+- do not deploy the v3 Worker;
+- keep non-production branch builds disabled;
+- do not change the production resources used by `main`.
+
 ## 4. Protect the application with Cloudflare Access
 
 Before storing real sample data:
@@ -101,11 +140,11 @@ The application is fail-closed when `AUTH_MODE=access`: protected API routes rej
 Push or merge the application version to the production branch configured in Workers Builds. It should:
 
 1. Install dependencies.
-2. Run `npm run build:deploy`.
+2. Run the repository's required verification and deployment build.
 3. Apply every unapplied file in `migrations/` to the bound remote D1 database.
-4. Deploy the Worker only after migrations succeed.
+4. Deploy the Worker only after verification and migrations succeed.
 
-Check the build log for either applied migration names or `No migrations to apply`.
+Check the build log for the required status checks and either applied migration names or `No migrations to apply`.
 
 Then verify:
 
@@ -116,11 +155,11 @@ Then verify:
    { "ok": true }
    ```
 
-3. Create a disposable sample and add a text comment.
+3. Create a disposable Sample and add a text Comment.
 4. Add a compressed inline image and an external attachment link.
 5. Confirm file-upload controls remain disabled if managed storage is not configured.
 6. Import a representative FabuBlox workbook through the preview/confirm flow.
-7. Download a ZIP export and inspect `export-manifest.json` plus at least one asset.
+7. Download a ZIP export and inspect `export-manifest.json`, `export-warnings.json` when supported by that version, and at least one packaged asset.
 
 ## 6. Optional unchanged original-file attachments
 
@@ -145,10 +184,10 @@ The browser never receives the WebDAV credentials. Original bytes are streamed u
 For an existing installation:
 
 1. Review the release diff and new migrations before merging.
-2. Keep the production deploy command migration-first.
+2. Keep the production deploy command verification- and migration-first.
 3. Merge the tested version into the configured production branch.
 4. Confirm the build log and `/api/ready`.
-5. Run a small workflow smoke test when a release changes imports, comments, runs, or storage.
+5. Run a small workflow smoke test when a release changes imports, Comments, Runs, or storage.
 
 Applied D1 migrations are recorded and are not executed again.
 
@@ -172,7 +211,9 @@ npm run verify
 npm run deploy
 ```
 
-Confirm the active Cloudflare account and every binding before applying remote migrations.
+For v3, use the dedicated lifecycle/deployment gate added by the implementation
+slice rather than bypassing it with a direct Wrangler command. Confirm the
+active Cloudflare account and every binding before applying remote migrations.
 
 ## Backup and recovery
 
@@ -180,6 +221,7 @@ Confirm the active Cloudflare account and every binding before applying remote m
 - D1 Time Travel can restore database state within the retention window offered by the account plan.
 - Before any destructive restore, create a fresh export and record the current D1 bookmark.
 - Managed original files are backed up according to the external storage provider's own retention and recovery rules.
+- Treat export warnings about missing or unavailable bytes as integrity incidents; preserve the database export and investigate the provider separately.
 
 ## Security checklist
 
