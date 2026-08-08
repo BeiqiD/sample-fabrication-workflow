@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DiagramGallery } from "../components/MultiSampleRunGrid";
@@ -146,6 +146,8 @@ function NewTemplateStep({ templateId, onSaved }: { templateId: string; onSaved:
 export function TemplatePage() {
   const { templateId = "" } = useParams();
   const location = useLocation();
+  const locationSearchRef = useRef(location.search);
+  locationSearchRef.current = location.search;
   const navigate = useNavigate();
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
   const [name, setName] = useState("");
@@ -157,11 +159,11 @@ export function TemplatePage() {
   const load = useCallback(async () => {
     const result = await api.getTemplate(templateId);
     if (result.template.templateKind === "metrology") {
-      navigate(`${templateDetailPath(templateId, "metrology")}${location.search}`, { replace: true });
+      navigate(`${templateDetailPath(templateId, "metrology")}${locationSearchRef.current}`, { replace: true });
       return;
     }
     setTemplate(result.template); setName(result.template.name); setVersion(result.template.version);
-  }, [location.search, navigate, templateId]);
+  }, [navigate, templateId]);
   useEffect(() => {
     setTemplate(null); setError("");
     void load().catch((error: Error) => setError(error.message));

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
@@ -11,6 +11,8 @@ import { templateDetailPath } from "../lib/templateRoutes";
 export function MetrologyTemplatePage() {
   const { templateId = "" } = useParams();
   const location = useLocation();
+  const locationSearchRef = useRef(location.search);
+  locationSearchRef.current = location.search;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedFocus = searchParams.get("focus");
@@ -28,7 +30,7 @@ export function MetrologyTemplatePage() {
   const load = useCallback(async (syncReferenceNotes = true) => {
     const result = await api.getTemplate(templateId);
     if (result.template.templateKind !== "metrology") {
-      navigate(`${templateDetailPath(templateId, "process")}${location.search}`, { replace: true });
+      navigate(`${templateDetailPath(templateId, "process")}${locationSearchRef.current}`, { replace: true });
       return;
     }
     if (result.template.steps.length !== 1) {
@@ -36,7 +38,7 @@ export function MetrologyTemplatePage() {
     }
     setTemplate(result.template);
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
-  }, [location.search, navigate, templateId]);
+  }, [navigate, templateId]);
   useEffect(() => { void load(true).catch((error: Error) => setError(error.message)); }, [load]);
 
   async function update(input: MetrologyTemplateInput) {

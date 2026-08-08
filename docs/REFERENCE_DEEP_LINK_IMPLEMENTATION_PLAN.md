@@ -1,8 +1,8 @@
 # Reference deep-link implementation plan
 
-Status: completed Phase 2B1 implementation contract and record; Phase 2B remains in progress
+Status: completed Phase 2B1 record; PR #128 completes Phase 2B2 and closes Phase 2B on merge
 
-Last reviewed: 2026-08-08 after canonical route-codec review
+Last reviewed: 2026-08-08 after PR #128 source-focus review
 
 This document defines the first implementation slice of Phase 2B. It follows the
 completed source lifecycle, blob lifecycle, reference registry, base resolver,
@@ -32,10 +32,11 @@ The remaining Phase 2B boundary was navigation. Consumers could resolve a
 target but could not obtain one stable object URL or a safe destination when the
 source or an ancestor was deleted or archived.
 
-PR #127 completes Phase 2B1 by adding a versioned opaque canonical route,
-lifecycle-aware destination fields, and a generic read-only Reference page.
-Phase 2B remains in progress because exact Step, Comment, attachment, execution
-image, and metrology focus behavior belongs to Phase 2B2.
+PR #127 completed Phase 2B1 by adding a versioned opaque canonical route,
+lifecycle-aware destination fields, and a generic read-only Reference page. PR
+#128 completes Phase 2B2 by consuming those destinations in the existing source
+interfaces, including exact object focus, read-only previews, stable execution
+occurrence media, and browser-history restoration.
 
 ## Pull-request boundary
 
@@ -383,19 +384,14 @@ Phase 2B1 is complete when:
 12. focused, full-suite, TypeScript, Worker, and client build checks pass; and
 13. the Draft PR targets only `v2/backend-foundation`.
 
-PR #127 satisfies Phase 2B1 after the canonical codec review correction. Phase
-2B as a whole remains in progress.
+PR #127 satisfies Phase 2B1 after the canonical codec review correction. PR
+#128 satisfies Phase 2B2 after correcting focus reapplication, Template loader
+coupling, and the authenticated media boundary. Phase 2B is complete when #128
+is merged.
 
-## Next Phase 2B slice
+## Next phase
 
-Phase 2B2 integrates the stable focus hints into mature source interfaces:
-
-1. focus and center an exact Run Step without changing normal grid behavior;
-2. expand and highlight a referenced Comment occurrence;
-3. open an attachment or execution image in a context-preserving preview;
-4. focus a metrology reference inside its exact Recipe revision;
-5. add browser-level refresh/back/forward coverage for those focus states; and
-6. then mark Phase 2B complete before deterministic search begins.
-
-This ordering keeps the large Process-grid change isolated behind an already
-reviewed URL and lifecycle contract.
+Phase 2C implements deterministic search and reference insertion on top of the
+closed resolver, canonical URL, lifecycle, source-focus, and media-safety
+contracts. Project-owned data remains deferred until that search/read-model
+boundary is reviewed.

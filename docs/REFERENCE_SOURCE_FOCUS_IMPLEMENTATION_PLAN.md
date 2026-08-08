@@ -1,8 +1,8 @@
 # Reference source-focus implementation plan
 
-Status: Phase 2B2 implementation contract
+Status: implemented in Draft PR #128; merge closes Phase 2B
 
-Last reviewed: 2026-08-08 against `v2/backend-foundation` after PR #127
+Last reviewed: 2026-08-08 after PR #128 lifecycle and media review
 
 This document defines the second and final implementation slice of Phase 2B.
 PR #127 completed Phase 2B1 by establishing one versioned opaque canonical URL,
@@ -380,3 +380,24 @@ After this PR, Phase 2C implements deterministic search and reference insertion
 on top of the closed identity, lifecycle, resolution, canonical URL, and source-
 focus contracts. Project-owned data remains deferred until search/read-model
 behavior is reviewed.
+
+
+## Review corrections before Ready
+
+PR #128 remains Draft until review confirms these merge-blocking corrections:
+
+- Processing focus uses memoized grid columns and a stable focus/data signature,
+  so unrelated parent renders do not recenter the page or reopen a closed
+  preview.
+- Template data loading is keyed only by `templateId`; route correction reads
+  the latest query through a ref, so focus history neither refetches page data
+  nor overwrites unsaved metrology notes.
+- Ordinary asset reads and stable execution-image reads share one authenticated
+  media policy: safe raster allowlist for inline content, `nosniff`, same-origin
+  resource policy, sandboxed attachment fallback, and rejection of
+  `deleting`/`deleted` GC locators.
+- Mounted React tests exercise preview closure across unrelated rerenders and
+  Template Back/Forward behavior with unsaved form state.
+
+After these corrections and document synchronization pass the complete gate,
+Phase 2C deterministic search is the next implementation boundary.

@@ -206,6 +206,8 @@ export function ProcessingReferenceSourceFocus({
   const anchorRef = useRef<HTMLSpanElement>(null);
   const [preview, setPreview] = useState<ReferenceAttachmentPreview | null>(null);
   const [message, setMessage] = useState("");
+  const columnsRef = useRef(columns);
+  columnsRef.current = columns;
   const signature = useMemo(() => processingDataSignature(columns), [columns]);
 
   useEffect(() => {
@@ -216,7 +218,7 @@ export function ProcessingReferenceSourceFocus({
     setMessage("");
 
     async function applyFocus(focus: ReferenceTarget) {
-      const match = findProcessingReferenceFocus(columns, sampleId, stepId, focus);
+      const match = findProcessingReferenceFocus(columnsRef.current, sampleId, stepId, focus);
       if (!match) {
         setMessage("The referenced object is not available in this Run and Step context.");
         return;
@@ -310,7 +312,7 @@ export function ProcessingReferenceSourceFocus({
         document.querySelector<HTMLButtonElement>(".process-plan-comment-dialog .drawer-close")?.click();
       }
     };
-  }, [columns, focusValue, sampleId, signature, stepId]);
+  }, [focusValue, sampleId, signature, stepId]);
 
   return <>
     <span ref={anchorRef} className="reference-focus-anchor" aria-hidden="true" />

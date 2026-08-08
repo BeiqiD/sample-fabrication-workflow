@@ -76,6 +76,9 @@ describe("stable execution-image media route", () => {
     expect(response.headers.get("content-type")).toBe("image/png");
     expect(response.headers.get("content-disposition")).toContain("execution.png");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+  expect(response.headers.get("content-disposition")).toMatch(/^inline;/);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(imageBytes);
 
     const wrongContext = await mediaRequest(
@@ -133,4 +136,65 @@ describe("stable execution-image media route", () => {
     )).status).toBe(404);
     database.close();
   });
+
+it("shares the hardened MIME policy with ordinary asset reads", async () => {
+  const { database, env } = fixture();
+  const ordinary = await worker.fetch(new Request(
+    "https://app.test/api/assets/reference/private/execution.png",
+  ), env, executionContext);
+  expect(ordinary.status).toBe(200);
+  expect(ordinary.headers.get("content-disposition")).toMatch(/^inline;/);
+  expect(ordinary.headers.get("x-content-type-options")).toBe("nosniff");
+
+  database.prepare("UPDATE assets SET mime_type = ? WHERE id = ?")
+    .run("image/svg+xml", "reference-execution-asset");
+  for (const response of [
+    await mediaRequest(env, REFERENCE_FIXTURE_IDS.executionImage, REFERENCE_FIXTURE_IDS.stepA),
+    await worker.fetch(new Request(
+      "https://app.test/api/assets/reference/private/execution.png",
+    ), env, executionContext),
+  ]) {
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/svg+xml");
+    expect(response.headers.get("content-disposition")).toMatch(/^attachment;/);
+    expect(response.headers.get("content-security-policy")).toContain("sandbox");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  }
+
+  database.prepare("UPDATE assets SET mime_type = ? WHERE id = ?")
+    .run("text/html", "reference-execution-asset");
+  const activeContent = await mediaRequest(
+    env,
+    REFERENCE_FIXTURE_IDS.executionImage,
+    REFERENCE_FIXTURE_IDS.stepA,
+  );
+  expect(activeContent.status).toBe(200);
+  expect(activeContent.headers.get("content-disposition")).toMatch(/^attachment;/);
+  expect(activeContent.headers.get("content-security-policy")).toContain("sandbox");
+  database.close();
+});
+
+it.each(["deleting", "deleted"] as const)(
+  "rejects %s R2 locators from both media paths",
+  async (state) => {
+    const { database, env } = fixture();
+    database.prepare(`
+      INSERT INTO blob_gc_ledger
+        (store_kind, provider, object_key, blob_record_id, state, operation_id, updated_at)
+      VALUES ('r2', 'r2', 'reference/private/execution.png',
+              'reference-execution-asset', ?, 'reference-media-test', ?)
+    `).run(state, "2026-08-08T13:00:00.000Z");
+
+    expect((await mediaRequest(
+      env,
+      REFERENCE_FIXTURE_IDS.executionImage,
+      REFERENCE_FIXTURE_IDS.stepA,
+    )).status).toBe(404);
+    expect((await worker.fetch(new Request(
+      "https://app.test/api/assets/reference/private/execution.png",
+    ), env, executionContext)).status).toBe(404);
+    database.close();
+  },
+);
+
 });

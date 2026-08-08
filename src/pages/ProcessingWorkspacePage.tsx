@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
@@ -80,6 +80,15 @@ export function ProcessingWorkspacePage() {
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
   const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
+  const gridColumns = useMemo(() => {
+    if (!sample || !selectedRun) return [];
+    return samples.map((item) => ({
+      sample: item,
+      run: item.id === sample.id
+        ? selectedRun
+        : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs),
+    }));
+  }, [sample, samples, selectedRun]);
 
   useEffect(() => {
     setShowSamplePicker(false);
@@ -410,14 +419,6 @@ export function ProcessingWorkspacePage() {
       disabled: assigning,
       onSelect: () => setShowMetrologyPicker(true),
     });
-  const gridColumns = selectedRun
-    ? samples.map((item) => ({
-      sample: item,
-      run: item.id === sample.id
-        ? selectedRun
-        : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs),
-    }))
-    : [];
 
   return <div className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
