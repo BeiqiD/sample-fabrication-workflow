@@ -18,6 +18,7 @@ import {
   normalizeReferenceSearchUiState,
   orderedReferenceSearchTypes,
   referenceSearchInputFromState,
+  referenceSearchUiStateEquals,
   referenceTargetEquals,
   validateReferenceSearchUiState,
   type ReferenceSearchUiState,
@@ -135,6 +136,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState("");
+  const [requestRevision, setRequestRevision] = useState(0);
   const typeKey = props.value.types.join("\u0000");
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [props.value.query, props.value.sampleId, props.value.from, props.value.to, typeKey]);
+  }, [props.value.query, props.value.sampleId, props.value.from, props.value.to, typeKey, requestRevision]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,6 +180,17 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       setValidationError(nextError);
       return;
     }
+    setValidationError("");
+    setFiltersOpen(false);
+    if (next.query && referenceSearchUiStateEquals(next, props.value)) {
+      setRequestRevision((revision) => revision + 1);
+    }
+    props.onChange(next);
+  }
+
+  function clearSearch() {
+    const next = normalizeReferenceSearchUiState({ ...props.value, query: "" });
+    setDraft(copySearchState(next));
     setValidationError("");
     setFiltersOpen(false);
     props.onChange(next);
@@ -213,11 +226,13 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
   const resultCount = response?.results.length ?? 0;
   const statusText = loading
     ? "Searching references…"
-    : response
-      ? `${resultCount} ${resultCount === 1 ? "result" : "results"}`
-      : committedQuery
-        ? "Search ready"
-        : "Enter a query to search";
+    : error
+      ? "Search failed"
+      : response
+        ? `${resultCount} ${resultCount === 1 ? "result" : "results"}`
+        : committedQuery
+          ? "Search ready"
+          : "Enter a query to search";
 
   return <section className="reference-search-surface">
     <form className="reference-search-form" role="search" onSubmit={submit} aria-describedby={validationError ? validationId : undefined}>
@@ -235,7 +250,8 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
         {draft.query && <button
           type="button"
           className="text-button reference-search-clear"
-          onClick={() => setDraft((current) => ({ ...current, query: "" }))}
+          aria-label="Clear search"
+          onClick={clearSearch}
         >Clear</button>}
         <button type="submit" className="button primary reference-search-submit">Search</button>
       </div>
