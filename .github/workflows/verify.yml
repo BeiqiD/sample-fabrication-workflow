@@ -44,6 +44,31 @@ jobs:
           workflow = workflow_path.read_text()
           script = workflow.split("python <<'PY'\n", 1)[1].split("\n          PY", 1)[0]
           script = '\n'.join(line[10:] if line.startswith('          ') else line for line in script.splitlines())
+          script = script.replace(
+              '''def replace_once(path: str, old: str, new: str) -> None:
+              value = read(path)
+              count = value.count(old)
+              if count != 1:
+                  raise RuntimeError(f"Expected one match in {path}, found {count}: {old[:80]!r}")
+              write(path, value.replace(old, new, 1))''',
+              '''def replace_once(path: str, old: str, new: str) -> None:
+              value = read(path)
+              count = value.count(old)
+              if count == 1:
+                  write(path, value.replace(old, new, 1))
+                  return
+              tokens = old.split()
+              pattern = r"\\s+".join(re.escape(token) for token in tokens)
+              matches = list(re.finditer(pattern, value, flags=re.MULTILINE | re.DOTALL))
+              if len(matches) != 1:
+                  raise RuntimeError(
+                      f"Expected one exact or whitespace-normalized match in {path}, "
+                      f"found exact={count}, normalized={len(matches)}: {old[:80]!r}"
+                  )
+              match = matches[0]
+              write(path, value[:match.start()] + new + value[match.end():])''',
+              1,
+          )
 
           class NormalizeEmbeddedTemplates(ast.NodeTransformer):
               def visit_Constant(self, node):
