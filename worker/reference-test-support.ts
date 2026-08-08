@@ -51,11 +51,18 @@ export class SqliteD1Database {
   }
 
   async batch(statements: D1PreparedStatement[]) {
-    const transaction = this.database.transaction((items: D1PreparedStatement[]) => items.map((statement) => {
-      this.recordQuery();
-      return (statement as unknown as SqliteD1Statement).execute();
-    }));
-    return transaction(statements);
+    this.database.exec("BEGIN");
+    try {
+      const results = statements.map((statement) => {
+        this.recordQuery();
+        return (statement as unknown as SqliteD1Statement).execute();
+      });
+      this.database.exec("COMMIT");
+      return results;
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   resetQueryCount() {
