@@ -205,17 +205,23 @@ export function findProcessingReferenceFocus(
         ready(candidate) && commentMatchesTarget(candidate, focus)
       )) ?? null;
       if (!comment) return null;
-      const common = comment.scope === "common";
+      const preview = focus.type === "comment_attachment"
+        ? commentAttachmentPreview(comment, focus.id)
+        : null;
+      const focusedComment = preview ? null : comment;
+      const common = focusedComment?.scope === "common";
       return {
         rowIndex,
         columnIndex,
         step,
-        comment,
-        commentIndex: common ? null : individualCommentIndex(step, comment),
-        commonCommentIndex: common ? commonCommentIndex(row, comment) : null,
-        preview: focus.type === "comment_attachment"
-          ? commentAttachmentPreview(comment, focus.id)
+        comment: focusedComment,
+        commentIndex: focusedComment && !common
+          ? individualCommentIndex(step, focusedComment)
           : null,
+        commonCommentIndex: focusedComment && common
+          ? commonCommentIndex(row, focusedComment)
+          : null,
+        preview,
       };
     }
   }
