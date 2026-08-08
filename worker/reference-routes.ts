@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { decodeReferenceRouteId } from "../shared/reference-destinations";
 import {
   isReferenceTarget,
   MAX_REFERENCE_RESOLUTION_TARGETS,
@@ -46,4 +47,42 @@ routes.post("/references/resolve", async (c) => {
     }
     throw error;
   }
+});
+
+routes.get("/references/media/execution_image/:encodedId", async (c) => {
+  const id = decodeReferenceRouteId(c.req.param("encodedId"));
+  if (id === null || !id || id.trim() !== id) {
+    throw new HTTPException(400, { message: "A valid execution-image reference ID is required" });
+  }
+
+  const source = await c.env.DB.prepare(`
+    SELECT a.r2_key, a.original_name, a.mime_type
+    FROM run_step_assets rsa
+    JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
+    JOIN run_steps rs ON rs.id = rsa.run_step_id AND rs.deleted_at IS NULL
+    JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
+    JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
+    WHERE rsa.id = ?
+      AND rsa.role = 'execution'
+      AND rsa.deleted_at IS NULL
+  `).bind(id).first<{
+    r2_key: string;
+    original_name: string;
+    mime_type: string;
+  }>();
+  if (!source) throw new HTTPException(404, { message: "Execution image not found" });
+
+  const object = await c.env.ASSETS.get(source.r2_key);
+  if (!object) throw new HTTPException(404, { message: "Execution image bytes are unavailable" });
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("content-type", source.mime_type || headers.get("content-type") || "application/octet-stream");
+  headers.set(
+    "content-disposition",
+    `inline; filename*=UTF-8''${encodeURIComponent(source.original_name || "execution-image")}`,
+  );
+  headers.set("cache-control", "private, no-store");
+  if (object.httpEtag) headers.set("etag", object.httpEtag);
+  return new Response(object.body, { headers });
 });
