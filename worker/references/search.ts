@@ -64,14 +64,14 @@ type CandidateRow = {
   matched_at: string | null;
 };
 
-type SearchCandidate = {
+export type ReferenceSearchCandidate = {
   target: ReferenceTarget;
   tier: ReferenceSearchMatchTier;
   matchedAt: string | null;
 };
 
 export type ReferenceSearchCandidateBatch = {
-  candidates: SearchCandidate[];
+  candidates: ReferenceSearchCandidate[];
   truncated: boolean;
 };
 
@@ -197,7 +197,7 @@ export function normalizeReferenceSearchInput(input: unknown): NormalizedReferen
   if (!query || Array.from(query).length > MAX_REFERENCE_SEARCH_QUERY_LENGTH) {
     throw new ReferenceSearchInputError(
       "invalid_query",
-      `Reference search query must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} characters`,
+      `Reference search query must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} Unicode code points`,
     );
   }
   const tokens = referenceSearchTokens(query);
@@ -358,7 +358,7 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
 
     const rows = await db.prepare(sql).bind(...bindings).all<CandidateRow>();
     const truncated = rows.results.length > candidateLimit;
-    const candidates = rows.results.slice(0, candidateLimit).map((row): SearchCandidate => ({
+    const candidates = rows.results.slice(0, candidateLimit).map((row): ReferenceSearchCandidate => ({
       target: { type: spec.type, id: row.target_id },
       tier: MATCH_TIER_BY_NUMBER[Number(row.match_tier)] ?? "metadata",
       matchedAt: row.matched_at,
@@ -685,7 +685,7 @@ function candidateLimit(resultLimit: number) {
   );
 }
 
-function compareCandidates(left: SearchCandidate, right: SearchCandidate) {
+function compareCandidates(left: ReferenceSearchCandidate, right: ReferenceSearchCandidate) {
   const leftTier = MATCH_TIER_ORDER[left.tier];
   const rightTier = MATCH_TIER_ORDER[right.tier];
   if (leftTier !== rightTier) return leftTier - rightTier;

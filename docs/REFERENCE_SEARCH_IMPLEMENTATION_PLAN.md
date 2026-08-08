@@ -82,7 +82,7 @@ assignment picker must exclude it.
 Candidate discovery is behind `ReferenceSearchCandidateBackend`. The current
 `sqlite-source-scan` backend uses standard SQLite expressions and a narrow
 `prepare -> bind -> all` query interface; Cloudflare D1 is one adapter, not the
-search contract. A future Docker deployment can provide the same interface over
+search contract. A future Docker deployment can provide the same interface without
 changing API or ranking semantics.
 
 The preferred performance backend is a rebuildable SQLite FTS5 index behind the
@@ -149,7 +149,7 @@ returned as a selectable result.
 The domain service accepts:
 
 ```text
-query              required non-empty string, at most 200 characters
+query              required non-empty string, at most 200 Unicode code points
 types[]            optional closed v1 type subset; empty/omitted means all
 sampleId           optional exact active Sample stable ID
 from               optional inclusive YYYY-MM-DD or RFC 3339 timestamp with explicit timezone
