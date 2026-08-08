@@ -121,16 +121,20 @@ WHERE e.asset_key IS NOT NULL AND e.asset_key <> ''
 
 UNION ALL
 SELECT
-  'r2', 'r2', json_extract(e.metadata_json, '$.thumbnailKey'), a.id,
-  'sample', e.sample_id,
-  'event_thumbnail', e.id || ':thumbnail',
+  'r2', 'r2', thumbnails.thumbnail_key, a.id,
+  'sample', thumbnails.sample_id,
+  'event_thumbnail', thumbnails.id || ':thumbnail',
   'sample_record_thumbnail', NULL
-FROM events e
-LEFT JOIN assets a ON a.r2_key = json_extract(e.metadata_json, '$.thumbnailKey')
-WHERE json_valid(e.metadata_json)
-  AND json_type(e.metadata_json, '$.thumbnailKey') = 'text'
-  AND NULLIF(TRIM(json_extract(e.metadata_json, '$.thumbnailKey')), '') IS NOT NULL
-  AND json_extract(e.metadata_json, '$.thumbnailKey') IS NOT e.asset_key
+FROM (
+  SELECT e.id, e.sample_id, e.asset_key,
+         CASE WHEN json_valid(e.metadata_json)
+              THEN json_extract(e.metadata_json, '$.thumbnailKey') END AS thumbnail_key
+  FROM events e
+) thumbnails
+LEFT JOIN assets a ON a.r2_key = thumbnails.thumbnail_key
+WHERE typeof(thumbnails.thumbnail_key) = 'text'
+  AND NULLIF(TRIM(thumbnails.thumbnail_key), '') IS NOT NULL
+  AND thumbnails.thumbnail_key IS NOT thumbnails.asset_key
 
 UNION ALL
 SELECT
@@ -163,9 +167,18 @@ LEFT JOIN assets a ON a.r2_key = tv.source_asset_key
 WHERE tv.source_asset_key IS NOT NULL AND tv.source_asset_key <> '';
 
 CREATE INDEX events_thumbnail_asset_key_idx
-ON events(json_extract(metadata_json, '$.thumbnailKey'))
-WHERE json_valid(metadata_json)
-  AND json_type(metadata_json, '$.thumbnailKey') = 'text';
+ON events(
+  CASE WHEN json_valid(metadata_json)
+       THEN json_extract(metadata_json, '$.thumbnailKey') END
+)
+WHERE typeof(
+    CASE WHEN json_valid(metadata_json)
+         THEN json_extract(metadata_json, '$.thumbnailKey') END
+  ) = 'text'
+  AND NULLIF(TRIM(
+    CASE WHEN json_valid(metadata_json)
+         THEN json_extract(metadata_json, '$.thumbnailKey') END
+  ), '') IS NOT NULL;
 
 -- A thumbnail is an ordinary retention edge even though its key is stored in
 -- event metadata for frontend compatibility. Reject claimed/deleted locators
