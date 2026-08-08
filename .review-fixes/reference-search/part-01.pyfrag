@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f"{label}: expected exactly one match, found {count}")
+    return text.replace(old, new, 1)
+
+
+def update(path: str, transform) -> None:
+    file_path = Path(path)
+    original = file_path.read_text(encoding="utf-8")
+    revised = transform(original)
+    if revised == original:
+        raise RuntimeError(f"{path}: transform made no changes")
+    file_path.write_text(revised, encoding="utf-8")
+
+
+def update_search(text: str) -> str:
+    text = replace_once(
+        text,
+        "  MAX_REFERENCE_SEARCH_QUERY_LENGTH,\n  MAX_REFERENCE_SEARCH_RESOLUTION_CANDIDATES,\n",
+        "  MAX_REFERENCE_SEARCH_QUERY_LENGTH,\n  MAX_REFERENCE_SEARCH_RESOLUTION_CANDIDATES,\n  MAX_REFERENCE_SEARCH_TOKENS,\n",
+        "search imports",
+    )
+    text = replace_once(
+        text,
+        'import { searchTokens } from "../directory-query";\n',
+        "",
+        "remove directory tokenizer",
+    )
+    text = replace_once(
+        text,
+        'import { escapedLikePattern } from "../request-guards";\n',
+        "",
+        "remove LIKE encoder",
+    )
+    text = replace_once(
+        text,
+        "type CandidateBatch = {\n  candidates: SearchCandidate[];\n  truncated: boolean;\n};\n",
+        "export type ReferenceSearchCandidateBatch = {\n  candidates: SearchCandidate[];\n  truncated: boolean;\n};\n",
+        "export candidate batch",
+    )
+    text = replace_once(
+        text,
+        "export type ReferenceSearchAdapter = (\n  db: D1Database,\n  input: NormalizedReferenceSearchInput,\n  candidateLimit: number,\n) => Promise<CandidateBatch>;\n\nfunction normalizeTimestamp(value: unknown, field: \"from\" | \"to\") {\n  if (value === undefined || value === null || value === \"\") return null;\n  if (typeof value !== \"string\") {\n    throw new ReferenceSearchInputError(\n      \"invalid_time_range\",\n      `Reference search ${field} must be an ISO timestamp`,\n    );\n  }\n  const parsed = Date.parse(value);\n  if (!Number.isFinite(parsed)) {\n    throw new ReferenceSearchInputError(\n      \"invalid_time_range\",\n      `Reference search ${field} must be an ISO timestamp`,\n    );\n  }\n  return new Date(parsed).toISOString();\n}\n",
+        """export interface ReferenceSearchSqlDatabase {
+  prepare(query: string): {
+    bind(...values: unknown[]): {
+      all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
+    };
+  };
+}
+
+export type ReferenceSearchAdapter = (
+  db: ReferenceSearchSqlDatabase,
+  input: NormalizedReferenceSearchInput,
+  candidateLimit: number,
+) => Promise<ReferenceSearchCandidateBatch>;
+
+const DATE_ONLY_PATTERN = /^(\\d{4})-(\\d{2})-(\\d{2})$/;
+const RFC3339_PATTERN = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d{1,3}))?(Z|([+-])(\\d{2}):(\\d{2}))$/;
+
+export function asciiFoldReferenceSearchText(value: string) {
+  return value.replace(/[A-Z]/g, (character) => (
+    String.fromCharCode(character.charCodeAt(0) + 32)
+  ));
+}
+
+function referenceSearchTokens(value: string) {
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+  for (const rawToken of value.split(/\\s+/)) {
+    if (!rawToken) continue;
+    const token = asciiFoldReferenceSearchText(rawToken);
+    if (seen.has(token)) continue;
+    seen.add(token);
+    tokens.push(token);
+    if (tokens.length === MAX_REFERENCE_SEARCH_TOKENS) break;
+  }
+  return tokens;
+}
+
+function isLeapYear(year: number) {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function isValidCalendarDate(year: number, month: number, day: number) {
+  if (!Number.isInteger(year) || year < 1 || year > 9999) return false;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  const days = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return Number.isInteger(day) && day >= 1 && day <= days[month - 1];
+}
+
+function invalidTimestamp(field: \"from\" | \"to\"): never {
+  throw new ReferenceSearchInputError(
+    \"invalid_time_range\",
+"""
