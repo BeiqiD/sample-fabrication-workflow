@@ -21,7 +21,7 @@ describe("reference destination route", () => {
     expect(page).not.toMatch(/api\.(create|update|delete|restore)|method:\s*"(?:PATCH|PUT|DELETE)"/);
   });
 
-  it("renders canonical lifecycle states and positional context destinations", () => {
+  it("renders canonical lifecycle states and positional multi-context destinations", () => {
     expect(page).toContain('label: "Not found"');
     expect(page).toContain('label: "Inconsistent"');
     expect(page).toContain('label: "Tombstoned"');
@@ -29,10 +29,16 @@ describe("reference destination route", () => {
     expect(page).toContain('label: "Archived"');
     expect(page).toContain("resolution.destination.contextOpenSourceUrls[contextIndex]");
     expect(page).toContain(">Open source</Link>");
+    expect(page).toContain("resolution.contexts.length > 1 && contextUrl");
     expect(page).toContain(">Open context</Link>");
   });
 
-  it("keeps its new layout rules scoped to the reference page", () => {
+  it("keeps its new layout rules scoped to the reference page and documented narrow breakpoint", () => {
+    const maxWidthQueries = Array.from(
+      styles.matchAll(/@media \(max-width:\s*(\d+)px\)/g),
+      (match) => Number(match[1]),
+    );
+    expect(maxWidthQueries).toEqual([720]);
     expect(styles).toContain(".reference-page");
     expect(styles).toContain(".reference-context-card");
     expect(styles).not.toMatch(/\.(?:run-grid|sample-page|template-page|topbar)\b/);
