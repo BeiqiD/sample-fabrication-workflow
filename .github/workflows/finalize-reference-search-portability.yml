@@ -32,33 +32,41 @@ jobs:
 
           search = Path('worker/references/search.ts')
           text = search.read_text(encoding='utf-8')
-          text = text.replace('type SearchCandidate = {', 'type ReferenceSearchCandidate = {', 1)
-          text = text.replace('SearchCandidate', 'ReferenceSearchCandidate')
-          text = text.replace('type ReferenceSearchCandidate = {', 'export type ReferenceSearchCandidate = {', 1)
-          text = text.replace('must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} characters', 'must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} Unicode code points', 1)
+          replacements = [
+              ('type SearchCandidate = {', 'export type ReferenceSearchCandidate = {'),
+              ('candidates: SearchCandidate[];', 'candidates: ReferenceSearchCandidate[];'),
+              ('.map((row): SearchCandidate => ({', '.map((row): ReferenceSearchCandidate => ({'),
+              ('function compareCandidates(left: SearchCandidate, right: SearchCandidate) {',
+               'function compareCandidates(left: ReferenceSearchCandidate, right: ReferenceSearchCandidate) {'),
+              ('must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} characters',
+               'must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} Unicode code points'),
+          ]
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise RuntimeError(f'expected one search.ts match for {old!r}, found {text.count(old)}')
+              text = text.replace(old, new, 1)
           search.write_text(text, encoding='utf-8')
 
           consistency = Path('worker/reference-search-consistency.test.ts')
           text = consistency.read_text(encoding='utf-8')
-          text = text.replace(
-              '    expect(source).toContain(\'kind: "sqlite-source-scan"\');\n',
-              '    expect(source).toContain(\'kind: "sqlite-source-scan"\');\n    expect(source).toContain("export type ReferenceSearchCandidate");\n',
-              1,
-          )
-          consistency.write_text(text, encoding='utf-8')
+          old = '    expect(source).toContain(\'kind: "sqlite-source-scan"\');\n'
+          new = old + '    expect(source).toContain("export type ReferenceSearchCandidate");\n'
+          if text.count(old) != 1:
+              raise RuntimeError('candidate export assertion anchor is not unique')
+          consistency.write_text(text.replace(old, new, 1), encoding='utf-8')
 
           plan = Path('docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md')
           text = plan.read_text(encoding='utf-8')
-          text = text.replace(
-              'A future Docker deployment can provide the same interface over\nchanging API or ranking semantics.',
-              'A future Docker deployment can provide the same interface without\nchanging API or ranking semantics.',
-              1,
-          )
-          text = text.replace(
-              'query              required non-empty string, at most 200 characters',
-              'query              required non-empty string, at most 200 Unicode code points',
-              1,
-          )
+          replacements = [
+              ('A future Docker deployment can provide the same interface over\nchanging API or ranking semantics.',
+               'A future Docker deployment can provide the same interface without\nchanging API or ranking semantics.'),
+              ('query              required non-empty string, at most 200 characters',
+               'query              required non-empty string, at most 200 Unicode code points'),
+          ]
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise RuntimeError(f'expected one plan match for {old!r}, found {text.count(old)}')
+              text = text.replace(old, new, 1)
           plan.write_text(text, encoding='utf-8')
           PY
 
