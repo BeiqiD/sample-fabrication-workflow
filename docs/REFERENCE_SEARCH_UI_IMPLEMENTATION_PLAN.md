@@ -1,6 +1,6 @@
 # Global reference search UI implementation plan
 
-Status: implementation contract for Phase 2C2
+Status: implementation contract for Phase 2C2; active Draft PR #130
 
 Last reviewed: 2026-08-09 after PR #129 was squash-merged into
 `v2/backend-foundation` as `6877fefbd41f38339d0af26c6cbe32258ba09710`
@@ -20,11 +20,12 @@ Phase 2C2 adds:
 - URL-owned committed search state;
 - one controlled, reusable `ReferenceSearchSurface` component;
 - browse and single-selection result modes;
-- type, Sample, and inclusive date filters;
+- type, Sample, and inclusive UTC-date filters;
 - deterministic result presentation from the Phase 2C1 response;
-- stale-request cancellation, explicit loading/empty/error/truncation states;
+- stale-request cancellation, explicit retry, and clear-to-idle behavior;
+- explicit loading/empty/error/truncation states;
 - keyboard-accessible controls and responsive desktop/mobile layouts;
-- focused URL-state, mounted-component, routing, and build verification.
+- focused URL-state, mounted-component, routing, history, and build verification.
 
 Phase 2C2 does not add:
 
@@ -95,6 +96,9 @@ The UI separates committed state from form draft state.
 - The surface keeps a local draft while the user edits query and filters.
 - Submit validates and emits one complete next state through `onChange`.
 - Only committed state triggers the API request.
+- Submitting the unchanged committed state explicitly retries that request.
+- Clear commits an empty query, aborts current work, and returns the controlled
+  surface to `idle` while preserving the committed filter profile.
 - Back/Forward changes the URL, replaces the controlled value, resets the draft,
   aborts stale work, and restores the corresponding result set.
 
@@ -109,8 +113,8 @@ The canonical browser parameters are:
 q=<trimmed query>
 type=<target type>       repeated; omitted means all nine types
 sample=<exact Sample stable ID>
-from=YYYY-MM-DD          inclusive UTC day boundary accepted by the API
-to=YYYY-MM-DD            inclusive UTC day boundary accepted by the API
+from=YYYY-MM-DD          browser date; request uses 00:00:00.000Z
+to=YYYY-MM-DD            browser date; request uses 23:59:59.999Z
 ```
 
 Rules:
@@ -122,8 +126,10 @@ Rules:
 - empty optional filters are omitted;
 - invalid external type values are ignored;
 - an external URL with no valid type leaves the default all-type profile;
-- the browser surface commits date-only values; programmatic API clients may
-  continue using the wider RFC 3339 contract from Phase 2C1;
+- the browser surface commits date-only values, then the request adapter converts
+  `from` to the UTC start of that date and `to` to the UTC end of that date;
+- programmatic API clients may continue using the wider RFC 3339 contract from
+  Phase 2C1;
 - `from > to`, an empty type selection, and a query beyond the shared 200-code-
   point bound are rejected before URL mutation;
 - submitting creates a browser history entry; Back/Forward therefore restores
@@ -138,13 +144,14 @@ URL, API, or selection contract.
 
 For each committed non-empty query:
 
-1. normalize the controlled UI state to `SearchReferencesInput`;
-2. start one `POST /api/references/search` request;
-3. abort the preceding request when committed state changes or the component
-   unmounts;
-4. ignore `AbortError`;
-5. render the newest successful response only;
-6. preserve the committed form values when the request fails so the user can
+1. normalize and validate the controlled UI state;
+2. convert browser dates to complete UTC-day RFC 3339 bounds;
+3. start one `POST /api/references/search` request;
+4. abort the preceding request when committed state changes, the same state is
+   explicitly retried, the query is cleared, or the component unmounts;
+5. ignore `AbortError`;
+6. render the newest successful response only;
+7. preserve the committed form values when the request fails so the user can
    retry without re-entering filters.
 
 The visible states are:
@@ -177,8 +184,10 @@ defined by Phase 2C1. The UI does not reinterpret Sample code or title as an ID.
 
 ### Time range
 
-The browser uses date inputs and submits inclusive date-only values. The form
-checks ordering before committing. Server validation remains authoritative.
+The browser uses date inputs and stores date-only values in the URL. The request
+adapter sends `from` at 00:00:00.000Z and `to` at 23:59:59.999Z so both selected
+UTC dates are fully inclusive. The form checks ordering before committing.
+Server validation remains authoritative.
 
 ### Reset
 
@@ -258,6 +267,7 @@ src/components/ReferenceSearchSurface.tsx
 src/pages/SearchPage.tsx
 src/reference-search.css
 src/reference-search-surface.mount.test.tsx
+src/reference-search-page.mount.test.tsx
 src/reference-search-page.test.ts
 ```
 
@@ -268,8 +278,6 @@ src/lib/reference-api.ts
 src/App.tsx
 src/components/NavigationIcon.tsx
 package.json
-docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md
-docs/PROJECT_DESIGN_FOUNDATION.md
 README.md
 ```
 
@@ -288,19 +296,28 @@ Pure tests cover:
 - canonical URL serialization and omission of defaults;
 - query trimming and shared length bounds;
 - empty-type and reversed-date validation;
-- conversion to the Phase 2C1 API input;
+- conversion of browser dates to complete UTC-day API bounds;
+- normalized committed-state equality for explicit retry;
 - stable target equality.
 
-Mounted tests cover:
+Mounted surface tests cover:
 
 - no request before a committed query exists;
 - exact POST payload for committed query/filter state;
 - stale request cancellation;
+- same-state retry after a request failure;
+- committed clear-to-idle behavior;
 - server result order preservation;
 - source/reference actions;
 - truncation and no-result states;
 - selection mode returning the exact stable `ReferenceTarget`;
 - no Project insertion wording or mutation behavior.
+
+Mounted page tests cover:
+
+- initial committed state restored from the URL;
+- explicit submission pushing a new URL history entry;
+- browser Back restoring the previous URL, input draft, request, and result set.
 
 Static page/routing tests cover:
 
@@ -322,15 +339,18 @@ Phase 2C2 is complete when:
 3. Back/Forward restores the corresponding controlled search;
 4. empty queries issue no request;
 5. stale requests are aborted and cannot replace newer results;
-6. result order exactly matches the service response;
-7. all nine target types can be selected and filtered;
-8. canonical Reference and exact source destinations are explicit actions;
-9. selection mode returns only a stable `ReferenceTarget` and performs no write;
-10. no registry row, source row, Project placeholder, or physical locator is
+6. an unchanged committed state can be explicitly retried after failure;
+7. clearing the query commits the idle state rather than only editing a draft;
+8. browser date filters cover both complete selected UTC dates;
+9. result order exactly matches the service response;
+10. all nine target types can be selected and filtered;
+11. canonical Reference and exact source destinations are explicit actions;
+12. selection mode returns only a stable `ReferenceTarget` and performs no write;
+13. no registry row, source row, Project placeholder, or physical locator is
     created or exposed;
-11. desktop and 320 px mobile layouts remain usable;
-12. focused reference tests, complete tests, and production build pass;
-13. the PR remains Draft for review and performs no remote migration or deploy.
+14. desktop and 320 px mobile layouts remain usable;
+15. focused reference tests, complete tests, and production build pass;
+16. the PR remains Draft for review and performs no remote migration or deploy.
 
 ## Next phase
 
