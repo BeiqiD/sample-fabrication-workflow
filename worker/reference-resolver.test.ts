@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ReferenceTarget } from "../shared/reference-types";
-import { resolveReferences } from "./references/resolver";
+import {
+  MAX_REFERENCE_RESOLUTION_TARGETS,
+  type ReferenceTarget,
+} from "../shared/reference-types";
+import {
+  ReferenceResolutionInputError,
+  resolveReferences,
+} from "./references/resolver";
 import {
   REFERENCE_FIXTURE_IDS,
   referenceTestDatabase,
@@ -125,6 +131,34 @@ describe("batch reference resolver", () => {
     ]);
     expect(results[2].source).toBeNull();
     expect(results[2].contexts[0].segments[0].label).toBe("Old sample");
+    database.close();
+  });
+
+  it("enforces the domain-service batch limit and runtime target validation", async () => {
+    const { database, db } = fixture();
+    expect(await resolveReferences(db, [])).toEqual([]);
+
+    const oversized = Array.from(
+      { length: MAX_REFERENCE_RESOLUTION_TARGETS + 1 },
+      (_, index): ReferenceTarget => ({ type: "sample", id: `sample-${index}` }),
+    );
+    await expect(resolveReferences(db, oversized)).rejects.toMatchObject<Partial<ReferenceResolutionInputError>>({
+      code: "too_many_targets",
+    });
+
+    for (const target of [
+      { type: "unknown", id: "unknown-type" },
+      { type: "sample", id: "" },
+      { type: "sample", id: " padded-id " },
+      { type: "sample", id: "x".repeat(257) },
+    ]) {
+      await expect(resolveReferences(
+        db,
+        [target as unknown as ReferenceTarget],
+      )).rejects.toMatchObject<Partial<ReferenceResolutionInputError>>({
+        code: "invalid_target",
+      });
+    }
     database.close();
   });
 
