@@ -93,18 +93,65 @@ deployment. Credentials and Access secrets must never be committed.
 
 ## Delivery sequence
 
-This first change is additive only: it introduces lifecycle columns, visible-row
-indexes, schema tests, and this contract. It does not change route behavior or
-run migrations remotely.
+The additive foundation introduced lifecycle columns, visible-row indexes,
+schema tests, and this contract. The source route conversion now applies those
+boundaries to Runs, Samples, Comments, attachment occurrences, and Recipe
+revisions:
 
-Subsequent changes will:
+- ordinary Run deletion sets `deleted_at` and `deleted_by` without removing or
+  rewiring steps, comments, attachment occurrences, plan revisions,
+  verifications, or successor links;
+- ordinary reads and mutations exclude deleted Runs and deleted steps;
+- restoration clears the deletion metadata on the same Run identity and
+  returns `409` when its predecessor already has another visible successor;
+- a deleted active process Run can be restored only when it would again be the
+  latest visible process Run for the Sample;
+- live active-Run and successor uniqueness, plus lifecycle triggers, ignore
+  deleted Runs without weakening uniqueness among visible Runs;
+- the five historical built-in metrology presets are archived and renamed with
+  deterministic retired titles; their stable IDs, template steps, reference
+  files, and historical Run links are never physically deleted by this change;
+- deleting a Sample preserves its Runs, events, verifications, and parent/child
+  links while ordinary directory, detail, and mutation routes hide it;
+- deleting a canonical Comment preserves its target occurrences, attachment
+  items, and managed storage; deleting one occurrence does not delete the
+  canonical Comment or shared bytes;
+- restoring a canonical Comment restores only occurrences marked by that
+  canonical delete operation; an independently deleted occurrence stays in
+  trash;
+- an occurrence or legacy image cannot be restored while its canonical Comment
+  remains deleted, and ordinary Sample reads defensively hide any such
+  inconsistent row;
+- comment attachment delete and restore share the same author and target
+  visibility checks; a TIFF preview cannot be visible while its required
+  original occurrence remains deleted;
+- execution-image and metrology-reference deletion hides only the selected
+  occurrence and restoration exposes the same occurrence ID again;
+- execution-image timeline entries carry `runStepAssetId`, so restoring one
+  occurrence cannot repoint another deleted image event from the same step;
+- common-comment group mutations are atomic across their target graph: if any
+  target Sample, Run, or Run step is deleted, the entire mutation returns
+  `409` without changing visible or hidden targets; the visibility and target
+  count gates are repeated inside the mutation batch before audit events or
+  timestamps are written;
+- deleting a Recipe revision prevents new assignment without removing its
+  family, import links, or historical Run references; restoration re-enables
+  the same revision when it was not independently archived.
 
-1. convert ordinary Run deletion and reads to soft-delete/restore semantics;
-2. convert Sample, Comment, attachment-occurrence, and Recipe deletion paths;
-3. add cleanup reachability guards and permanent-delete protection;
-4. add `reference_targets`, backlinks, and the batch read-only resolver;
-5. add object-level deep links and deterministic reference search;
-6. add Project-owned data and views.
+All restoration routes clear deletion metadata in place. Exports and existing
+Run history retain deleted source identities so later reference resolution can
+surface them as read-only records.
+
+The verification workflow runs for pull requests targeting both `main` and
+`v2/backend-foundation`, so an integration PR is rechecked when either its head
+or its integration base changes.
+
+The remaining sequence is:
+
+1. add cleanup reachability guards and permanent-delete protection;
+2. add `reference_targets`, backlinks, and the batch read-only resolver;
+3. add object-level deep links and deterministic reference search;
+4. add Project-owned data and views.
 
 Project UI, semantic search, source editing from Project, fixed Project
 hierarchies, and LLM write access are outside this foundation.

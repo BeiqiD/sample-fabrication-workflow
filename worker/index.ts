@@ -60,6 +60,38 @@ function validRunStepTargets(value: unknown): value is RunStepTarget[] {
   return true;
 }
 
+async function requireVisibleCommentOperationGroup(db: D1Database, operationGroupId: string) {
+  const counts = await db.prepare(
+    `SELECT COUNT(*) AS target_count,
+            COALESCE(SUM(CASE
+              WHEN s.id IS NOT NULL AND s.deleted_at IS NULL
+                AND r.id IS NOT NULL AND r.deleted_at IS NULL
+                AND rs.id IS NOT NULL AND rs.deleted_at IS NULL
+                AND (
+                  rsc.submission_id IS NULL
+                  OR EXISTS (
+                    SELECT 1
+                    FROM comment_submissions cs
+                    WHERE cs.id = rsc.submission_id
+                      AND cs.status = 'ready'
+                      AND cs.deleted_at IS NULL
+                  )
+                )
+              THEN 1 ELSE 0 END), 0) AS visible_count
+     FROM run_step_comments rsc
+     LEFT JOIN run_steps rs ON rs.id = rsc.run_step_id
+     LEFT JOIN runs r ON r.id = rs.run_id
+     LEFT JOIN samples s ON s.id = r.sample_id
+     WHERE rsc.operation_group_id = ?`,
+  ).bind(operationGroupId).first<{ target_count: number; visible_count: number }>();
+  if (!counts || Number(counts.target_count) < 1
+    || Number(counts.visible_count) !== Number(counts.target_count)) {
+    throw new HTTPException(409, {
+      message: "A common comment target is no longer available. Restore every target before changing the group.",
+    });
+  }
+}
+
 async function deleteR2KeysInBatches(bucket: R2Bucket, keys: string[]) {
   const failures: unknown[] = [];
   for (let index = 0; index < keys.length; index += 5) {
@@ -165,7 +197,7 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
     `WITH latest_run AS (
        SELECT id, sequence_no, initial_state_hash
        FROM runs
-       WHERE sample_id = ? AND run_kind = 'process'
+       WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL
        ORDER BY sequence_no DESC LIMIT 1
      ),
      candidates AS (
@@ -174,11 +206,12 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
        FROM run_steps rs
        JOIN latest_run lr ON lr.id = rs.run_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE rs.status = 'done'
+       WHERE rs.status = 'done' AND rs.deleted_at IS NULL
          AND rs.entry_kind = 'fabrication'
          AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
          AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
-           SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
          ))
        ORDER BY rs.position DESC LIMIT 1
      ),
@@ -192,17 +225,18 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
        FROM run_steps rs
        JOIN runs r ON r.id = rs.run_id
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE r.sample_id = ? AND r.run_kind = 'process'
-         AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+       WHERE r.sample_id = ? AND r.run_kind = 'process' AND r.deleted_at IS NULL
+         AND rs.entry_kind = 'fabrication' AND rs.status = 'done' AND rs.deleted_at IS NULL
          AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
          AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
-           SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
          ))
        ORDER BY r.sequence_no DESC, rs.position DESC LIMIT 1
      ),
      inherited_sample AS (
        SELECT NULL AS step_id, inherited_state_hash AS state_hash, NULL AS step_title, 4 AS priority
-       FROM samples WHERE id = ? AND inherited_state_hash IS NOT NULL
+       FROM samples WHERE id = ? AND inherited_state_hash IS NOT NULL AND deleted_at IS NULL
      )
      SELECT step_id, state_hash, step_title FROM (
        SELECT * FROM candidates
@@ -215,7 +249,7 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
     `SELECT a.r2_key, a.sha256
      FROM run_step_assets rsa
      JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
-     WHERE rsa.run_step_id = ? AND rsa.role = 'execution'
+     WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
      ORDER BY rsa.position, a.id`,
   ).bind(row.step_id).all<{ r2_key: string; sha256: string }>() : { results: [] };
   const assets = executionAssets.results.length
@@ -242,7 +276,7 @@ const sampleOverviewSelect = `
            SELECT COALESCE(rs.title, sd.name)
            FROM run_steps rs
            LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-           WHERE rs.run_id = r.id AND rs.plan_status = 'current'
+           WHERE rs.run_id = r.id AND rs.plan_status = 'current' AND rs.deleted_at IS NULL
              AND rs.entry_kind = 'fabrication'
              AND rs.status NOT IN ('done', 'skipped')
            ORDER BY rs.position
@@ -254,9 +288,11 @@ const sampleOverviewSelect = `
              FROM run_steps rs
              LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
              WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+               AND rs.deleted_at IS NULL
                AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
-                 SELECT 1 FROM run_step_assets rsa WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
                ))
              ORDER BY rs.position DESC LIMIT 1
            )
@@ -267,8 +303,10 @@ const sampleOverviewSelect = `
                SELECT a.r2_key
                FROM run_steps rs
                JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
+                 AND rsa.deleted_at IS NULL
                JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
                WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
+                 AND rs.deleted_at IS NULL
                  AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
              ),
@@ -280,7 +318,7 @@ const sampleOverviewSelect = `
                  (
                    SELECT rs.expected_state_hash
                    FROM run_steps rs
-                   WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication'
+                   WHERE rs.run_id = r.id AND rs.entry_kind = 'fabrication' AND rs.deleted_at IS NULL
                      AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
                      AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
                    ORDER BY rs.position DESC LIMIT 1
@@ -290,6 +328,7 @@ const sampleOverviewSelect = `
                    SELECT rs.expected_state_hash
                    FROM run_steps rs JOIN runs earlier ON earlier.id = rs.run_id
                    WHERE earlier.sample_id = s.id AND earlier.run_kind = 'process'
+                     AND earlier.deleted_at IS NULL AND rs.deleted_at IS NULL
                      AND earlier.sequence_no < r.sequence_no
                      AND rs.entry_kind = 'fabrication'
                      AND rs.status = 'done' AND rs.expected_state_hash IS NOT NULL
@@ -303,14 +342,15 @@ const sampleOverviewSelect = `
            )
          ) AS current_state_thumbnail_key
   FROM samples s
-  LEFT JOIN runs r ON r.sample_id = s.id
+  LEFT JOIN runs r ON r.sample_id = s.id AND r.deleted_at IS NULL
     AND r.sequence_no = (
       SELECT MAX(latest.sequence_no)
       FROM runs latest
-      WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+      WHERE latest.sample_id = s.id AND latest.run_kind = 'process' AND latest.deleted_at IS NULL
     )
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
-  LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
+  LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
+  WHERE s.deleted_at IS NULL`;
 
 const sampleDirectoryBaseSelect = `
   SELECT s.id, s.code, s.title, s.status, s.location, s.parent_id, s.pinned,
@@ -325,12 +365,13 @@ const sampleDirectoryBaseSelect = `
   LEFT JOIN runs r ON r.id = (
     SELECT latest.id
     FROM runs latest
-    WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+    WHERE latest.sample_id = s.id AND latest.run_kind = 'process' AND latest.deleted_at IS NULL
     ORDER BY latest.sequence_no DESC
     LIMIT 1
   )
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
-  LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id`;
+  LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
+  WHERE s.deleted_at IS NULL`;
 
 function sampleDirectorySearch(query: string) {
   const tokens = searchTokens(query);
@@ -371,6 +412,7 @@ function sampleDirectoryFilters(input: {
     sql.push(`EXISTS (
       SELECT 1 FROM samples parent
       WHERE parent.id = sample_base.parent_id
+        AND parent.deleted_at IS NULL
         AND LOWER(COALESCE(parent.code, '') || ' ' || COALESCE(parent.title, '')) LIKE ? ESCAPE '\\'
     )`);
     bindings.push(escapedLikePattern(input.parent.toLocaleLowerCase()));
@@ -426,13 +468,14 @@ app.get("/sample-directory-options", async (c) => {
     c.env.DB.prepare(
       `SELECT DISTINCT location
        FROM samples
-       WHERE location IS NOT NULL AND TRIM(location) <> ''
+       WHERE deleted_at IS NULL AND location IS NOT NULL AND TRIM(location) <> ''
        ORDER BY location COLLATE NOCASE`,
     ).all<{ location: string }>(),
     c.env.DB.prepare(
       `SELECT DISTINCT parent.id, parent.code, parent.title
        FROM samples child
        JOIN samples parent ON parent.id = child.parent_id
+       WHERE child.deleted_at IS NULL AND parent.deleted_at IS NULL
        ORDER BY parent.code COLLATE NOCASE, parent.id`,
     ).all<{ id: string; code: string; title: string }>(),
     c.env.DB.prepare(
@@ -485,6 +528,7 @@ app.get("/samples", async (c) => {
             AND matching_run.recipe_family_id = ?
             AND matching_run.run_kind = ?
             AND matching_run.status = ?
+            AND matching_run.deleted_at IS NULL
         )`
     : "";
   const filterSql = `(${baseFilterSql})${matchingRunFilterSql}`;
@@ -501,12 +545,13 @@ app.get("/samples", async (c) => {
            SELECT COALESCE(rs.title, sd.name)
            FROM run_steps rs
            LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-           WHERE rs.run_id = filtered_samples.latest_run_id
+           WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
              AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
              AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
              AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
                SELECT 1 FROM run_step_assets rsa
                WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution'
+                 AND rsa.deleted_at IS NULL
              ))
            ORDER BY rs.position DESC LIMIT 1
          ) AS current_state_step_title,
@@ -515,8 +560,9 @@ app.get("/samples", async (c) => {
              SELECT a.r2_key
              FROM run_steps rs
              JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
+               AND rsa.deleted_at IS NULL
              JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
-             WHERE rs.run_id = filtered_samples.latest_run_id
+             WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
                AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
                AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
              ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
@@ -529,7 +575,7 @@ app.get("/samples", async (c) => {
                (
                  SELECT rs.expected_state_hash
                  FROM run_steps rs
-                 WHERE rs.run_id = filtered_samples.latest_run_id
+                 WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
                    AND rs.entry_kind = 'fabrication' AND rs.status = 'done'
                    AND rs.expected_state_hash IS NOT NULL
                    AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
@@ -541,7 +587,8 @@ app.get("/samples", async (c) => {
                  FROM run_steps rs
                  JOIN runs earlier ON earlier.id = rs.run_id
                  WHERE earlier.sample_id = filtered_samples.id
-                   AND earlier.run_kind = 'process'
+                   AND earlier.run_kind = 'process' AND earlier.deleted_at IS NULL
+                   AND rs.deleted_at IS NULL
                    AND (
                      filtered_samples.latest_run_sequence IS NULL
                      OR earlier.sequence_no < filtered_samples.latest_run_sequence
@@ -572,7 +619,7 @@ app.get("/samples", async (c) => {
              SELECT COALESCE(rs.title, sd.name)
              FROM run_steps rs
              LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-             WHERE rs.run_id = filtered_samples.latest_run_id
+             WHERE rs.run_id = filtered_samples.latest_run_id AND rs.deleted_at IS NULL
                AND rs.plan_status = 'current'
                AND rs.entry_kind = 'fabrication'
                AND rs.status NOT IN ('done', 'skipped')
@@ -692,7 +739,7 @@ app.post("/samples/:id/split", async (c) => {
 
   const [parent, parentStructure] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT code, updated_at FROM samples WHERE id = ?",
+      "SELECT code, updated_at FROM samples WHERE id = ? AND deleted_at IS NULL",
     ).bind(parentId).first<{ code: string; updated_at: string }>(),
     loadCurrentSampleStructure(c.env.DB, parentId),
   ]);
@@ -713,12 +760,13 @@ app.post("/samples/:id/split", async (c) => {
           (id, code, title, description, status, location, parent_id, inherited_state_hash,
            created_by, updated_by, created_at, updated_at)
          SELECT ?, ?, ?, ?, ?, ?, id, ?, ?, ?, ?, ?
-         FROM samples WHERE id = ? AND updated_at = ?`,
+         FROM samples WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
       ).bind(child.id, child.code, child.title, child.description, child.status, child.location,
         parentStructure.stateHash, userEmail, userEmail, now, now, parentId, input.expectedUpdatedAt),
       c.env.DB.prepare(
         `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-         SELECT ?, id, 'created', ?, ?, ?, ? FROM samples WHERE id = ? AND parent_id = ?`,
+         SELECT ?, id, 'created', ?, ?, ?, ? FROM samples
+         WHERE id = ? AND parent_id = ? AND deleted_at IS NULL`,
       ).bind(
         crypto.randomUUID(), `Created by splitting parent ${parent.code}`,
         JSON.stringify({
@@ -734,7 +782,8 @@ app.post("/samples/:id/split", async (c) => {
   statements.push(
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       SELECT ?, id, 'status', ?, ?, ?, ? FROM samples WHERE id = ? AND updated_at = ?`,
+       SELECT ?, id, 'status', ?, ?, ?, ? FROM samples
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
     ).bind(
       crypto.randomUUID(), `Split into ${children.length} child samples: ${childCodes.join(", ")}`,
       JSON.stringify({ action: "sample_split", childIds: children.map((child) => child.id), childCodes, parentStatusAfter: input.parentStatusAfter }),
@@ -742,7 +791,7 @@ app.post("/samples/:id/split", async (c) => {
     ),
     c.env.DB.prepare(
       `UPDATE samples SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE id = ? AND updated_at = ?`,
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
     ).bind(input.parentStatusAfter, userEmail, mutationId, now, parentId, input.expectedUpdatedAt),
   );
 
@@ -780,11 +829,15 @@ app.get("/samples/:id", async (c) => {
     c.env.DB.prepare(
       `WITH sample_overview AS (${sampleOverviewSelect})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
-       FROM sample_overview s LEFT JOIN samples p ON p.id = s.parent_id WHERE s.id = ?`,
+       FROM sample_overview s
+       LEFT JOIN samples p ON p.id = s.parent_id AND p.deleted_at IS NULL
+       WHERE s.id = ?`,
     ).bind(id).first<Record<string, unknown>>(),
     processingView
       ? Promise.resolve({ results: [] })
-      : c.env.DB.prepare("SELECT id, code, title FROM samples WHERE parent_id = ? ORDER BY created_at").bind(id).all(),
+      : c.env.DB.prepare(
+        "SELECT id, code, title FROM samples WHERE parent_id = ? AND deleted_at IS NULL ORDER BY created_at",
+      ).bind(id).all(),
     processingView
       ? Promise.resolve({ results: [] })
       : c.env.DB.prepare("SELECT * FROM events WHERE sample_id = ? ORDER BY created_at DESC").bind(id).all(),
@@ -820,7 +873,7 @@ app.get("/samples/:id", async (c) => {
        FROM runs r
        LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
        LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
-       LEFT JOIN run_steps rs ON rs.run_id = r.id
+       LEFT JOIN run_steps rs ON rs.run_id = r.id AND rs.deleted_at IS NULL
        LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
        LEFT JOIN template_steps original_ts ON original_ts.id = rs.template_step_id
        LEFT JOIN run_step_plan_links current_link
@@ -828,7 +881,7 @@ app.get("/samples/:id", async (c) => {
         AND current_link.run_step_id = rs.id
        LEFT JOIN template_steps current_ts ON current_ts.id = current_link.template_step_id
        LEFT JOIN step_definitions current_sd ON current_sd.hash = current_ts.definition_hash
-       WHERE r.sample_id = ?
+       WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, rs.position ASC`,
     ).bind(id).all<Record<string, unknown>>(),
     c.env.DB.prepare(
@@ -843,14 +896,15 @@ app.get("/samples/:id", async (c) => {
          JOIN state_representation_assets sra ON sra.state_hash =
            CASE WHEN current_ts.id IS NOT NULL THEN current_ts.expected_state_hash ELSE rs.expected_state_hash END
          JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-         WHERE r.sample_id = ?
+         WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          UNION ALL
          SELECT rsa.run_step_id, 'execution' AS role, a.r2_key, rsa.position, rsa.created_at
          FROM run_step_assets rsa
          JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
          JOIN run_steps rs ON rs.id = rsa.run_step_id
          JOIN runs r ON r.id = rs.run_id
-         WHERE r.sample_id = ? AND rsa.role = 'execution'
+         WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
        ) ORDER BY run_step_id, role, position, created_at`,
     ).bind(id, id).all<{ run_step_id: string; role: "planned" | "execution"; r2_key: string }>(),
     c.env.DB.prepare(
@@ -858,7 +912,7 @@ app.get("/samples/:id", async (c) => {
        FROM runs r
        JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-       WHERE r.sample_id = ?
+       WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, sra.position, a.id`,
     ).bind(id).all<{ run_id: string; r2_key: string }>(),
     c.env.DB.prepare(
@@ -867,8 +921,15 @@ app.get("/samples/:id", async (c) => {
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
+       LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
        LEFT JOIN assets ca ON ca.id = rsc.asset_id AND ca.status = 'ready'
-       WHERE r.sample_id = ?
+         AND rsc.asset_deleted_at IS NULL
+       WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND rsc.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR (cs.status = 'ready' AND cs.deleted_at IS NULL)
+         )
        ORDER BY rsc.created_at, rsc.id`,
     ).bind(id).all<{
       id: string; run_step_id: string; scope: "common" | "individual";
@@ -877,19 +938,27 @@ app.get("/samples/:id", async (c) => {
     }>(),
     c.env.DB.prepare(
       `SELECT sv.* FROM state_verifications sv
-       WHERE sv.sample_id = ? ORDER BY sv.created_at, sv.id`,
+       JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+       JOIN runs endpoint_run ON endpoint_run.id = endpoint.run_id
+       WHERE sv.sample_id = ? AND endpoint_run.deleted_at IS NULL
+         AND endpoint.deleted_at IS NULL
+       ORDER BY sv.created_at, sv.id`,
     ).bind(id).all<Record<string, unknown>>(),
     c.env.DB.prepare(
       `SELECT svs.verification_id, svs.run_step_id, svs.ordinal
        FROM state_verification_steps svs
        JOIN state_verifications sv ON sv.id = svs.verification_id
-       WHERE sv.sample_id = ? ORDER BY sv.created_at, svs.ordinal`,
+       JOIN run_steps covered_step ON covered_step.id = svs.run_step_id
+       JOIN runs covered_run ON covered_run.id = covered_step.run_id
+       WHERE sv.sample_id = ? AND covered_run.deleted_at IS NULL
+         AND covered_step.deleted_at IS NULL
+       ORDER BY sv.created_at, svs.ordinal`,
     ).bind(id).all<{ verification_id: string; run_step_id: string; ordinal: number }>(),
     c.env.DB.prepare(
       `SELECT DISTINCT cs.*
        FROM comment_submissions cs
        LEFT JOIN comment_submission_targets cst ON cst.submission_id = cs.id
-       WHERE cs.sample_id = ? OR cst.sample_id = ?
+       WHERE cs.deleted_at IS NULL AND (cs.sample_id = ? OR cst.sample_id = ?)
        ORDER BY cs.created_at, cs.id`,
     ).bind(id, id).all<CommentSubmissionRow>(),
     c.env.DB.prepare(
@@ -898,14 +967,18 @@ app.get("/samples/:id", async (c) => {
        JOIN comment_submissions cs ON cs.id = csi.submission_id
        LEFT JOIN comment_submission_targets cst ON cst.submission_id = cs.id
        LEFT JOIN assets a ON a.id = csi.asset_id AND a.status = 'ready'
-       WHERE cs.sample_id = ? OR cst.sample_id = ?
+       WHERE cs.deleted_at IS NULL AND csi.deleted_at IS NULL
+         AND (cs.sample_id = ? OR cst.sample_id = ?)
        ORDER BY csi.submission_id, csi.position`,
     ).bind(id, id).all<CommentSubmissionItemRow>(),
     c.env.DB.prepare(
       `SELECT cst.submission_id, cst.run_step_id
        FROM comment_submission_targets cst
        JOIN comment_submissions cs ON cs.id = cst.submission_id
+       JOIN run_steps rs ON rs.id = cst.run_step_id
+       JOIN runs r ON r.id = rs.run_id
        WHERE cst.sample_id = ? AND cs.status <> 'cancelled'
+         AND cs.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        ORDER BY cs.created_at, cst.run_step_id`,
     ).bind(id).all<{ submission_id: string; run_step_id: string }>(),
   ]);
@@ -1080,7 +1153,8 @@ app.patch("/samples/:id", async (c) => {
     throw new HTTPException(400, { message: "Invalid sample status" });
   }
   const current = await c.env.DB.prepare(
-    "SELECT title, description, status, location, pinned, updated_at FROM samples WHERE id = ?",
+    `SELECT title, description, status, location, pinned, updated_at
+     FROM samples WHERE id = ? AND deleted_at IS NULL`,
   ).bind(id).first<{ title: string; description: string | null; status: SampleStatus; location: string | null; pinned: number; updated_at: string }>();
   if (!current) throw new HTTPException(404, { message: "Sample not found" });
   if (current.updated_at !== input.expectedUpdatedAt) {
@@ -1100,11 +1174,12 @@ app.patch("/samples/:id", async (c) => {
   const titleAudit = titleChangeAudit(current.title, nextTitle);
   const statements = [c.env.DB.prepare(
     `UPDATE samples SET title = ?, description = ?, status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND updated_at = ?`,
+     WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
   ).bind(nextTitle, nextDescription, nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), mutationId, now, id, input.expectedUpdatedAt)];
   if (titleAudit) statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
+       SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples
+       WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL`,
     ).bind(
       crypto.randomUUID(), titleAudit.body, JSON.stringify(titleAudit.metadata),
       c.get("userEmail"), now, id, mutationId,
@@ -1130,7 +1205,7 @@ app.delete("/samples/:id", async (c) => {
             (SELECT COUNT(*) FROM events e WHERE e.sample_id = s.id) AS event_count,
             (SELECT COUNT(*) FROM state_verifications sv WHERE sv.sample_id = s.id) AS verification_count,
             (SELECT COUNT(*) FROM samples child WHERE child.parent_id = s.id) AS child_count
-     FROM samples s WHERE s.id = ?`,
+     FROM samples s WHERE s.id = ? AND s.deleted_at IS NULL`,
   ).bind(id).first<{
     code: string; updated_at: string; run_count: number; step_count: number;
     event_count: number; verification_count: number; child_count: number;
@@ -1143,29 +1218,56 @@ app.delete("/samples/:id", async (c) => {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting." });
   }
 
-  const results = await c.env.DB.batch([
-    c.env.DB.prepare(
-      `UPDATE recipe_change_proposals SET source_verification_id = NULL
-       WHERE source_verification_id IN (SELECT id FROM state_verifications WHERE sample_id = ?)
-         AND EXISTS (SELECT 1 FROM samples WHERE id = ? AND code = ? AND updated_at = ?)`,
-    ).bind(id, id, sample.code, sample.updated_at),
-    c.env.DB.prepare(
-      "DELETE FROM samples WHERE id = ? AND code = ? AND updated_at = ?",
-    ).bind(id, sample.code, sample.updated_at),
-  ]);
-  if (!results[1].meta.changes) {
+  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
+  const result = await c.env.DB.prepare(
+    `UPDATE samples
+     SET deleted_at = ?, deleted_by = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+     WHERE id = ? AND code = ? AND updated_at = ? AND deleted_at IS NULL`,
+  ).bind(now, c.get("userEmail"), c.get("userEmail"), crypto.randomUUID(), now,
+    id, sample.code, sample.updated_at).run();
+  if (!result.meta.changes) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting." });
   }
   return c.json({
     ok: true,
+    updatedAt: now,
     deleted: {
       runs: Number(sample.run_count),
       steps: Number(sample.step_count),
       events: Number(sample.event_count),
       verifications: Number(sample.verification_count),
-      childrenDetached: Number(sample.child_count),
+      childrenDetached: 0,
     },
   });
+});
+
+app.post("/samples/:id/restore", async (c) => {
+  const id = c.req.param("id");
+  const input = await c.req.json<DeleteSampleInput>().catch(() => null);
+  if (!input || typeof input.confirmationCode !== "string" || typeof input.expectedUpdatedAt !== "string") {
+    throw new HTTPException(400, { message: "The sample code and current revision are required" });
+  }
+  const sample = await c.env.DB.prepare(
+    "SELECT code, updated_at, deleted_at FROM samples WHERE id = ? AND deleted_at IS NOT NULL",
+  ).bind(id).first<{ code: string; updated_at: string; deleted_at: string }>();
+  if (!sample) throw new HTTPException(404, { message: "Deleted sample not found" });
+  if (input.confirmationCode !== sample.code) {
+    throw new HTTPException(400, { message: "The confirmation code does not match the sample code" });
+  }
+  if (input.expectedUpdatedAt !== sample.updated_at) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before restoring." });
+  }
+  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
+  const result = await c.env.DB.prepare(
+    `UPDATE samples
+     SET deleted_at = NULL, deleted_by = NULL, updated_by = ?, last_mutation_id = ?, updated_at = ?
+     WHERE id = ? AND code = ? AND updated_at = ? AND deleted_at = ?`,
+  ).bind(c.get("userEmail"), crypto.randomUUID(), now, id, sample.code,
+    sample.updated_at, sample.deleted_at).run();
+  if (!result.meta.changes) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before restoring." });
+  }
+  return c.json({ ok: true, updatedAt: now });
 });
 
 app.post("/samples/:id/records", async (c) => {
@@ -1193,7 +1295,7 @@ app.post("/samples/:id/records", async (c) => {
   }
 
   const current = await c.env.DB.prepare(
-    "SELECT status, location, pinned, updated_at FROM samples WHERE id = ?",
+    "SELECT status, location, pinned, updated_at FROM samples WHERE id = ? AND deleted_at IS NULL",
   ).bind(sampleId).first<{ status: SampleStatus; location: string | null; pinned: number; updated_at: string }>();
   if (!current) throw new HTTPException(404, { message: "Sample not found" });
   if (current.updated_at !== input.expectedUpdatedAt) {
@@ -1208,11 +1310,12 @@ app.post("/samples/:id/records", async (c) => {
   const userEmail = c.get("userEmail");
   const statements = [c.env.DB.prepare(
     `UPDATE samples SET status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND updated_at = ?`,
+     WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
   ).bind(input.status, location, input.pinned ? 1 : 0, userEmail, mutationId, now, sampleId, input.expectedUpdatedAt)];
   if (body || assetKey) statements.push(c.env.DB.prepare(
     `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-     SELECT ?, id, ?, ?, ?, ?, ?, ? FROM samples WHERE id = ? AND last_mutation_id = ?`,
+     SELECT ?, id, ?, ?, ?, ?, ?, ? FROM samples
+     WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL`,
   ).bind(
     crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey,
     JSON.stringify({ action: "sample_record", ...(thumbnailKey ? { thumbnailKey } : {}) }), userEmail, now, sampleId, mutationId,
@@ -1236,29 +1339,69 @@ app.delete("/samples/:id/records/:eventId", async (c) => {
   if (!isSampleRecordEvent(event.kind, metadata)) throw new HTTPException(400, { message: "Execution history cannot be deleted as a sample comment" });
 
   const sample = await c.env.DB.prepare(
-    "SELECT updated_at FROM samples WHERE id = ?",
+    "SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL",
   ).bind(sampleId).first<{ updated_at: string }>();
   if (!sample) throw new HTTPException(404, { message: "Sample not found" });
   const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
   const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
   const deletedSummary = event.body?.trim() || (event.asset_key ? "Photo attachment" : "Empty record");
+  const deletionOperationId = crypto.randomUUID();
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
-      "UPDATE events SET asset_key = NULL, metadata_json = ? WHERE id = ? AND sample_id = ?",
-    ).bind(JSON.stringify({ ...retainedMetadata, deletedAt: now, deletedBy: userEmail, hadAsset: Boolean(event.asset_key) }), eventId, sampleId),
-    c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+      `UPDATE events
+       SET asset_key = NULL, metadata_json = ?
+       WHERE id = ? AND sample_id = ?
+         AND json_extract(metadata_json, '$.deletedAt') IS NULL
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = events.sample_id AND s.id = ?
+             AND s.updated_at = ? AND s.deleted_at IS NULL
+         )`,
     ).bind(
-      crypto.randomUUID(), sampleId, `Deleted sample record · ${deletedSummary}`,
-      JSON.stringify({ action: "sample_record_deleted", originalEventId: eventId, hadAsset: Boolean(event.asset_key) }), userEmail, now,
+      JSON.stringify({
+        ...retainedMetadata,
+        deletedAt: now,
+        deletedBy: userEmail,
+        deletionOperationId,
+        hadAsset: Boolean(event.asset_key),
+      }),
+      eventId,
+      sampleId,
+      sampleId,
+      sample.updated_at,
     ),
     c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-    ).bind(userEmail, now, sampleId),
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, source.sample_id, 'comment', ?, ?, ?, ?
+       FROM events source
+       JOIN samples s ON s.id = source.sample_id
+       WHERE source.id = ? AND source.sample_id = ?
+         AND json_extract(source.metadata_json, '$.deletionOperationId') = ?
+         AND s.deleted_at IS NULL`,
+    ).bind(
+      crypto.randomUUID(),
+      `Deleted sample record · ${deletedSummary}`,
+      JSON.stringify({ action: "sample_record_deleted", originalEventId: eventId, hadAsset: Boolean(event.asset_key) }),
+      userEmail,
+      now,
+      eventId,
+      sampleId,
+      deletionOperationId,
+    ),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM events source
+           WHERE source.id = ? AND source.sample_id = samples.id
+             AND json_extract(source.metadata_json, '$.deletionOperationId') = ?
+         )`,
+    ).bind(userEmail, now, sampleId, eventId, deletionOperationId),
   ]);
-  if (!results[0].meta.changes) throw new HTTPException(409, { message: "The sample record was already deleted" });
+  if (!results[0].meta.changes || !results[2].meta.changes) {
+    throw new HTTPException(409, { message: "The sample record or its Sample changed before deletion" });
+  }
   return c.json({ ok: true, updatedAt: now });
 });
 
@@ -1279,93 +1422,398 @@ app.delete("/samples/:id/events/:eventId/asset", async (c) => {
   const verificationId = typeof metadata.verificationId === "string" ? metadata.verificationId : null;
   const stepId = typeof metadata.stepId === "string" ? metadata.stepId : null;
   const runId = typeof metadata.runId === "string" ? metadata.runId : null;
-  const affectedSampleIds = operationGroupId && sourceAction === "step_comment"
+  const eventRunStepAssetId = typeof metadata.runStepAssetId === "string" ? metadata.runStepAssetId : null;
+  if (runId) {
+    const liveRun = await c.env.DB.prepare(
+      "SELECT id FROM runs WHERE id = ? AND sample_id = ? AND deleted_at IS NULL",
+    ).bind(runId, sampleId).first<{ id: string }>();
+    if (!liveRun) throw new HTTPException(404, { message: "Active timeline source not found" });
+  }
+  let executionOccurrenceId: string | null = null;
+  if (stepId && runId && event.kind === "image") {
+    const occurrences = eventRunStepAssetId
+      ? (await c.env.DB.prepare(
+        `SELECT rsa.id
+         FROM run_step_assets rsa
+         JOIN assets a ON a.id = rsa.asset_id
+         JOIN run_steps rs ON rs.id = rsa.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.role = 'execution'
+           AND a.r2_key = ? AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
+      ).bind(
+        eventRunStepAssetId, stepId, event.asset_key,
+        stepId, runId, sampleId,
+      ).all<{ id: string }>()).results
+      : (await c.env.DB.prepare(
+        `SELECT rsa.id
+         FROM run_step_assets rsa
+         JOIN assets a ON a.id = rsa.asset_id
+         JOIN run_steps rs ON rs.id = rsa.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND a.r2_key = ?
+           AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
+      ).bind(stepId, event.asset_key, stepId, runId, sampleId).all<{ id: string }>()).results;
+    if (occurrences.length !== 1) {
+      throw new HTTPException(409, { message: "This execution image no longer identifies one attachment occurrence" });
+    }
+    executionOccurrenceId = occurrences[0].id;
+  }
+  const affectedEvents = operationGroupId && sourceAction === "step_comment"
     ? (await c.env.DB.prepare(
-      `SELECT DISTINCT sample_id FROM events
+      `SELECT id, sample_id FROM events
        WHERE kind = 'step' AND json_valid(metadata_json)
          AND json_extract(metadata_json, '$.action') = 'step_comment'
-         AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-    ).bind(operationGroupId).all<{ sample_id: string }>()).results.map((row) => row.sample_id)
-    : [sampleId];
+         AND json_extract(metadata_json, '$.operationGroupId') = ?
+         AND asset_key = ?
+       ORDER BY id`,
+    ).bind(operationGroupId, event.asset_key).all<{ id: string; sample_id: string }>()).results
+    : executionOccurrenceId && stepId && runId && event.kind === "image"
+      ? (await c.env.DB.prepare(
+        `SELECT id, sample_id
+         FROM events
+         WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+           AND (
+             json_extract(metadata_json, '$.runStepAssetId') = ?
+             OR (
+               json_extract(metadata_json, '$.runStepAssetId') IS NULL
+               AND json_extract(metadata_json, '$.runId') = ?
+               AND json_extract(metadata_json, '$.stepId') = ?
+             )
+           )
+         ORDER BY id`,
+      ).bind(
+        sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
+      ).all<{ id: string; sample_id: string }>()).results
+    : [{ id: eventId, sample_id: sampleId }];
+  const affectedSampleIds = [...new Set(affectedEvents.map((row) => row.sample_id))];
+  if (!affectedEvents.length) {
+    throw new HTTPException(409, { message: "This image attachment was already deleted" });
+  }
+  if (operationGroupId && sourceAction === "step_comment") {
+    await requireVisibleCommentOperationGroup(c.env.DB, operationGroupId);
+  }
   const sampleRows = await c.env.DB.prepare(
-    `SELECT id, updated_at FROM samples WHERE id IN (${affectedSampleIds.map(() => "?").join(", ")})`,
+    `SELECT id, updated_at FROM samples
+     WHERE id IN (${affectedSampleIds.map(() => "?").join(", ")}) AND deleted_at IS NULL`,
   ).bind(...affectedSampleIds).all<{ id: string; updated_at: string }>();
-  if (!sampleRows.results.length) throw new HTTPException(404, { message: "Sample not found" });
+  if (sampleRows.results.length !== affectedSampleIds.length) {
+    throw new HTTPException(404, { message: "Sample not found" });
+  }
   const latestUpdate = Math.max(...sampleRows.results.map((row) => Date.parse(row.updated_at)).filter(Number.isFinite));
   const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
   const userEmail = c.get("userEmail");
+  const deletionOperationId = crypto.randomUUID();
   const statements: D1PreparedStatement[] = [];
-  let eventDetachIndex = -1;
+  const affectedEventIds = affectedEvents.map((row) => row.id);
+  const affectedEventPlaceholders = affectedEventIds.map(() => "?").join(", ");
 
   if (sourceAction === "step_comment" && operationGroupId) {
     statements.push(c.env.DB.prepare(
+      `WITH valid_events AS MATERIALIZED (
+         SELECT id FROM events
+         WHERE id IN (${affectedEventPlaceholders})
+           AND kind = 'step' AND asset_key = ? AND json_valid(metadata_json)
+           AND json_extract(metadata_json, '$.action') = 'step_comment'
+           AND json_extract(metadata_json, '$.operationGroupId') = ?
+       ),
+       valid_comments AS MATERIALIZED (
+         SELECT rsc.id
+         FROM run_step_comments rsc
+         JOIN run_steps rs ON rs.id = rsc.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsc.operation_group_id = ?
+           AND rsc.asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+           AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+           AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND (
+             rsc.submission_id IS NULL
+             OR EXISTS (
+               SELECT 1 FROM comment_submissions cs
+               WHERE cs.id = rsc.submission_id
+                 AND cs.status = 'ready' AND cs.deleted_at IS NULL
+             )
+           )
+       )
+       UPDATE events
+       SET asset_key = NULL,
+           metadata_json = json_set(
+             metadata_json,
+             '$.assetDeletedAt', ?,
+             '$.assetDeletedBy', ?,
+             '$.assetDeletionOperationId', ?
+           )
+       WHERE id IN (SELECT id FROM valid_events)
+         AND (SELECT COUNT(*) FROM valid_events) = ?
+         AND EXISTS (SELECT 1 FROM valid_comments)
+         AND (
+           SELECT COUNT(*) FROM valid_comments
+         ) = (
+           SELECT COUNT(*) FROM run_step_comments
+           WHERE operation_group_id = ?
+             AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+             AND deleted_at IS NULL AND asset_deleted_at IS NULL
+         )`,
+    ).bind(
+      ...affectedEventIds,
+      event.asset_key,
+      operationGroupId,
+      operationGroupId,
+      event.asset_key,
+      now,
+      userEmail,
+      deletionOperationId,
+      affectedEventIds.length,
+      operationGroupId,
+      event.asset_key,
+    ));
+    statements.push(c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET asset_deleted_at = ?, asset_deleted_by = ?,
+           asset_deletion_operation_id = ?, last_mutation_id = ?
+       WHERE operation_group_id = ?
+         AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+         AND deleted_at IS NULL AND asset_deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM events source
+           WHERE source.id IN (${affectedEventPlaceholders})
+             AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+         ) = ?`,
+    ).bind(
+      now,
+      userEmail,
+      deletionOperationId,
+      deletionOperationId,
+      operationGroupId,
+      event.asset_key,
+      ...affectedEventIds,
+      deletionOperationId,
+      affectedEventIds.length,
+    ));
+    statements.push(c.env.DB.prepare(
       `UPDATE run_steps SET updated_by = ?, updated_at = ?
-       WHERE id IN (SELECT run_step_id FROM run_step_comments WHERE operation_group_id = ?)`,
-    ).bind(userEmail, now, operationGroupId));
-    statements.push(c.env.DB.prepare(
-      `UPDATE run_step_comments SET asset_id = NULL
-       WHERE operation_group_id = ? AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)`,
-    ).bind(operationGroupId, event.asset_key));
-    eventDetachIndex = statements.length;
-    statements.push(c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL,
-         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
-       WHERE kind = 'step' AND asset_key = ? AND json_valid(metadata_json)
-         AND json_extract(metadata_json, '$.action') = 'step_comment'
-         AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-    ).bind(now, userEmail, event.asset_key, operationGroupId));
+       WHERE id IN (
+         SELECT run_step_id FROM run_step_comments
+         WHERE operation_group_id = ? AND last_mutation_id = ?
+       )
+         AND deleted_at IS NULL`,
+    ).bind(userEmail, now, operationGroupId, deletionOperationId));
   } else if (verificationId && event.kind === "verification") {
     statements.push(c.env.DB.prepare(
+      `UPDATE events SET asset_key = NULL,
+         metadata_json = json_set(
+           metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
+           '$.assetDeletionOperationId', ?
+         )
+       WHERE id = ? AND sample_id = ? AND asset_key = ?
+         AND EXISTS (
+           SELECT 1
+           FROM state_verifications sv
+           JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+           JOIN runs r ON r.id = endpoint.run_id
+           JOIN samples s ON s.id = sv.sample_id
+           WHERE sv.id = ? AND sv.sample_id = ?
+             AND sv.evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+             AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+             AND endpoint.deleted_at IS NULL
+         )`,
+    ).bind(
+      now, userEmail, deletionOperationId,
+      eventId, sampleId, event.asset_key,
+      verificationId, sampleId, event.asset_key,
+    ));
+    statements.push(c.env.DB.prepare(
       `UPDATE state_verifications SET evidence_asset_id = NULL
-       WHERE id = ? AND sample_id = ? AND evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)`,
-    ).bind(verificationId, sampleId, event.asset_key));
-    eventDetachIndex = statements.length;
+       WHERE id = ? AND sample_id = ?
+         AND evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+         AND EXISTS (
+           SELECT 1 FROM events source
+           WHERE source.id = ? AND source.sample_id = ?
+             AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+         )`,
+    ).bind(
+      verificationId, sampleId, event.asset_key,
+      eventId, sampleId, deletionOperationId,
+    ));
+  } else if (stepId && runId && event.kind === "image" && executionOccurrenceId) {
     statements.push(c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL,
-         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
-       WHERE id = ? AND sample_id = ? AND asset_key = ?`,
-    ).bind(now, userEmail, eventId, sampleId, event.asset_key));
-  } else if (stepId && runId && event.kind === "image") {
+      `WITH candidate_events AS MATERIALIZED (
+         SELECT id
+         FROM events
+         WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+           AND (
+             json_extract(metadata_json, '$.runStepAssetId') = ?
+             OR (
+               json_extract(metadata_json, '$.runStepAssetId') IS NULL
+               AND json_extract(metadata_json, '$.runId') = ?
+               AND json_extract(metadata_json, '$.stepId') = ?
+             )
+           )
+       ),
+       valid_occurrence AS MATERIALIZED (
+         SELECT rsa.id
+         FROM run_step_assets rsa
+         JOIN assets a ON a.id = rsa.asset_id
+         JOIN run_steps rs ON rs.id = rsa.run_step_id
+         JOIN runs r ON r.id = rs.run_id
+         JOIN samples s ON s.id = r.sample_id
+         WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.role = 'execution'
+           AND a.r2_key = ? AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
+           AND r.deleted_at IS NULL AND s.deleted_at IS NULL
+       )
+       UPDATE events SET asset_key = NULL,
+         metadata_json = json_set(
+           metadata_json, '$.runStepAssetId', ?,
+           '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
+           '$.assetDeletionOperationId', ?
+         )
+       WHERE id IN (SELECT id FROM candidate_events)
+         AND (SELECT COUNT(*) FROM candidate_events) = ?
+         AND EXISTS (SELECT 1 FROM valid_occurrence)`,
+    ).bind(
+      sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
+      executionOccurrenceId, stepId, event.asset_key, stepId, runId, sampleId,
+      executionOccurrenceId, now, userEmail, deletionOperationId,
+      affectedEventIds.length,
+    ));
     statements.push(c.env.DB.prepare(
-      `DELETE FROM run_step_assets WHERE run_step_id = ?
-       AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
-       AND EXISTS (SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-                   WHERE rs.id = run_step_assets.run_step_id AND r.id = ? AND r.sample_id = ?)`,
-    ).bind(stepId, event.asset_key, runId, sampleId));
+      `UPDATE run_step_assets
+       SET deleted_at = ?, deleted_by = ?, last_mutation_id = ?
+       WHERE id = ? AND run_step_id = ? AND deleted_at IS NULL
+         AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+         AND (
+           SELECT COUNT(*) FROM events source
+           WHERE source.sample_id = ? AND source.kind = 'image'
+             AND json_valid(source.metadata_json)
+             AND json_extract(source.metadata_json, '$.runStepAssetId') = ?
+             AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+         ) = ?`,
+    ).bind(
+      now, userEmail, deletionOperationId,
+      executionOccurrenceId, stepId, event.asset_key,
+      sampleId, executionOccurrenceId, deletionOperationId, affectedEventIds.length,
+    ));
     statements.push(c.env.DB.prepare(
-      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND run_id = ?",
-    ).bind(userEmail, now, stepId, runId));
-    eventDetachIndex = statements.length;
-    statements.push(c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL,
-         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
-       WHERE id = ? AND sample_id = ? AND asset_key = ?`,
-    ).bind(now, userEmail, eventId, sampleId, event.asset_key));
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND run_id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.id = ? AND rsa.run_step_id = run_steps.id
+             AND rsa.last_mutation_id = ?
+         )`,
+    ).bind(
+      userEmail, now, stepId, runId,
+      executionOccurrenceId, deletionOperationId,
+    ));
   } else if (isSampleRecordEvent(event.kind, metadata)) {
     const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
-    eventDetachIndex = statements.length;
     statements.push(c.env.DB.prepare(
-      "UPDATE events SET asset_key = NULL, metadata_json = ? WHERE id = ? AND sample_id = ? AND asset_key = ?",
-    ).bind(JSON.stringify({ ...retainedMetadata, assetDeletedAt: now, assetDeletedBy: userEmail }), eventId, sampleId, event.asset_key));
+      `UPDATE events SET asset_key = NULL, metadata_json = ?
+       WHERE id = ? AND sample_id = ? AND asset_key = ?
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = events.sample_id AND s.deleted_at IS NULL
+         )`,
+    ).bind(
+      JSON.stringify({
+        ...retainedMetadata,
+        assetDeletedAt: now,
+        assetDeletedBy: userEmail,
+        assetDeletionOperationId: deletionOperationId,
+      }),
+      eventId,
+      sampleId,
+      event.asset_key,
+    ));
   } else {
     throw new HTTPException(400, { message: "This timeline image is not a removable attachment" });
   }
 
   for (const affectedSampleId of affectedSampleIds) {
+    const sampleEventIds = affectedEvents
+      .filter((row) => row.sample_id === affectedSampleId)
+      .map((row) => row.id);
+    if (executionOccurrenceId) {
+      statements.push(c.env.DB.prepare(
+        `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+         SELECT ?, ?, 'comment', ?, ?, ?, ?
+         WHERE (
+           SELECT COUNT(*) FROM events source
+           WHERE source.sample_id = ? AND source.kind = 'image'
+             AND json_valid(source.metadata_json)
+             AND json_extract(source.metadata_json, '$.runStepAssetId') = ?
+             AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+         ) = ?`,
+      ).bind(
+        crypto.randomUUID(), affectedSampleId, `Deleted image attachment · ${event.body?.trim() || "Image"}`,
+        JSON.stringify({ action: "image_attachment_deleted", originalEventId: eventId, sourceAction, hadAsset: true }),
+        userEmail, now,
+        affectedSampleId, executionOccurrenceId, deletionOperationId, sampleEventIds.length,
+      ));
+      statements.push(c.env.DB.prepare(
+        `UPDATE samples SET updated_by = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+           AND (
+             SELECT COUNT(*) FROM events source
+             WHERE source.sample_id = samples.id AND source.kind = 'image'
+               AND json_valid(source.metadata_json)
+               AND json_extract(source.metadata_json, '$.runStepAssetId') = ?
+               AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+           ) = ?`,
+      ).bind(
+        userEmail, now, affectedSampleId,
+        executionOccurrenceId, deletionOperationId, sampleEventIds.length,
+      ));
+      continue;
+    }
+    const sampleEventPlaceholders = sampleEventIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'comment', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM events source
+         WHERE source.id IN (${sampleEventPlaceholders})
+           AND source.sample_id = ?
+           AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+       ) = ?`,
     ).bind(
       crypto.randomUUID(), affectedSampleId, `Deleted image attachment · ${event.body?.trim() || "Image"}`,
       JSON.stringify({ action: "image_attachment_deleted", originalEventId: eventId, sourceAction, hadAsset: true }),
       userEmail, now,
+      ...sampleEventIds,
+      affectedSampleId,
+      deletionOperationId,
+      sampleEventIds.length,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-    ).bind(userEmail, now, affectedSampleId));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM events source
+           WHERE source.id IN (${sampleEventPlaceholders})
+             AND source.sample_id = samples.id
+             AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
+         ) = ?`,
+    ).bind(
+      userEmail,
+      now,
+      affectedSampleId,
+      ...sampleEventIds,
+      deletionOperationId,
+      sampleEventIds.length,
+    ));
   }
   const results = await c.env.DB.batch(statements);
-  if (eventDetachIndex < 0 || !results[eventDetachIndex].meta.changes) throw new HTTPException(409, { message: "This image attachment was already deleted" });
+  if (results[0].meta.changes !== affectedEventIds.length) {
+    throw new HTTPException(409, { message: "The image attachment source changed before deletion" });
+  }
   return c.json({ ok: true, updatedAt: now });
 });
 
@@ -1374,15 +1822,16 @@ app.post("/samples/:id/runs/preview", async (c) => {
   const { templateVersionId } = await c.req.json<{ templateVersionId?: string }>();
   if (!templateVersionId) throw new HTTPException(400, { message: "A process-template version is required" });
   const [sample, template, latestRun, currentState] = await Promise.all([
-    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL").bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT id, name, version, initial_state_hash, content_json
        FROM template_versions
        WHERE id = ? AND template_kind = 'process' AND archived_at IS NULL
+         AND deleted_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = template_versions.id AND i.status != 'ready')`,
     ).bind(templateVersionId).first<{ id: string; name: string; version: number; initial_state_hash: string | null; content_json: string | null }>(),
     c.env.DB.prepare(
-      "SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1",
+      "SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL ORDER BY sequence_no DESC LIMIT 1",
     ).bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -1435,10 +1884,11 @@ app.post("/samples/:id/runs", async (c) => {
   const { templateVersionId } = input;
   if (typeof templateVersionId !== "string" || !templateVersionId) throw new HTTPException(400, { message: "Template version is required" });
   const [sample, template, templateStepRows, latestRun, latestSequence] = await Promise.all([
-    c.env.DB.prepare("SELECT code, updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ code: string; updated_at: string }>(),
+    c.env.DB.prepare("SELECT code, updated_at FROM samples WHERE id = ? AND deleted_at IS NULL").bind(sampleId).first<{ code: string; updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT tv.name, tv.template_type, tv.version, tv.recipe_family_id, tv.initial_state_hash, tv.content_json
        FROM template_versions tv WHERE tv.id = ? AND tv.template_kind = 'process' AND tv.archived_at IS NULL
+       AND tv.deleted_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = tv.id AND i.status != 'ready')`,
     ).bind(templateVersionId).first<{ name: string; template_type: "process" | "module" | "recipe"; version: number; recipe_family_id: string; initial_state_hash: string | null; content_json: string | null }>(),
     c.env.DB.prepare(
@@ -1447,7 +1897,7 @@ app.post("/samples/:id/runs", async (c) => {
     ).bind(templateVersionId).all<{ id: string; position: number; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare(
       `SELECT id, status, sequence_no
-       FROM runs WHERE sample_id = ? AND run_kind = 'process'
+       FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL
        ORDER BY sequence_no DESC LIMIT 1`,
     ).bind(sampleId).first<{ id: string; status: "active" | "complete" | "cancelled" | "superseded"; sequence_no: number }>(),
     c.env.DB.prepare("SELECT COALESCE(MAX(sequence_no), 0) AS sequence_no FROM runs WHERE sample_id = ?")
@@ -1489,6 +1939,7 @@ app.post("/samples/:id/runs", async (c) => {
   const anchor = latestRun ? await c.env.DB.prepare(
     `SELECT id FROM run_steps
      WHERE run_id = ? AND entry_kind = 'fabrication' AND actualized_at IS NOT NULL
+       AND deleted_at IS NULL
      ORDER BY position DESC LIMIT 1`,
   ).bind(latestRun.id).first<{ id: string }>() : null;
   const statements: D1PreparedStatement[] = [
@@ -1500,14 +1951,16 @@ app.post("/samples/:id/runs", async (c) => {
          initial_state_hash, created_by, created_at)
        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'process', ?, ?, ?, ?, ?, ?
        FROM samples s
-       WHERE s.id = ? AND s.updated_at = ?
+       WHERE s.id = ? AND s.updated_at = ? AND s.deleted_at IS NULL
          AND NOT EXISTS (
            SELECT 1 FROM runs active
            WHERE active.sample_id = s.id AND active.status = 'active' AND active.run_kind = 'process'
+             AND active.deleted_at IS NULL
          )
          AND COALESCE((
            SELECT id FROM runs latest
            WHERE latest.sample_id = s.id AND latest.run_kind = 'process'
+             AND latest.deleted_at IS NULL
            ORDER BY sequence_no DESC LIMIT 1
          ), '')
              = COALESCE(?, '')`,
@@ -1548,7 +2001,9 @@ app.post("/samples/:id/runs", async (c) => {
   if (statements.length > 49) throw new HTTPException(413, { message: "This process template is too large to start on the current plan" });
   try { await c.env.DB.batch(statements); }
   catch (error) {
-    if (String(error).includes("template version archived")) throw new HTTPException(409, { message: "This process-template version was archived before the run started" });
+    if (/template version (archived|unavailable)/.test(String(error))) {
+      throw new HTTPException(409, { message: "This process-template version became unavailable before the run started" });
+    }
     if (String(error).includes("FOREIGN KEY") || String(error).includes("constraint")) {
       throw new HTTPException(409, { message: "The sample or its latest run changed while the structures were being confirmed. Review them again." });
     }
@@ -1566,12 +2021,12 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
   }
   const [run, sample, unfinished] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process'",
+      "SELECT id, template_name_snapshot, template_version_snapshot, status FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL",
     ).bind(runId, sampleId).first<{ id: string; template_name_snapshot: string; template_version_snapshot: number; status: string }>(),
-    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL").bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT id FROM run_steps
-       WHERE run_id = ? AND entry_kind = 'fabrication'
+       WHERE run_id = ? AND entry_kind = 'fabrication' AND deleted_at IS NULL
          AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
        ORDER BY position, id`,
     ).bind(runId).all<{ id: string }>(),
@@ -1593,25 +2048,27 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE id = ? AND updated_at = ?`,
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
     ).bind(userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
     c.env.DB.prepare(
       `UPDATE run_steps
        SET status = 'skipped', actualized_at = COALESCE(actualized_at, ?),
            updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE run_id = ? AND entry_kind = 'fabrication'
+       WHERE run_id = ? AND entry_kind = 'fabrication' AND deleted_at IS NULL
          AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
          AND EXISTS (
            SELECT 1 FROM runs
            WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'
+             AND deleted_at IS NULL
          )
          AND EXISTS (
-           SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?
+           SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL
          )`,
     ).bind(now, userEmail, mutationId, now, runId, runId, sampleId, sampleId, mutationId),
     c.env.DB.prepare(
       `UPDATE runs SET status = 'complete', completed_at = COALESCE(completed_at, ?)
        WHERE id = ? AND sample_id = ? AND run_kind = 'process'
+         AND deleted_at IS NULL
          AND status IN ('active', 'complete')
          AND NOT EXISTS (
            SELECT 1 FROM run_steps
@@ -1619,16 +2076,17 @@ app.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
              AND plan_status = 'current' AND status NOT IN ('done', 'skipped')
          )
          AND EXISTS (
-           SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?
+           SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL
          )`,
     ).bind(now, runId, sampleId, runId, sampleId, mutationId),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, s.id, 'run', ?, ?, ?, ? FROM samples s
-       WHERE s.id = ? AND s.last_mutation_id = ?
+       WHERE s.id = ? AND s.last_mutation_id = ? AND s.deleted_at IS NULL
          AND EXISTS (
            SELECT 1 FROM runs r
            WHERE r.id = ? AND r.sample_id = s.id AND r.status = 'complete'
+             AND r.deleted_at IS NULL
          )`,
     ).bind(
       crypto.randomUUID(),
@@ -1663,42 +2121,31 @@ app.delete("/samples/:sampleId/runs/:runId", async (c) => {
   if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
     throw new HTTPException(400, { message: "The current sample revision is required" });
   }
-  const [run, deletableSubmissions] = await Promise.all([
-    c.env.DB.prepare(
-      `SELECT r.id, r.run_kind, r.status, r.predecessor_run_id, r.anchor_step_id,
-              r.sequence_no, r.template_name_snapshot, r.template_version_snapshot, r.created_at,
-              s.status AS sample_status, s.updated_at AS sample_updated_at,
-              (SELECT COUNT(*) FROM runs active
-               WHERE active.sample_id = r.sample_id AND active.status = 'active' AND active.id != r.id)
-                AS other_active_count
-       FROM runs r
-       JOIN samples s ON s.id = r.sample_id
-       WHERE r.id = ? AND r.sample_id = ?`,
-    ).bind(runId, sampleId).first<{
-      id: string;
-      run_kind: "process" | "metrology";
-      status: "active" | "complete" | "cancelled" | "superseded";
-      predecessor_run_id: string | null;
-      anchor_step_id: string | null;
-      sequence_no: number;
-      template_name_snapshot: string;
-      template_version_snapshot: number;
-      created_at: string;
-      sample_status: SampleStatus;
-      sample_updated_at: string;
-      other_active_count: number;
-    }>(),
-    c.env.DB.prepare(
-      `SELECT target.submission_id
-       FROM comment_submission_targets target
-       WHERE target.run_id = ?
-       GROUP BY target.submission_id
-       HAVING NOT EXISTS (
-         SELECT 1 FROM comment_submission_targets other
-         WHERE other.submission_id = target.submission_id AND other.run_id != ?
-       )`,
-    ).bind(runId, runId).all<{ submission_id: string }>(),
-  ]);
+  const run = await c.env.DB.prepare(
+    `SELECT r.id, r.run_kind, r.status, r.sequence_no,
+            r.template_name_snapshot, r.template_version_snapshot, r.created_at,
+            s.status AS sample_status, s.updated_at AS sample_updated_at,
+            (SELECT COUNT(*) FROM runs active
+             WHERE active.sample_id = r.sample_id
+               AND active.status = 'active'
+               AND active.deleted_at IS NULL
+               AND active.id != r.id) AS other_active_count
+     FROM runs r
+     JOIN samples s ON s.id = r.sample_id
+     WHERE r.id = ? AND r.sample_id = ?
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL`,
+  ).bind(runId, sampleId).first<{
+    id: string;
+    run_kind: "process" | "metrology";
+    status: "active" | "complete" | "cancelled" | "superseded";
+    sequence_no: number;
+    template_name_snapshot: string;
+    template_version_snapshot: number;
+    created_at: string;
+    sample_status: SampleStatus;
+    sample_updated_at: string;
+    other_active_count: number;
+  }>();
   if (!run) throw new HTTPException(404, { message: "Run not found" });
   if (run.sample_updated_at !== input.expectedSampleUpdatedAt) {
     throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting the run." });
@@ -1726,147 +2173,188 @@ app.delete("/samples/:sampleId/runs/:runId", async (c) => {
   const now = new Date(Math.max(Date.now(), Date.parse(run.sample_updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
   const mutationId = crypto.randomUUID();
-  const guardSql = "EXISTS (SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ?)";
-  const submissionIds = deletableSubmissions.results.map((row) => row.submission_id);
-  const statements: D1PreparedStatement[] = [c.env.DB.prepare(
-    `UPDATE samples
-     SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND updated_at = ?`,
-  ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt)];
-
-  statements.push(c.env.DB.prepare(
-    `UPDATE runs SET predecessor_run_id = NULL
-     WHERE id = ? AND sample_id = ? AND ${guardSql}`,
-  ).bind(runId, sampleId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE runs SET predecessor_run_id = ?
-     WHERE sample_id = ? AND predecessor_run_id = ? AND ${guardSql}`,
-  ).bind(run.predecessor_run_id, sampleId, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE runs SET anchor_step_id = ?
-     WHERE sample_id = ? AND anchor_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(run.anchor_step_id, sampleId, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE run_steps SET previous_step_id = ?
-     WHERE previous_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(run.anchor_step_id, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE run_plan_revisions SET effective_after_step_id = ?
-     WHERE effective_after_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(run.anchor_step_id, runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE state_verifications SET previous_verification_id = NULL
-     WHERE previous_verification_id IN (
-       SELECT id FROM state_verifications
-       WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-     ) AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE recipe_change_proposals SET source_verification_id = NULL
-     WHERE source_verification_id IN (
-       SELECT id FROM state_verifications
-       WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-     ) AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `DELETE FROM state_verification_steps
-     WHERE run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE state_verifications SET run_plan_revision_id = NULL
-     WHERE run_plan_revision_id IN (SELECT id FROM run_plan_revisions WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-  statements.push(c.env.DB.prepare(
-    `DELETE FROM state_verifications
-     WHERE after_run_step_id IN (SELECT id FROM run_steps WHERE run_id = ?)
-       AND ${guardSql}`,
-  ).bind(runId, sampleId, mutationId));
-
-  if (submissionIds.length) {
-    const placeholders = submissionIds.map(() => "?").join(", ");
-    statements.push(c.env.DB.prepare(
-      `UPDATE comment_submissions
-       SET status = 'cancelled', error_message = NULL, cancelled_at = ?, updated_at = ?
-       WHERE id IN (${placeholders}) AND status != 'cancelled'
-         AND ${guardSql}`,
-    ).bind(now, now, ...submissionIds, sampleId, mutationId));
-    statements.push(c.env.DB.prepare(
-      `UPDATE managed_storage_objects
-       SET status = 'orphaned', orphaned_at = ?
-       WHERE id IN (
-         SELECT storage_object_id FROM comment_submission_items
-         WHERE submission_id IN (${placeholders}) AND storage_object_id IS NOT NULL
-       )
-       AND NOT EXISTS (
-         SELECT 1 FROM comment_submission_items other
-         JOIN comment_submissions cs ON cs.id = other.submission_id
-         WHERE other.storage_object_id = managed_storage_objects.id
-           AND other.submission_id NOT IN (${placeholders}) AND cs.status = 'ready'
-       )
-       AND ${guardSql}`,
-    ).bind(now, ...submissionIds, ...submissionIds, sampleId, mutationId));
-    statements.push(c.env.DB.prepare(
-      `UPDATE events
-       SET body = 'Deleted step comment', asset_key = NULL,
-           metadata_json = json_set(
-             json_remove(metadata_json, '$.thumbnailKey'),
-             '$.deletedAt', ?, '$.deletedBy', ?, '$.sourceRunDeleted', 1
-           )
-       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') IN (${placeholders})
-         AND ${guardSql}`,
-    ).bind(now, userEmail, sampleId, ...submissionIds, sampleId, mutationId));
-  }
-
-  statements.push(c.env.DB.prepare(
-    `UPDATE events
-     SET asset_key = NULL,
-         metadata_json = json_set(
-           json_remove(metadata_json, '$.thumbnailKey'),
-           '$.runDeletedAt', ?, '$.runDeletedBy', ?
-         )
-     WHERE sample_id = ? AND json_extract(metadata_json, '$.runId') = ?
-       AND ${guardSql}`,
-  ).bind(now, userEmail, sampleId, runId, sampleId, mutationId));
-  const runDeleteIndex = statements.length;
-  statements.push(c.env.DB.prepare(
-    `DELETE FROM runs
-     WHERE id = ? AND sample_id = ? AND ${guardSql}`,
-  ).bind(runId, sampleId, sampleId, mutationId));
-  const auditEventIndex = statements.length;
-  statements.push(c.env.DB.prepare(
-    `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-     SELECT ?, ?, 'run', ?, ?, ?, ?
-     WHERE ${guardSql} AND NOT EXISTS (
-       SELECT 1 FROM runs WHERE id = ? AND sample_id = ?
-     )`,
-  ).bind(
-    crypto.randomUUID(),
-    sampleId,
-    `Deleted ${run.run_kind} run · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
-    JSON.stringify({
-      action: "run_deleted",
-      deletedRunId: runId,
-      runKind: run.run_kind,
-      sequenceNo: Number(run.sequence_no),
-      templateName: run.template_name_snapshot,
-      templateVersion: Number(run.template_version_snapshot),
-    }),
-    userEmail,
-    now,
-    sampleId,
-    mutationId,
-    runId,
-    sampleId,
-  ));
+  const guardSql = "EXISTS (SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL)";
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE samples
+       SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
+    ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
+    c.env.DB.prepare(
+      `UPDATE runs SET deleted_at = ?, deleted_by = ?
+       WHERE id = ? AND sample_id = ? AND deleted_at IS NULL AND ${guardSql}`,
+    ).bind(now, userEmail, runId, sampleId, sampleId, mutationId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'run', ?, ?, ?, ?
+       WHERE ${guardSql} AND EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND sample_id = ? AND deleted_at = ?
+       )`,
+    ).bind(
+      crypto.randomUUID(),
+      sampleId,
+      `Moved ${run.run_kind} run to trash · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
+      JSON.stringify({
+        action: "run_deleted",
+        deletedRunId: runId,
+        runKind: run.run_kind,
+        sequenceNo: Number(run.sequence_no),
+        templateName: run.template_name_snapshot,
+        templateVersion: Number(run.template_version_snapshot),
+        recoverable: true,
+      }),
+      userEmail,
+      now,
+      sampleId,
+      mutationId,
+      runId,
+      sampleId,
+      now,
+    ),
+  ];
 
   const results = await c.env.DB.batch(statements);
-  if (!results[0].meta.changes || !results[runDeleteIndex].meta.changes || !results[auditEventIndex].meta.changes) {
+  if (results.some((result) => !result.meta.changes)) {
     throw new HTTPException(409, { message: "The run changed while it was being deleted. Reload and try again." });
+  }
+  return c.json({ ok: true, updatedAt: now });
+});
+
+app.post("/samples/:sampleId/runs/:runId/restore", async (c) => {
+  const { sampleId, runId } = c.req.param();
+  const input = await c.req.json<DeleteRunInput>().catch(() => null);
+  if (!input || typeof input.expectedSampleUpdatedAt !== "string") {
+    throw new HTTPException(400, { message: "The current sample revision is required" });
+  }
+  const run = await c.env.DB.prepare(
+    `SELECT r.id, r.run_kind, r.status, r.sequence_no, r.predecessor_run_id, r.deleted_at,
+            r.template_name_snapshot, r.template_version_snapshot,
+            s.status AS sample_status, s.updated_at AS sample_updated_at,
+            (SELECT COUNT(*) FROM runs active
+             WHERE active.sample_id = r.sample_id
+               AND active.run_kind = 'process'
+               AND active.status = 'active'
+               AND active.deleted_at IS NULL
+               AND active.id != r.id) AS active_process_count
+            ,(SELECT COUNT(*) FROM runs newer
+              WHERE newer.sample_id = r.sample_id
+                AND newer.run_kind = 'process'
+                AND newer.sequence_no > r.sequence_no
+                AND newer.deleted_at IS NULL) AS newer_visible_process_count
+            ,(SELECT COUNT(*) FROM runs successor
+              WHERE r.predecessor_run_id IS NOT NULL
+                AND successor.predecessor_run_id = r.predecessor_run_id
+                AND successor.deleted_at IS NULL
+                AND successor.id != r.id) AS successor_conflict_count
+     FROM runs r
+     JOIN samples s ON s.id = r.sample_id
+     WHERE r.id = ? AND r.sample_id = ?
+       AND s.deleted_at IS NULL AND r.deleted_at IS NOT NULL`,
+  ).bind(runId, sampleId).first<{
+    id: string;
+    run_kind: "process" | "metrology";
+    status: "active" | "complete" | "cancelled" | "superseded";
+    sequence_no: number;
+    predecessor_run_id: string | null;
+    deleted_at: string;
+    template_name_snapshot: string;
+    template_version_snapshot: number;
+    sample_status: SampleStatus;
+    sample_updated_at: string;
+    active_process_count: number;
+    newer_visible_process_count: number;
+    successor_conflict_count: number;
+  }>();
+  if (!run) throw new HTTPException(404, { message: "Run not found in trash" });
+  if (run.sample_updated_at !== input.expectedSampleUpdatedAt) {
+    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before restoring the run." });
+  }
+  if (run.run_kind === "process" && run.status === "active" && Number(run.active_process_count) > 0) {
+    throw new HTTPException(409, { message: "Finish or move the current active process run to trash before restoring this run." });
+  }
+  if (run.run_kind === "process" && run.status === "active" && Number(run.newer_visible_process_count) > 0) {
+    throw new HTTPException(409, { message: "An active process run can only be restored when it is the latest visible process run." });
+  }
+  if (run.predecessor_run_id && Number(run.successor_conflict_count) > 0) {
+    throw new HTTPException(409, { message: "Another visible run already succeeds this run's predecessor." });
+  }
+
+  const now = new Date(Math.max(
+    Date.now(),
+    Date.parse(run.sample_updated_at) + 1,
+    Date.parse(run.deleted_at) + 1,
+  )).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const nextSampleStatus = run.status === "active" ? "active" : run.sample_status;
+  const guardSql = "EXISTS (SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL)";
+  try {
+    const results = await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE samples
+         SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
+         WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
+      ).bind(nextSampleStatus, userEmail, mutationId, now, sampleId, input.expectedSampleUpdatedAt),
+      c.env.DB.prepare(
+        `UPDATE runs SET deleted_at = NULL, deleted_by = NULL
+         WHERE id = ? AND sample_id = ? AND deleted_at = ? AND ${guardSql}
+           AND NOT EXISTS (
+             SELECT 1 FROM runs successor
+             WHERE runs.predecessor_run_id IS NOT NULL
+               AND successor.predecessor_run_id = runs.predecessor_run_id
+               AND successor.deleted_at IS NULL
+               AND successor.id != runs.id
+           )
+           AND NOT (
+             run_kind = 'process' AND status = 'active' AND EXISTS (
+               SELECT 1 FROM runs newer
+               WHERE newer.sample_id = runs.sample_id
+                 AND newer.run_kind = 'process'
+                 AND newer.sequence_no > runs.sequence_no
+                 AND newer.deleted_at IS NULL
+             )
+           )`,
+      ).bind(runId, sampleId, run.deleted_at, sampleId, mutationId),
+      c.env.DB.prepare(
+        `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+         SELECT ?, ?, 'run', ?, ?, ?, ?
+         WHERE ${guardSql} AND EXISTS (
+           SELECT 1 FROM runs
+           WHERE id = ? AND sample_id = ? AND deleted_at IS NULL
+         )`,
+      ).bind(
+        crypto.randomUUID(),
+        sampleId,
+        `Restored ${run.run_kind} run · ${run.template_name_snapshot}${run.run_kind === "process" ? ` v${run.template_version_snapshot}` : ""}`,
+        JSON.stringify({
+          action: "run_restored",
+          restoredRunId: runId,
+          runKind: run.run_kind,
+          sequenceNo: Number(run.sequence_no),
+          templateName: run.template_name_snapshot,
+          templateVersion: Number(run.template_version_snapshot),
+        }),
+        userEmail,
+        now,
+        sampleId,
+        mutationId,
+        runId,
+        sampleId,
+      ),
+    ]);
+    if (results.some((result) => !result.meta.changes)) {
+      throw new HTTPException(409, { message: "The run changed while it was being restored. Reload and try again." });
+    }
+  } catch (error) {
+    if (error instanceof HTTPException) throw error;
+    if (/runs_single_successor_idx|UNIQUE constraint failed: runs\.predecessor_run_id/.test(String(error))) {
+      throw new HTTPException(409, { message: "Another visible run already succeeds this run's predecessor." });
+    }
+    if (/runs_one_active_process_per_sample_idx|UNIQUE constraint failed: runs\.sample_id/.test(String(error))) {
+      throw new HTTPException(409, { message: "Another active process run became visible before this run was restored." });
+    }
+    throw error;
   }
   return c.json({ ok: true, updatedAt: now });
 });
@@ -1877,8 +2365,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
   if (!templateVersionId) throw new HTTPException(400, { message: "A template version is required" });
   const context = await loadPlanContext(c.env.DB, sampleId, runId, templateVersionId);
   const [sample, latestRun, currentState] = await Promise.all([
-    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
-    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL").bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -1972,8 +2460,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
   }
   const context = await loadPlanContext(c.env.DB, sampleId, runId, input.templateVersionId);
   const [sample, latestRun, currentState] = await Promise.all([
-    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?").bind(sampleId).first<{ updated_at: string }>(),
-    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' ORDER BY sequence_no DESC LIMIT 1")
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL").bind(sampleId).first<{ updated_at: string }>(),
+    c.env.DB.prepare("SELECT id, status FROM runs WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL ORDER BY sequence_no DESC LIMIT 1")
       .bind(sampleId).first<{ id: string; status: string }>(),
     loadCurrentSampleStructure(c.env.DB, sampleId),
   ]);
@@ -2086,8 +2574,12 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
        SELECT ?, r.id, ?, ?, ?, ?, ?, ?
        FROM runs r JOIN samples s ON s.id = r.sample_id
        WHERE r.id = ? AND r.sample_id = ? AND r.current_plan_revision_id = ?
-         AND r.status = ? AND s.updated_at = ?
-         AND (? = 0 OR NOT EXISTS (SELECT 1 FROM runs successor WHERE successor.predecessor_run_id = r.id))`,
+         AND r.status = ? AND r.deleted_at IS NULL
+         AND s.deleted_at IS NULL AND s.updated_at = ?
+         AND (? = 0 OR NOT EXISTS (
+           SELECT 1 FROM runs successor
+           WHERE successor.predecessor_run_id = r.id AND successor.deleted_at IS NULL
+         ))`,
     ).bind(revisionId, Number(context.run.revision_no) + 1, input.templateVersionId,
       executionHead?.id ?? null, input.reason?.trim() || "Imported process-template version update", userEmail, now,
       runId, sampleId, input.substrateConfirmation.expectedCurrentPlanRevisionId,
@@ -2161,13 +2653,17 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
               template_name_snapshot = ?, template_type_snapshot = ?, template_version_snapshot = ?,
               status = 'active', completed_at = NULL
        WHERE id = ? AND sample_id = ? AND status = ?
+         AND deleted_at IS NULL
          AND EXISTS (SELECT 1 FROM run_plan_revisions WHERE id = ?)`,
     ).bind(revisionId, input.templateVersionId, context.nextTemplate.name, context.nextTemplate.template_type,
       context.nextTemplate.version, runId, sampleId, reopening ? "complete" : "active", revisionId),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, ?, 'plan', ?, ?, ?, ?
-       WHERE EXISTS (SELECT 1 FROM runs WHERE id = ? AND current_plan_revision_id = ?)`,
+       WHERE EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND current_plan_revision_id = ? AND deleted_at IS NULL
+       )`,
     ).bind(crypto.randomUUID(), sampleId,
       `${reopening ? "Reopened process run with" : "Updated active plan to"} ${context.nextTemplate.name} v${context.nextTemplate.version}`,
       JSON.stringify({ runId, planRevisionId: revisionId, fromTemplateVersionId: context.run.current_template_version_id,
@@ -2183,7 +2679,10 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
         } }), userEmail, now, runId, revisionId),
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?
-       WHERE id = ? AND EXISTS (SELECT 1 FROM runs WHERE id = ? AND current_plan_revision_id = ?)`,
+       WHERE id = ? AND deleted_at IS NULL AND EXISTS (
+         SELECT 1 FROM runs
+         WHERE id = ? AND current_plan_revision_id = ? AND deleted_at IS NULL
+       )`,
     ).bind(userEmail, now, sampleId, runId, revisionId),
   );
   if (statements.length > 49) throw new HTTPException(413, { message: "This plan update is too large for one atomic operation" });
@@ -2195,8 +2694,8 @@ app.post("/samples/:sampleId/runs/:runId/plan-update", async (c) => {
     }
   } catch (error) {
     if (error instanceof HTTPException) throw error;
-    if (String(error).includes("template version archived")) {
-      throw new HTTPException(409, { message: "This process-template version was archived before the plan update was saved." });
+    if (/template version (archived|unavailable)/.test(String(error))) {
+      throw new HTTPException(409, { message: "This process-template version became unavailable before the plan update was saved." });
     }
     throw error;
   }
@@ -2213,6 +2712,11 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000 || input.notes.length > 10_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
   const asset = input.assetKey ? await c.env.DB.prepare("SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const runStepAssetId = asset
+    ? (await c.env.DB.prepare(
+      "SELECT id FROM run_step_assets WHERE run_step_id = ? AND asset_id = ? AND role = 'execution'",
+    ).bind(stepId, asset.id).first<{ id: string }>())?.id ?? crypto.randomUUID()
+    : null;
   const step = await c.env.DB.prepare(
     `SELECT COALESCE(rs.title, sd.name) AS title, rs.status, rs.notes,
             COALESCE(rs.tool_name, sd.tool_name) AS tool_name,
@@ -2222,8 +2726,10 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
             sd.parameters_text AS planned_parameters_text, sd.comments_text AS planned_comments_text,
             rs.deviation_note, rs.origin, rs.updated_at
      FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+     JOIN samples s ON s.id = r.sample_id
      LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?`,
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(stepId, runId, sampleId).first<Record<string, string | null>>();
   if (!step) throw new HTTPException(404, { message: "Run step not found" });
   if (step.updated_at !== input.expectedUpdatedAt) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before saving." });
@@ -2243,19 +2749,26 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
     c.env.DB.prepare(
       `UPDATE run_steps SET status = ?, title = ?, tool_name = ?, parameters_text = ?, comments_text = ?,
        deviation_note = ?, notes = ?, actualized_at = COALESCE(actualized_at, ?), updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE id = ? AND updated_at = ?`,
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM runs
+           JOIN samples s ON s.id = runs.sample_id
+           WHERE runs.id = run_steps.run_id
+             AND s.deleted_at IS NULL AND runs.deleted_at IS NULL
+         )`,
     ).bind(input.status, titleOverride, toolOverride, parametersOverride, commentsOverride, deviationNote, notes, now, userEmail, mutationId, now, stepId, input.expectedUpdatedAt),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, r.sample_id, 'step', ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?`,
+       WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(crypto.randomUUID(), `${title}: ${input.status.replace("_", " ")}${deviationNote ? ` — deviation: ${deviationNote}` : notes ? ` — ${notes}` : ""}`, JSON.stringify({
       runId, stepId, action: "updated", origin: step.origin,
       previous: { title: step.title, status: step.status, toolName: step.tool_name, parametersText: step.parameters_text, commentsText: step.comments_text, deviationNote: step.deviation_note, notes: step.notes },
       current: { title, status: input.status, toolName, parametersText, commentsText, deviationNote, notes },
     }), userEmail, now, stepId, runId, sampleId, mutationId),
   ];
-  if (asset) statements.push(c.env.DB.prepare(
+  if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO run_step_assets (id, run_step_id, asset_id, role, position, actor_email, created_at)
      SELECT ?, ?, ?, 'execution',
             COALESCE((SELECT MAX(position) FROM run_step_assets WHERE run_step_id = ? AND role = 'execution'), -1) + 1,
@@ -2263,17 +2776,31 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
      WHERE EXISTS (
        SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )`,
-  ).bind(crypto.randomUUID(), stepId, asset.id, stepId, userEmail, now, stepId, runId, sampleId, mutationId));
-  if (asset) statements.push(c.env.DB.prepare(
+  ).bind(runStepAssetId, stepId, asset.id, stepId, userEmail, now, stepId, runId, sampleId, mutationId));
+  if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
+    `UPDATE run_step_assets SET deleted_at = NULL, deleted_by = NULL
+     WHERE id = ? AND run_step_id = ? AND asset_id = ? AND role = 'execution'
+       AND EXISTS (
+         SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+         WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+           AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+       )`,
+  ).bind(runStepAssetId, stepId, asset.id, stepId, runId, sampleId, mutationId));
+  if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
      SELECT ?, r.sample_id, 'image', ?, ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?`,
-  ).bind(crypto.randomUUID(), `Execution diagram for step: ${title}`, asset.r2_key, JSON.stringify({ runId, stepId }), userEmail, now, stepId, runId, sampleId, mutationId));
+     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+       AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+  ).bind(crypto.randomUUID(), `Execution diagram for step: ${title}`, asset.r2_key,
+    JSON.stringify({ runId, stepId, runStepAssetId }), userEmail, now, stepId, runId, sampleId, mutationId));
   statements.push(c.env.DB.prepare(
-    `UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ? AND EXISTS (
+    `UPDATE samples SET updated_by = ?, updated_at = ?
+     WHERE id = ? AND deleted_at IS NULL AND EXISTS (
        SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )`,
   ).bind(userEmail, now, sampleId, stepId, runId, sampleId, mutationId));
   const results = await c.env.DB.batch(statements);
@@ -2292,29 +2819,199 @@ app.delete("/samples/:sampleId/runs/:runId/steps/:stepId/assets", async (c) => {
      JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
      LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
      JOIN assets a ON a.id = rsa.asset_id
-     WHERE rsa.run_step_id = ? AND r.id = ? AND r.sample_id = ? AND a.r2_key = ?`,
+     WHERE rsa.run_step_id = ? AND r.id = ? AND r.sample_id = ? AND a.r2_key = ?
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+       AND rs.deleted_at IS NULL AND rsa.deleted_at IS NULL`,
   ).bind(stepId, runId, sampleId, input.assetKey).first<{ id: string; title: string | null; planned_title: string | null; updated_at: string; sample_updated_at: string }>();
   if (!attachment) throw new HTTPException(404, { message: "Execution image not found" });
   const now = new Date(Math.max(Date.now(), Date.parse(attachment.updated_at) + 1, Date.parse(attachment.sample_updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
   const title = attachment.title || attachment.planned_title || "Step";
   const results = await c.env.DB.batch([
-    c.env.DB.prepare("DELETE FROM run_step_assets WHERE id = ?").bind(attachment.id),
+    c.env.DB.prepare(
+      `UPDATE run_step_assets
+       SET deleted_at = ?, deleted_by = ?, last_mutation_id = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1
+           FROM run_steps rs
+           JOIN runs r ON r.id = rs.run_id
+           JOIN samples s ON s.id = r.sample_id
+           WHERE rs.id = run_step_assets.run_step_id
+             AND rs.id = ? AND r.id = ? AND s.id = ?
+             AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+             AND rs.deleted_at IS NULL
+         )`,
+    ).bind(now, userEmail, mutationId, attachment.id, stepId, runId, sampleId),
     c.env.DB.prepare(
       `UPDATE events SET asset_key = NULL,
-         metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+         metadata_json = json_set(metadata_json,
+           '$.runStepAssetId', ?, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
+           '$.assetMutationId', ?)
        WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
-         AND json_extract(metadata_json, '$.runId') = ? AND json_extract(metadata_json, '$.stepId') = ?`,
-    ).bind(now, userEmail, sampleId, input.assetKey, runId, stepId),
-    c.env.DB.prepare("UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND run_id = ?").bind(userEmail, now, stepId, runId),
+         AND json_extract(metadata_json, '$.runId') = ? AND json_extract(metadata_json, '$.stepId') = ?
+         AND (json_extract(metadata_json, '$.runStepAssetId') IS NULL
+           OR json_extract(metadata_json, '$.runStepAssetId') = ?)
+         AND EXISTS (
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.id = ? AND rsa.last_mutation_id = ?
+         )`,
+    ).bind(
+      attachment.id, now, userEmail, mutationId,
+      sampleId, input.assetKey, runId, stepId, attachment.id,
+      attachment.id, mutationId,
+    ),
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND run_id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.id = ? AND rsa.run_step_id = run_steps.id
+             AND rsa.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, stepId, runId, attachment.id, mutationId),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'image', ?, ?, ?, ?)`,
-    ).bind(crypto.randomUUID(), sampleId, `Deleted execution image attachment · ${title}`,
-      JSON.stringify({ action: "execution_attachment_deleted", runId, stepId, hadAsset: true }), userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
+       SELECT ?, s.id, 'image', ?, ?, ?, ?
+       FROM run_step_assets rsa
+       JOIN run_steps rs ON rs.id = rsa.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       WHERE rsa.id = ? AND rsa.last_mutation_id = ?
+         AND rs.id = ? AND r.id = ? AND s.id = ?
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+    ).bind(
+      crypto.randomUUID(),
+      `Deleted execution image attachment · ${title}`,
+      JSON.stringify({ action: "execution_attachment_deleted", runId, stepId, hadAsset: true }),
+      userEmail, now, attachment.id, mutationId, stepId, runId, sampleId,
+    ),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1
+           FROM run_step_assets rsa
+           JOIN run_steps rs ON rs.id = rsa.run_step_id
+           JOIN runs r ON r.id = rs.run_id
+           WHERE rsa.id = ? AND rsa.last_mutation_id = ?
+             AND rs.id = ? AND r.id = ? AND r.sample_id = samples.id
+             AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         )`,
+    ).bind(userEmail, now, sampleId, attachment.id, mutationId, stepId, runId),
   ]);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This execution image was already deleted" });
+  return c.json({ ok: true, updatedAt: now });
+});
+
+app.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async (c) => {
+  const { sampleId, runId, stepId } = c.req.param();
+  const input = await c.req.json<{ assetKey?: string }>();
+  if (typeof input.assetKey !== "string" || !input.assetKey) {
+    throw new HTTPException(400, { message: "An image attachment is required" });
+  }
+  const attachment = await c.env.DB.prepare(
+    `SELECT rsa.id, rsa.deleted_at, rs.title, sd.name AS planned_title,
+            rs.updated_at, s.updated_at AS sample_updated_at
+     FROM run_step_assets rsa
+     JOIN run_steps rs ON rs.id = rsa.run_step_id
+     JOIN runs r ON r.id = rs.run_id
+     JOIN samples s ON s.id = r.sample_id
+     LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+     JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
+     WHERE rsa.run_step_id = ? AND r.id = ? AND r.sample_id = ? AND a.r2_key = ?
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+       AND rsa.deleted_at IS NOT NULL`,
+  ).bind(stepId, runId, sampleId, input.assetKey).first<{
+    id: string; deleted_at: string; title: string | null; planned_title: string | null;
+    updated_at: string; sample_updated_at: string;
+  }>();
+  if (!attachment) throw new HTTPException(404, { message: "Deleted execution image not found" });
+  const now = new Date(Math.max(
+    Date.now(), Date.parse(attachment.deleted_at) + 1,
+    Date.parse(attachment.updated_at) + 1, Date.parse(attachment.sample_updated_at) + 1,
+  )).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const title = attachment.title || attachment.planned_title || "Step";
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE run_step_assets
+       SET deleted_at = NULL, deleted_by = NULL, last_mutation_id = ?
+       WHERE id = ? AND deleted_at = ?
+         AND EXISTS (
+           SELECT 1
+           FROM run_steps rs
+           JOIN runs r ON r.id = rs.run_id
+           JOIN samples s ON s.id = r.sample_id
+           WHERE rs.id = run_step_assets.run_step_id
+             AND rs.id = ? AND r.id = ? AND s.id = ?
+             AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+             AND rs.deleted_at IS NULL
+         )`,
+    ).bind(mutationId, attachment.id, attachment.deleted_at, stepId, runId, sampleId),
+    c.env.DB.prepare(
+      `UPDATE events SET asset_key = ?,
+         metadata_json = json_remove(
+           metadata_json, '$.assetDeletedAt', '$.assetDeletedBy',
+           '$.assetMutationId', '$.assetDeletionOperationId'
+         )
+       WHERE sample_id = ? AND kind = 'image' AND json_valid(metadata_json)
+         AND json_extract(metadata_json, '$.runId') = ?
+         AND json_extract(metadata_json, '$.stepId') = ?
+         AND json_extract(metadata_json, '$.assetDeletedAt') = ?
+         AND (json_extract(metadata_json, '$.runStepAssetId') = ?
+           OR json_extract(metadata_json, '$.runStepAssetId') IS NULL)
+         AND EXISTS (
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.id = ? AND rsa.last_mutation_id = ?
+         )`,
+    ).bind(
+      input.assetKey, sampleId, runId, stepId, attachment.deleted_at,
+      attachment.id, attachment.id, mutationId,
+    ),
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND run_id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_assets rsa
+           WHERE rsa.id = ? AND rsa.run_step_id = run_steps.id
+             AND rsa.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, stepId, runId, attachment.id, mutationId),
+    c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
+       SELECT ?, s.id, 'image', ?, ?, ?, ?, ?
+       FROM run_step_assets rsa
+       JOIN run_steps rs ON rs.id = rsa.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       WHERE rsa.id = ? AND rsa.last_mutation_id = ?
+         AND rs.id = ? AND r.id = ? AND s.id = ?
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+    ).bind(
+      crypto.randomUUID(), `Restored execution image attachment · ${title}`, input.assetKey,
+      JSON.stringify({ action: "execution_attachment_restored", runId, stepId }),
+      userEmail, now, attachment.id, mutationId, stepId, runId, sampleId,
+    ),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1
+           FROM run_step_assets rsa
+           JOIN run_steps rs ON rs.id = rsa.run_step_id
+           JOIN runs r ON r.id = rs.run_id
+           WHERE rsa.id = ? AND rsa.last_mutation_id = ?
+             AND rs.id = ? AND r.id = ? AND r.sample_id = samples.id
+             AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         )`,
+    ).bind(userEmail, now, sampleId, attachment.id, mutationId, stepId, runId),
+  ]);
+  if (!results[0].meta.changes) {
+    throw new HTTPException(409, { message: "The execution image changed while it was being restored" });
+  }
   return c.json({ ok: true, updatedAt: now });
 });
 
@@ -2327,8 +3024,14 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
   const definition = await hashStepDefinition({ name: title, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
   const [run, stepRows, asset] = await Promise.all([
-    c.env.DB.prepare("SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'").bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
-    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? ORDER BY position").bind(runId).all<{ id: string; position: number }>(),
+    c.env.DB.prepare(
+      `SELECT r.id, r.anchor_step_id FROM runs r
+       JOIN samples s ON s.id = r.sample_id
+       WHERE r.id = ? AND r.sample_id = ? AND r.run_kind = 'process' AND r.status = 'active'
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL`,
+    ).bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
+    c.env.DB.prepare("SELECT id, position, updated_at FROM run_steps WHERE run_id = ? AND deleted_at IS NULL ORDER BY position")
+      .bind(runId).all<{ id: string; position: number; updated_at: string }>(),
     input.assetKey ? c.env.DB.prepare("SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
@@ -2336,46 +3039,147 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   const position = insertionPosition(stepRows.results, input.afterStepId);
   if (position === null) throw new HTTPException(404, { message: "Insertion point not found" });
   const stepId = crypto.randomUUID();
+  const runStepAssetId = asset ? crypto.randomUUID() : null;
+  const mutationId = crypto.randomUUID();
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
   const afterIndex = input.afterStepId ? stepRows.results.findIndex((step) => step.id === input.afterStepId) : -1;
   const previousStepId = input.afterStepId ?? run.anchor_step_id;
   const nextStepId = stepRows.results[afterIndex + 1]?.id ?? null;
+  const adjacentSteps = stepRows.results.filter((step) => step.id === input.afterStepId || step.id === nextStepId);
+  const stepSnapshotSql = `AND (
+       SELECT COUNT(*) FROM run_steps snapshot
+       WHERE snapshot.run_id = runs.id AND snapshot.deleted_at IS NULL
+     ) = ?
+     ${adjacentSteps.map(() => `AND EXISTS (
+       SELECT 1 FROM run_steps snapshot
+       WHERE snapshot.run_id = runs.id AND snapshot.id = ?
+         AND snapshot.position = ? AND snapshot.updated_at = ?
+         AND snapshot.deleted_at IS NULL
+     )`).join("\n")}`;
+  const stepSnapshotBindings = [
+    stepRows.results.length,
+    ...adjacentSteps.flatMap((step) => [step.id, step.position, step.updated_at]),
+  ];
   const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE runs SET last_mutation_id = ?
+       WHERE id = ? AND sample_id = ? AND run_kind = 'process'
+         AND status = 'active' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = runs.sample_id AND s.deleted_at IS NULL
+         )
+         ${stepSnapshotSql}`,
+    ).bind(mutationId, runId, sampleId, ...stepSnapshotBindings),
     c.env.DB.prepare(
       `INSERT OR IGNORE INTO step_definitions
        (hash, hash_scheme, name, tool_name, parameters_text, comments_text, canonical_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM runs r
+         WHERE r.id = ? AND r.last_mutation_id = ?
+           AND r.status = 'active' AND r.deleted_at IS NULL
+       )`,
     ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
-      definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
+      definition.canonical.parametersText, definition.canonical.commentsText,
+      stableJson(definition.canonical), now, runId, mutationId),
     c.env.DB.prepare(
       `INSERT INTO run_steps
         (id, run_id, previous_step_id, position, title, status, origin, entry_kind, logical_step_key, definition_hash,
          tool_name, parameters_text, comments_text, deviation_note, actualized_at, created_at, updated_by, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'pending', 'ad_hoc', 'fabrication', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(stepId, runId, previousStepId, position, title, `ad-hoc:${stepId}`, definition.hash,
+       SELECT ?, r.id, ?, ?, ?, 'pending', 'ad_hoc', 'fabrication', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+       FROM runs r JOIN samples s ON s.id = r.sample_id
+       WHERE r.id = ? AND r.sample_id = ? AND r.last_mutation_id = ?
+         AND r.run_kind = 'process' AND r.status = 'active'
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL`,
+    ).bind(stepId, previousStepId, position, title, `ad-hoc:${stepId}`, definition.hash,
       input.toolName.trim() || null, input.parametersText.trim() || null, input.commentsText.trim() || null,
-      input.deviationNote.trim() || null, now, now, userEmail, now),
+      input.deviationNote.trim() || null, now, now, userEmail, now,
+      runId, sampleId, mutationId),
   ];
   if (nextStepId) statements.push(c.env.DB.prepare(
-    "UPDATE run_steps SET previous_step_id = ? WHERE id = ? AND run_id = ?",
-  ).bind(stepId, nextStepId, runId));
-  if (asset) statements.push(c.env.DB.prepare(
-    "INSERT INTO run_step_assets (id, run_step_id, asset_id, role, position, actor_email, created_at) VALUES (?, ?, ?, 'execution', 0, ?, ?)",
-  ).bind(crypto.randomUUID(), stepId, asset.id, userEmail, now));
+    `UPDATE run_steps SET previous_step_id = ?
+     WHERE id = ? AND run_id = ? AND deleted_at IS NULL
+       AND EXISTS (
+         SELECT 1 FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
+         WHERE inserted.id = ? AND inserted.run_id = ?
+           AND r.last_mutation_id = ? AND r.status = 'active'
+           AND r.deleted_at IS NULL
+       )`,
+  ).bind(stepId, nextStepId, runId, stepId, runId, mutationId));
+  if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
+    `INSERT INTO run_step_assets
+     (id, run_step_id, asset_id, role, position, actor_email, created_at)
+     SELECT ?, inserted.id, ?, 'execution', 0, ?, ?
+     FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
+     WHERE inserted.id = ? AND inserted.run_id = ?
+       AND r.last_mutation_id = ? AND r.status = 'active'
+       AND r.deleted_at IS NULL`,
+  ).bind(runStepAssetId, asset.id, userEmail, now, stepId, runId, mutationId));
   statements.push(
-    c.env.DB.prepare("UPDATE runs SET status = 'active', completed_at = NULL WHERE id = ? AND sample_id = ?").bind(runId, sampleId),
     c.env.DB.prepare(
-      "INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at) VALUES (?, ?, 'step', ?, ?, ?, ?)",
-    ).bind(crypto.randomUUID(), sampleId, `Added ad hoc step: ${title}`, JSON.stringify({ runId, stepId, action: "added", afterStepId: input.afterStepId ?? null, deviationNote: input.deviationNote.trim() || null }), userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId),
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, s.id, 'step', ?, ?, ?, ?
+       FROM run_steps inserted
+       JOIN runs r ON r.id = inserted.run_id
+       JOIN samples s ON s.id = r.sample_id
+       WHERE inserted.id = ? AND inserted.run_id = ?
+         AND r.last_mutation_id = ? AND r.status = 'active'
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL`,
+    ).bind(
+      crypto.randomUUID(),
+      `Added ad hoc step: ${title}`,
+      JSON.stringify({
+        runId,
+        stepId,
+        action: "added",
+        afterStepId: input.afterStepId ?? null,
+        deviationNote: input.deviationNote.trim() || null,
+      }),
+      userEmail,
+      now,
+      stepId,
+      runId,
+      mutationId,
+    ),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
+           WHERE inserted.id = ? AND inserted.run_id = ?
+             AND r.sample_id = samples.id AND r.last_mutation_id = ?
+             AND r.status = 'active' AND r.deleted_at IS NULL
+         )`,
+    ).bind(userEmail, now, sampleId, stepId, runId, mutationId),
   );
-  if (asset) statements.push(c.env.DB.prepare(
+  if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-     VALUES (?, ?, 'image', ?, ?, ?, ?, ?)`,
-  ).bind(crypto.randomUUID(), sampleId, `Execution diagram for step: ${title}`, asset.r2_key,
-    JSON.stringify({ runId, stepId, action: "execution_attachment_added" }), userEmail, now));
-  await c.env.DB.batch(statements);
+     SELECT ?, s.id, 'image', ?, ?, ?, ?, ?
+     FROM run_step_assets rsa
+     JOIN run_steps inserted ON inserted.id = rsa.run_step_id
+     JOIN runs r ON r.id = inserted.run_id
+     JOIN samples s ON s.id = r.sample_id
+     WHERE rsa.id = ? AND inserted.id = ? AND r.id = ?
+       AND r.last_mutation_id = ? AND r.status = 'active'
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL`,
+  ).bind(
+    crypto.randomUUID(),
+    `Execution diagram for step: ${title}`,
+    asset.r2_key,
+    JSON.stringify({ runId, stepId, runStepAssetId, action: "execution_attachment_added" }),
+    userEmail,
+    now,
+    runStepAssetId,
+    stepId,
+    runId,
+    mutationId,
+  ));
+  const results = await c.env.DB.batch(statements);
+  if (!results[0].meta.changes || !results[2].meta.changes) {
+    throw new HTTPException(409, { message: "The process run changed while the step was being added" });
+  }
   return c.json({ id: stepId }, 201);
 });
 
@@ -2388,7 +3192,10 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
   }
   const [run, template, stepRows] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT id, anchor_step_id FROM runs WHERE id = ? AND sample_id = ? AND run_kind = 'process' AND status = 'active'",
+      `SELECT r.id, r.anchor_step_id FROM runs r
+       JOIN samples s ON s.id = r.sample_id
+       WHERE r.id = ? AND r.sample_id = ? AND r.run_kind = 'process' AND r.status = 'active'
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL`,
     ).bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
     c.env.DB.prepare(
       `SELECT tv.id, tv.name, tv.version, tv.recipe_family_id,
@@ -2396,13 +3203,14 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
        FROM template_versions tv
        JOIN template_steps ts ON ts.template_version_id = tv.id
        WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+         AND tv.deleted_at IS NULL
          AND (SELECT COUNT(*) FROM template_steps only_step WHERE only_step.template_version_id = tv.id) = 1`,
     ).bind(input.templateVersionId).first<{
       id: string; name: string; version: number; recipe_family_id: string;
       template_step_id: string; logical_step_key: string; definition_hash: string;
     }>(),
-    c.env.DB.prepare("SELECT id, position FROM run_steps WHERE run_id = ? ORDER BY position")
-      .bind(runId).all<{ id: string; position: number }>(),
+    c.env.DB.prepare("SELECT id, position, updated_at FROM run_steps WHERE run_id = ? AND deleted_at IS NULL ORDER BY position")
+      .bind(runId).all<{ id: string; position: number; updated_at: string }>(),
   ]);
   if (!run) throw new HTTPException(404, { message: "Active process run not found" });
   if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
@@ -2411,9 +3219,40 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
   const afterIndex = input.afterStepId ? stepRows.results.findIndex((step) => step.id === input.afterStepId) : -1;
   const nextStepId = stepRows.results[afterIndex + 1]?.id ?? null;
   const stepId = crypto.randomUUID();
+  const mutationId = crypto.randomUUID();
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
+  const adjacentSteps = stepRows.results.filter((step) => step.id === input.afterStepId || step.id === nextStepId);
+  const stepSnapshotSql = `AND (
+       SELECT COUNT(*) FROM run_steps snapshot
+       WHERE snapshot.run_id = runs.id AND snapshot.deleted_at IS NULL
+     ) = ?
+     ${adjacentSteps.map(() => `AND EXISTS (
+       SELECT 1 FROM run_steps snapshot
+       WHERE snapshot.run_id = runs.id AND snapshot.id = ?
+         AND snapshot.position = ? AND snapshot.updated_at = ?
+         AND snapshot.deleted_at IS NULL
+     )`).join("\n")}`;
+  const stepSnapshotBindings = [
+    stepRows.results.length,
+    ...adjacentSteps.flatMap((step) => [step.id, step.position, step.updated_at]),
+  ];
   const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE runs SET last_mutation_id = ?
+       WHERE id = ? AND sample_id = ? AND run_kind = 'process'
+         AND status = 'active' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = runs.sample_id AND s.deleted_at IS NULL
+         )
+         AND EXISTS (
+           SELECT 1 FROM template_versions tv
+           WHERE tv.id = ? AND tv.template_kind = 'metrology'
+             AND tv.archived_at IS NULL AND tv.deleted_at IS NULL
+         )
+         ${stepSnapshotSql}`,
+    ).bind(mutationId, runId, sampleId, input.templateVersionId, ...stepSnapshotBindings),
     c.env.DB.prepare(
       `INSERT INTO run_steps
         (id, run_id, previous_step_id, position, status, origin, entry_kind, template_step_id,
@@ -2421,29 +3260,54 @@ app.post("/samples/:sampleId/runs/:runId/metrology", async (c) => {
        SELECT ?, r.id, ?, ?, 'pending', 'ad_hoc', 'metrology', ?, ?, ?, ?, ?, ?, ?
        FROM runs r JOIN template_versions tv ON tv.id = ?
        WHERE r.id = ? AND r.sample_id = ? AND r.run_kind = 'process' AND r.status = 'active'
-         AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL`,
+         AND r.deleted_at IS NULL AND r.last_mutation_id = ?
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = r.sample_id AND s.deleted_at IS NULL
+         )
+         AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+         AND tv.deleted_at IS NULL`,
     ).bind(stepId, input.afterStepId ?? run.anchor_step_id, position, template.template_step_id,
       template.logical_step_key, template.definition_hash, now, now, userEmail, now,
-      input.templateVersionId, runId, sampleId),
+      input.templateVersionId, runId, sampleId, mutationId),
   ];
   if (nextStepId) statements.push(c.env.DB.prepare(
-    "UPDATE run_steps SET previous_step_id = ? WHERE id = ? AND run_id = ?",
-  ).bind(stepId, nextStepId, runId));
+    `UPDATE run_steps SET previous_step_id = ?
+     WHERE id = ? AND run_id = ? AND deleted_at IS NULL
+       AND EXISTS (
+         SELECT 1 FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
+         WHERE inserted.id = ? AND inserted.run_id = ?
+           AND r.last_mutation_id = ? AND r.status = 'active'
+           AND r.deleted_at IS NULL
+       )`,
+  ).bind(stepId, nextStepId, runId, stepId, runId, mutationId));
   statements.push(
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, ?, 'step', ?, ?, ?, ?
-       WHERE EXISTS (SELECT 1 FROM run_steps WHERE id = ? AND run_id = ?)`,
+       WHERE EXISTS (
+         SELECT 1 FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
+         WHERE inserted.id = ? AND inserted.run_id = ?
+           AND r.last_mutation_id = ? AND r.status = 'active'
+           AND r.deleted_at IS NULL
+       )`,
     ).bind(crypto.randomUUID(), sampleId, `Added metrology: ${template.name}`,
       JSON.stringify({ runId, stepId, action: "metrology_added", templateVersionId: template.id, afterStepId: input.afterStepId ?? null }),
-      userEmail, now, stepId, runId),
+      userEmail, now, stepId, runId, mutationId),
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?
-       WHERE id = ? AND EXISTS (SELECT 1 FROM run_steps WHERE id = ? AND run_id = ?)`,
-    ).bind(userEmail, now, sampleId, stepId, runId),
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
+           WHERE inserted.id = ? AND inserted.run_id = ?
+             AND r.sample_id = samples.id AND r.last_mutation_id = ?
+             AND r.status = 'active' AND r.deleted_at IS NULL
+             AND inserted.deleted_at IS NULL
+         )`,
+    ).bind(userEmail, now, sampleId, stepId, runId, mutationId),
   );
   const results = await c.env.DB.batch(statements);
-  if (!results[0].meta.changes || !results.at(-1)?.meta.changes) {
+  if (!results[0].meta.changes || !results[1].meta.changes || !results.at(-1)?.meta.changes) {
     throw new HTTPException(409, { message: "The process run or metrology template changed while the record was being added" });
   }
   return c.json({ id: stepId }, 201);
@@ -2456,7 +3320,7 @@ app.post("/samples/:sampleId/metrology-runs", async (c) => {
     throw new HTTPException(400, { message: "A metrology template is required" });
   }
   const [sample, template, latestSequence] = await Promise.all([
-    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?")
+    c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ? AND deleted_at IS NULL")
       .bind(sampleId).first<{ updated_at: string }>(),
     c.env.DB.prepare(
       `SELECT tv.id, tv.name, tv.version, tv.recipe_family_id, tv.template_type,
@@ -2464,6 +3328,7 @@ app.post("/samples/:sampleId/metrology-runs", async (c) => {
        FROM template_versions tv
        JOIN template_steps ts ON ts.template_version_id = tv.id
        WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+         AND tv.deleted_at IS NULL
          AND (SELECT COUNT(*) FROM template_steps only_step WHERE only_step.template_version_id = tv.id) = 1`,
     ).bind(input.templateVersionId).first<{
       id: string; name: string; version: number; recipe_family_id: string; template_type: string;
@@ -2486,10 +3351,11 @@ app.post("/samples/:sampleId/metrology-runs", async (c) => {
          created_by, created_at)
        SELECT ?, s.id, ?, ?, ?, ?, 'metrology', ?, ?, ?, ?, ?
        FROM samples s
-       WHERE s.id = ? AND s.updated_at = ?
+       WHERE s.id = ? AND s.updated_at = ? AND s.deleted_at IS NULL
          AND EXISTS (
            SELECT 1 FROM template_versions tv
            WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+             AND tv.deleted_at IS NULL
          )`,
     ).bind(runId, template.recipe_family_id, template.id, Number(latestSequence?.sequence_no ?? 0) + 1,
       crypto.randomUUID(), template.name, template.template_type, template.version, userEmail, now,
@@ -2511,7 +3377,8 @@ app.post("/samples/:sampleId/metrology-runs", async (c) => {
       userEmail, now, runId),
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?
-       WHERE id = ? AND EXISTS (SELECT 1 FROM runs WHERE id = ? AND run_kind = 'metrology')`,
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (SELECT 1 FROM runs WHERE id = ? AND run_kind = 'metrology' AND deleted_at IS NULL)`,
     ).bind(userEmail, now, sampleId, runId),
   ]);
   if (results.some((result) => !result.meta.changes)) {
@@ -2543,7 +3410,9 @@ app.post("/run-step-comments", async (c) => {
      FROM requested q
      JOIN runs r ON r.id = q.run_id AND r.sample_id = q.sample_id
      JOIN run_steps rs ON rs.id = q.step_id AND rs.run_id = q.run_id
-     WHERE rs.updated_at = q.expected_updated_at`,
+     JOIN samples s ON s.id = q.sample_id
+     WHERE rs.updated_at = q.expected_updated_at
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>(),
   assetKey ? c.env.DB.prepare(
     "SELECT id, r2_key FROM assets WHERE status = 'ready' AND r2_key = ?",
@@ -2557,38 +3426,113 @@ app.post("/run-step-comments", async (c) => {
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
   const sampleIds = [...new Set(input.targets.map((target) => target.sampleId))];
-  const statements: D1PreparedStatement[] = input.targets.map((target) => c.env.DB.prepare(
-    `INSERT INTO run_step_comments
+  const occurrenceTargets = input.targets.map((target) => ({
+    ...target,
+    occurrenceId: crypto.randomUUID(),
+  }));
+  const requestedValues = occurrenceTargets.map(() => "(?, ?, ?, ?, ?)").join(", ");
+  const requestedBindings = occurrenceTargets.flatMap((target) => [
+    target.occurrenceId,
+    target.sampleId,
+    target.runId,
+    target.stepId,
+    target.expectedUpdatedAt,
+  ]);
+  const occurrenceIds = occurrenceTargets.map((target) => target.occurrenceId);
+  const occurrencePlaceholders = occurrenceIds.map(() => "?").join(", ");
+  const statements: D1PreparedStatement[] = [c.env.DB.prepare(
+    `WITH requested(comment_id, sample_id, run_id, step_id, expected_updated_at) AS (
+       VALUES ${requestedValues}
+     ),
+     valid AS (
+       SELECT q.comment_id, q.step_id
+       FROM requested q
+       JOIN samples s ON s.id = q.sample_id AND s.deleted_at IS NULL
+       JOIN runs r ON r.id = q.run_id AND r.sample_id = q.sample_id
+         AND r.deleted_at IS NULL
+       JOIN run_steps rs ON rs.id = q.step_id AND rs.run_id = q.run_id
+         AND rs.deleted_at IS NULL
+       WHERE rs.updated_at = q.expected_updated_at
+     )
+     INSERT INTO run_step_comments
        (id, run_step_id, scope, operation_group_id, body, asset_id, actor_email, created_at)
-     SELECT ?, rs.id, ?, ?, ?, ?, ?, ?
-     FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-     WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.updated_at = ?`,
+     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?
+     FROM valid
+     WHERE (SELECT COUNT(*) FROM valid) = ?`,
   ).bind(
-    crypto.randomUUID(), input.scope, operationGroupId, body, commentAsset?.id ?? null, userEmail, now,
-    target.stepId, target.runId, target.sampleId, target.expectedUpdatedAt,
+    ...requestedBindings,
+    input.scope,
+    operationGroupId,
+    body,
+    commentAsset?.id ?? null,
+    userEmail,
+    now,
+    occurrenceTargets.length,
+  )];
+  statements.push(c.env.DB.prepare(
+    `UPDATE run_steps
+     SET actualized_at = COALESCE(actualized_at, ?), updated_by = ?, updated_at = ?
+     WHERE id IN (${occurrenceTargets.map(() => "?").join(", ")})
+       AND deleted_at IS NULL
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${occurrencePlaceholders})
+           AND rsc.operation_group_id = ?
+           AND rsc.deleted_at IS NULL
+       ) = ?`,
+  ).bind(
+    now,
+    userEmail,
+    now,
+    ...occurrenceTargets.map((target) => target.stepId),
+    ...occurrenceIds,
+    operationGroupId,
+    occurrenceTargets.length,
   ));
-  for (const target of input.targets) statements.push(c.env.DB.prepare(
-    `UPDATE run_steps SET actualized_at = COALESCE(actualized_at, ?), updated_by = ?, updated_at = ?
-     WHERE id = ? AND run_id = ? AND updated_at = ?`,
-  ).bind(now, userEmail, now, target.stepId, target.runId, target.expectedUpdatedAt));
   for (const sampleId of sampleIds) {
-    const stepIds = input.targets.filter((target) => target.sampleId === sampleId).map((target) => target.stepId);
+    const sampleTargets = occurrenceTargets.filter((target) => target.sampleId === sampleId);
+    const stepIds = sampleTargets.map((target) => target.stepId);
+    const sampleOccurrenceIds = sampleTargets.map((target) => target.occurrenceId);
+    const sampleOccurrencePlaceholders = sampleOccurrenceIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?, ?)`,
+       SELECT ?, ?, 'step', ?, ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleOccurrencePlaceholders})
+           AND rsc.operation_group_id = ?
+           AND rsc.deleted_at IS NULL
+       ) = ?`,
     ).bind(
       crypto.randomUUID(), sampleId,
       input.scope === "common" ? `Common step comment: ${body || "Image attached"}` : `Step comment: ${body || "Image attached"}`,
       commentAsset?.r2_key ?? null,
       JSON.stringify({ action: "step_comment", scope: input.scope, operationGroupId, stepIds }),
       userEmail, now,
+      ...sampleOccurrenceIds,
+      operationGroupId,
+      sampleOccurrenceIds.length,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-    ).bind(userEmail, now, sampleId));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleOccurrencePlaceholders})
+             AND rsc.operation_group_id = ?
+             AND rsc.deleted_at IS NULL
+         ) = ?`,
+    ).bind(
+      userEmail,
+      now,
+      sampleId,
+      ...sampleOccurrenceIds,
+      operationGroupId,
+      sampleOccurrenceIds.length,
+    ));
   }
   const results = await c.env.DB.batch(statements);
-  if (results.slice(0, input.targets.length * 2).some((result) => !result.meta.changes)) {
+  if (results[0].meta.changes !== input.targets.length) {
     throw new HTTPException(409, { message: "One or more sample steps changed before the comment was saved" });
   }
   return c.json({ ok: true, operationGroupId }, 201);
@@ -2602,54 +3546,379 @@ app.delete("/run-step-comments/:id/asset", async (c) => {
      JOIN run_steps rs ON rs.id = rsc.run_step_id
      JOIN runs r ON r.id = rs.run_id
      LEFT JOIN assets a ON a.id = rsc.asset_id
-     WHERE rsc.id = ?`,
+     WHERE rsc.id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+       AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+       AND (
+         rsc.submission_id IS NULL
+         OR EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = rsc.submission_id
+             AND cs.status = 'ready' AND cs.deleted_at IS NULL
+         )
+       )`,
   ).bind(commentId).first<{ id: string; scope: "common" | "individual"; operation_group_id: string | null; r2_key: string | null }>();
   if (!comment) throw new HTTPException(404, { message: "Step comment not found" });
   if (!comment.r2_key) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
   const removeCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
+  if (removeCommonGroup && comment.operation_group_id) {
+    await requireVisibleCommentOperationGroup(c.env.DB, comment.operation_group_id);
+  }
   const targets = removeCommonGroup
     ? await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
-       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ? AND rsc.asset_id IS NOT NULL`,
+       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ? AND rsc.asset_id IS NOT NULL
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
-       WHERE rsc.id = ? AND rsc.asset_id IS NOT NULL`,
+       WHERE rsc.id = ? AND rsc.asset_id IS NOT NULL
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>();
   if (!targets.results.length) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
   const latestUpdate = Math.max(...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map(Date.parse).filter(Number.isFinite));
   const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
   const userEmail = c.get("userEmail");
+  const deletionOperationId = crypto.randomUUID();
   const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
   const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
   const statements: D1PreparedStatement[] = [
-    c.env.DB.prepare(`UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id IN (${stepIds.map(() => "?").join(", ")})`).bind(userEmail, now, ...stepIds),
-    removeCommonGroup
-      ? c.env.DB.prepare("UPDATE run_step_comments SET asset_id = NULL WHERE scope = 'common' AND operation_group_id = ? AND asset_id IS NOT NULL").bind(comment.operation_group_id)
-      : c.env.DB.prepare("UPDATE run_step_comments SET asset_id = NULL WHERE id = ? AND asset_id IS NOT NULL").bind(comment.id),
+    c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET asset_deleted_at = ?, asset_deleted_by = ?,
+           asset_deletion_operation_id = ?, last_mutation_id = ?
+       WHERE id IN (${targetPlaceholders})
+         AND deleted_at IS NULL AND asset_id IS NOT NULL AND asset_deleted_at IS NULL
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at IS NULL
+             AND candidate.asset_id IS NOT NULL
+             AND candidate.asset_deleted_at IS NULL
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      now,
+      userEmail,
+      deletionOperationId,
+      deletionOperationId,
+      ...targetIds,
+      ...targetIds,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.asset_deletion_operation_id = ?
+             AND rsc.last_mutation_id = ?
+         )`,
+    ).bind(
+      userEmail,
+      now,
+      ...stepIds,
+      ...targetIds,
+      deletionOperationId,
+      deletionOperationId,
+    ),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
     `UPDATE events SET asset_key = NULL,
-       metadata_json = json_set(metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?)
+       metadata_json = json_set(metadata_json,
+         '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
+         '$.assetDeletionOperationId', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
-       AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-  ).bind(now, userEmail, comment.operation_group_id));
+       AND json_extract(metadata_json, '$.operationGroupId') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.asset_deletion_operation_id = ?
+           AND rsc.last_mutation_id = ?
+       ) = ?`,
+  ).bind(
+    now,
+    userEmail,
+    deletionOperationId,
+    comment.operation_group_id,
+    ...targetIds,
+    deletionOperationId,
+    deletionOperationId,
+    targetIds.length,
+  ));
   for (const sampleId of sampleIds) {
     const sampleTarget = targets.results.find((target) => target.sample_id === sampleId);
+    const sampleTargetIds = targets.results
+      .filter((target) => target.sample_id === sampleId)
+      .map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleTargetPlaceholders})
+           AND rsc.asset_deletion_operation_id = ?
+           AND rsc.last_mutation_id = ?
+       ) = ?`,
     ).bind(crypto.randomUUID(), sampleId, `Deleted comment image attachment · ${sampleTarget?.body.trim() || "Image"}`,
-      JSON.stringify({ action: "comment_attachment_deleted", operationGroupId: comment.operation_group_id, stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }), userEmail, now));
-    statements.push(c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?").bind(userEmail, now, sampleId));
+      JSON.stringify({ action: "comment_attachment_deleted", operationGroupId: comment.operation_group_id, stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }), userEmail, now,
+      ...sampleTargetIds, deletionOperationId, deletionOperationId, sampleTargetIds.length));
+    statements.push(c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.asset_deletion_operation_id = ?
+             AND rsc.last_mutation_id = ?
+         ) = ?`,
+    ).bind(
+      userEmail,
+      now,
+      sampleId,
+      ...sampleTargetIds,
+      deletionOperationId,
+      deletionOperationId,
+      sampleTargetIds.length,
+    ));
   }
   const results = await c.env.DB.batch(statements);
-  if (!results[1].meta.changes) throw new HTTPException(409, { message: "This comment attachment was already deleted" });
+  if (results[0].meta.changes !== targetIds.length) {
+    throw new HTTPException(409, { message: "The comment attachment changed while it was being deleted" });
+  }
+  return c.json({ ok: true, updatedAt: now });
+});
+
+app.post("/run-step-comments/:id/asset/restore", async (c) => {
+  const commentId = c.req.param("id");
+  const comment = await c.env.DB.prepare(
+    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, rsc.deleted_at,
+            rsc.asset_deleted_at, rsc.asset_deletion_operation_id,
+            rsc.submission_id,
+            cs.status AS submission_status, cs.deleted_at AS submission_deleted_at
+     FROM run_step_comments rsc
+     JOIN run_steps rs ON rs.id = rsc.run_step_id
+     JOIN runs r ON r.id = rs.run_id
+     JOIN samples s ON s.id = r.sample_id
+     LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
+     WHERE rsc.id = ? AND rsc.asset_id IS NOT NULL
+       AND rsc.asset_deleted_at IS NOT NULL
+       AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+  ).bind(commentId).first<{
+    id: string; scope: "common" | "individual"; operation_group_id: string | null;
+    deleted_at: string | null; asset_deleted_at: string;
+    asset_deletion_operation_id: string | null; submission_id: string | null;
+    submission_status: string | null; submission_deleted_at: string | null;
+  }>();
+  if (!comment) throw new HTTPException(404, { message: "Deleted comment attachment not found" });
+  if (comment.submission_id
+    && (comment.submission_status !== "ready" || comment.submission_deleted_at !== null)) {
+    throw new HTTPException(409, { message: "Restore the canonical Comment before restoring this attachment" });
+  }
+  if (comment.deleted_at !== null) {
+    throw new HTTPException(404, { message: "Deleted comment attachment not found" });
+  }
+  if (!comment.asset_deletion_operation_id) {
+    throw new HTTPException(409, { message: "This deleted attachment has no recoverable operation identity" });
+  }
+  const restoreCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
+  if (restoreCommonGroup && comment.operation_group_id) {
+    await requireVisibleCommentOperationGroup(c.env.DB, comment.operation_group_id);
+  }
+  const targets = restoreCommonGroup
+    ? await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, r.sample_id, a.r2_key,
+              rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
+       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?
+         AND rsc.deleted_at IS NULL AND rsc.asset_deletion_operation_id = ?
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
+    ).bind(comment.operation_group_id, comment.asset_deletion_operation_id).all<{
+      id: string; run_step_id: string; sample_id: string; r2_key: string;
+      updated_at: string; sample_updated_at: string;
+    }>()
+    : await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, r.sample_id, a.r2_key,
+              rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
+       WHERE rsc.id = ? AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NOT NULL
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
+    ).bind(comment.id).all<{
+      id: string; run_step_id: string; sample_id: string; r2_key: string;
+      updated_at: string; sample_updated_at: string;
+    }>();
+  if (!targets.results.length) throw new HTTPException(404, { message: "Deleted comment attachment not found" });
+  const latestUpdate = Math.max(
+    Date.parse(comment.asset_deleted_at),
+    ...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map(Date.parse),
+  );
+  const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
+  const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET asset_deleted_at = NULL, asset_deleted_by = NULL,
+           asset_deletion_operation_id = NULL, last_mutation_id = ?
+       WHERE id IN (${targetPlaceholders}) AND asset_deletion_operation_id = ?
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at IS NULL
+             AND candidate.asset_deletion_operation_id = ?
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      mutationId,
+      ...targetIds,
+      comment.asset_deletion_operation_id,
+      ...targetIds,
+      comment.asset_deletion_operation_id,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.asset_deleted_at IS NULL
+             AND rsc.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, ...stepIds, ...targetIds, mutationId),
+  ];
+  if (comment.operation_group_id) statements.push(c.env.DB.prepare(
+    `UPDATE events SET asset_key = ?,
+       metadata_json = json_remove(
+         metadata_json, '$.assetDeletedAt', '$.assetDeletedBy',
+         '$.assetDeletionOperationId'
+       )
+     WHERE kind = 'step' AND json_valid(metadata_json)
+       AND json_extract(metadata_json, '$.action') = 'step_comment'
+       AND json_extract(metadata_json, '$.operationGroupId') = ?
+       AND json_extract(metadata_json, '$.assetDeletionOperationId') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.asset_deleted_at IS NULL AND rsc.last_mutation_id = ?
+       ) = ?`,
+  ).bind(
+    targets.results[0].r2_key,
+    comment.operation_group_id,
+    comment.asset_deletion_operation_id,
+    ...targetIds,
+    mutationId,
+    targetIds.length,
+  ));
+  for (const sampleId of sampleIds) {
+    const sampleTargetIds = targets.results
+      .filter((target) => target.sample_id === sampleId)
+      .map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
+    statements.push(c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.asset_deleted_at IS NULL AND rsc.last_mutation_id = ?
+         ) = ?`,
+    ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
+  }
+  const results = await c.env.DB.batch(statements);
+  if (results[0].meta.changes !== targetIds.length) {
+    throw new HTTPException(409, { message: "The comment attachment changed while it was being restored" });
+  }
   return c.json({ ok: true, updatedAt: now });
 });
 
@@ -2660,13 +3929,25 @@ app.delete("/run-step-comments/:id", async (c) => {
      FROM run_step_comments rsc
      JOIN run_steps rs ON rs.id = rsc.run_step_id
      JOIN runs r ON r.id = rs.run_id
-     WHERE rsc.id = ?`,
+     WHERE rsc.id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+       AND rsc.deleted_at IS NULL
+       AND (
+         rsc.submission_id IS NULL
+         OR EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = rsc.submission_id
+             AND cs.status = 'ready' AND cs.deleted_at IS NULL
+         )
+       )`,
   ).bind(commentId).first<{
     id: string; scope: "common" | "individual"; operation_group_id: string | null;
   }>();
   if (!comment) throw new HTTPException(404, { message: "Step comment not found" });
 
   const removeCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
+  if (removeCommonGroup && comment.operation_group_id) {
+    await requireVisibleCommentOperationGroup(c.env.DB, comment.operation_group_id);
+  }
   const targets = removeCommonGroup
     ? await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
@@ -2674,7 +3955,17 @@ app.delete("/run-step-comments/:id", async (c) => {
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
        JOIN samples s ON s.id = r.sample_id
-       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?`,
+       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND rsc.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
@@ -2682,55 +3973,358 @@ app.delete("/run-step-comments/:id", async (c) => {
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
        JOIN samples s ON s.id = r.sample_id
-       WHERE rsc.id = ?`,
+       WHERE rsc.id = ? AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+         AND rs.deleted_at IS NULL AND rsc.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
     ).bind(comment.id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>();
   if (!targets.results.length) throw new HTTPException(404, { message: "Step comment not found" });
 
   const latestUpdate = Math.max(...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map((value) => Date.parse(value)).filter(Number.isFinite));
   const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
   const userEmail = c.get("userEmail");
+  const deletionOperationId = crypto.randomUUID();
   const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
   const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET deleted_at = ?, deleted_by = ?, deletion_operation_id = ?,
+           last_mutation_id = ?, updated_at = ?, updated_by = ?
+       WHERE id IN (${targetPlaceholders}) AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deleted_at IS NULL
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      now,
+      userEmail,
+      deletionOperationId,
+      deletionOperationId,
+      now,
+      userEmail,
+      ...targetIds,
+      ...targetIds,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
       `UPDATE run_steps SET updated_by = ?, updated_at = ?
-       WHERE id IN (${stepIds.map(() => "?").join(", ")})`,
-    ).bind(userEmail, now, ...stepIds),
-    removeCommonGroup
-      ? c.env.DB.prepare(
-        "DELETE FROM run_step_comments WHERE scope = 'common' AND operation_group_id = ?",
-      ).bind(comment.operation_group_id)
-      : c.env.DB.prepare("DELETE FROM run_step_comments WHERE id = ?").bind(comment.id),
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.deletion_operation_id = ?
+             AND rsc.last_mutation_id = ?
+         )`,
+    ).bind(
+      userEmail,
+      now,
+      ...stepIds,
+      ...targetIds,
+      deletionOperationId,
+      deletionOperationId,
+    ),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
     `UPDATE events SET asset_key = NULL,
-       metadata_json = json_set(metadata_json, '$.deletedAt', ?, '$.deletedBy', ?)
+       metadata_json = json_set(metadata_json,
+         '$.deletedAt', ?, '$.deletedBy', ?, '$.deletionOperationId', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
        AND json_extract(metadata_json, '$.action') = 'step_comment'
-       AND json_extract(metadata_json, '$.operationGroupId') = ?`,
-  ).bind(now, userEmail, comment.operation_group_id));
+       AND json_extract(metadata_json, '$.operationGroupId') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.deletion_operation_id = ? AND rsc.last_mutation_id = ?
+       ) = ?`,
+  ).bind(
+    now,
+    userEmail,
+    deletionOperationId,
+    comment.operation_group_id,
+    ...targetIds,
+    deletionOperationId,
+    deletionOperationId,
+    targetIds.length,
+  ));
   for (const sampleId of sampleIds) {
     const sampleTargets = targets.results.filter((target) => target.sample_id === sampleId);
     const sampleStepIds = sampleTargets.map((target) => target.run_step_id);
+    const sampleTargetIds = sampleTargets.map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
     const deletedSummary = sampleTargets[0]?.body.trim() || (sampleTargets.some((target) => target.asset_id) ? "Image attachment" : "Empty comment");
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'step', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleTargetPlaceholders})
+           AND rsc.deletion_operation_id = ? AND rsc.last_mutation_id = ?
+       ) = ?`,
     ).bind(
       crypto.randomUUID(), sampleId,
       `Deleted ${removeCommonGroup ? "common " : ""}step comment · ${deletedSummary}`,
       JSON.stringify({ action: "step_comment_deleted", operationGroupId: comment.operation_group_id, stepIds: sampleStepIds, hadAsset: sampleTargets.some((target) => Boolean(target.asset_id)) }),
-      userEmail, now,
+      userEmail, now, ...sampleTargetIds,
+      deletionOperationId, deletionOperationId, sampleTargetIds.length,
     ));
     statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-    ).bind(userEmail, now, sampleId));
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.deletion_operation_id = ? AND rsc.last_mutation_id = ?
+         ) = ?`,
+    ).bind(
+      userEmail,
+      now,
+      sampleId,
+      ...sampleTargetIds,
+      deletionOperationId,
+      deletionOperationId,
+      sampleTargetIds.length,
+    ));
   }
 
   const results = await c.env.DB.batch(statements);
-  const deleted = results[1].meta.changes ?? 0;
-  if (!deleted) throw new HTTPException(409, { message: "The comment was already deleted" });
+  const deleted = results[0].meta.changes ?? 0;
+  if (deleted !== targetIds.length) {
+    throw new HTTPException(409, { message: "The comment changed while it was being deleted" });
+  }
   return c.json({ ok: true, deleted });
+});
+
+app.post("/run-step-comments/:id/restore", async (c) => {
+  const commentId = c.req.param("id");
+  const comment = await c.env.DB.prepare(
+    `SELECT rsc.id, rsc.scope, rsc.operation_group_id, rsc.deleted_at,
+            rsc.deletion_operation_id, rsc.submission_id,
+            cs.status AS submission_status,
+            cs.deleted_at AS submission_deleted_at
+     FROM run_step_comments rsc
+     LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
+     WHERE rsc.id = ? AND rsc.deleted_at IS NOT NULL`,
+  ).bind(commentId).first<{
+    id: string; scope: "common" | "individual"; operation_group_id: string | null;
+    deleted_at: string; deletion_operation_id: string | null;
+    submission_id: string | null; submission_status: string | null;
+    submission_deleted_at: string | null;
+  }>();
+  if (!comment) throw new HTTPException(404, { message: "Deleted step comment not found" });
+  if (comment.submission_id
+    && (comment.submission_status !== "ready" || comment.submission_deleted_at !== null)) {
+    throw new HTTPException(409, { message: "Restore the canonical Comment before restoring this comment" });
+  }
+  if (!comment.deletion_operation_id) {
+    throw new HTTPException(409, { message: "This deleted comment has no recoverable operation identity" });
+  }
+  const restoreCommonGroup = comment.scope === "common" && Boolean(comment.operation_group_id);
+  if (restoreCommonGroup && comment.operation_group_id) {
+    await requireVisibleCommentOperationGroup(c.env.DB, comment.operation_group_id);
+  }
+  const targets = restoreCommonGroup
+    ? await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, a.r2_key,
+              rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       LEFT JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
+       WHERE rsc.scope = 'common' AND rsc.operation_group_id = ?
+         AND rsc.deletion_operation_id = ?
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
+    ).bind(comment.operation_group_id, comment.deletion_operation_id).all<{
+      id: string; run_step_id: string; body: string; sample_id: string; r2_key: string | null;
+      updated_at: string; sample_updated_at: string;
+    }>()
+    : await c.env.DB.prepare(
+      `SELECT rsc.id, rsc.run_step_id, rsc.body, r.sample_id, a.r2_key,
+              rs.updated_at, s.updated_at AS sample_updated_at
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       LEFT JOIN assets a ON a.id = rsc.asset_id AND a.status = 'ready'
+       WHERE rsc.id = ? AND rsc.deleted_at IS NOT NULL
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         AND (
+           rsc.submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = rsc.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )`,
+    ).bind(comment.id).all<{
+      id: string; run_step_id: string; body: string; sample_id: string; r2_key: string | null;
+      updated_at: string; sample_updated_at: string;
+    }>();
+  if (!targets.results.length) throw new HTTPException(409, { message: "Restore the comment source before restoring this comment" });
+  const latestUpdate = Math.max(
+    Date.parse(comment.deleted_at),
+    ...targets.results.flatMap((target) => [target.updated_at, target.sample_updated_at]).map(Date.parse),
+  );
+  const now = new Date(Math.max(Date.now(), latestUpdate + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const stepIds = [...new Set(targets.results.map((target) => target.run_step_id))];
+  const sampleIds = [...new Set(targets.results.map((target) => target.sample_id))];
+  const targetIds = targets.results.map((target) => target.id);
+  const targetPlaceholders = targetIds.map(() => "?").join(", ");
+  const statements: D1PreparedStatement[] = [
+    c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET deleted_at = NULL, deleted_by = NULL, deletion_operation_id = NULL,
+           last_mutation_id = ?, updated_at = ?, updated_by = ?
+       WHERE id IN (${targetPlaceholders}) AND deletion_operation_id = ?
+         AND (
+           submission_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM comment_submissions cs
+             WHERE cs.id = run_step_comments.submission_id
+               AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           )
+         )
+         AND (
+           SELECT COUNT(*)
+           FROM run_step_comments candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate.id IN (${targetPlaceholders})
+             AND candidate.deletion_operation_id = ?
+             AND (
+               candidate.submission_id IS NULL
+               OR EXISTS (
+                 SELECT 1 FROM comment_submissions cs
+                 WHERE cs.id = candidate.submission_id
+                   AND cs.status = 'ready' AND cs.deleted_at IS NULL
+               )
+             )
+         ) = ?`,
+    ).bind(
+      mutationId,
+      now,
+      userEmail,
+      ...targetIds,
+      comment.deletion_operation_id,
+      ...targetIds,
+      comment.deletion_operation_id,
+      targetIds.length,
+    ),
+    c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id IN (${stepIds.map(() => "?").join(", ")}) AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.id IN (${targetPlaceholders})
+             AND rsc.run_step_id = run_steps.id
+             AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, ...stepIds, ...targetIds, mutationId),
+  ];
+  if (comment.operation_group_id) statements.push(c.env.DB.prepare(
+    `UPDATE events SET asset_key = ?,
+       metadata_json = json_remove(
+         metadata_json, '$.deletedAt', '$.deletedBy', '$.deletionOperationId'
+       )
+     WHERE kind = 'step' AND json_valid(metadata_json)
+       AND json_extract(metadata_json, '$.action') = 'step_comment'
+       AND json_extract(metadata_json, '$.operationGroupId') = ?
+       AND json_extract(metadata_json, '$.deletionOperationId') = ?
+       AND (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${targetPlaceholders})
+           AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+       ) = ?`,
+  ).bind(
+    targets.results[0].r2_key,
+    comment.operation_group_id,
+    comment.deletion_operation_id,
+    ...targetIds,
+    mutationId,
+    targetIds.length,
+  ));
+  for (const sampleId of sampleIds) {
+    const sampleTarget = targets.results.find((target) => target.sample_id === sampleId);
+    const sampleTargetIds = targets.results
+      .filter((target) => target.sample_id === sampleId)
+      .map((target) => target.id);
+    const sampleTargetPlaceholders = sampleTargetIds.map(() => "?").join(", ");
+    statements.push(c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'step', ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*) FROM run_step_comments rsc
+         WHERE rsc.id IN (${sampleTargetPlaceholders})
+           AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+       ) = ?`,
+    ).bind(
+      crypto.randomUUID(), sampleId,
+      `Restored ${restoreCommonGroup ? "common " : ""}step comment · ${sampleTarget?.body.trim() || "Image attachment"}`,
+      JSON.stringify({ action: "step_comment_restored", operationGroupId: comment.operation_group_id,
+        stepIds: targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id) }),
+      userEmail, now, ...sampleTargetIds, mutationId, sampleTargetIds.length,
+    ));
+    statements.push(c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND (
+           SELECT COUNT(*) FROM run_step_comments rsc
+           WHERE rsc.id IN (${sampleTargetPlaceholders})
+             AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+         ) = ?`,
+    ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
+  }
+  const results = await c.env.DB.batch(statements);
+  if (results[0].meta.changes !== targetIds.length) {
+    throw new HTTPException(409, { message: "The comment changed while it was being restored" });
+  }
+  return c.json({ ok: true, restored: results[0].meta.changes ?? 0, updatedAt: now });
 });
 
 app.post("/run-steps/confirm", async (c) => {
@@ -2751,7 +4345,9 @@ app.post("/run-steps/confirm", async (c) => {
        FROM requested q
        JOIN runs r ON r.id = q.run_id AND r.sample_id = q.sample_id
        JOIN run_steps rs ON rs.id = q.step_id AND rs.run_id = q.run_id
+       JOIN samples s ON s.id = q.sample_id
        WHERE rs.updated_at = q.expected_updated_at AND rs.status IN ('pending', 'in_progress')
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )
      UPDATE run_steps
      SET status = 'done', actualized_at = COALESCE(actualized_at, ?), updated_by = ?, last_mutation_id = ?, updated_at = ?
@@ -2776,7 +4372,7 @@ app.post("/run-steps/confirm", async (c) => {
     ));
     statements.push(c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?
-       WHERE id = ? AND EXISTS (
+       WHERE id = ? AND deleted_at IS NULL AND EXISTS (
          SELECT 1 FROM run_steps WHERE last_mutation_id = ? AND id IN (${stepIds.map(() => "?").join(", ")})
        )`,
     ).bind(userEmail, now, sampleId, operationGroupId, ...stepIds));
@@ -2803,9 +4399,11 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
       `SELECT rs.id, rs.status, rs.updated_at, rs.expected_state_hash, rs.position,
               r.sequence_no, r.current_plan_revision_id, r.recipe_family_id, r.template_version_id
        FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ?
          AND r.run_kind = 'process' AND rs.entry_kind = 'fabrication'
-         AND rs.plan_status = 'current'`,
+         AND rs.plan_status = 'current'
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(stepId, runId, sampleId).first<{
       id: string; status: StepStatus; updated_at: string; expected_state_hash: string | null;
       position: number; sequence_no: number; current_plan_revision_id: string;
@@ -2817,13 +4415,17 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
     c.env.DB.prepare(
       `SELECT sv.id, sv.after_run_step_id
        FROM state_verifications sv
+       JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+       JOIN runs endpoint_run ON endpoint_run.id = endpoint.run_id
        WHERE sv.sample_id = ? AND sv.status = 'valid'
+         AND endpoint_run.deleted_at IS NULL AND endpoint.deleted_at IS NULL
        ORDER BY sv.created_at DESC, sv.id DESC LIMIT 1`,
     ).bind(sampleId).first<{ id: string; after_run_step_id: string }>(),
     c.env.DB.prepare(
       `SELECT rs.id, rs.status, rs.plan_status, rs.actualized_at, r.sequence_no, rs.position
        FROM runs r JOIN run_steps rs ON rs.run_id = r.id
        WHERE r.sample_id = ? AND r.run_kind = 'process' AND rs.entry_kind = 'fabrication'
+         AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        ORDER BY r.sequence_no, rs.position`,
     ).bind(sampleId).all<{
       id: string; status: StepStatus; plan_status: "current" | "superseded";
@@ -2849,39 +4451,158 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-state", async (c) 
   const userEmail = c.get("userEmail");
   const verificationId = crypto.randomUUID();
   const note = input.note.trim() || null;
+  const coveredJson = JSON.stringify(covered.map((step, ordinal) => ({ stepId: step.id, ordinal })));
   const statements: D1PreparedStatement[] = [
     c.env.DB.prepare(
-      `UPDATE run_steps SET status = CASE WHEN ? THEN 'done' ELSE status END,
-              actualized_at = COALESCE(actualized_at, ?), updated_by = ?, updated_at = ?
-       WHERE id = ? AND run_id = ? AND updated_at = ?`,
-    ).bind(input.completeStep ? 1 : 0, now, userEmail, now, stepId, runId, input.expectedUpdatedAt),
+      `WITH covered AS MATERIALIZED (
+         SELECT CAST(json_extract(value, '$.stepId') AS TEXT) AS run_step_id
+         FROM json_each(?)
+       )
+       UPDATE run_steps SET status = CASE WHEN ? THEN 'done' ELSE status END,
+              actualized_at = COALESCE(actualized_at, ?), updated_by = ?,
+              last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND run_id = ? AND updated_at = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM runs r JOIN samples s ON s.id = r.sample_id
+           WHERE r.id = run_steps.run_id AND r.id = ? AND r.sample_id = ?
+             AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+         )
+         AND (
+           SELECT COUNT(*)
+           FROM run_steps covered_step
+           JOIN runs covered_run ON covered_run.id = covered_step.run_id
+           JOIN samples covered_sample ON covered_sample.id = covered_run.sample_id
+           WHERE covered_step.id IN (SELECT run_step_id FROM covered)
+             AND covered_run.sample_id = ?
+             AND covered_sample.deleted_at IS NULL
+             AND covered_run.deleted_at IS NULL
+             AND covered_step.deleted_at IS NULL
+         ) = ?`,
+    ).bind(
+      coveredJson,
+      input.completeStep ? 1 : 0,
+      now,
+      userEmail,
+      verificationId,
+      now,
+      stepId,
+      runId,
+      input.expectedUpdatedAt,
+      runId,
+      sampleId,
+      sampleId,
+      covered.length,
+    ),
     c.env.DB.prepare(
       `INSERT INTO state_verifications
        (id, sample_id, after_run_step_id, previous_verification_id, run_plan_revision_id,
         expected_state_hash, result, evidence_asset_id, note, actor_email, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(verificationId, sampleId, stepId, previous?.id ?? null, target.current_plan_revision_id,
-      target.expected_state_hash, input.result, evidence?.id ?? null, note, userEmail, now),
-    ...bulkInsertStatements(c.env.DB, "state_verification_steps",
-      ["verification_id", "run_step_id", "ordinal"],
-      covered.map((step, index) => [verificationId, step.id, index])),
+       SELECT ?, s.id, rs.id, ?, ?, ?, ?, ?, ?, ?, ?
+       FROM run_steps rs
+       JOIN runs r ON r.id = rs.run_id
+       JOIN samples s ON s.id = r.sample_id
+       WHERE rs.id = ? AND r.id = ? AND s.id = ?
+         AND rs.last_mutation_id = ?
+         AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
+    ).bind(
+      verificationId,
+      previous?.id ?? null,
+      target.current_plan_revision_id,
+      target.expected_state_hash,
+      input.result,
+      evidence?.id ?? null,
+      note,
+      userEmail,
+      now,
+      stepId,
+      runId,
+      sampleId,
+      verificationId,
+    ),
+    c.env.DB.prepare(
+      `WITH covered AS MATERIALIZED (
+         SELECT CAST(json_extract(value, '$.stepId') AS TEXT) AS run_step_id,
+                CAST(json_extract(value, '$.ordinal') AS INTEGER) AS ordinal
+         FROM json_each(?)
+       )
+       INSERT INTO state_verification_steps (verification_id, run_step_id, ordinal)
+       SELECT ?, covered.run_step_id, covered.ordinal
+       FROM covered
+       JOIN run_steps rs ON rs.id = covered.run_step_id AND rs.deleted_at IS NULL
+       JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
+       JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
+       WHERE s.id = ?
+         AND EXISTS (
+           SELECT 1
+           FROM state_verifications sv
+           JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+           WHERE sv.id = ? AND endpoint.last_mutation_id = ?
+         )
+         AND (
+           SELECT COUNT(*)
+           FROM covered candidate
+           JOIN run_steps candidate_step
+             ON candidate_step.id = candidate.run_step_id
+             AND candidate_step.deleted_at IS NULL
+           JOIN runs candidate_run
+             ON candidate_run.id = candidate_step.run_id
+             AND candidate_run.deleted_at IS NULL
+           JOIN samples candidate_sample
+             ON candidate_sample.id = candidate_run.sample_id
+             AND candidate_sample.deleted_at IS NULL
+           WHERE candidate_sample.id = ?
+       ) = ?`,
+    ).bind(
+      coveredJson,
+      verificationId,
+      sampleId,
+      verificationId,
+      verificationId,
+      sampleId,
+      covered.length,
+    ),
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'verification', ?, ?, ?, ?, ?)`,
-    ).bind(crypto.randomUUID(), sampleId,
+       SELECT ?, s.id, 'verification', ?, ?, ?, ?, ?
+       FROM state_verifications sv
+       JOIN samples s ON s.id = sv.sample_id
+       JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+       WHERE sv.id = ? AND endpoint.last_mutation_id = ?
+         AND s.deleted_at IS NULL`,
+    ).bind(crypto.randomUUID(),
       `State ${input.result === "matched" ? "verified" : "mismatch recorded"} after ${covered.length} step${covered.length === 1 ? "" : "s"}`,
       evidence?.r2_key ?? null,
       JSON.stringify({ verificationId, runId, stepId, previousVerificationId: previous?.id ?? null, coveredStepIds: covered.map((step) => step.id), result: input.result }),
-      userEmail, now),
-    c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
-      .bind(userEmail, now, sampleId),
+      userEmail, now, verificationId, verificationId),
+    c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1
+           FROM state_verifications sv
+           JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+           WHERE sv.id = ? AND sv.sample_id = samples.id
+             AND endpoint.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, sampleId, verificationId, verificationId),
   ];
   if (input.result === "mismatched") statements.push(c.env.DB.prepare(
     `INSERT INTO recipe_change_proposals
      (id, recipe_family_id, source_template_version_id, source_verification_id, change_type, body, actor_email, created_at)
-     VALUES (?, ?, ?, ?, 'expected_state', ?, ?, ?)`,
-  ).bind(crypto.randomUUID(), target.recipe_family_id, target.template_version_id, verificationId,
-    note || "Observed state did not match the process template's expected state", userEmail, now));
+     SELECT ?, ?, ?, sv.id, 'expected_state', ?, ?, ?
+     FROM state_verifications sv
+     JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
+     WHERE sv.id = ? AND endpoint.last_mutation_id = ?`,
+  ).bind(
+    crypto.randomUUID(),
+    target.recipe_family_id,
+    target.template_version_id,
+    note || "Observed state did not match the process template's expected state",
+    userEmail,
+    now,
+    verificationId,
+    verificationId,
+  ));
   const results = await c.env.DB.batch(statements);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before verifying its state." });
   return c.json({
@@ -2982,7 +4703,7 @@ app.get("/exports/all", async (c) => {
       filename: String(item.filename || object.original_name || "attachment"),
       byteSize: Number(item.byte_size || object.byte_size || 0),
       sha256: String(item.sha256 || object.sha256 || ""),
-      downloadUrl: `/api/attachments/${encodeURIComponent(String(item.id))}/download`,
+      downloadUrl: `/api/exports/attachments/${encodeURIComponent(String(item.id))}`,
     }];
   });
   return c.json({
@@ -3318,6 +5039,7 @@ function processTemplateVersionSummary(row: ProcessTemplateDirectoryRow) {
 const visibleProcessTemplateSql = (alias: string) => `
   ${alias}.template_kind = 'process'
   AND ${alias}.archived_at IS NULL
+  AND ${alias}.deleted_at IS NULL
   AND NOT EXISTS (
     SELECT 1 FROM imports hidden_import
     WHERE hidden_import.template_version_id = ${alias}.id
@@ -3480,6 +5202,7 @@ app.get("/metrology-templates", async (c) => {
     LEFT JOIN step_definitions sd ON sd.hash = ts.definition_hash
     WHERE tv.template_kind = 'metrology'
       AND tv.archived_at IS NULL
+      AND tv.deleted_at IS NULL
       AND NOT EXISTS (
         SELECT 1 FROM imports hidden_import
         WHERE hidden_import.template_version_id = tv.id
@@ -3541,7 +5264,7 @@ app.get("/templates", async (c) => {
             (SELECT sd.comments_text FROM template_steps ts JOIN step_definitions sd ON sd.hash = ts.definition_hash
              WHERE ts.template_version_id = tv.id ORDER BY ts.position LIMIT 1) AS comments_text
      FROM template_versions tv
-     WHERE tv.archived_at IS NULL
+     WHERE tv.archived_at IS NULL AND tv.deleted_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = tv.id AND i.status != 'ready')
      ORDER BY tv.name, tv.template_type, tv.version DESC`,
   ).all<{
@@ -3568,7 +5291,7 @@ app.get("/templates", async (c) => {
        FROM template_versions tv
        JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-       WHERE tv.archived_at IS NULL
+       WHERE tv.archived_at IS NULL AND tv.deleted_at IS NULL
        ORDER BY tv.id, sra.position, a.id`,
     ).all<{ template_version_id: string; r2_key: string }>(),
   ]);
@@ -3685,6 +5408,7 @@ app.patch("/metrology-templates/:id", async (c) => {
      FROM template_versions tv
      JOIN template_steps ts ON ts.template_version_id = tv.id
      WHERE tv.id = ? AND tv.template_kind = 'metrology' AND tv.archived_at IS NULL
+       AND tv.deleted_at IS NULL
        AND (SELECT COUNT(*) FROM template_steps only_step WHERE only_step.template_version_id = tv.id) = 1`,
   ).bind(id).first<{ template_step_id: string; logical_step_key: string }>();
   if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
@@ -3703,7 +5427,8 @@ app.patch("/metrology-templates/:id", async (c) => {
         definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
       c.env.DB.prepare(
         `UPDATE template_versions SET name = ?, manifest_hash = ?
-         WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL`,
+         WHERE id = ? AND template_kind = 'metrology'
+           AND archived_at IS NULL AND deleted_at IS NULL`,
       ).bind(name, manifestHash, id),
       c.env.DB.prepare(
         `UPDATE template_steps SET definition_hash = ?, expected_state_hash = NULL
@@ -3731,7 +5456,8 @@ app.patch("/metrology-templates/:id/notes", async (c) => {
   }
   const result = await c.env.DB.prepare(
     `UPDATE template_versions SET metrology_notes = ?
-     WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL`,
+     WHERE id = ? AND template_kind = 'metrology'
+       AND archived_at IS NULL AND deleted_at IS NULL`,
   ).bind(input.notes.trim() || null, id).run();
   if (!result.meta.changes) throw new HTTPException(404, { message: "Metrology template not found" });
   return c.json({ ok: true });
@@ -3748,7 +5474,9 @@ app.post("/metrology-templates/:id/references", async (c) => {
     throw new HTTPException(400, { message: "Reference-file metadata is invalid" });
   }
   const template = await c.env.DB.prepare(
-    "SELECT id FROM template_versions WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL",
+    `SELECT id FROM template_versions
+     WHERE id = ? AND template_kind = 'metrology'
+       AND archived_at IS NULL AND deleted_at IS NULL`,
   ).bind(templateId).first<{ id: string }>();
   if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
   const buffer = await c.req.arrayBuffer();
@@ -3757,22 +5485,32 @@ app.post("/metrology-templates/:id/references", async (c) => {
   }
   const sha256 = await digestSha256(buffer);
   const existingReference = await c.env.DB.prepare(
-    `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at
+    `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key,
+            mtr.created_at, mtr.deleted_at
      FROM metrology_template_references mtr
      JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
      WHERE mtr.template_version_id = ? AND a.sha256 = ?`,
   ).bind(templateId, sha256).first<{
     id: string; display_name: string; mime_type: string; byte_size: number;
-    r2_key: string; created_at: string;
+    r2_key: string; created_at: string; deleted_at: string | null;
   }>();
-  if (existingReference) return c.json({ reference: {
-    id: existingReference.id,
-    filename: existingReference.display_name,
-    mimeType: existingReference.mime_type,
-    byteSize: Number(existingReference.byte_size),
-    assetKey: existingReference.r2_key,
-    createdAt: existingReference.created_at,
-  } });
+  if (existingReference) {
+    if (existingReference.deleted_at) {
+      await c.env.DB.prepare(
+        `UPDATE metrology_template_references
+         SET deleted_at = NULL, deleted_by = NULL, display_name = ?
+         WHERE id = ? AND deleted_at = ?`,
+      ).bind(filename, existingReference.id, existingReference.deleted_at).run();
+    }
+    return c.json({ reference: {
+      id: existingReference.id,
+      filename: existingReference.deleted_at ? filename : existingReference.display_name,
+      mimeType: existingReference.mime_type,
+      byteSize: Number(existingReference.byte_size),
+      assetKey: existingReference.r2_key,
+      createdAt: existingReference.created_at,
+    } });
+  }
 
   const existingAsset = await c.env.DB.prepare(
     "SELECT id, r2_key, original_name, mime_type, byte_size FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
@@ -3838,22 +5576,44 @@ app.post("/metrology-templates/:id/references", async (c) => {
 
 app.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
   const { id, referenceId } = c.req.param();
+  const now = new Date().toISOString();
   const result = await c.env.DB.prepare(
-    `DELETE FROM metrology_template_references
+    `UPDATE metrology_template_references
+     SET deleted_at = ?, deleted_by = ?
      WHERE id = ? AND template_version_id = ?
+       AND deleted_at IS NULL
        AND EXISTS (
          SELECT 1 FROM template_versions
-         WHERE id = ? AND template_kind = 'metrology' AND archived_at IS NULL
+         WHERE id = ? AND template_kind = 'metrology'
+           AND archived_at IS NULL AND deleted_at IS NULL
+       )`,
+  ).bind(now, c.get("userEmail"), referenceId, id, id).run();
+  if (!result.meta.changes) throw new HTTPException(404, { message: "Template reference not found" });
+  return c.json({ ok: true });
+});
+
+app.post("/metrology-templates/:id/references/:referenceId/restore", async (c) => {
+  const { id, referenceId } = c.req.param();
+  const result = await c.env.DB.prepare(
+    `UPDATE metrology_template_references
+     SET deleted_at = NULL, deleted_by = NULL
+     WHERE id = ? AND template_version_id = ? AND deleted_at IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM template_versions
+         WHERE id = ? AND template_kind = 'metrology'
+           AND archived_at IS NULL AND deleted_at IS NULL
        )`,
   ).bind(referenceId, id, id).run();
-  if (!result.meta.changes) throw new HTTPException(404, { message: "Template reference not found" });
+  if (!result.meta.changes) throw new HTTPException(404, { message: "Deleted template reference not found" });
   return c.json({ ok: true });
 });
 
 app.post("/templates/:id/clone", async (c) => {
   const sourceId = c.req.param("id");
   const [source, steps] = await Promise.all([
-    c.env.DB.prepare("SELECT * FROM template_versions WHERE id = ?").bind(sourceId).first<Record<string, unknown>>(),
+    c.env.DB.prepare(
+      "SELECT * FROM template_versions WHERE id = ? AND deleted_at IS NULL",
+    ).bind(sourceId).first<Record<string, unknown>>(),
     c.env.DB.prepare("SELECT * FROM template_steps WHERE template_version_id = ? ORDER BY position").bind(sourceId).all<Record<string, unknown>>(),
   ]);
   if (!source) throw new HTTPException(404, { message: "Template version not found" });
@@ -3890,7 +5650,7 @@ app.get("/templates/:id", async (c) => {
       `SELECT id, recipe_family_id, name, template_type, template_kind, metrology_notes,
               version, manifest_hash, initial_state_hash,
               source_filename, content_json, locked_at, archived_at, created_at
-       FROM template_versions WHERE id = ?`,
+       FROM template_versions WHERE id = ? AND deleted_at IS NULL`,
     ).bind(id).first<Record<string, unknown>>(),
     c.env.DB.prepare(
       `SELECT ts.id, ts.logical_step_key, ts.definition_hash, ts.expected_state_hash,
@@ -3917,7 +5677,7 @@ app.get("/templates/:id", async (c) => {
       `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at
        FROM metrology_template_references mtr
        JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
-       WHERE mtr.template_version_id = ?
+       WHERE mtr.template_version_id = ? AND mtr.deleted_at IS NULL
        ORDER BY mtr.position, mtr.created_at, mtr.id`,
     ).bind(id).all<{
       id: string; display_name: string; mime_type: string; byte_size: number;
@@ -3966,12 +5726,18 @@ app.patch("/templates/:id", async (c) => {
   if (typeof input.name !== "string" || typeof input.version !== "number" || !Number.isInteger(input.version) || input.version < 1) throw new HTTPException(400, { message: "A template name and positive integer version are required" });
   const name = input.name.trim();
   if (!name || name.length > 200) throw new HTTPException(400, { message: "Template name is required and must be at most 200 characters" });
-  const current = await c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?").bind(id).first<{ locked_at: string | null; archived_at: string | null }>();
+  const current = await c.env.DB.prepare(
+    "SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?",
+  ).bind(id).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>();
   if (!current) throw new HTTPException(404, { message: "Template version not found" });
+  if (current.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
   if (current.archived_at) throw new HTTPException(409, { message: "Archived templates cannot be edited" });
   if (current.locked_at) throw new HTTPException(409, { message: "This template version has been used by a process run and is now locked. Clone it to create an editable version." });
   try {
-    const result = await c.env.DB.prepare("UPDATE template_versions SET name = ?, version = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL").bind(name, input.version, id).run();
+    const result = await c.env.DB.prepare(
+      `UPDATE template_versions SET name = ?, version = ?
+       WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
+    ).bind(name, input.version, id).run();
     if (!result.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
   } catch (error) {
     if (String(error).includes("UNIQUE")) throw new HTTPException(409, { message: `Version ${input.version} already exists for this template` });
@@ -3988,12 +5754,14 @@ app.post("/templates/:id/steps", async (c) => {
   if (!name || name.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000) throw new HTTPException(400, { message: "One or more template step fields are invalid" });
   const definition = await hashStepDefinition({ name, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
   const [template, existingSteps, asset] = await Promise.all([
-    c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?").bind(templateId).first<{ locked_at: string | null; archived_at: string | null }>(),
+    c.env.DB.prepare(
+      "SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?",
+    ).bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
     c.env.DB.prepare("SELECT logical_step_key, definition_hash, expected_state_hash, position FROM template_steps WHERE template_version_id = ? ORDER BY position")
       .bind(templateId).all<{ logical_step_key: string; definition_hash: string; expected_state_hash: string | null; position: number }>(),
     input.assetKey ? c.env.DB.prepare("SELECT id, sha256 FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
-  if (!template) throw new HTTPException(404, { message: "Template version not found" });
+  if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
   const stepId = crypto.randomUUID();
@@ -4024,10 +5792,11 @@ app.post("/templates/:id/steps", async (c) => {
     `INSERT INTO template_steps
      (id, template_version_id, logical_step_key, position, definition_hash, expected_state_hash)
      SELECT ?, id, ?, ?, ?, ? FROM template_versions
-     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL`,
+     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
   ).bind(stepId, logicalKey, Number(existingSteps.results.at(-1)?.position ?? -1) + 1, definition.hash, expectedStateHash, templateId));
   statements.push(c.env.DB.prepare(
-    "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
+    `UPDATE template_versions SET manifest_hash = ?
+     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
   ).bind(manifestHash, templateId));
   const results = await c.env.DB.batch(statements);
   if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
@@ -4042,14 +5811,16 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
   if (!name || name.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000) throw new HTTPException(400, { message: "One or more template step fields are invalid" });
   const definition = await hashStepDefinition({ name, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
   const [template, step, allSteps, asset] = await Promise.all([
-    c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?").bind(templateId).first<{ locked_at: string | null; archived_at: string | null }>(),
+    c.env.DB.prepare(
+      "SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?",
+    ).bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
     c.env.DB.prepare("SELECT id, logical_step_key, expected_state_hash FROM template_steps WHERE id = ? AND template_version_id = ?")
       .bind(stepId, templateId).first<{ id: string; logical_step_key: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare("SELECT id, logical_step_key, definition_hash, expected_state_hash FROM template_steps WHERE template_version_id = ? ORDER BY position")
       .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
     input.assetKey ? c.env.DB.prepare("SELECT id, sha256 FROM assets WHERE status = 'ready' AND r2_key = ?").bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
-  if (!template || !step) throw new HTTPException(404, { message: "Template step not found" });
+  if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
   const now = new Date().toISOString();
@@ -4076,11 +5847,13 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
   statements.push(c.env.DB.prepare(
     `UPDATE template_steps SET definition_hash = ?, expected_state_hash = ?
      WHERE id = ? AND template_version_id = ? AND EXISTS (
-       SELECT 1 FROM template_versions WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL
+       SELECT 1 FROM template_versions
+       WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL
      )`,
   ).bind(definition.hash, expectedStateHash, stepId, templateId, templateId));
   statements.push(c.env.DB.prepare(
-    "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
+    `UPDATE template_versions SET manifest_hash = ?
+     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
   ).bind(manifestHash, templateId));
   const results = await c.env.DB.batch(statements);
   if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
@@ -4090,8 +5863,8 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
 app.delete("/templates/:templateId/steps/:stepId", async (c) => {
   const { templateId, stepId } = c.req.param();
   const [template, step, remainingSteps] = await Promise.all([
-    c.env.DB.prepare("SELECT locked_at, archived_at FROM template_versions WHERE id = ?")
-      .bind(templateId).first<{ locked_at: string | null; archived_at: string | null }>(),
+    c.env.DB.prepare("SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?")
+      .bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
     c.env.DB.prepare(
       "SELECT id FROM template_steps WHERE id = ? AND template_version_id = ?",
     ).bind(stepId, templateId).first<{ id: string }>(),
@@ -4104,7 +5877,7 @@ app.delete("/templates/:templateId/steps/:stepId", async (c) => {
       expected_state_hash: string | null;
     }>(),
   ]);
-  if (!template || !step) throw new HTTPException(404, { message: "Template step not found" });
+  if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   const manifestHash = await hashRecipeManifest(remainingSteps.results.map((entry) => ({
     logicalStepKey: entry.logical_step_key,
@@ -4117,11 +5890,12 @@ app.delete("/templates/:templateId/steps/:stepId", async (c) => {
        WHERE id = ? AND template_version_id = ?
          AND EXISTS (
            SELECT 1 FROM template_versions
-           WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL
+           WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL
          )`,
     ).bind(stepId, templateId, templateId),
     c.env.DB.prepare(
-      "UPDATE template_versions SET manifest_hash = ? WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL",
+      `UPDATE template_versions SET manifest_hash = ?
+       WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
     ).bind(manifestHash, templateId),
   ]);
   if (!results[0].meta.changes || !results[1].meta.changes) {
@@ -4133,7 +5907,7 @@ app.delete("/templates/:templateId/steps/:stepId", async (c) => {
 app.delete("/templates/:id", async (c) => {
   const id = c.req.param("id");
   const template = await c.env.DB.prepare(
-    `SELECT tv.recipe_family_id, tv.locked_at, tv.archived_at,
+    `SELECT tv.recipe_family_id, tv.locked_at, tv.archived_at, tv.deleted_at,
             EXISTS (SELECT 1 FROM runs r WHERE r.template_version_id = tv.id) OR
             EXISTS (SELECT 1 FROM run_plan_revisions rpr WHERE rpr.template_version_id = tv.id) OR
             EXISTS (
@@ -4143,47 +5917,58 @@ app.delete("/templates/:id", async (c) => {
             ) OR
             EXISTS (SELECT 1 FROM recipe_change_proposals rcp WHERE rcp.source_template_version_id = tv.id) AS referenced
      FROM template_versions tv WHERE tv.id = ?`,
-  ).bind(id).first<{ recipe_family_id: string; locked_at: string | null; archived_at: string | null; referenced: number }>();
-  if (!template || template.archived_at) throw new HTTPException(404, { message: "Active template version not found" });
-
-  const now = new Date().toISOString();
-  if (template.locked_at || template.referenced) {
-    const result = await c.env.DB.prepare(
-      "UPDATE template_versions SET archived_at = ?, archived_by = ? WHERE id = ? AND archived_at IS NULL",
-    ).bind(now, c.get("userEmail"), id).run();
-    if (!result.meta.changes) throw new HTTPException(409, { message: "This template changed while it was being archived" });
-    return c.json({ ok: true, disposition: "archived" as const });
+  ).bind(id).first<{
+    recipe_family_id: string; locked_at: string | null; archived_at: string | null;
+    deleted_at: string | null; referenced: number;
+  }>();
+  if (!template || template.archived_at || template.deleted_at) {
+    throw new HTTPException(404, { message: "Active template version not found" });
   }
 
-  const results = await c.env.DB.batch([
-    c.env.DB.prepare(
-      `DELETE FROM template_versions
-       WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL
-         AND NOT EXISTS (SELECT 1 FROM runs WHERE template_version_id = ?)
-         AND NOT EXISTS (SELECT 1 FROM run_plan_revisions WHERE template_version_id = ?)
-         AND NOT EXISTS (
-           SELECT 1 FROM run_steps rs
-           JOIN template_steps ts ON ts.id = rs.template_step_id
-           WHERE ts.template_version_id = ?
-         )
-         AND NOT EXISTS (SELECT 1 FROM recipe_change_proposals WHERE source_template_version_id = ?)`,
-    ).bind(id, id, id, id, id),
-    c.env.DB.prepare(
-      "UPDATE imports SET template_version_id = NULL WHERE template_version_id = ? AND NOT EXISTS (SELECT 1 FROM template_versions WHERE id = ?)",
-    ).bind(id, id),
-    c.env.DB.prepare(
-      `DELETE FROM recipe_families
-       WHERE id = ?
-         AND NOT EXISTS (SELECT 1 FROM template_versions WHERE recipe_family_id = ?)
-         AND NOT EXISTS (SELECT 1 FROM runs WHERE recipe_family_id = ?)
-         AND NOT EXISTS (SELECT 1 FROM recipe_change_proposals WHERE recipe_family_id = ?)`,
-    ).bind(template.recipe_family_id, template.recipe_family_id, template.recipe_family_id, template.recipe_family_id),
-    c.env.DB.prepare(
-      "UPDATE imports SET recipe_family_id = NULL WHERE recipe_family_id = ? AND NOT EXISTS (SELECT 1 FROM recipe_families WHERE id = ?)",
-    ).bind(template.recipe_family_id, template.recipe_family_id),
-  ]);
-  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while it was being deleted. Reload it and archive it instead." });
-  return c.json({ ok: true, disposition: "deleted" as const });
+  const now = new Date().toISOString();
+  const userEmail = c.get("userEmail");
+  const archive = Boolean(template.locked_at || template.referenced);
+  const result = await c.env.DB.prepare(
+    `UPDATE template_versions
+     SET deleted_at = ?, deleted_by = ?,
+         archived_at = CASE WHEN ? THEN ? ELSE archived_at END,
+         archived_by = CASE WHEN ? THEN ? ELSE archived_by END
+     WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL`,
+  ).bind(now, userEmail, archive ? 1 : 0, now, archive ? 1 : 0, userEmail, id).run();
+  if (!result.meta.changes) {
+    throw new HTTPException(409, { message: "This template changed while it was being deleted" });
+  }
+  return c.json({ ok: true, disposition: archive ? "archived" as const : "deleted" as const });
+});
+
+app.post("/templates/:id/restore", async (c) => {
+  const id = c.req.param("id");
+  const template = await c.env.DB.prepare(
+    `SELECT deleted_at, deleted_by, archived_at, archived_by
+     FROM template_versions WHERE id = ? AND deleted_at IS NOT NULL`,
+  ).bind(id).first<{
+    deleted_at: string; deleted_by: string | null;
+    archived_at: string | null; archived_by: string | null;
+  }>();
+  if (!template) throw new HTTPException(404, { message: "Deleted template version not found" });
+  const result = await c.env.DB.prepare(
+    `UPDATE template_versions
+     SET archived_at = CASE
+           WHEN archived_at = deleted_at AND archived_by IS deleted_by THEN NULL
+           ELSE archived_at
+         END,
+         archived_by = CASE
+           WHEN archived_at = deleted_at AND archived_by IS deleted_by THEN NULL
+           ELSE archived_by
+         END,
+         deleted_at = NULL,
+         deleted_by = NULL
+     WHERE id = ? AND deleted_at = ?`,
+  ).bind(id, template.deleted_at).run();
+  if (!result.meta.changes) {
+    throw new HTTPException(409, { message: "The template changed while it was being restored" });
+  }
+  return c.json({ ok: true });
 });
 
 export default {

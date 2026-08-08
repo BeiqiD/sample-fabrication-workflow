@@ -13,6 +13,10 @@ const migrationNames = [
   "metrology_templates",
   "directory_performance",
   "sync_metrology_sample_status",
+  "sample_directory_filters",
+  "matching_run_picker",
+  "reference_lifecycle_foundation",
+  "run_soft_delete",
 ];
 
 class SqliteD1Statement {

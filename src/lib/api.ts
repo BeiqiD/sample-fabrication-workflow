@@ -123,6 +123,11 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
+  restoreRun: (sampleId: string, runId: string, input: DeleteRunInput) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/restore`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
   previewPlanUpdate: (sampleId: string, runId: string, templateVersionId: string) => request<PlanUpdatePreview & { familyMismatch?: boolean }>(`/samples/${sampleId}/runs/${runId}/plan-update/preview`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ templateVersionId }),
   }),

@@ -36,11 +36,23 @@ describe("reference lifecycle schema", () => {
   it("keeps comment occurrence edit metadata separate from its canonical submission", () => {
     const database = migratedDatabase();
     expect([...columns(database, "comment_submissions")]).toEqual(expect.arrayContaining([
-      "id", "body", "updated_at", "deleted_at", "deleted_by",
+      "id", "body", "updated_at", "last_mutation_id",
+      "deleted_at", "deleted_by", "deletion_operation_id",
     ]));
     expect([...columns(database, "run_step_comments")]).toEqual(expect.arrayContaining([
       "id", "submission_id", "run_step_id", "updated_at", "updated_by", "deleted_at", "deleted_by",
+      "last_mutation_id", "deletion_operation_id",
+      "asset_deleted_at", "asset_deleted_by", "asset_deletion_operation_id",
     ]));
+    database.close();
+  });
+
+  it("gives batch-authoritative sources an internal mutation marker", () => {
+    const database = migratedDatabase();
+    expect(columns(database, "runs")).toContain("last_mutation_id");
+    expect(columns(database, "comment_submissions")).toContain("last_mutation_id");
+    expect(columns(database, "run_step_comments")).toContain("last_mutation_id");
+    expect(columns(database, "run_step_assets")).toContain("last_mutation_id");
     database.close();
   });
 
