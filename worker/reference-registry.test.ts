@@ -68,6 +68,56 @@ describe("reference target registry service", () => {
     database.close();
   });
 
+  it("does not let stale registration validation overwrite newer registry metadata", async () => {
+    const { database, db } = fixture();
+    const target = { type: "sample" as const, id: REFERENCE_FIXTURE_IDS.sampleA };
+    database.prepare("UPDATE samples SET title = 'Newer registration context' WHERE id = ?")
+      .run(target.id);
+    await registerReferenceTarget(
+      db,
+      target,
+      "2026-08-08T02:00:00.000Z",
+      "registry-registration-race",
+    );
+
+    database.prepare("UPDATE samples SET title = 'Stale registration context' WHERE id = ?")
+      .run(target.id);
+    const staleResult = await registerReferenceTarget(
+      db,
+      target,
+      "2026-08-08T01:00:00.000Z",
+      "ignored-stale-registration-id",
+    );
+
+    expect(staleResult.lastValidatedAt).toBe("2026-08-08T02:00:00.000Z");
+    expect(staleResult.lastKnownContexts[0].segments[0].label)
+      .toBe("REF-A · Newer registration context");
+    database.close();
+  });
+
+  it("returns newer registry metadata instead of treating a stale refresh as a tombstone", async () => {
+    const { database, db } = fixture();
+    const target = { type: "sample" as const, id: REFERENCE_FIXTURE_IDS.sampleA };
+    await registerReferenceTarget(
+      db,
+      target,
+      "2026-08-08T01:00:00.000Z",
+      "registry-refresh-race",
+    );
+    database.prepare("UPDATE samples SET title = 'Newer refresh context' WHERE id = ?")
+      .run(target.id);
+    await refreshReferenceTarget(db, target, "2026-08-08T03:00:00.000Z");
+
+    database.prepare("UPDATE samples SET title = 'Stale refresh context' WHERE id = ?")
+      .run(target.id);
+    const staleResult = await refreshReferenceTarget(db, target, "2026-08-08T02:00:00.000Z");
+
+    expect(staleResult.lastValidatedAt).toBe("2026-08-08T03:00:00.000Z");
+    expect(staleResult.lastKnownContexts[0].segments[0].label)
+      .toBe("REF-A · Newer refresh context");
+    database.close();
+  });
+
   it("rejects missing, inconsistent, and tombstoned registration targets", async () => {
     const { database, db } = fixture();
     await expect(registerReferenceTarget(

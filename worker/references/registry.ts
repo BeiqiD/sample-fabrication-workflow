@@ -55,7 +55,8 @@ export async function registerReferenceTarget(
       UPDATE reference_targets
       SET last_validated_at = ?, last_known_contexts_json = ?
       WHERE target_type = ? AND target_id = ? AND tombstoned_at IS NULL
-    `).bind(now, contextsJson, target.type, target.id),
+        AND last_validated_at <= ?
+    `).bind(now, contextsJson, target.type, target.id, now),
   ]);
   const entry = await requireRegistryEntry(db, target);
   if (entry.tombstonedAt) {
@@ -77,10 +78,15 @@ export async function refreshReferenceTarget(
   const result = await db.prepare(`
     UPDATE reference_targets
     SET last_validated_at = ?, last_known_contexts_json = ?
-    WHERE id = ? AND tombstoned_at IS NULL
-  `).bind(now, JSON.stringify(resolution.contexts), existing.id).run();
+    WHERE id = ? AND tombstoned_at IS NULL AND last_validated_at <= ?
+  `).bind(now, JSON.stringify(resolution.contexts), existing.id, now).run();
   if (!result.meta.changes) {
-    throw new ReferenceRegistrationError("tombstoned", "The reference target changed while it was being refreshed");
+    const current = await requireRegistryEntry(db, target);
+    if (current.tombstonedAt) {
+      throw new ReferenceRegistrationError("tombstoned", "The reference target changed while it was being refreshed");
+    }
+    if (current.lastValidatedAt >= now) return current;
+    throw new Error("Reference target validation metadata was not updated");
   }
   return requireRegistryEntry(db, target);
 }

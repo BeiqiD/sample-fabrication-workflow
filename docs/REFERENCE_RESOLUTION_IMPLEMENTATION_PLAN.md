@@ -383,6 +383,11 @@ Registration:
 4. returns the canonical row selected by `(target_type, target_id)`;
 5. updates validation time and last-known contexts explicitly.
 
+Validation metadata is monotonic by `last_validated_at`. A stale registration
+or refresh cannot overwrite contexts recorded by a newer validation; it returns
+the current newer registry row instead. A failed refresh update is re-read so a
+stale no-op remains distinct from a target that became tombstoned concurrently.
+
 Ordinary resolution does not update `last_validated_at`. Read-only Project or
 search pages must not create database writes merely by displaying references.
 
