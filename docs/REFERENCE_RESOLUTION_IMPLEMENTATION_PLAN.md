@@ -32,8 +32,8 @@ The implementation provides:
 5. a read-only API endpoint that preserves caller order and partial failures;
 6. an internal registration service for later Project-item creation;
 7. one mapping from public target types to permanent-delete blocker types;
-8. single-batch export, migration, CI, and D1/workerd coverage for the new
-   foundation.
+8. single-batch export, migration, CI, host-SQLite resolver coverage, and
+   Wrangler D1/workerd migration coverage for the new foundation.
 
 The resolver reads current source data. The registry stores identity and
 validation metadata only; it is not a title, body, preview, or path snapshot.
@@ -54,7 +54,8 @@ No implementation in this slice may weaken those contracts. In particular:
 - attachment references target occurrences, not blob records or provider keys;
 - complete export keeps every table/view snapshot in one D1 batch;
 - permanent deletion remains disabled;
-- new SQL must pass both host SQLite tests and Wrangler local D1/workerd;
+- new runtime SQL must remain within documented D1 constraints and pass host
+  SQLite tests; migrations must also pass Wrangler local D1/workerd;
 - no remote migration or deployment is run from the feature branch.
 
 ## Pull-request boundary
@@ -309,6 +310,13 @@ bounded queries or D1-safe views rather than one oversized `UNION ALL` chain.
 The complete migration chain must continue to pass
 `npm run verify:d1-migrations`.
 
+Current focused resolver tests execute through `SqliteD1Database` on host
+`node:sqlite`. Wrangler local D1/workerd currently applies the complete
+migration chain but does not invoke `/api/references/resolve`. A later local
+Worker/D1 smoke test must execute representative adapters and the 200-target
+batch before this document may claim that runtime resolver SQL is
+workerd-executed.
+
 ## Target-specific rules
 
 ### Sample
@@ -421,6 +429,9 @@ Rules:
 - unknown type, empty/whitespace-padded ID, or excessive ID length returns a
   typed domain error mapped to `400`;
 - the endpoint is authenticated by the existing application middleware;
+- the thin entry currently mirrors the core error, same-origin, Access-auth,
+  and `userEmail` middleware; changes to those policies must update both stacks
+  until the reference routes are mounted in the core Hono app;
 - the endpoint is read-only;
 - results preserve request order and duplicate requests;
 - one missing target does not fail the batch;
@@ -538,8 +549,8 @@ The PR is complete when:
 9. the public endpoint is read-only and order-preserving;
 10. complete export preserves registry rows in the same D1 batch as all other
     table snapshots;
-11. host SQLite, Wrangler local D1/workerd, focused tests, the complete test
-    suite, and production build pass;
+11. host-SQLite resolver tests, Wrangler local D1/workerd migration checks,
+    focused tests, the complete test suite, and production build pass;
 12. the PR targets only `v2/backend-foundation`;
 13. no remote D1 migration or Worker deployment is run.
 

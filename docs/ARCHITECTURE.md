@@ -22,6 +22,12 @@ scheduled cleanup operation to the core Worker. The core complete-export route
 includes `reference_targets` directly in its existing table-query batch; the
 entry performs no second export query or manifest augmentation.
 
+The thin entry currently mirrors the core Worker's error, same-origin-write,
+Access-authentication, and `userEmail` middleware for `/api/references/*`.
+Until reference routes are mounted directly in the core Hono app, any change to
+authorization, request guards, or shared error behavior must update and test
+both stacks in the same pull request. Consolidating them is a later refactor.
+
 The blob-lifecycle and reference-foundation implementations remain inside this
 one deployment. They do not require Queues, Workflows, Durable Objects,
 Containers, or a second Worker.
@@ -105,7 +111,7 @@ Containers, or a second Worker.
 
 - Bulk inserts keep each statement below D1's 100-bound-parameter limit.
 - Resolver IDs are passed through `json_each(?)`; the domain batch is capped at 200 without consuming one binding per target.
-- D1 migrations and resolver queries must pass both host SQLite tests and Wrangler local D1/workerd verification. Oversized compound `SELECT` chains are not accepted merely because host SQLite permits them.
+- D1 migrations pass both host SQLite tests and Wrangler local D1/workerd verification. Resolver queries are host-tested and constrained to D1-safe JSON bindings and bounded query shapes; a local Worker/D1 resolver smoke test remains a follow-up before claiming workerd execution of runtime resolver SQL. Oversized compound `SELECT` chains are not accepted merely because host SQLite permits them.
 - A confirmed import is capped at 180 steps and 180 images, uses at most five concurrent R2 writes, and divides persistence into bounded batches behind the pending-import visibility gate.
 - Scheduled blob cleanup uses bounded discovery/deletion batches; a large backlog may require repeated daily runs rather than one unbounded execution.
 - Full export downloads blobs sequentially but builds the ZIP in browser memory with JSZip. Missing blobs are non-fatal, but a sufficiently large valid archive can still exceed browser memory or Blob limits. A streaming/server-side or desktop export path is a later scalability slice.
