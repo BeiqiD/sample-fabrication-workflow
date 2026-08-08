@@ -31,7 +31,7 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Open every current reference target through one opaque, refresh-safe canonical URL, with lifecycle-aware read-only behavior when an ordinary source route is unavailable.
 - Follow canonical references into the exact Run Step, Comment, attachment, execution image, Sample note, or metrology reference while preserving source context and browser history.
 - Search all nine current reference target types through one bounded, explainable, lifecycle-aware read-only service without creating registry rows or exposing physical storage locators.
-- Browse that index through one URL-owned global Search page, filter by target type, Sample context, or date, and reuse the same controlled result surface for later stable-target selection without implying that a Project insertion already occurred.
+- Use one reusable, Project-oriented search and selection surface to find stable targets. The current `/search` reference browser is temporary integration scaffolding and is expected to be replaced by Project-owned discovery once the Project workspace exists.
 
 ## Architecture
 
@@ -54,7 +54,7 @@ Reference resolution is similarly source-owned. The sparse `reference_targets` r
 
 Deterministic reference search reads those same authoritative source and occurrence rows through type-specific queries. It uses explicit exact-ID, exact-primary, prefix, target-content, and metadata ranking tiers, then revalidates candidates through the resolver. Query count, bindings, candidates, and resolver work are bounded, while the first source-scan backend still scales its row examination with the underlying tables.
 
-The global Search page keeps only committed query/type/Sample/date state in the URL and submits explicitly instead of scanning on every keystroke. Its reusable controlled result surface renders server order without client-side scoring and can return a stable `ReferenceTarget` to a later picker without registering it or writing source data.
+The reusable reference-search surface keeps committed state separate from form drafts, submits explicitly instead of scanning on every keystroke, renders server order without client-side scoring, and returns a stable `ReferenceTarget` without registering it or writing source data. Its long-term host is the Project workspace. The current URL-owned `/search` page is only a thin browser and integration harness until Project identity and insertion exist.
 
 The search domain contract is deployment-neutral. D1 currently supplies the portable SQLite query interface; a future Docker/self-hosted SQLite runtime can use the same contract, and a derived FTS5 backend can replace scans without becoming a second source of truth. Search reads do not register targets. Actual Project backlinks and insertion remain deferred until `project_items` exists rather than being represented by a parallel placeholder table.
 
@@ -165,7 +165,7 @@ The first full-export implementation builds the ZIP in browser memory. Large arc
 - [Reference deep-link implementation plan](./docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md)
 - [Reference source-focus implementation plan](./docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md)
 - [Deterministic reference search implementation plan](./docs/REFERENCE_SEARCH_IMPLEMENTATION_PLAN.md)
-- [Global reference Search UI implementation plan](./docs/REFERENCE_SEARCH_UI_IMPLEMENTATION_PLAN.md)
+- [Project reference search surface implementation plan](./docs/REFERENCE_SEARCH_UI_IMPLEMENTATION_PLAN.md)
 - [D1 SQL compatibility](./docs/D1_SQL_COMPATIBILITY.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)
