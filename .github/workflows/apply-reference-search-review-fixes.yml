@@ -1,16 +1,20 @@
 name: Apply deterministic search review fixes
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/deterministic-reference-search
+      - v2/backend-foundation
 
 permissions:
   contents: write
 
+concurrency:
+  group: apply-reference-search-review-fixes-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.event.pull_request.head.ref == 'agent/deterministic-reference-search' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
