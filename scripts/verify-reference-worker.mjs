@@ -157,19 +157,19 @@ try {
   )), "every workerd result must include its canonical reference destination");
 
   const sample = mixedPayload.results.find((result) => result.target.type === "sample");
-  const run = mixedPayload.results.find((result) => result.target.type === "run");
+  const runResolution = mixedPayload.results.find((result) => result.target.type === "run");
   const step = mixedPayload.results.find((result) => result.target.type === "run_step");
   const comment = mixedPayload.results.find((result) => result.target.type === "comment");
   const commentAttachment = mixedPayload.results.find(
     (result) => result.target.type === "comment_attachment",
   );
   assert(sample, "Sample adapter result must be present");
-  assert(run, "Run adapter result must be present");
+  assert(runResolution, "Run adapter result must be present");
   assert(step, "Run-step adapter result must be present");
   assert(comment, "common Comment adapter result must be present");
   assert(commentAttachment, "Comment-attachment adapter result must be present");
   assert.equal(sample.destination.openSourceUrl, "/samples/reference-sample-a");
-  assert.equal(run.destination.openSourceUrl, "/processing/reference-sample-a?run=reference-run-a");
+  assert.equal(runResolution.destination.openSourceUrl, "/processing/reference-sample-a?run=reference-run-a");
   assert.equal(
     step.destination.openSourceUrl,
     "/processing/reference-sample-a?run=reference-run-a&step=reference-step-a&reference=run_step%3Areference-step-a",
