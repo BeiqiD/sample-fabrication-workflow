@@ -7,6 +7,7 @@ import {
   referenceSearchInputFromState,
   referenceSearchParamsFromState,
   referenceSearchStateFromParams,
+  referenceSearchUiStateEquals,
   referenceTargetEquals,
   validateReferenceSearchUiState,
 } from "./reference-search-ui";
@@ -80,6 +81,25 @@ describe("reference search UI state", () => {
       .toBe("The start date must be on or before the end date.");
     expect(validateReferenceSearchUiState({ ...valid, from: "2026-02-30" }))
       .toBe("Use valid calendar dates in YYYY-MM-DD format.");
+  });
+
+  it("compares normalized committed state so an unchanged submit can become an explicit retry", () => {
+    const left = {
+      query: "  Case-ID ",
+      types: ["run" as const, "sample" as const, "run" as const],
+      sampleId: " sample-a ",
+      from: "2026-08-01",
+      to: "2026-08-09",
+    };
+    const right = {
+      query: "Case-ID",
+      types: ["sample" as const, "run" as const],
+      sampleId: "sample-a",
+      from: "2026-08-01",
+      to: "2026-08-09",
+    };
+    expect(referenceSearchUiStateEquals(left, right)).toBe(true);
+    expect(referenceSearchUiStateEquals(left, { ...right, to: "2026-08-10" })).toBe(false);
   });
 
   it("converts committed state to the existing Phase 2C1 input without inventing defaults", () => {
