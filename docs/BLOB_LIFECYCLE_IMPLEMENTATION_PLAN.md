@@ -127,15 +127,55 @@ CREATE TABLE blob_gc_ledger (
 The ledger records cleanup work; it is not the source of reachability. Existing
 upload readiness fields remain upload/integrity metadata.
 
+#### Relationship to existing status columns
+
+The migration must avoid creating two contradictory GC authorities:
+
+- `assets.status` remains upload/registration readiness (`pending`, `ready`, or
+  `failed`). Scheduled GC no longer changes a successfully registered asset to
+  `failed` merely because its physical object was collected. Retrieval,
+  deduplication, and export combine upload readiness with the GC ledger.
+- `managed_storage_objects.status` currently includes `orphaned` and `deleted`.
+  During this slice it may remain as a compatibility projection for existing
+  routes, but `blob_gc_ledger` is the authoritative cross-provider GC state.
+  Any compatibility status transition must be written from the same claimed
+  operation and tested for consistency.
+- a row that represents an upload failure is not equivalent to a ready blob
+  later collected by GC;
+- direct-key provenance rows have no readiness column of their own and use
+  owning-row state plus provider availability.
+
+A later migration may simplify the compatibility columns, but this PR must
+state and test which value is authoritative for every read and write.
+
 ### Physical-delete protection
 
-Add `BEFORE DELETE` triggers for the stable referenceable source tables that
-abort accidental physical deletion. The first implementation keeps these
-triggers unconditional because no permanent-delete endpoint is enabled.
+Add `BEFORE DELETE` triggers for the stable referenceable source and occurrence
+tables. The initial protected set is:
 
-Do not block legitimate deletion of ephemeral staging rows or deliberately
-mutable child rows that are not reference targets. The trigger list must be
-reviewed against the stable target list in `V3_BACKEND_FOUNDATION.md`.
+```text
+samples
+runs
+run_steps
+comment_submissions
+run_step_comments
+comment_submission_items
+run_step_assets
+metrology_template_references
+template_versions
+```
+
+The first implementation keeps these triggers unconditional because no
+permanent-delete endpoint is enabled. If review identifies another current
+stable target, add it to both the trigger list and the source-identity contract
+rather than silently broadening one side only.
+
+Do not block legitimate deletion of ephemeral staging rows or Project-local
+presentation rows that are not stable source targets. Local cascade rules for
+future Project placements/edges are designed separately from source deletion.
+
+Tests must execute representative direct `DELETE` statements and prove that no
+parent, descendant, audit row, occurrence, or blob edge changes.
 
 ## Proposed modules
 
@@ -230,6 +270,20 @@ tombstones rather than creating another deletion implementation.
 - if the only matching bytes are being deleted, upload a new object or return a
   retryable conflict.
 
+### Edge creation and deduplication
+
+Every path that links an occurrence to existing bytes uses one authoritative
+statement that:
+
+1. confirms the source/occurrence is still writable;
+2. confirms the blob metadata is ready;
+3. confirms the locator is not `deleting` or `deleted`;
+4. inserts the edge;
+5. clears an unclaimed `orphaned` ledger row or makes the edge creation prevent
+   the orphan claim.
+
+A read-before-write deduplication lookup alone is insufficient.
+
 ### Cancel
 
 1. marker-gate the authoritative transition;
@@ -261,6 +315,8 @@ The server response should expose a deduplicated list such as:
 ```text
 export_id
 store_kind
+provider
+object_key or opaque export locator
 blob_record_id
 filename
 expected_byte_size
@@ -268,6 +324,10 @@ expected_sha256
 source_occurrences[]
 download_url when metadata is ready
 ```
+
+Do not expose managed-storage credentials or a raw provider URL. An export
+locator may remain an authenticated application URL even when the manifest
+records the internal provider/object-key identity in table JSON.
 
 The browser:
 
@@ -355,7 +415,11 @@ Add a dedicated CI status, for example `pre-pr/blob-lifecycle`. Make it a hard
 requirement for the integration branch.
 
 Both `db:migrate:remote` and `deploy:remote` must run the v3 gate before applying
-migrations. The command order is:
+migrations. Low-level Wrangler commands should be kept in clearly named
+internal scripts so the normal operator path cannot apply a migration first and
+check the contract later.
+
+The required order is:
 
 ```text
 contract tests -> complete tests -> deploy build -> remote migration -> deploy
@@ -385,6 +449,7 @@ The PR is complete only when:
 - Cancel and scheduled cleanup use the shared surface;
 - shared unfinished/ready/soft-deleted sources cannot lose bytes;
 - GC claims are concurrency-safe and idempotent;
+- existing status columns and the ledger cannot contradict each other;
 - export packages available bytes once and records every failure as a warning;
 - all database rows remain in complete export;
 - stable source physical deletion is blocked without cascade;
