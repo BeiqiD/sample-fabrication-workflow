@@ -1,0 +1,238 @@
+name: Apply deterministic search review fixes
+
+on:
+  push:
+    branches:
+      - agent/deterministic-reference-search
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the search branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/deterministic-reference-search
+
+      - name: Tighten search validation and active-context matching
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("worker/references/search.ts")
+          text = path.read_text(encoding="utf-8")
+
+          text = text.replace(
+              '  type ReferenceSearchResult,\n  type SearchReferencesInput,\n  type SearchReferencesResponse,\n',
+              '  type ReferenceSearchResult,\n  type SearchReferencesResponse,\n',
+          )
+
+          old_tiers = '''const MATCH_TIER_BY_NUMBER: Record<number, ReferenceSearchMatchTier> = {
+            0: "exact_id",
+            1: "exact_primary",
+            2: "prefix_primary",
+            3: "content",
+            4: "metadata",
+          };
+          '''
+          new_tiers = '''const MATCH_TIER_BY_NUMBER: Record<number, ReferenceSearchMatchTier> = {
+            0: "exact_id",
+            1: "exact_primary",
+            2: "prefix_primary",
+            3: "content",
+            4: "metadata",
+          };
+
+          const MATCH_TIER_ORDER: Record<ReferenceSearchMatchTier, number> = {
+            exact_id: 0,
+            exact_primary: 1,
+            prefix_primary: 2,
+            content: 3,
+            metadata: 4,
+          };
+          '''
+          if text.count(old_tiers) != 1:
+              raise SystemExit("Expected one match-tier block")
+          text = text.replace(old_tiers, new_tiers)
+
+          old_validation = '''  const candidate = input as Partial<SearchReferencesInput>;
+            if (typeof candidate.query !== "string") {
+              throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
+            }
+            const query = candidate.query.trim();
+            if (!query || query.length > MAX_REFERENCE_SEARCH_QUERY_LENGTH) {
+              throw new ReferenceSearchInputError(
+                "invalid_query",
+                `Reference search query must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} characters`,
+              );
+            }
+            const tokens = searchTokens(query);
+            if (!tokens.length) {
+              throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
+            }
+
+            let types: ReferenceTargetType[];
+            if (candidate.types === undefined || candidate.types.length === 0) {
+              types = [...REFERENCE_TARGET_TYPES];
+            } else {
+              if (!Array.isArray(candidate.types) || !candidate.types.every(isReferenceTargetType)) {
+                throw new ReferenceSearchInputError("invalid_types", "Reference search contains an unknown target type");
+              }
+              const requested = new Set(candidate.types);
+              types = REFERENCE_TARGET_TYPES.filter((type) => requested.has(type));
+            }
+
+            const sampleId = candidate.sampleId ?? null;
+            if (sampleId !== null
+              && (!isReferenceTarget({ type: "sample", id: sampleId }) || sampleId.trim() !== sampleId)) {
+              throw new ReferenceSearchInputError("invalid_sample", "Reference search Sample filter is invalid");
+            }
+
+            const from = normalizeTimestamp(candidate.from, "from");
+            const to = normalizeTimestamp(candidate.to, "to");
+            if (from && to && from > to) {
+              throw new ReferenceSearchInputError(
+                "invalid_time_range",
+                "Reference search start time must not be after its end time",
+              );
+            }
+
+            const limit = candidate.limit ?? DEFAULT_REFERENCE_SEARCH_LIMIT;
+            if (!Number.isInteger(limit) || limit < 1 || limit > MAX_REFERENCE_SEARCH_LIMIT) {
+              throw new ReferenceSearchInputError(
+                "invalid_limit",
+                `Reference search limit must be between 1 and ${MAX_REFERENCE_SEARCH_LIMIT}`,
+              );
+            }
+          '''
+          new_validation = '''  const candidate = input as Record<string, unknown>;
+            if (typeof candidate.query !== "string") {
+              throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
+            }
+            const query = candidate.query.trim();
+            if (!query || query.length > MAX_REFERENCE_SEARCH_QUERY_LENGTH) {
+              throw new ReferenceSearchInputError(
+                "invalid_query",
+                `Reference search query must contain 1 to ${MAX_REFERENCE_SEARCH_QUERY_LENGTH} characters`,
+              );
+            }
+            const tokens = searchTokens(query);
+            if (!tokens.length) {
+              throw new ReferenceSearchInputError("invalid_query", "Reference search query is required");
+            }
+
+            const requestedTypes = candidate.types;
+            let types: ReferenceTargetType[];
+            if (requestedTypes === undefined
+              || (Array.isArray(requestedTypes) && requestedTypes.length === 0)) {
+              types = [...REFERENCE_TARGET_TYPES];
+            } else {
+              if (!Array.isArray(requestedTypes) || !requestedTypes.every(isReferenceTargetType)) {
+                throw new ReferenceSearchInputError("invalid_types", "Reference search contains an unknown target type");
+              }
+              const requested = new Set(requestedTypes as ReferenceTargetType[]);
+              types = REFERENCE_TARGET_TYPES.filter((type) => requested.has(type));
+            }
+
+            const rawSampleId = candidate.sampleId;
+            const sampleId = rawSampleId === undefined || rawSampleId === null ? null : rawSampleId;
+            if (sampleId !== null
+              && (typeof sampleId !== "string"
+                || !isReferenceTarget({ type: "sample", id: sampleId })
+                || sampleId.trim() !== sampleId)) {
+              throw new ReferenceSearchInputError("invalid_sample", "Reference search Sample filter is invalid");
+            }
+
+            const from = normalizeTimestamp(candidate.from, "from");
+            const to = normalizeTimestamp(candidate.to, "to");
+            if (from && to && from > to) {
+              throw new ReferenceSearchInputError(
+                "invalid_time_range",
+                "Reference search start time must not be after its end time",
+              );
+            }
+
+            const limit = candidate.limit === undefined
+              ? DEFAULT_REFERENCE_SEARCH_LIMIT
+              : candidate.limit;
+            if (typeof limit !== "number"
+              || !Number.isInteger(limit)
+              || limit < 1
+              || limit > MAX_REFERENCE_SEARCH_LIMIT) {
+              throw new ReferenceSearchInputError(
+                "invalid_limit",
+                `Reference search limit must be between 1 and ${MAX_REFERENCE_SEARCH_LIMIT}`,
+              );
+            }
+          '''
+          if text.count(old_validation) != 1:
+              raise SystemExit("Expected one input-validation block")
+          text = text.replace(old_validation, new_validation)
+
+          old_context = '''      FROM samples s
+                WHERE s.id = cs.sample_id
+              ), '')
+              ELSE COALESCE((
+                SELECT GROUP_CONCAT(
+                  COALESCE(s.id, '') || ' ' || COALESCE(s.code, '') || ' ' || COALESCE(s.title, '') || ' ' ||
+                  COALESCE(r.id, '') || ' ' || COALESCE(r.template_name_snapshot, '') || ' v' ||
+                  CAST(COALESCE(r.template_version_snapshot, 0) AS TEXT) || ' ' ||
+                  COALESCE(rs.id, '') || ' ' || COALESCE(rs.title, sd.name, ''),
+                  ' '
+                )
+                FROM comment_submission_targets cst
+                JOIN samples s ON s.id = cst.sample_id
+                JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+                JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+                LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+                WHERE cst.submission_id = cs.id
+              ), '')
+          '''
+          new_context = '''      FROM samples s
+                WHERE s.id = cs.sample_id AND s.deleted_at IS NULL
+              ), '')
+              ELSE COALESCE((
+                SELECT GROUP_CONCAT(
+                  COALESCE(s.id, '') || ' ' || COALESCE(s.code, '') || ' ' || COALESCE(s.title, '') || ' ' ||
+                  COALESCE(r.id, '') || ' ' || COALESCE(r.template_name_snapshot, '') || ' v' ||
+                  CAST(COALESCE(r.template_version_snapshot, 0) AS TEXT) || ' ' ||
+                  COALESCE(rs.id, '') || ' ' || COALESCE(rs.title, sd.name, ''),
+                  ' '
+                )
+                FROM comment_submission_targets cst
+                JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
+                JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id AND r.deleted_at IS NULL
+                JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id AND rs.deleted_at IS NULL
+                LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
+                WHERE cst.submission_id = cs.id
+              ), '')
+          '''
+          if text.count(old_context) != 1:
+              raise SystemExit("Expected one Comment context block")
+          text = text.replace(old_context, new_context)
+
+          old_compare = '''  const leftTier = Object.values(MATCH_TIER_BY_NUMBER).indexOf(left.tier);
+            const rightTier = Object.values(MATCH_TIER_BY_NUMBER).indexOf(right.tier);
+          '''
+          new_compare = '''  const leftTier = MATCH_TIER_ORDER[left.tier];
+            const rightTier = MATCH_TIER_ORDER[right.tier];
+          '''
+          if text.count(old_compare) != 1:
+              raise SystemExit("Expected one candidate comparison block")
+          text = text.replace(old_compare, new_compare)
+
+          path.write_text(text, encoding="utf-8")
+
+      - name: Commit the focused patch and remove this workflow
+        shell: bash
+        run: |
+          rm .github/workflows/apply-reference-search-review-fixes.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/references/search.ts .github/workflows/apply-reference-search-review-fixes.yml
+          git commit -m "Tighten deterministic search validation"
+          git push origin HEAD:agent/deterministic-reference-search
