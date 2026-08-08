@@ -53,15 +53,9 @@ const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function isValidReferenceSearchDate(value: string) {
   if (!value) return true;
-  const match = DATE_ONLY_PATTERN.exec(value);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year
-    && date.getUTCMonth() === month - 1
-    && date.getUTCDate() === day;
+  if (!DATE_ONLY_PATTERN.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 export function orderedReferenceSearchTypes(values: readonly unknown[]) {
@@ -101,6 +95,20 @@ export function normalizeReferenceSearchUiState(
     from: state.from.trim(),
     to: state.to.trim(),
   };
+}
+
+export function referenceSearchUiStateEquals(
+  left: ReferenceSearchUiState,
+  right: ReferenceSearchUiState,
+) {
+  const normalizedLeft = normalizeReferenceSearchUiState(left);
+  const normalizedRight = normalizeReferenceSearchUiState(right);
+  return normalizedLeft.query === normalizedRight.query
+    && normalizedLeft.sampleId === normalizedRight.sampleId
+    && normalizedLeft.from === normalizedRight.from
+    && normalizedLeft.to === normalizedRight.to
+    && normalizedLeft.types.length === normalizedRight.types.length
+    && normalizedLeft.types.every((type, index) => type === normalizedRight.types[index]);
 }
 
 export function validateReferenceSearchUiState(state: ReferenceSearchUiState) {
