@@ -20,20 +20,20 @@ and lifecycle contract remain governed by
 
 The current database contains no production data. `v2/backend-foundation` is a
 pre-production integration branch and no deployed consumer depends on its
-intermediate API or route shapes.
+intermediate API, schema, serializer, or route shapes.
 
 For this Phase 2B2 slice:
 
-- schema, serializer, and frontend read-model interfaces may be corrected
-  directly when stable occurrence identity is missing;
-- no compatibility shim is required for an intermediate response field that has
+- schema, serializer, frontend read-model, and authenticated read interfaces may
+  be corrected directly when stable occurrence identity is missing;
+- no compatibility shim is required for an intermediate field or URL that has
   never carried production data;
-- no migration inheritance guarantee is required for disposable local or
+- no migration-inheritance guarantee is required for disposable local or
   preview D1 databases;
 - a developer database may be reset and rebuilt from the complete migration
   chain after an interface or schema correction; and
-- this freedom must not weaken the final identity, lifecycle, export, or
-  permanent-delete contracts intended for production.
+- this freedom must not weaken the final identity, lifecycle, export, access,
+  or permanent-delete contracts intended for production.
 
 The repository still keeps every checked migration executable through fresh
 Wrangler local D1/workerd. No remote D1 migration or Worker deployment is run
@@ -58,18 +58,21 @@ selection. They do not yet center the exact Step, identify the exact Comment or
 attachment occurrence, open the referenced image/file in context, or focus a
 metrology reference.
 
-The mature source interfaces already contain almost all required data:
+The mature source interfaces already expose almost all focus identities:
 
-- Run Steps expose stable IDs;
+- Run Steps expose `run_steps.id`;
 - logical Comments expose `comment_submissions.id` through `submissionId`;
 - Comment occurrences expose `run_step_comments.id`;
-- Comment images and attachments expose stable submission-item IDs;
-- metrology references expose stable occurrence IDs; and
-- execution images exist as stable `run_step_assets.id` rows, but the current
-  processing read model exposes only their physical asset keys.
+- Comment images and attachments expose `comment_submission_items.id`; and
+- metrology references expose `metrology_template_references.id`.
 
-The last point is an interface gap. Phase 2B2 corrects the read model so source
-focus always uses stable occurrence identity rather than an R2 key.
+Execution-image occurrences are different. The execution grid currently has the
+physical asset key needed for its ordinary gallery, while the public reference
+target is the occurrence row `run_step_assets.id`. Phase 2B2 must not expose the
+R2 key in a reference URL or resolver response merely to bridge that gap.
+
+The selected boundary is therefore one authenticated stable-occurrence media
+interface rather than a broad processing read-model expansion.
 
 ## Pull-request boundary
 
@@ -85,12 +88,12 @@ This PR targets `v2/backend-foundation` and completes Phase 2B.
 4. exact logical-Comment and Comment-occurrence location;
 5. exact Comment image, file attachment, and link-attachment location with a
    context-preserving preview;
-6. exact execution-image location and image preview by
-   `run_step_assets.id`;
+6. exact execution-image focus and authenticated preview by
+   `run_step_assets.id + run_steps.id`;
 7. exact metrology-reference location inside its owning metrology Recipe
    revision;
 8. Sample-page focus for Sample Comments and their attachment items;
-9. refresh, back, and forward behavior driven entirely by the current URL;
+9. refresh, Back, and Forward behavior driven entirely by the current URL;
 10. a clear read-only unavailable state when a focus target no longer exists in
     the loaded source interface;
 11. focused tests added to the existing reference-foundation and deployment
@@ -108,6 +111,7 @@ This PR targets `v2/backend-foundation` and completes Phase 2B.
 - a repository-wide redesign of ordinary Sample or Template path IDs;
 - a new attachment editor or general media-library redesign;
 - automatic navigation between several valid common-Comment contexts;
+- exposing R2 or managed-storage locators to source-focus consumers;
 - changing the resolver query-count contract;
 - remote D1 migration or Worker deployment.
 
@@ -163,74 +167,88 @@ No source page chooses another context automatically.
 Malformed, unknown-version, unknown-type, whitespace-padded, or non-canonical
 focus values fail closed and produce no object focus.
 
-## Stable execution-image read model
+## Stable execution-image media interface
 
-The existing `RunStep.executionImageKeys: string[]` field conflates a physical
-asset locator with the stable occurrence users reference. It is replaced by:
+The reference target is the occurrence row:
 
 ```text
-RunStepExecutionImage
-- id          # run_step_assets.id
-- assetKey    # current authenticated source-interface transport
-- filename
-- mimeType
-- createdAt
-
-RunStep.executionImages[]
+run_step_assets.id
 ```
 
-The Worker obtains these fields in the existing bounded processing-detail query;
-it does not add one request per image. UI galleries use `id` for focus and
-`assetKey` only to fetch the bytes through the existing authenticated asset
-route.
+The existing grid continues to use its ordinary `executionImageKeys` array for
+normal rendering. A focused execution image is opened through:
 
-Planned diagrams remain keyed by their current asset representation because
-`execution_image` references apply only to execution occurrences.
+```text
+GET /api/references/media/execution_image/:encodedOccurrenceId
+  ?step=<run-step-id>
+```
+
+The route:
+
+1. inherits the core authentication and error middleware;
+2. decodes the same versioned opaque ID used by canonical reference URLs;
+3. requires an explicit stable Step context;
+4. matches `run_step_assets.id + run_steps.id` exactly;
+5. accepts only `run_step_assets.role = 'execution'`;
+6. rejects deleted occurrences and deleted Sample/Run/Step ancestors;
+7. resolves the private R2 locator server-side;
+8. streams the bytes with private, no-store response headers; and
+9. never returns the R2 key in the URL, JSON model, or page state.
+
+The endpoint is read-only and context-preserving. It is not a generic public
+asset lookup and it cannot reinterpret a state-observation occurrence as an
+`execution_image` target.
+
+This interface keeps stable occurrence identity at the reference boundary while
+avoiding an unrelated rewrite of every normal execution gallery.
 
 ## Processing-grid focus behavior
 
 The Processing workspace parses `run`, `step`, and `focus` from the current URL
-and passes a typed focus request to `MultiSampleRunGrid`.
+and passes the already-loaded typed data to a source-focus component. It does
+not fetch a duplicate Processing detail model.
 
-A pure locator scans the already-built grid and returns one exact cell when:
+A pure locator scans the same columns used to build the existing grid and
+returns one exact cell when:
 
 - the selected Run matches the URL;
 - the context Step exists in that Run;
-- the requested target exists under that Step; and
+- the requested target exists under that Step where the current read model
+  exposes the occurrence; and
 - the target belongs to the Sample column selected by the source URL.
 
 Target matching is:
 
-| Target type | Local stable identity |
+| Target type | Stable identity used by focus |
 |---|---|
 | `run_step` | `RunStep.id` |
 | `comment` | `RunStepComment.submissionId` |
 | `comment_occurrence` | `RunStepComment.id` |
 | `comment_attachment` | `CommentImage.id` or `CommentAttachment.id` |
-| `execution_image` | `RunStepExecutionImage.id` |
+| `execution_image` | focus ID plus exact Step validation in the media interface |
 
 When found, the grid:
 
-1. centers the exact row within the usable viewport below the top bar and sticky
-   sample-name row;
-2. horizontally centers the exact Sample cell when it is outside the visible
-   sample viewport;
-3. marks the cell and exact child object with a persistent focus treatment while
-   the URL remains focused;
-4. opens the common-comment sheet on mobile when the target lives there;
-5. opens the exact Comment-image or execution-image lightbox;
-6. opens a small read-only attachment preview for file and link attachments; and
-7. leaves all normal editing, checkbox, Jump-to-current, and scrolling behavior
+1. centers the exact row and Sample cell with the existing browser scroll model;
+2. marks the cell and exact locally represented child object with a persistent
+   focus treatment while the URL remains focused;
+3. opens the common-comment sheet on mobile when the target lives there;
+4. opens the exact Comment-image or execution-image preview;
+5. opens a small read-only preview for file and link attachments; and
+6. leaves all normal editing, checkbox, Jump-to-current, and scrolling behavior
    unchanged when no focus is present.
 
-The focus operation is idempotent for the same URL. User scrolling after the
-initial focus is not continuously overridden. Navigating away and then back to
-the focused URL performs the focus again.
+The focus operation is idempotent for one rendered URL state. User scrolling
+after the initial focus is not continuously overridden. Navigating away and then
+Back to the focused URL applies the focus again.
 
 If the requested object is absent, mismatched to the Step context, deleted from
-the ordinary source read, or not represented by the selected Run, the grid does
-not guess. It shows a non-blocking read-only message and keeps the rest of the
-workspace usable.
+the ordinary source read, rejected by the stable media interface, or not
+represented by the selected Run, the page does not guess. It shows a
+non-blocking read-only message and keeps the workspace usable.
+
+Changing the selected Run manually clears the old `step` and `focus` parameters
+so a target cannot be silently applied to another Run.
 
 ## Sample-page focus behavior
 
@@ -241,10 +259,9 @@ The Sample page locates:
 
 A focused note is shown even when it falls outside the normal recent-three
 preview. The page expands Notes & observations, scrolls the exact note into
-view, highlights the exact child object, and opens the same image or attachment
-preview used in the processing grid.
+view, highlights the source card, and opens the exact attachment preview.
 
-The page does not reinterpret process comments as Sample-owned comments;
+The page does not reinterpret process Comments as Sample-owned Comments;
 process-context destinations continue to use the Processing workspace.
 
 ## Metrology-reference focus behavior
@@ -262,9 +279,9 @@ rather than focusing another file with the same filename or asset key.
 
 ## Preview behavior
 
-Image previews reuse the existing lightbox, but galleries receive stable item
-IDs in addition to asset keys. An initial focused item opens once per focus URL.
-Closing the lightbox does not mutate the URL.
+Focused Comment images use their stable submission-item ID to select the exact
+item, then use the already-authorized source model's asset URL to display bytes.
+Focused execution images use the stable occurrence media interface above.
 
 File and link attachments use a small read-only preview dialog that shows:
 
@@ -275,12 +292,13 @@ File and link attachments use a small read-only preview dialog that shows:
 - an explicit Download or Open-link action.
 
 The preview preserves the source page underneath it and contains no mutation
-control.
+control. Closing a preview changes only local modal state and does not rewrite
+the focus URL.
 
 ## Browser-history behavior
 
-Focus state is URL-owned, not copied into a global store. Pages re-parse the
-current location whenever React Router changes it.
+Focus state is URL-owned, not copied into a global store. Each source page
+re-parses its current search parameters whenever React Router changes them.
 
 Required behavior:
 
@@ -296,9 +314,8 @@ Required behavior:
 
 - scrolling respects `prefers-reduced-motion`;
 - dialogs use the existing modal focus trap and Escape behavior;
-- focused objects receive a visible non-color-only outline and an accessible
-  label where practical;
-- the focus treatment uses existing semantic tokens and does not introduce a
+- focused objects receive a visible outline plus a textual `Referenced` marker;
+- the focus treatment uses existing palette and semantic tokens rather than a
   second status-color vocabulary;
 - persistent focus styles do not alter grid dimensions; and
 - mobile and desktop use the same stable target semantics.
@@ -312,13 +329,15 @@ Focused tests cover:
 - exact Run-Step, logical-Comment, occurrence, attachment, and execution-image
   location in single- and multi-sample grids;
 - common Comment context disambiguation through the Step hint;
-- stable execution-image occurrence serialization;
-- image and attachment preview selection by stable ID rather than asset key or
-  filename;
+- stable execution-image media lookup by occurrence and Step;
+- rejection of state observations, wrong Steps, malformed IDs, missing IDs, and
+  deleted occurrences or ancestors;
+- image and attachment preview selection by stable ID rather than filename or
+  physical locator;
 - Sample-note expansion and exact attachment selection;
 - metrology-reference route and item selection;
 - query preservation through template route correction;
-- direct refresh plus MemoryRouter back/forward focus transitions;
+- direct refresh plus MemoryRouter Back/Forward focus transitions;
 - unavailable-target fail-closed behavior;
 - unchanged behavior when no focus query exists;
 - locator non-disclosure in the canonical resolver; and
@@ -349,7 +368,8 @@ Phase 2B2 and Phase 2B are complete when:
 7. refresh, Back, and Forward reproduce focus from the URL;
 8. missing or mismatched targets fail closed without arbitrary fallback;
 9. no focus integration introduces source mutation authority;
-10. the processing read model exposes stable execution-image occurrence IDs;
+10. the authenticated execution-image media route validates stable occurrence
+    plus Step context and leaks no physical locator;
 11. focused, full-suite, TypeScript, Worker, and client builds pass;
 12. authoritative documents mark Phase 2B complete and Phase 2C as next; and
 13. the Draft PR targets only `v2/backend-foundation`.
