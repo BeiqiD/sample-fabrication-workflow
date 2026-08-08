@@ -17,6 +17,7 @@ async function closeExpiredRetryWindows(env: Env, now: Date) {
   const timestamp = now.toISOString();
   const abandonedCutoff = new Date(now.getTime() - ABANDONED_UPLOAD_MS).toISOString();
   const abandonedMutationId = crypto.randomUUID();
+  const retryClosureMutationId = crypto.randomUUID();
   const results = await env.DB.batch([
     env.DB.prepare(
       `UPDATE comment_submissions
@@ -36,15 +37,29 @@ async function closeExpiredRetryWindows(env: Env, now: Date) {
     ).bind(timestamp, abandonedMutationId),
     env.DB.prepare(
       `UPDATE comment_submissions
-       SET retry_closed_at = ?, retry_closed_by = 'system:cleanup', updated_at = ?
+       SET status = 'cancelled', cancelled_at = COALESCE(cancelled_at, ?),
+           retry_closed_at = ?, retry_closed_by = 'system:cleanup',
+           last_mutation_id = ?, updated_at = ?
        WHERE status IN ('draft', 'uploading', 'failed')
          AND retry_closed_at IS NULL AND retry_until IS NOT NULL AND retry_until <= ?`,
-    ).bind(timestamp, timestamp, timestamp),
+    ).bind(timestamp, timestamp, retryClosureMutationId, timestamp, timestamp),
+    env.DB.prepare(
+      `UPDATE comment_submission_items
+       SET status = 'cancelled', updated_at = ?
+       WHERE status NOT IN ('ready', 'cancelled')
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = comment_submission_items.submission_id
+             AND cs.status = 'cancelled' AND cs.last_mutation_id = ?
+             AND cs.retry_closed_by = 'system:cleanup'
+         )`,
+    ).bind(timestamp, retryClosureMutationId),
   ]);
   return {
     abandonedSubmissions: Number(results[0].meta.changes ?? 0),
     abandonedItems: Number(results[1].meta.changes ?? 0),
     retryWindowsClosed: Number(results[2].meta.changes ?? 0),
+    retryItemsClosed: Number(results[3].meta.changes ?? 0),
   };
 }
 
