@@ -1,8 +1,8 @@
 # Blob lifecycle, export integrity, and permanent-delete contract
 
-Status: normative v3 backend contract
+Status: normative v3 backend contract, implemented by the blob-lifecycle safety slice
 
-Last reviewed: 2026-08-08 against `v2/backend-foundation`
+Last reviewed: 2026-08-08 against PR #123 and `v2/backend-foundation`
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -12,9 +12,11 @@ current or future attachment occurrence.
 The source identity and soft-delete foundation is defined in
 [v3 backend foundation](./V3_BACKEND_FOUNDATION.md). The product reason for that
 foundation and the later Project/Text/Map phases is defined in
-[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). The concrete first
-implementation is specified in
-[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
+[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Implementation and
+operational details are recorded in
+[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)
+and
+[blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md).
 
 ## Why this contract exists
 
@@ -24,7 +26,7 @@ bytes. That conversion was required before Project references could be safe:
 Project must point to a durable source or occurrence ID, not to copied content,
 a timeline event, or a provider key.
 
-Soft deletion also changes storage safety. A deleted parent row still exists,
+Soft deletion also changes storage safety. A hidden parent row still exists,
 shared bytes may be needed by active and deleted occurrences, and an unfinished
 submission may share a deduplicated object with another submission. A cleanup
 query based only on `ready`, `failed`, `cancelled`, or row age can therefore
@@ -37,7 +39,7 @@ Project-owned content, Text, or Map are implemented.
 
 `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are used in their ordinary architecture
 sense. A future implementation may choose different table or module names, but
-it may not weaken the invariants in this document without a new design review.
+it may not weaken these invariants without a new design review.
 
 ## Terms
 
@@ -45,16 +47,17 @@ A **source** is a stable application record such as a Sample, Run, Run step,
 canonical Comment, Recipe revision, verification, or future Project content.
 
 An **occurrence** is the stable application identity through which bytes appear
-in one source context. Current examples are `comment_submission_items`,
-`run_step_assets`, `run_step_comments.asset_id`, and
-`metrology_template_references`.
+in one source context. Current examples include `comment_submission_items`,
+`run_step_assets`, `run_step_comments.asset_id`,
+`metrology_template_references`, timeline image events, and Sample-record
+thumbnails stored in event metadata.
 
 A **blob record** is database metadata describing physical bytes. Current blob
 records are `assets` and `managed_storage_objects`. Imports and a few legacy
 records also retain direct provider keys without a normalized blob record.
 
 A **blob locator** identifies physical bytes independently of a source or
-occurrence. The logical shape is:
+occurrence:
 
 ```text
 store kind + provider + object key
@@ -64,8 +67,8 @@ A **retention edge** is one reason a source or occurrence requires a blob to
 remain recoverable.
 
 A blob is **reachable** while at least one effective retention edge exists.
-Reachability is about whether bytes must be retained; it is not proof that the
-provider object currently exists.
+Reachability says bytes must be retained; it does not prove that the provider
+object currently exists.
 
 A blob is **available** when its metadata is ready and the storage provider
 confirms that the object exists or successfully streams it.
@@ -80,28 +83,34 @@ silently disappear if a source row were physically deleted.
 ## Core invariants
 
 1. Occurrences and sources own meaning; blob records own bytes and deduplication.
-2. Soft deletion never removes a retention edge by itself.
+2. Soft deletion or archival never removes a durable retention edge by itself.
 3. One source becoming terminal never releases bytes still reachable from
    another source, including another unfinished or retryable submission.
-4. Cancel, scheduled cleanup, export planning, integrity checks, and any future
-   permanent-delete planner MUST use the same reachability definition.
+4. Cancel, scheduled cleanup, export planning, integrity checks, and future
+   permanent-delete planning MUST use the same reachability definition.
 5. Reachability MUST be rechecked in the authoritative mutation that changes GC
    state. A preflight query alone is insufficient.
 6. Physical provider deletion is never performed by an ordinary source Delete,
    Restore, or Cancel request.
 7. Missing bytes are an integrity condition. They do not authorize source-row
    deletion and do not remove database history.
-8. Full export always preserves database rows and continues when one or more
-   physical objects are missing or temporarily unavailable.
-9. Permanent deletion is conflict-first, privileged, explicit, and non-cascading.
-10. Every new blob-bearing source type MUST extend the shared retention surface
-    and its contract tests before it can be deployed.
+8. Full export preserves database rows and continues when one or more physical
+   objects are missing or temporarily unavailable.
+9. Permanent deletion is conflict-first, privileged, explicit, and
+   non-cascading.
+10. A locator finalized as `deleted` is terminal and MUST NOT be silently reused
+    for different bytes.
+11. Every new blob-bearing source type MUST extend the shared retention surface,
+    export occurrence map, edge guards, blocker surface, and contract tests
+    before deployment.
+12. Runtime orchestration may change, but Queue, Workflow, cron, or self-hosted
+    execution MUST NOT change the retention semantics.
 
 ## Authoritative reachability surface
 
-The implementation MUST expose one repository-owned retention surface, ideally
-an SQL view named `blob_retention_edges` plus a small TypeScript query API.
-Routes and jobs MUST NOT carry private copies of large `NOT EXISTS` trees.
+The repository exposes one retention surface, implemented as the
+`blob_retention_edges` SQL view plus a small TypeScript query API. Routes and
+jobs MUST NOT carry private copies of large status-specific `NOT EXISTS` trees.
 
 Each edge exposes at least:
 
@@ -119,37 +128,30 @@ retain_until
 ```
 
 `retain_until` is null for durable history and may be populated for an explicit
-lease or retry window. The edge surface is derived from source relationships;
-there is no mutable `is_reachable` boolean on a blob row.
+retry window. The edge surface is derived from relationships; there is no
+mutable `is_reachable` boolean on a blob row.
 
-The TypeScript boundary exposes one locator type and a small set of operations,
-for example:
+The TypeScript boundary uses one locator type and shared operations equivalent
+to:
 
-```ts
-type BlobLocator =
-  | { store: "r2"; key: string; assetId: string | null }
-  | {
-      store: "managed";
-      provider: string;
-      key: string;
-      objectId: string | null;
-    };
-
-listRetentionEdges(db, locator)
-isBlobReachable(db, locator)
-markOrphanCandidate(db, locator, operationId, now)
-claimBlobDeletion(db, locator, operationId, now)
+```text
+listRetentionEdges
+isBlobReachable
+markOrphanCandidate
+claimBlobDeletion
+reclaimBlobDeletion
 ```
 
-Names are illustrative. The important rule is that every caller reaches the
-same SQL definition.
+Names may evolve. The important rule is that all callers reach the same SQL
+definition.
 
 ## Current retention-edge matrix
 
 ### Durable R2 edges
 
-The following rows retain the referenced `assets` bytes for as long as the
-relationship row exists, even when that row or an ancestor is soft-deleted:
+The following relationships retain referenced R2 bytes for as long as the
+relationship exists, including when the occurrence or an ancestor is
+soft-deleted:
 
 | Relationship | Retention reason |
 |---|---|
@@ -159,10 +161,17 @@ relationship row exists, even when that row or an ancestor is soft-deleted:
 | `run_step_comments.asset_id` | Legacy Comment image occurrence, including independently deleted image state |
 | `state_verifications.evidence_asset_id` | Verification evidence while the relationship exists |
 | Ready `comment_submission_items.asset_id` under a durable canonical Comment | Canonical Comment attachment/image history |
+| `events.asset_key` while non-null | Legacy/timeline image compatibility edge |
+| `events.metadata_json.thumbnailKey` when distinct and valid | Sample-record thumbnail occurrence |
 
-A non-null legacy `events.asset_key` is a compatibility retention edge until it
-is resolved to a stable occurrence or explicitly detached. `events` remains an
-audit timeline and MUST NOT become the preferred attachment model.
+A timeline event remains an audit record and MUST NOT become the preferred model
+for new attachment types. The primary event asset and its thumbnail are separate
+edges; detaching or deleting the Sample record must remove both keys from the
+active event representation.
+
+Malformed historical event metadata MUST NOT make a migration, retention view,
+index, blocker query, or cleanup job fail. JSON-derived edges use guarded
+parsing and simply omit an invalid value.
 
 ### Durable managed-storage edges
 
@@ -173,16 +182,16 @@ of complete export.
 
 ### Direct-key provenance edges
 
-The following direct keys are retention roots until they are normalized into
-ordinary blob records or their owning provenance row is permanently deleted:
+The following direct keys remain retention roots until normalized into ordinary
+blob records or their owning provenance row is permanently deleted:
 
 - `imports.workbook_asset_key`;
 - `imports.manifest_asset_key`;
 - `template_versions.source_asset_key` when populated;
-- any other documented compatibility field that promises later download.
+- any documented compatibility field that promises later download.
 
-Direct-key rows participate in export and integrity reporting even when the
-first GC implementation does not physically collect them.
+Direct-key rows participate in reachability, export, and integrity reporting
+even when the first GC scanner does not physically collect that class.
 
 ### Future Project edges
 
@@ -192,67 +201,85 @@ second cleanup algorithm.
 
 ## Submission reachability matrix
 
-Comment submission status alone is not sufficient; item state and explicit
-retryability also matter.
+Comment status alone is insufficient; item state and explicit retryability also
+matter.
 
 | Canonical submission | Item/blob state | Retention result |
 |---|---|---|
 | `ready`, active or soft-deleted | ready item with blob link | Durable edge |
-| `draft` or `uploading` | non-cancelled item with registered blob | Unfinished edge |
-| `failed`, retry still open | non-cancelled item with registered blob | Retry edge |
-| `failed`, retry explicitly closed | no other edge | No submission edge |
-| `cancelled` or explicitly expired | no other edge | No submission edge |
+| `draft` or `uploading`, retry open | non-cancelled item with registered blob | Unfinished edge |
+| `failed`, retry open | non-cancelled item with registered blob | Retry edge |
+| retry explicitly closed | no other edge | No submission edge |
+| `cancelled` or system-expired | no other edge | No submission edge |
 | any status | item itself cancelled before becoming durable | No item edge |
 
-Retryability MUST be explicit. The implementation may use fields such as
-`retry_until` and `retry_closed_at`, but Cancel, retry routes, scheduled cleanup,
-and the retention view MUST all read the same authoritative state. Cleanup MUST
-NOT infer “non-retryable” from age while the API would still accept retry or
-Finalize.
+Retryability is stored through explicit fields such as `retry_until` and
+`retry_closed_at`. Cancel, retry routes, scheduled cleanup, and the retention
+view all read the same state.
 
-A newly registered but not-yet-linked blob may be unreachable for a short
-period. GC eligibility therefore also requires a minimum upload/registration
-grace period; this grace is separate from reachability.
+When an unfinished retry window expires, the first implementation performs an
+explicit system cancellation: the canonical submission becomes `cancelled`,
+`retry_closed_at`/`retry_closed_by` are recorded, and unfinished items become
+`cancelled`. The rows remain in complete export but disappear from ordinary
+recovery UI and no longer retain bytes by themselves.
+
+A newly registered but not-yet-linked blob may be unreachable briefly. GC
+eligibility therefore also requires a minimum registration grace; this grace is
+separate from reachability and retryability.
+
+## Legacy managed-object migration rule
+
+Before the shared ledger existed, legacy Cancel/cleanup could mark managed
+object A `orphaned` while an unfinished submission still referenced it. Because
+the old content-uniqueness index covered only `status = 'ready'`, a later upload
+could create ready object B with identical provider, SHA-256, and byte size.
+
+Before migration 0016 promotes reachable orphaned objects back to ready, a
+pre-0016 repair MUST rewire Comment item occurrences from A to an already-ready
+content-identical winner B. Stable submission/item IDs do not change. The
+redundant orphan locator then enters the ordinary GC ledger. This prevents the
+partial unique index from aborting the lifecycle migration.
+
+The migration gate MUST include this exact legacy state as a regression.
 
 ## Garbage-collection state machine
 
-Reachability and GC state are separate. A dedicated ledger SHOULD represent GC
-work without overloading upload readiness fields such as `assets.status`.
-
-Recommended states:
+Reachability and GC state are separate. `blob_gc_ledger` records cross-provider
+cleanup work without overloading upload readiness fields.
 
 ```text
-no ledger row  -> live or never considered for cleanup
-orphaned       -> unreachable, waiting through grace period
-deleting       -> claimed by one operation; new links may not reuse it
-deleted        -> provider confirmed deletion or confirmed absence
+no ledger row  -> live or never considered
+orphaned       -> unreachable, waiting through grace/retry cycle
+deleting       -> claimed by one operation; new links are rejected
+deleted        -> provider deletion or confirmed absence finalized
 ```
 
-The ledger records at least the locator, operation ID, orphaned time, deletion
-claim time, terminal time, attempt count, and last error.
+The ledger records locator, blob-record ID where available, operation ID,
+orphaned time, claim time, terminal time, attempt count, last error, and update
+time.
 
 ### Marking an orphan candidate
 
-A mutation may mark a blob `orphaned` only when all of these hold in the same
-guarded database operation:
+A blob may enter `orphaned` only when all of these hold in the guarded database
+mutation:
 
 1. no retention edge exists;
-2. the minimum registration grace has elapsed;
-3. no other cleanup operation owns the locator;
-4. the candidate metadata is in a state that cleanup understands.
+2. registration grace has elapsed;
+3. no deletion operation owns the locator;
+4. metadata is in a state understood by cleanup.
 
-Creating a new edge clears an unclaimed orphan state or makes it ineffective.
+Creating a new edge clears an unclaimed orphan state or makes the orphan claim
+fail.
 
 ### Claiming physical deletion
 
-Scheduled cleanup may move `orphaned` to `deleting` only after the orphan grace
-has elapsed and the shared reachability definition still returns no edges.
-The claim writes a unique operation ID.
+Scheduled cleanup may move `orphaned` to `deleting` only after orphan grace has
+elapsed and the shared reachability definition still returns no edges. The
+claim writes a unique operation ID.
 
-All deduplication and edge-creation paths MUST reject a blob in `deleting` or
-`deleted` state. They may reuse another ready blob, upload new bytes, or return a
-retryable conflict; they may not attach a new occurrence to a blob that cleanup
-has already claimed.
+All deduplication and edge-creation paths reject a blob in `deleting` or
+`deleted`. They may reuse another ready blob, upload new bytes, or return a
+retryable conflict; they may not attach a new occurrence to a claimed locator.
 
 ### Provider deletion and finalization
 
@@ -261,14 +288,24 @@ Provider I/O occurs outside a D1 transaction:
 1. claim the locator with an operation ID;
 2. delete or confirm absence at the provider;
 3. finalize `deleted` only if the operation ID still matches;
-4. on retryable provider failure, retain the claim/error or return it to
-   `orphaned` according to one documented policy.
+4. record retryable provider failure without losing source history.
 
 The operation is idempotent. Retrying after provider success but before the
-final database update MUST converge to `deleted`.
+final database update converges to `deleted`.
+
+### Terminal locator rule
+
+A `deleted` ledger row is not cleared when bytes are manually recreated at the
+same key. Recovery registers verified bytes under a new locator and creates a
+normal guarded edge. This prevents historical metadata from silently referring
+to different bytes.
+
+An `orphaned` row may be released only through the shared edge/reachability path.
+A `deleting` claim may be completed or reclaimed using its operation ID; it is
+not manually converted back to live state.
 
 Cancel may close retryability and mark newly unreachable blobs as orphan
-candidates, but only scheduled cleanup performs ordinary physical deletion.
+candidates, but only scheduled cleanup performs ordinary provider deletion.
 
 ## Shared use by Cancel, cleanup, export, and permanent deletion
 
@@ -281,22 +318,22 @@ soft-deleted, archived, or future Project edge exists.
 
 ### Scheduled cleanup
 
-Scheduled cleanup closes retryability only through an explicit state
-transition, marks orphan candidates through the shared reachability query,
-claims aged candidates, performs provider deletion, and records the outcome.
-It does not maintain a separate list of protected statuses.
+Scheduled cleanup closes retryability through an explicit state transition,
+marks candidates through the shared view, claims an aged bounded batch, performs
+provider deletion, and records the result. It does not maintain a separate list
+of protected statuses.
 
 ### Export
 
-Export uses the same edge surface to explain why a blob is retained and to map
-all occurrences to one physical export entry. Export availability checks do not
-change reachability or GC state.
+Export uses the same edge surface to explain why a blob is retained and maps all
+occurrences to one physical export entry. Availability checks do not change
+reachability or GC state.
 
 ### Permanent deletion
 
-Removing a source edge through a future permanent-delete plan may create an
-orphan candidate, but the request does not delete physical bytes. It delegates
-the resulting locator to the same GC flow.
+Removing an edge through a future permanent-delete plan may create an orphan
+candidate, but the request does not delete physical bytes. It delegates the
+locator to the same GC flow.
 
 ## Complete-export contract
 
@@ -304,16 +341,16 @@ A complete export includes every database row, including:
 
 - active, archived, and soft-deleted sources;
 - failed and cancelled submissions;
-- blob metadata in ready, orphaned, deleted, failed, or missing condition;
-- retention/GC metadata needed to understand the snapshot.
+- blob metadata in ready, orphaned, deleting, deleted, failed, or missing
+  condition;
+- retention and GC metadata needed to understand the snapshot.
 
-The export byte plan is deduplicated by physical locator. The manifest records
-all source/occurrence edges that led to one packaged object.
+The byte plan is deduplicated by physical locator. The manifest records all
+source/occurrence edges that led to one packaged object.
 
-Only metadata that claims a ready object is scheduled for byte retrieval. A
-provider existence probe or successful stream confirms availability. A later
-GET failure is still handled as a warning because availability may change after
-planning.
+Only metadata that claims a ready object is scheduled for retrieval. A
+successful stream is the final confirmation of availability; planning cannot
+promise that an object will still exist during download.
 
 Each blob has a machine-readable result:
 
@@ -327,22 +364,22 @@ size_mismatch
 hash_mismatch
 ```
 
-Only `packaged` entries receive bytes in the ZIP. The ZIP MUST still be created
-when other entries fail.
+Only `packaged` entries receive bytes in the ZIP. Other outcomes create warnings
+and do not abort unrelated entries.
 
 The final archive contains:
 
-- all table JSON files;
+- all table/view JSON snapshots;
 - every successfully retrieved physical blob, once;
-- `export-manifest.json` with final per-blob outcomes and occurrence mappings;
+- `export-manifest.json` with final outcomes and occurrence mappings;
 - `export-warnings.json`, even when empty.
 
-Warnings include a stable code, locator or blob-record ID, affected source and
+Warnings include stable codes, locator/blob-record identity, affected source and
 occurrence IDs, and a human-readable message. They MUST NOT contain provider
 credentials, Access tokens, temporary URLs, or secrets.
 
-The manifest is finalized after byte attempts; it must not claim a blob was
-packaged before the download succeeds.
+The manifest is finalized after byte attempts; it must not claim packaging
+before download, size, and optional hash checks succeed.
 
 ## Missing and unavailable bytes
 
@@ -354,27 +391,27 @@ A reachable blob may be physically missing. That condition:
 - does not abort unrelated export entries;
 - does produce an integrity/export warning.
 
-Confirmed absence, provider authentication failure, provider timeout, and
-metadata-not-ready are distinct outcomes.
+Confirmed absence, authentication failure, timeout, metadata-not-ready, size
+mismatch, and hash mismatch are distinct outcomes.
 
 ## Permanent-delete contract
 
 Ordinary Delete remains soft delete.
 
-The next backend slice MUST hard-disable accidental physical deletion of stable
-source tables. A privileged permanent-delete endpoint remains disabled until
-`reference_targets`, backlinks, source-specific blocker queries, and tombstone
+Accidental physical deletion of stable source/occurrence tables is disabled. A
+privileged permanent-delete endpoint remains disabled until `reference_targets`,
+backlinks, source-specific blocker queries, authorization, and tombstone
 creation exist.
 
-When permanent deletion is later enabled, it is eligible only when:
+When permanent deletion is later enabled, eligibility requires:
 
 1. the source is already soft-deleted;
-2. the required retention period has elapsed;
+2. the retention period has elapsed;
 3. the caller has privileged authorization;
-4. all reverse references and structural dependants have been checked;
+4. every reverse reference and structural dependant has been checked;
 5. the final blocker check and source mutation are concurrency-safe.
 
-Any blocker returns HTTP `409`. A blocker result exposes stable fields such as:
+Any blocker returns HTTP `409` and exposes stable fields such as:
 
 ```text
 source_type
@@ -386,26 +423,65 @@ blocker_state
 ```
 
 Permanent deletion MUST NOT rely on foreign-key cascade. Parent deletion is not
-a shorthand for deleting descendants. Every intended source removal is planned
-and guarded explicitly, and a blocked operation leaves the entire graph
-unchanged.
+a shorthand for deleting descendants. Every intended removal is planned and
+guarded explicitly, and a blocked operation leaves the entire graph unchanged.
 
-Force deletion is outside the first implementation. If ever introduced, it
-requires a distinct operation, stronger authorization, a tombstone created
-before content removal, and dedicated tests. A tombstone preserves only stable
-identity, target type, last-known path, and deletion metadata; it does not
-retain permanently deleted bodies or bytes.
+Current blocker queries are conservative planning data, not authorization to
+delete. Physical-delete triggers remain authoritative until a later planner can
+drop or bypass them through a privileged, audited, tombstone-producing path.
 
-Blob GC is not source permanent deletion. GC removes unreachable physical bytes
+Force deletion is outside this implementation. If ever introduced, it requires
+a distinct operation, stronger authorization, a tombstone created before
+content removal, and dedicated tests. A tombstone retains stable identity,
+target type, last-known path, and deletion metadata; it does not retain bodies
+or bytes that were intentionally permanently removed.
+
+Blob GC is not source permanent deletion. GC removes unreachable provider bytes
 while preserving database and audit history.
+
+## Explicit first-implementation boundaries
+
+These are documented deferrals, not implied features.
+
+### Provider `HEAD`/`stat` before dedup reuse
+
+Deduplication excludes locators in `deleting` or `deleted` ledger state, but it
+does not probe the provider before every reuse. A ready metadata row whose bytes
+drifted missing may be selected and fail later retrieval/export. A later
+storage-integrity slice may add provider stat, quarantine, and replacement
+registration. The source/retention history remains safe in the meantime.
+
+### Direct-key physical GC
+
+Direct provenance keys participate in reachability and export. The first GC
+scanner physically collects normalized `assets` and `managed_storage_objects`;
+it does not independently sweep every direct-key class.
+
+### Browser-side ZIP scale
+
+The first full export downloads sequentially but builds the ZIP in browser
+memory. Missing blobs are non-fatal, but a sufficiently large valid archive can
+still exceed browser memory or Blob limits. A streaming/server-side or desktop
+export path must preserve the same manifest/warning contract when introduced.
+
+### Retry backoff and alerting
+
+Provider failures are recorded and retried idempotently. The first version does
+not provide exponential backoff, `next_attempt_at`, alert delivery, or an
+administrative GC dashboard. The daily bounded cron limits pressure; repeated
+errors require operator review.
+
+Operational procedures and read-only inspection queries are defined in
+[blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md).
 
 ## Required regression tests
 
 ### Reachability truth table
 
-Cover every current retention edge and the full submission matrix, including
-active, archived, soft-deleted, unfinished, retryable failed, retry-closed, and
-cancelled states.
+Cover every current edge and the full submission matrix, including active,
+archived, soft-deleted, unfinished, retryable failed, retry-closed, system-
+cancelled, and user-cancelled states. Include distinct Sample-record primary and
+thumbnail assets and malformed historical event metadata.
 
 ### Shared-object tests
 
@@ -415,8 +491,10 @@ At minimum:
 - two unfinished submissions share one R2 asset;
 - cancelling either one does not break the other;
 - one soft-deleted ready source and one active source share bytes;
-- one physical blob is shared across different occurrence types;
-- an orphan candidate becomes reachable before deletion claim.
+- one physical blob is shared across occurrence types;
+- an orphan candidate becomes reachable before deletion claim;
+- a legacy referenced orphaned managed object coexists with a ready
+  content-identical winner and the migration chain succeeds.
 
 ### Race tests
 
@@ -427,6 +505,7 @@ At minimum:
 - retry versus retry closure;
 - orphan marking versus creation of a new edge;
 - deletion claim versus deduplicated edge creation;
+- concurrent live-SHA registration and winner recovery;
 - provider deletion success versus final database update retry;
 - export planning/download versus cleanup;
 - permanent-delete blocker check versus creation of a reverse reference.
@@ -443,18 +522,21 @@ At minimum:
 - duplicate locators downloaded once;
 - all table rows preserved;
 - warning files written;
-- ZIP generation succeeds despite one or several missing blobs.
+- ZIP generation succeeds despite one or several missing blobs;
+- size and SHA-256 mismatches are not packaged.
 
 ### Permanent-delete protection tests
 
 At minimum:
 
-- stable source tables reject accidental physical deletion;
+- every protected stable table rejects accidental physical deletion;
+- every declared blocker target has a total, fail-closed query;
 - known reverse references produce deterministic blockers;
+- malformed audit metadata does not crash blocker planning;
 - no blocked operation cascades into descendants;
 - concurrent reference creation prevents deletion;
-- future Project/reference edges can join the blocker surface without creating
-  a second implementation.
+- future Project/reference edges can join the blocker surface without a second
+  implementation.
 
 ## v3 migration and deployment gate
 
@@ -464,22 +546,29 @@ The blob lifecycle suite is a hard gate for:
 - applying any v3 remote migration;
 - deploying the v3 Worker.
 
-The repository MUST expose a dedicated command such as:
+The repository exposes:
 
 ```text
 npm run verify:blob-lifecycle
+npm run verify:v3-deployment
 ```
 
-CI publishes a dedicated required status for this suite. The remote-migration
-and v3 deployment commands run the same gate before touching remote resources.
-A general TypeScript build or unrelated unit-test pass is not a substitute.
+CI publishes a dedicated `pre-pr/blob-lifecycle` status. Normal remote-migration
+and deployment commands run the lifecycle suite, complete tests, and deployment
+build before touching remote resources. A general build is not a substitute.
 
-No v3 migration or deployment is allowed while any reachability, shared-object,
-race, missing-object, export, or permanent-delete protection test fails.
+After merge, the exact integration-head commit must pass the same gate before
+remote activation. No v3 migration or deployment is allowed while any
+reachability, shared-object, migration, race, missing-object, export, or
+permanent-delete protection test fails.
 
-## Non-goals of the next slice
+## Non-goals and next phase
 
-The next implementation does not add Project tables, `reference_targets`,
-backlinks, search, deep links, Text, Map, force delete, or source editing through
-Project. It establishes the storage and deletion safety on which those phases
-depend.
+This implementation does not add Project tables, `reference_targets`, backlinks,
+search, deep links, Text, Map, force delete, or source editing through Project.
+After the exact integration head passes its gate, the next planned phase is:
+
+1. `reference_targets`, backlinks, and a batch read-only resolver;
+2. object-level deep links and deterministic reference search;
+3. Project-owned data, Text, and Inspector;
+4. Map after the data and read models are stable.
