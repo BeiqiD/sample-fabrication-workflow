@@ -1,0 +1,221 @@
+.reference-focus-anchor {
+  display: none;
+}
+
+.reference-source-focus {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--accent-soft);
+  scroll-margin: 96px 24px 32px;
+}
+
+.reference-source-focus::after {
+  content: "Referenced";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--accent-contrast);
+  background: var(--accent-fill);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.cell-comment.reference-source-focus::after,
+.metrology-reference-item.reference-source-focus::after,
+.sample-note.reference-source-focus::after {
+  top: 6px;
+  right: 6px;
+}
+
+.reference-focus-notice {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 32;
+  width: min(420px, calc(100vw - 36px));
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--status-warning-ink);
+  background: var(--warning-soft);
+  box-shadow: 0 10px 30px var(--shadow);
+  font-size: var(--font-body);
+  line-height: 1.45;
+}
+
+.reference-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--overlay);
+}
+
+.reference-preview-dialog {
+  width: min(760px, 100%);
+  max-height: min(86vh, 900px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
+}
+
+.reference-preview-heading {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.reference-preview-heading > div {
+  min-width: 0;
+}
+
+.reference-preview-heading h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-section-title);
+}
+
+.reference-preview-image-stage {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  padding: 22px;
+  background: var(--surface-warm);
+}
+
+.reference-preview-image-stage img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(86vh - 190px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px var(--shadow);
+}
+
+.reference-preview-copy {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.reference-preview-copy > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.reference-preview-copy dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--line);
+}
+
+.reference-preview-copy dl > div {
+  min-width: 0;
+  padding: 12px 13px;
+  background: var(--surface-warm);
+}
+
+.reference-preview-copy dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: var(--font-label);
+  font-weight: 750;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.reference-preview-copy dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: var(--font-body);
+  line-height: 1.45;
+}
+
+.reference-preview-url {
+  padding: 12px 13px;
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.reference-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 22px 22px;
+}
+
+@media (max-width: 720px) {
+  .reference-source-focus {
+    outline-width: 2px;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--accent-soft);
+  }
+
+  .reference-preview-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .reference-preview-dialog {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 10px 10px;
+  }
+
+  .reference-preview-heading,
+  .reference-preview-copy {
+    padding: 16px;
+  }
+
+  .reference-preview-image-stage {
+    min-height: 220px;
+    padding: 14px;
+  }
+
+  .reference-preview-copy dl {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-preview-actions {
+    padding: 12px 16px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reference-source-focus,
+  .reference-preview-dialog,
+  .reference-focus-notice {
+    scroll-behavior: auto;
+  }
+}

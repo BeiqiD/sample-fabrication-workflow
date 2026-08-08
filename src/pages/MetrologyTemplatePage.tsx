@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
+import { MetrologyReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { api, type MetrologyTemplateInput, type TemplateDetail } from "../lib/api";
 import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import { templateDetailPath } from "../lib/templateRoutes";
 
 export function MetrologyTemplatePage() {
   const { templateId = "" } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedFocus = searchParams.get("focus");
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -24,7 +28,7 @@ export function MetrologyTemplatePage() {
   const load = useCallback(async (syncReferenceNotes = true) => {
     const result = await api.getTemplate(templateId);
     if (result.template.templateKind !== "metrology") {
-      navigate(templateDetailPath(templateId, "process"), { replace: true });
+      navigate(`${templateDetailPath(templateId, "process")}${location.search}`, { replace: true });
       return;
     }
     if (result.template.steps.length !== 1) {
@@ -32,7 +36,7 @@ export function MetrologyTemplatePage() {
     }
     setTemplate(result.template);
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
-  }, [navigate, templateId]);
+  }, [location.search, navigate, templateId]);
   useEffect(() => { void load(true).catch((error: Error) => setError(error.message)); }, [load]);
 
   async function update(input: MetrologyTemplateInput) {
@@ -132,6 +136,7 @@ export function MetrologyTemplatePage() {
           <button type="button" className="text-button danger-text" disabled={savingReference} onClick={() => { setReferenceDeleteError(""); setReferenceToDelete({ id: reference.id, filename: reference.filename }); }}>Remove</button>
         </div>)}
       </div>}
+      <MetrologyReferenceSourceFocus focusValue={requestedFocus} template={template} />
     </section>
     {referenceToDelete && <ConfirmDeleteDialog
       title="Remove this template reference?"

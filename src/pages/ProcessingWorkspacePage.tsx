@@ -6,6 +6,7 @@ import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
+import { ProcessingReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
@@ -36,6 +37,8 @@ export function ProcessingWorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const additionalKey = searchParams.get("with") || "";
   const requestedRunId = searchParams.get("run") || "";
+  const requestedStepId = searchParams.get("step") || "";
+  const requestedFocus = searchParams.get("focus");
   const requestedAction = searchParams.get("action") || "";
   const additionalIds = additionalKey.split(",").map((id) => id.trim()).filter((id, index, ids) => id && id !== sampleId && ids.indexOf(id) === index).slice(0, MAX_VISIBLE_SAMPLES - 1);
   const [samples, setSamples] = useState<ProcessingSampleDetail[]>([]);
@@ -203,6 +206,8 @@ export function ProcessingWorkspacePage() {
     }
     if (updates.run !== undefined) {
       if (updates.run) next.set("run", updates.run); else next.delete("run");
+      next.delete("step");
+      next.delete("focus");
     }
     setSearchParams(next, { replace: true });
   }
@@ -405,6 +410,14 @@ export function ProcessingWorkspacePage() {
       disabled: assigning,
       onSelect: () => setShowMetrologyPicker(true),
     });
+  const gridColumns = selectedRun
+    ? samples.map((item) => ({
+      sample: item,
+      run: item.id === sample.id
+        ? selectedRun
+        : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs),
+    }))
+    : [];
 
   return <div className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
@@ -443,7 +456,15 @@ export function ProcessingWorkspacePage() {
         </div>
       </div>
 
-      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs) }))} onSaved={load} readOnly={!selectedRunIsEditable} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
+      {selectedRun ? <section className="runs-section">
+        <MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={gridColumns} onSaved={load} readOnly={!selectedRunIsEditable} />
+        <ProcessingReferenceSourceFocus
+          focusValue={requestedFocus}
+          sampleId={sampleId}
+          stepId={requestedStepId}
+          columns={gridColumns}
+        />
+      </section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
       {showMetrologyPicker && <StandaloneMetrologyDialog
         sampleId={sampleId}
         onClose={() => setShowMetrologyPicker(false)}
