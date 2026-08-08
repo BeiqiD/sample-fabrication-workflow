@@ -201,7 +201,8 @@ export function ReferencePage() {
           return <article className="card reference-context-card" key={contextKey}>
             <div className="reference-context-heading">
               <strong>{resolution.contexts.length === 1 ? "Source path" : `Context ${contextIndex + 1}`}</strong>
-              {contextUrl && <Link className="button" to={contextUrl}>Open context</Link>}
+              {resolution.contexts.length > 1 && contextUrl
+                && <Link className="button" to={contextUrl}>Open context</Link>}
             </div>
             <ol className="reference-context-segments">
               {context.segments.map((contextSegment) => {
