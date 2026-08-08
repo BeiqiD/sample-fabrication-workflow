@@ -110,8 +110,8 @@ const blockerSql: Record<PermanentDeleteTarget["sourceType"], string> = {
     UNION ALL
     SELECT 'timeline_events', 'event', id, 'audit'
     FROM events
-    WHERE json_valid(metadata_json)
-      AND json_extract(metadata_json, '$.runStepAssetId') = ?`,
+    WHERE CASE WHEN json_valid(metadata_json)
+      THEN json_extract(metadata_json, '$.runStepAssetId') END = ?`,
   metrology_template_reference: `
     SELECT 'owning_template' AS relation, 'template_version' AS blocker_type,
            template_version_id AS blocker_id, 'durable' AS blocker_state
