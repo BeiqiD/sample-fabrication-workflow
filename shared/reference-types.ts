@@ -57,11 +57,21 @@ export interface ResolvedReferenceSource {
   archivedAt: string | null;
 }
 
+export type ReferenceDestinationMode = "source" | "archived";
+
+export interface ReferenceDestination {
+  referenceUrl: string;
+  mode: ReferenceDestinationMode;
+  openSourceUrl: string | null;
+  contextOpenSourceUrls: Array<string | null>;
+}
+
 export interface ReferenceResolution {
   target: ReferenceTarget;
   resolution: ReferenceResolutionStatus;
   source: ResolvedReferenceSource | null;
   contexts: ReferenceContext[];
+  destination: ReferenceDestination;
 }
 
 export interface ResolveReferencesInput {
