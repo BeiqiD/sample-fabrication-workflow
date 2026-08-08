@@ -22,21 +22,40 @@ import { referenceTargetKey, resolveReferences } from "./resolver";
 const SEARCH_CANDIDATE_FLOOR = 60;
 const SEARCH_CANDIDATE_CEILING = 150;
 
-const MATCH_TIER_BY_NUMBER: Record<number, ReferenceSearchMatchTier> = {
-  0: "exact_id",
-  1: "exact_primary",
-  2: "prefix_primary",
-  3: "content",
-  4: "metadata",
+export const REFERENCE_SEARCH_MATCH_SPECIFICITY = {
+  byte_exact_id: 0,
+  ascii_folded_exact_id: 1,
+  byte_exact_primary: 2,
+  ascii_folded_exact_primary: 3,
+  prefix_primary: 4,
+  content: 5,
+  metadata: 6,
+} as const;
+
+export type ReferenceSearchMatchSpecificity =
+  typeof REFERENCE_SEARCH_MATCH_SPECIFICITY[keyof typeof REFERENCE_SEARCH_MATCH_SPECIFICITY];
+
+const MATCH_TIER_BY_SPECIFICITY: Record<
+  ReferenceSearchMatchSpecificity,
+  ReferenceSearchMatchTier
+> = {
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_id]: "exact_id",
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.ascii_folded_exact_id]: "exact_id",
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_primary]: "exact_primary",
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.ascii_folded_exact_primary]: "exact_primary",
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.prefix_primary]: "prefix_primary",
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.content]: "content",
+  [REFERENCE_SEARCH_MATCH_SPECIFICITY.metadata]: "metadata",
 };
 
-const MATCH_TIER_ORDER: Record<ReferenceSearchMatchTier, number> = {
-  exact_id: 0,
-  exact_primary: 1,
-  prefix_primary: 2,
-  content: 3,
-  metadata: 4,
-};
+function normalizeMatchSpecificity(value: number): ReferenceSearchMatchSpecificity {
+  if (Number.isInteger(value)
+    && value >= REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_id
+    && value <= REFERENCE_SEARCH_MATCH_SPECIFICITY.metadata) {
+    return value as ReferenceSearchMatchSpecificity;
+  }
+  return REFERENCE_SEARCH_MATCH_SPECIFICITY.metadata;
+}
 
 const TARGET_TYPE_ORDER = new Map(
   REFERENCE_TARGET_TYPES.map((type, index) => [type, index]),
@@ -60,13 +79,13 @@ export class ReferenceSearchInputError extends Error {
 
 type CandidateRow = {
   target_id: string;
-  match_tier: number;
+  match_specificity: number;
   matched_at: string | null;
 };
 
 export type ReferenceSearchCandidate = {
   target: ReferenceTarget;
-  tier: ReferenceSearchMatchTier;
+  specificity: ReferenceSearchMatchSpecificity;
   matchedAt: string | null;
 };
 
@@ -277,14 +296,17 @@ function allTokensSql(haystack: string, tokenCount: number) {
   ).join(" AND ");
 }
 
-function exactTextSql(expression: string) {
-  const text = textExpression(expression);
-  return `(${text} = ? COLLATE BINARY OR LOWER(${text}) = ?)`;
-}
-
-function primaryExactSql(expressions: string[]) {
+function primaryExactSql(
+  expressions: string[],
+  mode: "byte_exact" | "ascii_folded",
+) {
   if (!expressions.length) return "0";
-  return expressions.map(exactTextSql).join(" OR ");
+  return expressions.map((expression) => {
+    const text = textExpression(expression);
+    return mode === "byte_exact"
+      ? `${text} = ? COLLATE BINARY`
+      : `LOWER(${text}) = ?`;
+  }).join(" OR ");
 }
 
 function primaryPrefixSql(expressions: string[]) {
@@ -306,7 +328,8 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
       ...spec.contentSqls,
       ...spec.metadataSqls,
     ]);
-    const exactPrimary = primaryExactSql(spec.primarySqls);
+    const byteExactPrimary = primaryExactSql(spec.primarySqls, "byte_exact");
+    const asciiFoldedExactPrimary = primaryExactSql(spec.primarySqls, "ascii_folded");
     const prefixPrimary = primaryPrefixSql(spec.primarySqls);
     const contentMatch = spec.contentSqls.length
       ? allTokensSql(contentHaystack, input.tokens.length)
@@ -323,20 +346,27 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
     const sql = `
       SELECT CAST(${spec.idSql} AS TEXT) AS target_id,
              CASE
-               WHEN (${textExpression(spec.idSql)} = ? COLLATE BINARY
-                     OR LOWER(${textExpression(spec.idSql)}) = ?) THEN 0
-               WHEN (${exactPrimary}) THEN 1
-               WHEN (${prefixPrimary}) THEN 2
-               WHEN (${contentMatch}) THEN 3
-               ELSE 4
-             END AS match_tier,
+               WHEN ${textExpression(spec.idSql)} = ? COLLATE BINARY
+                 THEN ${REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_id}
+               WHEN LOWER(${textExpression(spec.idSql)}) = ?
+                 THEN ${REFERENCE_SEARCH_MATCH_SPECIFICITY.ascii_folded_exact_id}
+               WHEN (${byteExactPrimary})
+                 THEN ${REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_primary}
+               WHEN (${asciiFoldedExactPrimary})
+                 THEN ${REFERENCE_SEARCH_MATCH_SPECIFICITY.ascii_folded_exact_primary}
+               WHEN (${prefixPrimary})
+                 THEN ${REFERENCE_SEARCH_MATCH_SPECIFICITY.prefix_primary}
+               WHEN (${contentMatch})
+                 THEN ${REFERENCE_SEARCH_MATCH_SPECIFICITY.content}
+               ELSE ${REFERENCE_SEARCH_MATCH_SPECIFICITY.metadata}
+             END AS match_specificity,
              ${spec.timestampSql} AS matched_at
       ${spec.fromSql}
       WHERE (${spec.visibilitySql})
         AND (${fullMatch})
         ${sampleFilter ? `AND (${sampleFilter.sql})` : ""}
         ${timeSql.map((condition) => `AND (${condition})`).join("\n")}
-      ORDER BY match_tier ASC,
+      ORDER BY match_specificity ASC,
                COALESCE(${spec.timestampSql}, '') DESC,
                target_id ASC
       LIMIT ?
@@ -345,7 +375,8 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
     const bindings: unknown[] = [
       input.query,
       input.normalizedQuery,
-      ...spec.primarySqls.flatMap(() => [input.query, input.normalizedQuery]),
+      ...spec.primarySqls.map(() => input.query),
+      ...spec.primarySqls.map(() => input.normalizedQuery),
       ...spec.primarySqls.flatMap(() => [input.query, input.normalizedQuery]),
       ...(spec.contentSqls.length ? input.tokens : []),
       ...(spec.visibilityBindings?.(input) ?? []),
@@ -360,7 +391,7 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
     const truncated = rows.results.length > candidateLimit;
     const candidates = rows.results.slice(0, candidateLimit).map((row): ReferenceSearchCandidate => ({
       target: { type: spec.type, id: row.target_id },
-      tier: MATCH_TIER_BY_NUMBER[Number(row.match_tier)] ?? "metadata",
+      specificity: normalizeMatchSpecificity(Number(row.match_specificity)),
       matchedAt: row.matched_at,
     }));
     return { candidates, truncated };
@@ -686,9 +717,9 @@ function candidateLimit(resultLimit: number) {
 }
 
 function compareCandidates(left: ReferenceSearchCandidate, right: ReferenceSearchCandidate) {
-  const leftTier = MATCH_TIER_ORDER[left.tier];
-  const rightTier = MATCH_TIER_ORDER[right.tier];
-  if (leftTier !== rightTier) return leftTier - rightTier;
+  if (left.specificity !== right.specificity) {
+    return left.specificity - right.specificity;
+  }
 
   const leftTime = left.matchedAt ?? "";
   const rightTime = right.matchedAt ?? "";
@@ -745,7 +776,10 @@ export async function searchReferences(
     if (!resolution || !remainsSearchable(resolution)) continue;
     results.push({
       target: candidate.target,
-      match: { tier: candidate.tier, matchedAt: candidate.matchedAt },
+      match: {
+        tier: MATCH_TIER_BY_SPECIFICITY[candidate.specificity],
+        matchedAt: candidate.matchedAt,
+      },
       resolution,
     });
     if (results.length === input.limit) break;

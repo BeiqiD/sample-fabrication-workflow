@@ -79,8 +79,10 @@ A profile may narrow types or add business eligibility: for example, global
 research search may include an archived Recipe revision while a new-run
 assignment picker must exclude it.
 
-Candidate discovery is behind `ReferenceSearchCandidateBackend`. The current
-`sqlite-source-scan` backend uses standard SQLite expressions and a narrow
+Candidate discovery is behind `ReferenceSearchCandidateBackend`. Every
+backend returns the same internal match specificity so per-type candidate caps and
+cross-type merging preserve byte-exact matches before ASCII-folded fallbacks. The
+current `sqlite-source-scan` backend uses standard SQLite expressions and a narrow
 `prepare -> bind -> all` query interface; Cloudflare D1 is one adapter, not the
 search contract. A future Docker deployment can provide the same interface without
 changing API or ranking semantics.
@@ -203,22 +205,41 @@ do not match when `sampleId` is present.
 
 ## Explainable ranking
 
-Every candidate receives exactly one ranking tier:
+Every result exposes one of five public ranking tiers:
 
-1. `exact_id` — byte-exact stable-ID match, then ASCII-case-insensitive fallback;
-2. `exact_primary` — byte-exact code/title/name/filename match, then ASCII-case-insensitive fallback;
-3. `prefix_primary` — the primary field begins with the raw or ASCII-folded complete query;
-4. `content` — every token matches the target-owned body/description/note fields;
-5. `metadata` — every token matches only context or weaker metadata.
+1. `exact_id`;
+2. `exact_primary`;
+3. `prefix_primary`;
+4. `content`;
+5. `metadata`.
 
-Results sort by:
+Candidate backends additionally carry a private specificity that is never returned
+by the API:
 
 ```text
-ranking tier ascending
+0  byte-exact stable ID
+1  ASCII-folded exact stable ID
+2  byte-exact primary field
+3  ASCII-folded exact primary field
+4  primary prefix
+5  target-owned content
+6  metadata / context
+```
+
+Both the per-type SQL query and the cross-type application merge sort by:
+
+```text
+internal specificity ascending
 search timestamp descending
 closed target-type order
 stable target ID ascending
 ```
+
+The public mapping remains `0..1 -> exact_id`, `2..3 -> exact_primary`,
+`4 -> prefix_primary`, `5 -> content`, and `6 -> metadata`. This keeps
+stable-ID matches stronger than primary fields while ensuring a byte-exact match
+cannot be displaced by a newer ASCII-folded fallback under any candidate or result
+limit.
 
 This order is deterministic and testable. It does not use opaque weighted
 scores, database row order, semantic similarity, or model judgement.
@@ -314,6 +335,8 @@ Focused host-SQLite tests cover:
 - literal `\`, `%`, and `_`, 49–200-byte tokens, and multibyte text;
 - byte-exact Unicode IDs/titles, ASCII-only case folding, and distinct NFC/NFD
   forms;
+- older byte-exact ID and primary matches beating newer ASCII-folded collisions at
+  both the per-type candidate cap and final `limit: 1` boundary;
 - candidate and resolver bounds;
 - query count independent of result count;
 - no registry or source writes;

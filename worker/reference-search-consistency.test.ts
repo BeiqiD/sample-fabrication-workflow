@@ -16,5 +16,8 @@ describe("reference search target coverage", () => {
     expect(source).toContain("INSTR(");
     expect(source).toContain('kind: "sqlite-source-scan"');
     expect(source).toContain("export type ReferenceSearchCandidate");
+    expect(source).toContain("match_specificity");
+    expect(source).toContain("left.specificity - right.specificity");
+    expect(source).toContain("MATCH_TIER_BY_SPECIFICITY[candidate.specificity]");
   });
 });

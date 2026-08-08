@@ -94,9 +94,11 @@ Containers, or a second Worker.
   than duplicating one result per occurrence. Canonical occurrences remain
   addressable by exact occurrence ID; legacy occurrences without a logical
   Comment retain body search.
-- Ranking uses explicit exact-ID, exact-primary, primary-prefix,
-  target-content, and metadata tiers. Ties use timestamp, closed type
-  order, and stable ID.
+- Ranking exposes exact-ID, exact-primary, primary-prefix, target-content,
+  and metadata tiers. Candidate backends also carry one private specificity:
+  byte-exact ID, folded ID, byte-exact primary, folded primary, prefix, content,
+  then metadata. SQL candidate caps and cross-type merging use that same order
+  before timestamp, closed type order, and stable ID.
 - Query count, bindings, returned candidates, and resolver work are bounded per
   selected type. The first source-scan backend still examines work proportional
   to source-table size; result `LIMIT` does not make scan CPU independent of data

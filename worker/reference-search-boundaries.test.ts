@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  REFERENCE_SEARCH_ADAPTERS,
+  REFERENCE_SEARCH_MATCH_SPECIFICITY,
   ReferenceSearchInputError,
   createSqliteSourceReferenceSearchBackend,
   normalizeReferenceSearchInput,
@@ -18,11 +20,16 @@ function fixture() {
   const insert = database.prepare(`
     INSERT INTO samples
       (id, code, title, description, status, location, pinned, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0,
-            '2026-08-03T00:00:00.000Z', '2026-08-03T00:00:00.000Z')
+    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0, ?, ?)
   `);
-  const addSample = (id: string, code: string, title: string, description: string) => {
-    insert.run(id, code, title, description);
+  const addSample = (
+    id: string,
+    code: string,
+    title: string,
+    description: string,
+    timestamp = "2026-08-03T00:00:00.000Z",
+  ) => {
+    insert.run(id, code, title, description, timestamp, timestamp);
   };
   return { database, d1, db: d1 as unknown as D1Database, addSample };
 }
@@ -101,6 +108,47 @@ describe("reference search matcher and input boundaries", () => {
     const nfc = await searchReferences(db, { query: "Épitaxy", types: ["sample"] });
     expect(nfc.results.some((result) => result.target.id === "ÄBC")).toBe(true);
     expect(nfc.results.some((result) => result.target.id === "unicode-nfd")).toBe(false);
+    database.close();
+  });
+
+  it("prefers byte-exact IDs and primary fields before newer ASCII-folded matches", async () => {
+    const { database, db, d1, addSample } = fixture();
+    addSample("Case-ID", "CASE-ID-EXACT", "Older exact identity", "Identity collision fixture", "2026-08-01T00:00:00.000Z");
+    addSample("case-id", "CASE-ID-FALLBACK", "Newer folded identity", "Identity collision fixture", "2026-08-02T00:00:00.000Z");
+    addSample("primary-byte-exact", "Case-Code", "Older exact primary", "Primary collision fixture", "2026-08-01T00:00:00.000Z");
+    addSample("primary-ascii-folded", "case-code", "Newer folded primary", "Primary collision fixture", "2026-08-02T00:00:00.000Z");
+
+    const idInput = normalizeReferenceSearchInput({ query: "Case-ID", types: ["sample"], limit: 1 });
+    const idBatch = await REFERENCE_SEARCH_ADAPTERS.sample(d1, idInput, 1);
+    expect(idBatch.candidates).toEqual([
+      expect.objectContaining({
+        target: { type: "sample", id: "Case-ID" },
+        specificity: REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_id,
+      }),
+    ]);
+
+    const idSearch = await searchReferences(db, { query: "Case-ID", types: ["sample"], limit: 1 });
+    expect(idSearch.results[0]).toMatchObject({
+      target: { type: "sample", id: "Case-ID" },
+      match: { tier: "exact_id" },
+    });
+    expect(JSON.stringify(idSearch)).not.toContain("specificity");
+
+    const primaryInput = normalizeReferenceSearchInput({ query: "Case-Code", types: ["sample"], limit: 1 });
+    const primaryBatch = await REFERENCE_SEARCH_ADAPTERS.sample(d1, primaryInput, 1);
+    expect(primaryBatch.candidates).toEqual([
+      expect.objectContaining({
+        target: { type: "sample", id: "primary-byte-exact" },
+        specificity: REFERENCE_SEARCH_MATCH_SPECIFICITY.byte_exact_primary,
+      }),
+    ]);
+
+    const primarySearch = await searchReferences(db, { query: "Case-Code", types: ["sample"], limit: 1 });
+    expect(primarySearch.results[0]).toMatchObject({
+      target: { type: "sample", id: "primary-byte-exact" },
+      match: { tier: "exact_primary" },
+    });
+    expect(JSON.stringify(primarySearch)).not.toContain("specificity");
     database.close();
   });
 

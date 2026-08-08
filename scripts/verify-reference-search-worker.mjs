@@ -111,9 +111,15 @@ try {
   const insertSample = database.prepare(`
     INSERT INTO samples
       (id, code, title, description, status, location, pinned, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0,
-            '2026-08-03T00:00:00.000Z', '2026-08-03T00:00:00.000Z')
+    VALUES (?, ?, ?, ?, 'stored', 'Matcher box', 0, ?, ?)
   `);
+  const addSample = async (
+    id,
+    code,
+    title,
+    description,
+    timestamp = "2026-08-03T00:00:00.000Z",
+  ) => insertSample.bind(id, code, title, description, timestamp, timestamp).run();
   const longToken = "a".repeat(60);
   const multibyteToken = "实验".repeat(30);
   for (const row of [
@@ -125,8 +131,13 @@ try {
     ["ÄBC", "UNICODE-ID", "Épitaxy", "Accented exact-case content"],
     ["unicode-nfd", "UNICODE-NFD", "E\u0301pitaxy", "Decomposed title"],
   ]) {
-    await insertSample.bind(...row).run();
+    await addSample(...row);
   }
+
+  await addSample("Case-ID", "CASE-ID-EXACT", "Older exact identity", "Identity collision fixture", "2026-08-01T00:00:00.000Z");
+  await addSample("case-id", "CASE-ID-FALLBACK", "Newer folded identity", "Identity collision fixture", "2026-08-02T00:00:00.000Z");
+  await addSample("primary-byte-exact", "Case-Code", "Older exact primary", "Primary collision fixture", "2026-08-01T00:00:00.000Z");
+  await addSample("primary-ascii-folded", "case-code", "Newer folded primary", "Primary collision fixture", "2026-08-02T00:00:00.000Z");
 
   const crossOrigin = await postSearch(
     miniflare,
@@ -210,6 +221,28 @@ try {
   const nfdPayload = await nfdResponse.json();
   assert.equal(nfdPayload.results[0].target.id, "unicode-nfd");
 
+  const idCollisionResponse = await postSearch(miniflare, {
+    query: "Case-ID",
+    types: ["sample"],
+    limit: 1,
+  });
+  const idCollisionPayload = await idCollisionResponse.json();
+  assert.equal(idCollisionResponse.status, 200, JSON.stringify(idCollisionPayload));
+  assert.equal(idCollisionPayload.results[0].target.id, "Case-ID");
+  assert.equal(idCollisionPayload.results[0].match.tier, "exact_id");
+  assert(!JSON.stringify(idCollisionPayload).includes("specificity"));
+
+  const primaryCollisionResponse = await postSearch(miniflare, {
+    query: "Case-Code",
+    types: ["sample"],
+    limit: 1,
+  });
+  const primaryCollisionPayload = await primaryCollisionResponse.json();
+  assert.equal(primaryCollisionResponse.status, 200, JSON.stringify(primaryCollisionPayload));
+  assert.equal(primaryCollisionPayload.results[0].target.id, "primary-byte-exact");
+  assert.equal(primaryCollisionPayload.results[0].match.tier, "exact_primary");
+  assert(!JSON.stringify(primaryCollisionPayload).includes("specificity"));
+
   const commentResponse = await postSearch(miniflare, {
     query: "Shared reference Comment body",
     types: ["comment", "comment_occurrence"],
@@ -286,7 +319,7 @@ try {
   assert(!serialized.includes("r2_key"));
   assert(!serialized.includes("object_key"));
 
-  console.log("Reference search Worker/D1 smoke passed: portable literal matching, Unicode policy, strict timestamps, deterministic ranking, lifecycle filters, read-only behavior, and locator non-disclosure.");
+  console.log("Reference search Worker/D1 smoke passed: byte-exact specificity, portable literal matching, Unicode policy, strict timestamps, deterministic ranking, lifecycle filters, read-only behavior, and locator non-disclosure.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);
