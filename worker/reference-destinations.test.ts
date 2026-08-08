@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildReferenceDestination,
   decodeReferenceRouteId,
+  decodeReferenceSourceFocus,
   encodeReferenceRouteId,
+  encodeReferenceSourceFocus,
   referenceUrlForTarget,
 } from "../shared/reference-destinations";
 import {
@@ -48,6 +50,27 @@ function context(...segments: ReferenceContextSegment[]): ReferenceContext {
   return { segments };
 }
 
+function withQuery(path: string, entries: Array<[string, string]>) {
+  const params = new URLSearchParams(entries);
+  return `${path}?${params.toString()}`;
+}
+
+function processingPath(
+  sampleId: string,
+  runId: string,
+  stepId?: string,
+  target?: ReferenceTarget,
+) {
+  const entries: Array<[string, string]> = [["run", runId]];
+  if (stepId) entries.push(["step", stepId]);
+  if (target) entries.push(["focus", encodeReferenceSourceFocus(target)]);
+  return withQuery(`/processing/${sampleId}`, entries);
+}
+
+function focusedPath(path: string, target: ReferenceTarget) {
+  return withQuery(path, [["focus", encodeReferenceSourceFocus(target)]]);
+}
+
 const sample = segment("sample", "sample-1");
 const run = segment("run", "run-1");
 const step = segment("run_step", "step-1");
@@ -66,37 +89,63 @@ const destinationCases: Array<{
   {
     target: { type: "run", id: "run-1" },
     contexts: [context(sample, run)],
-    expected: "/processing/sample-1?run=run-1",
+    expected: processingPath("sample-1", "run-1"),
   },
   {
     target: { type: "run_step", id: "step-1" },
     contexts: [context(sample, run, step)],
-    expected: "/processing/sample-1?run=run-1&step=step-1&reference=run_step%3Astep-1",
+    expected: processingPath(
+      "sample-1",
+      "run-1",
+      "step-1",
+      { type: "run_step", id: "step-1" },
+    ),
   },
   {
     target: { type: "comment", id: "comment-1" },
     contexts: [context(sample, run, step)],
-    expected: "/processing/sample-1?run=run-1&step=step-1&reference=comment%3Acomment-1",
+    expected: processingPath(
+      "sample-1",
+      "run-1",
+      "step-1",
+      { type: "comment", id: "comment-1" },
+    ),
   },
   {
     target: { type: "comment_occurrence", id: "occurrence-1" },
     contexts: [context(sample, run, step)],
-    expected: "/processing/sample-1?run=run-1&step=step-1&reference=comment_occurrence%3Aoccurrence-1",
+    expected: processingPath(
+      "sample-1",
+      "run-1",
+      "step-1",
+      { type: "comment_occurrence", id: "occurrence-1" },
+    ),
   },
   {
     target: { type: "comment_attachment", id: "attachment-1" },
     contexts: [context(sample)],
-    expected: "/samples/sample-1?reference=comment_attachment%3Aattachment-1",
+    expected: focusedPath(
+      "/samples/sample-1",
+      { type: "comment_attachment", id: "attachment-1" },
+    ),
   },
   {
     target: { type: "execution_image", id: "image-1" },
     contexts: [context(sample, run, step)],
-    expected: "/processing/sample-1?run=run-1&step=step-1&reference=execution_image%3Aimage-1",
+    expected: processingPath(
+      "sample-1",
+      "run-1",
+      "step-1",
+      { type: "execution_image", id: "image-1" },
+    ),
   },
   {
     target: { type: "metrology_reference", id: "metrology-reference-1" },
     contexts: [context(recipe)],
-    expected: "/templates/recipe-1?reference=metrology_reference%3Ametrology-reference-1",
+    expected: focusedPath(
+      "/templates/metrology/recipe-1",
+      { type: "metrology_reference", id: "metrology-reference-1" },
+    ),
   },
   {
     target: { type: "recipe_revision", id: "recipe-1" },
@@ -153,6 +202,35 @@ describe("reference destinations", () => {
     expect(decodeReferenceRouteId("id%2Fencoded")).toBeNull();
   });
 
+  it("round-trips typed source focus without collisions", () => {
+    const targets: ReferenceTarget[] = [
+      { type: "run_step", id: "." },
+      { type: "run_step", id: ".." },
+      { type: "comment", id: "id/encoded" },
+      { type: "comment", id: "id%2Fencoded" },
+      { type: "comment_attachment", id: "附件 ?#" },
+      { type: "execution_image", id: "image:1" },
+    ];
+    const encoded = targets.map(encodeReferenceSourceFocus);
+
+    expect(new Set(encoded).size).toBe(targets.length);
+    targets.forEach((target, index) => {
+      expect(decodeReferenceSourceFocus(encoded[index])).toEqual(target);
+    });
+    for (const invalid of [
+      null,
+      "",
+      "run_step",
+      "unknown:r1_AAAA",
+      "run_step:legacy",
+      "run_step:r2_AAAA",
+      "run_step:r1_A",
+      "run_step:r1_AAAA:extra",
+    ]) {
+      expect(decodeReferenceSourceFocus(invalid)).toBeNull();
+    }
+  });
+
   it("preserves every ordered context without choosing one common Comment path", () => {
     const target: ReferenceTarget = { type: "comment", id: "comment-1" };
     const secondContext = context(
@@ -172,17 +250,18 @@ describe("reference destinations", () => {
       mode: "source",
       openSourceUrl: null,
       contextOpenSourceUrls: [
-        "/processing/sample-1?run=run-1&step=step-1&reference=comment%3Acomment-1",
-        "/processing/sample-2?run=run-2&step=step-2&reference=comment%3Acomment-1",
+        processingPath("sample-1", "run-1", "step-1", target),
+        processingPath("sample-2", "run-2", "step-2", target),
       ],
     });
   });
 
   it("collapses duplicate context routes only for the single source action", () => {
+    const target: ReferenceTarget = { type: "comment", id: "comment-1" };
     const repeated = context(sample, run, step);
-    const expected = "/processing/sample-1?run=run-1&step=step-1&reference=comment%3Acomment-1";
+    const expected = processingPath("sample-1", "run-1", "step-1", target);
     const destination = buildReferenceDestination({
-      target: { type: "comment", id: "comment-1" },
+      target,
       resolution: "resolved",
       source: source(),
       contexts: [repeated, repeated],
@@ -193,13 +272,14 @@ describe("reference destinations", () => {
   });
 
   it("keeps active contexts open while a deleted sibling context stays read-only", () => {
+    const target: ReferenceTarget = { type: "comment", id: "comment-1" };
     const deletedContext = context(
       segment("sample", "sample-2", { deletedAt: "2026-08-08T13:00:00.000Z" }),
       segment("run", "run-2"),
       segment("run_step", "step-2"),
     );
     const destination = buildReferenceDestination({
-      target: { type: "comment", id: "comment-1" },
+      target,
       resolution: "resolved",
       source: source(),
       contexts: [context(sample, run, step), deletedContext],
@@ -207,14 +287,14 @@ describe("reference destinations", () => {
 
     expect(destination.mode).toBe("source");
     expect(destination.openSourceUrl)
-      .toBe("/processing/sample-1?run=run-1&step=step-1&reference=comment%3Acomment-1");
+      .toBe(processingPath("sample-1", "run-1", "step-1", target));
     expect(destination.contextOpenSourceUrls).toEqual([
-      "/processing/sample-1?run=run-1&step=step-1&reference=comment%3Acomment-1",
+      processingPath("sample-1", "run-1", "step-1", target),
       null,
     ]);
   });
 
-  it("round-trips Run, Step, and reference identities through query parameters", () => {
+  it("round-trips Run, Step, and focus identities through query parameters", () => {
     const runId = "run/%2F ?#运行";
     const stepId = "step/%2F ?#步骤";
     const target: ReferenceTarget = { type: "run_step", id: stepId };
@@ -234,7 +314,7 @@ describe("reference destinations", () => {
     expect(parsed.pathname).toBe("/processing/sample-1");
     expect(parsed.searchParams.get("run")).toBe(runId);
     expect(parsed.searchParams.get("step")).toBe(stepId);
-    expect(parsed.searchParams.get("reference")).toBe(`run_step:${stepId}`);
+    expect(decodeReferenceSourceFocus(parsed.searchParams.get("focus"))).toEqual(target);
   });
 
   it.each([".", "..", "/", "%2F", "sample with space", "样品"])(

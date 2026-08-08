@@ -428,7 +428,7 @@ const commentAttachmentAdapter: ReferenceAdapter = async (db, ids) => {
 
 const executionImageAdapter: ReferenceAdapter = async (db, ids) => {
   const rows = await allRows(db, `
-    SELECT rsa.id, rsa.role, rsa.created_at, rsa.deleted_at,
+    SELECT rsa.id, rsa.created_at, rsa.deleted_at,
            a.original_name, a.mime_type,
            s.id AS sample_id, s.code AS sample_code, s.title AS sample_title,
            s.deleted_at AS sample_deleted_at,
@@ -444,16 +444,17 @@ const executionImageAdapter: ReferenceAdapter = async (db, ids) => {
     LEFT JOIN runs r ON r.id = rs.run_id
     LEFT JOIN samples s ON s.id = r.sample_id
     WHERE rsa.id IN (SELECT value FROM json_each(?))
+      AND rsa.role = 'execution'
     ORDER BY rsa.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.id);
     const context = executionContext(row);
     return [id, {
       source: {
-        title: text(row.original_name) ?? (row.role === "state_observation" ? "State observation" : "Execution image"),
+        title: text(row.original_name) ?? "Execution image",
         subtitle: text(row.mime_type),
         excerpt: null,
-        kind: text(row.role),
+        kind: "execution",
         state: "ready",
         updatedAt: text(row.created_at),
         deletedAt: text(row.deleted_at),

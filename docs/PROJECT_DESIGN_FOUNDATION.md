@@ -3,7 +3,7 @@
 Status: product and architecture contract; physical schema and UI details remain
 subject to implementation review
 
-Last reviewed: 2026-08-08 after PR #127 canonical-destination review
+Last reviewed: 2026-08-08 after PR #128 source-focus review
 
 This document defines how Project, Text, and Map fit into Sample Fabrication
 Workflow. It records product and identity decisions that must survive
@@ -65,9 +65,7 @@ shared blob-lifecycle, export-integrity, and physical-delete protections, and PR
 #124 corrected their D1/workerd migration compatibility. PR #125 established the
 sparse reference registry and base batch resolver; the Phase 2A completion
 slice then mounted reference routes into the core middleware stack and added
-real Worker/D1 resolver execution to its gate. PR #127 completes Phase 2B1 with
-one opaque canonical destination and a lifecycle-aware read-only Reference page;
-exact source-interface focus remains the Phase 2B2 boundary. Actual Project
+real Worker/D1 resolver execution to its gate. PR #127 completed Phase 2B1 with one opaque canonical destination and a lifecycle-aware read-only Reference page. PR #128 completes Phase 2B2 by applying exact URL-owned focus in the existing Sample, Processing, and metrology-template interfaces; together they close Phase 2B. Actual Project
 backlinks remain deferred until `project_items.reference_target_id` exists, so
 no ownerless parallel usage table is introduced.
 
@@ -405,6 +403,12 @@ PR #127 Phase 2B1 enriches the base result with:
   identity exactly; and
 - ordered per-context source destinations without choosing one arbitrary path.
 
+PR #128 Phase 2B2 consumes these destinations in the mature source interfaces,
+including exact Step and Comment focus, context-preserving attachment previews,
+stable execution-image occurrence reads, metrology-reference focus, and
+refresh/Back/Forward restoration. The focus layer remains read-only and returns
+no physical storage locator.
+
 Later Project and Inspector slices add:
 
 - directly expandable child summaries where appropriate;
@@ -424,8 +428,8 @@ current target types. Deleted, archived, missing, inconsistent, and tombstoned
 references therefore no longer depend on ordinary source routes remaining
 visible.
 
-Phase 2B2 must integrate the stable focus hints into existing source interfaces
-so the complete behavior supports at least:
+PR #128 Phase 2B2 integrates the stable focus hints into existing source
+interfaces. Phase 2B therefore supports at least:
 
 | Target | Required destination |
 |---|---|
@@ -544,10 +548,10 @@ condition:
 | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
 | 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
 | 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts, unified middleware, workerd runtime smoke | Complete after PR #125 and the reference-runtime completion slice |
-| 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | In progress |
+| 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | Complete after PR #128 |
 | 2B1. Canonical destinations | Opaque route codec, resolver destination fields, lifecycle-aware read-only Reference page | Complete in PR #127 |
-| 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Next implementation PR |
-| 2C. Deterministic search | Shared search/read model and reference insertion | Not started |
+| 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Complete in PR #128 |
+| 2C. Deterministic search | Shared search/read model and reference insertion | Next |
 | 3. Project and Text | Project data, `project_items` backlinks, Project-owned content, Text workspace, Inspector, insertion, export | Not started |
 | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
 | 5. Later capabilities | Revision pinning, semantic search, LLM insight, advanced consistency tooling | Deferred |

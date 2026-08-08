@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
@@ -6,6 +6,7 @@ import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
+import { ProcessingReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
@@ -36,6 +37,8 @@ export function ProcessingWorkspacePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const additionalKey = searchParams.get("with") || "";
   const requestedRunId = searchParams.get("run") || "";
+  const requestedStepId = searchParams.get("step") || "";
+  const requestedFocus = searchParams.get("focus");
   const requestedAction = searchParams.get("action") || "";
   const additionalIds = additionalKey.split(",").map((id) => id.trim()).filter((id, index, ids) => id && id !== sampleId && ids.indexOf(id) === index).slice(0, MAX_VISIBLE_SAMPLES - 1);
   const [samples, setSamples] = useState<ProcessingSampleDetail[]>([]);
@@ -77,6 +80,15 @@ export function ProcessingWorkspacePage() {
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
   const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
+  const gridColumns = useMemo(() => {
+    if (!sample || !selectedRun) return [];
+    return samples.map((item) => ({
+      sample: item,
+      run: item.id === sample.id
+        ? selectedRun
+        : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs),
+    }));
+  }, [sample, samples, selectedRun]);
 
   useEffect(() => {
     setShowSamplePicker(false);
@@ -203,6 +215,8 @@ export function ProcessingWorkspacePage() {
     }
     if (updates.run !== undefined) {
       if (updates.run) next.set("run", updates.run); else next.delete("run");
+      next.delete("step");
+      next.delete("focus");
     }
     setSearchParams(next, { replace: true });
   }
@@ -443,7 +457,15 @@ export function ProcessingWorkspacePage() {
         </div>
       </div>
 
-      {selectedRun ? <section className="runs-section"><MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={samples.map((item) => ({ sample: item, run: item.id === sample.id ? selectedRun : correspondingRunForSelectedRun(selectedRun, sample.runs, item.runs) }))} onSaved={load} readOnly={!selectedRunIsEditable} /></section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
+      {selectedRun ? <section className="runs-section">
+        <MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={gridColumns} onSaved={load} readOnly={!selectedRunIsEditable} />
+        <ProcessingReferenceSourceFocus
+          focusValue={requestedFocus}
+          sampleId={sampleId}
+          stepId={requestedStepId}
+          columns={gridColumns}
+        />
+      </section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
       {showMetrologyPicker && <StandaloneMetrologyDialog
         sampleId={sampleId}
         onClose={() => setShowMetrologyPicker(false)}

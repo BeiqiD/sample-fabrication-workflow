@@ -1,11 +1,12 @@
 import { Fragment, type FormEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
 import { CommentAttachmentList } from "../components/CommentAttachmentList";
 import { CommentComposer, CommentSubmissionRecovery } from "../components/CommentComposer";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DiagramGallery } from "../components/MultiSampleRunGrid";
+import { SampleReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { SampleTimeline } from "../components/SampleTimeline";
 import { SplitSampleDialog } from "../components/SplitSampleDialog";
@@ -58,6 +59,8 @@ function runStructureFrames(run: SampleRun) {
 export function SamplePage() {
   const { sampleId = "" } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedFocus = searchParams.get("focus");
   const [sample, setSample] = useState<SampleDetail | null>(null);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -364,6 +367,7 @@ export function SamplePage() {
             {`Show recent ${SAMPLE_NOTES_PREVIEW_COUNT}`}
           </button>}
         </div> : <div className="notes-empty"><p>No notes or exceptions have been recorded yet.</p><span>Normal processing activity remains available in the Timeline.</span></div>}
+        <SampleReferenceSourceFocus focusValue={requestedFocus} sample={sample} />
       </section>
       </div>
     </section>

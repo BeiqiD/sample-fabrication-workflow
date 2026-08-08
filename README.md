@@ -29,6 +29,7 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Export versioned ZIP archives containing complete table snapshots, available physical blobs, final per-blob outcomes, and non-fatal integrity warnings.
 - Resolve stable Sample, Run, Step, Comment, attachment-occurrence, metrology-reference, and Recipe-revision identities through one authenticated read-only batch boundary.
 - Open every current reference target through one opaque, refresh-safe canonical URL, with lifecycle-aware read-only behavior when an ordinary source route is unavailable.
+- Follow canonical references into the exact Run Step, Comment, attachment, execution image, Sample note, or metrology reference while preserving source context and browser history.
 
 ## Architecture
 
@@ -47,7 +48,7 @@ Original-file storage is deliberately provider-neutral at the application bounda
 
 Blob reachability is derived from stable source and occurrence relationships. Soft deletion preserves those identities and their bytes. Cancel, scheduled cleanup, complete export, and future permanent-delete planning share the same retention definition; physical cleanup uses a provider-neutral D1 ledger and operation IDs.
 
-Reference resolution is similarly source-owned. The sparse `reference_targets` registry stores stable identity and validation metadata, while the batch resolver reads current source tables and returns no source-mutation capability. Attachment references use occurrence IDs and never expose provider object keys. Canonical reference navigation uses a shared versioned opaque route codec rather than relying on browser percent-decoding semantics. Actual Project backlinks are deferred until `project_items` exists rather than being represented by a parallel placeholder table.
+Reference resolution is similarly source-owned. The sparse `reference_targets` registry stores stable identity and validation metadata, while the batch resolver reads current source tables and returns no source-mutation capability. Attachment references use occurrence IDs and never expose provider object keys. Canonical reference navigation uses a shared versioned opaque route codec rather than relying on browser percent-decoding semantics. Source focus is URL-owned, read-only, and restored through refresh, Back, and Forward; stable execution-image reads share the ordinary asset MIME and GC safety boundary. Actual Project backlinks are deferred until `project_items` exists rather than being represented by a parallel placeholder table.
 
 ## Deploy your own instance
 
@@ -154,6 +155,7 @@ The first full-export implementation builds the ZIP in browser memory. Large arc
 - [Blob lifecycle activation and operations](./docs/BLOB_LIFECYCLE_OPERATIONS.md)
 - [Reference registry and batch resolver implementation plan](./docs/REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md)
 - [Reference deep-link implementation plan](./docs/REFERENCE_DEEP_LINK_IMPLEMENTATION_PLAN.md)
+- [Reference source-focus implementation plan](./docs/REFERENCE_SOURCE_FOCUS_IMPLEMENTATION_PLAN.md)
 - [D1 SQL compatibility](./docs/D1_SQL_COMPATIBILITY.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)

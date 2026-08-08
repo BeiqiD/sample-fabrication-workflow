@@ -131,6 +131,12 @@ try {
     log: new Log(LogLevel.ERROR),
   });
 
+  const executionImageBytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const assets = await miniflare.getR2Bucket("ASSETS");
+  await assets.put("reference/private/execution.png", executionImageBytes, {
+    httpMetadata: { contentType: "image/png" },
+  });
+
   const mixedTargets = [
     { type: "sample", id: "reference-sample-a" },
     { type: "run", id: "reference-run-a" },
@@ -165,22 +171,53 @@ try {
   const commentAttachment = mixedPayload.results.find(
     (result) => result.target.type === "comment_attachment",
   );
+  const executionImage = mixedPayload.results.find(
+    (result) => result.target.type === "execution_image",
+  );
   assert(sample, "Sample adapter result must be present");
   assert(runResolution, "Run adapter result must be present");
   assert(step, "Run-step adapter result must be present");
   assert(comment, "common Comment adapter result must be present");
   assert(commentAttachment, "Comment-attachment adapter result must be present");
+  assert(executionImage, "Execution-image adapter result must be present");
   assert.equal(sample.destination.openSourceUrl, "/samples/reference-sample-a");
   assert.equal(runResolution.destination.openSourceUrl, "/processing/reference-sample-a?run=reference-run-a");
-  assert.equal(
-    step.destination.openSourceUrl,
-    "/processing/reference-sample-a?run=reference-run-a&step=reference-step-a&reference=run_step%3Areference-step-a",
-  );
+  const stepSource = new URL(step.destination.openSourceUrl, "https://app.test");
+  assert.equal(stepSource.pathname, "/processing/reference-sample-a");
+  assert.equal(stepSource.searchParams.get("run"), "reference-run-a");
+  assert.equal(stepSource.searchParams.get("step"), "reference-step-a");
+  assert.match(stepSource.searchParams.get("focus") ?? "", /^run_step:r1_[A-Za-z0-9_-]+$/);
   assert.equal(comment.contexts.length, 2, "common Comment contexts must be preserved");
   assert.deepEqual(commentAttachment.contexts, comment.contexts);
   assert.equal(comment.destination.openSourceUrl, null, "multi-context Comment must not choose one source");
   assert.equal(comment.destination.contextOpenSourceUrls.length, 2);
-  assert(comment.destination.contextOpenSourceUrls.every((url) => url?.startsWith("/processing/")));
+  assert(comment.destination.contextOpenSourceUrls.every((url) => {
+    if (!url) return false;
+    const parsed = new URL(url, "https://app.test");
+    return parsed.pathname.startsWith("/processing/")
+      && /^comment:r1_[A-Za-z0-9_-]+$/.test(parsed.searchParams.get("focus") ?? "");
+  }));
+
+  const executionEncodedId = executionImage.destination.referenceUrl.split("/").at(-1);
+  assert(executionEncodedId, "Execution-image canonical ID must be present");
+  const mediaResponse = await miniflare.dispatchFetch(
+    `https://app.test/api/references/media/execution_image/${executionEncodedId}?step=reference-step-a`,
+  );
+  assert.equal(mediaResponse.status, 200);
+  assert.equal(mediaResponse.headers.get("content-type"), "image/png");
+  assert.match(mediaResponse.headers.get("content-disposition") ?? "", /execution\.png/);
+  assert.deepEqual(
+    new Uint8Array(await mediaResponse.arrayBuffer()),
+    executionImageBytes,
+  );
+  const malformedMedia = await miniflare.dispatchFetch(
+    "https://app.test/api/references/media/execution_image/r1_AAAA?step=reference-step-a",
+  );
+  assert.equal(malformedMedia.status, 400);
+  const missingMedia = await miniflare.dispatchFetch(
+    "https://app.test/api/references/media/execution_image/r1_AG0AaQBzAHMAaQBuAGcALQBlAHgAZQBjAHUAdABpAG8AbgAtAGkAbQBhAGcAZQ?step=reference-step-a",
+  );
+  assert.equal(missingMedia.status, 404);
 
   const opaqueTargets = [
     ".",
@@ -223,7 +260,7 @@ try {
     result.destination.openSourceUrl === `/samples/${result.target.id}`
   )));
 
-  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
+  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, typed source focus, stable execution-image media, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);
