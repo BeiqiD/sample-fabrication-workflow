@@ -89,20 +89,23 @@ const blockerSql: Record<PermanentDeleteTarget["sourceType"], string> = {
     SELECT 'comment_targets', 'comment_submission_target', submission_id || ':' || run_step_id, 'durable'
     FROM comment_submission_targets WHERE submission_id = ?`,
   run_step_comment: `
-    SELECT 'owning_step', 'run_step', run_step_id, 'durable'
+    SELECT 'owning_step' AS relation, 'run_step' AS blocker_type,
+           run_step_id AS blocker_id, 'durable' AS blocker_state
     FROM run_step_comments WHERE id = ?
     UNION ALL
     SELECT 'canonical_comment', 'comment_submission', submission_id, 'durable'
     FROM run_step_comments WHERE id = ? AND submission_id IS NOT NULL`,
   comment_submission_item: `
-    SELECT 'canonical_comment', 'comment_submission', submission_id, 'durable'
+    SELECT 'canonical_comment' AS relation, 'comment_submission' AS blocker_type,
+           submission_id AS blocker_id, 'durable' AS blocker_state
     FROM comment_submission_items WHERE id = ?
     UNION ALL
     SELECT 'related_comment_item', 'comment_submission_item', id,
            CASE WHEN deleted_at IS NULL THEN status ELSE 'deleted' END
     FROM comment_submission_items WHERE related_item_id = ?`,
   run_step_asset: `
-    SELECT 'owning_step', 'run_step', run_step_id, 'durable'
+    SELECT 'owning_step' AS relation, 'run_step' AS blocker_type,
+           run_step_id AS blocker_id, 'durable' AS blocker_state
     FROM run_step_assets WHERE id = ?
     UNION ALL
     SELECT 'timeline_events', 'event', id, 'audit'
@@ -110,7 +113,8 @@ const blockerSql: Record<PermanentDeleteTarget["sourceType"], string> = {
     WHERE json_valid(metadata_json)
       AND json_extract(metadata_json, '$.runStepAssetId') = ?`,
   metrology_template_reference: `
-    SELECT 'owning_template', 'template_version', template_version_id, 'durable'
+    SELECT 'owning_template' AS relation, 'template_version' AS blocker_type,
+           template_version_id AS blocker_id, 'durable' AS blocker_state
     FROM metrology_template_references WHERE id = ?`,
   template_version: `
     SELECT 'template_steps' AS relation, 'template_step' AS blocker_type, id AS blocker_id, 'durable' AS blocker_state
