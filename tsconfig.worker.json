@@ -12,5 +12,5 @@
     "types": ["@cloudflare/workers-types"]
   },
   "include": ["worker", "shared"],
-  "exclude": ["**/*.test.ts"]
+  "exclude": ["**/*.test.ts", "worker/reference-test-support.ts"]
 }

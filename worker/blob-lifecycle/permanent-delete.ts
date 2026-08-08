@@ -138,6 +138,10 @@ const blockerSql: Record<PermanentDeleteTarget["sourceType"], string> = {
     FROM recipe_change_proposals WHERE source_template_version_id = ?`,
 };
 
+export const PERMANENT_DELETE_BLOCKER_SOURCE_TYPES = Object.freeze(
+  Object.keys(blockerSql) as PermanentDeleteTarget["sourceType"][],
+);
+
 function bindingCount(sql: string) {
   return [...sql].filter((character) => character === "?").length;
 }

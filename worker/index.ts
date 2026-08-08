@@ -4837,6 +4837,7 @@ app.get("/exports/all", async (c) => {
     comment_submission_targets: "SELECT * FROM comment_submission_targets ORDER BY submission_id, run_step_id",
     comment_submission_items: "SELECT * FROM comment_submission_items ORDER BY submission_id, position",
     managed_storage_objects: "SELECT * FROM managed_storage_objects ORDER BY created_at, id",
+    reference_targets: "SELECT * FROM reference_targets ORDER BY target_type, target_id",
     blob_gc_ledger: "SELECT * FROM blob_gc_ledger ORDER BY store_kind, provider, object_key",
     blob_retention_edges: `SELECT * FROM blob_retention_edges
       ORDER BY store_kind, provider, object_key, source_type, source_id, occurrence_type, occurrence_id`,

@@ -1,3 +1,5 @@
+import type { ReferencePermanentDeleteSourceType } from "../../shared/reference-types";
+
 export type BlobStoreKind = "r2" | "managed";
 
 export interface BlobLocator {
@@ -38,16 +40,7 @@ export interface BlobGcLedgerRow {
 }
 
 export interface PermanentDeleteTarget {
-  sourceType:
-    | "sample"
-    | "run"
-    | "run_step"
-    | "comment_submission"
-    | "run_step_comment"
-    | "comment_submission_item"
-    | "run_step_asset"
-    | "metrology_template_reference"
-    | "template_version";
+  sourceType: ReferencePermanentDeleteSourceType;
   sourceId: string;
 }
 

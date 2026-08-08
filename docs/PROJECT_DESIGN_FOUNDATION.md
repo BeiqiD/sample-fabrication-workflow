@@ -60,11 +60,12 @@ reasons:
 5. **Deletion safety**: a future permanent delete must see backlinks and return
    a conflict instead of silently cascading through Project items.
 
-PR #120 established the source side of those boundaries. The next blob
-lifecycle slice closes the physical-byte side before reference registry,
-backlinks, or Project-owned uploads are introduced. The concrete next PR is
-specified in
-[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
+PR #120 established the source side of those boundaries. PR #123 completed the
+shared blob-lifecycle, export-integrity, and physical-delete protections, and PR
+#124 corrected their D1/workerd migration compatibility. PR #125 establishes the
+sparse reference registry and base batch resolver. Actual Project backlinks
+remain deferred until `project_items.reference_target_id` exists, so no
+ownerless parallel usage table is introduced.
 
 ## Product invariants
 
@@ -209,12 +210,13 @@ project_content_attachments
 
 reference_targets
 - id
+- registry_version
 - target_type
 - target_id
 - first_registered_at
-- last_resolved_at
+- last_validated_at
 - tombstoned_at
-- last_known_path_json
+- last_known_contexts_json
 - UNIQUE(target_type, target_id)
 
 project_items
@@ -285,6 +287,7 @@ tables. The reference registry therefore requires layered enforcement:
 - a closed, versioned target-type registry in application code;
 - resolver validation when a target is registered or inserted;
 - `UNIQUE(target_type, target_id)` for idempotent registration;
+- immutable registry identity once a row is created;
 - source-specific permanent-delete blockers;
 - foreign keys from Project items to the registry;
 - foreign keys from placements and edges to Project items;
@@ -292,10 +295,11 @@ tables. The reference registry therefore requires layered enforcement:
 
 `reference_targets` is not a content snapshot and is not the source of truth for
 title, status, path, or preview. It stores stable identity, registration and
-resolution metadata, and an eventual tombstone. Normal resolution reads source
-tables in batches through source-specific adapters.
+validation metadata, and an eventual tombstone. Normal resolution reads source
+tables in bounded batches through source-specific adapters.
 
-The first resolver should use a registry such as:
+The implemented v1 registry covers the nine existing stable source and
+occurrence identities:
 
 ```text
 sample
@@ -307,17 +311,16 @@ comment_attachment
 execution_image
 metrology_reference
 recipe_revision
-project
-project_content
-project_attachment
 ```
 
-The exact enum values are implementation details, but they must be closed and
-tested. Unknown string types are not accepted.
+Project, Project-content, and Project-attachment target types are future
+extensions added only when those stable source identities and lifecycles exist.
+The type set remains closed and tested; unknown strings are not accepted.
 
-The registry does not duplicate source content. It supports batch resolution,
-backlinks, permanent-delete blockers, and a minimal tombstone when a source no
-longer exists after an explicitly authorized future operation.
+The registry does not duplicate source content. It supports base batch
+resolution, permanent-delete blocker mapping, and a minimal future tombstone.
+Actual Project backlink counts come from `project_items.reference_target_id`
+once Project-item identity exists.
 
 ## Text, Map, and Inspector
 
@@ -371,24 +374,35 @@ Inspector does not expose source mutation controls.
 
 ## Resolution, deep links, and search
 
-### Batch read-only resolver
+### Base batch resolver
 
-Project cards must not load one complete Sample per target. A batch resolver
-accepts stable `target_type + target_id` pairs and returns a uniform read model:
+Project cards must not load one complete Sample per target. PR #125 establishes
+a bounded base resolver that accepts stable `target_type + target_id` pairs and
+returns:
 
 - stable identity and type;
-- card summary and Inspector detail;
-- current source path;
-- `updatedAt` and `deletedAt`;
-- precise `openSourceUrl`;
-- directly expandable child summaries where appropriate;
-- backlink counts;
-- unavailable or tombstone state.
+- a read-only source summary;
+- current ordered source contexts;
+- source and ancestor lifecycle metadata;
+- `resolved`, `not_found`, `inconsistent`, or `tombstoned` state.
 
-The resolver returns no capability for editing external source objects. It
-should group targets by type, issue bounded source-specific queries, and then
-restore the caller's requested order. One Project view must not cause an N+1
-request for complete Sample details.
+It preserves caller order and duplicate requests, reports per-target failure,
+and never returns source mutation capability or physical storage locators. Its
+query count is bounded by the distinct target types present, with a small fixed
+number of source queries per adapter rather than one query per target object.
+
+### Enriched Project read model
+
+Later deep-link, Project, and Inspector slices enrich the base result with:
+
+- a precise `openSourceUrl` and archived read-only destination;
+- directly expandable child summaries where appropriate;
+- Project backlink and location counts;
+- Project/Inspector-specific navigation capabilities.
+
+These fields are deliberately not part of the PR #125 completion boundary.
+Their absence does not turn the base resolver into a copied or partial source
+record.
 
 ### Object-level deep links
 
@@ -449,17 +463,19 @@ but it must point to source history rather than create a Project-owned copy.
 
 Backlinks are required for navigation and deletion safety. Before a permanent
 delete, the system must be able to report, for example, “Referenced by 3 items
-in 2 Projects.” A Project or Project-owned content may itself be soft-deleted
-without cascading into references held by another Project.
+in 2 Projects.” The authoritative Project backlink relationship is the future
+`project_items.reference_target_id`; a Project or Project-owned content may
+itself be soft-deleted without cascading into references held by another
+Project.
 
-Permanent deletion is disabled until the registry, backlink checks,
-authorization, and tombstone behavior exist. The blob-lifecycle phase first
-adds hard protection against accidental physical deletion; it does not expose a
-force-delete route.
+Permanent deletion is still disabled. The source/blob lifecycle slices block
+accidental physical deletion, and PR #125 adds the registry and blocker type
+mapping, but Project backlinks, privileged authorization, final concurrency
+checks, and tombstone creation are not all present.
 
 If a future privileged force-delete is introduced, it must create the tombstone
 before removing the source. The tombstone keeps only stable identity,
-last-known type/path, and deletion metadata; it does not retain permanently
+last-known type/contexts, and deletion metadata; it does not retain permanently
 deleted text or file bytes.
 
 ## Recipe and attachment rules
@@ -484,18 +500,20 @@ The precise reachability and export contract is specified in
 
 ## Export and restore
 
-Adding Project requires a new full-export schema version that includes:
+The current schema-v3 complete export already includes `reference_targets` in
+the same D1 table-snapshot batch as the source tables. Adding Project requires a
+new full-export schema version that additionally includes:
 
 - Projects and Project-owned contents;
 - Project attachment occurrences;
-- Project items and reference registry rows;
+- Project items;
 - Text placements, Map placements, and edges;
-- backlink/tombstone records needed to restore reference behavior;
+- backlink/tombstone records needed to restore Project reference behavior;
 - every reachable Project-owned blob;
 - structured warnings for unavailable bytes.
 
-Restore must preserve source and Project IDs exactly so references do not
-silently retarget. Exported Markdown or other human-readable output uses
+Restore must preserve source, registry, and Project IDs exactly so references
+do not silently retarget. Exported Markdown or other human-readable output uses
 relative asset paths and contains no authenticated or temporary URLs.
 
 ## Implementation roadmap
@@ -507,9 +525,11 @@ condition:
 |---|---|---|
 | 0. Reference identity | Target list, canonical Comment, attachment occurrence/blob boundary, lifecycle vocabulary | Complete |
 | 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
-| 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Implemented in current PR; pending merge and integration-head gate |
-| 2. Read and locate | Registry, backlinks, batch resolver, deep links, deterministic search | Not started |
-| 3. Project and Text | Project data, Project-owned content, Text workspace, Inspector, insertion, export | Not started |
+| 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
+| 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts | Implemented in PR #125; pending merge and integration-head verification |
+| 2B. Deep links | Object-level URLs and archived read-only destinations | Not started |
+| 2C. Deterministic search | Shared search/read model and reference insertion | Not started |
+| 3. Project and Text | Project data, `project_items` backlinks, Project-owned content, Text workspace, Inspector, insertion, export | Not started |
 | 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
 | 5. Later capabilities | Revision pinning, semantic search, LLM insight, advanced consistency tooling | Deferred |
 
@@ -519,10 +539,10 @@ Within those phases, the dependency order is:
 2. source deletion lifecycle;
 3. blob reachability, export integrity, and physical-delete protection;
 4. Recipe revision and execution snapshot verification;
-5. object-level deep links;
-6. unified read-only object resolution and backlinks;
+5. sparse registry and base read-only resolution;
+6. object-level deep links and archived destinations;
 7. deterministic search and insertion;
-8. Project contents, items, and local edges;
+8. Project contents, items, backlinks, and local edges;
 9. Text and Inspector;
 10. Map;
 11. later revision, semantic, and insight capabilities.

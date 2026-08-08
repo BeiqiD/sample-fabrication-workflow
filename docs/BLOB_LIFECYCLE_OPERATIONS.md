@@ -311,12 +311,14 @@ checks, and tombstones.
 
 ## Next implementation boundary
 
-After this slice is merged and the exact integration head passes its gate, the
-planned product sequence remains:
+PR #125 implements the sparse reference registry and base batch resolver on top
+of this operational foundation. Actual Project backlinks remain deferred until
+`project_items.reference_target_id` exists. After the exact merged integration
+head passes its gate, the remaining product sequence is:
 
-1. `reference_targets`, backlinks, and a batch read-only resolver;
-2. object-level deep links and deterministic reference search;
-3. Project-owned data, Text, and Inspector;
+1. object-level deep links and archived read-only destinations;
+2. deterministic reference search and insertion;
+3. Project-owned data, `project_items` backlinks, Text, and Inspector;
 4. Map after the data/read model is stable.
 
 Every future Project attachment occurrence must add an ordinary branch to

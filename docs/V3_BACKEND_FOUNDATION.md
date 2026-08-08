@@ -1,6 +1,6 @@
 # v3 backend foundation
 
-Status: source identity, recoverable lifecycle, and blob-safety contract
+Status: source identity, recoverable lifecycle, blob safety, and base reference-resolution contract
 
 This document locks the source identities and recoverable lifecycle boundaries
 used by the Project-ready backend rebuild. The v3 database is new and empty; no
@@ -10,18 +10,21 @@ The product model and full phase order are defined in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Physical byte
 retention, complete export, and permanent-delete safety are defined normatively
 in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The implementation is
-recorded in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The blob implementation
+is recorded in
 [blob lifecycle implementation record](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md),
 and activation/operations are defined in
-[blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md).
+[blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md). The
+base registry and resolver boundary is defined in
+[reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md).
 
 ## Scope of the foundation
 
-The first backend stages establish stable source identities and safe byte
-retention before adding Projects, a reference resolver, backlinks, or search.
-Existing frontend routes and response shapes remain the compatibility boundary
-while the backend is converted in small changes.
+The completed backend-foundation stages establish stable source identities,
+safe byte retention, a sparse reference registry, and bounded read-only
+resolution before adding Projects, Project backlinks, deep-link destinations,
+or deterministic search. Existing frontend routes and response shapes remain
+the compatibility boundary while the backend is converted in small changes.
 
 Initial reference target types are:
 
@@ -38,7 +41,8 @@ Initial reference target types are:
 | Recipe revision | `template_versions.id` |
 
 Project, Project content, and Project attachment identities are added only after
-these source lifecycles and the blob lifecycle gate are enforced.
+these source lifecycles, the blob lifecycle gate, and the base registry/resolver
+are enforced.
 
 ## Why lifecycle conversion preceded Project
 
@@ -55,10 +59,12 @@ rewires. PR #120 came before Project work so that:
 - permanent deletion can be guarded by backlinks rather than foreign-key
   cascade.
 
-The blob-lifecycle safety slice closes the corresponding physical-byte boundary:
-hidden, unfinished, archived, soft-deleted, and shared sources may still protect
-bytes, so cleanup and export now share one reachability definition before
-Project attachments add more edges.
+PR #123 closed the corresponding physical-byte boundary: hidden, unfinished,
+archived, soft-deleted, and shared sources may still protect bytes, so cleanup
+and export share one reachability definition before Project attachments add more
+edges. PR #124 corrected the D1/workerd migration shape without weakening that
+contract. PR #125 builds the first reference registry and base resolver on top
+of those completed prerequisites.
 
 ## Canonical Comments
 
@@ -148,7 +154,7 @@ resolve deleted sources as read-only records.
   family, provenance, or historical Run references.
 
 All restoration routes clear deletion metadata in place. Exports and existing
-Run history retain deleted source identities so later reference resolution can
+Run history retain deleted source identities so reference resolution can
 surface them as read-only records.
 
 ## Blob lifecycle foundation
@@ -171,17 +177,45 @@ The physical-byte lifecycle implementation establishes:
 Do not duplicate those rules in this document. The normative definition is
 [BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
 
+## Reference registry and base resolver foundation
+
+PR #125 adds the first reference read boundary without adding Project data or
+frontend behavior:
+
+- `reference_targets` is sparse and idempotent under
+  `UNIQUE(target_type, target_id)`;
+- the registry ID, registry version, target type, target ID, and first
+  registration time are immutable, so a durable registry identity cannot be
+  silently retargeted;
+- normal resolution reads source tables instead of copied registry content;
+- the domain resolver accepts at most 200 targets, validates runtime target
+  shape, groups by type, and preserves caller order and duplicate requests;
+- adapters use bounded D1-safe queries with JSON-array ID bindings;
+- soft-deleted sources, deleted ancestors, and archived Recipe revisions remain
+  resolvable with lifecycle metadata;
+- common Comments and their attachments preserve every deterministic context;
+- resolver responses expose no R2 key, managed-storage object key, or provider
+  locator;
+- `reference_targets` is exported in the same D1 table-snapshot batch as all
+  current source tables;
+- actual Project backlinks are deferred until
+  `project_items.reference_target_id` exists.
+
+This is a base resolver. Deep-link URLs, archived read-only destinations,
+expandable Inspector children, and Project backlink counts are later enriched
+read-model fields rather than hidden requirements of PR #125.
+
 ## Permanent deletion boundary
 
 Ordinary Delete remains recoverable. The blob-lifecycle implementation
 hard-disables accidental physical deletion of stable source tables and adds
-blocker infrastructure, but it does not expose a privileged destructive
-endpoint.
+blocker infrastructure. PR #125 adds the registry and exact target-type mapping,
+but it still does not expose a privileged destructive endpoint.
 
 A future permanent-delete endpoint remains disabled until all of the following
 exist:
 
-- `reference_targets` and Project backlinks;
+- Project backlinks through `project_items.reference_target_id`;
 - source-specific reverse-reference checks;
 - privileged authorization;
 - minimal tombstone creation;
@@ -197,22 +231,25 @@ Do not run a remote v3 migration or deploy the integration branch until all of
 the following are true:
 
 - the exact integration-head commit passes `npm run verify:v3-deployment`;
+- the blob-lifecycle and reference-foundation focused gates pass;
 - Cancel and scheduled cleanup use the same reachability surface;
 - unfinished, retryable, shared, archived, and soft-deleted ready sources are
   protected;
-- complete export packages available blobs and records unavailable bytes as
-  warnings without losing table data;
-- accidental physical source deletion is blocked;
+- complete export packages available blobs, records unavailable bytes as
+  warnings, and reads every table snapshot—including `reference_targets`—in
+  one D1 batch;
+- accidental physical source and registry deletion is blocked;
+- registry identities cannot be retargeted through UPDATE;
 - the complete ordered migration set, including compatibility repairs, has
-  passed the dedicated SQLite migration suites;
+  passed both host SQLite and Wrangler local D1/workerd verification;
 - a fresh full-system backup and the applicable D1 recovery bookmark have been
   recorded;
 - generated configuration points only to isolated v3 resources.
 
-Remote migration/deployment commands run the lifecycle gate, complete test
-suite, and deployment build before touching remote resources. This requirement
-applies even though the v3 Worker, D1 database, and R2 bucket are isolated from
-`main`.
+Remote migration/deployment commands run the blob-lifecycle gate, the
+reference-foundation gate, complete test suite, and deployment build before
+touching remote resources. This requirement applies even though the v3 Worker,
+D1 database, and R2 bucket are isolated from `main`.
 
 ## Isolated preview deployment
 
@@ -227,16 +264,20 @@ another Cloudflare account must replace every identifier before its first
 remote migration or deployment. Credentials and Access secrets are never
 committed.
 
+Repository history does not by itself prove that an isolated activation has
+occurred. Deployment state must be recorded explicitly through the operations
+runbook rather than inferred from a merged PR.
+
 ## Delivery sequence
 
-The remaining sequence is:
+The remaining sequence after the registry/base-resolver slice is:
 
 1. validate the exact merged `v2/backend-foundation` integration head and, when
    intentionally activating v3, follow
    [the blob operations runbook](./BLOB_LIFECYCLE_OPERATIONS.md);
-2. add `reference_targets`, backlinks, and the batch read-only resolver;
-3. add object-level deep links and deterministic reference search;
-4. add Project-owned data, Text, and Inspector;
+2. add object-level deep links and archived read-only destinations;
+3. add deterministic reference search and insertion;
+4. add Project-owned data, `project_items` backlinks, Text, and Inspector;
 5. add the dynamically loaded Map after its data model and read paths are
    stable.
 
