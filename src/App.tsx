@@ -8,6 +8,7 @@ import "./reference-search.css";
 const SamplesPage = lazy(() => import("./pages/SamplesPage").then((module) => ({ default: module.SamplesPage })));
 const NewSamplePage = lazy(() => import("./pages/NewSamplePage").then((module) => ({ default: module.NewSamplePage })));
 const SamplePage = lazy(() => import("./pages/SamplePage").then((module) => ({ default: module.SamplePage })));
+// Temporary integration browser. Phase 3 mounts the reusable surface inside Project.
 const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
@@ -21,6 +22,7 @@ const ReferencePage = lazy(() => import("./pages/ReferencePage").then((module) =
 const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
   { to: "/processing", label: "Processing", icon: "processing" },
   { to: "/samples", label: "Samples", icon: "samples" },
+  // Phase 3 replaces this temporary destination with Project.
   { to: "/search", label: "Search", icon: "search" },
   { to: "/templates", label: "Templates", icon: "templates" },
   { to: "/export", label: "Export", icon: "export" },
