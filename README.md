@@ -126,6 +126,8 @@ Exports contain JSON tables, Markdown summaries where applicable, and assets usi
 - [Data model](./docs/DATA_MODEL.md)
 - [Project, Text, and Map design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [v3 backend identity and lifecycle foundation](./docs/V3_BACKEND_FOUNDATION.md)
+- [Blob lifecycle, export integrity, and permanent-delete contract](./docs/BLOB_LIFECYCLE_CONTRACT.md)
+- [Next blob lifecycle implementation plan](./docs/BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)
 - [FabuBlox import contract](./docs/FABUBLOX_IMPORT.md)
 - [Deployment guide](./docs/DEPLOYMENT.md)
 - [Comment and original-file uploads](./docs/comment-file-uploads.md)
