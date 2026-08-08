@@ -18,7 +18,7 @@
     "db:migrate:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
     "internal:db:migrate:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
     "test": "vitest run",
-    "test:blob-lifecycle": "vitest run worker/blob-reachability.test.ts worker/blob-gc.test.ts worker/blob-export.test.ts worker/permanent-delete-protection.test.ts",
+    "test:blob-lifecycle": "vitest run worker/blob-reachability.test.ts worker/blob-gc.test.ts worker/blob-export.test.ts worker/permanent-delete-protection.test.ts worker/blob-lifecycle-review-fixes.test.ts",
     "verify:blob-lifecycle": "npm run test:blob-lifecycle",
     "verify:v3-deployment": "npm run verify:blob-lifecycle && npm test && npm run build:deploy"
   },
