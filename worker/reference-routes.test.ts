@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import worker from "./index";
+import worker from "./entry";
 import type { Env } from "./types";
 import {
   REFERENCE_FIXTURE_IDS,
@@ -86,6 +86,40 @@ describe("reference resolution route", () => {
       body: "{",
     }), env, executionContext);
     expect(response.status).toBe(400);
+    database.close();
+  });
+
+  it("adds registry rows to the complete table export without creating blob occurrences", async () => {
+    const { database, env } = fixture();
+    database.prepare(`
+      INSERT INTO reference_targets
+        (id, target_type, target_id, first_registered_at, last_validated_at, last_known_contexts_json)
+      VALUES ('registry-export', 'sample', ?,
+              '2026-08-08T00:00:00.000Z', '2026-08-08T00:00:00.000Z', '[]')
+    `).run(REFERENCE_FIXTURE_IDS.sampleA);
+
+    const response = await worker.fetch(
+      new Request("https://app.test/api/exports/all"),
+      env,
+      executionContext,
+    );
+    const payload = await response.json() as {
+      schemaVersion: number;
+      tables: Record<string, Array<Record<string, unknown>>>;
+      blobs: Array<{ sourceOccurrences: Array<{ sourceType: string }> }>;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.schemaVersion).toBe(3);
+    expect(payload.tables.reference_targets).toEqual([
+      expect.objectContaining({
+        id: "registry-export",
+        target_type: "sample",
+        target_id: REFERENCE_FIXTURE_IDS.sampleA,
+      }),
+    ]);
+    expect(payload.blobs.flatMap((blob) => blob.sourceOccurrences)
+      .some((occurrence) => occurrence.sourceType === "reference_target")).toBe(false);
     database.close();
   });
 });
