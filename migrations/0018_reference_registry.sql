@@ -36,6 +36,20 @@ CREATE INDEX reference_targets_tombstoned_idx
 ON reference_targets(tombstoned_at)
 WHERE tombstoned_at IS NOT NULL;
 
+-- A registry row is itself a stable identity. Validation metadata and the
+-- future tombstone state may change, but neither its registry ID nor the source
+-- identity it represents may ever be retargeted in place.
+CREATE TRIGGER reference_targets_reject_identity_update
+BEFORE UPDATE ON reference_targets
+WHEN OLD.id IS NOT NEW.id
+  OR OLD.registry_version IS NOT NEW.registry_version
+  OR OLD.target_type IS NOT NEW.target_type
+  OR OLD.target_id IS NOT NEW.target_id
+  OR OLD.first_registered_at IS NOT NEW.first_registered_at
+BEGIN
+  SELECT RAISE(ABORT, 'reference target identity is immutable');
+END;
+
 -- Permanent deletion remains disabled. A later privileged planner must create a
 -- tombstone and pass final backlink/concurrency checks before this protection
 -- can be reconsidered.
