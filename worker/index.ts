@@ -4718,29 +4718,6 @@ app.post("/assets", async (c) => {
   return c.json({ id, key, deduplicated: false }, 201);
 });
 
-app.get("/assets/:key{.+}", async (c) => {
-  const key = c.req.param("key");
-  const available = await c.env.DB.prepare(
-    `SELECT 1 AS available FROM assets a
-     WHERE a.r2_key = ? AND a.status = 'ready'
-       AND NOT EXISTS (
-         SELECT 1 FROM blob_gc_ledger bg
-         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       ) LIMIT 1`,
-  ).bind(key).first<{ available: number }>();
-  if (!available) throw new HTTPException(404, { message: "Asset not found" });
-  const object = await c.env.ASSETS.get(key);
-  if (!object) throw new HTTPException(404, { message: "Asset not found" });
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  headers.set("cache-control", "private, max-age=3600");
-  headers.set("x-content-type-options", "nosniff");
-  if (!headers.get("content-type")?.startsWith("image/")) headers.set("content-disposition", "attachment");
-  return new Response(object.body, { headers });
-});
-
 app.get("/exports/r2/:key{.+}", async (c) => {
   const key = c.req.param("key");
   const registered = await c.env.DB.prepare(

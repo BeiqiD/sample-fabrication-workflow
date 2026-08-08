@@ -223,9 +223,10 @@ segments. They are emitted through `URLSearchParams` and are regression-tested
 to round-trip literal percent sequences, slashes, spaces, delimiters, and
 Unicode exactly.
 
-Existing pages may ignore the Step/reference focus hints until Phase 2B2; they
-already honor Run selection. The canonical `/references/...` page therefore
-remains the exact and refresh-safe object destination during this transition.
+Before Phase 2B2, existing pages could ignore the Step/reference focus hints;
+they already honored Run selection. The canonical `/references/...` page
+therefore remained the exact and refresh-safe object destination during that
+transition.
 
 ## Multi-context targets
 

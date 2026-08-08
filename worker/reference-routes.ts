@@ -24,8 +24,7 @@ type MediaSource = {
 
 export const routes = new Hono<AppBindings>();
 
-// This router is mounted before the legacy declaration in worker/index.ts, so
-// ordinary assets and reference media use the same fail-closed response policy.
+// Ordinary assets and reference media use the same fail-closed response policy.
 routes.get("/assets/:key{.+}", async (c) => {
   const key = c.req.param("key");
   const source = await c.env.DB.prepare(`
