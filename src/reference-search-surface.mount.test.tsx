@@ -109,8 +109,8 @@ describe("mounted reference search surface", () => {
       query: "Case-ID",
       types: ["sample"],
       sampleId: "sample-first",
-      from: "2026-08-01",
-      to: "2026-08-09",
+      from: "2026-08-01T00:00:00.000Z",
+      to: "2026-08-09T23:59:59.999Z",
     });
 
     const headings = screen.getAllByRole("heading", { level: 2 });
