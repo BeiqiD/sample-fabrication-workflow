@@ -189,7 +189,7 @@ describe("Project persistence database guards", () => {
 
     database.prepare(`
       UPDATE reference_targets
-      SET tombstoned_at = ?, tombstone_reason = 'source permanently deleted'
+      SET tombstoned_at = ?
       WHERE id = 'target-guard'
     `).run("2026-08-09T23:04:00.000Z");
 
