@@ -26,18 +26,25 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path("worker/projects/service.ts")
           source = path.read_text()
+          changed = False
 
-          replacements = [
-              (
-                  '''async function requireItemBundle(db: D1Database, projectId: string, itemId: string) {
-            const bundle = await readItemBundle(db, projectId, itemId);
-            if (!bundle) notFound("Project item not found");
-            return bundle;
-          }''',
-                  '''async function requireItemBundle(db: D1Database, projectId: string, itemId: string) {
+          def apply(pattern: str, replacement: str, marker: str) -> None:
+              global source, changed
+              updated, count = re.subn(pattern, replacement, source, count=1, flags=re.S)
+              if count == 1:
+                  source = updated
+                  changed = True
+                  return
+              if marker not in source:
+                  raise SystemExit(f"Reviewed service pattern was not found: {marker}")
+
+          apply(
+              r'''async function requireItemBundle\(db: D1Database, projectId: string, itemId: string\) \{\s+const bundle = await readItemBundle\(db, projectId, itemId\);\s+if \(!bundle\) notFound\("Project item not found"\);\s+return bundle;\s+\}''',
+              '''async function requireItemBundle(db: D1Database, projectId: string, itemId: string) {
             const bundle = await readItemBundle(db, projectId, itemId);
             if (!bundle) notFound("Project item not found");
             if (!bundle.placement) {
@@ -45,49 +52,42 @@ jobs:
             }
             return bundle;
           }''',
-              ),
-              (
-                  '''    WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
-            ORDER BY pi.created_sequence, pc.id
-          `).bind(projectId),''',
-                  '''    WHERE pc.project_id = ?
+              'Project item is missing its authoritative placement',
+          )
+          apply(
+              r'''WHERE pc\.project_id = \? AND pc\.deleted_at IS NULL AND pi\.deleted_at IS NULL\s+ORDER BY pi\.created_sequence, pc\.id\s+`\)\.bind\(projectId\),''',
+              '''WHERE pc.project_id = ?
               AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
             ORDER BY pi.created_sequence, pc.id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
-              ),
-              (
-                  '''    WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
-            ORDER BY pi.created_sequence, pca.project_content_id
-          `).bind(projectId),''',
-                  '''    WHERE pc.project_id = ?
+              'ORDER BY pi.created_sequence, pc.id\n          `).bind(projectId, includeDeleted ? 1 : 0)',
+          )
+          apply(
+              r'''WHERE pc\.project_id = \? AND pc\.deleted_at IS NULL AND pi\.deleted_at IS NULL\s+ORDER BY pi\.created_sequence, pca\.project_content_id\s+`\)\.bind\(projectId\),''',
+              '''WHERE pc.project_id = ?
               AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
             ORDER BY pi.created_sequence, pca.project_content_id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
-              ),
-              (
-                  '''    SELECT * FROM project_items
-            WHERE project_id = ? AND deleted_at IS NULL
-            ORDER BY created_sequence, id
-          `).bind(projectId),''',
-                  '''    SELECT * FROM project_items
+              'ORDER BY pi.created_sequence, pca.project_content_id\n          `).bind(projectId, includeDeleted ? 1 : 0)',
+          )
+          apply(
+              r'''SELECT \* FROM project_items\s+WHERE project_id = \? AND deleted_at IS NULL\s+ORDER BY created_sequence, id\s+`\)\.bind\(projectId\),''',
+              '''SELECT * FROM project_items
             WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)
             ORDER BY created_sequence, id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
-              ),
-              (
-                  '''    WHERE pi.project_id = ? AND pi.deleted_at IS NULL
-            ORDER BY pi.created_sequence, pmp.id
-          `).bind(projectId),''',
-                  '''    WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+              'WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)',
+          )
+          apply(
+              r'''WHERE pi\.project_id = \? AND pi\.deleted_at IS NULL\s+ORDER BY pi\.created_sequence, pmp\.id\s+`\)\.bind\(projectId\),''',
+              '''WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
             ORDER BY pi.created_sequence, pmp.id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
-              ),
-              (
-                  '''    WHERE pe.project_id = ? AND pe.deleted_at IS NULL
-              AND source.deleted_at IS NULL AND target.deleted_at IS NULL
-            ORDER BY pe.created_at, pe.id
-          `).bind(projectId),''',
-                  '''    WHERE pe.project_id = ?
+              'ORDER BY pi.created_sequence, pmp.id\n          `).bind(projectId, includeDeleted ? 1 : 0)',
+          )
+          apply(
+              r'''WHERE pe\.project_id = \? AND pe\.deleted_at IS NULL\s+AND source\.deleted_at IS NULL AND target\.deleted_at IS NULL\s+ORDER BY pe\.created_at, pe\.id\s+`\)\.bind\(projectId\),''',
+              '''WHERE pe.project_id = ?
               AND (? = 1 OR (
                 pe.deleted_at IS NULL
                 AND source.deleted_at IS NULL
@@ -95,25 +95,18 @@ jobs:
               ))
             ORDER BY pe.created_at, pe.id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
-              ),
-              (
-                  '''    WHERE pi.project_id = ? AND pi.deleted_at IS NULL
-            ORDER BY rt.target_type, rt.target_id
-          `).bind(projectId),''',
-                  '''    WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+              'ORDER BY pe.created_at, pe.id\n          `).bind(projectId, includeDeleted ? 1 : 0)',
+          )
+          apply(
+              r'''WHERE pi\.project_id = \? AND pi\.deleted_at IS NULL\s+ORDER BY rt\.target_type, rt\.target_id\s+`\)\.bind\(projectId\),''',
+              '''WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
             ORDER BY rt.target_type, rt.target_id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
-              ),
-              (
-                  '''    if (results.some((result) => resultChanges(result) !== 1)) {
-              return returnCreateReplayOrConflict(
-                db,
-                projectId,
-                input.itemId,
-                (bundle) => bundleMatchesAttachmentCreate(bundle, input),
-              );
-            }''',
-                  '''    if (
+              'ORDER BY rt.target_type, rt.target_id\n          `).bind(projectId, includeDeleted ? 1 : 0)',
+          )
+          apply(
+              r'''if \(results\.some\(\(result\) => resultChanges\(result\) !== 1\)\) \{\s+return returnCreateReplayOrConflict\(\s+db,\s+projectId,\s+input\.itemId,\s+\(bundle\) => bundleMatchesAttachmentCreate\(bundle, input\),\s+\);\s+\}''',
+              '''if (
               resultChanges(results[0]) !== 1
               || resultChanges(results[1]) !== 1
               || resultChanges(results[2]) < 1
@@ -127,16 +120,8 @@ jobs:
                 (bundle) => bundleMatchesAttachmentCreate(bundle, input),
               );
             }''',
-              ),
-          ]
-
-          changed = False
-          for old, new in replacements:
-              if old in source:
-                  source = source.replace(old, new, 1)
-                  changed = True
-              elif new not in source:
-                  raise SystemExit(f"Reviewed service pattern was not found: {old[:80]!r}")
+              'resultChanges(results[2]) < 1',
+          )
 
           if changed:
               path.write_text(source)
