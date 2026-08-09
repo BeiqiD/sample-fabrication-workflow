@@ -6,10 +6,13 @@ This document locks the source identities and recoverable lifecycle boundaries
 used by the Project-ready backend rebuild. The v3 database is new and empty; no
 alpha-v2 data migration or compatibility import is provided.
 
-The product model and full phase order are defined in
-[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Physical byte
-retention, complete export, and permanent-delete safety are defined normatively
-in
+The canonical product phase order is defined in
+[the product roadmap](./PRODUCT_ROADMAP.md). Project ownership and interaction
+contracts are defined in
+[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md) and
+[Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+Physical byte retention, complete export, and permanent-delete safety are
+defined normatively in
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The blob implementation
 is recorded in
 [blob lifecycle implementation record](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md),
@@ -22,9 +25,9 @@ base registry and resolver boundary is defined in
 
 The completed backend-foundation stages establish stable source identities,
 safe byte retention, a sparse reference registry, and bounded read-only
-resolution before adding Projects, Project backlinks, deep-link destinations,
-or deterministic search. Existing frontend routes and response shapes remain
-the compatibility boundary while the backend is converted in small changes.
+resolution before adding Project-owned data. Existing frontend routes and
+response shapes remain the compatibility boundary while the backend is converted
+in small changes.
 
 Initial reference target types are:
 
@@ -56,15 +59,15 @@ rewires. PR #120 came before Project work so that:
 - attachment occurrences remain distinct from deduplicated physical bytes;
 - deleted sources can later resolve read-only instead of becoming accidental
   `404`s;
-- permanent deletion can be guarded by backlinks rather than foreign-key
+- permanent deletion can be guarded by reverse references rather than foreign-key
   cascade.
 
 PR #123 closed the corresponding physical-byte boundary: hidden, unfinished,
 archived, soft-deleted, and shared sources may still protect bytes, so cleanup
 and export share one reachability definition before Project attachments add more
 edges. PR #124 corrected the D1/workerd migration shape without weakening that
-contract. PR #125 builds the first reference registry and base resolver on top
-of those completed prerequisites.
+contract. PR #125 added the first reference registry and base resolver on top of
+those completed prerequisites.
 
 ## Canonical Comments
 
@@ -117,7 +120,7 @@ The following terms are distinct:
 | Archive Recipe | Prevent future assignment while preserving revisions and Run history. |
 | Cancel Run | Experimental outcome; not deletion and not trash. |
 | Cancel submission | Terminal or retry-closing upload action; not source deletion. |
-| Remove from Project | Remove only that Project item and its local edges/placements. |
+| Remove from Project | Remove only that Project item occurrence and its local edges/Map placement. |
 
 Deleting an upper-level source must not physically cascade through
 Sample → Run → Step → Comment/Attachment. Existing references continue to
@@ -198,10 +201,10 @@ frontend behavior:
   locator;
 - `reference_targets` is exported in the same D1 table-snapshot batch as all
   current source tables;
-- actual Project backlinks are deferred until
+- actual Project reverse relations are deferred until
   `project_items.reference_target_id` exists.
 
-The Phase 2A completion slice mounts `/api/references/*` directly into this
+The Phase 2A completion slice mounts `/api/references/*` directly in this
 core Hono app, so reference resolution inherits the same error, same-origin,
 Access-authentication, identity, and future authorization middleware as the
 rest of the API. Its focused gate also executes every v1 resolver adapter and a
@@ -209,7 +212,7 @@ rest of the API. Its focused gate also executes every v1 resolver adapter and a
 Miniflare/workerd.
 
 This is a base resolver. Deep-link URLs, archived read-only destinations,
-expandable Inspector children, and Project backlink counts are later enriched
+expandable Inspector children, and Project-presence counts are later enriched
 read-model fields rather than hidden requirements of PR #125.
 
 ## Permanent deletion boundary
@@ -222,7 +225,7 @@ but it still does not expose a privileged destructive endpoint.
 A future permanent-delete endpoint remains disabled until all of the following
 exist:
 
-- Project backlinks through `project_items.reference_target_id`;
+- Project reverse relations through `project_items.reference_target_id`;
 - source-specific reverse-reference checks;
 - privileged authorization;
 - minimal tombstone creation;
@@ -278,22 +281,19 @@ Repository history does not by itself prove that an isolated activation has
 occurred. Deployment state must be recorded explicitly through the operations
 runbook rather than inferred from a merged PR.
 
-## Delivery sequence
+## Product-roadmap ownership
 
-The remaining sequence after Phase 2B is:
+This backend-foundation contract does not define the current product delivery
+sequence. Phase 2C1 deterministic search is complete in merged PR #129, and
+Draft PR #130 provides the reusable Project discovery surface with `/search` as
+temporary integration scaffolding.
 
-1. validate the exact merged `v2/backend-foundation` integration head and,
-   when intentionally activating v3, follow
-   [the blob operations runbook](./BLOB_LIFECYCLE_OPERATIONS.md);
-2. complete Phase 2C1: deterministic read-only reference search,
-   lifecycle filtering, explainable ranking, and resolver revalidation;
-3. complete Phase 2C2: the URL-owned global Search page and reusable
-   result-selection surface;
-4. add Project-owned data, authoritative target registration and
-   `project_items` insertion/backlinks, Text, and Inspector;
-5. add the dynamically loaded Map after its data model and read paths are
-   stable.
+The active Map-first Project sequence, Reading behavior, and all later product
+priorities are governed exclusively by
+[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+Future changes to product order must update those canonical documents rather
+than adding another sequence here.
 
-Project UI, semantic search, source editing from Project, fixed Project
-hierarchies, force delete, and LLM write access remain outside this
-foundation.
+Project source editing, fixed Project hierarchies, force delete, semantic search
+as a dependency, and LLM write access remain outside this backend foundation.
