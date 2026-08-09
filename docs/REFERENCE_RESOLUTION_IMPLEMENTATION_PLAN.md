@@ -2,7 +2,7 @@
 
 Status: completed Phase 2A implementation contract and record
 
-Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
+Last reviewed: 2026-08-09 after the reference/search foundation through PR #130
 
 This document defines the exact scope of the first reference-registry and
 read-only resolution implementation. It follows the completed source lifecycle,
@@ -611,9 +611,10 @@ The PR is complete when:
 
 ## Follow-on status
 
-Phase 2A, canonical destinations, exact source focus, and deterministic search
-are complete through merged PR #129. Draft PR #130 provides the reusable Project
-discovery surface; its `/search` route is temporary integration scaffolding.
+Phase 2A, canonical destinations, exact source focus, deterministic search, and
+the reusable Project discovery surface are complete through PR #130. The
+`/search` route is temporary integration scaffolding until Project identity and
+Map placement exist.
 
 This implementation record does not define later product order. The active
 Map-first Project sequence, Reading behavior, and phase boundaries are governed
