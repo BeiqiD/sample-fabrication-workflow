@@ -1,12 +1,14 @@
 # Deterministic reference search implementation plan
 
-Status: implementation contract for Phase 2C1
+Status: completed implementation contract for Phase 2C1
 
-Last reviewed: 2026-08-08 after PR #128 merged into `v2/backend-foundation`
+Last reviewed: 2026-08-09 after PR #129 merged into `v2/backend-foundation`
 
-This document defines the first deterministic-search slice built on the stable
+This document defines the deterministic-search foundation built on the stable
 reference identity, resolver, canonical destinations, and exact source-focus
-contracts completed in Phases 2A and 2B.
+contracts completed in Phases 2A and 2B. It is an implementation record, not a
+second product roadmap. Current phase order and Project/Map priorities are
+owned by [the product roadmap](./PRODUCT_ROADMAP.md).
 
 The product invariants remain in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Source lifecycle is
@@ -19,28 +21,35 @@ and lifecycle-aware navigation is recorded in
 
 ## Phase boundary
 
-Phase 2C is split into two reviewable slices:
+Phase 2C was split into two reviewable slices:
 
 1. **Phase 2C1 — deterministic search foundation**: one read-only domain search
    service and authenticated API over the nine current reference target types,
    with explainable ranking, lifecycle filtering, stable selection payloads,
    bounded query count/bindings/candidates/resolver work, and focused verification.
-2. **Phase 2C2 — global search and reusable picker UI**: one URL-owned Search
-   page plus a reusable result-selection surface for later Project insertion.
+2. **Phase 2C2 — reusable Project discovery surface**: a reusable
+   search/result-selection component plus a temporary URL-owned reference
+   browser used before Project identity and insertion exist.
 
-Actual `Add to project` persistence does not belong in either slice because the
+The `/search` route is integration scaffolding, not a permanent standalone
+workspace commitment. The durable consumer is the Map-first Project sidebar or
+operation area described in [the product roadmap](./PRODUCT_ROADMAP.md) and
+[the Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+
+Actual Project insertion does not belong in either search slice because the
 authoritative consumer identity does not exist until Phase 3 creates
-`project_items.reference_target_id`. Phase 2C search results carry the exact
+`project_items.reference_target_id`. Search results carry the exact
 `ReferenceTarget` needed by that future route; Phase 3 performs registry
-registration and Project-item creation server-side in one guarded operation.
+registration and Project-item occurrence creation server-side in one guarded
+operation.
 
 This split avoids a placeholder usage table, a public registry-write endpoint,
 or a UI action that pretends an insertion succeeded before there is a Project
-item to own it.
+item occurrence to own it.
 
 ## Pull-request boundary
 
-The Phase 2C1 PR targets `v2/backend-foundation` after PR #128 and includes:
+The Phase 2C1 PR targeted `v2/backend-foundation` after PR #128 and included:
 
 - shared search input/result types;
 - a deterministic source-candidate service for all nine v1 target types;
@@ -52,19 +61,18 @@ The Phase 2C1 PR targets `v2/backend-foundation` after PR #128 and includes:
 - host SQLite and real Worker/D1 workerd verification;
 - roadmap and architecture documentation updates.
 
-It excludes:
+It excluded:
 
-- Project, Project content, Project items, backlinks, Text, Inspector, or Map;
+- Project, Project content, Project items, backlinks, Reading, Inspector, or Map;
 - registry creation from search reads;
 - a public registration endpoint;
-- global Search-page UI or picker UI;
 - source mutation from search results;
 - semantic, embedding, fuzzy, or model-ranked search;
 - FTS schema, denormalized search tables, background indexing, Queues,
   Workflows, Durable Objects, or a second Worker;
 - remote migration or Worker deployment.
 
-No migration is required for this slice. The initial deterministic search reads
+No migration was required for this slice. The initial deterministic search reads
 the authoritative source tables directly. A later scale review may add an FTS
 or materialized index only if real dataset size justifies the synchronization
 cost.
@@ -72,11 +80,11 @@ cost.
 ## Unified-search and portability boundary
 
 The search API, ranking tiers, lifecycle policy, stable `ReferenceTarget`
-payload, and resolver revalidation are platform-neutral. Global search, Sample
-or Recipe directories, and later Project pickers should reuse this domain
+payload, and resolver revalidation are platform-neutral. Project discovery,
+Sample or Recipe directories, and later pickers should reuse this domain
 service through surface-specific profiles rather than grow unrelated matchers.
 A profile may narrow types or add business eligibility: for example, global
-research search may include an archived Recipe revision while a new-run
+research discovery may include an archived Recipe revision while a new-run
 assignment picker must exclude it.
 
 Candidate discovery is behind `ReferenceSearchCandidateBackend`. Every
@@ -351,8 +359,8 @@ reference fixture, runs representative exact, content, type, Sample, and time
 searches through the Worker endpoint, and verifies canonical destinations plus
 locator non-disclosure.
 
-The focused search files become part of `test:reference-foundation`, and the
-workerd smoke becomes part of both the reference CI gate and
+The focused search files became part of `test:reference-foundation`, and the
+workerd smoke became part of both the reference CI gate and
 `verify:v3-deployment`.
 
 ## Completion criteria
@@ -376,10 +384,13 @@ Phase 2C1 is complete when:
     pass;
 13. no remote D1 migration or Worker deployment is run.
 
-## Next slice
+## Follow-on status
 
-Phase 2C2 adds the URL-owned global Search page and a reusable search/result
-selection surface. It consumes this API without changing ranking or lifecycle
-semantics. Phase 3 then creates Projects and performs actual server-side target
-registration plus `project_items` insertion; it does not invent a second search
-model.
+Phase 2C1 is complete in merged PR #129. Draft PR #130 implements the reusable
+Project discovery surface and uses `/search` only as a temporary integration
+browser. The next product work is the Map-first Project core and Canvas sequence
+defined exclusively in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
+
+This implementation record intentionally does not restate later Project phase
+ordering. Search must remain a reusable capability, not grow into a separate
+long-term workspace or define a second roadmap.
