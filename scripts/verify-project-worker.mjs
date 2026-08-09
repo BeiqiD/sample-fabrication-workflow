@@ -66,7 +66,7 @@ INSERT INTO assets (
   'project-smoke-asset', 'projects/smoke.bin', 'smoke.bin',
   'application/octet-stream', 4, 'ready', 'smoke@example.com',
   '2026-08-09T20:00:00.000Z',
-  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 );
 INSERT INTO blob_gc_ledger (
   store_kind, provider, object_key, blob_record_id, state,
