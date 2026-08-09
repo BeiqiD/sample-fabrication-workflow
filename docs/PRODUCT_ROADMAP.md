@@ -3,8 +3,8 @@
 Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-08-09 after the reference/search foundation through PR #129,
-the reusable Project discovery surface implemented in PR #130, and the Map-first
-Project review
+the reusable Project discovery surface implemented in PR #130, the Map-first
+Project review, and the Phase 3A1/3A2 split reviewed in Draft PR #131
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -102,9 +102,11 @@ All future phases preserve these rules:
 2. **Identity layers remain separate.** Source/content identity,
    `reference_targets`, Project-item occurrence identity, and Map placement
    identity are not collapsed into one row or one React Flow node.
-3. **Map and Reading share content.** Every active Project item occurrence has
-   a Map placement and automatically appears in Reading by immutable creation
-   sequence. Editing content once updates both projections.
+3. **Map and Reading share content.** Every committed active Project item
+   occurrence has a Map placement and automatically appears in Reading by
+   immutable creation sequence. SQLite constrains placement cardinality to zero
+   or one; the authoritative item-creation transaction provides the stronger
+   exactly-one product guarantee. Editing content once updates both projections.
 4. **Repeated references are allowed.** One reference target may have several
    independent occurrences in the same Project; no Project-level uniqueness
    constraint is added.
@@ -123,9 +125,9 @@ All future phases preserve these rules:
 10. **Platform contracts stay portable.** Cloudflare is the current deployment,
     not the domain model. New code avoids unnecessary D1, R2, Access, Queue, or
     Worker coupling outside adapters and runtime boundaries.
-11. **Collaboration is reserved, not implemented.** Stable IDs, optimistic
-    revisions, idempotent operations, and conflict responses preserve a future
-    path without introducing CRDT/OT or live presence now.
+11. **Collaboration is reserved, not implemented.** Stable IDs, monotonic
+    optimistic revisions, idempotent operations, and conflict responses preserve
+    a future path without introducing CRDT/OT or live presence now.
 12. **LLM capability is read-only and explicit.** A later insight feature may
     summarize or connect user-selected Project content, but it does not mutate
     source records or silently add Project items.
@@ -174,40 +176,68 @@ persistence contract.
 **Exit:** complete. Work moves directly to Project schema and Canvas contracts,
 not additional standalone Search features.
 
-### Phase 3A — Project core schema, persistence, and authoritative insertion
+### Phase 3A — Project core persistence
 
-**Goal:** establish the normalized identities and save protocol required by both
-Map and Reading before React Flow or a Markdown editor is introduced.
+**Goal:** establish normalized Project identities, complete export, and the
+single authoritative save protocol required by both Map and Reading before React
+Flow or a Markdown editor is introduced.
 
-**Recommended PR scope:**
+Phase 3A is deliberately split at the schema/service boundary.
+
+#### Phase 3A1 — schema, export, and blob-safety foundation
+
+**Status:** current Draft PR #131.
+
+**Scope:**
 
 - `projects` with stable identity and recoverable deletion;
 - `project_contents` for Markdown and generic attachment ownership;
-- stable Project attachment occurrences using existing blob/storage contracts;
+- revisioned attachment caption/source URL on the content record;
+- immutable intrinsic attachment locator/name/type/size metadata using existing
+  blob/storage contracts;
 - `project_items` as repeatable Project-local occurrences targeting content XOR
   `reference_targets`;
-- one active `project_map_placements` row per item occurrence;
 - immutable per-Project `created_sequence` on each item occurrence for Reading;
+- zero-or-one `project_map_placements` row per item at the database layer, with
+  finite bounded coordinates, dimensions, and z-index;
 - `project_edges` with fixed four-side handles, endpoint marker direction, and
   optional short label;
 - no uniqueness constraint on `(project_id, reference_target_id)`;
-- one authoritative reference insertion operation that re-resolves, registers,
-  creates the occurrence, creates its Map placement, and assigns
-  `created_sequence`;
-- Project-owned Markdown and attachment creation APIs;
-- local occurrence removal without source mutation;
-- optimistic Project/content revisions, idempotent operation IDs, and `409`
-  conflict behavior;
-- normalized delta/save APIs and explicit-save/autosave flush boundaries;
+- monotonic revisions that cannot be rewound, pre-bumped, or reused;
 - complete-export schema-version bump and Project table/blob coverage;
-- migration, host SQLite, D1/workerd, route, concurrency, and export gates.
+- migration, host SQLite, D1/workerd, route, and export gates;
+- no Project mutation routes.
+
+**Exit:** the schema, export snapshot, and blob graph can be deployed safely, and
+every invariant that belongs in SQLite is executable before application writes
+are exposed.
+
+#### Phase 3A2 — authoritative Project persistence service
+
+**Status:** immediate next PR after Phase 3A1 is reviewed and merged.
+
+**Scope:**
+
+- Project list, create, open, rename, recoverable delete, and restore;
+- one Project snapshot/read model for Map and Reading;
+- expected-revision checks, idempotent operation IDs, and explicit `409`
+  conflict behavior;
+- one authoritative reference insertion operation that re-resolves, registers,
+  allocates `created_sequence`, creates the occurrence, and creates its Map
+  placement in one rollback-safe transaction;
+- Project-owned Markdown creation and save APIs;
+- Project-owned attachment creation plus caption/source-URL update APIs;
+- local occurrence removal without source mutation;
+- placement and basic-edge mutation APIs;
+- normalized delta/save APIs and explicit-save/autosave flush boundaries;
+- transaction, concurrency, route, workerd, and exact-head deployment gates.
 
 **Not yet:** React Flow, rich Markdown editor, PDF preview, advanced Inspector,
 real-time collaboration, or permanent delete.
 
-**Exit:** the backend can create a Project, create owned content, insert repeated
-references, persist Map placements and basic edges, derive Reading from creation
-sequence, save safely, reopen the Project, and export it completely.
+**Phase 3A exit:** the backend can create a Project, create owned content, insert
+repeated references, persist Map placements and basic edges, derive Reading from
+creation sequence, save safely, reopen the Project, and export it completely.
 
 ### Phase 3B1 — Map kernel
 
@@ -266,6 +296,8 @@ This milestone is the first useful **Project reference-workspace alpha**.
 - cancel unsaved empty drafts and persist valid content;
 - explicit `Add attachment` and context-menu insertion at a coordinate;
 - generic file metadata and image-rich rendering;
+- editable Project-owned caption and optional source URL without changing the
+  immutable stored-file locator or intrinsic name/type/size metadata;
 - existing source attachments continue to enter through Reference search;
 - same occurrence automatically appears in Reading by creation sequence;
 - no complex page layout, floating images, or embedded Reference editor nodes.
@@ -304,7 +336,8 @@ same occurrences without creating a second content system.
 - render every active occurrence in one linear order;
 - no creation controls in Reading;
 - edit existing Project-owned Markdown;
-- edit allowed metadata of existing Project-owned attachments;
+- edit attachment caption and optional source URL, but never retarget attachment
+  bytes or intrinsic file metadata;
 - references remain read-only;
 - fixed deterministic insertion-order presentation;
 - Map coordinates and edges remain intact;
@@ -470,17 +503,19 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Freeze and implement **Project core schema, Map placements, edges, revisions,
-   authoritative insertion, and complete export**.
-2. Add the desktop **Map kernel**.
-3. Add the **reference sidebar and drag/drop placement**.
-4. Add **double-click Markdown and generic attachment insertion**.
-5. Add **basic Bezier directional edges**.
-6. Add the no-creation **Reading projection**.
-7. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
-8. Add advanced **Inspector/Canvas/previews/performance**.
-9. Run the dedicated Docker portability implementation after Project content
-   and save semantics stabilize.
+1. Complete review and merge **Phase 3A1: Project schema, bounded placements,
+   monotonic revisions, attachment/blob safety, and complete export**.
+2. Implement **Phase 3A2: authoritative Project reads/writes, rollback-safe item
+   plus placement insertion, idempotency, and conflict handling**.
+3. Add the desktop **Map kernel**.
+4. Add the **reference sidebar and drag/drop placement**.
+5. Add **double-click Markdown and generic attachment insertion**.
+6. Add **basic Bezier directional edges**.
+7. Add the no-creation **Reading projection**.
+8. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+9. Add advanced **Inspector/Canvas/previews/performance**.
+10. Run the dedicated Docker portability implementation after Project content
+    and save semantics stabilize.
 
 ## Work that should not happen next
 
