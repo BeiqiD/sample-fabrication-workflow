@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - codex/project-persistence-service
+  pull_request:
+    branches:
+      - v2/backend-foundation
 
 permissions:
   contents: read
