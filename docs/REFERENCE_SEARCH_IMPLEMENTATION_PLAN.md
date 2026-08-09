@@ -386,10 +386,10 @@ Phase 2C1 is complete when:
 
 ## Follow-on status
 
-Phase 2C1 is complete in merged PR #129. Draft PR #130 implements the reusable
-Project discovery surface and uses `/search` only as a temporary integration
-browser. The next product work is the Map-first Project core and Canvas sequence
-defined exclusively in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
+Phase 2C1 is complete in merged PR #129. PR #130 completed the reusable Project
+discovery surface and uses `/search` only as a temporary integration browser.
+The next product work is the Map-first Project core and Canvas sequence defined
+exclusively in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 This implementation record intentionally does not restate later Project phase
 ordering. Search must remain a reusable capability, not grow into a separate
