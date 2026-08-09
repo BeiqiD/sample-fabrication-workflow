@@ -2,12 +2,13 @@
 
 Status: completed Phase 2A implementation contract and record
 
-Last reviewed: 2026-08-08 after PR #127 canonical-destination review
+Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
 
 This document defines the exact scope of the first reference-registry and
 read-only resolution implementation. It follows the completed source lifecycle,
 blob lifecycle, export-integrity, physical-delete protection, and D1/workerd SQL
-compatibility work.
+compatibility work. It is an implementation record; current product sequencing
+is defined only in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 The product invariants remain in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Source lifecycle is
@@ -18,8 +19,8 @@ and garbage collection remain governed by
 
 ## Purpose
 
-Project, Text, search, and later Map features need one stable way to identify
-and read application objects without copying them or acquiring mutation rights.
+Project, Reading, search, and Map features need one stable way to identify and
+read application objects without copying them or acquiring mutation rights.
 This slice establishes that boundary before any Project-owned data or UI is
 introduced.
 
@@ -84,7 +85,7 @@ schema, shared types, tests, CI, and documentation.
 
 ### Excluded
 
-- `projects`, `project_contents`, `project_items`, Text, Inspector, or Map;
+- `projects`, `project_contents`, `project_items`, Reading, Inspector, or Map;
 - Project attachment occurrences;
 - a generic `reference_usages` or backlinks table;
 - object-level deep-link routes or archived source pages;
@@ -134,7 +135,7 @@ This slice therefore provides:
 - a common target-type mapping;
 - batch resolution suitable for future Project-item reads.
 
-The later Project-data slice creates the actual Project backlink relationship
+The later Project-data slice creates the actual Project reverse relationship
 through `project_items`. No placeholder usage table is introduced here.
 
 ## Closed v1 target-type registry
@@ -513,7 +514,7 @@ context JSON exactly. Registry rows do not create blob occurrences or download
 entries.
 
 A future Project-data/export slice will introduce the next export schema version
-when Projects, contents, items, placements, and edges become part of restore
+when Projects, contents, items, Map placements, and edges become part of restore
 semantics.
 
 ## Verification
@@ -610,22 +611,11 @@ The PR is complete when:
 
 ## Follow-on status
 
-After this completed Phase 2A slice:
+Phase 2A, canonical destinations, exact source focus, and deterministic search
+are complete through merged PR #129. Draft PR #130 provides the reusable Project
+discovery surface; its `/search` route is temporary integration scaffolding.
 
-1. **Phase 2B1 — canonical destinations and lifecycle page:** complete in
-   PR #127.
-2. **Phase 2B2 — source focus integration:** complete in merged PR #128.
-3. **Phase 2B — object-level deep links:** complete after PR #128.
-4. **Phase 2C1 — deterministic search foundation:** implemented in Draft
-   PR #129 with the nine-type read-only candidate service, explainable
-   ranking, lifecycle/Sample/time filters, resolver revalidation, and real
-   Worker/D1 search verification.
-5. **Phase 2C2 — global search and reusable picker UI:** next after 2C1.
-6. **Phase 3 — Project-owned data, authoritative target registration,
-   `project_items` backlinks/insertion, Text, and Inspector:** not started.
-7. **Phase 4 — dynamically loaded Map placements and edges:** not started.
-
-Map remains last so its interaction model is built on stable source
-identity, resolution, canonical navigation, deterministic search,
-Project-item identity, and read paths rather than becoming the persistent
-data model itself.
+This implementation record does not define later product order. The active
+Map-first Project sequence, Reading behavior, and phase boundaries are governed
+exclusively by [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
