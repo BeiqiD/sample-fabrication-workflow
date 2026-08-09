@@ -48,9 +48,9 @@ BEGIN
   SELECT RAISE(ABORT, 'project edge deletion requires endpoint lifecycle capacity');
 END;
 
--- Owned content must not enter deletion when its owning occurrence cannot
--- advance in the same transaction.
-CREATE TRIGGER project_contents_require_owner_lifecycle_capacity
+-- Owned content must not cross a lifecycle boundary when its owning occurrence
+-- cannot advance in the same transaction.
+CREATE TRIGGER project_contents_require_owner_delete_capacity
 BEFORE UPDATE OF deleted_at ON project_contents
 WHEN OLD.deleted_at IS NULL
   AND NEW.deleted_at IS NOT NULL
@@ -64,6 +64,22 @@ WHEN OLD.deleted_at IS NULL
   )
 BEGIN
   SELECT RAISE(ABORT, 'project content deletion requires owner lifecycle capacity');
+END;
+
+CREATE TRIGGER project_contents_require_owner_restore_capacity
+BEFORE UPDATE OF deleted_at ON project_contents
+WHEN OLD.deleted_at IS NOT NULL
+  AND NEW.deleted_at IS NULL
+  AND EXISTS (
+    SELECT 1
+    FROM project_items pi
+    WHERE pi.project_content_id = OLD.id
+      AND pi.project_id = OLD.project_id
+      AND pi.deleted_at IS NOT NULL
+      AND pi.revision >= 9007199254740991
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project content restore requires owner lifecycle capacity');
 END;
 
 CREATE TRIGGER project_items_require_deleted_edges
