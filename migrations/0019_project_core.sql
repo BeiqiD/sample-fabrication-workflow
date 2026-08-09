@@ -4,12 +4,21 @@ PRAGMA foreign_keys = ON;
 -- routes remain intentionally disabled until the Phase 3A2 authoritative
 -- mutation service is ready. The schema nevertheless owns identity, lifecycle,
 -- optimistic revision, ordering, blob-retention, and graph-shape invariants.
+-- Version, sequence, format, and byte-count integers cross JSON/TypeScript
+-- boundaries, so they stay within Number.MAX_SAFE_INTEGER rather than using
+-- SQLite's wider signed 64-bit range.
 
 CREATE TABLE projects (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 1 AND 256),
   title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 200),
-  revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
-  next_created_sequence INTEGER NOT NULL DEFAULT 1 CHECK (next_created_sequence >= 1),
+  revision INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(revision) = 'integer'
+    AND revision BETWEEN 1 AND 9007199254740991
+  ),
+  next_created_sequence INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(next_created_sequence) = 'integer'
+    AND next_created_sequence BETWEEN 1 AND 9007199254740991
+  ),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
   updated_by TEXT NOT NULL CHECK (length(trim(updated_by)) BETWEEN 1 AND 320),
@@ -43,8 +52,14 @@ CREATE TABLE project_contents (
       attachment_source_url IS NULL
       OR length(trim(attachment_source_url)) BETWEEN 1 AND 2048
     ),
-  format_version INTEGER NOT NULL DEFAULT 1 CHECK (format_version >= 1),
-  revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  format_version INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(format_version) = 'integer'
+    AND format_version BETWEEN 1 AND 9007199254740991
+  ),
+  revision INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(revision) = 'integer'
+    AND revision BETWEEN 1 AND 9007199254740991
+  ),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
   updated_by TEXT NOT NULL CHECK (length(trim(updated_by)) BETWEEN 1 AND 320),
@@ -85,7 +100,10 @@ CREATE TABLE project_content_attachments (
   storage_object_id TEXT REFERENCES managed_storage_objects(id) ON DELETE RESTRICT,
   original_name TEXT NOT NULL CHECK (length(trim(original_name)) BETWEEN 1 AND 255),
   mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) BETWEEN 1 AND 200),
-  byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
+  byte_size INTEGER NOT NULL CHECK (
+    typeof(byte_size) = 'integer'
+    AND byte_size BETWEEN 0 AND 9007199254740991
+  ),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
   created_at TEXT NOT NULL CHECK (length(created_at) > 0),
   creation_operation_id TEXT NOT NULL CHECK (length(creation_operation_id) BETWEEN 1 AND 256),
@@ -98,8 +116,14 @@ CREATE TABLE project_items (
   item_type TEXT NOT NULL CHECK (item_type IN ('content', 'reference')),
   project_content_id TEXT UNIQUE REFERENCES project_contents(id) ON DELETE RESTRICT,
   reference_target_id TEXT REFERENCES reference_targets(id) ON DELETE RESTRICT,
-  created_sequence INTEGER NOT NULL CHECK (created_sequence >= 1),
-  revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  created_sequence INTEGER NOT NULL CHECK (
+    typeof(created_sequence) = 'integer'
+    AND created_sequence BETWEEN 1 AND 9007199254740991
+  ),
+  revision INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(revision) = 'integer'
+    AND revision BETWEEN 1 AND 9007199254740991
+  ),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
   updated_by TEXT NOT NULL CHECK (length(trim(updated_by)) BETWEEN 1 AND 320),
@@ -148,7 +172,10 @@ CREATE TABLE project_map_placements (
   z_index INTEGER NOT NULL DEFAULT 0 CHECK (
     typeof(z_index) = 'integer' AND z_index BETWEEN -1000000 AND 1000000
   ),
-  revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  revision INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(revision) = 'integer'
+    AND revision BETWEEN 1 AND 9007199254740991
+  ),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
   updated_by TEXT NOT NULL CHECK (length(trim(updated_by)) BETWEEN 1 AND 320),
@@ -166,7 +193,10 @@ CREATE TABLE project_edges (
   marker_start TEXT NOT NULL DEFAULT 'none' CHECK (marker_start IN ('none', 'arrow')),
   marker_end TEXT NOT NULL DEFAULT 'none' CHECK (marker_end IN ('none', 'arrow')),
   label TEXT CHECK (label IS NULL OR length(label) <= 200),
-  revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  revision INTEGER NOT NULL DEFAULT 1 CHECK (
+    typeof(revision) = 'integer'
+    AND revision BETWEEN 1 AND 9007199254740991
+  ),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
   updated_by TEXT NOT NULL CHECK (length(trim(updated_by)) BETWEEN 1 AND 320),
