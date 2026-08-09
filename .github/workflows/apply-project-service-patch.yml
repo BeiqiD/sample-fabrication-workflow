@@ -1,0 +1,145 @@
+name: Apply Project Service Patch
+
+on:
+  push:
+    branches:
+      - codex/project-persistence-service
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/project-persistence-service
+          fetch-depth: 0
+
+      - name: Apply reviewed Project service changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("worker/projects/service.ts")
+          source = path.read_text()
+
+          replacements = [
+              (
+                  '''async function requireItemBundle(db: D1Database, projectId: string, itemId: string) {
+            const bundle = await readItemBundle(db, projectId, itemId);
+            if (!bundle) notFound("Project item not found");
+            return bundle;
+          }''',
+                  '''async function requireItemBundle(db: D1Database, projectId: string, itemId: string) {
+            const bundle = await readItemBundle(db, projectId, itemId);
+            if (!bundle) notFound("Project item not found");
+            if (!bundle.placement) {
+              conflict("Project item is missing its authoritative placement");
+            }
+            return bundle;
+          }''',
+              ),
+              (
+                  '''      WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
+            ORDER BY pi.created_sequence, pc.id
+          `).bind(projectId),''',
+                  '''      WHERE pc.project_id = ?
+              AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
+            ORDER BY pi.created_sequence, pc.id
+          `).bind(projectId, includeDeleted ? 1 : 0),''',
+              ),
+              (
+                  '''      WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
+            ORDER BY pi.created_sequence, pca.project_content_id
+          `).bind(projectId),''',
+                  '''      WHERE pc.project_id = ?
+              AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
+            ORDER BY pi.created_sequence, pca.project_content_id
+          `).bind(projectId, includeDeleted ? 1 : 0),''',
+              ),
+              (
+                  '''      SELECT * FROM project_items
+            WHERE project_id = ? AND deleted_at IS NULL
+            ORDER BY created_sequence, id
+          `).bind(projectId),''',
+                  '''      SELECT * FROM project_items
+            WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)
+            ORDER BY created_sequence, id
+          `).bind(projectId, includeDeleted ? 1 : 0),''',
+              ),
+              (
+                  '''      WHERE pi.project_id = ? AND pi.deleted_at IS NULL
+            ORDER BY pi.created_sequence, pmp.id
+          `).bind(projectId),''',
+                  '''      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+            ORDER BY pi.created_sequence, pmp.id
+          `).bind(projectId, includeDeleted ? 1 : 0),''',
+              ),
+              (
+                  '''      WHERE pe.project_id = ? AND pe.deleted_at IS NULL
+              AND source.deleted_at IS NULL AND target.deleted_at IS NULL
+            ORDER BY pe.created_at, pe.id
+          `).bind(projectId),''',
+                  '''      WHERE pe.project_id = ?
+              AND (? = 1 OR (
+                pe.deleted_at IS NULL
+                AND source.deleted_at IS NULL
+                AND target.deleted_at IS NULL
+              ))
+            ORDER BY pe.created_at, pe.id
+          `).bind(projectId, includeDeleted ? 1 : 0),''',
+              ),
+              (
+                  '''      WHERE pi.project_id = ? AND pi.deleted_at IS NULL
+            ORDER BY rt.target_type, rt.target_id
+          `).bind(projectId),''',
+                  '''      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+            ORDER BY rt.target_type, rt.target_id
+          `).bind(projectId, includeDeleted ? 1 : 0),''',
+              ),
+              (
+                  '''    if (results.some((result) => resultChanges(result) !== 1)) {
+              return returnCreateReplayOrConflict(
+                db,
+                projectId,
+                input.itemId,
+                (bundle) => bundleMatchesAttachmentCreate(bundle, input),
+              );
+            }''',
+                  '''    if (
+              resultChanges(results[0]) !== 1
+              || resultChanges(results[1]) !== 1
+              || resultChanges(results[2]) < 1
+              || resultChanges(results[3]) !== 1
+              || resultChanges(results[4]) !== 1
+            ) {
+              return returnCreateReplayOrConflict(
+                db,
+                projectId,
+                input.itemId,
+                (bundle) => bundleMatchesAttachmentCreate(bundle, input),
+              );
+            }''',
+              ),
+          ]
+
+          for old, new in replacements:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected one reviewed replacement, found {count}: {old[:80]!r}")
+              source = source.replace(old, new)
+
+          path.write_text(source)
+          PY
+
+      - name: Commit Project service patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/projects/service.ts
+          git commit -m "fix(project): harden snapshot and attachment replay semantics"
+          git push origin HEAD:codex/project-persistence-service
