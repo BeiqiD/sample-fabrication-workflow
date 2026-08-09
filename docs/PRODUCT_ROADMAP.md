@@ -2,13 +2,16 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
-and the product-position correction in Draft PR #130
+Last reviewed: 2026-08-09 after the reference/search foundation through PR #129,
+the reusable discovery work in Draft PR #130, and the Map-first Project review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
-Detailed identity, lifecycle, search, Project, export, and deployment contracts
-remain in their focused documents, but their phase labels and priorities must
-not contradict this roadmap.
+Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
+contracts remain in their focused documents, but their phase labels and
+priorities must not contradict this roadmap.
+
+The Map-first interaction and persistence contract is defined in
+[Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 
 ## North star
 
@@ -21,9 +24,9 @@ The finished product has two deliberately different layers:
    attachments, metrology records, structures, and timelines record what was
    planned and what actually happened.
 2. **Project workspace** — a Project combines read-only references to those
-   records with Project-owned narrative content so a researcher can organize,
-   explain, connect, and revisit a body of work without copying or rewriting the
-   source record.
+   records with Project-owned Markdown and generic attachments so a researcher
+   can spatially organize, explain, connect, and linearly review a body of work
+   without copying or rewriting the source record.
 
 The source layer answers:
 
@@ -31,31 +34,38 @@ The source layer answers:
 
 The Project layer answers:
 
-> What belongs to this research question, how do the pieces relate, and how
-> should another researcher read or inspect them?
+> What belongs to this research question, how do the pieces relate spatially,
+> and how should another researcher read them in sequence?
 
 Neither layer replaces the other.
 
 ## Intended final interaction
 
-The normal long-term entry point for research organization is a Project, not a
-standalone Search workspace.
+Map is the primary Project creation and organization interface. Reading is a
+linear projection of the same Project-local item occurrences; it is not an
+independent document or second content model.
 
 ```text
 Project
-├─ Text        deliberate narrative and reading order
-├─ Inspector   detail, source hierarchy, child objects, backlinks, actions
-├─ Map         spatial organization and Project-local relationships
-└─ Add reference / Search
-      └─ find any eligible Sample, Run, Step, Comment, attachment,
-         execution image, metrology reference, Recipe revision,
-         Project, or Project-owned content
+├─ Map
+│  ├─ reference sidebar / search
+│  ├─ drag references to exact positions
+│  ├─ double-click empty space to create Markdown
+│  ├─ add generic attachments
+│  ├─ resize and move nodes
+│  └─ connect nodes with basic directed/undirected edges
+├─ Reading
+│  ├─ render the same occurrences in one linear order
+│  ├─ edit existing Project-owned Markdown
+│  ├─ edit allowed attachment metadata
+│  └─ adjust order, but create no new items
+└─ Inspector
+   └─ detail, source hierarchy, exact navigation, and local actions
 ```
 
-A user should be able to remain in one Project, open discovery, find any
-referenceable object, select it, and add it without leaving the Project context.
-Search returns intent only. The server re-resolves and registers the target and
-creates the owning Project item before the UI reports success.
+A user should remain in one Project, find any eligible referenceable object in
+the sidebar, drag or place it onto the Map, and receive a new Project-local
+occurrence only after one authoritative server operation succeeds.
 
 The temporary `/search` page from Phase 2C2 is an integration harness and
 reference browser. It is not a commitment to keep Search as a permanent primary
@@ -72,42 +82,52 @@ The product is not intended to become:
 - a second editor for source Samples, Runs, Steps, Comments, or Recipes;
 - a data-analysis notebook or simulation database;
 - a fixed Project folder tree;
-- a canvas whose serialized UI state is the database model;
+- a Canvas whose serialized frontend state is the database model;
+- a page-layout or desktop-publishing application;
+- a real-time collaborative whiteboard in the initial release;
 - an autonomous LLM-operated experimental system.
 
-Project-owned narrative, images, and files are allowed. Experimental source
-records remain editable only in their own source interfaces. Project previews,
-Inspector, Search, and future insight features remain read-only with respect to
-those sources.
+Project-owned content is initially limited to Markdown and generic attachment
+occurrences. All existing experimental records and source attachments remain
+read-only references.
 
 ## Durable architectural invariants
 
 All future phases preserve these rules:
 
-1. **Source data remains authoritative.** Project stores inclusions,
+1. **Source data remains authoritative.** Project stores occurrences,
    Project-owned content, placements, and local relationships; it does not copy
    external source records into editable snapshots.
 2. **Identity layers remain separate.** Source/content identity,
-   `reference_targets`, Project-item identity, and Text/Map placement identity
-   are not collapsed into one row or one browser node.
-3. **Search is a shared capability.** Global browsing, Project discovery,
-   Sample directories, and Recipe pickers may use different eligibility
-   profiles but should not grow unrelated matching/ranking engines.
-4. **Search indexes are derived.** A future FTS5 or other index can be rebuilt
+   `reference_targets`, Project-item occurrence identity, and Map/Reading
+   placement identity are not collapsed into one row or one React Flow node.
+3. **Map and Reading share content.** Every active Project item occurrence has
+   both a Map placement and a Reading placement. Editing content once updates
+   both projections.
+4. **Repeated references are allowed.** One reference target may have several
+   independent occurrences in the same Project; no Project-level uniqueness
+   constraint is added.
+5. **References have no local annotation override.** Interpretation is expressed
+   through separate Markdown occurrences or optional edge labels.
+6. **Search is a shared capability.** Project discovery, directories, and future
+   pickers may use different eligibility profiles but should not grow unrelated
+   matching/ranking engines.
+7. **Search indexes are derived.** A future FTS5 or other index can be rebuilt
    from authoritative rows and does not own lifecycle or identity.
-5. **External references are read-only.** `Open source` navigates to source
-   authority; it does not delegate mutation rights to Project.
-6. **Delete remains recoverable by default.** Permanent deletion stays disabled
-   until Project backlinks, privileged authorization, tombstones, and final
-   concurrency checks exist.
-7. **Export evolves with the model.** The first Project schema bumps the complete
+8. **Delete remains recoverable by default.** Permanent deletion stays disabled
+   until Project reverse relations, privileged authorization, tombstones, and
+   final concurrency checks exist.
+9. **Export evolves with the model.** The first Project schema bumps the complete
    export version and includes Project rows and reachable Project-owned bytes.
-8. **Platform contracts stay portable.** Cloudflare is the current deployment,
-   not the domain model. New code must avoid unnecessary D1, R2, Access, Queue,
-   or Worker coupling outside adapters and runtime boundaries.
-9. **LLM capability is read-only and explicit.** A later insight feature may
-   summarize or connect content selected by the user, but it does not mutate
-   source records, silently add Project items, or become required for core use.
+10. **Platform contracts stay portable.** Cloudflare is the current deployment,
+    not the domain model. New code avoids unnecessary D1, R2, Access, Queue, or
+    Worker coupling outside adapters and runtime boundaries.
+11. **Collaboration is reserved, not implemented.** Stable IDs, optimistic
+    revisions, idempotent operations, and conflict responses preserve a future
+    path without introducing CRDT/OT or live presence now.
+12. **LLM capability is read-only and explicit.** A later insight feature may
+    summarize or connect user-selected Project content, but it does not mutate
+    source records or silently add Project items.
 
 ## Current position
 
@@ -136,11 +156,12 @@ Draft PR #130 provides the reusable `ReferenceSearchSurface`, stable
 `ReferenceTarget` selection contract, request lifecycle, filters, result
 presentation, and a temporary route wrapper.
 
-Its durable output is the Project-embeddable discovery surface. The standalone
-page and navigation item are temporary scaffolding.
+Its durable output is the sidebar/picker capability used by the Map-first
+Project workspace. The standalone page and navigation item are temporary
+scaffolding.
 
 PR #130 is the final planned foundation/UI-enabling PR before Project data and
-Project-owned behavior begin.
+Canvas behavior begin.
 
 ## Active implementation roadmap
 
@@ -157,233 +178,328 @@ Project-owned behavior begin.
 - temporary `/search` integration harness;
 - no registration, Project write, or `Add to project` success state.
 
-**Exit:** Draft PR #130 is reviewed and merged. Work then moves directly to
-Project, not to additional standalone Search features.
+**Exit:** Draft PR #130 is reviewed and merged. Work moves directly to Project
+schema and Canvas contracts, not additional standalone Search features.
 
-### Phase 3A — Project core backend and authoritative insertion
+### Phase 3A — Project core schema, persistence, and authoritative insertion
 
-**Goal:** establish the identity and write boundary that the previous phases
-were preparing for.
+**Goal:** establish the normalized identities and save protocol required by both
+Map and Reading before React Flow or a Markdown editor is introduced.
 
 **Recommended PR scope:**
 
 - `projects` with stable identity and recoverable deletion;
-- the full `project_contents` / `project_items` target model needed to avoid a
-  later incompatible table redesign, even if the first route primarily inserts
-  external references;
-- one authoritative server operation that:
-  1. validates the Project and caller;
-  2. re-resolves the selected stable target;
-  3. registers or refreshes `reference_targets` idempotently;
-  4. creates the Project item;
-  5. returns the canonical inserted item;
-- remove-from-Project behavior that removes only local inclusion data;
-- Project backlinks from `project_items.reference_target_id`;
-- duplicate-inclusion policy and concurrency tests;
-- Project list/detail read APIs with bounded resolver enrichment;
-- complete-export schema-version bump and Project table snapshots;
-- migration, host SQLite, D1/workerd, route, and export gates.
+- `project_contents` for Markdown and generic attachment ownership;
+- stable Project attachment occurrences using existing blob/storage contracts;
+- `project_items` as repeatable Project-local occurrences targeting content XOR
+  `reference_targets`;
+- one active `project_map_placements` row per item occurrence;
+- one active `project_reading_placements` row per item occurrence;
+- `project_edges` with fixed four-side handles, endpoint marker direction, and
+  optional short label;
+- no uniqueness constraint on `(project_id, reference_target_id)`;
+- one authoritative reference insertion operation that re-resolves, registers,
+  creates the occurrence, and creates both placements;
+- Project-owned Markdown and attachment creation APIs;
+- local occurrence removal without source mutation;
+- optimistic Project/content revisions, idempotent operation IDs, and `409`
+  conflict behavior;
+- normalized delta/save APIs and explicit-save/autosave flush boundaries;
+- complete-export schema-version bump and Project table/blob coverage;
+- migration, host SQLite, D1/workerd, route, concurrency, and export gates.
 
-**Not yet:** rich Text editing, Map, edges, FTS5, or permanent delete.
+**Not yet:** React Flow, rich Markdown editor, PDF preview, advanced Inspector,
+real-time collaboration, or permanent delete.
 
-**Exit:** the backend can create a Project and safely add/remove an external
-reference with authoritative backlinks and complete export coverage.
+**Exit:** the backend can create a Project, create owned content, insert repeated
+references, persist both placements and basic edges, save safely, reopen the
+Project, and export it completely.
 
-### Phase 3B — Project workspace shell and embedded discovery
+### Phase 3B1 — Map kernel
 
-**Goal:** deliver the first useful Project vertical slice.
+**Goal:** deliver the primary Project interaction surface without yet combining
+all creation modes.
 
-**Recommended PR scope:**
+**Scope:**
 
-- Project list, create, rename, trash, restore, and detail routes;
-- replace the temporary Search primary-navigation item with Project;
-- mount `ReferenceSearchSurface` inside the current Project through an
-  `Add reference` panel, dialog, or command surface;
-- pending, success, duplicate, stale-target, and failure states owned by the
-  Project container;
-- reference list/cards with exact source and canonical Reference actions;
-- remove from Project without touching the source;
-- refresh and Back/Forward behavior for Project selection and discovery;
-- retire, redirect, or hide `/search` according to the chosen transition path.
+- replace the temporary Search navigation destination with Project;
+- Project list/create/open shell;
+- dynamically load `@xyflow/react` only for desktop Map editing;
+- pan, zoom, selection, fit view, and optional lightweight MiniMap;
+- lightweight Markdown, attachment, and reference node renderers;
+- move and border resize with unchanged font size;
+- one active editor at most;
+- local draft plus explicit Save and bounded autosave state;
+- persist placement at drag stop/resize end rather than per frame;
+- client-session undo/redo for move/resize/selectable local commands;
+- simple Inspector selection shell;
+- Reading-only default on mobile.
 
-**Exit:** a user can create a Project, stay inside it, find any supported source
-object, add it authoritatively, reopen the Project, and remove the local
-inclusion without changing source data.
+**Exit:** existing Project item occurrences can be viewed, moved, resized, saved,
+and reopened through the desktop Map without React Flow state becoming the
+database.
 
-This milestone is the **Project reference-workspace alpha**.
+### Phase 3B2 — reference sidebar and Map placement
 
-### Phase 3C — Project Text and Project-owned content
+**Goal:** make reference discovery and spatial placement the core Project
+creation flow.
 
-**Goal:** make Project useful for research narrative rather than only as a list
-of references.
+**Scope:**
 
-**Recommended PR sequence:**
+- mount `ReferenceSearchSurface` in the Project sidebar/operation area;
+- desktop drag result to exact Map coordinate;
+- keyboard-equivalent `Place at Map center` action;
+- pending ghost node and retry/failure behavior;
+- authoritative server insertion after drop, never at drag start;
+- hover/selected/focused `Open reference` action;
+- node body selects rather than navigates;
+- allow repeated occurrences of the same reference target;
+- automatically create the Reading placement with deterministic insertion order.
 
-1. Project-owned text/content identity and editing;
-2. Text placements and insertion-friendly ordering;
-3. read-only reference blocks in the same Text flow;
-4. Project-owned image/file attachment occurrences using existing hashing,
-   storage, retention, GC, and export boundaries;
-5. continuous human-readable export with relative asset paths.
+**Exit:** a user can stay inside a Project, find any supported source object,
+place it on the Map, reopen the Project, and remove the local occurrence without
+changing source data.
 
-Text order is independent from Map geometry and Project edges. External source
-content remains read-only. Autosave or explicit-save behavior must be chosen and
-tested before implementation rather than inferred from component state.
+This milestone is the first useful **Project reference-workspace alpha**.
 
-**Exit:** a Project can combine editable narrative with ordered read-only source
-references and preserve that material through complete export.
+### Phase 3B3 — Project-owned Markdown and generic attachments
 
-This milestone is the **Project MVP** and should be usable before Map exists.
+**Goal:** allow the Map to create the only two Project-owned content classes.
 
-### Phase 3D — Inspector, Project deep links, and enriched read model
+**Scope:**
 
-**Goal:** make references understandable and navigable without making cards or
-Text blocks excessively large.
+- double-click empty Map space to create and focus a local Markdown draft;
+- cancel unsaved empty drafts and persist valid content;
+- explicit `Add attachment` and context-menu insertion at a coordinate;
+- generic file metadata and image-rich rendering;
+- existing source attachments continue to enter through Reference search;
+- same occurrence automatically receives a Reading placement;
+- no complex page layout, floating images, or embedded Reference editor nodes.
 
-**Recommended scope:**
+**Exit:** a Project can spatially combine read-only experimental references,
+editable Markdown, images, PDFs as file cards, and other generic files.
 
-- Project and Project-content canonical destinations;
-- Inspector selection and exact Project location focus;
-- complete source hierarchy and lifecycle detail;
-- directly related child summaries where appropriate;
-- add-child-as-reference action through the same authoritative insertion route;
-- Project backlink and location counts;
-- source edited/deleted/archived indications;
-- remove-current-item action with local impact preview.
+### Phase 3B4 — basic Project-local edges
 
-**Exit:** Project references are inspectable, deep-linkable, and backlink-aware;
-no source mutation control appears in Inspector.
+**Goal:** support Obsidian-Canvas-like relationship drawing without advanced
+routing complexity.
 
-### Phase 4 — Map
+**Scope:**
 
-**Goal:** add the complementary spatial view only after Project item and Text
-identity are stable.
+- Bezier edges only;
+- top/right/bottom/left handles;
+- fixed endpoints and handles after connection;
+- undirected, forward, reverse, and bidirectional endpoint markers;
+- optional short free-text label;
+- delete/recreate to change endpoints;
+- no self-loop, obstacle avoidance, control-point editing, or relation ontology;
+- client-session undo/redo and save/conflict behavior for edge changes.
 
-**Recommended PR sequence:**
+**Exit:** the Map expresses complex Project-local relationships using a bounded,
+normalized edge model.
 
-1. Map route/tab, dynamic `@xyflow/react` loading, and compact node cards;
-2. independent `project_map_placements` persistence with bounded move/resize
-   writes;
-3. Project-local edges between Project items and optional labels;
-4. Inspector integration and exact item selection;
-5. optional initial/local layout after manual placement semantics are stable.
+This milestone is the **Map-first Project workspace alpha**.
 
-React Flow is an interaction layer, not the persistence model. Map does not
-create a second item identity, auto-expand source hierarchies, or define the
-Text reading order.
+### Phase 3C — Reading projection
 
-**Exit:** the same Project items can be organized independently in Text and Map,
-with persistent placements and local edges.
+**Goal:** provide a mobile-friendly and linear review/editing projection over the
+same occurrences without creating a second content system.
+
+**Scope:**
+
+- render every active occurrence in one linear order;
+- no creation controls in Reading;
+- edit existing Project-owned Markdown;
+- edit allowed metadata of existing Project-owned attachments;
+- references remain read-only;
+- simple accessible Reading reorder;
+- Map coordinates and edges remain intact;
+- mobile defaults to Reading with limited editing only.
+
+Reading ordering combines stable insertion/manual order with explicit
+ordered-arrow constraints. The schema stores immutable creation sequence,
+editable `position_key`, and optional future `reading_role = precedes` on edges.
+The final topological/cycle UX is deferred until this phase rather than frozen in
+Phase 3A.
+
+**Exit:** the complete Project can be read and lightly edited linearly without
+losing or duplicating Map content.
+
+### Phase 3D — Markdown/TeX, media, and save UX hardening
+
+**Goal:** make owned content comfortable for real research narrative.
+
+**Scope:**
+
+- canonical Markdown storage with CommonMark/GFM-style behavior;
+- TeX math rendering;
+- lazy editor loading for only the active node/block;
+- complete Reading rendering independent of Map node size;
+- image preview and caption UX;
+- generic file cards;
+- conflict resolution and save-status UX;
+- coarse Project checkpoints/version snapshots only if needed;
+- human-readable export with relative attachment paths.
+
+**Exit:** the Project supports durable mixed-media research narrative without a
+mega-editor or page-layout system.
+
+This milestone is the **Project MVP**.
+
+### Phase 4 — Advanced Canvas and Inspector
+
+**Goal:** approach a mature Obsidian-Canvas-like workflow after the normalized
+core is stable.
+
+**Candidate sequence:**
+
+1. deeper Inspector, Project/item canonical destinations, and exact focus;
+2. child-reference insertion through the same authoritative path;
+3. multi-select, copy/paste, keyboard shortcuts, helper lines, and z-order;
+4. groups/frames if real use justifies them;
+5. PDF first-page thumbnail and fuller Inspector/modal preview;
+6. webpage screenshot capture after a security review; no live iframe contract;
+7. large-map performance hardening and contextual zoom;
+8. Reading-order overlay and explicit order generation from marked edges;
+9. optional JSON Canvas import/export after internal semantics are stable.
+
+**Exit:** the same Project occurrences support mature spatial navigation,
+inspection, and presentation while Reading remains a consistent linear
+projection.
 
 This milestone is the **Project v1 product shape**.
 
-## Parallel platform and quality tracks
+## Save, history, and collaboration direction
 
-These tracks run alongside the product phases but do not replace them.
+The initial editor uses:
+
+```text
+local draft
++ pending normalized deltas
++ explicit Save
++ bounded autosave at idle and semantic operation boundaries
+```
+
+Drag/resize do not write per frame. Reference drop and creation are high-priority
+save operations. Undo/redo is client-session only.
+
+Permanent operation history is not required. A later coarse checkpoint/version
+feature may retain meaningful Project snapshots, but it is distinct from session
+undo and does not promise restoration to every intermediate drag or keystroke.
+
+Real-time collaboration is deferred. Stable IDs, optimistic revisions,
+`updated_by`, idempotent operation IDs, and explicit `409` conflicts are required
+now so a future collaboration project does not need to replace the data model.
+
+## Parallel platform and quality tracks
 
 ### Portability and Docker distribution
 
 Portability is a continuous constraint and a later release milestone, not a
 reason to delay Project indefinitely.
 
-From Phase 3 onward, each backend PR must identify:
+From Phase 3 onward, each backend PR identifies:
 
-- domain logic that is runtime-neutral;
+- runtime-neutral domain logic;
 - D1-specific query/runtime adapters;
-- R2 or managed-storage adapters;
+- R2 and managed-storage adapters;
 - Access/authentication adapters;
-- scheduled/background operation boundaries;
+- scheduled/background boundaries;
 - export and configuration assumptions.
 
-After Project Text stabilizes, perform a dedicated portability audit and build a
-reference Docker deployment using ordinary SQLite and explicit local/object
-storage adapters. This work may run in parallel with Map because it should not
-change Project semantics.
-
-A Docker deployment is successful only when the same migrations, identity,
-search, lifecycle, export, and Project contracts pass against the self-hosted
-runtime. It is not a separate product fork.
+After Project content and save contracts stabilize, perform a dedicated
+portability audit and build a reference Docker deployment using ordinary SQLite
+and explicit local/object-storage adapters. It is the same product, not a fork.
 
 ### Search performance
 
 Do not add FTS5 merely because source scanning is theoretically less scalable.
-Add it when representative Project discovery datasets or measured latency show
-a real need.
+Add it when representative Project sidebar datasets or measured latency show a
+real need.
 
-The preferred first optimization is a rebuildable SQLite FTS5 candidate backend
-that preserves the existing public ranking, internal specificity, lifecycle,
-resolver, and stable-target contracts. The same path must work in D1 and in a
-compatible self-hosted SQLite build.
+The preferred optimization remains a rebuildable SQLite FTS5 candidate backend
+that preserves existing ranking, lifecycle, resolver, and stable-target
+contracts in D1 and compatible self-hosted SQLite.
 
-### Permanent deletion
+### Permanent deletion and backlinks
 
-Permanent deletion remains disabled through the Project MVP. Once authoritative
-Project backlinks exist, a separate safety review may add conflict reporting,
+Permanent deletion remains disabled through Project MVP. `project_items` creates
+the natural reverse relation needed for future safety, but backlink counts and UI
+are not required for alpha or MVP.
+
+A later safety review may count distinct Projects, add conflict reporting,
 privileged authorization, final concurrency checks, and tombstone creation.
-This is not required for ordinary Project use and must never be bundled casually
-with Project insertion.
+Repeated occurrences in one Project must not be misrepresented as several
+Projects.
 
 ### Quality and operations
 
-Every schema phase must preserve:
+Every schema phase preserves:
 
 - fresh ordered migrations in host SQLite and D1/workerd;
 - focused contract tests and complete test/build gates;
 - complete export integrity;
 - no physical locator exposure;
 - no unauthorized cross-layer mutation;
-- isolated remote deployment requirements.
+- isolated remote deployment requirements;
+- an initial performance target around 200–300 nodes and 300–500 edges, with
+  stress testing around 500 nodes and 800 edges.
 
 ## Later capabilities
 
-Only after Project Text, Inspector, and the deterministic read model are stable
-should the roadmap consider:
+Only after Project MVP and the deterministic read model are stable should the
+roadmap consider:
 
+- final Reading topological/cycle tooling beyond the reserved schema;
 - revision pinning to real source history;
 - semantic or hybrid search;
-- read-only LLM insight over an explicit user-selected Project scope;
+- read-only LLM insight over explicit user-selected Project scope;
 - suggested connections that require user confirmation;
 - advanced consistency dashboards;
-- optional layout assistance;
-- multi-user authorization beyond the current small-group deployment model.
+- real-time multi-user collaboration;
+- advanced automatic layout and edge routing.
 
 LLM insight is not an experimental-record editor, not an autonomous agent, and
 not a hidden data-analysis subsystem. Any saved output becomes ordinary
-Project-owned content only through an explicit user action.
+Project-owned Markdown or attachment content only through explicit user action.
 
 ## Release milestones
 
 | Milestone | Required capabilities |
 |---|---|
 | Foundation complete | Source/blob lifecycle, registry, resolver, deep links, exact focus, deterministic search |
-| Project reference-workspace alpha | Project identity, authoritative reference insertion, backlinks, embedded discovery, reopen/remove behavior |
-| Project MVP | Alpha plus Project-owned Text/content, ordered references, attachments, complete export |
-| Project v1 | MVP plus Inspector, exact Project deep links, Map placements and edges |
-| Portable release | Project contracts also pass in a documented Docker/self-hosted deployment |
+| Project reference-workspace alpha | Project identity/save model, Map kernel, authoritative repeated-reference placement, reopen/remove behavior |
+| Map-first Project workspace alpha | Alpha plus Markdown/attachment creation and basic directed/undirected edges |
+| Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
+| Project v1 | MVP plus mature Inspector, advanced Canvas usability, previews, and performance hardening |
+| Portable release | Same Project contracts pass in a documented Docker/self-hosted deployment |
 | Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
 
 ## Immediate next PR order
 
 1. Finish review of Draft PR #130 as a reusable Project discovery surface.
-2. Implement **Project core backend and authoritative reference insertion**.
-3. Add the **Project workspace shell** and embed the existing discovery surface.
-4. Add **Project Text and Project-owned content**.
-5. Add **Inspector and enriched backlink/deep-link behavior**.
-6. Add **Map placements**, then **Project-local edges**.
-7. Run the dedicated **Docker portability implementation** after the Project
-   data/Text model stabilizes, potentially in parallel with Map.
-8. Introduce FTS5, semantic search, or LLM insight only in response to measured
-   needs and after the core Project workflow is complete.
+2. Freeze and implement **Project core schema, placements, edges, revisions, and
+   authoritative insertion**.
+3. Add the desktop **Map kernel**.
+4. Add the **reference sidebar and drag/drop placement**.
+5. Add **double-click Markdown and generic attachment insertion**.
+6. Add **basic Bezier directional edges**.
+7. Add the no-creation **Reading projection**.
+8. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+9. Add advanced **Inspector/Canvas/previews/performance**.
+10. Run the dedicated Docker portability implementation after Project content
+    and save semantics stabilize.
 
 ## Work that should not happen next
 
 The next phase should not be:
 
 - more standalone Search-page product polish;
-- migrating every existing search box before Project proves the shared profile
-  model;
+- a Text-first Project editor disconnected from Map occurrences;
+- a mega-editor that owns references, attachments, and Canvas nodes internally;
 - FTS5 synchronization before measured scale requires it;
-- Map before Project item and Text identity are implemented;
-- permanent-delete endpoints before backlinks and tombstone review;
+- permanent-delete endpoints before the later safety review;
+- live webpage iframe preview;
+- real-time collaboration before the single-user save/revision model is stable;
 - a Docker-specific fork that duplicates domain logic;
 - LLM features before the deterministic Project workflow is usable.
