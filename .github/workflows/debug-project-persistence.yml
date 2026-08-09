@@ -47,47 +47,47 @@ jobs:
           }''',
               ),
               (
-                  '''      WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
+                  '''    WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
             ORDER BY pi.created_sequence, pc.id
           `).bind(projectId),''',
-                  '''      WHERE pc.project_id = ?
+                  '''    WHERE pc.project_id = ?
               AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
             ORDER BY pi.created_sequence, pc.id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
               ),
               (
-                  '''      WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
+                  '''    WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
             ORDER BY pi.created_sequence, pca.project_content_id
           `).bind(projectId),''',
-                  '''      WHERE pc.project_id = ?
+                  '''    WHERE pc.project_id = ?
               AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
             ORDER BY pi.created_sequence, pca.project_content_id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
               ),
               (
-                  '''      SELECT * FROM project_items
+                  '''    SELECT * FROM project_items
             WHERE project_id = ? AND deleted_at IS NULL
             ORDER BY created_sequence, id
           `).bind(projectId),''',
-                  '''      SELECT * FROM project_items
+                  '''    SELECT * FROM project_items
             WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)
             ORDER BY created_sequence, id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
               ),
               (
-                  '''      WHERE pi.project_id = ? AND pi.deleted_at IS NULL
+                  '''    WHERE pi.project_id = ? AND pi.deleted_at IS NULL
             ORDER BY pi.created_sequence, pmp.id
           `).bind(projectId),''',
-                  '''      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+                  '''    WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
             ORDER BY pi.created_sequence, pmp.id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
               ),
               (
-                  '''      WHERE pe.project_id = ? AND pe.deleted_at IS NULL
+                  '''    WHERE pe.project_id = ? AND pe.deleted_at IS NULL
               AND source.deleted_at IS NULL AND target.deleted_at IS NULL
             ORDER BY pe.created_at, pe.id
           `).bind(projectId),''',
-                  '''      WHERE pe.project_id = ?
+                  '''    WHERE pe.project_id = ?
               AND (? = 1 OR (
                 pe.deleted_at IS NULL
                 AND source.deleted_at IS NULL
@@ -97,10 +97,10 @@ jobs:
           `).bind(projectId, includeDeleted ? 1 : 0),''',
               ),
               (
-                  '''      WHERE pi.project_id = ? AND pi.deleted_at IS NULL
+                  '''    WHERE pi.project_id = ? AND pi.deleted_at IS NULL
             ORDER BY rt.target_type, rt.target_id
           `).bind(projectId),''',
-                  '''      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+                  '''    WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
             ORDER BY rt.target_type, rt.target_id
           `).bind(projectId, includeDeleted ? 1 : 0),''',
               ),
