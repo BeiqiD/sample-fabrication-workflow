@@ -151,6 +151,68 @@ describe("Project persistence database guards", () => {
     database.close();
   });
 
+  it("rolls back owned-content restore when its occurrence is revision-exhausted", async () => {
+    const { database, db } = fixture();
+    await seedProject(db);
+    database.prepare(`
+      INSERT INTO project_contents (
+        id, project_id, content_type, markdown_source, format_version,
+        revision, last_mutation_id, created_by, updated_by, created_at, updated_at
+      ) VALUES (
+        'content-restore-exhausted', 'project-guard', 'markdown', '# restore', 1,
+        1, 'create-content-restore', ?, ?, ?, ?
+      )
+    `).run(ACTOR, ACTOR, NOW, NOW);
+    database.prepare(`
+      INSERT INTO project_items (
+        id, project_id, item_type, project_content_id, created_sequence,
+        revision, last_mutation_id, created_by, updated_by, created_at, updated_at,
+        deleted_at, deleted_by, deletion_operation_id
+      ) VALUES (
+        'item-restore-exhausted', 'project-guard', 'content',
+        'content-restore-exhausted', 1, ?, 'remove-item-restore',
+        ?, ?, ?, ?, ?, ?, 'remove-item-restore'
+      )
+    `).run(
+      MAX_PROJECT_SAFE_INTEGER,
+      ACTOR,
+      ACTOR,
+      NOW,
+      NOW,
+      "2026-08-09T23:10:00.000Z",
+      ACTOR,
+    );
+    database.prepare(`
+      UPDATE project_contents
+      SET deleted_at = ?, deleted_by = ?, deletion_operation_id = 'remove-content-restore',
+          revision = 2, last_mutation_id = 'remove-content-restore',
+          updated_by = ?, updated_at = ?
+      WHERE id = 'content-restore-exhausted'
+    `).run("2026-08-09T23:10:00.000Z", ACTOR, ACTOR, NOW);
+
+    await expect(restoreProjectItem(db, "project-guard", "item-restore-exhausted", {
+      expectedItemRevision: MAX_PROJECT_SAFE_INTEGER,
+      expectedContentRevision: 2,
+      operationId: "restore-exhausted",
+    }, ACTOR, "2026-08-09T23:11:00.000Z")).rejects.toBeDefined();
+
+    expect(database.prepare(`
+      SELECT deleted_at, revision
+      FROM project_contents WHERE id = 'content-restore-exhausted'
+    `).get()).toEqual({
+      deleted_at: "2026-08-09T23:10:00.000Z",
+      revision: 2,
+    });
+    expect(database.prepare(`
+      SELECT deleted_at, revision
+      FROM project_items WHERE id = 'item-restore-exhausted'
+    `).get()).toEqual({
+      deleted_at: "2026-08-09T23:10:00.000Z",
+      revision: MAX_PROJECT_SAFE_INTEGER,
+    });
+    database.close();
+  });
+
   it("does not restore a reference occurrence after its registry target is tombstoned", async () => {
     const { database, db } = fixture();
     await seedProject(db);
