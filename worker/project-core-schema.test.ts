@@ -1,5 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
+import {
+  MAX_PROJECT_MAP_COORDINATE_ABS,
+  MAX_PROJECT_MAP_NODE_SIZE,
+  MAX_PROJECT_MAP_Z_INDEX_ABS,
+  type ProjectMapGeometry,
+} from "../shared/project-types";
 import { referenceTestDatabase } from "./reference-test-support";
 
 const NOW = "2026-08-09T12:00:00.000Z";
@@ -76,13 +82,38 @@ function seedItem(database: DatabaseSync, input: {
   );
 }
 
-function seedPlacement(database: DatabaseSync, id: string, itemId: string, x = 0) {
+function seedPlacement(
+  database: DatabaseSync,
+  id: string,
+  itemId: string,
+  geometry: Partial<ProjectMapGeometry> = {},
+) {
+  const {
+    x = 0,
+    y = 0,
+    width = 320,
+    height = 180,
+    zIndex = 0,
+  } = geometry;
   database.prepare(`
     INSERT INTO project_map_placements (
       id, project_item_id, x, y, width, height, z_index,
       last_mutation_id, created_by, updated_by, created_at, updated_at
-    ) VALUES (?, ?, ?, 0, 320, 180, 0, ?, ?, ?, ?, ?)
-  `).run(id, itemId, x, `create-${id}`, ACTOR, ACTOR, NOW, NOW);
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    itemId,
+    x,
+    y,
+    width,
+    height,
+    zIndex,
+    `create-${id}`,
+    ACTOR,
+    ACTOR,
+    NOW,
+    NOW,
+  );
 }
 
 function seedEdge(database: DatabaseSync, input: {
@@ -131,6 +162,9 @@ describe("Project core schema", () => {
     expect([...columns(database, "projects")]).toEqual(expect.arrayContaining([
       "revision", "next_created_sequence", "last_mutation_id",
       "deleted_at", "deleted_by", "deletion_operation_id",
+    ]));
+    expect([...columns(database, "project_contents")]).toEqual(expect.arrayContaining([
+      "markdown_source", "attachment_caption", "attachment_source_url", "revision",
     ]));
     expect([...columns(database, "project_items")]).toEqual(expect.arrayContaining([
       "project_content_id", "reference_target_id", "created_sequence", "revision",
@@ -259,7 +293,139 @@ describe("Project core schema", () => {
     database.close();
   });
 
-  it("keeps one active placement per item and validates local edge endpoints", () => {
+  it("rejects revision rewind, pre-bump, and duplicate-version reuse on every revisioned table", () => {
+    const database = referenceTestDatabase();
+    seedProject(database, "project-a");
+    seedContent(database, { id: "content-a", projectId: "project-a", source: "first" });
+    seedReferenceTarget(database, "target-a");
+    seedItem(database, {
+      id: "item-a", projectId: "project-a", sequence: 1, contentId: "content-a",
+    });
+    seedItem(database, {
+      id: "item-b", projectId: "project-a", sequence: 2, referenceTargetId: "target-a",
+    });
+    seedItem(database, {
+      id: "item-lifecycle", projectId: "project-a", sequence: 3, referenceTargetId: "target-a",
+    });
+    seedPlacement(database, "placement-a", "item-a");
+    seedEdge(database, {
+      id: "edge-a",
+      projectId: "project-a",
+      sourceItemId: "item-a",
+      targetItemId: "item-b",
+      label: "first",
+    });
+
+    database.prepare(`
+      UPDATE projects
+      SET title = 'Project two', revision = 2,
+          last_mutation_id = 'project-2', updated_at = ?
+      WHERE id = 'project-a'
+    `).run(NOW);
+    database.prepare(`
+      UPDATE project_contents
+      SET markdown_source = 'second', revision = 2,
+          last_mutation_id = 'content-2', updated_at = ?
+      WHERE id = 'content-a'
+    `).run(NOW);
+    database.prepare(`
+      UPDATE project_items
+      SET deleted_at = ?, deleted_by = ?, deletion_operation_id = 'delete-item',
+          revision = 2, last_mutation_id = 'item-2', updated_at = ?
+      WHERE id = 'item-lifecycle'
+    `).run(NOW, ACTOR, NOW);
+    database.prepare(`
+      UPDATE project_map_placements
+      SET x = 10, revision = 2,
+          last_mutation_id = 'placement-2', updated_at = ?
+      WHERE id = 'placement-a'
+    `).run(NOW);
+    database.prepare(`
+      UPDATE project_edges
+      SET label = 'second', revision = 2,
+          last_mutation_id = 'edge-2', updated_at = ?
+      WHERE id = 'edge-a'
+    `).run(NOW);
+
+    const cases = [
+      {
+        table: "projects",
+        id: "project-a",
+        duplicateVersionSql: `
+          UPDATE projects
+          SET title = 'Project three', revision = 2,
+              last_mutation_id = 'project-repeat', updated_at = ?
+          WHERE id = 'project-a'
+        `,
+        duplicateVersionBindings: [NOW],
+      },
+      {
+        table: "project_contents",
+        id: "content-a",
+        duplicateVersionSql: `
+          UPDATE project_contents
+          SET markdown_source = 'third', revision = 2,
+              last_mutation_id = 'content-repeat', updated_at = ?
+          WHERE id = 'content-a'
+        `,
+        duplicateVersionBindings: [NOW],
+      },
+      {
+        table: "project_items",
+        id: "item-lifecycle",
+        duplicateVersionSql: `
+          UPDATE project_items
+          SET deleted_at = NULL, deleted_by = NULL, deletion_operation_id = NULL,
+              revision = 2, last_mutation_id = 'item-repeat', updated_at = ?
+          WHERE id = 'item-lifecycle'
+        `,
+        duplicateVersionBindings: [NOW],
+      },
+      {
+        table: "project_map_placements",
+        id: "placement-a",
+        duplicateVersionSql: `
+          UPDATE project_map_placements
+          SET x = 20, revision = 2,
+              last_mutation_id = 'placement-repeat', updated_at = ?
+          WHERE id = 'placement-a'
+        `,
+        duplicateVersionBindings: [NOW],
+      },
+      {
+        table: "project_edges",
+        id: "edge-a",
+        duplicateVersionSql: `
+          UPDATE project_edges
+          SET label = 'third', revision = 2,
+              last_mutation_id = 'edge-repeat', updated_at = ?
+          WHERE id = 'edge-a'
+        `,
+        duplicateVersionBindings: [NOW],
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      expect(() => database.prepare(`
+        UPDATE ${testCase.table}
+        SET revision = 1, last_mutation_id = ?
+        WHERE id = ?
+      `).run(`rewind-${testCase.id}`, testCase.id)).toThrow(/semantic update/);
+      expect(() => database.prepare(`
+        UPDATE ${testCase.table}
+        SET revision = 3, last_mutation_id = ?
+        WHERE id = ?
+      `).run(`pre-bump-${testCase.id}`, testCase.id)).toThrow(/semantic update/);
+      expect(() => database.prepare(testCase.duplicateVersionSql)
+        .run(...testCase.duplicateVersionBindings)).toThrow(/next revision/);
+      expect(database.prepare(`
+        SELECT revision FROM ${testCase.table} WHERE id = ?
+      `).get(testCase.id)).toEqual({ revision: 2 });
+    }
+    database.close();
+  });
+
+  it("allows zero or one placement per item and validates bounded Map geometry and local edges", () => {
     const database = referenceTestDatabase();
     seedProject(database, "project-a");
     seedProject(database, "project-b");
@@ -275,13 +441,34 @@ describe("Project core schema", () => {
     });
     seedPlacement(database, "placement-a1", "item-a1");
 
-    expect(() => seedPlacement(database, "placement-a1-copy", "item-a1", 200)).toThrow();
-    expect(() => database.prepare(`
-      INSERT INTO project_map_placements (
-        id, project_item_id, x, y, width, height, z_index,
-        last_mutation_id, created_by, updated_by, created_at, updated_at
-      ) VALUES ('bad-size', 'item-a2', 0, 0, 0, 100, 0, 'bad-size', ?, ?, ?, ?)
-    `).run(ACTOR, ACTOR, NOW, NOW)).toThrow();
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM project_map_placements
+      WHERE project_item_id = 'item-a2'
+    `).get()).toEqual({ count: 0 });
+    expect(() => seedPlacement(database, "placement-a1-copy", "item-a1", { x: 200 })).toThrow();
+    expect(() => seedPlacement(database, "infinite-coordinate", "item-a2", {
+      x: Number.POSITIVE_INFINITY,
+    })).toThrow();
+    expect(() => seedPlacement(database, "oversized-coordinate", "item-a2", {
+      x: MAX_PROJECT_MAP_COORDINATE_ABS + 1,
+    })).toThrow();
+    expect(() => seedPlacement(database, "zero-size", "item-a2", {
+      width: 0,
+    })).toThrow();
+    expect(() => seedPlacement(database, "oversized-node", "item-a2", {
+      width: MAX_PROJECT_MAP_NODE_SIZE + 1,
+    })).toThrow();
+    expect(() => seedPlacement(database, "oversized-z", "item-a2", {
+      zIndex: MAX_PROJECT_MAP_Z_INDEX_ABS + 1,
+    })).toThrow();
+    seedPlacement(database, "placement-a2", "item-a2", {
+      x: MAX_PROJECT_MAP_COORDINATE_ABS,
+      y: -MAX_PROJECT_MAP_COORDINATE_ABS,
+      width: MAX_PROJECT_MAP_NODE_SIZE,
+      height: MAX_PROJECT_MAP_NODE_SIZE,
+      zIndex: MAX_PROJECT_MAP_Z_INDEX_ABS,
+    });
 
     seedEdge(database, {
       id: "edge-a", projectId: "project-a", sourceItemId: "item-a1", targetItemId: "item-a2",
@@ -317,10 +504,17 @@ describe("Project core schema", () => {
     database.close();
   });
 
-  it("adds Project attachments to guarded blob retention and complete-export reachability", () => {
+  it("keeps attachment descriptions revisioned while intrinsic blob metadata stays immutable", () => {
     const database = referenceTestDatabase();
     seedProject(database, "project-a");
     seedContent(database, { id: "attachment-a", projectId: "project-a", type: "attachment" });
+    expect(() => database.prepare(`
+      INSERT INTO project_contents (
+        id, project_id, content_type, markdown_source, attachment_caption,
+        last_mutation_id, created_by, updated_by, created_at, updated_at
+      ) VALUES ('bad-markdown-caption', 'project-a', 'markdown', '# text', 'caption',
+        'bad-markdown-caption', ?, ?, ?, ?)
+    `).run(ACTOR, ACTOR, NOW, NOW)).toThrow();
     database.prepare(`
       INSERT INTO assets (
         id, r2_key, original_name, mime_type, byte_size,
@@ -359,11 +553,32 @@ describe("Project core schema", () => {
       SELECT state FROM blob_gc_ledger
       WHERE store_kind = 'r2' AND object_key = 'projects/asset-a.bin'
     `).get()).toBeUndefined();
+
+    expect(() => database.prepare(`
+      UPDATE project_contents
+      SET attachment_caption = 'Figure 1'
+      WHERE id = 'attachment-a'
+    `).run()).toThrow(/next revision/);
+    database.prepare(`
+      UPDATE project_contents
+      SET attachment_caption = 'Figure 1',
+          attachment_source_url = 'https://example.test/source',
+          revision = 2, last_mutation_id = 'describe-attachment-2', updated_at = ?
+      WHERE id = 'attachment-a'
+    `).run(NOW);
+    expect(database.prepare(`
+      SELECT attachment_caption, attachment_source_url, revision
+      FROM project_contents WHERE id = 'attachment-a'
+    `).get()).toEqual({
+      attachment_caption: "Figure 1",
+      attachment_source_url: "https://example.test/source",
+      revision: 2,
+    });
     expect(() => database.prepare(`
       UPDATE project_content_attachments
       SET original_name = 'renamed.bin'
       WHERE project_content_id = 'attachment-a'
-    `).run()).toThrow(/immutable/);
+    `).run()).toThrow(/intrinsic metadata is immutable/);
 
     seedContent(database, { id: "attachment-b", projectId: "project-a", type: "attachment" });
     database.prepare(`
