@@ -2,7 +2,8 @@
 
 Status: current product and architecture contract before Phase 3 schema work
 
-Last reviewed: 2026-08-09 after the Map-first Project interaction review
+Last reviewed: 2026-08-09 after the Map-first Project interaction review and the
+reusable Project discovery surface implemented in PR #130
 
 This document defines the durable Project identity and ownership model. The
 canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
@@ -336,9 +337,9 @@ the same authoritative insertion operation as the sidebar.
 
 ## Search and insertion
 
-The Phase 2C service is the common reference-discovery backend. Draft PR #130
-provides the Project-embeddable `ReferenceSearchSurface`. The current `/search`
-page is temporary integration scaffolding.
+The Phase 2C service is the common reference-discovery backend. PR #130
+implemented the Project-embeddable `ReferenceSearchSurface`. The current
+`/search` page is temporary integration scaffolding.
 
 Search returns only a stable `ReferenceTarget` intent. Project insertion always
 re-resolves at write time. A stale browser result cannot bypass lifecycle or
@@ -415,18 +416,17 @@ metadata.
 
 ## Roadmap
 
-The active sequence is:
+Phase 2C2 is complete in PR #130. The active sequence now begins with:
 
-1. Phase 2C2 reusable Project discovery surface;
-2. Phase 3A Project core schema, save/revision contract, creation sequence, Map
+1. Phase 3A Project core schema, save/revision contract, creation sequence, Map
    placement, basic-edge schema, authoritative insertion, and export;
-3. Phase 3B1 Map kernel;
-4. Phase 3B2 reference sidebar and drag/drop placement;
-5. Phase 3B3 Markdown and generic attachment creation;
-6. Phase 3B4 basic Bezier directional edges;
-7. Phase 3C no-creation insertion-order Reading projection;
-8. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
-9. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
+2. Phase 3B1 Map kernel;
+3. Phase 3B2 reference sidebar and drag/drop placement;
+4. Phase 3B3 Markdown and generic attachment creation;
+5. Phase 3B4 basic Bezier directional edges;
+6. Phase 3C no-creation insertion-order Reading projection;
+7. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
+8. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
    performance work.
 
 See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) for completion criteria,
