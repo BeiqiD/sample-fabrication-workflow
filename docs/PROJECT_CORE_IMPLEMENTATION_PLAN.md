@@ -1,9 +1,9 @@
 # Project core implementation plan
 
-Status: Phase 3A1 implementation contract
+Status: implemented Phase 3A1 contract from PR #131
 
 Last reviewed: 2026-08-09 against `v2/backend-foundation` at
-`5047ad78a2679a1ea6c050bcb2c945a980db283e`, after PR #130 and the first PR #131
+`5047ad78a2679a1ea6c050bcb2c945a980db283e`, after PR #130 and the final PR #131
 schema review
 
 This document translates the active Project roadmap into a reviewable backend
@@ -21,8 +21,7 @@ Phase 3A is split into two pull requests before Map UI work begins.
 
 ### Phase 3A1 — Project schema foundation
 
-The current pull request installs and verifies the normalized persistence
-kernel:
+PR #131 implemented and verified the normalized persistence kernel:
 
 - `projects`;
 - `project_contents`;
@@ -41,8 +40,8 @@ without exposing a partially implemented mutation surface.
 
 ### Phase 3A2 — authoritative Project persistence service
 
-The next pull request activates Project reads and writes on top of the frozen
-schema:
+Phase 3A2 is the immediate next pull request and activates Project reads and
+writes on top of the frozen schema:
 
 - Project list, create, open, rename, recoverable delete, and restore;
 - one Project snapshot/read model for Map and Reading;
@@ -306,7 +305,7 @@ foundation and the general test/build stages.
 
 ## Implementation order
 
-The implementation order for this pull request is fixed:
+The implementation order used by PR #131 was:
 
 1. add this implementation contract;
 2. add shared Project constants and validators;
@@ -318,12 +317,12 @@ The implementation order for this pull request is fixed:
 7. add the dedicated package script and CI status;
 8. run host validation, D1/workerd migration verification, the full test suite,
    and the production build;
-9. keep the pull request Draft until the exact head passes all gates and a review
-   confirms that no Project write route was introduced.
+9. keep PR #131 Draft until the exact head passed all gates and review confirmed
+   that no Project write route was introduced.
 
 ## Phase 3A1 definition of done
 
-The pull request is complete when:
+PR #131 satisfied the following definition of done:
 
 - all six tables migrate on fresh SQLite and Wrangler local D1;
 - malformed ownership, target, geometry, edge, lifecycle, revision, or blob rows
@@ -337,4 +336,4 @@ The pull request is complete when:
 - `pre-pr/project-foundation`, general tests, and production build pass on the
   exact pull-request head.
 
-Only then should Phase 3A2 begin.
+Phase 3A2 is therefore the immediate next PR.
