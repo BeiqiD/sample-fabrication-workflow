@@ -182,7 +182,7 @@ jobs:
         run: exit 1
 
   align_reading_order:
-    if: github.ref == 'refs/heads/agent/global-reference-search-ui' && github.actor != 'github-actions[bot]'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'agent/global-reference-search-ui' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
