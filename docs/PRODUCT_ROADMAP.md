@@ -3,7 +3,8 @@
 Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-08-09 after the reference/search foundation through PR #129,
-the reusable discovery work in Draft PR #130, and the Map-first Project review
+the reusable Project discovery surface implemented in PR #130, and the Map-first
+Project review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -145,31 +146,23 @@ The following prerequisites are complete on `v2/backend-foundation`:
 - lifecycle-aware canonical Reference URLs;
 - exact Step, Comment, attachment, execution-image, and metrology source focus;
 - deterministic read-only reference search with portable candidate backend,
-  stable ranking, lifecycle filtering, and real Worker/D1 verification.
+  stable ranking, lifecycle filtering, and real Worker/D1 verification;
+- reusable `ReferenceSearchSurface`, stable `ReferenceTarget` selection,
+  controlled request/filter state, and the temporary `/search` integration
+  browser implemented in PR #130.
 
-These foundation phases are closed. They should receive correctness fixes but
-must not continue expanding into independent product areas.
-
-### Active PR
-
-Draft PR #130 provides the reusable `ReferenceSearchSurface`, stable
-`ReferenceTarget` selection contract, request lifecycle, filters, result
-presentation, and a temporary route wrapper.
-
-Its durable output is the sidebar/picker capability used by the Map-first
-Project workspace. The standalone page and navigation item are temporary
-scaffolding.
-
-PR #130 is the final planned foundation/UI-enabling PR before Project data and
-Canvas behavior begin.
+These foundation and discovery-enabling phases are closed. They should receive
+correctness fixes but must not continue expanding into independent product areas.
+The active implementation target is now the Project core schema and Canvas
+persistence contract.
 
 ## Active implementation roadmap
 
 ### Phase 2C2 — reusable Project discovery surface
 
-**Goal:** close the search-to-Project UI boundary without creating Project data.
+**Status:** complete in PR #130.
 
-**Scope:**
+**Delivered:**
 
 - reusable browse/select search surface;
 - stable target selection output;
@@ -178,8 +171,8 @@ Canvas behavior begin.
 - temporary `/search` integration harness;
 - no registration, Project write, or `Add to project` success state.
 
-**Exit:** Draft PR #130 is reviewed and merged. Work moves directly to Project
-schema and Canvas contracts, not additional standalone Search features.
+**Exit:** complete. Work moves directly to Project schema and Canvas contracts,
+not additional standalone Search features.
 
 ### Phase 3A — Project core schema, persistence, and authoritative insertion
 
@@ -467,7 +460,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 | Milestone | Required capabilities |
 |---|---|
-| Foundation complete | Source/blob lifecycle, registry, resolver, deep links, exact focus, deterministic search |
+| Foundation complete | Source/blob lifecycle, registry, resolver, deep links, exact focus, deterministic search, reusable Project discovery surface |
 | Project reference-workspace alpha | Project identity/save model, Map kernel, authoritative repeated-reference placement, reopen/remove behavior |
 | Map-first Project workspace alpha | Alpha plus Markdown/attachment creation and basic directed/undirected edges |
 | Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
@@ -477,18 +470,17 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Finish review of Draft PR #130 as a reusable Project discovery surface.
-2. Freeze and implement **Project core schema, placements, edges, revisions, and
-   authoritative insertion**.
-3. Add the desktop **Map kernel**.
-4. Add the **reference sidebar and drag/drop placement**.
-5. Add **double-click Markdown and generic attachment insertion**.
-6. Add **basic Bezier directional edges**.
-7. Add the no-creation **Reading projection**.
-8. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
-9. Add advanced **Inspector/Canvas/previews/performance**.
-10. Run the dedicated Docker portability implementation after Project content
-    and save semantics stabilize.
+1. Freeze and implement **Project core schema, Map placements, edges, revisions,
+   authoritative insertion, and complete export**.
+2. Add the desktop **Map kernel**.
+3. Add the **reference sidebar and drag/drop placement**.
+4. Add **double-click Markdown and generic attachment insertion**.
+5. Add **basic Bezier directional edges**.
+6. Add the no-creation **Reading projection**.
+7. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+8. Add advanced **Inspector/Canvas/previews/performance**.
+9. Run the dedicated Docker portability implementation after Project content
+   and save semantics stabilize.
 
 ## Work that should not happen next
 
