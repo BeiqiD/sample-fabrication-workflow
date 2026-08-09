@@ -21,12 +21,13 @@
     "test:blob-lifecycle": "vitest run worker/blob-reachability.test.ts worker/blob-gc.test.ts worker/blob-export.test.ts worker/permanent-delete-protection.test.ts worker/blob-lifecycle-review-fixes.test.ts worker/blob-lifecycle-migration-safety.test.ts worker/blob-lifecycle-legacy-managed-migration.test.ts",
     "test:reference-mounted": "vitest run --config vitest.mounted.config.ts",
     "test:reference-foundation": "vitest run worker/reference-target-schema.test.ts worker/reference-resolver.test.ts worker/reference-registry.test.ts worker/reference-routes.test.ts worker/reference-media-route.test.ts worker/reference-foundation-consistency.test.ts worker/reference-destinations.test.ts worker/reference-search.test.ts worker/reference-search-boundaries.test.ts worker/reference-search-routes.test.ts worker/reference-search-consistency.test.ts src/reference-page.test.ts src/reference-search-page.test.ts src/lib/reference-search-ui.test.ts src/reference-source-focus.test.ts src/reference-source-integration.test.ts worker/media-response.test.ts && npm run test:reference-mounted",
+    "test:project-foundation": "vitest run worker/project-core-schema.test.ts worker/project-foundation-routes.test.ts shared/project-types.test.ts",
     "verify:d1-migrations": "node scripts/verify-d1-migrations.mjs",
     "verify:reference-worker": "node scripts/verify-reference-worker.mjs",
     "verify:reference-search-worker": "node scripts/verify-reference-search-worker.mjs",
     "verify:blob-lifecycle": "npm run test:blob-lifecycle && npm run verify:d1-migrations",
     "verify:reference-foundation": "npm run test:reference-foundation && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker",
-    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy"
+    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy"
   },
   "dependencies": {
     "hono": "^4.12.31",
