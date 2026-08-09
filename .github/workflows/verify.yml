@@ -195,17 +195,9 @@ jobs:
       - name: Execute staged document alignment
         shell: bash
         run: |
-          python - <<'PYRUN'
-          from pathlib import Path
-          import textwrap
-
-          workflow = Path('.github/workflows/simplify-project-reading-order.yml').read_text(encoding='utf-8')
-          marker = "          python - <<'PY'\n"
-          start = workflow.index(marker) + len(marker)
-          end = workflow.index("\n          PY\n", start)
-          script = textwrap.dedent(workflow[start:end])
-          exec(compile(script, 'simplify-project-reading-order', 'exec'))
-          PYRUN
+          sed -n "/python - <<'PY'/,/^          PY$/p" .github/workflows/simplify-project-reading-order.yml \
+            | sed '1d;$d;s/^          //' > /tmp/simplify-project-reading-order.py
+          python /tmp/simplify-project-reading-order.py
 
       - name: Restore ordinary verification workflow
         shell: bash
