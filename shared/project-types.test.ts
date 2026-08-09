@@ -6,9 +6,12 @@ import {
   isProjectEdgeShape,
   isProjectItemType,
   isProjectMapGeometry,
+  isProjectNonNegativeSafeInteger,
+  isProjectPositiveSafeInteger,
   MAX_PROJECT_MAP_COORDINATE_ABS,
   MAX_PROJECT_MAP_NODE_SIZE,
   MAX_PROJECT_MAP_Z_INDEX_ABS,
+  MAX_PROJECT_SAFE_INTEGER,
   PROJECT_CONTENT_TYPES,
   PROJECT_EDGE_HANDLES,
   PROJECT_EDGE_MARKERS,
@@ -27,6 +30,20 @@ describe("Project shared contract", () => {
     expect(PROJECT_EDGE_MARKERS.every(isProjectEdgeMarker)).toBe(true);
     expect(isProjectEdgeHandle("center")).toBe(false);
     expect(isProjectEdgeMarker("circle")).toBe(false);
+  });
+
+  it("keeps persisted counters inside the JavaScript safe-integer domain", () => {
+    expect(MAX_PROJECT_SAFE_INTEGER).toBe(9_007_199_254_740_991);
+    expect(isProjectPositiveSafeInteger(1)).toBe(true);
+    expect(isProjectPositiveSafeInteger(MAX_PROJECT_SAFE_INTEGER)).toBe(true);
+    expect(isProjectPositiveSafeInteger(0)).toBe(false);
+    expect(isProjectPositiveSafeInteger(1.5)).toBe(false);
+    expect(isProjectPositiveSafeInteger(Number.POSITIVE_INFINITY)).toBe(false);
+    expect(isProjectPositiveSafeInteger(MAX_PROJECT_SAFE_INTEGER + 1)).toBe(false);
+    expect(isProjectNonNegativeSafeInteger(0)).toBe(true);
+    expect(isProjectNonNegativeSafeInteger(MAX_PROJECT_SAFE_INTEGER)).toBe(true);
+    expect(isProjectNonNegativeSafeInteger(-1)).toBe(false);
+    expect(isProjectNonNegativeSafeInteger(Number.NaN)).toBe(false);
   });
 
   it("accepts only finite, bounded, positive Map geometry", () => {
