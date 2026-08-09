@@ -4,7 +4,7 @@ Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-08-09 after the reference/search foundation through PR #129,
 the reusable Project discovery surface implemented in PR #130, the Map-first
-Project review, and the Phase 3A1/3A2 split reviewed in Draft PR #131
+Project review, and the Phase 3A1 schema/export foundation implemented in PR #131
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -151,12 +151,15 @@ The following prerequisites are complete on `v2/backend-foundation`:
   stable ranking, lifecycle filtering, and real Worker/D1 verification;
 - reusable `ReferenceSearchSurface`, stable `ReferenceTarget` selection,
   controlled request/filter state, and the temporary `/search` integration
-  browser implemented in PR #130.
+  browser implemented in PR #130;
+- normalized Project schema, bounded placement and safe-integer contracts,
+  attachment/blob retention, and complete export schema version 4 implemented
+  in PR #131.
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-The active implementation target is now the Project core schema and Canvas
-persistence contract.
+The active implementation target is now the Phase 3A2 authoritative Project
+persistence service.
 
 ## Active implementation roadmap
 
@@ -186,7 +189,7 @@ Phase 3A is deliberately split at the schema/service boundary.
 
 #### Phase 3A1 — schema, export, and blob-safety foundation
 
-**Status:** current Draft PR #131.
+**Status:** implemented in PR #131.
 
 **Scope:**
 
@@ -214,7 +217,7 @@ are exposed.
 
 #### Phase 3A2 — authoritative Project persistence service
 
-**Status:** immediate next PR after Phase 3A1 is reviewed and merged.
+**Status:** immediate next PR.
 
 **Scope:**
 
@@ -503,19 +506,17 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete review and merge **Phase 3A1: Project schema, bounded placements,
-   monotonic revisions, attachment/blob safety, and complete export**.
-2. Implement **Phase 3A2: authoritative Project reads/writes, rollback-safe item
+1. Implement **Phase 3A2: authoritative Project reads/writes, rollback-safe item
    plus placement insertion, idempotency, and conflict handling**.
-3. Add the desktop **Map kernel**.
-4. Add the **reference sidebar and drag/drop placement**.
-5. Add **double-click Markdown and generic attachment insertion**.
-6. Add **basic Bezier directional edges**.
-7. Add the no-creation **Reading projection**.
-8. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
-9. Add advanced **Inspector/Canvas/previews/performance**.
-10. Run the dedicated Docker portability implementation after Project content
-    and save semantics stabilize.
+2. Add the desktop **Map kernel**.
+3. Add the **reference sidebar and drag/drop placement**.
+4. Add **double-click Markdown and generic attachment insertion**.
+5. Add **basic Bezier directional edges**.
+6. Add the no-creation **Reading projection**.
+7. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+8. Add advanced **Inspector/Canvas/previews/performance**.
+9. Run the dedicated Docker portability implementation after Project content
+   and save semantics stabilize.
 
 ## Work that should not happen next
 
