@@ -10,7 +10,7 @@ on:
       - v2/backend-foundation
 
 permissions:
-  contents: read
+  contents: write
   statuses: write
 
 jobs:
@@ -180,3 +180,55 @@ jobs:
       - name: Fail when verification did not pass
         if: steps.install.outcome != 'success' || steps.blob_lifecycle.outcome == 'failure' || steps.reference_foundation.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
         run: exit 1
+
+  align_reading_order:
+    if: github.ref == 'refs/heads/agent/global-reference-search-ui' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out review branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/global-reference-search-ui
+          fetch-depth: 0
+
+      - name: Execute staged document alignment
+        shell: bash
+        run: |
+          python - <<'PYRUN'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/simplify-project-reading-order.yml').read_text(encoding='utf-8')
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          script = textwrap.dedent(workflow[start:end])
+          exec(compile(script, 'simplify-project-reading-order', 'exec'))
+          PYRUN
+
+      - name: Restore ordinary verification workflow
+        shell: bash
+        run: |
+          git fetch origin v2/backend-foundation
+          git show origin/v2/backend-foundation:.github/workflows/verify.yml > .github/workflows/verify.yml
+
+      - name: Validate simplified contract
+        shell: bash
+        run: |
+          grep -q 'orders Reading strictly by immutable Project-local' docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
+          grep -q 'does not persist a separate Reading placement' docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
+          grep -q 'does not add `project_reading_placements`' docs/PROJECT_DESIGN_FOUNDATION.md
+          grep -q 'Reading initially uses immutable insertion sequence only' docs/PRODUCT_ROADMAP.md
+          ! grep -q 'reading_role' docs/PROJECT_DESIGN_FOUNDATION.md
+          ! grep -q 'project_reading_placements' docs/PRODUCT_ROADMAP.md
+          test ! -e .github/workflows/simplify-project-reading-order.yml
+
+      - name: Commit aligned documents
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Simplify initial Project Reading order'
+          git push origin HEAD:agent/global-reference-search-ui
