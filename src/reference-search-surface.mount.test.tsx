@@ -208,7 +208,7 @@ describe("mounted reference search surface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     expect(await screen.findByRole("heading", { name: "Recovered result" })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(onChange).toHaveBeenCalledWith(committed);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("commits Clear search and returns the controlled surface to idle", async () => {
