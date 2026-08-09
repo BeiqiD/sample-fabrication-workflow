@@ -16,6 +16,11 @@ export type ProjectEdgeMarker = typeof PROJECT_EDGE_MARKERS[number];
 export const MAX_PROJECT_ID_LENGTH = 256;
 export const MAX_PROJECT_TITLE_LENGTH = 200;
 export const MAX_PROJECT_EDGE_LABEL_LENGTH = 200;
+export const MAX_PROJECT_ATTACHMENT_CAPTION_LENGTH = 2_000;
+export const MAX_PROJECT_ATTACHMENT_SOURCE_URL_LENGTH = 2_048;
+export const MAX_PROJECT_MAP_COORDINATE_ABS = 1_000_000;
+export const MAX_PROJECT_MAP_NODE_SIZE = 100_000;
+export const MAX_PROJECT_MAP_Z_INDEX_ABS = 1_000_000;
 
 export interface ProjectMapGeometry {
   x: number;
@@ -64,8 +69,13 @@ export function isProjectMapGeometry(value: unknown): value is ProjectMapGeometr
     && Number.isFinite(candidate.width)
     && Number.isFinite(candidate.height)
     && Number.isInteger(candidate.zIndex)
+    && Math.abs(candidate.x!) <= MAX_PROJECT_MAP_COORDINATE_ABS
+    && Math.abs(candidate.y!) <= MAX_PROJECT_MAP_COORDINATE_ABS
     && candidate.width! > 0
-    && candidate.height! > 0;
+    && candidate.width! <= MAX_PROJECT_MAP_NODE_SIZE
+    && candidate.height! > 0
+    && candidate.height! <= MAX_PROJECT_MAP_NODE_SIZE
+    && Math.abs(candidate.zIndex!) <= MAX_PROJECT_MAP_Z_INDEX_ABS;
 }
 
 export function isProjectEdgeShape(value: unknown): value is ProjectEdgeShape {
