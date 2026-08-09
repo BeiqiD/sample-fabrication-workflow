@@ -36,6 +36,13 @@ CREATE TABLE project_contents (
   project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
   content_type TEXT NOT NULL CHECK (content_type IN ('markdown', 'attachment')),
   markdown_source TEXT,
+  attachment_caption TEXT
+    CHECK (attachment_caption IS NULL OR length(attachment_caption) <= 2000),
+  attachment_source_url TEXT
+    CHECK (
+      attachment_source_url IS NULL
+      OR length(trim(attachment_source_url)) BETWEEN 1 AND 2048
+    ),
   format_version INTEGER NOT NULL DEFAULT 1 CHECK (format_version >= 1),
   revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
@@ -47,7 +54,12 @@ CREATE TABLE project_contents (
   deleted_by TEXT,
   deletion_operation_id TEXT,
   CHECK (
-    (content_type = 'markdown' AND markdown_source IS NOT NULL)
+    (
+      content_type = 'markdown'
+      AND markdown_source IS NOT NULL
+      AND attachment_caption IS NULL
+      AND attachment_source_url IS NULL
+    )
     OR (content_type = 'attachment' AND markdown_source IS NULL)
   ),
   CHECK (
@@ -63,8 +75,9 @@ CREATE TABLE project_contents (
   )
 );
 
--- Attachment metadata is a one-to-one subtype of project_contents. The content
--- ID is the stable attachment identity; no second occurrence ID is introduced.
+-- Intrinsic file metadata is a one-to-one subtype of project_contents. The
+-- content ID is the stable attachment identity; editable caption/source URL and
+-- lifecycle state live on the revisioned parent content row.
 CREATE TABLE project_content_attachments (
   project_content_id TEXT PRIMARY KEY
     REFERENCES project_contents(id) ON DELETE RESTRICT,
@@ -113,14 +126,28 @@ CREATE TABLE project_items (
   UNIQUE(project_id, created_sequence)
 );
 
+-- SQLite owns zero-or-one placement per item. Phase 3A2 must create an item and
+-- its placement in one authoritative transaction so no committed active item is
+-- left without the product-required placement.
 CREATE TABLE project_map_placements (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 1 AND 256),
   project_item_id TEXT NOT NULL UNIQUE REFERENCES project_items(id) ON DELETE RESTRICT,
-  x REAL NOT NULL CHECK (typeof(x) IN ('integer', 'real')),
-  y REAL NOT NULL CHECK (typeof(y) IN ('integer', 'real')),
-  width REAL NOT NULL CHECK (typeof(width) IN ('integer', 'real') AND width > 0),
-  height REAL NOT NULL CHECK (typeof(height) IN ('integer', 'real') AND height > 0),
-  z_index INTEGER NOT NULL DEFAULT 0 CHECK (typeof(z_index) = 'integer'),
+  -- These bounds must match shared/project-types.ts.
+  x REAL NOT NULL CHECK (
+    typeof(x) IN ('integer', 'real') AND x BETWEEN -1000000 AND 1000000
+  ),
+  y REAL NOT NULL CHECK (
+    typeof(y) IN ('integer', 'real') AND y BETWEEN -1000000 AND 1000000
+  ),
+  width REAL NOT NULL CHECK (
+    typeof(width) IN ('integer', 'real') AND width > 0 AND width <= 100000
+  ),
+  height REAL NOT NULL CHECK (
+    typeof(height) IN ('integer', 'real') AND height > 0 AND height <= 100000
+  ),
+  z_index INTEGER NOT NULL DEFAULT 0 CHECK (
+    typeof(z_index) = 'integer' AND z_index BETWEEN -1000000 AND 1000000
+  ),
   revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
   last_mutation_id TEXT NOT NULL CHECK (length(last_mutation_id) BETWEEN 1 AND 256),
   created_by TEXT NOT NULL CHECK (length(trim(created_by)) BETWEEN 1 AND 320),
@@ -230,7 +257,7 @@ END;
 CREATE TRIGGER project_content_attachments_reject_update
 BEFORE UPDATE ON project_content_attachments
 BEGIN
-  SELECT RAISE(ABORT, 'project attachment identity is immutable');
+  SELECT RAISE(ABORT, 'project attachment intrinsic metadata is immutable');
 END;
 
 CREATE TRIGGER project_items_reject_identity_update
@@ -272,16 +299,27 @@ BEGIN
 END;
 
 -- Every semantic update advances exactly one row revision and carries a fresh
--- idempotency key. Phase 3A2 will enforce the corresponding expectedRevision
--- comparison at the authoritative service boundary.
+-- idempotency key. Revision metadata cannot be pre-bumped, rewound, or changed
+-- independently of a semantic field. Phase 3A2 will enforce the corresponding
+-- expectedRevision comparison at the authoritative service boundary.
 CREATE TRIGGER projects_require_revisioned_update
 BEFORE UPDATE ON projects
-WHEN OLD.title IS NOT NEW.title
+WHEN OLD.revision IS NOT NEW.revision
+  OR OLD.last_mutation_id IS NOT NEW.last_mutation_id
+  OR OLD.title IS NOT NEW.title
   OR OLD.next_created_sequence IS NOT NEW.next_created_sequence
   OR OLD.deleted_at IS NOT NEW.deleted_at
   OR OLD.deleted_by IS NOT NEW.deleted_by
   OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
 BEGIN
+  SELECT RAISE(ABORT, 'project revision metadata requires a semantic update')
+  WHERE NOT (
+    OLD.title IS NOT NEW.title
+    OR OLD.next_created_sequence IS NOT NEW.next_created_sequence
+    OR OLD.deleted_at IS NOT NEW.deleted_at
+    OR OLD.deleted_by IS NOT NEW.deleted_by
+    OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
+  );
   SELECT RAISE(ABORT, 'project update requires the next revision')
   WHERE NEW.revision <> OLD.revision + 1;
   SELECT RAISE(ABORT, 'project update requires a fresh mutation id')
@@ -292,12 +330,26 @@ END;
 
 CREATE TRIGGER project_contents_require_revisioned_update
 BEFORE UPDATE ON project_contents
-WHEN OLD.markdown_source IS NOT NEW.markdown_source
+WHEN OLD.revision IS NOT NEW.revision
+  OR OLD.last_mutation_id IS NOT NEW.last_mutation_id
+  OR OLD.markdown_source IS NOT NEW.markdown_source
+  OR OLD.attachment_caption IS NOT NEW.attachment_caption
+  OR OLD.attachment_source_url IS NOT NEW.attachment_source_url
   OR OLD.format_version IS NOT NEW.format_version
   OR OLD.deleted_at IS NOT NEW.deleted_at
   OR OLD.deleted_by IS NOT NEW.deleted_by
   OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
 BEGIN
+  SELECT RAISE(ABORT, 'project content revision metadata requires a semantic update')
+  WHERE NOT (
+    OLD.markdown_source IS NOT NEW.markdown_source
+    OR OLD.attachment_caption IS NOT NEW.attachment_caption
+    OR OLD.attachment_source_url IS NOT NEW.attachment_source_url
+    OR OLD.format_version IS NOT NEW.format_version
+    OR OLD.deleted_at IS NOT NEW.deleted_at
+    OR OLD.deleted_by IS NOT NEW.deleted_by
+    OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
+  );
   SELECT RAISE(ABORT, 'project content update requires the next revision')
   WHERE NEW.revision <> OLD.revision + 1;
   SELECT RAISE(ABORT, 'project content update requires a fresh mutation id')
@@ -306,10 +358,18 @@ END;
 
 CREATE TRIGGER project_items_require_revisioned_update
 BEFORE UPDATE ON project_items
-WHEN OLD.deleted_at IS NOT NEW.deleted_at
+WHEN OLD.revision IS NOT NEW.revision
+  OR OLD.last_mutation_id IS NOT NEW.last_mutation_id
+  OR OLD.deleted_at IS NOT NEW.deleted_at
   OR OLD.deleted_by IS NOT NEW.deleted_by
   OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
 BEGIN
+  SELECT RAISE(ABORT, 'project item revision metadata requires a semantic update')
+  WHERE NOT (
+    OLD.deleted_at IS NOT NEW.deleted_at
+    OR OLD.deleted_by IS NOT NEW.deleted_by
+    OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
+  );
   SELECT RAISE(ABORT, 'project item update requires the next revision')
   WHERE NEW.revision <> OLD.revision + 1;
   SELECT RAISE(ABORT, 'project item update requires a fresh mutation id')
@@ -318,12 +378,22 @@ END;
 
 CREATE TRIGGER project_map_placements_require_revisioned_update
 BEFORE UPDATE ON project_map_placements
-WHEN OLD.x IS NOT NEW.x
+WHEN OLD.revision IS NOT NEW.revision
+  OR OLD.last_mutation_id IS NOT NEW.last_mutation_id
+  OR OLD.x IS NOT NEW.x
   OR OLD.y IS NOT NEW.y
   OR OLD.width IS NOT NEW.width
   OR OLD.height IS NOT NEW.height
   OR OLD.z_index IS NOT NEW.z_index
 BEGIN
+  SELECT RAISE(ABORT, 'project placement revision metadata requires a semantic update')
+  WHERE NOT (
+    OLD.x IS NOT NEW.x
+    OR OLD.y IS NOT NEW.y
+    OR OLD.width IS NOT NEW.width
+    OR OLD.height IS NOT NEW.height
+    OR OLD.z_index IS NOT NEW.z_index
+  );
   SELECT RAISE(ABORT, 'project placement update requires the next revision')
   WHERE NEW.revision <> OLD.revision + 1;
   SELECT RAISE(ABORT, 'project placement update requires a fresh mutation id')
@@ -332,13 +402,24 @@ END;
 
 CREATE TRIGGER project_edges_require_revisioned_update
 BEFORE UPDATE ON project_edges
-WHEN OLD.marker_start IS NOT NEW.marker_start
+WHEN OLD.revision IS NOT NEW.revision
+  OR OLD.last_mutation_id IS NOT NEW.last_mutation_id
+  OR OLD.marker_start IS NOT NEW.marker_start
   OR OLD.marker_end IS NOT NEW.marker_end
   OR OLD.label IS NOT NEW.label
   OR OLD.deleted_at IS NOT NEW.deleted_at
   OR OLD.deleted_by IS NOT NEW.deleted_by
   OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
 BEGIN
+  SELECT RAISE(ABORT, 'project edge revision metadata requires a semantic update')
+  WHERE NOT (
+    OLD.marker_start IS NOT NEW.marker_start
+    OR OLD.marker_end IS NOT NEW.marker_end
+    OR OLD.label IS NOT NEW.label
+    OR OLD.deleted_at IS NOT NEW.deleted_at
+    OR OLD.deleted_by IS NOT NEW.deleted_by
+    OR OLD.deletion_operation_id IS NOT NEW.deletion_operation_id
+  );
   SELECT RAISE(ABORT, 'project edge update requires the next revision')
   WHERE NEW.revision <> OLD.revision + 1;
   SELECT RAISE(ABORT, 'project edge update requires a fresh mutation id')
