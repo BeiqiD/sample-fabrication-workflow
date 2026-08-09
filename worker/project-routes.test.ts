@@ -139,7 +139,7 @@ describe("Project persistence routes", () => {
     database.close();
   });
 
-  it("binds an existing asset and streams it through stable Project/content identity", async () => {
+  it("binds an existing asset and streams it only while its occurrence is active", async () => {
     const { app, env, database, bytes } = fixture();
     seedRouteAsset(database);
     await jsonRequest(app, env, "/projects", "POST", {
@@ -171,15 +171,30 @@ describe("Project persistence routes", () => {
     );
     expect(JSON.stringify(attachmentBody)).not.toContain("projects/route-asset.bin");
 
-    const file = await app.request(
-      "/projects/project-media/contents/content-media/file",
-      {},
-      env,
-    );
+    const filePath = "/projects/project-media/contents/content-media/file";
+    const file = await app.request(filePath, {}, env);
     expect(file.status).toBe(200);
     expect(file.headers.get("content-disposition")).toContain("attachment");
     expect(file.headers.get("cache-control")).toBe("private, no-store");
     expect(new Uint8Array(await file.arrayBuffer())).toEqual(bytes);
+
+    const removed = await jsonRequest(
+      app,
+      env,
+      "/projects/project-media/items/item-media",
+      "DELETE",
+      {
+        expectedItemRevision: 1,
+        expectedContentRevision: 1,
+        operationId: "remove-item-media",
+      },
+    );
+    expect(removed.status).toBe(200);
+    expect((await removed.json<Record<string, unknown>>())).toMatchObject({
+      item: { id: "item-media", revision: 2 },
+      content: { id: "content-media", revision: 2 },
+    });
+    expect((await app.request(filePath, {}, env)).status).toBe(404);
 
     const missing = await app.request(
       "/projects/project-media/contents/missing-content/file",
