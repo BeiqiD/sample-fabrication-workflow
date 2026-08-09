@@ -108,4 +108,30 @@ describe("mounted global Search page", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it("retries an unchanged query without inserting a duplicate history entry", async () => {
+    render(<MemoryRouter
+      initialEntries={["/before", "/search?q=retry"]}
+      initialIndex={1}
+    >
+      <Routes>
+        <Route path="/before" element={<h1>Before route</h1>} />
+        <Route path="/search" element={<>
+          <SearchPage />
+          <HistoryProbe />
+        </>} />
+      </Routes>
+    </MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "retry result" })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(screen.getByLabelText("Current search URL").textContent)
+      .toBe("/search?q=retry");
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByRole("heading", { name: "Before route" })).toBeTruthy();
+  });
 });
