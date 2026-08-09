@@ -2,7 +2,7 @@
 
 Status: implemented by the blob-lifecycle safety slice; remote activation requires the exact merged integration head to pass the v3 deployment gate
 
-Last reviewed: 2026-08-08 against PR #123
+Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
 
 This document records how the normative
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) is implemented in the
@@ -10,6 +10,8 @@ repository. The contract owns the invariants; this document owns the concrete
 schema, module, route, test, and deployment boundaries. Operational activation
 and incident handling are defined in
 [blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md).
+Current product sequencing is defined only in
+[the product roadmap](./PRODUCT_ROADMAP.md).
 
 ## Purpose
 
@@ -19,9 +21,8 @@ references possible, but also made provider-byte retention a graph problem:
 hidden, unfinished, retryable, archived, and shared sources may all continue to
 protect the same physical bytes.
 
-The blob-lifecycle slice turns that graph into executable policy before
-`reference_targets`, backlinks, Project-owned attachments, Text, or Map add more
-edges.
+The blob-lifecycle slice turns that graph into executable policy before later
+reference and Project-owned attachment types add more edges.
 
 ## Implemented scope
 
@@ -46,8 +47,8 @@ The slice includes:
 
 The slice does not include:
 
-- `reference_targets`, backlinks, or a reference resolver;
-- Project, Project content, Text, Inspector, or Map;
+- the reference registry or resolver that followed it;
+- Project or Project-owned attachments;
 - object-level deep links or deterministic/semantic reference search;
 - a privileged permanent-delete or force-delete endpoint;
 - provider-stat-based deduplication repair;
@@ -415,23 +416,19 @@ The following are outside this implementation and are tracked operationally in
 - exponential cleanup retry backoff, alerts, and an administrative GC dashboard;
 - privileged permanent deletion, tombstones, and force-delete policy.
 
-## Completion and next phase
+## Completion and roadmap ownership
 
 The blob-lifecycle slice completed in PR #123, and PR #124 corrected its
 D1/workerd migration compatibility. Feature-branch success still does not
 authorize a remote operation: the exact merged integration head must pass the
 full deployment gate.
 
-PR #125 implemented the sparse reference registry and base batch resolver, and
-the Phase 2A completion slice closes its runtime-smoke and middleware-
-consolidation follow-ups. Actual Project backlinks remain intentionally deferred
-until `project_items.reference_target_id` exists. The remaining product sequence
-is:
-
-1. object-level deep links and archived read-only destinations;
-2. deterministic reference search and insertion;
-3. Project-owned data, `project_items` backlinks, Text, and Inspector;
-4. Map after the data/read model is stable.
+Reference identity, navigation, and deterministic search were subsequently
+completed through merged PR #129. Draft PR #130 supplies the reusable Project
+discovery surface. This implementation record does not define their product
+ordering or the later Project sequence; those are governed exclusively by
+[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 
 Every future Project attachment must extend the existing retention, export,
 edge-guard, blocker, and test surfaces rather than introducing a parallel blob
