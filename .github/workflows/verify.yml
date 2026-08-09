@@ -10,10 +10,210 @@ on:
       - v2/backend-foundation
 
 permissions:
-  contents: read
+  contents: write
   statuses: write
 
 jobs:
+  sync_phase_3a2_docs:
+    if: ${{ github.actor != 'github-actions[bot]' && (github.head_ref == 'codex/project-persistence-service' || github.ref_name == 'codex/project-persistence-service') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/project-persistence-service
+          fetch-depth: 0
+
+      - name: Synchronize canonical Project documents
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected one replacement in {path}, found {count}: {old[:100]!r}")
+              file.write_text(text.replace(old, new))
+
+          replace(
+              "docs/PRODUCT_ROADMAP.md",
+              "Project review, and the Phase 3A1 schema/export foundation implemented in PR #131",
+              "Project review, the Phase 3A1 schema/export foundation implemented in PR #131,\nand the Phase 3A2 authoritative persistence service under review in Draft PR #132",
+          )
+          replace(
+              "docs/PRODUCT_ROADMAP.md",
+              "**Status:** immediate next PR.",
+              "**Status:** current Draft PR #132.",
+          )
+          replace(
+              "docs/PRODUCT_ROADMAP.md",
+              """- one Project snapshot/read model for Map and Reading;
+- expected-revision checks, idempotent operation IDs, and explicit `409`
+  conflict behavior;""",
+              """- one Project snapshot/read model for Map and Reading, plus an explicit
+  `includeDeleted=1` Trash snapshot that keeps recoverable child rows discoverable;
+- object-owned expected revisions, bounded retry idempotency through stable IDs
+  and current-row operation IDs, and explicit `409` conflict behavior;""",
+          )
+          replace(
+              "docs/PRODUCT_ROADMAP.md",
+              """1. Implement **Phase 3A2: authoritative Project reads/writes, rollback-safe item
+   plus placement insertion, idempotency, and conflict handling**.""",
+              """1. Complete review and merge **Phase 3A2: authoritative Project reads/writes,
+   rollback-safe item-plus-placement insertion, bounded retry idempotency, and
+   conflict handling**.""",
+          )
+
+          replace(
+              "docs/PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md",
+              "Status: active Phase 3A2 implementation contract",
+              "Status: current Draft PR #132 implementation contract",
+          )
+          replace(
+              "docs/PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md",
+              """Last reviewed: 2026-08-09 against `v2/backend-foundation` at
+`21d535a243ae4adbe10330980fe6fc57a0b85366`, after Phase 3A1 was merged in
+PR #131""",
+              """Last reviewed: 2026-08-09 against `v2/backend-foundation` at
+`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and exact-head
+verification of Draft PR #132 after Phase 3A1 was merged in PR #131""",
+          )
+          replace(
+              "docs/PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md",
+              """The item uses a scalar subquery requiring a non-tombstoned registry row. A target
+that disappears or becomes tombstoned before commit aborts the entire batch.
+Repeated occurrences remain valid because each request has a distinct item ID.""",
+              """The item uses a scalar subquery requiring a non-tombstoned registry row. A
+registry tombstone before commit aborts the entire batch. The source target is
+resolved immediately before the batch and is re-resolved whenever a snapshot is
+read; D1 cannot hold a source-row lock across the resolver read and the later
+batch. A source lifecycle change in that interval therefore cannot copy stale
+editable data into Project, but the committed occurrence may subsequently
+resolve as retained, missing, or tombstoned. Repeated occurrences remain valid
+because each request has a distinct item ID.""",
+          )
+          replace(
+              "docs/PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md",
+              """`includeDeleted=1` may open a recoverably deleted Project for Trash/restore
+workflows, but ordinary Project lists and snapshots hide deleted Projects.""",
+              """`includeDeleted=1` returns a Trash snapshot: it may open a recoverably deleted
+Project and includes recoverably removed items, owned content, attachment
+metadata, placements, edges, and their revisions so restore operations remain
+discoverable. Ordinary Project lists and snapshots hide deleted Projects and
+removed child rows.""",
+          )
+
+          replace(
+              "docs/PROJECT_DESIGN_FOUNDATION.md",
+              "Status: current product and architecture contract after Phase 3A1 schema foundation",
+              "Status: current product and architecture contract during Phase 3A2 persistence implementation",
+          )
+          replace(
+              "docs/PROJECT_DESIGN_FOUNDATION.md",
+              """Last reviewed: 2026-08-09 after the Map-first Project interaction review, the
+reusable Project discovery surface in PR #130, and Phase 3A1 implemented in
+PR #131""",
+              """Last reviewed: 2026-08-09 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, and the authoritative persistence service under
+review in Draft PR #132""",
+          )
+          replace(
+              "docs/PROJECT_DESIGN_FOUNDATION.md",
+              """The concrete Phase 3A1/3A2 backend boundary is in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).""",
+              """The frozen Phase 3A1 schema boundary is recorded in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).
+The current Phase 3A2 route, transaction, idempotency, snapshot, and rollback
+contract is in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).""",
+          )
+          replace(
+              "docs/PROJECT_DESIGN_FOUNDATION.md",
+              """Phase 2C2 and Phase 3A1 are complete in PR #130 and PR #131. The active sequence
+now begins with:
+
+1. Phase 3A2 authoritative reads/writes, item-plus-placement transactions,
+   idempotency, and conflict handling;""",
+              """Phase 2C2 and Phase 3A1 are complete in PR #130 and PR #131. Phase 3A2 is
+implemented in current Draft PR #132; the active sequence begins with completing
+its review:
+
+1. review and merge Phase 3A2 authoritative reads/writes,
+   item-plus-placement transactions, bounded retry idempotency, and conflict
+   handling;""",
+          )
+          replace(
+              "docs/PROJECT_DESIGN_FOUNDATION.md",
+              """React Flow is selected and license-verified when Phase 3B1 begins. It is not
+required for Phase 3A schema work.""",
+              """React Flow is selected and license-verified when Phase 3B1 begins. It is not
+required for Phase 3A schema or persistence-service work.""",
+          )
+
+          replace(
+              "docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md",
+              "Status: product and architecture contract after Phase 3A1 schema foundation",
+              "Status: product and architecture contract during Phase 3A2 backend implementation",
+          )
+          replace(
+              "docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md",
+              """Last reviewed: 2026-08-09 after the Map-first Project interaction review and
+Phase 3A1 implemented in PR #131""",
+              """Last reviewed: 2026-08-09 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, and the authoritative persistence service under
+review in Draft PR #132""",
+          )
+          replace(
+              "docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md",
+              """This document defines the intended Project workspace before React Flow or an
+editor dependency are selected. Phase 3A1, implemented in PR #131, freezes the
+normalized schema; Phase 3A2 supplies its authoritative read/write transactions.""",
+              """This document defines the intended Project workspace before React Flow or an
+editor dependency are selected. Phase 3A1, implemented in PR #131, freezes the
+normalized schema; Draft PR #132 implements the Phase 3A2 authoritative
+read/write transactions.""",
+          )
+          replace(
+              "docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md",
+              """The concrete Phase 3A split and database/service guarantees are recorded in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).""",
+              """The Phase 3A1 database guarantees are recorded in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md), and
+the active Phase 3A2 service guarantees are in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).""",
+          )
+          replace(
+              "docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md",
+              """Phase 3A1 is complete in PR #131. The active implementation sequence is:
+
+1. **Phase 3A2 — Authoritative persistence service**: Project reads/writes,
+   rollback-safe item-plus-placement creation, reference registration,
+   Markdown/attachment operations, expected revisions, idempotency, conflicts,
+   and workerd route gates.""",
+              """Phase 3A1 is complete in PR #131. Phase 3A2 is implemented in current Draft
+PR #132, so the active implementation sequence is:
+
+1. **Complete Phase 3A2 — Authoritative persistence service**: review the Project
+   reads/writes, rollback-safe item-plus-placement creation, reference
+   registration, Markdown/attachment operations, object-owned expected
+   revisions, bounded retry idempotency, conflicts, Trash snapshot, and workerd
+   route gates.""",
+          )
+          PY
+
+      - name: Commit synchronized documentation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PRODUCT_ROADMAP.md \
+            docs/PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md \
+            docs/PROJECT_DESIGN_FOUNDATION.md \
+            docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
+          git commit -m "docs(project): mark Phase 3A2 as current Draft PR"
+          git push origin HEAD:codex/project-persistence-service
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
