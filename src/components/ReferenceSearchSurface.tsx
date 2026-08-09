@@ -194,7 +194,9 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
     setDraft(copySearchState(next));
     setValidationError("");
     setFiltersOpen(false);
-    props.onChange(next);
+    if (!referenceSearchUiStateEquals(next, props.value)) {
+      props.onChange(next);
+    }
   }
 
   function toggleType(type: ReferenceTargetType) {
