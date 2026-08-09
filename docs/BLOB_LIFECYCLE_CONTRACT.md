@@ -2,7 +2,8 @@
 
 Status: normative v3 backend contract, implemented by the blob-lifecycle safety slice
 
-Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
+Last reviewed: 2026-08-09 after the reference/search and reusable Project
+discovery foundation through PR #130
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -573,10 +574,9 @@ endpoint, or source editing through Project. Those exclusions describe the
 historical scope of the lifecycle slice; they do not define the current product
 phase order.
 
-Reference identity, navigation, and deterministic search were subsequently
-completed through merged PR #129, and Draft PR #130 provides the reusable
-Project discovery surface. The active Map-first Project sequence and Reading
-behavior are governed exclusively by
+Reference identity, navigation, deterministic search, and the reusable Project
+discovery surface were subsequently completed through PR #130. The active
+Map-first Project sequence and Reading behavior are governed exclusively by
 [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 This normative storage contract applies unchanged regardless of product order.
