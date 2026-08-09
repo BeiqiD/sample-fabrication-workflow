@@ -3,7 +3,8 @@
 Status: Phase 3A1 implementation contract
 
 Last reviewed: 2026-08-09 against `v2/backend-foundation` at
-`5047ad78a2679a1ea6c050bcb2c945a980db283e`, after PR #130
+`5047ad78a2679a1ea6c050bcb2c945a980db283e`, after PR #130 and the first PR #131
+schema review
 
 This document translates the active Project roadmap into a reviewable backend
 sequence. The product direction remains governed by
@@ -29,7 +30,8 @@ kernel:
 - `project_items`;
 - `project_map_placements`;
 - `project_edges`;
-- shared Project enum and geometry contracts;
+- shared Project enum and bounded geometry contracts;
+- monotonic revision and idempotency constraints;
 - Project attachment blob-retention edges;
 - complete-export schema version 4 with all Project tables;
 - focused host-SQLite, route, export, and D1/workerd migration gates.
@@ -43,14 +45,16 @@ The next pull request activates Project reads and writes on top of the frozen
 schema:
 
 - Project list, create, open, rename, recoverable delete, and restore;
-- one project snapshot/read model for Map and Reading;
+- one Project snapshot/read model for Map and Reading;
 - expected-revision checks and idempotent operation IDs;
 - authoritative Project-owned Markdown creation and save;
 - authoritative reference insertion that resolves the source, registers the
   stable target, allocates `created_sequence`, creates the occurrence, and
   creates its placement in one transaction;
 - authoritative attachment creation over the existing blob lifecycle;
+- revisioned attachment caption/source-URL updates without retargeting bytes;
 - placement and basic-edge mutations;
+- rollback tests proving an item is never committed without its placement;
 - workerd route smokes and exact integration-head deployment verification.
 
 Map rendering, drag interaction, React Flow integration, Inspector UI, and
@@ -101,22 +105,33 @@ Project-owned content has a stable identity and belongs to exactly one Project.
 The first content types are:
 
 - `markdown`, with mutable Markdown source and an explicit format version;
-- `attachment`, whose bytes and file metadata live in the one-to-one attachment
-  subtype table.
+- `attachment`, with revisioned Project-owned descriptive metadata and a
+  one-to-one immutable intrinsic-file subtype.
 
-Content type and ownership are immutable. Markdown saves and lifecycle changes
-advance exactly one revision and require a fresh mutation ID.
+For attachment content, `attachment_caption` and optional
+`attachment_source_url` are editable Project-owned metadata. They advance the
+parent content revision exactly like a Markdown edit. They do not identify or
+retarget the physical file.
+
+Content type and ownership are immutable. Markdown, attachment-description, and
+lifecycle changes advance exactly one revision and require a fresh mutation ID.
+Revision and mutation metadata cannot be pre-bumped, rewound, or changed without
+a corresponding semantic update.
 
 ### `project_content_attachments`
 
-The attachment table is a one-to-one subtype keyed by
+The attachment table is a one-to-one intrinsic-file subtype keyed by
 `project_content_id`. Exactly one physical locator is present:
 
 - `asset_id` for R2; or
 - `storage_object_id` for managed storage.
 
-The locator and attachment metadata are immutable. Replacing a file creates new
-Project content rather than silently retargeting an existing stable identity.
+The locator, original filename, MIME type, byte size, creation actor/time, and
+creation operation ID are immutable. Replacing a file creates new Project
+content rather than silently retargeting an existing stable identity. Editable
+caption/source URL and recoverable lifecycle belong to the revisioned
+`project_contents` parent, so the schema does not duplicate them here.
+
 Insertion is rejected unless:
 
 - the parent is active attachment content in an active Project;
@@ -147,15 +162,22 @@ future permanent-delete planning.
 
 ### `project_map_placements`
 
-Map layout is separate from item identity. One item has at most one placement,
-with:
+Map layout is separate from item identity. The database permits zero or one
+placement row per item and bounds every coordinate, dimension, and z-index to
+the same finite ranges exposed by `shared/project-types.ts`:
 
-- stable placement ID;
-- `x` and `y`;
-- positive `width` and `height`;
-- integer `z_index`;
-- revision and idempotency metadata.
+- `x` and `y`: `-1,000,000` through `1,000,000`;
+- `width` and `height`: greater than zero and at most `100,000`;
+- integer `z_index`: `-1,000,000` through `1,000,000`.
 
+The unique `project_item_id` constraint can prove only **at most one** placement;
+SQLite cannot require an item insert and a placement insert to coexist while
+still allowing a normal multi-statement transaction. Phase 3A2 therefore owns
+the stronger product invariant: item creation and placement creation happen in
+one authoritative transaction, and rollback tests prove that neither row is
+committed alone.
+
+Each placement also carries a stable ID plus revision and idempotency metadata.
 Moving or resizing a card changes only the placement row. It never rewrites the
 item, source record, Markdown body, Reading order, or edge endpoints.
 
@@ -182,16 +204,19 @@ caller bypasses TypeScript validation:
 1. stable IDs, owners, targets, creation metadata, occurrence sequence, and edge
    endpoints cannot be retargeted in place;
 2. semantic updates require `revision = previous + 1` and a fresh
-   `last_mutation_id`;
+   `last_mutation_id`, while metadata-only revision bumps, rewinds, and mutation
+   ID changes are rejected;
 3. Project-owned content and graph endpoints must belong to the same active
    Project at creation time;
 4. a new reference occurrence cannot target a tombstoned registry row;
 5. repeated references are allowed, repeated owned-content occurrences are not;
-6. one placement exists per item and dimensions are positive;
+6. each item has at most one placement row, with finite bounded geometry;
 7. physical deletion of every Project table is disabled;
 8. ordinary lifecycle fields are all-null or all-present;
-9. attachment locators participate in the existing GC claim/release boundary;
-10. Project attachment bytes remain in `blob_retention_edges`, including after
+9. intrinsic attachment locators and file metadata are immutable, while caption
+   and source URL are revisioned on the parent content row;
+10. attachment locators participate in the existing GC claim/release boundary;
+11. Project attachment bytes remain in `blob_retention_edges`, including after
     recoverable deletion.
 
 The schema deliberately does not allocate `created_sequence` by trigger. Phase
@@ -243,7 +268,7 @@ following in one authoritative service boundary:
 - expected revision comparison;
 - idempotent operation replay;
 - same-Project ownership validation;
-- transaction rollback on partial failure;
+- item, sequence, and placement creation in one rollback-safe transaction;
 - export and blob-reachability preservation;
 - host SQLite and workerd runtime coverage.
 
@@ -255,13 +280,17 @@ The 3A1 gate consists of:
    - table and column installation;
    - occurrence ordering and repeated-reference rules;
    - ownership and tombstone rejection;
-   - revision/idempotency triggers;
-   - placement and edge constraints;
+   - required revision increments and fresh mutation IDs;
+   - rewind, pre-bump, and duplicate-version regression coverage for all five
+     revisioned Project tables;
+   - zero-or-one placement semantics plus finite/range geometry checks;
+   - local edge constraints;
+   - revisioned attachment descriptions and immutable intrinsic file metadata;
    - attachment GC guards and retention view;
    - physical-delete protection.
 2. `shared/project-types.test.ts`
    - closed enum sets;
-   - finite positive geometry;
+   - the same finite coordinate, dimension, and z-index bounds as SQLite;
    - basic edge-shape validation.
 3. `worker/project-foundation-routes.test.ts`
    - Project export route precedence;
@@ -299,6 +328,9 @@ The pull request is complete when:
 - all six tables migrate on fresh SQLite and Wrangler local D1;
 - malformed ownership, target, geometry, edge, lifecycle, revision, or blob rows
   are rejected by the database;
+- revision metadata cannot be rewound, pre-bumped, or reused;
+- attachment descriptions are revisioned without allowing intrinsic file
+  retargeting;
 - complete export contains every legacy and Project table at schema version 4;
 - Project attachment locators are visible through the canonical retention view;
 - no Project write API or placeholder Canvas persistence is present;
