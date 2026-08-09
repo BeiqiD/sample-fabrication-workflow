@@ -182,8 +182,8 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
     }
     setValidationError("");
     setFiltersOpen(false);
-    if (next.query && referenceSearchUiStateEquals(next, props.value)) {
-      setRequestRevision((revision) => revision + 1);
+    if (referenceSearchUiStateEquals(next, props.value)) {
+      if (next.query) setRequestRevision((revision) => revision + 1);
       return;
     }
     props.onChange(next);
