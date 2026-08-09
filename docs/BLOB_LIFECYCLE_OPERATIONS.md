@@ -2,7 +2,8 @@
 
 Status: operational companion to the normative v3 blob lifecycle contract
 
-Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
+Last reviewed: 2026-08-09 after the reference/search and reusable Project
+discovery foundation through PR #130
 
 This document records the implementation boundaries, activation sequence,
 monitoring queries, incident rules, and explicit deferrals for the first blob
@@ -313,9 +314,9 @@ final concurrency checks, and tombstones.
 
 ## Product-roadmap ownership
 
-Reference identity, deep links, exact focus, and deterministic search were
-completed after this operational foundation, through merged PR #129. Draft
-PR #130 provides the reusable Project discovery surface.
+Reference identity, deep links, exact focus, deterministic search, and the
+reusable Project discovery surface were completed after this operational
+foundation, through PR #130.
 
 This runbook does not define the remaining product sequence. The active
 Map-first Project roadmap and Reading behavior are governed exclusively by
