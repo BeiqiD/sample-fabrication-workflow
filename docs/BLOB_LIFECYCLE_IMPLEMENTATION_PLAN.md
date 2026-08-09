@@ -2,7 +2,8 @@
 
 Status: implemented by the blob-lifecycle safety slice; remote activation requires the exact merged integration head to pass the v3 deployment gate
 
-Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
+Last reviewed: 2026-08-09 after the reference/search and reusable Project
+discovery foundation through PR #130
 
 This document records how the normative
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) is implemented in the
@@ -423,10 +424,10 @@ D1/workerd migration compatibility. Feature-branch success still does not
 authorize a remote operation: the exact merged integration head must pass the
 full deployment gate.
 
-Reference identity, navigation, and deterministic search were subsequently
-completed through merged PR #129. Draft PR #130 supplies the reusable Project
-discovery surface. This implementation record does not define their product
-ordering or the later Project sequence; those are governed exclusively by
+Reference identity, navigation, deterministic search, and the reusable Project
+discovery surface were subsequently completed through PR #130. This
+implementation record does not define their product ordering or the later
+Project sequence; those are governed exclusively by
 [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 
