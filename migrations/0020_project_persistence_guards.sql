@@ -26,6 +26,34 @@ BEGIN
   SELECT RAISE(ABORT, 'project item update requires an active project');
 END;
 
+-- The service reads attachment metadata before constructing its D1 batch. Recheck
+-- the authoritative record during INSERT so a concurrent or bypassing caller
+-- cannot bind stale or client-invented intrinsic file metadata.
+CREATE TRIGGER project_content_attachments_require_authoritative_metadata
+BEFORE INSERT ON project_content_attachments
+WHEN (
+  NEW.asset_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM assets a
+    WHERE a.id = NEW.asset_id
+      AND a.original_name = NEW.original_name
+      AND a.mime_type = NEW.mime_type
+      AND a.byte_size = NEW.byte_size
+  )
+) OR (
+  NEW.storage_object_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM managed_storage_objects mso
+    WHERE mso.id = NEW.storage_object_id
+      AND mso.original_name = NEW.original_name
+      AND mso.mime_type = NEW.mime_type
+      AND mso.byte_size = NEW.byte_size
+  )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'project attachment metadata must match its blob record');
+END;
+
 -- Safe-integer exhaustion is an exceptional maintenance boundary. An edge
 -- connected to an exhausted item/content row cannot be deleted first as part of
 -- item removal, because the later lifecycle row would be unable to advance and
