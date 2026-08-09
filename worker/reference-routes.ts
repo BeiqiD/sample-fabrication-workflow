@@ -9,7 +9,7 @@ import {
   type ResolveReferencesResponse,
 } from "../shared/reference-types";
 import { safeMediaResponseHeaders } from "./media-response";
-import { routes as projectFoundationRoutes } from "./project-foundation-routes";
+import { routes as projectRoutes } from "./project-routes";
 import {
   ReferenceResolutionInputError,
   resolveReferences,
@@ -30,9 +30,9 @@ type MediaSource = {
 
 export const routes = new Hono<AppBindings>();
 
-// Project foundation routes are mounted before the legacy monolithic handlers.
-// Phase 3A2 will move this aggregate into a dedicated Worker composition root.
-routes.route("/", projectFoundationRoutes);
+// Project owns its complete export and persistence surface. It remains mounted
+// through this aggregate until the monolithic Worker composition root is split.
+routes.route("/", projectRoutes);
 
 // Ordinary assets and reference media use the same fail-closed response policy.
 routes.get("/assets/:key{.+}", async (c) => {
