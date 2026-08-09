@@ -1,10 +1,10 @@
 # Project design foundation
 
-Status: current product and architecture contract during Phase 3A schema work
+Status: current product and architecture contract after Phase 3A1 schema foundation
 
 Last reviewed: 2026-08-09 after the Map-first Project interaction review, the
-reusable Project discovery surface in PR #130, and the first schema review of
-Draft PR #131
+reusable Project discovery surface in PR #130, and Phase 3A1 implemented in
+PR #131
 
 This document defines the durable Project identity and ownership model. The
 canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
@@ -146,7 +146,7 @@ operation.
 
 ## Data model
 
-Phase 3A1 freezes the following first schema shape:
+Phase 3A1, implemented in PR #131, freezes the following first schema shape:
 
 ```text
 projects
@@ -469,19 +469,18 @@ metadata.
 
 ## Roadmap
 
-Phase 2C2 is complete in PR #130. The active sequence now begins with:
+Phase 2C2 and Phase 3A1 are complete in PR #130 and PR #131. The active sequence
+now begins with:
 
-1. Phase 3A1 Project core schema, monotonic revisions, bounded placement schema,
-   attachment/blob safety, and complete export;
-2. Phase 3A2 authoritative reads/writes, item-plus-placement transactions,
+1. Phase 3A2 authoritative reads/writes, item-plus-placement transactions,
    idempotency, and conflict handling;
-3. Phase 3B1 Map kernel;
-4. Phase 3B2 reference sidebar and drag/drop placement;
-5. Phase 3B3 Markdown and generic attachment creation;
-6. Phase 3B4 basic Bezier directional edges;
-7. Phase 3C no-creation insertion-order Reading projection;
-8. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
-9. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
+2. Phase 3B1 Map kernel;
+3. Phase 3B2 reference sidebar and drag/drop placement;
+4. Phase 3B3 Markdown and generic attachment creation;
+5. Phase 3B4 basic Bezier directional edges;
+6. Phase 3C no-creation insertion-order Reading projection;
+7. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
+8. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
    performance work.
 
 See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) for completion criteria,
