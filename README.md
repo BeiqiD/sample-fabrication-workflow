@@ -56,6 +56,8 @@ Deterministic reference search reads those same authoritative source and occurre
 
 The reusable reference-search surface keeps committed state separate from form drafts, submits explicitly instead of scanning on every keystroke, renders server order without client-side scoring, and returns a stable `ReferenceTarget` without registering it or writing source data. Its long-term host is the Project workspace. The current URL-owned `/search` page is only a thin browser and integration harness until Project identity and insertion exist.
 
+The planned Map-first Project model stores one immutable per-Project `created_sequence` on each item occurrence. The first Reading projection follows that insertion sequence directly; it has no separate Reading-placement table, manual reorder, or edge-derived ordering until real use justifies a later dedicated design.
+
 The search domain contract is deployment-neutral. D1 currently supplies the portable SQLite query interface; a future Docker/self-hosted SQLite runtime can use the same contract, and a derived FTS5 backend can replace scans without becoming a second source of truth. Search reads do not register targets. Actual Project backlinks and insertion remain deferred until `project_items` exists rather than being represented by a parallel placeholder table.
 
 ## Deploy your own instance
