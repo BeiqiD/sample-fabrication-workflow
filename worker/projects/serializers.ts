@@ -49,6 +49,8 @@ export interface ProjectContentRow {
 export interface ProjectAttachmentRow {
   project_content_id: string;
   project_id: string;
+  asset_id: string | null;
+  storage_object_id: string | null;
   original_name: string;
   mime_type: string;
   byte_size: number;
