@@ -1,9 +1,10 @@
 # Project reference search surface implementation plan
 
-Status: implementation contract for Phase 2C2; active Draft PR #130
+Status: implemented in PR #130; Phase 2C2 complete
 
-Last reviewed: 2026-08-09 after clarifying that Search is a Project capability,
-not a permanent standalone product area
+Last reviewed: 2026-08-09 after completing the reusable Project discovery
+surface and confirming that Search is a Project capability, not a permanent
+standalone product area
 
 This document defines the browser surface that consumes the deterministic
 reference-search domain service completed in Phase 2C1. The service, ranking,
@@ -45,7 +46,7 @@ When the first Project workspace lands:
 
 ### Durable Phase 2C2 output
 
-Phase 2C2 adds:
+Phase 2C2 delivered:
 
 - one controlled, reusable `ReferenceSearchSurface` component;
 - browse and single-selection result modes;
@@ -60,7 +61,7 @@ Phase 2C2 adds:
 
 ### Temporary integration scaffolding
 
-Until Project exists, the PR also adds:
+PR #130 also implemented:
 
 - a discoverable `/search` reference-browser route;
 - a temporary Search navigation item;
@@ -72,7 +73,7 @@ This scaffolding must remain thin. Business logic must not migrate into
 
 ### Explicit exclusions
 
-Phase 2C2 does not add:
+Phase 2C2 did not add:
 
 - `projects`, `project_items`, backlinks, Text, Inspector, or Map;
 - target registration or any search-triggered D1 write;
@@ -84,8 +85,8 @@ Phase 2C2 does not add:
 - FTS5 schema, index maintenance, Queues, Workflows, or another Worker;
 - remote D1 migration or Worker deployment.
 
-The PR targets `v2/backend-foundation` and remains Draft until review is
-complete.
+PR #130 targeted `v2/backend-foundation`, completed the Phase 2C2 contract, and
+performed no remote D1 migration or Worker deployment.
 
 ## Intended Project interaction
 
@@ -164,9 +165,10 @@ The component separates committed state from form draft state.
 - the surface keeps a local draft while the user edits query and filters;
 - submit validates and emits one complete next state through `onChange`;
 - only committed state triggers the API request;
-- submitting unchanged committed state explicitly retries that request;
-- Clear commits an empty query, aborts current work, and returns to `idle` while
-  preserving the host's filter profile;
+- submitting unchanged committed state explicitly retries that request without
+  mutating host state or browser history;
+- Clear commits an empty query only when committed state actually changes;
+  clearing an uncommitted draft remains local and history-neutral;
 - host-state changes replace the draft, abort stale work, and restore the
   corresponding result set.
 
@@ -201,8 +203,9 @@ Rules:
   Phase 2C1;
 - `from > to`, an empty type selection, and a query beyond the shared 200-code-
   point bound are rejected before committed-state mutation;
-- explicit submit creates a browser history entry so Back/Forward restores the
-  previous committed search.
+- explicit changed-state submit creates a browser history entry so Back/Forward
+  restores the previous committed search;
+- unchanged retry and draft-only Clear do not create duplicate history entries.
 
 These parameter names are not required to become permanent top-level product
 URLs. A Project route may namespace or translate them while reusing the pure
@@ -259,7 +262,8 @@ inclusive. Server validation remains authoritative.
 ### Reset
 
 `Reset filters` restores all target types and clears Sample/from/to while keeping
-the draft query. Clearing the query returns the host to `idle`.
+the draft query. Clearing the query returns the host to `idle` when committed,
+or clears only the local draft when the committed query is already empty.
 
 ## Result presentation
 
@@ -324,7 +328,7 @@ this workaround by assumption.
 
 ## File and component plan
 
-### New files
+### Added files
 
 ```text
 docs/REFERENCE_SEARCH_UI_IMPLEMENTATION_PLAN.md
@@ -382,8 +386,10 @@ Mounted surface tests cover:
 Mounted temporary-page tests cover:
 
 - initial state restored from the URL;
-- explicit submission pushing a history entry;
-- browser Back restoring URL, input draft, request, and results.
+- explicit changed-state submission pushing a history entry;
+- browser Back restoring URL, input draft, request, and results;
+- unchanged-query retry remaining history-neutral;
+- draft-only Clear remaining history-neutral.
 
 Static tests cover:
 
@@ -398,15 +404,15 @@ required. No migration is added.
 
 ## Completion criteria
 
-Phase 2C2 is complete when:
+Phase 2C2 is complete because:
 
 1. the reusable search surface is independent from `SearchPage` routing;
 2. the component can browse and emit one exact stable `ReferenceTarget`;
 3. committed state can be supplied by a route or future Project host;
 4. empty queries issue no request;
 5. stale requests cannot replace newer results;
-6. unchanged state can be explicitly retried;
-7. clearing commits the idle state;
+6. unchanged state can be explicitly retried without host/history mutation;
+7. committed Clear reaches idle while draft-only Clear remains local;
 8. date filters cover both complete selected UTC dates;
 9. result order exactly matches the service response;
 10. all nine current target types can be filtered;
@@ -418,7 +424,7 @@ Phase 2C2 is complete when:
     search component or service;
 15. desktop and 320 px layouts remain usable;
 16. focused reference tests, complete tests, and production build pass;
-17. the PR remains Draft for review and performs no remote migration or deploy.
+17. no remote D1 migration or Worker deployment was run.
 
 ## Phase 3 transition
 
