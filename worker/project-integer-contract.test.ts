@@ -137,6 +137,7 @@ function insertEdge(
 }
 
 function insertAsset(database: DatabaseSync, id: string, byteSize: number) {
+  const hashCharacter = id.includes("max") ? "b" : "a";
   database.prepare(`
     INSERT INTO assets (
       id, r2_key, original_name, mime_type, byte_size,
@@ -149,7 +150,7 @@ function insertAsset(database: DatabaseSync, id: string, byteSize: number) {
     byteSize,
     ACTOR,
     NOW,
-    id.padEnd(64, "a").slice(0, 64),
+    hashCharacter.repeat(64),
   );
 }
 
@@ -192,7 +193,7 @@ describe("Project integer schema contract", () => {
     insertProject(database, "project-a");
     insertReferenceTarget(database, "target-a");
 
-    for (const { label, value } of invalidValues) {
+    for (const [index, { label, value }] of invalidValues.entries()) {
       expect(() => insertContent(
         database,
         `bad-content-revision-${label}`,
@@ -220,7 +221,7 @@ describe("Project integer schema contract", () => {
         `bad-item-revision-${label}`,
         "project-a",
         "target-a",
-        100 + invalidValues.indexOf(invalidValues.find((entry) => entry.label === label)!),
+        100 + index,
         value,
       )).toThrow();
     }
