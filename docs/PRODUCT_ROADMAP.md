@@ -199,7 +199,8 @@ Map and Reading before React Flow or a Markdown editor is introduced.
   optional short label;
 - no uniqueness constraint on `(project_id, reference_target_id)`;
 - one authoritative reference insertion operation that re-resolves, registers,
-  creates the occurrence, and creates both placements;
+  creates the occurrence, creates its Map placement, and assigns
+  `created_sequence`;
 - Project-owned Markdown and attachment creation APIs;
 - local occurrence removal without source mutation;
 - optimistic Project/content revisions, idempotent operation IDs, and `409`

@@ -428,7 +428,7 @@ The migration must not:
 6. **Phase 3C — Reading projection**: no creation, complete insertion-order
    rendering, and editing of existing owned content.
 7. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
-   previews, save/conflict UX, accessible ordering.
+   previews, save/conflict UX, and accessible Reading presentation.
 8. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
    multi-select hardening, PDF preview, screenshot capture, advanced performance,
    and optional order/layout tooling.
