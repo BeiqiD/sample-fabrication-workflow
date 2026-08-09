@@ -260,6 +260,9 @@ async function readItemBundle(
 async function requireItemBundle(db: D1Database, projectId: string, itemId: string) {
   const bundle = await readItemBundle(db, projectId, itemId);
   if (!bundle) notFound("Project item not found");
+  if (!bundle.placement) {
+    conflict("Project item is missing its authoritative placement");
+  }
   return bundle;
 }
 
@@ -555,45 +558,51 @@ export async function readProjectSnapshot(
       SELECT pc.*
       FROM project_contents pc
       JOIN project_items pi ON pi.project_content_id = pc.id
-      WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
-      ORDER BY pi.created_sequence, pc.id
-    `).bind(projectId),
+      WHERE pc.project_id = ?
+    AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
+  ORDER BY pi.created_sequence, pc.id
+`).bind(projectId, includeDeleted ? 1 : 0),
     db.prepare(`
       SELECT pca.*, pc.project_id
       FROM project_content_attachments pca
       JOIN project_contents pc ON pc.id = pca.project_content_id
       JOIN project_items pi ON pi.project_content_id = pc.id
-      WHERE pc.project_id = ? AND pc.deleted_at IS NULL AND pi.deleted_at IS NULL
-      ORDER BY pi.created_sequence, pca.project_content_id
-    `).bind(projectId),
+      WHERE pc.project_id = ?
+    AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
+  ORDER BY pi.created_sequence, pca.project_content_id
+`).bind(projectId, includeDeleted ? 1 : 0),
     db.prepare(`
       SELECT * FROM project_items
-      WHERE project_id = ? AND deleted_at IS NULL
-      ORDER BY created_sequence, id
-    `).bind(projectId),
+  WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)
+  ORDER BY created_sequence, id
+`).bind(projectId, includeDeleted ? 1 : 0),
     db.prepare(`
       SELECT pmp.*
       FROM project_map_placements pmp
       JOIN project_items pi ON pi.id = pmp.project_item_id
-      WHERE pi.project_id = ? AND pi.deleted_at IS NULL
-      ORDER BY pi.created_sequence, pmp.id
-    `).bind(projectId),
+      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+  ORDER BY pi.created_sequence, pmp.id
+`).bind(projectId, includeDeleted ? 1 : 0),
     db.prepare(`
       SELECT pe.*
       FROM project_edges pe
       JOIN project_items source ON source.id = pe.source_item_id
       JOIN project_items target ON target.id = pe.target_item_id
-      WHERE pe.project_id = ? AND pe.deleted_at IS NULL
-        AND source.deleted_at IS NULL AND target.deleted_at IS NULL
-      ORDER BY pe.created_at, pe.id
-    `).bind(projectId),
+      WHERE pe.project_id = ?
+    AND (? = 1 OR (
+      pe.deleted_at IS NULL
+      AND source.deleted_at IS NULL
+      AND target.deleted_at IS NULL
+    ))
+  ORDER BY pe.created_at, pe.id
+`).bind(projectId, includeDeleted ? 1 : 0),
     db.prepare(`
       SELECT DISTINCT rt.id, rt.target_type, rt.target_id
       FROM project_items pi
       JOIN reference_targets rt ON rt.id = pi.reference_target_id
-      WHERE pi.project_id = ? AND pi.deleted_at IS NULL
-      ORDER BY rt.target_type, rt.target_id
-    `).bind(projectId),
+      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
+  ORDER BY rt.target_type, rt.target_id
+`).bind(projectId, includeDeleted ? 1 : 0),
   ]);
 
   const project = resultRows<ProjectRow>(results[0])[0];
@@ -981,14 +990,20 @@ export async function createAttachmentProjectItem(
 
   try {
     const results = await db.batch(statements);
-    if (results.some((result) => resultChanges(result) !== 1)) {
-      return returnCreateReplayOrConflict(
-        db,
-        projectId,
-        input.itemId,
-        (bundle) => bundleMatchesAttachmentCreate(bundle, input),
-      );
-    }
+    if (
+    resultChanges(results[0]) !== 1
+    || resultChanges(results[1]) !== 1
+    || resultChanges(results[2]) < 1
+    || resultChanges(results[3]) !== 1
+    || resultChanges(results[4]) !== 1
+  ) {
+    return returnCreateReplayOrConflict(
+      db,
+      projectId,
+      input.itemId,
+      (bundle) => bundleMatchesAttachmentCreate(bundle, input),
+    );
+  }
   } catch (error) {
     const replay = await readItemBundle(db, projectId, input.itemId);
     if (replay && bundleMatchesAttachmentCreate(replay, input)) {
