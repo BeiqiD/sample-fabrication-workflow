@@ -2,13 +2,16 @@
 
 Status: operational companion to the normative v3 blob lifecycle contract
 
-Last reviewed: 2026-08-08 against PR #123
+Last reviewed: 2026-08-09 after the reference/search and reusable Project
+discovery foundation through PR #130
 
 This document records the implementation boundaries, activation sequence,
 monitoring queries, incident rules, and explicit deferrals for the first blob
 lifecycle implementation. The normative invariants remain in
 [Blob lifecycle, export integrity, and permanent-delete contract](./BLOB_LIFECYCLE_CONTRACT.md).
-If this runbook and the contract disagree, the contract wins.
+If this runbook and the contract disagree, the contract wins. Product phase
+order is outside this runbook and is defined only in
+[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 ## Implemented runtime boundary
 
@@ -306,22 +309,21 @@ administrative GC dashboard. The daily cron limits retry pressure. Repeated
 Physical deletion of stable source/occurrence rows remains unconditionally
 blocked. The current blocker queries are conservative planning information, not
 a proof that deletion is authorized. A destructive endpoint requires
-`reference_targets`, backlinks, privileged authorization, final concurrency
-checks, and tombstones.
+`reference_targets`, Project reverse relations, privileged authorization,
+final concurrency checks, and tombstones.
 
-## Next implementation boundary
+## Product-roadmap ownership
 
-PR #125 implemented the sparse reference registry and base batch resolver on top
-of this operational foundation. Its merged integration head passed the gate,
-and the Phase 2A completion slice closes the remaining runtime-smoke and
-middleware-consolidation follow-ups. Actual Project backlinks remain deferred
-until `project_items.reference_target_id` exists. The remaining product sequence
-is:
+Reference identity, deep links, exact focus, deterministic search, and the
+reusable Project discovery surface were completed after this operational
+foundation, through PR #130.
 
-1. object-level deep links and archived read-only destinations;
-2. deterministic reference search and insertion;
-3. Project-owned data, `project_items` backlinks, Text, and Inspector;
-4. Map after the data/read model is stable.
+This runbook does not define the remaining product sequence. The active
+Map-first Project roadmap and Reading behavior are governed exclusively by
+[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+Operational activation requirements in this document apply regardless of
+product phase order.
 
 Every future Project attachment occurrence must add an ordinary branch to
 `blob_retention_edges`, guarded edge-creation tests, export occurrence mapping,

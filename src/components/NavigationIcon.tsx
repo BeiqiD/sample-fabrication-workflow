@@ -1,4 +1,4 @@
-export type NavigationIconName = "brand" | "processing" | "samples" | "templates" | "export";
+export type NavigationIconName = "brand" | "processing" | "samples" | "search" | "templates" | "export";
 
 const iconPaths: Record<NavigationIconName, React.ReactNode> = {
   brand: <>
@@ -16,6 +16,10 @@ const iconPaths: Record<NavigationIconName, React.ReactNode> = {
     <rect x="13.5" y="3.5" width="7" height="7" rx="1.6" />
     <rect x="3.5" y="13.5" width="7" height="7" rx="1.6" />
     <rect x="13.5" y="13.5" width="7" height="7" rx="1.6" />
+  </>,
+  search: <>
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <path d="m15.4 15.4 4.1 4.1" />
   </>,
   templates: <>
     <path d="M6 3.5h8l4 4v13H6z" />

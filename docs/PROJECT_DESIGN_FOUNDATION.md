@@ -1,181 +1,136 @@
 # Project design foundation
 
-Status: product and architecture contract; physical schema and UI details remain
-subject to implementation review
+Status: current product and architecture contract before Phase 3 schema work
 
-Last reviewed: 2026-08-08 after PR #128 source-focus review
+Last reviewed: 2026-08-09 after the Map-first Project interaction review and the
+reusable Project discovery surface implemented in PR #130
 
-This document defines how Project, Text, and Map fit into Sample Fabrication
-Workflow. It records product and identity decisions that must survive
-implementation while keeping provisional table, route, and component names
-separate from those decisions.
+This document defines the durable Project identity and ownership model. The
+canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
+Map, Reading, save, edge, mobile, preview, and performance behavior is in
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 
-The source identity and soft-delete prerequisites are defined in
-[v3 backend foundation](./V3_BACKEND_FOUNDATION.md). Physical byte retention,
-export integrity, and permanent-delete safety are defined in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). Project implementation
-must not bypass either contract.
+The longer Text-first design record that preceded the Map-first decision is
+preserved in `PROJECT_DESIGN_FOUNDATION_LEGACY.md` for history. Where it
+conflicts with this document, the current roadmap and Canvas contract govern.
+
+Source identity and recoverable deletion are defined in
+[V3_BACKEND_FOUNDATION.md](./V3_BACKEND_FOUNDATION.md). Physical-byte retention,
+export integrity, and permanent-delete safety remain defined in
+[BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
 
 ## Purpose
 
-Project is a hierarchy-aware, link-based research workspace. It combines
-Project-owned text, images, and files with read-only references to Samples,
-Runs, Steps, Comments, attachment occurrences, Recipe revisions, other
-Projects, and content owned by other Projects.
+Project is a Map-first research workspace over one set of Project-local item
+occurrences. It combines:
+
+- Project-owned Markdown;
+- Project-owned generic attachment occurrences; and
+- read-only references to external source objects.
+
+It exposes two projections over the same occurrences:
+
+- **Map** is the primary desktop creation and spatial-organization interface.
+- **Reading** is one linear review/editing projection and the default mobile
+  interface.
+
+Map and Reading never own separate copies of content. Editing one Project-owned
+Markdown item changes what both views render.
 
 Project is not:
 
-- a task or progress system;
-- a second editor for experimental records;
-- a fixed tree or folder hierarchy;
-- a replacement for the natural Sample → Run → Step hierarchy;
-- a data-analysis environment.
+- a task, approval, progress, or Project-status system;
+- a second editor for Samples, Runs, Steps, Comments, Recipes, or source files;
+- a fixed folder or subproject tree;
+- a data-analysis notebook or simulation database;
+- a page-layout or desktop-publishing system;
+- a React Flow JSON document used as the database;
+- a real-time collaborative whiteboard in the initial release.
 
-Project exposes two complementary views over the same items:
+## Source and Project ownership
 
-- **Text** provides a deliberate reading and writing order.
-- **Map** provides spatial organization and user-defined connections.
+External experimental records remain authoritative and editable only in their
+source interfaces. Project can include, resolve, inspect, connect, remove, and
+navigate references, but it cannot mutate those sources.
 
-The views share content and references but keep independent placement data.
+Project owns only:
 
-## Why source lifecycle came first
+- Markdown source created inside the Project;
+- generic file/image/PDF attachment occurrences uploaded to the Project;
+- Project-local item occurrences;
+- Map placements and sizes;
+- immutable Project-local creation sequence used by Reading;
+- Project-local edges and labels; and
+- Project metadata such as title and lifecycle fields.
 
-Project references cannot be made safe by adding Project tables alone. Before
-PR #120, several ordinary delete paths physically removed source rows or
-rewired their graph. A Project item pointing to such a row would either break,
-disappear through cascade, or require a copied snapshot that immediately became
-stale.
-
-The source-lifecycle conversion therefore preceded Project work for five
-reasons:
-
-1. **Stable identity**: Sample, Run, Step, Comment, Recipe revision, and
-   attachment occurrence IDs must survive ordinary Delete and Restore.
-2. **Canonical meaning**: one logical Comment must not be reconstructed from
-   duplicated step occurrences or timeline events.
-3. **Read-only resolution**: a Project reference must resolve current source
-   data and source path without gaining source mutation rights.
-4. **Occurrence/blob separation**: Project references an attachment in context,
-   while physical bytes may be deduplicated and shared by many occurrences.
-5. **Deletion safety**: a future permanent delete must see backlinks and return
-   a conflict instead of silently cascading through Project items.
-
-PR #120 established the source side of those boundaries. PR #123 completed the
-shared blob-lifecycle, export-integrity, and physical-delete protections, and PR
-#124 corrected their D1/workerd migration compatibility. PR #125 established the
-sparse reference registry and base batch resolver; the Phase 2A completion
-slice then mounted reference routes into the core middleware stack and added
-real Worker/D1 resolver execution to its gate. PR #127 completed Phase 2B1 with one opaque canonical destination and a lifecycle-aware read-only Reference page. PR #128 completes Phase 2B2 by applying exact URL-owned focus in the existing Sample, Processing, and metrology-template interfaces; together they close Phase 2B. Actual Project
-backlinks remain deferred until `project_items.reference_target_id` exists, so
-no ownerless parallel usage table is introduced.
+Existing Comment attachments, execution images, metrology references, Recipes,
+Runs, Steps, Samples, and future external Projects enter through the reference
+boundary. They are not copied into Project-owned attachments.
 
 ## Product invariants
 
-### Projects have no workflow status
+### No Project workflow status
 
-A Project has no `Active`, `Completed`, `Archived`, progress, or completion
-workflow. It can remain useful indefinitely or simply stop being used. The
-research content expresses whether the work is ongoing.
+A Project has no Active, Completed, or progress workflow. Recoverable deletion
+is a record-lifecycle operation, not a Project status.
 
-Soft deletion is still available as a record-lifecycle operation, but it is not
-a Project workflow status.
+### No fixed parent tree
 
-### Projects do not form a fixed parent tree
-
-There is no `parent_project_id` and no database-level subproject hierarchy. A
-Project can reference another Project, and the same Project can be referenced
-from several places. Navigation through those references can feel hierarchical
-without assigning one canonical parent.
+Projects do not require `parent_project_id`. A future Project can reference
+another Project, and several Projects may reference the same target.
 
 ### External references are strictly read-only
 
-Project may display rich previews and source metadata, but it must not edit a
-referenced Sample, Run, Step, Comment, attachment, Recipe revision, Project, or
-content owned by another Project.
+A reference occurrence has no editable local title, caption, description, or
+annotation override. Its visible source fields come from the resolver.
+Interpretation belongs in a separate Markdown occurrence or an optional edge
+label.
 
-Within one Project, a user may edit only:
+`Open reference` is an explicit hover/selected/focused control. Clicking a node
+body selects it and opens Inspector; it does not navigate.
 
-- content owned by that Project;
-- whether the Project includes a reference;
-- Map position and size;
-- Text order;
-- local edges and their optional labels.
+### Repeated reference occurrences are valid
 
-Source edits remain available only in the source object's own interface.
-`Open source` is navigation, not delegated write authority.
+The same `reference_target` may appear several times in one Project and in
+several Projects. Every appearance is a distinct `project_item.id` with its own:
 
-### Content identity is separate from inclusion and presentation
+- Map placement and dimensions;
+- deterministic Reading position derived from creation sequence;
+- incoming and outgoing edges; and
+- creation order.
 
-Project-owned text, images, and files are first-class objects with stable IDs.
-They are not temporary JSON embedded in a canvas node.
+No `UNIQUE(project_id, reference_target_id)` constraint is permitted.
 
-The same content can be:
+If backlink UI is added later, the ordinary product measure is Project presence
+through `COUNT(DISTINCT project_id)`, not the raw occurrence count. A dedicated
+backlink table or backlink UI is not required for Project alpha or MVP.
 
-- edited in its owner Project;
-- referenced read-only by another Project;
-- included more than once only when the product explicitly permits distinct
-  local items;
-- placed differently in different Maps;
-- ordered differently in different Text views;
-- opened at its exact owner location.
+### Content, occurrence, and placement identities stay separate
 
-A content object, a Project's inclusion of that object, and its presentation in
-Text or Map are separate identities.
+The Project model preserves these layers:
 
-### Natural hierarchy remains source-owned
+1. source or Project-content identity;
+2. external reference-registry identity;
+3. Project-local item occurrence identity, including immutable creation sequence;
+4. Map placement identity.
 
-The experimental source path remains authoritative:
+Reading is initially derived from the item occurrence creation sequence rather
+than owning a separate placement identity.
 
-```text
-Sample
-├─ Sample comment or attachment
-└─ Run
-   └─ Step
-      ├─ Step comment
-      └─ Step attachment
-```
+Edges point to Project item occurrences because they express local Project
+meaning. They never point directly to source rows or blob records.
 
-Project reads and displays that path; it does not copy, edit, or reinterpret
-it. Referencing one Comment does not automatically add its Sample, Run, and
-Step as separate Project items.
+### Every active occurrence appears in both projections
 
-The following relationships must stay distinct:
-
-| Relationship | Meaning | Editable from Project |
-|---|---|---:|
-| Source hierarchy | Sample → Run → Step → Comment/Attachment | No |
-| Project inclusion | The Project chooses to show a target | Add/remove only |
-| Project edge | A relationship expressed by this Project | Yes |
-| Map placement | Position and size in this Project | Yes |
-| Text placement | Reading order in this Project | Yes |
-
-## Identity layers
-
-The Project model has four identity layers:
-
-1. **Source/content identity** — the referenced source row or Project-owned
-   content object.
-2. **Reference-registry identity** — one idempotent registry row for an external
-   target type and stable target ID.
-3. **Project-item identity** — this Project's inclusion of content or a
-   reference.
-4. **View-placement identity** — the Text or Map presentation of one Project
-   item.
-
-Edges point to Project items because edges express local meaning. They do not
-point directly to source rows or blob records.
+Each active Project item occurrence has one active Map placement and appears
+automatically in Reading through its immutable `created_sequence`. Map-only and
+Reading-only content are not first-version states, but Reading does not require
+a separate placement row until a later custom-order design exists.
 
 ## Conceptual data model
 
-The first version has two Project-item classes:
-
-1. **Project-owned content**: text, images, files, or a small composite owned by
-   the current Project.
-2. **External reference**: a read-only target elsewhere in the system,
-   including a Project or content owned by another Project.
-
-The following model is illustrative. Names and columns must be reconciled with
-the D1 schema before a migration is written.
+Names and exact columns remain subject to migration review, but the first schema
+must preserve this shape:
 
 ```text
 projects
@@ -185,48 +140,45 @@ projects
 - updated_by
 - created_at
 - updated_at
+- revision
 - deleted_at
 - deleted_by
 
 project_contents
 - id
 - owner_project_id
-- content_kind
-- body_json / text
+- content_kind                # markdown | attachment
+- markdown_source             # markdown only
+- format_version
 - created_by
 - updated_by
 - created_at
 - updated_at
+- revision
 - deleted_at
 - deleted_by
 
 project_content_attachments
 - id
 - project_content_id
-- attachment_kind
-- asset_id / storage_object_id / external_url
-- position
+- asset_id / storage_object_id
+- original_filename
+- media_type
+- size_bytes
+- caption
+- source_url                  # optional screenshot provenance
 - created_at
+- updated_at
 - deleted_at
 - deleted_by
-
-reference_targets
-- id
-- registry_version
-- target_type
-- target_id
-- first_registered_at
-- last_validated_at
-- tombstoned_at
-- last_known_contexts_json
-- UNIQUE(target_type, target_id)
 
 project_items
 - id
 - project_id
-- item_kind                  # content | reference
-- project_content_id         # exactly one target column is populated
+- item_kind                   # content | reference
+- project_content_id          # exactly one target column populated
 - reference_target_id
+- created_sequence
 - created_at
 - deleted_at
 - deleted_by
@@ -238,12 +190,7 @@ project_map_placements
 - y
 - width
 - height
-- updated_at
-
-project_text_placements
-- id
-- project_item_id
-- position_key
+- z_index
 - updated_at
 
 project_edges
@@ -251,386 +198,260 @@ project_edges
 - project_id
 - source_item_id
 - target_item_id
+- source_handle               # top | right | bottom | left
+- target_handle
+- marker_start                # none | arrow
+- marker_end                  # none | arrow
 - label
 - created_at
 - updated_at
 - deleted_at
 ```
 
-The previous shorthand in which every `project_item` stored only a
-`reference_target_id` was incomplete: Project-owned content also needs a direct,
-owner-controlled inclusion path. Project-owned content must not be registered
-as an external source merely to make the table shape uniform.
-
 Required constraints:
 
-- `project_items` never stores an editable copy of an external source object.
 - a Project item targets exactly one Project-owned content object or one
   reference-registry row;
-- a Project-owned content item belongs to its owner Project when edited;
-- content owned by another Project is included through a read-only reference;
-- Map placement and Text placement are independent;
-- removing a Project item removes only local placements and local edges;
-- edges and placements point to Project items, not directly to source rows;
-- Project attachment occurrences point to shared storage records through the
-  same occurrence-to-blob boundary as existing attachments;
-- a React Flow serialization is never the only persistent representation.
+- Project-owned content is edited only from its owner Project;
+- external source content is never copied into editable Project columns;
+- repeated reference occurrences are allowed;
+- removing an occurrence removes only local placements and local edges;
+- source rows, registry rows, other Projects, and shared blobs never cascade from
+  local occurrence removal;
+- Project-owned attachment occurrences reuse the existing occurrence-to-blob,
+  retention, GC, and export contracts;
+- React Flow serialization is never the sole persistent representation.
 
-Local Project-owned rows such as placements and edges may use deliberate
-cascade from a Project item because those rows have no meaning outside that
-local inclusion. Source rows, registry targets, and other Projects MUST NOT
-cascade when a Project item is removed.
+## Map
 
-## Reference registry and resolver boundary
+Map is the main desktop editor. The first interaction model supports:
 
-SQLite cannot use one foreign key from `target_type + target_id` to many source
-tables. The reference registry therefore requires layered enforcement:
+- pan and zoom;
+- selection and Inspector focus;
+- node move and border resize;
+- sidebar reference search and exact-position drop;
+- double-click empty space to create Markdown;
+- explicit or context-menu generic attachment insertion;
+- top/right/bottom/left connection handles;
+- Bezier edges with none/arrow markers at each endpoint;
+- optional short free-text edge labels;
+- explicit Save plus bounded autosave;
+- client-session undo/redo.
 
-- a closed, versioned target-type registry in application code;
-- resolver validation when a target is registered or inserted;
-- `UNIQUE(target_type, target_id)` for idempotent registration;
-- immutable registry identity once a row is created;
-- source-specific permanent-delete blockers;
-- foreign keys from Project items to the registry;
-- foreign keys from placements and edges to Project items;
-- periodic consistency checks for invalid targets.
+Node resize changes width, height, wrapping, and visible range, not font size or
+source content. A Reference node changes information density by size. Markdown
+and attachment content remain complete in Reading regardless of Map dimensions.
 
-`reference_targets` is not a content snapshot and is not the source of truth for
-title, status, path, or preview. It stores stable identity, registration and
-validation metadata, and an eventual tombstone. Normal resolution reads source
-tables in bounded batches through source-specific adapters.
+Reference insertion starts no write at drag start. A successful drop invokes one
+authoritative server operation that validates the Project, re-resolves the
+target, registers or refreshes `reference_targets`, creates the item occurrence,
+creates the Map placement, assigns `created_sequence`, and returns the new
+Project revision.
 
-The implemented v1 registry covers the nine existing stable source and
-occurrence identities:
+## Reading
+
+Reading renders every active occurrence linearly and provides no creation
+controls. It may:
+
+- read complete Markdown, attachments, and references;
+- edit existing Project-owned Markdown;
+- edit allowed Project-owned attachment metadata;
+- open references and Inspector; and
+- follow the deterministic insertion-order sequence.
+
+Mobile defaults to Reading. The initial mobile experience excludes item
+creation, file upload, Canvas placement, resize, edge editing, and bulk Canvas
+operations.
+
+### First-version Reading order
+
+Reading initially follows immutable Project-local insertion order only:
 
 ```text
-sample
-run
-run_step
-comment
-comment_occurrence
-comment_attachment
-execution_image
-metrology_reference
-recipe_revision
+created_sequence ascending
+project_item.id ascending as a deterministic tie-breaker
 ```
 
-Project, Project-content, and Project-attachment target types are future
-extensions added only when those stable source identities and lifecycles exist.
-The type set remains closed and tested; unknown strings are not accepted.
+The first Project schema does not add `project_reading_placements`,
+`position_key`, `reading_role`, manual reordering, topological sorting, or cycle
+handling. Map coordinates and arrows do not affect Reading order.
 
-The registry does not duplicate source content. It supports base batch
-resolution, permanent-delete blocker mapping, and a minimal future tombstone.
-Actual Project backlink counts come from `project_items.reference_target_id`
-once Project-item identity exists.
+A later phase may add a dedicated custom-order model after real use clarifies
+whether manual ordering, edge-informed ordering, or both are worthwhile. That
+future decision is intentionally allowed to add a migration rather than forcing
+speculative ordering fields into Phase 3A.
 
-## Text, Map, and Inspector
+## Markdown and mixed media
 
-### Text
+Project-owned text uses canonical Markdown source rather than editor-specific
+JSON. The target dialect is CommonMark/GFM-style Markdown plus TeX math.
 
-Text is the first Project workspace to implement. It provides:
+The first version excludes raw HTML, MDX/JSX, floating media, text wrapping,
+columns, and page-layout controls.
 
-- editable Project-owned text;
-- read-only embedded references;
-- a source path and `Open source` action for every reference;
-- an order independent from Map geometry and Project edges;
-- exportable continuous reading without pretending edges form a heading tree.
+Mixed media is occurrence based:
 
-Text is not an automatic linearization of the Map. `position_key` or an
-equivalent ordering scheme should allow insertion without renumbering every
-following item in one large mutation.
+```text
+Markdown occurrence
+Reference occurrence
+Image/file occurrence
+Markdown occurrence
+```
 
-### Map
+References and Project attachments are not editor-internal custom nodes inside a
+single mega-document. Only the active Markdown occurrence loads the full editor;
+read mode and ordinary Map nodes use lightweight renderers.
 
-Map provides spatial organization and user-defined edges. The intended
-interaction is:
+## Edges
 
-- click a card to select it and open Inspector;
-- drag a card to change its local placement;
-- use connection handles to create a local edge;
-- click a title, source path, or `Open source` to navigate;
-- optionally double-click a card as a navigation shortcut.
+The first edge contract uses:
 
-A single click on the whole card must not navigate because selection, dragging,
-and edge creation need that gesture.
+- Bezier rendering only;
+- four fixed connection handles per node;
+- fixed source/target handles after creation;
+- `none | arrow` at each endpoint, supporting undirected, forward, reverse, and
+  bidirectional edges;
+- an optional short free-text label;
+- deletion and recreation to change endpoints or handles;
+- no self-loop;
+- no obstacle avoidance, control points, automatic handle reassignment, or
+  relation-type ontology.
 
-`@xyflow/react` is the intended interaction layer. It must be dynamically
-loaded when Map opens and must not become the database model. Dagre may later
-provide optional initial or local layout, but layout output changes only view
-data.
+Visual direction affects Map presentation only; edges do not participate in
+first-version Reading order.
 
-Map writes should persist compact placement and edge changes, not one opaque
-serialized canvas document.
+## Inspector
 
-### Inspector
+Inspector carries detail that would make Map nodes or Reading blocks too large.
+It may show:
 
-Inspector carries detail that would make Map cards too large. It may:
+- complete content and current source path;
+- lifecycle state;
+- directly related child summaries;
+- exact `Open reference` and canonical Reference destinations;
+- local removal actions; and
+- later Project presence/backlink information.
 
-- show complete content and the dynamically resolved source path;
-- expand a Step's directly related Comments and attachments read-only;
-- add one of those child objects as a separate Project reference;
-- open the source object;
-- remove the selected item from the current Project.
+Inspector never exposes source mutation controls. Adding a child reference uses
+the same authoritative insertion operation as the sidebar.
 
-Inspector does not expose source mutation controls.
+## Search and insertion
 
-## Resolution, deep links, and search
+The Phase 2C service is the common reference-discovery backend. PR #130
+implemented the Project-embeddable `ReferenceSearchSurface`. The current
+`/search` page is temporary integration scaffolding.
 
-### Base batch resolver
+Search returns only a stable `ReferenceTarget` intent. Project insertion always
+re-resolves at write time. A stale browser result cannot bypass lifecycle or
+concurrency checks.
 
-Project cards must not load one complete Sample per target. PR #125 establishes
-a bounded base resolver that accepts stable `target_type + target_id` pairs and
-returns:
+Project-owned Markdown and attachments use their own creation paths and do not
+pass through reference search.
 
-- stable identity and type;
-- a read-only source summary;
-- current ordered source contexts;
-- source and ancestor lifecycle metadata;
-- `resolved`, `not_found`, `inconsistent`, or `tombstoned` state.
+## Save, undo, history, and concurrency
 
-It preserves caller order and duplicate requests, reports per-target failure,
-and never returns source mutation capability or physical storage locators. Its
-query count is bounded by the distinct target types present, with a small fixed
-number of source queries per adapter rather than one query per target object.
+React Flow state is not saved as one opaque document. The server persists
+normalized mutations for items, content, Map placements, and edges.
 
-### Enriched Project read model
+The first save model is:
 
-PR #127 Phase 2B1 enriches the base result with:
+```text
+local draft
++ pending normalized deltas
++ explicit Save
++ bounded autosave on idle and semantic operation boundaries
+```
 
-- a versioned opaque canonical `referenceUrl` that preserves stable-ID identity;
-- lifecycle-aware destination mode;
-- one safe `openSourceUrl` when an existing source route can represent the
-  identity exactly; and
-- ordered per-context source destinations without choosing one arbitrary path.
+Drag and resize update local state continuously but persist only at stop/end.
+Save flushes pending changes and exposes Saved, Saving, Unsaved, and
+Conflict/Error states.
 
-PR #128 Phase 2B2 consumes these destinations in the mature source interfaces,
-including exact Step and Comment focus, context-preserving attachment previews,
-stable execution-image occurrence reads, metrology-reference focus, and
-refresh/Back/Forward restoration. The focus layer remains read-only and returns
-no physical storage locator.
+Undo/redo exists only in the current client session. A later coarse checkpoint
+or Project-version feature may preserve meaningful snapshots, but permanent
+history does not record every move, resize, keystroke, or undo command.
 
-Later Project and Inspector slices add:
+Real-time collaboration is deferred. Initial APIs reserve a future path through:
 
-- directly expandable child summaries where appropriate;
-- Project backlink and location counts;
-- Project/Inspector-specific navigation capabilities.
+- stable item/content/edge IDs;
+- monotonic Project and optional content revisions;
+- `updated_by` and `updated_at`;
+- idempotent operation IDs; and
+- explicit `409` conflicts instead of silent last-write-wins.
 
-These fields were deliberately not part of the PR #125 completion boundary.
-Their staged addition does not turn the base resolver into a copied or partial
-source record.
+No CRDT, OT, WebSocket presence, or live cursor system is required now.
 
-### Object-level deep links
+## Lifecycle, export, and portability
 
-Every referenceable object needs a refresh-safe URL containing its stable ID.
-PR #127 establishes `/references/:type/:encodedId` with a shared opaque,
-reversible codec and a lifecycle-aware read-only destination for all nine
-current target types. Deleted, archived, missing, inconsistent, and tombstoned
-references therefore no longer depend on ordinary source routes remaining
-visible.
+Ordinary Project deletion is recoverable. Removing one occurrence changes only
+the current Project. External sources and shared bytes remain unchanged.
 
-PR #128 Phase 2B2 integrates the stable focus hints into existing source
-interfaces. Phase 2B therefore supports at least:
-
-| Target | Required destination |
-|---|---|
-| Project | Project workspace |
-| Project content | Owner Project focused on that content |
-| Sample | Sample details |
-| Run | Matching process or metrology Run |
-| Step | Matching Run, Step scrolled into view and expanded |
-| Comment | Owning context, Comment highlighted |
-| Attachment | Preview with source context preserved |
-| Recipe revision | The exact referenced revision |
-
-Deleted sources keep the canonical read-only destination instead of returning
-an ordinary `404` when an existing Project reference opens them.
-
-### Deterministic search and insertion
-
-Phase 2C is split so the shared discovery contract is reviewed before a
-browser surface or Project write path depends on it.
-
-#### Phase 2C1: deterministic search foundation
-
-PR #129 adds one read-only search service over the nine current reference
-target types. It searches authoritative source tables directly, applies the
-new-reference lifecycle policy, ranks results through explicit tiers, and
-revalidates selected candidates through the existing batch resolver.
-
-The first source search covers Sample, Run, Run Step, canonical Comment,
-Comment occurrence, Comment attachment, execution image, metrology
-reference, and Recipe revision identities. It supports type, Sample, and
-time filters. Canonical Comment body search returns the logical Comment;
-canonical occurrences remain searchable by exact occurrence ID, while
-legacy occurrences without a logical Comment retain body search.
-
-Ranking is explainable and deterministic: exact stable ID, exact primary
-title/code/filename, primary prefix, target-owned content, then weaker
-metadata. Ties use target timestamp, the closed type order, and stable ID.
-Search is read-only, creates no registry row, and returns the exact
-`ReferenceTarget` selection payload plus current resolver destinations.
-
-#### Phase 2C2: global search and reusable selection UI
-
-The following slice adds a URL-owned global Search page and a reusable
-result picker that consumes the Phase 2C1 API without changing ranking or
-lifecycle behavior.
-
-Actual `Add to project` persistence remains a Phase 3 server operation. The
-Project-item creation route re-resolves and registers the target, then
-creates `project_items.reference_target_id` under one authoritative owner.
-Search does not create a placeholder usage row or imply that selecting a
-result has already inserted it.
-
-The Phase 2C service is also the intended unified backend for existing and
-future search boxes, but each surface keeps a named business profile. Global
-research search may include archived Recipe revisions; a new-run Recipe picker
-must exclude them. A Sample directory may restrict the service to `sample`,
-while a Project picker returns selectable `ReferenceTarget` payloads. Existing
-page-specific searches migrate only after result, eligibility, pagination, and
-performance parity tests; unification must not erase their business rules.
-
-Candidate retrieval is replaceable. The current portable SQLite source backend
-supports D1 and a future Docker/self-hosted SQLite adapter. A later FTS5 backend
-may accelerate all profiles while preserving the same ranking tiers, lifecycle
-checks, and final resolver result.
-
-A Comment result selects that Comment; ancestors remain source context and
-are not silently inserted. Semantic, embedding, fuzzy, or model-ranked
-search is later work.
-
-## Lifecycle and history
-
-Project depends on the source lifecycle contract rather than replacing it.
-
-| Operation | Source effect | Existing Project result |
-|---|---|---|
-| Edit source | Update the original object | Shows latest content and an edited indication |
-| Remove from Project | Remove one local item and edges | Source unchanged |
-| Move source to trash | Recoverable soft-delete | Read-only deleted source remains resolvable |
-| Restore source | Clear deletion metadata | Same stable ID becomes active again |
-| Permanently delete | Privileged, reference-guarded operation | Minimal unavailable tombstone if force is ever supported |
-
-All referenceable source objects need stable IDs, `updated_at`, deletion
-metadata, and a usable audit or revision model. References show the latest
-source version by default. Pinning a historical revision may be added later,
-but it must point to source history rather than create a Project-owned copy.
-
-Backlinks are required for navigation and deletion safety. Before a permanent
-delete, the system must be able to report, for example, “Referenced by 3 items
-in 2 Projects.” The authoritative Project backlink relationship is the future
-`project_items.reference_target_id`; a Project or Project-owned content may
-itself be soft-deleted without cascading into references held by another
-Project.
-
-Permanent deletion is still disabled. The source/blob lifecycle slices block
-accidental physical deletion, and PR #125 added the registry and blocker type
-mapping, but Project backlinks, privileged authorization, final concurrency
-checks, and tombstone creation are not all present.
-
-If a future privileged force-delete is introduced, it must create the tombstone
-before removing the source. The tombstone keeps only stable identity,
-last-known type/contexts, and deletion metadata; it does not retain permanently
-deleted text or file bytes.
-
-## Recipe and attachment rules
-
-Project distinguishes a Recipe family, a specific revision, and the snapshot
-used by a Run. A completed or historical Run continues to resolve the revision
-or snapshot that governed it. Retiring or deleting a Recipe prevents new
-assignment but does not rewrite historical execution.
-
-Project references attachment occurrences, never R2 keys or shared blob rows.
-Renaming an occurrence can preserve its ID; replacing its bytes creates a new
-occurrence. Removing one occurrence must not delete bytes reachable from any
-active, archived, soft-deleted, retryable, or Project-referenced occurrence.
-
-Project-owned uploads reuse the existing hashing, deduplication, R2, and
-managed-storage services while creating their own stable attachment occurrence.
-They do not pass through Comment-specific finalization routes, but they emit the
-same retention-edge shape and use the same GC/export services.
-
-The precise reachability and export contract is specified in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md).
-
-## Export and restore
-
-The current schema-v3 complete export already includes `reference_targets` in
-the same D1 table-snapshot batch as the source tables. Adding Project requires a
-new full-export schema version that additionally includes:
+Adding Project requires a new complete-export schema version containing:
 
 - Projects and Project-owned contents;
-- Project attachment occurrences;
-- Project items;
-- Text placements, Map placements, and edges;
-- backlink/tombstone records needed to restore Project reference behavior;
-- every reachable Project-owned blob;
+- Project attachment occurrences and reachable bytes;
+- repeated Project item occurrences;
+- Map placements and the item creation sequence used by Reading;
+- Project-local edges;
+- revision metadata; and
 - structured warnings for unavailable bytes.
 
-Restore must preserve source, registry, and Project IDs exactly so references
-do not silently retarget. Exported Markdown or other human-readable output uses
-relative asset paths and contains no authenticated or temporary URLs.
+Restore preserves all stable IDs exactly. Human-readable Markdown export uses
+relative attachment paths and no authenticated or temporary URLs.
 
-## Implementation roadmap
+Cloudflare is the current deployment, not the domain model. Project logic,
+revision rules, search contracts, and normalized persistence must remain usable
+through later D1/SQLite, R2/local-object-storage, and authentication adapters.
 
-The deterministic search contract is reviewed before its global UI and
-before Project insertion. Each phase has a clear exit condition:
+## Preview boundary
 
-| Phase | Scope | Current state |
-|---|---|---|
-| 0. Reference identity | Target list, canonical Comment, attachment occurrence/blob boundary, lifecycle vocabulary | Complete |
-| 1A. Source lifecycle | Soft-delete/restore and ordinary read/mutation guards | Complete after PR #120 |
-| 1B. Blob lifecycle | Shared reachability, safe cleanup/export, physical-delete protection, deployment gate | Complete after PR #123, with D1/workerd compatibility corrected by PR #124 |
-| 2A. Registry and base resolution | Sparse registry, immutable registry identity, bounded batch resolver, lifecycle contexts, unified middleware, workerd runtime smoke | Complete after PR #125 and the reference-runtime completion slice |
-| 2B. Deep links | Object-level canonical URLs, lifecycle destinations, and exact source focus | Complete after PR #128 |
-| 2B1. Canonical destinations | Opaque route codec, resolver destination fields, lifecycle-aware read-only Reference page | Complete in PR #127 |
-| 2B2. Source focus integration | Step centering, Comment highlighting, attachment/execution-image preview, metrology-reference focus | Complete in PR #128 |
-| 2C. Deterministic search and selection | Shared explainable search/read model plus reusable selection surface | In progress |
-| 2C1. Search foundation | Nine-type read-only candidate service, lifecycle filters, deterministic ranking, resolver revalidation, Worker/D1 gate | Implemented in Draft PR #129; pending review |
-| 2C2. Global search and picker | URL-owned Search page and reusable result-selection UI | Next after 2C1 |
-| 3. Project and Text | Project data, `project_items` backlinks, authoritative target registration/insertion, Project-owned content, Text workspace, Inspector, export | Not started |
-| 4. Map | React Flow placements and edges, dynamic loading, Inspector integration | Not started |
-| 5. Later capabilities | Revision pinning, semantic search, LLM insight, advanced consistency tooling | Deferred |
+PDF and webpage preview are not alpha requirements.
 
-Within those phases, the dependency order is:
+The attachment schema permits derived preview metadata. A later PDF feature may
+show a first-page thumbnail in a sufficiently large node and a fuller viewer in
+Inspector/modal.
 
-1. stable object identity;
-2. source deletion lifecycle;
-3. blob reachability, export integrity, and physical-delete protection;
-4. Recipe revision and execution snapshot verification;
-5. sparse registry and base read-only resolution;
-6. opaque canonical destinations and lifecycle-aware read-only pages;
-7. exact Step, Comment, attachment, execution-image, and metrology focus;
-8. deterministic search service, lifecycle policy, and ranking;
-9. global search and reusable result-selection UI;
-10. Project contents, items, backlinks, authoritative insertion, and local edges;
-11. Text and Inspector;
-12. Map;
-13. later revision, semantic, and insight capabilities.
+Live webpage iframe embedding is excluded. A later security-reviewed capture
+service may store a screenshot attachment with title, domain, and source URL
+metadata.
 
-Recipe revision and Run snapshot foundations already exist; step 4 is
-verification of those boundaries rather than a Recipe redesign.
+## Roadmap
+
+Phase 2C2 is complete in PR #130. The active sequence now begins with:
+
+1. Phase 3A Project core schema, save/revision contract, creation sequence, Map
+   placement, basic-edge schema, authoritative insertion, and export;
+2. Phase 3B1 Map kernel;
+3. Phase 3B2 reference sidebar and drag/drop placement;
+4. Phase 3B3 Markdown and generic attachment creation;
+5. Phase 3B4 basic Bezier directional edges;
+6. Phase 3C no-creation insertion-order Reading projection;
+7. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
+8. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
+   performance work.
+
+See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) for completion criteria,
+milestones, portability, search-performance, deletion-safety, and later-feature
+tracks.
 
 ## First-version non-goals
 
 - Project status, progress, or task management;
-- a fixed subproject tree or unique parent Project;
-- editing source objects from Project;
-- automatically expanding the full source hierarchy into nodes;
-- deriving one mandatory Text hierarchy from Map edges;
-- a structured Simulation entity;
-- semantic search as a first-version dependency;
-- storing React Flow output as the only Project representation;
+- fixed subproject hierarchy;
+- source mutation from Project;
+- local annotation overrides on references;
+- one-reference-per-Project uniqueness;
+- automatic expansion of a complete source hierarchy;
+- assuming every directed edge defines Reading order;
+- complex page layout;
+- live webpage embedding;
+- real-time collaboration;
+- semantic search as a dependency;
+- React Flow JSON as the sole Project representation;
 - allowing an LLM to mutate experimental source records.
-
-LLM-based read-only insight may be explored only after the deterministic read
-and reference model is stable. Project itself does not absorb experimental data
-analysis into the record system.
 
 ## Dependency and licensing boundary
 
-Before adding Map dependencies, verify both the repository license and each
-third-party license. React Flow and Dagre are expected to be MIT-licensed, but
-that expectation must be rechecked at the version selected for implementation.
-No Map dependency is required during the blob, resolver, deep-link, search, or
-Text phases.
+React Flow is selected and license-verified when Phase 3B1 begins. It is not
+required for Phase 3A schema work. Any Markdown editor, TeX renderer, PDF
+renderer, or preview dependency is selected only in its corresponding slice and
+must not determine the persistent Project model.

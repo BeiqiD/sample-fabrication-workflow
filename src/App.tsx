@@ -3,10 +3,13 @@ import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
+import "./reference-search.css";
 
 const SamplesPage = lazy(() => import("./pages/SamplesPage").then((module) => ({ default: module.SamplesPage })));
 const NewSamplePage = lazy(() => import("./pages/NewSamplePage").then((module) => ({ default: module.NewSamplePage })));
 const SamplePage = lazy(() => import("./pages/SamplePage").then((module) => ({ default: module.SamplePage })));
+// Temporary integration browser. Phase 3 mounts the reusable surface inside Project.
+const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
 const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
@@ -19,6 +22,8 @@ const ReferencePage = lazy(() => import("./pages/ReferencePage").then((module) =
 const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
   { to: "/processing", label: "Processing", icon: "processing" },
   { to: "/samples", label: "Samples", icon: "samples" },
+  // Phase 3 replaces this temporary destination with Project.
+  { to: "/search", label: "Search", icon: "search" },
   { to: "/templates", label: "Templates", icon: "templates" },
   { to: "/export", label: "Export", icon: "export" },
 ];
@@ -76,6 +81,7 @@ export function App() {
             <Route path="/samples/new" element={<NewSamplePage />} />
             <Route path="/samples/:sampleId/timeline" element={<SampleTimelinePage />} />
             <Route path="/samples/:sampleId" element={<SamplePage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
             <Route path="/templates/:templateId" element={<TemplatePage />} />
