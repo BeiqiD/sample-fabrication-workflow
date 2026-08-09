@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
 import worker from "./index";
 import type { Env } from "./types";
 import {
@@ -160,7 +161,7 @@ describe("reference resolution route", () => {
     expect(response.status).toBe(200);
     expect(d1.batchCount).toBe(1);
     expect(d1.directQueryCount).toBe(0);
-    expect(payload.schemaVersion).toBe(3);
+    expect(payload.schemaVersion).toBe(PROJECT_EXPORT_SCHEMA_VERSION);
     expect(payload.tables.reference_targets).toEqual([
       expect.objectContaining({
         id: "registry-export",

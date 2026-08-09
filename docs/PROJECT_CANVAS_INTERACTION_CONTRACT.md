@@ -1,15 +1,19 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract before Phase 3 schema implementation
+Status: product and architecture contract after Phase 3A1 schema foundation
 
-Last reviewed: 2026-08-09 after the Map-first Project interaction review
+Last reviewed: 2026-08-09 after the Map-first Project interaction review and
+Phase 3A1 implemented in PR #131
 
-This document defines the intended Project workspace before migrations, React
-Flow integration, or an editor dependency are selected. It supersedes any older
-statement that Text is the primary Project workspace or that Map and Text are
-independent content systems.
+This document defines the intended Project workspace before React Flow or an
+editor dependency are selected. Phase 3A1, implemented in PR #131, freezes the
+normalized schema; Phase 3A2 supplies its authoritative read/write transactions.
+This document supersedes any older statement that Text is the primary Project
+workspace or that Map and Text are independent content systems.
 
 The canonical product order is recorded in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
+The concrete Phase 3A split and database/service guarantees are recorded in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -51,6 +55,19 @@ richer renderer; PDFs initially use a file card and may later gain an optional
 preview; other files show filename, type, size, and an open/download action.
 All Project-owned attachments reuse the existing occurrence-to-blob, hashing,
 storage, retention, GC, and export contracts.
+
+Attachment state is divided deliberately:
+
+- the locator, original filename, MIME type, byte size, creation actor/time, and
+  creation operation are intrinsic file metadata and cannot be retargeted or
+  edited in place;
+- caption and optional source URL/provenance are revisioned Project-owned
+  descriptive metadata and may be edited from Map, Reading, or Inspector;
+- recoverable lifecycle belongs to the parent Project content record rather than
+  being duplicated on the intrinsic-file subtype.
+
+Replacing attachment bytes therefore creates new Project-owned content. Editing
+a caption or source URL never changes the stored file.
 
 A future webpage capture is a Project-owned screenshot attachment with source
 URL metadata. Live webpage embedding is not part of the product contract.
@@ -103,6 +120,7 @@ Desktop is the full Project editing environment:
 - place, move, and resize nodes;
 - create Markdown by double-clicking empty Map space;
 - upload generic Project attachments;
+- edit attachment caption/source URL without replacing bytes;
 - create and edit basic edges;
 - use client-session undo/redo;
 - save explicitly and through bounded autosave.
@@ -116,12 +134,13 @@ The initial mobile contract permits:
 - reading the complete Project;
 - opening external references;
 - editing existing Project-owned Markdown;
-- editing existing attachment captions/metadata where allowed;
+- editing attachment caption and optional source URL;
 - reviewing the fixed insertion-order sequence; and
 - viewing item detail.
 
-The initial mobile contract excludes item creation, file upload, Map placement,
-resize, edge creation/editing, and bulk Canvas actions.
+The initial mobile contract excludes item creation, file upload, byte
+replacement, Map placement, resize, edge creation/editing, and bulk Canvas
+actions.
 
 ## Map creation interactions
 
@@ -135,13 +154,17 @@ preview data.
 No Project or registry row is written when dragging starts. A successful drop
 starts one authoritative server operation that:
 
-1. validates Project write access;
+1. validates Project write access and the expected Project revision;
 2. re-resolves the selected target;
 3. idempotently registers or refreshes `reference_targets`;
-4. creates one new Project item occurrence;
-5. creates its Map placement;
-6. assigns its immutable per-Project creation sequence; and
+4. reserves and advances the immutable per-Project creation sequence;
+5. creates one new Project item occurrence;
+6. creates its Map placement; and
 7. returns the canonical inserted item and Project revision.
+
+All steps occur in one rollback-safe transaction. The database permits zero or
+one placement row per item, but the service never commits a newly created active
+item without its placement.
 
 A pending ghost node may appear immediately. Failure removes or marks the ghost
 and offers retry; it never leaves a half-created Project item.
@@ -161,7 +184,9 @@ pointer position and immediately focuses its editor.
 - editing temporarily disables node dragging;
 - existing Markdown nodes enter edit mode through an explicit action or
   double-click;
-- Map and Reading edit the same canonical Markdown source.
+- Map and Reading edit the same canonical Markdown source;
+- persistence creates the content, item occurrence, creation sequence, and Map
+  placement atomically.
 
 ### Attachment creation
 
@@ -173,6 +198,12 @@ Generic Project-owned attachments are created through:
 
 A context-menu insertion uses the clicked coordinate. A toolbar insertion uses
 the viewport center or another documented deterministic default.
+
+After blob upload/registration succeeds, the authoritative Project transaction
+creates the attachment content, immutable intrinsic-file subtype, item
+occurrence, creation sequence, and placement together. Failure cannot leave a
+committed item without a placement or a Project attachment occurrence without
+its content owner.
 
 Existing source attachments are not copied through this path; they remain
 references found through the sidebar.
@@ -186,6 +217,7 @@ references found through the sidebar.
 - drag resize border: resize;
 - double-click empty space: create Markdown;
 - double-click or explicit Edit on Markdown: edit;
+- edit attachment caption/source URL through an explicit metadata action;
 - click hover/selected/focused `Open reference`: navigate to source;
 - drag one of four connection handles: create an edge;
 - right-click: context menu.
@@ -211,6 +243,17 @@ Attachment nodes use the same dimensions for display range. Images use
 
 Canvas viewport zoom and node resize remain different concepts. Contextual zoom
 may replace rich node content with lightweight summaries at low zoom.
+
+### Geometry boundary
+
+Shared TypeScript validation and SQLite use the same finite bounds:
+
+- `x` and `y`: `-1,000,000` through `1,000,000`;
+- `width` and `height`: greater than zero and at most `100,000`;
+- integer `zIndex`: `-1,000,000` through `1,000,000`.
+
+`NaN`, positive or negative infinity, and values outside these bounds are invalid
+before persistence and are rejected again by the database.
 
 ## Edges
 
@@ -248,7 +291,8 @@ operations. It allows:
 
 - complete rendering of existing items;
 - editing existing Project-owned Markdown;
-- editing allowed metadata of existing Project-owned attachments; and
+- editing attachment caption and optional source URL;
+- never retargeting attachment bytes or intrinsic filename/type/size metadata;
 - opening references and Inspector.
 
 Reference blocks remain read-only. Mobile defaults to this projection and keeps
@@ -266,8 +310,8 @@ project_item.id ascending as a deterministic tie-breaker
 
 `created_sequence` is assigned transactionally when the Project item occurrence
 is created and is never rewritten by Map position, node movement, edge direction,
-or content edits. Every active occurrence therefore appears in Reading without a
-separate Reading-placement row.
+or content edits. Every committed active occurrence therefore appears in Reading
+without a separate Reading-placement row.
 
 The initial release has no manual Reading reorder, `position_key`,
 `reading_role`, topological sort, or cycle-resolution UX. Visual arrows express
@@ -308,13 +352,17 @@ React Flow state is never the database model. The server persists normalized
 Project rows and compact mutations:
 
 - create/remove item occurrence;
-- create/update Project-owned content;
+- create/update Project-owned Markdown or attachment description;
 - create/update Map placement;
 - create/update/delete edge.
 
+Intrinsic attachment bytes and file metadata are create-once; replacing them is
+a new content operation rather than an update mutation.
+
 Drag and resize update local state continuously but persist only at semantic
-boundaries such as drag stop and resize end. Text edits use an idle debounce,
-blur, explicit Save, or another documented flush boundary.
+boundaries such as drag stop and resize end. Text and attachment-description
+edits use an idle debounce, blur, explicit Save, or another documented flush
+boundary.
 
 The initial persistence model is:
 
@@ -343,8 +391,9 @@ Real-time collaborative editing is not an initial goal. The initial system uses
 optimistic concurrency:
 
 - stable item/content/edge IDs;
-- a monotonic Project revision or equivalent expected-version token;
-- optional per-content revision where needed;
+- monotonic Project and content revisions or equivalent expected-version tokens;
+- revision metadata that cannot be rewound, pre-bumped, or changed without a
+  semantic mutation;
 - `updated_at` and `updated_by` metadata;
 - idempotent operation IDs for retryable mutations;
 - `409` conflict instead of silent last-write-wins.
@@ -358,9 +407,10 @@ replace Project identities or normalized storage.
 
 PDF and webpage preview are not Project-alpha requirements.
 
-The schema should allow attachment preview metadata and derived thumbnails.
-Later PDF support may render a first-page thumbnail in a sufficiently large node
-and a fuller viewer in Inspector/modal, with lazy loading and memory limits.
+The schema may later add derived preview metadata and thumbnails without
+retargeting the stable intrinsic attachment. Later PDF support may render a
+first-page thumbnail in a sufficiently large node and a fuller viewer in
+Inspector/modal, with lazy loading and memory limits.
 
 Live webpage iframe embedding is excluded. A later webpage capture service may
 create a screenshot attachment plus title/domain/source URL metadata after a
@@ -383,39 +433,45 @@ From the first Map slice:
 - drag/resize produce no per-frame network writes;
 - expensive visual effects and continuous animations are avoided.
 
-## Schema implications to freeze before Phase 3A
+## Frozen Phase 3A schema implications
 
-The first Project migration set must be compatible with:
+The first Project migration set uses:
 
 ```text
 projects
-project_contents                 markdown or generic attachment owner records
-project_content_attachments     stable attachment occurrence -> blob records
+project_contents                 markdown or attachment owner; revisioned caption/source URL
+project_content_attachments      immutable intrinsic attachment -> blob record
 project_items                    Project-local occurrences; content XOR reference; immutable created_sequence
-project_map_placements           one active placement per occurrence
+project_map_placements           zero or one DB row per item; exactly one through authoritative creation
 project_edges                    Project-local edges with fixed handles/markers; no Reading-order field in v1
 ```
 
-Every active Project item occurrence has one Map placement and automatically
-appears in Reading through `project_items.created_sequence`. The first version
-does not persist a separate Reading placement.
+Every committed active Project item occurrence has one Map placement and
+automatically appears in Reading through `project_items.created_sequence`. The
+first version does not persist a separate Reading placement.
 
-The migration must not:
+The migration and service must not:
 
 - collapse content and occurrence identity;
 - impose uniqueness on one reference per Project;
 - store React Flow JSON as the only representation;
 - add editable local metadata to external references;
+- permit intrinsic attachment locators or file metadata to be retargeted;
+- commit an active item without its placement;
+- accept non-finite or unbounded Map geometry;
+- allow revision rewind, pre-bump, or duplicate-version reuse;
 - assume any Map edge affects first-version Reading order;
 - add speculative Reading-order tables or columns before a concrete later design;
 - require permanent operation history or real-time collaboration.
 
 ## Implementation sequence
 
-1. **Phase 3A — Project core schema and save contracts**: normalized identities,
-   generic attachments, immutable creation sequence, Map placements, edges,
-   revisions, authoritative reference insertion, removal, export, and
-   D1/workerd gates.
+Phase 3A1 is complete in PR #131. The active implementation sequence is:
+
+1. **Phase 3A2 — Authoritative persistence service**: Project reads/writes,
+   rollback-safe item-plus-placement creation, reference registration,
+   Markdown/attachment operations, expected revisions, idempotency, conflicts,
+   and workerd route gates.
 2. **Phase 3B1 — Map kernel**: dynamic React Flow, pan/zoom, selection, move,
    resize, save state, and lightweight nodes.
 3. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
@@ -435,8 +491,8 @@ The migration must not:
 
 ## Deferred questions
 
-The following do not block Phase 3A provided the schema reservations above are
-kept:
+The following do not block Phase 3A2 or later work provided the frozen contracts
+above are kept:
 
 - whether later versions need manual or edge-informed Reading order;
 - group/frame nodes;

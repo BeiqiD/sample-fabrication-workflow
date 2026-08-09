@@ -1,14 +1,17 @@
 # Project design foundation
 
-Status: current product and architecture contract before Phase 3 schema work
+Status: current product and architecture contract after Phase 3A1 schema foundation
 
-Last reviewed: 2026-08-09 after the Map-first Project interaction review and the
-reusable Project discovery surface implemented in PR #130
+Last reviewed: 2026-08-09 after the Map-first Project interaction review, the
+reusable Project discovery surface in PR #130, and Phase 3A1 implemented in
+PR #131
 
 This document defines the durable Project identity and ownership model. The
 canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
 Map, Reading, save, edge, mobile, preview, and performance behavior is in
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+The concrete Phase 3A1/3A2 backend boundary is in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).
 
 The longer Text-first design record that preceded the Map-first decision is
 preserved in `PROJECT_DESIGN_FOUNDATION_LEGACY.md` for history. Where it
@@ -35,7 +38,8 @@ It exposes two projections over the same occurrences:
   interface.
 
 Map and Reading never own separate copies of content. Editing one Project-owned
-Markdown item changes what both views render.
+Markdown item or an allowed attachment description changes what both views
+render.
 
 Project is not:
 
@@ -56,12 +60,19 @@ navigate references, but it cannot mutate those sources.
 Project owns only:
 
 - Markdown source created inside the Project;
-- generic file/image/PDF attachment occurrences uploaded to the Project;
+- generic file/image/PDF attachment content uploaded to the Project;
+- attachment caption and optional source URL/provenance metadata;
 - Project-local item occurrences;
 - Map placements and sizes;
 - immutable Project-local creation sequence used by Reading;
 - Project-local edges and labels; and
 - Project metadata such as title and lifecycle fields.
+
+For Project-owned attachments, the physical locator and intrinsic file metadata
+(original filename, MIME type, byte size, creation actor/time, and creation
+operation) are stable. Replacing bytes creates new content. Caption and optional
+source URL are ordinary revisioned Project-owned metadata on the attachment
+content record; changing them never retargets the stored file.
 
 Existing Comment attachments, execution images, metrology references, Recipes,
 Runs, Steps, Samples, and future external Projects enter through the reference
@@ -120,77 +131,96 @@ than owning a separate placement identity.
 Edges point to Project item occurrences because they express local Project
 meaning. They never point directly to source rows or blob records.
 
-### Every active occurrence appears in both projections
+### Every committed active occurrence appears in both projections
 
-Each active Project item occurrence has one active Map placement and appears
-automatically in Reading through its immutable `created_sequence`. Map-only and
-Reading-only content are not first-version states, but Reading does not require
-a separate placement row until a later custom-order design exists.
+Each committed active Project item occurrence has one active Map placement and
+appears automatically in Reading through its immutable `created_sequence`.
+Map-only and Reading-only content are not first-version states, but Reading does
+not require a separate placement row until a later custom-order design exists.
 
-## Conceptual data model
+The database can enforce only **zero or one** placement row per item. The
+stronger exactly-one product invariant belongs to the Phase 3A2 authoritative
+creation transaction, which creates the item and placement together and rolls
+back both on any failure. Standalone item creation is not an allowed service
+operation.
 
-Names and exact columns remain subject to migration review, but the first schema
-must preserve this shape:
+## Data model
+
+Phase 3A1, implemented in PR #131, freezes the following first schema shape:
 
 ```text
 projects
 - id
 - title
+- revision
+- next_created_sequence
+- last_mutation_id
 - created_by
 - updated_by
 - created_at
 - updated_at
-- revision
 - deleted_at
 - deleted_by
+- deletion_operation_id
 
 project_contents
 - id
-- owner_project_id
-- content_kind                # markdown | attachment
+- project_id
+- content_type                # markdown | attachment
 - markdown_source             # markdown only
+- attachment_caption          # attachment only; mutable
+- attachment_source_url       # attachment only; mutable optional provenance
 - format_version
+- revision
+- last_mutation_id
 - created_by
 - updated_by
 - created_at
 - updated_at
-- revision
 - deleted_at
 - deleted_by
+- deletion_operation_id
 
 project_content_attachments
-- id
-- project_content_id
+- project_content_id          # one-to-one intrinsic-file subtype
 - asset_id / storage_object_id
-- original_filename
-- media_type
-- size_bytes
-- caption
-- source_url                  # optional screenshot provenance
+- original_name
+- mime_type
+- byte_size
+- created_by
 - created_at
-- updated_at
-- deleted_at
-- deleted_by
+- creation_operation_id
 
 project_items
 - id
 - project_id
-- item_kind                   # content | reference
+- item_type                   # content | reference
 - project_content_id          # exactly one target column populated
 - reference_target_id
 - created_sequence
+- revision
+- last_mutation_id
+- created_by
+- updated_by
 - created_at
+- updated_at
 - deleted_at
 - deleted_by
-- CHECK(exactly one target matches item_kind)
+- deletion_operation_id
 
 project_map_placements
-- project_item_id
+- id
+- project_item_id             # unique: zero or one DB row per item
 - x
 - y
 - width
 - height
 - z_index
+- revision
+- last_mutation_id
+- created_by
+- updated_by
+- created_at
 - updated_at
 
 project_edges
@@ -203,9 +233,15 @@ project_edges
 - marker_start                # none | arrow
 - marker_end                  # none | arrow
 - label
+- revision
+- last_mutation_id
+- created_by
+- updated_by
 - created_at
 - updated_at
 - deleted_at
+- deleted_by
+- deletion_operation_id
 ```
 
 Required constraints:
@@ -215,6 +251,16 @@ Required constraints:
 - Project-owned content is edited only from its owner Project;
 - external source content is never copied into editable Project columns;
 - repeated reference occurrences are allowed;
+- owned content has at most one item occurrence;
+- the database permits at most one placement per item, while the authoritative
+  service commits item and placement together;
+- Map coordinates, dimensions, and z-index are finite and bounded consistently
+  in SQL and shared TypeScript;
+- revisions advance exactly once for semantic changes and cannot be rewound,
+  pre-bumped, or changed independently of semantic state;
+- intrinsic attachment locator/name/type/size metadata is immutable;
+- attachment caption/source URL and lifecycle are revisioned on
+  `project_contents`;
 - removing an occurrence removes only local placements and local edges;
 - source rows, registry rows, other Projects, and shared blobs never cascade from
   local occurrence removal;
@@ -244,9 +290,12 @@ and attachment content remain complete in Reading regardless of Map dimensions.
 
 Reference insertion starts no write at drag start. A successful drop invokes one
 authoritative server operation that validates the Project, re-resolves the
-target, registers or refreshes `reference_targets`, creates the item occurrence,
-creates the Map placement, assigns `created_sequence`, and returns the new
-Project revision.
+target, registers or refreshes `reference_targets`, reserves the next immutable
+`created_sequence`, creates the item occurrence, creates the Map placement, and
+returns the new Project revision. Any failure rolls back the entire operation.
+
+Project-owned Markdown and attachment creation use the same item-plus-placement
+transaction boundary after their content-specific validation succeeds.
 
 ## Reading
 
@@ -255,7 +304,8 @@ controls. It may:
 
 - read complete Markdown, attachments, and references;
 - edit existing Project-owned Markdown;
-- edit allowed Project-owned attachment metadata;
+- edit Project-owned attachment caption and optional source URL;
+- never retarget attachment bytes or intrinsic filename/type/size metadata;
 - open references and Inspector; and
 - follow the deterministic insertion-order sequence.
 
@@ -351,7 +401,8 @@ pass through reference search.
 ## Save, undo, history, and concurrency
 
 React Flow state is not saved as one opaque document. The server persists
-normalized mutations for items, content, Map placements, and edges.
+normalized mutations for items, content, attachment descriptions, Map
+placements, and edges.
 
 The first save model is:
 
@@ -373,7 +424,7 @@ history does not record every move, resize, keystroke, or undo command.
 Real-time collaboration is deferred. Initial APIs reserve a future path through:
 
 - stable item/content/edge IDs;
-- monotonic Project and optional content revisions;
+- monotonic Project and content revisions;
 - `updated_by` and `updated_at`;
 - idempotent operation IDs; and
 - explicit `409` conflicts instead of silent last-write-wins.
@@ -382,13 +433,15 @@ No CRDT, OT, WebSocket presence, or live cursor system is required now.
 
 ## Lifecycle, export, and portability
 
-Ordinary Project deletion is recoverable. Removing one occurrence changes only
-the current Project. External sources and shared bytes remain unchanged.
+Ordinary Project and content deletion is recoverable. Attachment lifecycle is
+owned by `project_contents`; the intrinsic-file subtype does not duplicate
+lifecycle fields. Removing one occurrence changes only the current Project.
+External sources and shared bytes remain unchanged.
 
 Adding Project requires a new complete-export schema version containing:
 
-- Projects and Project-owned contents;
-- Project attachment occurrences and reachable bytes;
+- Projects and Project-owned contents, including attachment descriptions;
+- Project attachment intrinsic metadata and reachable bytes;
 - repeated Project item occurrences;
 - Map placements and the item creation sequence used by Reading;
 - Project-local edges;
@@ -406,9 +459,9 @@ through later D1/SQLite, R2/local-object-storage, and authentication adapters.
 
 PDF and webpage preview are not alpha requirements.
 
-The attachment schema permits derived preview metadata. A later PDF feature may
-show a first-page thumbnail in a sufficiently large node and a fuller viewer in
-Inspector/modal.
+The attachment model permits later derived preview metadata without changing the
+stable intrinsic file identity. A later PDF feature may show a first-page
+thumbnail in a sufficiently large node and a fuller viewer in Inspector/modal.
 
 Live webpage iframe embedding is excluded. A later security-reviewed capture
 service may store a screenshot attachment with title, domain, and source URL
@@ -416,10 +469,11 @@ metadata.
 
 ## Roadmap
 
-Phase 2C2 is complete in PR #130. The active sequence now begins with:
+Phase 2C2 and Phase 3A1 are complete in PR #130 and PR #131. The active sequence
+now begins with:
 
-1. Phase 3A Project core schema, save/revision contract, creation sequence, Map
-   placement, basic-edge schema, authoritative insertion, and export;
+1. Phase 3A2 authoritative reads/writes, item-plus-placement transactions,
+   idempotency, and conflict handling;
 2. Phase 3B1 Map kernel;
 3. Phase 3B2 reference sidebar and drag/drop placement;
 4. Phase 3B3 Markdown and generic attachment creation;
