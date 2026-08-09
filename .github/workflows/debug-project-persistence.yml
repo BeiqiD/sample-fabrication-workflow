@@ -1,0 +1,47 @@
+name: Debug Project Persistence
+
+on:
+  push:
+    branches:
+      - codex/project-persistence-service
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Project persistence verification
+        id: persistence
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify:project-persistence 2>&1 | tee project-persistence.log
+
+      - name: Upload Project persistence log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-persistence-diagnostics-${{ github.sha }}
+          path: project-persistence.log
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Fail when Project persistence verification failed
+        if: ${{ steps.persistence.outcome != 'success' }}
+        run: exit 1
