@@ -17,12 +17,14 @@ export interface ProjectRow {
   title: string;
   revision: number;
   next_created_sequence: number;
+  last_mutation_id: string;
   created_by: string;
   updated_by: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
   deleted_by: string | null;
+  deletion_operation_id: string | null;
 }
 
 export interface ProjectContentRow {
@@ -34,12 +36,14 @@ export interface ProjectContentRow {
   attachment_source_url: string | null;
   format_version: number;
   revision: number;
+  last_mutation_id: string;
   created_by: string;
   updated_by: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
   deleted_by: string | null;
+  deletion_operation_id: string | null;
 }
 
 export interface ProjectAttachmentRow {
@@ -50,6 +54,7 @@ export interface ProjectAttachmentRow {
   byte_size: number;
   created_by: string;
   created_at: string;
+  creation_operation_id: string;
 }
 
 export interface ProjectItemRow {
@@ -60,12 +65,14 @@ export interface ProjectItemRow {
   reference_target_id: string | null;
   created_sequence: number;
   revision: number;
+  last_mutation_id: string;
   created_by: string;
   updated_by: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
   deleted_by: string | null;
+  deletion_operation_id: string | null;
 }
 
 export interface ProjectPlacementRow {
@@ -77,6 +84,7 @@ export interface ProjectPlacementRow {
   height: number;
   z_index: number;
   revision: number;
+  last_mutation_id: string;
   created_by: string;
   updated_by: string;
   created_at: string;
@@ -94,12 +102,14 @@ export interface ProjectEdgeRow {
   marker_end: ProjectEdgeMarker;
   label: string | null;
   revision: number;
+  last_mutation_id: string;
   created_by: string;
   updated_by: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
   deleted_by: string | null;
+  deletion_operation_id: string | null;
 }
 
 export function serializeProject(row: ProjectRow): ProjectRecord {
