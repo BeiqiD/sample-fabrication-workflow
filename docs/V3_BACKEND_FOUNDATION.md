@@ -284,8 +284,8 @@ runbook rather than inferred from a merged PR.
 ## Product-roadmap ownership
 
 This backend-foundation contract does not define the current product delivery
-sequence. Phase 2C1 deterministic search is complete in merged PR #129, and
-Draft PR #130 provides the reusable Project discovery surface with `/search` as
+sequence. Phase 2C1 deterministic search is complete in merged PR #129, and PR
+#130 completed the reusable Project discovery surface with `/search` as
 temporary integration scaffolding.
 
 The active Map-first Project sequence, Reading behavior, and all later product
