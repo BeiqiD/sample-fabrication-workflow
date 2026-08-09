@@ -101,18 +101,16 @@ describe("Project persistence database guards", () => {
     `).run(ACTOR, NOW)).toThrow(/active project/);
     expect(() => database.prepare(`
       UPDATE project_items
-      SET deleted_at = ?, deleted_by = ?, deletion_operation_id = 'remove-after-project-delete',
-          revision = 2, last_mutation_id = 'remove-after-project-delete',
-          updated_by = ?, updated_at = ?
+      SET updated_by = ?, updated_at = ?
       WHERE id = 'item-a'
-    `).run(NOW, ACTOR, ACTOR, NOW)).toThrow(/active project/);
+    `).run("other@example.com", NOW)).toThrow(/active project/);
 
     expect(database.prepare(`
       SELECT markdown_source, revision FROM project_contents WHERE id = 'content-a'
     `).get()).toEqual({ markdown_source: "# a", revision: 1 });
     expect(database.prepare(`
-      SELECT deleted_at, revision FROM project_items WHERE id = 'item-a'
-    `).get()).toEqual({ deleted_at: null, revision: 1 });
+      SELECT updated_by, deleted_at, revision FROM project_items WHERE id = 'item-a'
+    `).get()).toEqual({ updated_by: ACTOR, deleted_at: null, revision: 1 });
     database.close();
   });
 
