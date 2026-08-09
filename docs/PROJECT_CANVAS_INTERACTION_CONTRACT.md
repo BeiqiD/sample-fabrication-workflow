@@ -24,7 +24,8 @@ Project item occurrences
 ```
 
 Map is the primary creation and organization interface. Reading is a linear
-projection for review, narrative editing, and ordering. They never own separate
+projection for review and limited editing. In the first version it follows the
+immutable Project-item insertion sequence. The projections never own separate
 copies of the content.
 
 A Project item occurrence targets exactly one of:
@@ -79,7 +80,7 @@ Each appearance is a distinct Project-local occurrence with its own:
 
 - `project_item.id`;
 - Map placement and size;
-- Reading position;
+- deterministic Reading position derived from creation sequence;
 - incoming and outgoing edges; and
 - creation timestamp/order.
 
@@ -116,7 +117,7 @@ The initial mobile contract permits:
 - opening external references;
 - editing existing Project-owned Markdown;
 - editing existing attachment captions/metadata where allowed;
-- adjusting Reading order through a simple accessible control; and
+- reviewing the fixed insertion-order sequence; and
 - viewing item detail.
 
 The initial mobile contract excludes item creation, file upload, Map placement,
@@ -139,7 +140,7 @@ starts one authoritative server operation that:
 3. idempotently registers or refreshes `reference_targets`;
 4. creates one new Project item occurrence;
 5. creates its Map placement;
-6. creates its Reading placement; and
+6. assigns its immutable per-Project creation sequence; and
 7. returns the canonical inserted item and Project revision.
 
 A pending ghost node may appear immediately. Failure removes or marks the ghost
@@ -240,51 +241,42 @@ recalculation.
 Exactly duplicate endpoint/handle/direction edges should be prevented in the UI,
 while parallel edges with a meaningful difference may remain possible.
 
-## Reading projection and ordering
+## Reading projection and first-version order
 
 Reading contains every active Project item occurrence and provides no creation
 operations. It allows:
 
 - complete rendering of existing items;
 - editing existing Project-owned Markdown;
-- editing allowed metadata of existing Project-owned attachments;
-- opening references and Inspector;
-- adjusting the linear presentation order.
+- editing allowed metadata of existing Project-owned attachments; and
+- opening references and Inspector.
 
-Reference blocks remain read-only.
+Reference blocks remain read-only. Mobile defaults to this projection and keeps
+the same limited editing boundary.
 
-### Ordering inputs
+### Initial deterministic order
 
-The final Reading order should combine:
+The first Project release orders Reading strictly by immutable Project-local
+insertion sequence:
 
-1. stable insertion/manual order; and
-2. explicit ordered-arrow constraints.
+```text
+created_sequence ascending
+project_item.id ascending as a deterministic tie-breaker
+```
 
-The precise linearization algorithm remains intentionally provisional. The
-schema must preserve enough information so it can be chosen later without a
-migration redesign:
+`created_sequence` is assigned transactionally when the Project item occurrence
+is created and is never rewritten by Map position, node movement, edge direction,
+or content edits. Every active occurrence therefore appears in Reading without a
+separate Reading-placement row.
 
-- every Project item has immutable creation time and deterministic creation
-  sequence;
-- every Reading placement has an editable insertion-friendly `position_key`;
-- edges store endpoint direction independently from Reading semantics; and
-- an edge may later carry an explicit `reading_role = none | precedes` rather
-  than assuming every visually directed relationship defines narrative order.
+The initial release has no manual Reading reorder, `position_key`,
+`reading_role`, topological sort, or cycle-resolution UX. Visual arrows express
+Map relationships only and never affect Reading order.
 
-The leading algorithm candidate is a stable topological ordering over
-`reading_role = precedes` edges, using `position_key` and then creation sequence
-as deterministic tie-breakers. Cycles must be surfaced rather than silently
-rewriting the Project; an eventual implementation may preserve position order
-inside a cyclic component while showing a warning.
-
-Until this algorithm is implemented, new items receive a deterministic Reading
-position based on insertion order, and Reading may allow explicit manual reorder.
-Map coordinates do not continuously rewrite Reading order. A future explicit
-`Generate or refresh Reading order from ordered arrows` operation may recalculate
-it.
-
-Complex Map relationships therefore remain intact even when they cannot be
-represented by one lossless linear sequence.
+A later phase may introduce explicit custom ordering or an edge-informed linear
+projection after real Project use demonstrates the need. That later decision may
+add a dedicated ordering model and migration; Phase 3A should not reserve
+speculative columns or tables now.
 
 ## Markdown and mixed media
 
@@ -318,7 +310,6 @@ Project rows and compact mutations:
 - create/remove item occurrence;
 - create/update Project-owned content;
 - create/update Map placement;
-- update Reading placement/order;
 - create/update/delete edge.
 
 Drag and resize update local state continuously but persist only at semantic
@@ -400,14 +391,14 @@ The first Project migration set must be compatible with:
 projects
 project_contents                 markdown or generic attachment owner records
 project_content_attachments     stable attachment occurrence -> blob records
-project_items                    Project-local occurrences; content XOR reference
+project_items                    Project-local occurrences; content XOR reference; immutable created_sequence
 project_map_placements           one active placement per occurrence
-project_reading_placements       one active position per occurrence
-project_edges                    Project-local edges with fixed handles/markers
+project_edges                    Project-local edges with fixed handles/markers; no Reading-order field in v1
 ```
 
-Every active Project item occurrence must have both a Map placement and Reading
-placement, even if one is initially auto-generated.
+Every active Project item occurrence has one Map placement and automatically
+appears in Reading through `project_items.created_sequence`. The first version
+does not persist a separate Reading placement.
 
 The migration must not:
 
@@ -415,24 +406,27 @@ The migration must not:
 - impose uniqueness on one reference per Project;
 - store React Flow JSON as the only representation;
 - add editable local metadata to external references;
-- assume every directed edge defines Reading order;
+- assume any Map edge affects first-version Reading order;
+- add speculative Reading-order tables or columns before a concrete later design;
 - require permanent operation history or real-time collaboration.
 
 ## Implementation sequence
 
 1. **Phase 3A — Project core schema and save contracts**: normalized identities,
-   generic attachments, placements, edges, revisions, authoritative reference
-   insertion, removal, export, and D1/workerd gates.
+   generic attachments, immutable creation sequence, Map placements, edges,
+   revisions, authoritative reference insertion, removal, export, and
+   D1/workerd gates.
 2. **Phase 3B1 — Map kernel**: dynamic React Flow, pan/zoom, selection, move,
    resize, save state, and lightweight nodes.
 3. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
    pending nodes, keyboard center placement, authoritative insertion.
 4. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
-   attachment, image/file rendering, same-item Reading placement.
+   attachment, image/file rendering, and automatic insertion-order Reading
+   inclusion.
 5. **Phase 3B4 — Basic edges**: four handles, Bezier, endpoint direction, label,
    delete/recreate behavior.
-6. **Phase 3C — Reading projection**: no creation, complete rendering, editing of
-   existing owned content, manual/order-constraint work.
+6. **Phase 3C — Reading projection**: no creation, complete insertion-order
+   rendering, and editing of existing owned content.
 7. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
    previews, save/conflict UX, accessible ordering.
 8. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
@@ -444,7 +438,7 @@ The migration must not:
 The following do not block Phase 3A provided the schema reservations above are
 kept:
 
-- the final Reading linearization and cycle-resolution UX;
+- whether later versions need manual or edge-informed Reading order;
 - group/frame nodes;
 - node and edge color customization;
 - exact MiniMap behavior;

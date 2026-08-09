@@ -58,7 +58,7 @@ Project owns only:
 - generic file/image/PDF attachment occurrences uploaded to the Project;
 - Project-local item occurrences;
 - Map placements and sizes;
-- Reading positions;
+- immutable Project-local creation sequence used by Reading;
 - Project-local edges and labels; and
 - Project metadata such as title and lifecycle fields.
 
@@ -94,7 +94,7 @@ The same `reference_target` may appear several times in one Project and in
 several Projects. Every appearance is a distinct `project_item.id` with its own:
 
 - Map placement and dimensions;
-- Reading position;
+- deterministic Reading position derived from creation sequence;
 - incoming and outgoing edges; and
 - creation order.
 
@@ -110,23 +110,21 @@ The Project model preserves these layers:
 
 1. source or Project-content identity;
 2. external reference-registry identity;
-3. Project-local item occurrence identity;
-4. Map placement identity;
-5. Reading placement identity.
+3. Project-local item occurrence identity, including immutable creation sequence;
+4. Map placement identity.
+
+Reading is initially derived from the item occurrence creation sequence rather
+than owning a separate placement identity.
 
 Edges point to Project item occurrences because they express local Project
 meaning. They never point directly to source rows or blob records.
 
 ### Every active occurrence appears in both projections
 
-Each active Project item occurrence has:
-
-- one active Map placement; and
-- one active Reading placement.
-
-One may initially be auto-generated, but Map-only and Reading-only content are
-not first-version states. Coordinates and Reading order are different metadata
-over the same occurrence.
+Each active Project item occurrence has one active Map placement and appears
+automatically in Reading through its immutable `created_sequence`. Map-only and
+Reading-only content are not first-version states, but Reading does not require
+a separate placement row until a later custom-order design exists.
 
 ## Conceptual data model
 
@@ -194,11 +192,6 @@ project_map_placements
 - z_index
 - updated_at
 
-project_reading_placements
-- project_item_id
-- position_key
-- updated_at
-
 project_edges
 - id
 - project_id
@@ -209,7 +202,6 @@ project_edges
 - marker_start                # none | arrow
 - marker_end                  # none | arrow
 - label
-- reading_role                # reserved: none | precedes
 - created_at
 - updated_at
 - deleted_at
@@ -252,7 +244,8 @@ and attachment content remain complete in Reading regardless of Map dimensions.
 Reference insertion starts no write at drag start. A successful drop invokes one
 authoritative server operation that validates the Project, re-resolves the
 target, registers or refreshes `reference_targets`, creates the item occurrence,
-creates both placements, and returns the new Project revision.
+creates the Map placement, assigns `created_sequence`, and returns the new
+Project revision.
 
 ## Reading
 
@@ -263,33 +256,29 @@ controls. It may:
 - edit existing Project-owned Markdown;
 - edit allowed Project-owned attachment metadata;
 - open references and Inspector; and
-- adjust linear order through an accessible control.
+- follow the deterministic insertion-order sequence.
 
 Mobile defaults to Reading. The initial mobile experience excludes item
 creation, file upload, Canvas placement, resize, edge editing, and bulk Canvas
 operations.
 
-### Reading order reservation
+### First-version Reading order
 
-Reading order should combine:
+Reading initially follows immutable Project-local insertion order only:
 
-1. stable insertion/manual order; and
-2. explicit ordered-arrow constraints.
+```text
+created_sequence ascending
+project_item.id ascending as a deterministic tie-breaker
+```
 
-The exact algorithm is intentionally deferred. The schema preserves:
+The first Project schema does not add `project_reading_placements`,
+`position_key`, `reading_role`, manual reordering, topological sorting, or cycle
+handling. Map coordinates and arrows do not affect Reading order.
 
-- immutable `created_sequence`;
-- editable insertion-friendly `position_key`; and
-- edge `reading_role = none | precedes`, separate from visual arrow direction.
-
-The leading candidate is a stable topological order over `precedes` edges, with
-`position_key` and then creation sequence as deterministic tie-breakers. Cycles
-must be surfaced instead of silently rewriting the Project. Until that phase,
-new occurrences receive deterministic insertion order and Reading may use manual
-reorder.
-
-Map coordinates never continuously rewrite Reading order. Not every directed
-semantic edge is automatically a narrative-order edge.
+A later phase may add a dedicated custom-order model after real use clarifies
+whether manual ordering, edge-informed ordering, or both are worthwhile. That
+future decision is intentionally allowed to add a migration rather than forcing
+speculative ordering fields into Phase 3A.
 
 ## Markdown and mixed media
 
@@ -327,7 +316,8 @@ The first edge contract uses:
 - no obstacle avoidance, control points, automatic handle reassignment, or
   relation-type ontology.
 
-Visual direction and Reading-order participation are separate fields.
+Visual direction affects Map presentation only; edges do not participate in
+first-version Reading order.
 
 ## Inspector
 
@@ -360,7 +350,7 @@ pass through reference search.
 ## Save, undo, history, and concurrency
 
 React Flow state is not saved as one opaque document. The server persists
-normalized mutations for items, content, placements, Reading order, and edges.
+normalized mutations for items, content, Map placements, and edges.
 
 The first save model is:
 
@@ -399,7 +389,7 @@ Adding Project requires a new complete-export schema version containing:
 - Projects and Project-owned contents;
 - Project attachment occurrences and reachable bytes;
 - repeated Project item occurrences;
-- Map and Reading placements;
+- Map placements and the item creation sequence used by Reading;
 - Project-local edges;
 - revision metadata; and
 - structured warnings for unavailable bytes.
@@ -428,13 +418,13 @@ metadata.
 The active sequence is:
 
 1. Phase 2C2 reusable Project discovery surface;
-2. Phase 3A Project core schema, save/revision contract, placements, basic-edge
-   schema, authoritative insertion, and export;
+2. Phase 3A Project core schema, save/revision contract, creation sequence, Map
+   placement, basic-edge schema, authoritative insertion, and export;
 3. Phase 3B1 Map kernel;
 4. Phase 3B2 reference sidebar and drag/drop placement;
 5. Phase 3B3 Markdown and generic attachment creation;
 6. Phase 3B4 basic Bezier directional edges;
-7. Phase 3C no-creation Reading projection;
+7. Phase 3C no-creation insertion-order Reading projection;
 8. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
 9. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
    performance work.

@@ -58,7 +58,7 @@ Project
 │  ├─ render the same occurrences in one linear order
 │  ├─ edit existing Project-owned Markdown
 │  ├─ edit allowed attachment metadata
-│  └─ adjust order, but create no new items
+│  └─ follow immutable insertion order and create no new items
 └─ Inspector
    └─ detail, source hierarchy, exact navigation, and local actions
 ```
@@ -99,11 +99,11 @@ All future phases preserve these rules:
    Project-owned content, placements, and local relationships; it does not copy
    external source records into editable snapshots.
 2. **Identity layers remain separate.** Source/content identity,
-   `reference_targets`, Project-item occurrence identity, and Map/Reading
-   placement identity are not collapsed into one row or one React Flow node.
+   `reference_targets`, Project-item occurrence identity, and Map placement
+   identity are not collapsed into one row or one React Flow node.
 3. **Map and Reading share content.** Every active Project item occurrence has
-   both a Map placement and a Reading placement. Editing content once updates
-   both projections.
+   a Map placement and automatically appears in Reading by immutable creation
+   sequence. Editing content once updates both projections.
 4. **Repeated references are allowed.** One reference target may have several
    independent occurrences in the same Project; no Project-level uniqueness
    constraint is added.
@@ -194,7 +194,7 @@ Map and Reading before React Flow or a Markdown editor is introduced.
 - `project_items` as repeatable Project-local occurrences targeting content XOR
   `reference_targets`;
 - one active `project_map_placements` row per item occurrence;
-- one active `project_reading_placements` row per item occurrence;
+- immutable per-Project `created_sequence` on each item occurrence for Reading;
 - `project_edges` with fixed four-side handles, endpoint marker direction, and
   optional short label;
 - no uniqueness constraint on `(project_id, reference_target_id)`;
@@ -212,8 +212,8 @@ Map and Reading before React Flow or a Markdown editor is introduced.
 real-time collaboration, or permanent delete.
 
 **Exit:** the backend can create a Project, create owned content, insert repeated
-references, persist both placements and basic edges, save safely, reopen the
-Project, and export it completely.
+references, persist Map placements and basic edges, derive Reading from creation
+sequence, save safely, reopen the Project, and export it completely.
 
 ### Phase 3B1 — Map kernel
 
@@ -254,7 +254,7 @@ creation flow.
 - hover/selected/focused `Open reference` action;
 - node body selects rather than navigates;
 - allow repeated occurrences of the same reference target;
-- automatically create the Reading placement with deterministic insertion order.
+- make the new occurrence appear in Reading automatically through creation sequence.
 
 **Exit:** a user can stay inside a Project, find any supported source object,
 place it on the Map, reopen the Project, and remove the local occurrence without
@@ -273,7 +273,7 @@ This milestone is the first useful **Project reference-workspace alpha**.
 - explicit `Add attachment` and context-menu insertion at a coordinate;
 - generic file metadata and image-rich rendering;
 - existing source attachments continue to enter through Reference search;
-- same occurrence automatically receives a Reading placement;
+- same occurrence automatically appears in Reading by creation sequence;
 - no complex page layout, floating images, or embedded Reference editor nodes.
 
 **Exit:** a Project can spatially combine read-only experimental references,
@@ -312,15 +312,14 @@ same occurrences without creating a second content system.
 - edit existing Project-owned Markdown;
 - edit allowed metadata of existing Project-owned attachments;
 - references remain read-only;
-- simple accessible Reading reorder;
+- fixed deterministic insertion-order presentation;
 - Map coordinates and edges remain intact;
 - mobile defaults to Reading with limited editing only.
 
-Reading ordering combines stable insertion/manual order with explicit
-ordered-arrow constraints. The schema stores immutable creation sequence,
-editable `position_key`, and optional future `reading_role = precedes` on edges.
-The final topological/cycle UX is deferred until this phase rather than frozen in
-Phase 3A.
+Reading initially uses immutable insertion sequence only. Phase 3A adds no
+Reading-placement table, manual reorder, edge-order field, topological sort, or
+cycle UX. A later dedicated design may add custom or edge-informed ordering if
+real Project use demonstrates the need.
 
 **Exit:** the complete Project can be read and lightly edited linearly without
 losing or duplicating Map content.
@@ -360,7 +359,7 @@ core is stable.
 5. PDF first-page thumbnail and fuller Inspector/modal preview;
 6. webpage screenshot capture after a security review; no live iframe contract;
 7. large-map performance hardening and contextual zoom;
-8. Reading-order overlay and explicit order generation from marked edges;
+8. optional custom Reading-order design after real use demonstrates a need;
 9. optional JSON Canvas import/export after internal semantics are stable.
 
 **Exit:** the same Project occurrences support mature spatial navigation,
@@ -450,7 +449,7 @@ Every schema phase preserves:
 Only after Project MVP and the deterministic read model are stable should the
 roadmap consider:
 
-- final Reading topological/cycle tooling beyond the reserved schema;
+- optional manual or edge-informed Reading ordering after real use;
 - revision pinning to real source history;
 - semantic or hybrid search;
 - read-only LLM insight over explicit user-selected Project scope;

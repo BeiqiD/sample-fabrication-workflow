@@ -10,7 +10,7 @@ on:
       - v2/backend-foundation
 
 permissions:
-  contents: write
+  contents: read
   statuses: write
 
 jobs:
@@ -180,39 +180,3 @@ jobs:
       - name: Fail when verification did not pass
         if: steps.install.outcome != 'success' || steps.blob_lifecycle.outcome == 'failure' || steps.reference_foundation.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
         run: exit 1
-
-  align_reading_order:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'agent/global-reference-search-ui' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out review branch
-        uses: actions/checkout@v4
-        with:
-          ref: agent/global-reference-search-ui
-          fetch-depth: 0
-
-      - name: Execute staged document alignment
-        shell: bash
-        run: |
-          sed -n "/python - <<'PY'/,/^          PY$/p" .github/workflows/simplify-project-reading-order.yml \
-            | sed '1d;$d;s/^          //' > /tmp/simplify-project-reading-order.py
-          python /tmp/simplify-project-reading-order.py
-
-      - name: Restore ordinary verification workflow
-        shell: bash
-        run: |
-          git fetch origin v2/backend-foundation
-          git show origin/v2/backend-foundation:.github/workflows/verify.yml > .github/workflows/verify.yml
-
-      - name: Check document diff
-        run: git diff --check
-
-      - name: Commit aligned documents
-        shell: bash
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'Simplify initial Project Reading order'
-          git push origin HEAD:agent/global-reference-search-ui
