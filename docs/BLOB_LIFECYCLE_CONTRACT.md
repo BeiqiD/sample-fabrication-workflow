@@ -2,7 +2,7 @@
 
 Status: normative v3 backend contract, implemented by the blob-lifecycle safety slice
 
-Last reviewed: 2026-08-08 against PR #123 and `v2/backend-foundation`
+Last reviewed: 2026-08-09 after the reference/search foundation through PR #129
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -10,10 +10,13 @@ R2 assets, managed-storage objects, direct import/provenance keys, and every
 current or future attachment occurrence.
 
 The source identity and soft-delete foundation is defined in
-[v3 backend foundation](./V3_BACKEND_FOUNDATION.md). The product reason for that
-foundation and the later Project/Text/Map phases is defined in
-[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md). Implementation and
-operational details are recorded in
+[v3 backend foundation](./V3_BACKEND_FOUNDATION.md). Project ownership and
+interaction are defined in
+[Project design foundation](./PROJECT_DESIGN_FOUNDATION.md) and
+[Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+Current product sequencing is defined only in
+[the product roadmap](./PRODUCT_ROADMAP.md). Implementation and operational
+details are recorded in
 [blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)
 and
 [blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md).
@@ -32,8 +35,8 @@ submission may share a deduplicated object with another submission. A cleanup
 query based only on `ready`, `failed`, `cancelled`, or row age can therefore
 remove bytes that the application still promises to restore or export.
 
-This contract closes that boundary before reference registry, backlinks,
-Project-owned content, Text, or Map are implemented.
+This contract closed that boundary before later reference and Project-owned
+attachment types added more edges.
 
 ## Normative language
 
@@ -400,8 +403,8 @@ Ordinary Delete remains soft delete.
 
 Accidental physical deletion of stable source/occurrence tables is disabled. A
 privileged permanent-delete endpoint remains disabled until `reference_targets`,
-backlinks, source-specific blocker queries, authorization, and tombstone
-creation exist.
+Project reverse relations, source-specific blocker queries, authorization, and
+tombstone creation exist.
 
 When permanent deletion is later enabled, eligibility requires:
 
@@ -562,13 +565,18 @@ remote activation. No v3 migration or deployment is allowed while any
 reachability, shared-object, migration, race, missing-object, export, or
 permanent-delete protection test fails.
 
-## Non-goals and next phase
+## Non-goals and roadmap ownership
 
-This implementation does not add Project tables, `reference_targets`, backlinks,
-search, deep links, Text, Map, force delete, or source editing through Project.
-After the exact integration head passes its gate, the next planned phase is:
+This blob-lifecycle implementation did not itself add Project tables, the
+reference registry, deterministic search, deep links, a privileged destructive
+endpoint, or source editing through Project. Those exclusions describe the
+historical scope of the lifecycle slice; they do not define the current product
+phase order.
 
-1. `reference_targets`, backlinks, and a batch read-only resolver;
-2. object-level deep links and deterministic reference search;
-3. Project-owned data, Text, and Inspector;
-4. Map after the data and read models are stable.
+Reference identity, navigation, and deterministic search were subsequently
+completed through merged PR #129, and Draft PR #130 provides the reusable
+Project discovery surface. The active Map-first Project sequence and Reading
+behavior are governed exclusively by
+[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+This normative storage contract applies unchanged regardless of product order.
