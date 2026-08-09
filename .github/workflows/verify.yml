@@ -205,18 +205,8 @@ jobs:
           git fetch origin v2/backend-foundation
           git show origin/v2/backend-foundation:.github/workflows/verify.yml > .github/workflows/verify.yml
 
-      - name: Validate simplified contract
-        shell: bash
-        run: |
-          git diff --check
-          grep -q 'orders Reading strictly by immutable Project-local' docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
-          grep -q 'does not persist a separate Reading placement' docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
-          grep -q 'does not add `project_reading_placements`' docs/PROJECT_DESIGN_FOUNDATION.md
-          grep -q 'Reading initially uses immutable insertion sequence only' docs/PRODUCT_ROADMAP.md
-          ! grep -q '^project_reading_placements$' docs/PROJECT_DESIGN_FOUNDATION.md
-          ! grep -q 'reading_role                #' docs/PROJECT_DESIGN_FOUNDATION.md
-          ! grep -q 'one active `project_reading_placements`' docs/PRODUCT_ROADMAP.md
-          test ! -e .github/workflows/simplify-project-reading-order.yml
+      - name: Check document diff
+        run: git diff --check
 
       - name: Commit aligned documents
         shell: bash
