@@ -6,6 +6,9 @@ import {
   isProjectEdgeShape,
   isProjectItemType,
   isProjectMapGeometry,
+  MAX_PROJECT_MAP_COORDINATE_ABS,
+  MAX_PROJECT_MAP_NODE_SIZE,
+  MAX_PROJECT_MAP_Z_INDEX_ABS,
   PROJECT_CONTENT_TYPES,
   PROJECT_EDGE_HANDLES,
   PROJECT_EDGE_MARKERS,
@@ -26,11 +29,40 @@ describe("Project shared contract", () => {
     expect(isProjectEdgeMarker("circle")).toBe(false);
   });
 
-  it("accepts only finite positive Map geometry", () => {
-    expect(isProjectMapGeometry({ x: 0, y: -4, width: 320, height: 180, zIndex: 2 })).toBe(true);
+  it("accepts only finite, bounded, positive Map geometry", () => {
+    expect(isProjectMapGeometry({
+      x: MAX_PROJECT_MAP_COORDINATE_ABS,
+      y: -MAX_PROJECT_MAP_COORDINATE_ABS,
+      width: MAX_PROJECT_MAP_NODE_SIZE,
+      height: MAX_PROJECT_MAP_NODE_SIZE,
+      zIndex: MAX_PROJECT_MAP_Z_INDEX_ABS,
+    })).toBe(true);
     expect(isProjectMapGeometry({ x: Number.NaN, y: 0, width: 1, height: 1, zIndex: 0 })).toBe(false);
+    expect(isProjectMapGeometry({ x: Number.POSITIVE_INFINITY, y: 0, width: 1, height: 1, zIndex: 0 })).toBe(false);
+    expect(isProjectMapGeometry({ x: 0, y: Number.NEGATIVE_INFINITY, width: 1, height: 1, zIndex: 0 })).toBe(false);
+    expect(isProjectMapGeometry({
+      x: MAX_PROJECT_MAP_COORDINATE_ABS + 1,
+      y: 0,
+      width: 1,
+      height: 1,
+      zIndex: 0,
+    })).toBe(false);
     expect(isProjectMapGeometry({ x: 0, y: 0, width: 0, height: 1, zIndex: 0 })).toBe(false);
+    expect(isProjectMapGeometry({
+      x: 0,
+      y: 0,
+      width: MAX_PROJECT_MAP_NODE_SIZE + 1,
+      height: 1,
+      zIndex: 0,
+    })).toBe(false);
     expect(isProjectMapGeometry({ x: 0, y: 0, width: 1, height: 1, zIndex: 0.5 })).toBe(false);
+    expect(isProjectMapGeometry({
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+      zIndex: MAX_PROJECT_MAP_Z_INDEX_ABS + 1,
+    })).toBe(false);
   });
 
   it("validates the basic edge shape without inventing edge semantics", () => {
