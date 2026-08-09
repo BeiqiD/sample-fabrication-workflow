@@ -134,4 +134,32 @@ describe("mounted global Search page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByRole("heading", { name: "Before route" })).toBeTruthy();
   });
+
+  it("clears an uncommitted draft without inserting a duplicate history entry", async () => {
+    render(<MemoryRouter
+      initialEntries={["/before", "/search"]}
+      initialIndex={1}
+    >
+      <Routes>
+        <Route path="/before" element={<h1>Before route</h1>} />
+        <Route path="/search" element={<>
+          <SearchPage />
+          <HistoryProbe />
+        </>} />
+      </Routes>
+    </MemoryRouter>);
+
+    expect(screen.getByRole("heading", { name: "Search the research record" })).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "draft only" } });
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+    expect(screen.getByLabelText("Current search URL").textContent).toBe("/search");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByRole("heading", { name: "Before route" })).toBeTruthy();
+  });
 });
