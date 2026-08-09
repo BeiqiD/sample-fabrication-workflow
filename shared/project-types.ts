@@ -18,6 +18,7 @@ export const MAX_PROJECT_TITLE_LENGTH = 200;
 export const MAX_PROJECT_EDGE_LABEL_LENGTH = 200;
 export const MAX_PROJECT_ATTACHMENT_CAPTION_LENGTH = 2_000;
 export const MAX_PROJECT_ATTACHMENT_SOURCE_URL_LENGTH = 2_048;
+export const MAX_PROJECT_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 export const MAX_PROJECT_MAP_COORDINATE_ABS = 1_000_000;
 export const MAX_PROJECT_MAP_NODE_SIZE = 100_000;
 export const MAX_PROJECT_MAP_Z_INDEX_ABS = 1_000_000;
@@ -61,6 +62,14 @@ export function isProjectEdgeMarker(value: unknown): value is ProjectEdgeMarker 
   return oneOf(PROJECT_EDGE_MARKERS, value);
 }
 
+export function isProjectPositiveSafeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 1;
+}
+
+export function isProjectNonNegativeSafeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
 export function isProjectMapGeometry(value: unknown): value is ProjectMapGeometry {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<ProjectMapGeometry>;
@@ -68,7 +77,7 @@ export function isProjectMapGeometry(value: unknown): value is ProjectMapGeometr
     && Number.isFinite(candidate.y)
     && Number.isFinite(candidate.width)
     && Number.isFinite(candidate.height)
-    && Number.isInteger(candidate.zIndex)
+    && Number.isSafeInteger(candidate.zIndex)
     && Math.abs(candidate.x!) <= MAX_PROJECT_MAP_COORDINATE_ABS
     && Math.abs(candidate.y!) <= MAX_PROJECT_MAP_COORDINATE_ABS
     && candidate.width! > 0
