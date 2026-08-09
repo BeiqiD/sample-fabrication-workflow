@@ -75,6 +75,11 @@ async function requireJson<T>(
   return input;
 }
 
+function isDatabaseConflict(error: unknown) {
+  return /(SQLITE_CONSTRAINT|constraint failed|UNIQUE constraint|FOREIGN KEY constraint|project item deletion requires|project item restore requires|project edge endpoints|reference target is unavailable|blob locator is unavailable)/i
+    .test(String(error));
+}
+
 async function projectCall<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
@@ -84,6 +89,11 @@ async function projectCall<T>(operation: () => Promise<T>): Promise<T> {
         throw new HTTPException(404, { message: error.message });
       }
       throw new HTTPException(409, { message: error.message });
+    }
+    if (isDatabaseConflict(error)) {
+      throw new HTTPException(409, {
+        message: "Project state changed before the operation could commit",
+      });
     }
     throw error;
   }
@@ -254,6 +264,18 @@ routes.patch("/projects/:projectId/contents/:contentId/attachment", async (c) =>
 routes.get("/projects/:projectId/contents/:contentId/file", async (c) => {
   const projectId = requireRouteId(c.req.param("projectId"), "Project");
   const contentId = requireRouteId(c.req.param("contentId"), "Project content");
+  const visibleOccurrence = await c.env.DB.prepare(`
+    SELECT 1 AS visible
+    FROM project_items pi
+    JOIN project_contents pc ON pc.id = pi.project_content_id
+    JOIN projects p ON p.id = pi.project_id
+    WHERE pi.project_id = ? AND pc.id = ?
+      AND pi.deleted_at IS NULL AND pc.deleted_at IS NULL AND p.deleted_at IS NULL
+    LIMIT 1
+  `).bind(projectId, contentId).first<{ visible: number }>();
+  if (!visibleOccurrence) {
+    throw new HTTPException(404, { message: "Project attachment not found" });
+  }
   const source = await projectCall(() => readProjectAttachmentMediaSource(
     c.env.DB,
     projectId,
