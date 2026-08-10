@@ -119,6 +119,50 @@ describe("Project persistence API contract", () => {
     expect(isProjectAttachmentSourceUrl("https://example.test/a")).toBe(true);
   });
 
+  it("rejects embedded NUL in every persisted Project payload string", () => {
+    expect(isCreateProjectInput({
+      id: "project-nul",
+      title: "Project\u0000hidden",
+      operationId: "create-project-nul",
+    })).toBe(false);
+    expect(isCreateMarkdownProjectItemInput({
+      contentId: "content-nul",
+      itemId: "item-nul",
+      placementId: "placement-nul",
+      markdownSource: "# Note\u0000hidden",
+      geometry,
+      expectedProjectRevision: 1,
+      operationId: "create-markdown-nul",
+    })).toBe(false);
+    expect(isCreateAttachmentProjectItemInput({
+      contentId: "content-file-nul",
+      itemId: "item-file-nul",
+      placementId: "placement-file-nul",
+      locator: { assetId: "asset-a" },
+      caption: "Figure\u00001",
+      sourceUrl: null,
+      geometry,
+      expectedProjectRevision: 1,
+      operationId: "create-file-nul-caption",
+    })).toBe(false);
+    expect(isProjectAttachmentSourceUrl(
+      "https://example.test/source\u0000hidden",
+    )).toBe(false);
+    expect(isCreateProjectEdgeInput({
+      edgeId: "edge-nul",
+      sourceItemId: "item-a",
+      targetItemId: "item-b",
+      sourceHandle: "right",
+      targetHandle: "left",
+      markerStart: "none",
+      markerEnd: "arrow",
+      label: "supports\u0000hidden",
+      expectedSourceItemRevision: 1,
+      expectedTargetItemRevision: 1,
+      operationId: "create-edge-nul",
+    })).toBe(false);
+  });
+
   it("keeps geometry, edge, and lifecycle inputs closed", () => {
     expect(isUpdateProjectPlacementInput({
       geometry,
