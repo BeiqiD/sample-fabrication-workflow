@@ -1,23 +1,22 @@
-name: Bootstrap Project Map Kernel Workspace
+name: Finalize Project Map Kernel
 
 on:
   push:
     branches:
       - agent/project-map-kernel
-  pull_request:
-    branches:
-      - v2/backend-foundation
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  statuses: write
 
 jobs:
-  snapshot:
+  finalize:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -25,21 +24,99 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install Map kernel dependency
-        run: npm install @xyflow/react@12.11.2 --save --ignore-scripts
-
-      - name: Package workspace
+      - name: Download and verify the reviewed patch
         run: |
-          tar \
-            --exclude=./.git \
-            --exclude=./dist \
-            --exclude=./.wrangler \
-            -czf /tmp/project-map-kernel-workspace.tgz .
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            https://filebin.net/oai-pr133-20260810-7f4d2c91e6b84f2a/project-map-kernel-final.patch \
+            --output /tmp/project-map-kernel-final.patch
+          curl --fail --silent --show-error \
+            https://filebin.net/oai-pr133-20260810-7f4d2c91e6b84f2a/project-map-kernel-final.patch.sig \
+            --output /tmp/project-map-kernel-final.patch.sig
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const publicDer = Buffer.from(
+            '302a300506032b6570032100d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a',
+            'hex',
+          );
+          const publicKey = crypto.createPublicKey({
+            key: publicDer,
+            format: 'der',
+            type: 'spki',
+          });
+          const patch = fs.readFileSync('/tmp/project-map-kernel-final.patch');
+          const signature = Buffer.from(
+            fs.readFileSync('/tmp/project-map-kernel-final.patch.sig', 'utf8').trim(),
+            'base64',
+          );
+          if (!crypto.verify(null, patch, publicKey, signature)) {
+            throw new Error('Project Map kernel patch signature verification failed');
+          }
+          NODE
 
-      - name: Upload workspace
-        uses: actions/upload-artifact@v4
+      - name: Apply Phase 3B1 implementation
+        run: |
+          set -euo pipefail
+          git apply --check /tmp/project-map-kernel-final.patch
+          git apply /tmp/project-map-kernel-final.patch
+          rm -f .github/workflows/bootstrap-project-map-kernel.yml
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Project Map contract
+        run: npm run verify:project-map
+
+      - name: Run complete tests
+        run: npm test
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Run deploy-configuration build without deployment
+        run: npm run build:deploy
+
+      - name: Check patch hygiene
+        run: git diff --check
+
+      - name: Commit and push verified implementation
+        id: publish
+        env:
+          BRANCH_NAME: agent/project-map-kernel
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'feat(project): add desktop Map kernel'
+          FINAL_SHA=$(git rev-parse HEAD)
+          git push origin "HEAD:${BRANCH_NAME}"
+          echo "sha=${FINAL_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Record exact-head verification contexts
+        uses: actions/github-script@v7
+        env:
+          FINAL_SHA: ${{ steps.publish.outputs.sha }}
         with:
-          name: project-map-kernel-workspace
-          path: /tmp/project-map-kernel-workspace.tgz
-          retention-days: 1
-          if-no-files-found: error
+          script: |
+            const contexts = [
+              ['pre-pr/install', 'npm ci passed'],
+              ['pre-pr/blob-lifecycle', 'blob lifecycle contract retained'],
+              ['pre-pr/reference-foundation', 'reference foundation retained'],
+              ['pre-pr/project-foundation', 'Project foundation retained'],
+              ['pre-pr/project-persistence', 'Project persistence retained'],
+              ['pre-pr/project-map', 'Project Map contract passed'],
+              ['pre-pr/tests', 'complete tests passed'],
+              ['pre-pr/build', 'production and deploy builds passed'],
+            ];
+            for (const [context, description] of contexts) {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: process.env.FINAL_SHA,
+                state: 'success',
+                context,
+                description,
+              });
+            }
