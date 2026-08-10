@@ -50,7 +50,7 @@ function jsonRequest(
 }
 
 describe("Project attachment locator route contract", () => {
-  it("rejects null, numeric, and simultaneously present locator keys", async () => {
+  it("rejects missing, null, numeric, and simultaneously present locator keys", async () => {
     const { app, env, database } = fixture();
     const created = await jsonRequest(app, env, "/projects", "POST", {
       id: "project-locator-route",
@@ -60,6 +60,7 @@ describe("Project attachment locator route contract", () => {
     expect(created.status).toBe(201);
 
     const locators = [
+      {},
       { assetId: null, storageObjectId: "storage-a" },
       { assetId: "asset-a", storageObjectId: null },
       { assetId: 42 },
