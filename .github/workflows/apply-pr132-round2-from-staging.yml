@@ -1,0 +1,71 @@
+name: Apply PR 132 Round 2 From Staging
+
+on:
+  push:
+    branches:
+      - codex/project-persistence-service
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/project-persistence-service
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Extract and apply staged patch
+        shell: bash
+        run: |
+          git fetch origin codex/pr132-round2-fixes-staging
+          git show origin/codex/pr132-round2-fixes-staging:.github/workflows/apply-pr132-round2-fixes.yml > /tmp/staged.yml
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('/tmp/staged.yml').read_text(encoding='utf-8')
+          start = "          cat > /tmp/apply-pr132-round2.py.gz.b64 <<'B64'\n"
+          end = "\nB64\n"
+          if text.count(start) != 1:
+              raise SystemExit('Unable to find staged patch start')
+          body = text.split(start, 1)[1]
+          if end not in body:
+              raise SystemExit('Unable to find staged patch end')
+          payload = body.split(end, 1)[0]
+          Path('/tmp/apply-pr132-round2.py.gz.b64').write_text(payload + '\n', encoding='utf-8')
+          PY
+          base64 -d /tmp/apply-pr132-round2.py.gz.b64 | gzip -d > /tmp/apply-pr132-round2.py
+          python /tmp/apply-pr132-round2.py
+          rm -f .github/workflows/apply-pr132-round2-from-staging.yml
+          rm -f .github/pr132-round2-runner-trigger
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify review fixes
+        shell: bash
+        run: |
+          git diff --check
+          npm run test:project-foundation
+          npm run verify:project-persistence
+          npm test
+          npm run build
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(project): enforce persistence and route ownership contracts"
+          git push origin HEAD:codex/project-persistence-service
