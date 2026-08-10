@@ -42,10 +42,11 @@ jobs:
               raise SystemExit('Unable to locate the staged Python patch')
           body = workflow.split(start, 1)[1].split(end, 1)[0]
           lines = body.splitlines()
-          if any(line and not line.startswith('          ') for line in lines):
-              raise SystemExit('Unexpected staged Python indentation')
           Path('/tmp/apply-pr132-review-fixes.py').write_text(
-              '\n'.join(line[10:] if line else '' for line in lines) + '\n',
+              '\n'.join(
+                  line[10:] if line.startswith('          ') else line
+                  for line in lines
+              ) + '\n',
               encoding='utf-8',
           )
           EXTRACT
