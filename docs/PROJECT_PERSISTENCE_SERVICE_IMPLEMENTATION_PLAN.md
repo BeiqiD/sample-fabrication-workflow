@@ -1,10 +1,10 @@
 # Project persistence service implementation plan
 
-Status: active Phase 3A2 implementation contract
+Status: current Draft PR #132 implementation contract under review
 
-Last reviewed: 2026-08-09 against `v2/backend-foundation` at
-`21d535a243ae4adbe10330980fe6fc57a0b85366`, after Phase 3A1 was merged in
-PR #131
+Last reviewed: 2026-08-10 against `v2/backend-foundation` at
+`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and review of
+Draft PR #132 after Phase 3A1 was merged in PR #131
 
 This document defines the authoritative Project read/write service that sits on
 top of the normalized schema from `0019_project_core.sql`. Product ordering is
@@ -105,12 +105,15 @@ Reusing an ID or operation ID for a different payload returns `409`.
 
 ### Update, delete, and restore operations
 
-A mutation is replayed successfully when the current row already contains the
-same `last_mutation_id` and the requested semantic state. Reusing that operation
+A mutation is replayed successfully only when every row whose state is owned by
+the operation still contains the same `last_mutation_id` and the requested
+semantic state. For an item lifecycle operation with Project-owned content, both
+the item and its content must still carry that operation ID. Reusing an operation
 ID with different state returns `409`.
 
-If a later mutation has already advanced the row, replaying an older operation
-returns `409`; Phase 3A2 does not retain an unbounded historical response log.
+If any participating row has been advanced by a later mutation, replaying the
+older operation returns `409`; Phase 3A2 does not retain an unbounded historical
+response log.
 
 This contract covers browser/network retry and duplicate submission while
 keeping permanent operation history out of the first Project release.
@@ -183,9 +186,14 @@ Project sequence reservation
 + placement insert
 ```
 
-The item uses a scalar subquery requiring a non-tombstoned registry row. A target
-that disappears or becomes tombstoned before commit aborts the entire batch.
-Repeated occurrences remain valid because each request has a distinct item ID.
+The item uses a scalar subquery requiring a non-tombstoned registry row. A
+registry tombstone before commit aborts the entire batch. The source target is
+resolved immediately before the batch and is re-resolved whenever a snapshot is
+read; D1 cannot hold a source-row lock across the resolver read and the later
+batch. A source lifecycle change in that interval therefore cannot copy stale
+editable data into Project, but the committed occurrence may subsequently
+resolve as retained, missing, or tombstoned. Repeated occurrences remain valid
+because each request has a distinct item ID.
 
 ### Attachment insertion
 
@@ -209,8 +217,8 @@ Removal is recoverable and never mutates the referenced source.
 The transaction:
 
 1. soft-deletes active connected edges while the item is still active;
-2. soft-deletes the item using its expected revision;
-3. for owned content, soft-deletes the content using its expected revision;
+2. for owned content, soft-deletes the content using its expected revision;
+3. soft-deletes the item using its expected revision after the content transition;
 4. leaves the placement row physically present but invisible through the active
    item join.
 
@@ -251,8 +259,11 @@ Project columns.
 Map and Reading later consume the same item occurrence IDs. Reading orders items
 by `createdSequence`; Map uses the corresponding placement rows.
 
-`includeDeleted=1` may open a recoverably deleted Project for Trash/restore
-workflows, but ordinary Project lists and snapshots hide deleted Projects.
+`includeDeleted=1` returns a Trash snapshot: it may open a recoverably deleted
+Project and includes recoverably removed items, owned content, attachment
+metadata, placements, edges, and their revisions so restore operations remain
+discoverable. Ordinary Project lists and snapshots hide deleted Projects and
+removed child rows.
 
 No physical blob locator, R2 key, managed-storage object key, temporary URL, or
 provider credential appears in the JSON snapshot.

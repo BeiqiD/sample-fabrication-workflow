@@ -398,4 +398,68 @@ describe("Project persistence service", () => {
     expect((await readProjectSnapshot(db, "project-a")).edges).toHaveLength(1);
     database.close();
   });
+
+  it("rejects stale owned-content restore replays after later Markdown or attachment mutations", async () => {
+    const { database, db } = fixture();
+    await seedProject(db);
+    await createMarkdownProjectItem(db, "project-a", markdownInput("restore", 1), ACTOR, NOW);
+    seedAsset(database, "asset-restore", "projects/asset-restore.bin");
+    await createAttachmentProjectItem(db, "project-a", {
+      contentId: "content-attachment-restore",
+      itemId: "item-attachment-restore",
+      placementId: "placement-attachment-restore",
+      locator: { assetId: "asset-restore" },
+      caption: "Initial caption",
+      sourceUrl: null,
+      geometry: { ...geometry, x: 400 },
+      expectedProjectRevision: 2,
+      operationId: "create-attachment-restore",
+    }, ACTOR, "2026-08-09T21:01:00.000Z");
+
+    await removeProjectItem(db, "project-a", "item-restore", {
+      expectedItemRevision: 1,
+      expectedContentRevision: 1,
+      operationId: "remove-markdown-restore",
+    }, ACTOR, "2026-08-09T21:02:00.000Z");
+    await restoreProjectItem(db, "project-a", "item-restore", {
+      expectedItemRevision: 2,
+      expectedContentRevision: 2,
+      operationId: "restore-markdown-restore",
+    }, ACTOR, "2026-08-09T21:03:00.000Z");
+    await updateProjectMarkdown(db, "project-a", "content-restore", {
+      markdownSource: "# Edited after restore",
+      expectedRevision: 3,
+      operationId: "edit-after-markdown-restore",
+    }, ACTOR, "2026-08-09T21:04:00.000Z");
+    await expect(restoreProjectItem(db, "project-a", "item-restore", {
+      expectedItemRevision: 2,
+      expectedContentRevision: 2,
+      operationId: "restore-markdown-restore",
+    }, ACTOR, "2026-08-09T21:05:00.000Z"))
+      .rejects.toMatchObject({ code: "conflict" });
+
+    await removeProjectItem(db, "project-a", "item-attachment-restore", {
+      expectedItemRevision: 1,
+      expectedContentRevision: 1,
+      operationId: "remove-attachment-restore",
+    }, ACTOR, "2026-08-09T21:06:00.000Z");
+    await restoreProjectItem(db, "project-a", "item-attachment-restore", {
+      expectedItemRevision: 2,
+      expectedContentRevision: 2,
+      operationId: "restore-attachment-restore",
+    }, ACTOR, "2026-08-09T21:07:00.000Z");
+    await updateProjectAttachment(db, "project-a", "content-attachment-restore", {
+      caption: "Edited after restore",
+      sourceUrl: "https://example.test/edited",
+      expectedRevision: 3,
+      operationId: "edit-after-attachment-restore",
+    }, ACTOR, "2026-08-09T21:08:00.000Z");
+    await expect(restoreProjectItem(db, "project-a", "item-attachment-restore", {
+      expectedItemRevision: 2,
+      expectedContentRevision: 2,
+      operationId: "restore-attachment-restore",
+    }, ACTOR, "2026-08-09T21:09:00.000Z"))
+      .rejects.toMatchObject({ code: "conflict" });
+    database.close();
+  });
 });

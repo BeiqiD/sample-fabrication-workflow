@@ -1301,8 +1301,10 @@ export async function restoreProjectItem(
   await requireActiveProject(db, projectId);
   const current = await requireItemBundle(db, projectId, itemId);
   if (current.item.deleted_at === null) {
-    const contentActive = !current.content || current.content.deleted_at === null;
-    if (current.item.last_mutation_id === input.operationId && contentActive) {
+    const contentReplayed = !current.content
+      || (current.content.deleted_at === null
+        && current.content.last_mutation_id === input.operationId);
+    if (current.item.last_mutation_id === input.operationId && contentReplayed) {
       return itemMutationResponse(db, projectId, itemId, true);
     }
     conflict("Project item is already active");

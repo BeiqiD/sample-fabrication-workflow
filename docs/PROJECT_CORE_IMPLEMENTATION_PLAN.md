@@ -1,10 +1,9 @@
 # Project core implementation plan
 
-Status: implemented Phase 3A1 contract from PR #131
+Status: Phase 3A1 complete; Phase 3A2 implemented in current Draft PR #132
 
-Last reviewed: 2026-08-09 against `v2/backend-foundation` at
-`5047ad78a2679a1ea6c050bcb2c945a980db283e`, after PR #130 and the final PR #131
-schema review
+Last reviewed: 2026-08-10 after Phase 3A1 was merged in PR #131 and during
+review of the Phase 3A2 authoritative persistence service in Draft PR #132
 
 This document translates the active Project roadmap into a reviewable backend
 sequence. The product direction remains governed by
@@ -13,7 +12,9 @@ sequence. The product direction remains governed by
 by
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md),
 and physical-byte safety by
-[BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
+[BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md). The concrete Phase 3A2
+route, transaction, idempotency, snapshot, and rollback contract is in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
 ## Decision
 
@@ -40,21 +41,24 @@ without exposing a partially implemented mutation surface.
 
 ### Phase 3A2 — authoritative Project persistence service
 
-Phase 3A2 is the immediate next pull request and activates Project reads and
-writes on top of the frozen schema:
+Phase 3A2 is implemented in current Draft PR #132 and activates Project reads
+and writes on top of the frozen schema:
 
 - Project list, create, open, rename, recoverable delete, and restore;
-- one Project snapshot/read model for Map and Reading;
-- expected-revision checks and idempotent operation IDs;
+- one normalized active snapshot for Map and Reading plus an explicit Trash
+  snapshot for recoverably removed rows;
+- object-owned expected revisions, bounded retry idempotency, and explicit `409`
+  conflicts;
 - authoritative Project-owned Markdown creation and save;
 - authoritative reference insertion that resolves the source, registers the
   stable target, allocates `created_sequence`, creates the occurrence, and
-  creates its placement in one transaction;
+  creates its placement in one rollback-safe transaction;
 - authoritative attachment creation over the existing blob lifecycle;
 - revisioned attachment caption/source-URL updates without retargeting bytes;
-- placement and basic-edge mutations;
+- recoverable item/content lifecycle, placement, and basic-edge mutations;
 - rollback tests proving an item is never committed without its placement;
-- workerd route smokes and exact integration-head deployment verification.
+- dedicated Project-persistence tests, the complete ordered migration chain, and
+  real workerd route smokes on the exact PR head.
 
 Map rendering, drag interaction, React Flow integration, Inspector UI, and
 Reading UI remain Phase 3B or later.

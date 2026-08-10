@@ -1,19 +1,23 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract after Phase 3A1 schema foundation
+Status: product and architecture contract during Phase 3A2 backend review
 
-Last reviewed: 2026-08-09 after the Map-first Project interaction review and
-Phase 3A1 implemented in PR #131
+Last reviewed: 2026-08-10 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, and the authoritative persistence service under
+review in Draft PR #132
 
 This document defines the intended Project workspace before React Flow or an
 editor dependency are selected. Phase 3A1, implemented in PR #131, freezes the
-normalized schema; Phase 3A2 supplies its authoritative read/write transactions.
+normalized schema; Draft PR #132 implements the Phase 3A2 authoritative
+read/write transactions.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 
 The canonical product order is recorded in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
-The concrete Phase 3A split and database/service guarantees are recorded in
-[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).
+The Phase 3A1 database guarantees are recorded in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md), and
+the active Phase 3A2 service guarantees are in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -466,12 +470,14 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1 is complete in PR #131. The active implementation sequence is:
+Phase 3A1 is complete in PR #131. Phase 3A2 is implemented in current Draft
+PR #132, so the active implementation sequence is:
 
-1. **Phase 3A2 — Authoritative persistence service**: Project reads/writes,
-   rollback-safe item-plus-placement creation, reference registration,
-   Markdown/attachment operations, expected revisions, idempotency, conflicts,
-   and workerd route gates.
+1. **Complete Phase 3A2 — Authoritative persistence service**: review the Project
+   reads/writes, rollback-safe item-plus-placement creation, reference
+   registration, Markdown/attachment operations, object-owned expected
+   revisions, bounded retry idempotency, conflicts, Trash snapshot, and workerd
+   route gates.
 2. **Phase 3B1 — Map kernel**: dynamic React Flow, pan/zoom, selection, move,
    resize, save state, and lightweight nodes.
 3. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
