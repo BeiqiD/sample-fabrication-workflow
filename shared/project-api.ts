@@ -254,6 +254,10 @@ export interface ProjectEdgeLifecycleInput {
   operationId: string;
 }
 
+function isProjectPayloadText(value: unknown): value is string {
+  return typeof value === "string" && !value.includes("\u0000");
+}
+
 export function isProjectApiId(value: unknown): value is string {
   return typeof value === "string" && PROJECT_API_ID_PATTERN.test(value);
 }
@@ -263,24 +267,24 @@ export function isProjectOperationId(value: unknown): value is string {
 }
 
 export function isProjectTitle(value: unknown): value is string {
-  return typeof value === "string"
+  return isProjectPayloadText(value)
     && value.trim() === value
     && value.length >= 1
     && value.length <= MAX_PROJECT_TITLE_LENGTH;
 }
 
 export function isProjectMarkdownSource(value: unknown): value is string {
-  return typeof value === "string" && value.length <= MAX_PROJECT_MARKDOWN_LENGTH;
+  return isProjectPayloadText(value) && value.length <= MAX_PROJECT_MARKDOWN_LENGTH;
 }
 
 export function isProjectAttachmentCaption(value: unknown): value is string | null {
   return value === null
-    || (typeof value === "string" && value.length <= MAX_PROJECT_ATTACHMENT_CAPTION_LENGTH);
+    || (isProjectPayloadText(value) && value.length <= MAX_PROJECT_ATTACHMENT_CAPTION_LENGTH);
 }
 
 export function isProjectAttachmentSourceUrl(value: unknown): value is string | null {
   if (value === null) return true;
-  if (typeof value !== "string" || value.length < 1
+  if (!isProjectPayloadText(value) || value.length < 1
     || value.length > MAX_PROJECT_ATTACHMENT_SOURCE_URL_LENGTH
     || value.trim() !== value) return false;
   try {
@@ -307,7 +311,7 @@ export function isProjectAttachmentLocator(
 
 export function isProjectEdgeLabel(value: unknown): value is string | null {
   return value === null
-    || (typeof value === "string" && value.length <= MAX_PROJECT_EDGE_LABEL_LENGTH);
+    || (isProjectPayloadText(value) && value.length <= MAX_PROJECT_EDGE_LABEL_LENGTH);
 }
 
 export function isCreateProjectInput(value: unknown): value is CreateProjectInput {
