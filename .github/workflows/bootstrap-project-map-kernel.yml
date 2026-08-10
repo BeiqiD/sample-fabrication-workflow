@@ -31,9 +31,9 @@ jobs:
       - name: Package workspace
         run: |
           tar \
-            --exclude=.git \
-            --exclude=dist \
-            --exclude=.wrangler \
+            --exclude=./.git \
+            --exclude=./dist \
+            --exclude=./.wrangler \
             -czf /tmp/project-map-kernel-workspace.tgz .
 
       - name: Upload workspace
