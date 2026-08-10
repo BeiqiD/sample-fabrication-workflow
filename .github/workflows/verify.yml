@@ -14,6 +14,70 @@ permissions:
   statuses: write
 
 jobs:
+  apply_pr132_review_fixes:
+    if: ${{ github.actor != 'github-actions[bot]' && github.ref_name == 'codex/pr132-review-fixes-staging' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/pr132-review-fixes-staging
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Extract and apply the staged review-fix script
+        run: |
+          python - <<'EXTRACT'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/apply-pr132-review-fixes.yml').read_text(encoding='utf-8')
+          start = "          python - <<'PY'\n"
+          end = "\n          PY\n"
+          if workflow.count(start) != 1 or workflow.count(end) != 1:
+              raise SystemExit('Unable to locate the staged Python patch')
+          body = workflow.split(start, 1)[1].split(end, 1)[0]
+          lines = body.splitlines()
+          if any(line and not line.startswith('          ') for line in lines):
+              raise SystemExit('Unexpected staged Python indentation')
+          Path('/tmp/apply-pr132-review-fixes.py').write_text(
+              '\n'.join(line[10:] if line else '' for line in lines) + '\n',
+              encoding='utf-8',
+          )
+          EXTRACT
+          python /tmp/apply-pr132-review-fixes.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify review fixes
+        run: |
+          git diff --check
+          npm run test:project-persistence
+          npm test
+          npm run build
+
+      - name: Commit fixes on staging branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/projects/service.ts \
+            worker/project-persistence-service.test.ts \
+            docs/PRODUCT_ROADMAP.md \
+            docs/PROJECT_CORE_IMPLEMENTATION_PLAN.md \
+            docs/PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md \
+            docs/PROJECT_DESIGN_FOUNDATION.md \
+            docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
+          git commit -m "fix(project): address Phase 3A2 review findings"
+          git push origin HEAD:codex/pr132-review-fixes-staging
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
