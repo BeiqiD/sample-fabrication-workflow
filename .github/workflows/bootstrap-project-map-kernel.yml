@@ -1,0 +1,42 @@
+name: Bootstrap Project Map Kernel Workspace
+
+on:
+  push:
+    branches:
+      - agent/project-map-kernel
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Map kernel dependency
+        run: npm install @xyflow/react@12.11.2 --save --ignore-scripts
+
+      - name: Package workspace
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=dist \
+            --exclude=.wrangler \
+            -czf /tmp/project-map-kernel-workspace.tgz .
+
+      - name: Upload workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-map-kernel-workspace
+          path: /tmp/project-map-kernel-workspace.tgz
+          retention-days: 1
+          if-no-files-found: error
