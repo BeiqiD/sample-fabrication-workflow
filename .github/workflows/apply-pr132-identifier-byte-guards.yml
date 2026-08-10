@@ -1,0 +1,328 @@
+name: Apply PR 132 Identifier Byte Guards
+
+on:
+  push:
+    branches:
+      - codex/project-persistence-service
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/project-persistence-service
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Add non-null ASCII byte guards and regression coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          migration = Path('migrations/0020_project_persistence_guards.sql')
+          text = migration.read_text(encoding='utf-8')
+          marker = 'CREATE TRIGGER project_contents_require_active_project_update\n'
+          if text.count(marker) != 1:
+              raise SystemExit('Unexpected migration insertion marker')
+          block = r'''-- SQLite rowid tables do not make a non-integer TEXT PRIMARY KEY implicitly
+-- NOT NULL, and its text functions stop at embedded NUL bytes. Supplement the
+-- alphabet guards with explicit non-null and ASCII byte-length checks so direct
+-- SQL cannot persist a route identity that the TypeScript regex would reject.
+CREATE TRIGGER projects_require_nonnull_ascii_identifier_bytes_insert
+BEFORE INSERT ON projects
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER projects_require_nonnull_ascii_identifier_bytes_update
+BEFORE UPDATE ON projects
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_contents_require_nonnull_ascii_identifier_bytes_insert
+BEFORE INSERT ON project_contents
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_id AS BLOB)) <> length(NEW.project_id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project content identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_contents_require_nonnull_ascii_identifier_bytes_update
+BEFORE UPDATE ON project_contents
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_id AS BLOB)) <> length(NEW.project_id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project content identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_content_attachments_require_nonnull_ascii_identifier_bytes_insert
+BEFORE INSERT ON project_content_attachments
+WHEN NEW.project_content_id IS NULL
+  OR length(CAST(NEW.project_content_id AS BLOB)) <> length(NEW.project_content_id)
+  OR length(CAST(NEW.creation_operation_id AS BLOB)) <> length(NEW.creation_operation_id)
+BEGIN
+  SELECT RAISE(ABORT, 'project attachment identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_items_require_nonnull_ascii_identifier_bytes_insert
+BEFORE INSERT ON project_items
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_id AS BLOB)) <> length(NEW.project_id)
+  OR (
+    NEW.project_content_id IS NOT NULL
+    AND length(CAST(NEW.project_content_id AS BLOB)) <> length(NEW.project_content_id)
+  )
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project item identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_items_require_nonnull_ascii_identifier_bytes_update
+BEFORE UPDATE ON project_items
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_id AS BLOB)) <> length(NEW.project_id)
+  OR (
+    NEW.project_content_id IS NOT NULL
+    AND length(CAST(NEW.project_content_id AS BLOB)) <> length(NEW.project_content_id)
+  )
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project item identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_map_placements_require_nonnull_ascii_identifier_bytes_insert
+BEFORE INSERT ON project_map_placements
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_item_id AS BLOB)) <> length(NEW.project_item_id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+BEGIN
+  SELECT RAISE(ABORT, 'project placement identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_map_placements_require_nonnull_ascii_identifier_bytes_update
+BEFORE UPDATE ON project_map_placements
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_item_id AS BLOB)) <> length(NEW.project_item_id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+BEGIN
+  SELECT RAISE(ABORT, 'project placement identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_edges_require_nonnull_ascii_identifier_bytes_insert
+BEFORE INSERT ON project_edges
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_id AS BLOB)) <> length(NEW.project_id)
+  OR length(CAST(NEW.source_item_id AS BLOB)) <> length(NEW.source_item_id)
+  OR length(CAST(NEW.target_item_id AS BLOB)) <> length(NEW.target_item_id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project edge identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_edges_require_nonnull_ascii_identifier_bytes_update
+BEFORE UPDATE ON project_edges
+WHEN NEW.id IS NULL
+  OR length(CAST(NEW.id AS BLOB)) <> length(NEW.id)
+  OR length(CAST(NEW.project_id AS BLOB)) <> length(NEW.project_id)
+  OR length(CAST(NEW.source_item_id AS BLOB)) <> length(NEW.source_item_id)
+  OR length(CAST(NEW.target_item_id AS BLOB)) <> length(NEW.target_item_id)
+  OR length(CAST(NEW.last_mutation_id AS BLOB)) <> length(NEW.last_mutation_id)
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND length(CAST(NEW.deletion_operation_id AS BLOB)) <> length(NEW.deletion_operation_id)
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project edge identifiers and operation IDs must be API-safe');
+END;
+
+'''
+          migration.write_text(text.replace(marker, block + marker), encoding='utf-8')
+
+          test = Path('worker/project-database-input-guards.test.ts')
+          source = test.read_text(encoding='utf-8')
+          test_marker = 'describe("Project database input guards", () => {\n'
+          if source.count(test_marker) != 1:
+              raise SystemExit('Unexpected database guard test marker')
+          regression = r'''  it("rejects NULL and embedded-NUL Project route identities in direct SQL", () => {
+    const database = referenceTestDatabase();
+
+    expect(() => insertProject(
+      database,
+      null as unknown as string,
+      "create-null-project",
+    )).toThrow(/API-safe/);
+    expect(() => insertProject(
+      database,
+      "project\u0000/unsafe",
+      "create-nul-project",
+    )).toThrow(/API-safe/);
+    insertProject(database);
+
+    expect(() => insertMarkdownContent(
+      database,
+      null as unknown as string,
+      "create-null-content",
+    )).toThrow(/API-safe/);
+    expect(() => insertMarkdownContent(
+      database,
+      "content\u0000/unsafe",
+      "create-nul-content",
+    )).toThrow(/API-safe/);
+    insertMarkdownContent(database, "content-byte-safe", "create-content-byte-safe");
+
+    expect(() => insertContentItem(
+      database,
+      null as unknown as string,
+      "content-byte-safe",
+      1,
+      "create-null-item",
+    )).toThrow(/API-safe/);
+    expect(() => insertContentItem(
+      database,
+      "item\u0000/unsafe",
+      "content-byte-safe",
+      1,
+      "create-nul-item",
+    )).toThrow(/API-safe/);
+    insertContentItem(
+      database,
+      "item-byte-safe",
+      "content-byte-safe",
+      1,
+      "create-item-byte-safe",
+    );
+
+    expect(() => insertPlacement(
+      database,
+      null as unknown as string,
+      "item-byte-safe",
+      "create-null-placement",
+    )).toThrow(/API-safe/);
+    expect(() => insertPlacement(
+      database,
+      "placement\u0000/unsafe",
+      "item-byte-safe",
+      "create-nul-placement",
+    )).toThrow(/API-safe/);
+    insertPlacement(
+      database,
+      "placement-byte-safe",
+      "item-byte-safe",
+      "create-placement-byte-safe",
+    );
+
+    insertMarkdownContent(database, "content-byte-other", "create-content-byte-other");
+    insertContentItem(
+      database,
+      "item-byte-other",
+      "content-byte-other",
+      2,
+      "create-item-byte-other",
+    );
+    insertPlacement(
+      database,
+      "placement-byte-other",
+      "item-byte-other",
+      "create-placement-byte-other",
+    );
+    expect(() => insertEdge(
+      database,
+      null as unknown as string,
+      "item-byte-safe",
+      "item-byte-other",
+      "create-null-edge",
+    )).toThrow(/API-safe/);
+    expect(() => insertEdge(
+      database,
+      "edge\u0000/unsafe",
+      "item-byte-safe",
+      "item-byte-other",
+      "create-nul-edge",
+    )).toThrow(/API-safe/);
+
+    database.close();
+  });
+
+'''
+          test.write_text(source.replace(test_marker, test_marker + regression), encoding='utf-8')
+          PY
+          rm -f .github/workflows/apply-pr132-identifier-byte-guards.yml
+          rm -f .github/pr132-identifier-byte-guard-trigger
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify guard changes
+        shell: bash
+        run: |
+          git diff --check
+          npm run test:project-database-inputs
+          npm run verify:d1-migrations
+          npm test
+          npm run build
+
+      - name: Commit guard changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(project): reject null and non-ASCII route identities"
+          git push origin HEAD:codex/project-persistence-service
