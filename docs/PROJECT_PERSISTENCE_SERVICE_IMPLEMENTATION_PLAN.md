@@ -3,15 +3,15 @@
 Status: current Draft PR #132 implementation contract under review
 
 Last reviewed: 2026-08-10 against `v2/backend-foundation` at
-`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and database
-contract review of Draft PR #132 after Phase 3A1 was merged in PR #131
+`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and Unicode
+database-contract review of Draft PR #132 after Phase 3A1 was merged in PR #131
 
 This document defines the authoritative Project read/write service that sits on
 top of the normalized schema from `0019_project_core.sql` and its persistence
-guards through `0022_project_payload_and_external_identity_guards.sql`. Product
-ordering is governed by [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md); identity and
-ownership by [PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md);
-Map/Reading behavior by
+guards through `0023_project_unicode_payload_contract.sql`. Product ordering is
+governed by [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md); identity and ownership by
+[PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md); Map/Reading
+behavior by
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md);
 and physical-byte safety by
 [BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
@@ -213,6 +213,10 @@ The API accepts exactly one existing API-safe blob-record identity:
 - `assetId`; or
 - `storageObjectId`.
 
+The locator keys themselves are mutually exclusive. A key that is present with
+`null`, `undefined`, a non-string value, or beside the other locator key is not a
+valid alternative and is rejected at the route boundary.
+
 Original filename, MIME type, and byte size are read from the authoritative blob
 record; clients cannot supply or overwrite intrinsic metadata. The Phase 3A1
 attachment trigger performs the GC claim/release check inside the same batch.
@@ -344,9 +348,12 @@ Shared TypeScript request validation enforces the complete public request shape:
 - API-safe stable IDs, external locator IDs, and operation IDs;
 - JavaScript-safe positive expected revisions;
 - NUL-free Project title, Markdown, attachment caption/source URL, and edge label
-  strings with their documented length limits;
+  strings whose ceilings are measured in Unicode code points;
+- ECMAScript `String.prototype.trim()` semantics for Project titles and
+  attachment source URLs;
 - fully parsed `http` or `https` attachment source URLs;
-- attachment locator XOR shape;
+- attachment locator XOR based on mutually exclusive own keys whose selected
+  value is an API-safe string;
 - finite bounded geometry and integer z-index;
 - closed edge handle/marker enums and endpoint revision fields.
 
@@ -360,7 +367,10 @@ direct SQL, import, or restore:
 - safe-integer revisions, sequences, format versions, byte counts, and z-index;
 - SQLite `text` storage type, embedded-NUL rejection, and the exact Project
   title, caption, source-URL, edge-label, and 200,000-character Markdown
-  persistence ceilings;
+  persistence ceilings, all measured in Unicode code points;
+- the exact ECMAScript WhiteSpace and LineTerminator trim set for Project titles
+  and attachment source URLs, expressed explicitly in SQL rather than relying on
+  SQLite's U+0020-only default `trim()`;
 - a trimmed `http://` or `https://` source-URL scheme boundary (TypeScript retains
   the stronger full-URL parse);
 - finite bounded geometry, closed enums, attachment locator XOR, same-Project
@@ -404,17 +414,19 @@ existing blob export planner.
 
 The dedicated Phase 3A2 gate includes:
 
-1. shared API-contract tests, including embedded-NUL payload rejection;
+1. shared API-contract tests, including embedded-NUL rejection, Unicode
+   code-point boundaries, ECMAScript trim semantics, and strict locator-key XOR;
 2. host-SQLite service transaction and rollback tests;
 3. direct-SQL database guard tests for route-safe Project and external FK
-   identities, SQLite payload type, embedded NUL, payload bounds, and source-URL
-   schemes;
-4. Hono route status/shape tests;
+   identities, SQLite payload type, embedded NUL, astral-character boundaries,
+   ECMAScript tab/NBSP/BOM trim behavior, payload bounds, and source-URL schemes;
+4. Hono route status/shape tests, including null, numeric, and simultaneously
+   present attachment locator keys;
 5. Project attachment media tests without locator disclosure;
 6. exact route-composition tests proving Project is mounted directly by the core
    Worker, inherits core middleware, and is not owned by Reference;
 7. full ordered migration verification through
-   `0022_project_payload_and_external_identity_guards.sql`;
+   `0023_project_unicode_payload_contract.sql`;
 8. a real Miniflare/workerd Project smoke covering create, retry, reference
    insertion, snapshot, conflict, attachment binding/media, and deletion;
 9. existing Blob, Reference, full test, mounted-test, and production-build gates.
