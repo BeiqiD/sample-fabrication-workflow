@@ -29,11 +29,10 @@ jobs:
 
       - name: Install dependencies
         id: install
-        continue-on-error: true
         run: npm ci
 
       - name: Record dependency status
-        if: always()
+        if: ${{ always() && steps.install.outcome != 'skipped' }}
         uses: actions/github-script@v7
         env:
           STAGE_OUTCOME: ${{ steps.install.outcome }}
@@ -50,15 +49,13 @@ jobs:
 
       - name: Run blob lifecycle contract
         id: blob_lifecycle
-        if: steps.install.outcome == 'success'
-        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
           npm run verify:blob-lifecycle 2>&1 | tee blob-lifecycle.log
 
       - name: Record blob lifecycle status
-        if: steps.install.outcome == 'success'
+        if: ${{ always() && steps.blob_lifecycle.outcome != 'skipped' }}
         uses: actions/github-script@v7
         env:
           STAGE_OUTCOME: ${{ steps.blob_lifecycle.outcome }}
@@ -81,8 +78,6 @@ jobs:
 
       - name: Run reference foundation contract
         id: reference_foundation
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success'
-        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
@@ -91,7 +86,7 @@ jobs:
           npm run verify:reference-search-worker 2>&1 | tee -a reference-foundation.log
 
       - name: Record reference foundation status
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success'
+        if: ${{ always() && steps.reference_foundation.outcome != 'skipped' }}
         uses: actions/github-script@v7
         env:
           STAGE_OUTCOME: ${{ steps.reference_foundation.outcome }}
@@ -114,15 +109,13 @@ jobs:
 
       - name: Run Project foundation contract
         id: project_foundation
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success'
-        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
           npm run test:project-foundation 2>&1 | tee project-foundation.log
 
       - name: Record Project foundation status
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success'
+        if: ${{ always() && steps.project_foundation.outcome != 'skipped' }}
         uses: actions/github-script@v7
         env:
           STAGE_OUTCOME: ${{ steps.project_foundation.outcome }}
@@ -143,17 +136,44 @@ jobs:
               description: outcome === "success" ? "Project foundation passed" : detail.slice(0, 140),
             });
 
+      - name: Run Project persistence contract
+        id: project_persistence
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify:project-persistence 2>&1 | tee project-persistence.log
+
+      - name: Record Project persistence status
+        if: ${{ always() && steps.project_persistence.outcome != 'skipped' }}
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.project_persistence.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("project-persistence.log") ? fs.readFileSync("project-persistence.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: "pre-pr/project-persistence",
+              description: outcome === "success" ? "Project persistence passed" : detail.slice(0, 140),
+            });
+
       - name: Run tests
         id: tests
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success' && steps.project_foundation.outcome == 'success'
-        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
           npm test 2>&1 | tee test.log
 
       - name: Record test status
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success' && steps.project_foundation.outcome == 'success'
+        if: ${{ always() && steps.tests.outcome != 'skipped' }}
         uses: actions/github-script@v7
         env:
           STAGE_OUTCOME: ${{ steps.tests.outcome }}
@@ -178,15 +198,13 @@ jobs:
 
       - name: Run production build
         id: build
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success' && steps.project_foundation.outcome == 'success' && steps.tests.outcome == 'success'
-        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
           npm run build 2>&1 | tee build.log
 
       - name: Record build status
-        if: steps.install.outcome == 'success' && steps.blob_lifecycle.outcome == 'success' && steps.reference_foundation.outcome == 'success' && steps.project_foundation.outcome == 'success' && steps.tests.outcome == 'success'
+        if: ${{ always() && steps.build.outcome != 'skipped' }}
         uses: actions/github-script@v7
         env:
           STAGE_OUTCOME: ${{ steps.build.outcome }}
@@ -207,7 +225,3 @@ jobs:
               context: outcome === "success" ? "pre-pr/build" : `pre-pr/build/${slug}`,
               description: outcome === "success" ? "npm run build passed" : detail.slice(0, 140),
             });
-
-      - name: Fail when verification did not pass
-        if: steps.install.outcome != 'success' || steps.blob_lifecycle.outcome == 'failure' || steps.reference_foundation.outcome == 'failure' || steps.project_foundation.outcome == 'failure' || steps.tests.outcome == 'failure' || steps.build.outcome == 'failure'
-        run: exit 1

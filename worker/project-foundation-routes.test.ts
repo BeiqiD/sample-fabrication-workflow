@@ -5,7 +5,7 @@ import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
 import {
   PROJECT_EXPORT_TABLE_QUERIES,
 } from "./project-foundation-routes";
-import { routes as referenceRoutes } from "./reference-routes";
+import { routes as projectRoutes } from "./project-routes";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
@@ -30,11 +30,40 @@ function exportEnvironment() {
   return { env: { DB: database } as Env, batch };
 }
 
+const PRE_PROJECT_EXPORT_TABLES = [
+  "samples",
+  "events",
+  "recipe_families",
+  "step_definitions",
+  "state_representations",
+  "state_representation_assets",
+  "template_versions",
+  "template_steps",
+  "metrology_template_references",
+  "runs",
+  "run_plan_revisions",
+  "run_steps",
+  "run_step_plan_links",
+  "run_step_comments",
+  "run_step_assets",
+  "state_verifications",
+  "state_verification_steps",
+  "recipe_change_proposals",
+  "imports",
+  "assets",
+  "comment_submissions",
+  "comment_submission_targets",
+  "comment_submission_items",
+  "managed_storage_objects",
+  "reference_targets",
+  "blob_gc_ledger",
+  "blob_retention_edges",
+] as const;
+
 describe("Project foundation export route", () => {
-  it("wins before the legacy handler and snapshots every current table in one batch", async () => {
+  it("owns complete export and snapshots every current table in one batch", async () => {
     const app = new Hono<AppBindings>();
-    app.route("/", referenceRoutes);
-    app.get("/exports/all", (c) => c.json({ legacy: true }, 599));
+    app.route("/", projectRoutes);
     const { env, batch } = exportEnvironment();
 
     const response = await app.request("/exports/all", {}, env);
@@ -62,15 +91,10 @@ describe("Project foundation export route", () => {
     expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(PROJECT_EXPORT_TABLE_QUERIES).length);
   });
 
-  it("keeps every legacy export table while adding the Project tables", () => {
-    const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
-    const block = source.match(
-      /app\.get\("\/exports\/all"[\s\S]*?const tableQueries = \{([\s\S]*?)\n  \} as const;/,
-    )?.[1];
-    expect(block).toBeDefined();
-    const legacyNames = [...block!.matchAll(/^    ([a-z_]+):/gm)].map((match) => match[1]);
-    expect(legacyNames.length).toBeGreaterThan(20);
-    expect(Object.keys(PROJECT_EXPORT_TABLE_QUERIES)).toEqual(expect.arrayContaining(legacyNames));
+  it("keeps every pre-Project export table while adding all Project tables", () => {
+    expect(Object.keys(PROJECT_EXPORT_TABLE_QUERIES)).toEqual(
+      expect.arrayContaining([...PRE_PROJECT_EXPORT_TABLES]),
+    );
     expect(Object.keys(PROJECT_EXPORT_TABLE_QUERIES)).toEqual(expect.arrayContaining([
       "projects",
       "project_contents",
@@ -79,5 +103,24 @@ describe("Project foundation export route", () => {
       "project_map_placements",
       "project_edges",
     ]));
+  });
+
+  it("mounts Project directly in core and leaves the Reference aggregate independent", () => {
+    const indexSource = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    const referenceSource = readFileSync(
+      new URL("./reference-routes.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(indexSource).toContain(
+      'import { routes as projectRoutes } from "./project-routes";',
+    );
+    const projectMount = indexSource.indexOf('app.route("/", projectRoutes);');
+    const referenceMount = indexSource.indexOf('app.route("/", referenceRoutes);');
+    expect(projectMount).toBeGreaterThan(-1);
+    expect(referenceMount).toBeGreaterThan(projectMount);
+    expect(indexSource).not.toMatch(/app\.get\("\/exports\/all"/);
+    expect(referenceSource).not.toContain("./project-routes");
+    expect(referenceSource).not.toContain("projectRoutes");
   });
 });

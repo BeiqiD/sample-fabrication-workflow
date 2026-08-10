@@ -2,9 +2,11 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-09 after the reference/search foundation through PR #129,
+Last reviewed: 2026-08-10 after the reference/search foundation through PR #129,
 the reusable Project discovery surface implemented in PR #130, the Map-first
-Project review, and the Phase 3A1 schema/export foundation implemented in PR #131
+Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
+and the Phase 3A2 authoritative persistence service completed in PR #132; the
+Phase 3B1 desktop Map kernel is now the immediate next implementation slice
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -154,12 +156,14 @@ The following prerequisites are complete on `v2/backend-foundation`:
   browser implemented in PR #130;
 - normalized Project schema, bounded placement and safe-integer contracts,
   attachment/blob retention, and complete export schema version 4 implemented
-  in PR #131.
+  in PR #131;
+- authoritative Project CRUD, normalized active and Trash snapshots,
+  rollback-safe item-plus-placement creation, bounded retry idempotency,
+  attachment media, and basic graph mutations implemented in PR #132.
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-The active implementation target is now the Phase 3A2 authoritative Project
-persistence service.
+The active implementation target is now Phase 3B1, the desktop Map kernel.
 
 ## Active implementation roadmap
 
@@ -217,14 +221,15 @@ are exposed.
 
 #### Phase 3A2 — authoritative Project persistence service
 
-**Status:** immediate next PR.
+**Status:** implemented in PR #132.
 
 **Scope:**
 
 - Project list, create, open, rename, recoverable delete, and restore;
-- one Project snapshot/read model for Map and Reading;
-- expected-revision checks, idempotent operation IDs, and explicit `409`
-  conflict behavior;
+- one Project snapshot/read model for Map and Reading, plus an explicit
+  `includeDeleted=1` Trash snapshot that keeps recoverable child rows discoverable;
+- object-owned expected revisions, bounded retry idempotency through stable IDs
+  and current-row operation IDs, and explicit `409` conflict behavior;
 - one authoritative reference insertion operation that re-resolves, registers,
   allocates `created_sequence`, creates the occurrence, and creates its Map
   placement in one rollback-safe transaction;
@@ -506,16 +511,14 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Implement **Phase 3A2: authoritative Project reads/writes, rollback-safe item
-   plus placement insertion, idempotency, and conflict handling**.
-2. Add the desktop **Map kernel**.
-3. Add the **reference sidebar and drag/drop placement**.
-4. Add **double-click Markdown and generic attachment insertion**.
-5. Add **basic Bezier directional edges**.
-6. Add the no-creation **Reading projection**.
-7. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
-8. Add advanced **Inspector/Canvas/previews/performance**.
-9. Run the dedicated Docker portability implementation after Project content
+1. Add the desktop **Map kernel**.
+2. Add the **reference sidebar and drag/drop placement**.
+3. Add **double-click Markdown and generic attachment insertion**.
+4. Add **basic Bezier directional edges**.
+5. Add the no-creation **Reading projection**.
+6. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+7. Add advanced **Inspector/Canvas/previews/performance**.
+8. Run the dedicated Docker portability implementation after Project content
    and save semantics stabilize.
 
 ## Work that should not happen next

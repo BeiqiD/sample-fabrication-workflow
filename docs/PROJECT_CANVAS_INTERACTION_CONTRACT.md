@@ -1,19 +1,23 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract after Phase 3A1 schema foundation
+Status: product and architecture contract after Phase 3A2 backend completion
 
-Last reviewed: 2026-08-09 after the Map-first Project interaction review and
-Phase 3A1 implemented in PR #131
+Last reviewed: 2026-08-10 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, and the authoritative persistence service
+completed independent review in PR #132
 
 This document defines the intended Project workspace before React Flow or an
 editor dependency are selected. Phase 3A1, implemented in PR #131, freezes the
-normalized schema; Phase 3A2 supplies its authoritative read/write transactions.
+normalized schema; PR #132 implements the completed Phase 3A2 authoritative
+read/write transactions.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 
 The canonical product order is recorded in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
-The concrete Phase 3A split and database/service guarantees are recorded in
-[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).
+The Phase 3A1 database guarantees are recorded in
+[PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md), and
+the completed Phase 3A2 service guarantees are in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -466,32 +470,29 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1 is complete in PR #131. The active implementation sequence is:
+Phase 3A1 and Phase 3A2 are complete in PR #131 and PR #132. The active
+implementation sequence is now:
 
-1. **Phase 3A2 — Authoritative persistence service**: Project reads/writes,
-   rollback-safe item-plus-placement creation, reference registration,
-   Markdown/attachment operations, expected revisions, idempotency, conflicts,
-   and workerd route gates.
-2. **Phase 3B1 — Map kernel**: dynamic React Flow, pan/zoom, selection, move,
+1. **Phase 3B1 — Map kernel**: dynamic React Flow, pan/zoom, selection, move,
    resize, save state, and lightweight nodes.
-3. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
+2. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
    pending nodes, keyboard center placement, authoritative insertion.
-4. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
+3. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
    attachment, image/file rendering, and automatic insertion-order Reading
    inclusion.
-5. **Phase 3B4 — Basic edges**: four handles, Bezier, endpoint direction, label,
+4. **Phase 3B4 — Basic edges**: four handles, Bezier, endpoint direction, label,
    delete/recreate behavior.
-6. **Phase 3C — Reading projection**: no creation, complete insertion-order
+5. **Phase 3C — Reading projection**: no creation, complete insertion-order
    rendering, and editing of existing owned content.
-7. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
+6. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
    previews, save/conflict UX, and accessible Reading presentation.
-8. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
+7. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
    multi-select hardening, PDF preview, screenshot capture, advanced performance,
    and optional order/layout tooling.
 
 ## Deferred questions
 
-The following do not block Phase 3A2 or later work provided the frozen contracts
+The following do not block Phase 3B1 or later work provided the frozen contracts
 above are kept:
 
 - whether later versions need manual or edge-informed Reading order;

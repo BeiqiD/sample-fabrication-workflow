@@ -1,4 +1,5 @@
 import type {
+  ReferenceContext,
   ReferenceTarget,
   ReferenceTargetRegistryEntry,
 } from "../../shared/reference-types";
@@ -36,15 +37,15 @@ async function requireRegistryEntry(db: D1Database, target: ReferenceTarget) {
   return entry;
 }
 
-export async function registerReferenceTarget(
+export function referenceRegistrationStatements(
   db: D1Database,
   target: ReferenceTarget,
-  now = new Date().toISOString(),
-  registryId = crypto.randomUUID(),
-): Promise<ReferenceTargetRegistryEntry> {
-  const resolution = await requireResolvedTarget(db, target);
-  const contextsJson = JSON.stringify(resolution.contexts);
-  await db.batch([
+  contexts: readonly ReferenceContext[],
+  now: string,
+  registryId: string,
+): D1PreparedStatement[] {
+  const contextsJson = JSON.stringify(contexts);
+  return [
     db.prepare(`
       INSERT OR IGNORE INTO reference_targets
         (id, registry_version, target_type, target_id,
@@ -57,7 +58,23 @@ export async function registerReferenceTarget(
       WHERE target_type = ? AND target_id = ? AND tombstoned_at IS NULL
         AND last_validated_at <= ?
     `).bind(now, contextsJson, target.type, target.id, now),
-  ]);
+  ];
+}
+
+export async function registerReferenceTarget(
+  db: D1Database,
+  target: ReferenceTarget,
+  now = new Date().toISOString(),
+  registryId = crypto.randomUUID(),
+): Promise<ReferenceTargetRegistryEntry> {
+  const resolution = await requireResolvedTarget(db, target);
+  await db.batch(referenceRegistrationStatements(
+    db,
+    target,
+    resolution.contexts,
+    now,
+    registryId,
+  ));
   const entry = await requireRegistryEntry(db, target);
   if (entry.tombstonedAt) {
     throw new ReferenceRegistrationError("tombstoned", "The reference target is tombstoned");

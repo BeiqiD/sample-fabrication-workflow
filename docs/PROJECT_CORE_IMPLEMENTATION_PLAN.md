@@ -1,10 +1,10 @@
 # Project core implementation plan
 
-Status: implemented Phase 3A1 contract from PR #131
+Status: Phase 3A1 and Phase 3A2 complete; Phase 3B1 is the immediate next slice
 
-Last reviewed: 2026-08-09 against `v2/backend-foundation` at
-`5047ad78a2679a1ea6c050bcb2c945a980db283e`, after PR #130 and the final PR #131
-schema review
+Last reviewed: 2026-08-10 after Phase 3A1 was merged in PR #131 and the
+Phase 3A2 authoritative persistence service completed independent review in
+PR #132
 
 This document translates the active Project roadmap into a reviewable backend
 sequence. The product direction remains governed by
@@ -13,7 +13,9 @@ sequence. The product direction remains governed by
 by
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md),
 and physical-byte safety by
-[BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
+[BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md). The concrete Phase 3A2
+route, transaction, idempotency, snapshot, and rollback contract is in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
 ## Decision
 
@@ -40,21 +42,24 @@ without exposing a partially implemented mutation surface.
 
 ### Phase 3A2 — authoritative Project persistence service
 
-Phase 3A2 is the immediate next pull request and activates Project reads and
-writes on top of the frozen schema:
+Phase 3A2 is complete in PR #132 and activates Project reads and writes on top of
+the frozen schema:
 
 - Project list, create, open, rename, recoverable delete, and restore;
-- one Project snapshot/read model for Map and Reading;
-- expected-revision checks and idempotent operation IDs;
+- one normalized active snapshot for Map and Reading plus an explicit Trash
+  snapshot for recoverably removed rows;
+- object-owned expected revisions, bounded retry idempotency, and explicit `409`
+  conflicts;
 - authoritative Project-owned Markdown creation and save;
 - authoritative reference insertion that resolves the source, registers the
   stable target, allocates `created_sequence`, creates the occurrence, and
-  creates its placement in one transaction;
+  creates its placement in one rollback-safe transaction;
 - authoritative attachment creation over the existing blob lifecycle;
 - revisioned attachment caption/source-URL updates without retargeting bytes;
-- placement and basic-edge mutations;
+- recoverable item/content lifecycle, placement, and basic-edge mutations;
 - rollback tests proving an item is never committed without its placement;
-- workerd route smokes and exact integration-head deployment verification.
+- dedicated Project-persistence tests, the complete ordered migration chain, and
+  real workerd route smokes on the exact PR head.
 
 Map rendering, drag interaction, React Flow integration, Inspector UI, and
 Reading UI remain Phase 3B or later.
@@ -231,12 +236,13 @@ Applying a migration creates database state even before write routes exist.
 Therefore 3A1 also raises the full-export schema version from 3 to 4 and exports
 all six Project tables.
 
-The Project export route is mounted ahead of the legacy monolithic export
-handler and performs every table/view read in one D1 batch. A consistency test
-parses the legacy table list and fails if a pre-existing export table is lost.
-This is a compatibility bridge, not the final route composition. Phase 3A2 must
-move the authoritative export query set into the dedicated Project/backend
-composition root and remove the superseded monolithic handler.
+PR #131 initially mounted the Project export route ahead of the legacy
+monolithic handler as a compatibility bridge. Phase 3A2 now completes that
+ownership transfer: the core Worker mounts `project-routes` directly, Reference
+no longer imports Project, and the superseded schema-version-3 handler is
+removed. The canonical Project export still performs every table/view read in
+one D1 batch, while a consistency test keeps every pre-Project export table plus
+all Project tables.
 
 Project attachment rows extend the stable `blob_retention_edges` public view
 through a fourth D1-safe leaf. The public compound view remains below workerd's
@@ -292,10 +298,11 @@ The 3A1 gate consists of:
    - the same finite coordinate, dimension, and z-index bounds as SQLite;
    - basic edge-shape validation.
 3. `worker/project-foundation-routes.test.ts`
-   - Project export route precedence;
-   - one-batch complete snapshot;
-   - schema version 4;
-   - preservation of every legacy table plus all Project tables.
+   - direct core ownership of the Project aggregate;
+   - Reference aggregate independence and removal of the monolithic export
+     handler;
+   - one-batch complete snapshot and schema version 4;
+   - preservation of every pre-Project table plus all Project tables.
 4. `npm run verify:d1-migrations`
    - the complete migration chain through Wrangler/workerd.
 5. the existing full test and production build gates.
@@ -336,4 +343,5 @@ PR #131 satisfied the following definition of done:
 - `pre-pr/project-foundation`, general tests, and production build pass on the
   exact pull-request head.
 
-Phase 3A2 is therefore the immediate next PR.
+Phase 3A2 is complete in PR #132. The immediate next implementation slice is
+Phase 3B1, the desktop Map kernel.

@@ -1,17 +1,20 @@
 # Project design foundation
 
-Status: current product and architecture contract after Phase 3A1 schema foundation
+Status: current product and architecture contract after Phase 3A2 persistence completion
 
-Last reviewed: 2026-08-09 after the Map-first Project interaction review, the
-reusable Project discovery surface in PR #130, and Phase 3A1 implemented in
-PR #131
+Last reviewed: 2026-08-10 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, and the authoritative persistence service
+completed independent review in PR #132
 
 This document defines the durable Project identity and ownership model. The
 canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
 Map, Reading, save, edge, mobile, preview, and performance behavior is in
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
-The concrete Phase 3A1/3A2 backend boundary is in
+The frozen Phase 3A1 schema boundary is recorded in
 [PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md).
+The completed Phase 3A2 route, transaction, idempotency, snapshot, and rollback
+contract is in
+[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
 The longer Text-first design record that preceded the Map-first decision is
 preserved in `PROJECT_DESIGN_FOUNDATION_LEGACY.md` for history. Where it
@@ -469,18 +472,16 @@ metadata.
 
 ## Roadmap
 
-Phase 2C2 and Phase 3A1 are complete in PR #130 and PR #131. The active sequence
-now begins with:
+Phase 2C2, Phase 3A1, and Phase 3A2 are complete in PR #130, PR #131, and
+PR #132. The active sequence now begins with the Map kernel:
 
-1. Phase 3A2 authoritative reads/writes, item-plus-placement transactions,
-   idempotency, and conflict handling;
-2. Phase 3B1 Map kernel;
-3. Phase 3B2 reference sidebar and drag/drop placement;
-4. Phase 3B3 Markdown and generic attachment creation;
-5. Phase 3B4 basic Bezier directional edges;
-6. Phase 3C no-creation insertion-order Reading projection;
-7. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
-8. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
+1. Phase 3B1 Map kernel;
+2. Phase 3B2 reference sidebar and drag/drop placement;
+3. Phase 3B3 Markdown and generic attachment creation;
+4. Phase 3B4 basic Bezier directional edges;
+5. Phase 3C no-creation insertion-order Reading projection;
+6. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
+7. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
    performance work.
 
 See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) for completion criteria,
@@ -506,6 +507,6 @@ tracks.
 ## Dependency and licensing boundary
 
 React Flow is selected and license-verified when Phase 3B1 begins. It is not
-required for Phase 3A schema work. Any Markdown editor, TeX renderer, PDF
+required for Phase 3A schema or persistence-service work. Any Markdown editor, TeX renderer, PDF
 renderer, or preview dependency is selected only in its corresponding slice and
 must not determine the persistent Project model.
