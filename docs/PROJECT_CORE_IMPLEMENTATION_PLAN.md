@@ -1,9 +1,10 @@
 # Project core implementation plan
 
-Status: Phase 3A1 complete; Phase 3A2 implemented in current Draft PR #132
+Status: Phase 3A1 and Phase 3A2 complete; Phase 3B1 is the immediate next slice
 
-Last reviewed: 2026-08-10 after Phase 3A1 was merged in PR #131 and during
-review of the Phase 3A2 authoritative persistence service in Draft PR #132
+Last reviewed: 2026-08-10 after Phase 3A1 was merged in PR #131 and the
+Phase 3A2 authoritative persistence service completed independent review in
+PR #132
 
 This document translates the active Project roadmap into a reviewable backend
 sequence. The product direction remains governed by
@@ -41,8 +42,8 @@ without exposing a partially implemented mutation surface.
 
 ### Phase 3A2 — authoritative Project persistence service
 
-Phase 3A2 is implemented in current Draft PR #132 and activates Project reads
-and writes on top of the frozen schema:
+Phase 3A2 is complete in PR #132 and activates Project reads and writes on top of
+the frozen schema:
 
 - Project list, create, open, rename, recoverable delete, and restore;
 - one normalized active snapshot for Map and Reading plus an explicit Trash
@@ -342,6 +343,5 @@ PR #131 satisfied the following definition of done:
 - `pre-pr/project-foundation`, general tests, and production build pass on the
   exact pull-request head.
 
-Phase 3A2 is implemented in current Draft PR #132. After its final review and
-merge, the immediate next implementation slice is Phase 3B1, the desktop Map
-kernel.
+Phase 3A2 is complete in PR #132. The immediate next implementation slice is
+Phase 3B1, the desktop Map kernel.
