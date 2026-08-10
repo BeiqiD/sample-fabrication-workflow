@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/project-map-kernel
+  pull_request:
+    branches:
+      - v2/backend-foundation
   workflow_dispatch:
 
 permissions:
