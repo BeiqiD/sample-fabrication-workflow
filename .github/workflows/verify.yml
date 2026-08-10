@@ -1,23 +1,23 @@
-name: Apply PR 132 Review Fixes on Staging
+name: Apply PR 132 Review Fixes
 
 on:
-  push:
+  pull_request:
     branches:
-      - codex/pr132-review-fixes-staging
+      - v2/backend-foundation
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: ${{ github.event.head_commit.message != 'fix(project): address Phase 3A2 review findings' }}
+    if: ${{ github.head_ref == 'codex/project-persistence-service' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out staging branch
+      - name: Check out PR branch
         uses: actions/checkout@v4
         with:
-          ref: codex/pr132-review-fixes-staging
+          ref: codex/project-persistence-service
           fetch-depth: 0
 
       - name: Set up Node.js
@@ -28,7 +28,11 @@ jobs:
 
       - name: Extract and apply the staged review-fix script
         run: |
-          python - <<'EXTRACT'
+          if grep -q "const contentReplayed" worker/projects/service.ts \
+            && grep -q "rejects stale owned-content restore replays" worker/project-persistence-service.test.ts; then
+            echo "Review fixes already applied"
+          else
+            python - <<'EXTRACT'
           from pathlib import Path
 
           workflow = Path('.github/workflows/apply-pr132-review-fixes.yml').read_text(encoding='utf-8')
@@ -45,7 +49,8 @@ jobs:
               encoding='utf-8',
           )
           EXTRACT
-          python /tmp/apply-pr132-review-fixes.py
+            python /tmp/apply-pr132-review-fixes.py
+          fi
 
       - name: Install dependencies
         run: npm ci
@@ -57,8 +62,12 @@ jobs:
           npm test
           npm run build
 
-      - name: Commit fixes on staging branch
+      - name: Commit fixes to PR branch
         run: |
+          if git diff --quiet; then
+            echo "No review-fix changes remain"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add worker/projects/service.ts \
@@ -69,4 +78,4 @@ jobs:
             docs/PROJECT_DESIGN_FOUNDATION.md \
             docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
           git commit -m "fix(project): address Phase 3A2 review findings"
-          git push origin HEAD:codex/pr132-review-fixes-staging
+          git push origin HEAD:codex/project-persistence-service
