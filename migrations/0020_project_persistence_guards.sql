@@ -6,6 +6,294 @@ PRAGMA foreign_keys = ON;
 -- every connected edge and owned-content transition has already succeeded in
 -- the same transaction.
 
+-- Persisted Project identities and operation IDs use the same route-safe ASCII
+-- alphabet as shared/project-api.ts: an alphanumeric first character followed
+-- by at most 255 alphanumeric, dot, underscore, tilde, or hyphen characters.
+-- Foreign-key columns are checked as well so import/restore paths cannot create
+-- a graph whose stable identities are unreachable through the public API.
+CREATE TRIGGER projects_require_api_safe_identifiers_insert
+BEFORE INSERT ON projects
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER projects_require_api_safe_identifiers_update
+BEFORE UPDATE ON projects
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_contents_require_api_safe_identifiers_insert
+BEFORE INSERT ON project_contents
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project content identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_contents_require_api_safe_identifiers_update
+BEFORE UPDATE ON project_contents
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project content identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_content_attachments_require_api_safe_identifiers_insert
+BEFORE INSERT ON project_content_attachments
+WHEN length(NEW.project_content_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_content_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_content_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.creation_operation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.creation_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.creation_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+BEGIN
+  SELECT RAISE(ABORT, 'project attachment identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_items_require_api_safe_identifiers_insert
+BEFORE INSERT ON project_items
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.project_content_id IS NOT NULL
+    AND (
+      length(NEW.project_content_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.project_content_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.project_content_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project item identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_items_require_api_safe_identifiers_update
+BEFORE UPDATE ON project_items
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.project_content_id IS NOT NULL
+    AND (
+      length(NEW.project_content_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.project_content_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.project_content_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project item identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_map_placements_require_api_safe_identifiers_insert
+BEFORE INSERT ON project_map_placements
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_item_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_item_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_item_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+BEGIN
+  SELECT RAISE(ABORT, 'project placement identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_map_placements_require_api_safe_identifiers_update
+BEFORE UPDATE ON project_map_placements
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_item_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_item_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_item_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+BEGIN
+  SELECT RAISE(ABORT, 'project placement identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_edges_require_api_safe_identifiers_insert
+BEFORE INSERT ON project_edges
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.source_item_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.source_item_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.source_item_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.target_item_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.target_item_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.target_item_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project edge identifiers and operation IDs must be API-safe');
+END;
+
+CREATE TRIGGER project_edges_require_api_safe_identifiers_update
+BEFORE UPDATE ON project_edges
+WHEN length(NEW.id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.project_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.project_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.project_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.source_item_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.source_item_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.source_item_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.target_item_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.target_item_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.target_item_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR length(NEW.last_mutation_id) NOT BETWEEN 1 AND 256
+  OR substr(NEW.last_mutation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+  OR NEW.last_mutation_id GLOB '*[^A-Za-z0-9._~-]*'
+  OR (
+    NEW.deletion_operation_id IS NOT NULL
+    AND (
+      length(NEW.deletion_operation_id) NOT BETWEEN 1 AND 256
+      OR substr(NEW.deletion_operation_id, 1, 1) NOT GLOB '[A-Za-z0-9]'
+      OR NEW.deletion_operation_id GLOB '*[^A-Za-z0-9._~-]*'
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'project edge identifiers and operation IDs must be API-safe');
+END;
+
+-- The TypeScript request guard performs full URL parsing. SQLite independently
+-- owns the persistence-level ceiling and scheme boundary so direct SQL,
+-- restore, or import paths cannot bypass them.
+CREATE TRIGGER project_contents_require_bounded_payload_insert
+BEFORE INSERT ON project_contents
+BEGIN
+  SELECT RAISE(ABORT, 'project Markdown exceeds maximum length')
+  WHERE NEW.markdown_source IS NOT NULL AND length(NEW.markdown_source) > 200000;
+  SELECT RAISE(ABORT, 'project attachment source URL must use http or https')
+  WHERE NEW.attachment_source_url IS NOT NULL
+    AND (
+      NEW.attachment_source_url <> trim(NEW.attachment_source_url)
+      OR NOT (
+        lower(NEW.attachment_source_url) GLOB 'http://?*'
+        OR lower(NEW.attachment_source_url) GLOB 'https://?*'
+      )
+    );
+END;
+
+CREATE TRIGGER project_contents_require_bounded_payload_update
+BEFORE UPDATE ON project_contents
+BEGIN
+  SELECT RAISE(ABORT, 'project Markdown exceeds maximum length')
+  WHERE NEW.markdown_source IS NOT NULL AND length(NEW.markdown_source) > 200000;
+  SELECT RAISE(ABORT, 'project attachment source URL must use http or https')
+  WHERE NEW.attachment_source_url IS NOT NULL
+    AND (
+      NEW.attachment_source_url <> trim(NEW.attachment_source_url)
+      OR NOT (
+        lower(NEW.attachment_source_url) GLOB 'http://?*'
+        OR lower(NEW.attachment_source_url) GLOB 'https://?*'
+      )
+    );
+END;
+
 CREATE TRIGGER project_contents_require_active_project_update
 BEFORE UPDATE ON project_contents
 WHEN NOT EXISTS (
@@ -54,27 +342,10 @@ BEGIN
   SELECT RAISE(ABORT, 'project attachment metadata must match its blob record');
 END;
 
--- Safe-integer exhaustion is an exceptional maintenance boundary. An edge
--- connected to an exhausted item/content row cannot be deleted first as part of
--- item removal, because the later lifecycle row would be unable to advance and
--- a zero-row UPDATE would otherwise permit a partial batch commit.
-CREATE TRIGGER project_edges_require_endpoint_lifecycle_capacity
-BEFORE UPDATE OF deleted_at ON project_edges
-WHEN OLD.deleted_at IS NULL
-  AND NEW.deleted_at IS NOT NULL
-  AND EXISTS (
-    SELECT 1
-    FROM project_items pi
-    LEFT JOIN project_contents pc ON pc.id = pi.project_content_id
-    WHERE pi.id IN (OLD.source_item_id, OLD.target_item_id)
-      AND (
-        pi.revision >= 9007199254740991
-        OR pc.revision >= 9007199254740991
-      )
-  )
-BEGIN
-  SELECT RAISE(ABORT, 'project edge deletion requires endpoint lifecycle capacity');
-END;
+-- Endpoint capacity belongs to the authoritative item-removal transaction,
+-- not to the independent edge lifecycle. removeProjectItem() therefore guards
+-- its connected-edge update with the endpoint item/content capacity it needs,
+-- while direct edge deletion remains owned only by project_edges.revision.
 
 -- Owned content must not cross a lifecycle boundary when its owning occurrence
 -- cannot advance in the same transaction.

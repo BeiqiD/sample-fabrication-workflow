@@ -3,6 +3,7 @@ import { MAX_PROJECT_SAFE_INTEGER } from "../shared/project-types";
 import {
   createProject,
   deleteProject,
+  deleteProjectEdge,
   removeProjectItem,
   restoreProjectItem,
 } from "./projects/service";
@@ -146,6 +147,42 @@ describe("Project persistence database guards", () => {
     expect(database.prepare(`
       SELECT deleted_at, revision FROM project_items WHERE id = 'item-exhausted'
     `).get()).toEqual({ deleted_at: null, revision: MAX_PROJECT_SAFE_INTEGER });
+    database.close();
+  });
+
+  it("allows direct edge deletion when endpoint lifecycle revisions are exhausted", async () => {
+    const { database, db } = fixture();
+    await seedProject(db);
+    insertOwnedItem(database, "exhausted-direct", 1, MAX_PROJECT_SAFE_INTEGER);
+    insertOwnedItem(database, "other-direct", 2);
+    database.prepare(`
+      INSERT INTO project_edges (
+        id, project_id, source_item_id, target_item_id,
+        source_handle, target_handle, marker_start, marker_end, label,
+        revision, last_mutation_id, created_by, updated_by, created_at, updated_at
+      ) VALUES (
+        'edge-exhausted-direct', 'project-guard',
+        'item-exhausted-direct', 'item-other-direct',
+        'right', 'left', 'none', 'arrow', 'supports',
+        1, 'create-edge-exhausted-direct', ?, ?, ?, ?
+      )
+    `).run(ACTOR, ACTOR, NOW, NOW);
+
+    const deleted = await deleteProjectEdge(db, "project-guard", "edge-exhausted-direct", {
+      expectedRevision: 1,
+      operationId: "delete-edge-exhausted-direct",
+    }, ACTOR, "2026-08-09T23:02:30.000Z");
+
+    expect(deleted.value).toMatchObject({ revision: 2 });
+    expect(deleted.value.deletedAt).not.toBeNull();
+    expect(database.prepare(`
+      SELECT revision, deleted_at FROM project_items
+      WHERE id = 'item-exhausted-direct'
+    `).get()).toEqual({ revision: MAX_PROJECT_SAFE_INTEGER, deleted_at: null });
+    expect(database.prepare(`
+      SELECT revision, deleted_at FROM project_contents
+      WHERE id = 'content-exhausted-direct'
+    `).get()).toEqual({ revision: MAX_PROJECT_SAFE_INTEGER, deleted_at: null });
     database.close();
   });
 

@@ -6,9 +6,9 @@ import type { Env } from "./types";
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 type ExportRow = Record<string, unknown>;
 
-// This route intentionally precedes the legacy monolithic export handler. It
-// keeps one D1 batch as the complete snapshot boundary while Phase 3A2 moves
-// Project routes and export ownership into dedicated modules.
+// Project owns the canonical complete export. The core Worker mounts the
+// Project aggregate directly, and the superseded monolithic export handler has
+// been removed. One D1 batch remains the complete snapshot boundary.
 export const PROJECT_EXPORT_TABLE_QUERIES = {
   samples: "SELECT * FROM samples ORDER BY created_at, id",
   events: "SELECT * FROM events ORDER BY created_at, id",

@@ -235,12 +235,13 @@ Applying a migration creates database state even before write routes exist.
 Therefore 3A1 also raises the full-export schema version from 3 to 4 and exports
 all six Project tables.
 
-The Project export route is mounted ahead of the legacy monolithic export
-handler and performs every table/view read in one D1 batch. A consistency test
-parses the legacy table list and fails if a pre-existing export table is lost.
-This is a compatibility bridge, not the final route composition. Phase 3A2 must
-move the authoritative export query set into the dedicated Project/backend
-composition root and remove the superseded monolithic handler.
+PR #131 initially mounted the Project export route ahead of the legacy
+monolithic handler as a compatibility bridge. Phase 3A2 now completes that
+ownership transfer: the core Worker mounts `project-routes` directly, Reference
+no longer imports Project, and the superseded schema-version-3 handler is
+removed. The canonical Project export still performs every table/view read in
+one D1 batch, while a consistency test keeps every pre-Project export table plus
+all Project tables.
 
 Project attachment rows extend the stable `blob_retention_edges` public view
 through a fourth D1-safe leaf. The public compound view remains below workerd's
@@ -296,10 +297,11 @@ The 3A1 gate consists of:
    - the same finite coordinate, dimension, and z-index bounds as SQLite;
    - basic edge-shape validation.
 3. `worker/project-foundation-routes.test.ts`
-   - Project export route precedence;
-   - one-batch complete snapshot;
-   - schema version 4;
-   - preservation of every legacy table plus all Project tables.
+   - direct core ownership of the Project aggregate;
+   - Reference aggregate independence and removal of the monolithic export
+     handler;
+   - one-batch complete snapshot and schema version 4;
+   - preservation of every pre-Project table plus all Project tables.
 4. `npm run verify:d1-migrations`
    - the complete migration chain through Wrangler/workerd.
 5. the existing full test and production build gates.
@@ -340,4 +342,6 @@ PR #131 satisfied the following definition of done:
 - `pre-pr/project-foundation`, general tests, and production build pass on the
   exact pull-request head.
 
-Phase 3A2 is therefore the immediate next PR.
+Phase 3A2 is implemented in current Draft PR #132. After its final review and
+merge, the immediate next implementation slice is Phase 3B1, the desktop Map
+kernel.

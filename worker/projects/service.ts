@@ -1187,13 +1187,14 @@ export async function removeProjectItem(
   const sharedPrecondition = `
     EXISTS (
       SELECT 1 FROM project_items pi
-      WHERE pi.id = ? AND pi.project_id = ? AND pi.revision = ? AND pi.deleted_at IS NULL
+      WHERE pi.id = ? AND pi.project_id = ?
+        AND pi.revision = ? AND pi.revision < ? AND pi.deleted_at IS NULL
         AND (
           pi.project_content_id IS NULL
           OR EXISTS (
             SELECT 1 FROM project_contents pc
             WHERE pc.id = pi.project_content_id AND pc.project_id = pi.project_id
-              AND pc.revision = ? AND pc.deleted_at IS NULL
+              AND pc.revision = ? AND pc.revision < ? AND pc.deleted_at IS NULL
           )
         )
     )`;
@@ -1220,7 +1221,9 @@ export async function removeProjectItem(
       itemId,
       projectId,
       input.expectedItemRevision,
+      MAX_PROJECT_SAFE_INTEGER,
       contentRevision,
+      MAX_PROJECT_SAFE_INTEGER,
     ),
   ];
   if (contentId) {

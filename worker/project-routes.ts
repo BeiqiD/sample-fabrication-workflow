@@ -49,8 +49,8 @@ type InputGuard<T> = (value: unknown) => value is T;
 
 export const routes = new Hono<AppBindings>();
 
-// Keep complete export in the Project aggregate while Phase 3A2 replaces the
-// temporary Reference-owned mount from Phase 3A1.
+// Project owns complete export and persistence under one aggregate. The core
+// Worker mounts this aggregate directly beside Comment and Reference routes.
 routes.route("/", projectFoundationRoutes);
 
 function requireRouteId(value: string, label: string) {

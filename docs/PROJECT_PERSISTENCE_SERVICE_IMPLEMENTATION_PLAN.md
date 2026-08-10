@@ -41,17 +41,19 @@ history.
 
 ## Service composition
 
-Project routes move behind a dedicated `project-routes` aggregate. The aggregate
-owns:
+Project routes sit behind a dedicated `project-routes` aggregate. The core Worker
+mounts this aggregate directly beside Comment and Reference routes. The Project
+aggregate owns:
 
 - Project CRUD and snapshot routes;
 - content, item, placement, and edge mutation routes;
 - Project attachment media access by stable Project/content identity;
 - the complete-export route introduced in Phase 3A1.
 
-The existing Reference aggregate remains responsible for read-only resolution,
-search, and reference media. It must not remain the accidental owner of Project
-routes after 3A2.
+The Reference aggregate remains responsible only for read-only resolution,
+search, ordinary asset media, and reference media. It neither imports nor mounts
+Project routes. The superseded schema-version-3 monolithic `/exports/all`
+handler is removed rather than retained behind route-order shadowing.
 
 All Project routes inherit the core Hono middleware for:
 
@@ -222,8 +224,12 @@ The transaction:
 4. leaves the placement row physically present but invisible through the active
    item join.
 
-Connected-edge updates are conditioned on the same expected item revision, so a
-stale item request cannot commit only edge deletion.
+Connected-edge updates are conditioned on the expected item/content revisions
+and on both lifecycle rows having capacity to advance. A stale or exhausted item
+request therefore cannot commit only edge deletion. This capacity condition is
+specific to item removal: an independent edge deletion is owned solely by the
+edge revision and remains valid even when an endpoint item/content revision is
+exhausted.
 
 Restoring an occurrence restores owned content first, then the item. Connected
 edges are not restored implicitly; they have independent recoverable lifecycle
@@ -324,19 +330,33 @@ carries an expected content revision when the item owns content.
 
 ## Validation boundaries
 
-Shared TypeScript validation and the database both enforce:
+Shared TypeScript request validation enforces the complete public request shape:
 
 - API-safe stable IDs and operation IDs;
-- JavaScript-safe positive revisions and sequence values;
-- Project title length;
-- bounded Markdown source length;
-- attachment caption and source-URL length;
-- `http` or `https` attachment source URLs;
+- JavaScript-safe positive expected revisions;
+- Project title and Markdown limits;
+- fully parsed `http` or `https` attachment source URLs;
+- attachment locator XOR shape;
 - finite bounded geometry and integer z-index;
-- closed edge handle/marker enums and edge-label length;
-- exactly one attachment locator identity;
-- source/target item identity and expected revision for edge creation.
+- closed edge handle/marker enums, edge-label length, and endpoint revision
+  fields.
 
+SQLite independently enforces every persisted invariant that can be bypassed by
+direct SQL, import, or restore:
+
+- the same route-safe ASCII alphabet and 256-character ceiling for all Project
+  row identities, Project foreign-key identities, and mutation/creation/deletion
+  operation IDs;
+- safe-integer revisions, sequences, format versions, byte counts, and z-index;
+- the Project title, caption, source-URL, edge-label, and 200,000-character
+  Markdown persistence ceilings;
+- a trimmed `http://` or `https://` source-URL scheme boundary (TypeScript retains
+  the stronger full-URL parse);
+- finite bounded geometry, closed enums, attachment locator XOR, same-Project
+  ownership, and lifecycle constraints.
+
+The service SQL preconditions—not a stored database field—enforce expected
+endpoint revisions for edge creation and object-owned optimistic concurrency.
 Malformed input returns `400`. Missing visible resources return `404`. Stale
 revision, operation reuse, unavailable reference/blob state, or incompatible
 lifecycle returns `409`.
@@ -374,13 +394,16 @@ The dedicated Phase 3A2 gate includes:
 
 1. shared API-contract tests;
 2. host-SQLite service transaction and rollback tests;
-3. Hono route status/shape tests;
-4. Project attachment media tests without locator disclosure;
-5. exact route-composition tests proving Project routes inherit core middleware;
-6. full ordered migration verification;
-7. a real Miniflare/workerd Project smoke covering create, retry, reference
+3. direct-SQL database guard tests for route-safe identities, operation IDs,
+   Markdown bounds, and source-URL schemes;
+4. Hono route status/shape tests;
+5. Project attachment media tests without locator disclosure;
+6. exact route-composition tests proving Project is mounted directly by the core
+   Worker, inherits core middleware, and is not owned by Reference;
+7. full ordered migration verification;
+8. a real Miniflare/workerd Project smoke covering create, retry, reference
    insertion, snapshot, conflict, attachment binding/media, and deletion;
-8. existing Blob, Reference, full test, mounted-test, and production-build gates.
+9. existing Blob, Reference, full test, mounted-test, and production-build gates.
 
 CI records a dedicated `pre-pr/project-persistence` status after the Phase 3A1
 foundation gate.
