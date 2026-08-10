@@ -258,6 +258,15 @@ function isProjectPayloadText(value: unknown): value is string {
   return typeof value === "string" && !value.includes("\u0000");
 }
 
+function hasProjectCodePointLengthAtMost(value: string, maximum: number) {
+  let length = 0;
+  for (const _character of value) {
+    length += 1;
+    if (length > maximum) return false;
+  }
+  return true;
+}
+
 export function isProjectApiId(value: unknown): value is string {
   return typeof value === "string" && PROJECT_API_ID_PATTERN.test(value);
 }
@@ -270,22 +279,30 @@ export function isProjectTitle(value: unknown): value is string {
   return isProjectPayloadText(value)
     && value.trim() === value
     && value.length >= 1
-    && value.length <= MAX_PROJECT_TITLE_LENGTH;
+    && hasProjectCodePointLengthAtMost(value, MAX_PROJECT_TITLE_LENGTH);
 }
 
 export function isProjectMarkdownSource(value: unknown): value is string {
-  return isProjectPayloadText(value) && value.length <= MAX_PROJECT_MARKDOWN_LENGTH;
+  return isProjectPayloadText(value)
+    && hasProjectCodePointLengthAtMost(value, MAX_PROJECT_MARKDOWN_LENGTH);
 }
 
 export function isProjectAttachmentCaption(value: unknown): value is string | null {
   return value === null
-    || (isProjectPayloadText(value) && value.length <= MAX_PROJECT_ATTACHMENT_CAPTION_LENGTH);
+    || (isProjectPayloadText(value)
+      && hasProjectCodePointLengthAtMost(
+        value,
+        MAX_PROJECT_ATTACHMENT_CAPTION_LENGTH,
+      ));
 }
 
 export function isProjectAttachmentSourceUrl(value: unknown): value is string | null {
   if (value === null) return true;
   if (!isProjectPayloadText(value) || value.length < 1
-    || value.length > MAX_PROJECT_ATTACHMENT_SOURCE_URL_LENGTH
+    || !hasProjectCodePointLengthAtMost(
+      value,
+      MAX_PROJECT_ATTACHMENT_SOURCE_URL_LENGTH,
+    )
     || value.trim() !== value) return false;
   try {
     const url = new URL(value);
@@ -302,16 +319,23 @@ export function isProjectExpectedRevision(value: unknown): value is number {
 export function isProjectAttachmentLocator(
   value: unknown,
 ): value is ProjectAttachmentLocatorInput {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as { assetId?: unknown; storageObjectId?: unknown };
-  const hasAsset = isProjectApiId(candidate.assetId);
-  const hasStorage = isProjectApiId(candidate.storageObjectId);
-  return hasAsset !== hasStorage;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const hasAssetKey = Object.prototype.hasOwnProperty.call(candidate, "assetId");
+  const hasStorageKey = Object.prototype.hasOwnProperty.call(
+    candidate,
+    "storageObjectId",
+  );
+  if (hasAssetKey === hasStorageKey) return false;
+  return hasAssetKey
+    ? isProjectApiId(candidate.assetId)
+    : isProjectApiId(candidate.storageObjectId);
 }
 
 export function isProjectEdgeLabel(value: unknown): value is string | null {
   return value === null
-    || (isProjectPayloadText(value) && value.length <= MAX_PROJECT_EDGE_LABEL_LENGTH);
+    || (isProjectPayloadText(value)
+      && hasProjectCodePointLengthAtMost(value, MAX_PROJECT_EDGE_LABEL_LENGTH));
 }
 
 export function isCreateProjectInput(value: unknown): value is CreateProjectInput {
