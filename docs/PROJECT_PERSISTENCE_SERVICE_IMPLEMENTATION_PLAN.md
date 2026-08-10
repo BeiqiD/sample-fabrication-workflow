@@ -3,14 +3,15 @@
 Status: current Draft PR #132 implementation contract under review
 
 Last reviewed: 2026-08-10 against `v2/backend-foundation` at
-`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and review of
-Draft PR #132 after Phase 3A1 was merged in PR #131
+`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and database
+contract review of Draft PR #132 after Phase 3A1 was merged in PR #131
 
 This document defines the authoritative Project read/write service that sits on
-top of the normalized schema from `0019_project_core.sql`. Product ordering is
-governed by [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md); identity and ownership by
-[PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md); Map/Reading
-behavior by
+top of the normalized schema from `0019_project_core.sql` and its persistence
+guards through `0022_project_payload_and_external_identity_guards.sql`. Product
+ordering is governed by [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md); identity and
+ownership by [PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md);
+Map/Reading behavior by
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md);
 and physical-byte safety by
 [BLOB_LIFECYCLE_CONTRACT.md](./BLOB_LIFECYCLE_CONTRACT.md).
@@ -73,8 +74,9 @@ remaining characters: A-Z, a-z, 0-9, dot, underscore, tilde, or hyphen
 maximum length: 256
 ```
 
-This excludes slash, encoded slash ambiguity, empty values, and relative-path
-segments such as `..` while allowing UUIDs and other portable opaque IDs.
+This excludes slash, encoded slash ambiguity, empty values, non-ASCII bytes,
+embedded NUL, and relative-path segments such as `..` while allowing UUIDs and
+other portable opaque IDs.
 
 A create request supplies the identities of every row it intends to create:
 
@@ -83,6 +85,13 @@ A create request supplies the identities of every row it intends to create:
 - attachment creation: `contentId`, `itemId`, and `placementId`;
 - reference insertion: `itemId` and `placementId`;
 - edge creation: `edgeId`.
+
+Project persistence applies the same identity contract to the external stable
+foreign keys it stores and later uses for API-visible lookup:
+
+- `project_items.reference_target_id`;
+- `project_content_attachments.asset_id`;
+- `project_content_attachments.storage_object_id`.
 
 The server never needs an operation ledger merely to rediscover the result of a
 network retry.
@@ -199,7 +208,7 @@ because each request has a distinct item ID.
 
 ### Attachment insertion
 
-The API accepts exactly one existing blob-record identity:
+The API accepts exactly one existing API-safe blob-record identity:
 
 - `assetId`; or
 - `storageObjectId`.
@@ -332,24 +341,26 @@ carries an expected content revision when the item owns content.
 
 Shared TypeScript request validation enforces the complete public request shape:
 
-- API-safe stable IDs and operation IDs;
+- API-safe stable IDs, external locator IDs, and operation IDs;
 - JavaScript-safe positive expected revisions;
-- Project title and Markdown limits;
+- NUL-free Project title, Markdown, attachment caption/source URL, and edge label
+  strings with their documented length limits;
 - fully parsed `http` or `https` attachment source URLs;
 - attachment locator XOR shape;
 - finite bounded geometry and integer z-index;
-- closed edge handle/marker enums, edge-label length, and endpoint revision
-  fields.
+- closed edge handle/marker enums and endpoint revision fields.
 
 SQLite independently enforces every persisted invariant that can be bypassed by
 direct SQL, import, or restore:
 
 - the same route-safe ASCII alphabet and 256-character ceiling for all Project
-  row identities, Project foreign-key identities, and mutation/creation/deletion
-  operation IDs;
+  row identities, Project-owned foreign-key identities, external
+  `reference_target_id`/`asset_id`/`storage_object_id` identities, and
+  mutation/creation/deletion operation IDs;
 - safe-integer revisions, sequences, format versions, byte counts, and z-index;
-- the Project title, caption, source-URL, edge-label, and 200,000-character
-  Markdown persistence ceilings;
+- SQLite `text` storage type, embedded-NUL rejection, and the exact Project
+  title, caption, source-URL, edge-label, and 200,000-character Markdown
+  persistence ceilings;
 - a trimmed `http://` or `https://` source-URL scheme boundary (TypeScript retains
   the stronger full-URL parse);
 - finite bounded geometry, closed enums, attachment locator XOR, same-Project
@@ -382,7 +393,8 @@ The following are mandatory rollback tests:
 ## Export and retention
 
 Phase 3A2 does not change the complete-export schema version. It reuses schema
-version 4 from Phase 3A1 because no new persistence table is introduced.
+version 4 from Phase 3A1 because the later guard migrations introduce no new
+persistence table.
 
 All created Project rows already appear in the Phase 3A1 export query set.
 Project attachment bytes remain reachable through `blob_retention_edges` and the
@@ -392,15 +404,17 @@ existing blob export planner.
 
 The dedicated Phase 3A2 gate includes:
 
-1. shared API-contract tests;
+1. shared API-contract tests, including embedded-NUL payload rejection;
 2. host-SQLite service transaction and rollback tests;
-3. direct-SQL database guard tests for route-safe identities, operation IDs,
-   Markdown bounds, and source-URL schemes;
+3. direct-SQL database guard tests for route-safe Project and external FK
+   identities, SQLite payload type, embedded NUL, payload bounds, and source-URL
+   schemes;
 4. Hono route status/shape tests;
 5. Project attachment media tests without locator disclosure;
 6. exact route-composition tests proving Project is mounted directly by the core
    Worker, inherits core middleware, and is not owned by Reference;
-7. full ordered migration verification;
+7. full ordered migration verification through
+   `0022_project_payload_and_external_identity_guards.sql`;
 8. a real Miniflare/workerd Project smoke covering create, retry, reference
    insertion, snapshot, conflict, attachment binding/media, and deletion;
 9. existing Blob, Reference, full test, mounted-test, and production-build gates.
