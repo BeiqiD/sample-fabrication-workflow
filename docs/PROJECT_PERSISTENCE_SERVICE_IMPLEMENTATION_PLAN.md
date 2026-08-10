@@ -1,10 +1,10 @@
 # Project persistence service implementation plan
 
-Status: current Draft PR #132 implementation contract under review
+Status: Phase 3A2 implementation complete in PR #132
 
 Last reviewed: 2026-08-10 against `v2/backend-foundation` at
-`21d535a243ae4adbe10330980fe6fc57a0b85366`, during implementation and Unicode
-database-contract review of Draft PR #132 after Phase 3A1 was merged in PR #131
+`21d535a243ae4adbe10330980fe6fc57a0b85366`, after the implementation, Unicode
+database-contract review, and final independent review of PR #132
 
 This document defines the authoritative Project read/write service that sits on
 top of the normalized schema from `0019_project_core.sql` and its persistence
@@ -214,8 +214,9 @@ The API accepts exactly one existing API-safe blob-record identity:
 - `storageObjectId`.
 
 The locator keys themselves are mutually exclusive. A key that is present with
-`null`, `undefined`, a non-string value, or beside the other locator key is not a
-valid alternative and is rejected at the route boundary.
+`null`, `undefined`, a non-string value, beside the other locator key, or absent
+along with the other key is not a valid alternative and is rejected at the route
+boundary.
 
 Original filename, MIME type, and byte size are read from the authoritative blob
 record; clients cannot supply or overwrite intrinsic metadata. The Phase 3A1
@@ -420,8 +421,8 @@ The dedicated Phase 3A2 gate includes:
 3. direct-SQL database guard tests for route-safe Project and external FK
    identities, SQLite payload type, embedded NUL, astral-character boundaries,
    ECMAScript tab/NBSP/BOM trim behavior, payload bounds, and source-URL schemes;
-4. Hono route status/shape tests, including null, numeric, and simultaneously
-   present attachment locator keys;
+4. Hono route status/shape tests, including missing, null, numeric, and
+   simultaneously present attachment locator keys;
 5. Project attachment media tests without locator disclosure;
 6. exact route-composition tests proving Project is mounted directly by the core
    Worker, inherits core middleware, and is not owned by Reference;
@@ -445,12 +446,12 @@ foundation gate.
 7. move Project export ownership into the Project route aggregate;
 8. add host SQLite and Hono route tests;
 9. add the real workerd smoke, package script, and CI status;
-10. run the exact-head gates and keep the pull request Draft for schema/service
-    review.
+10. run the exact-head gates and complete independent schema/service review before
+    marking the pull request Ready.
 
 ## Definition of done
 
-Phase 3A2 is complete when:
+PR #132 satisfies the Phase 3A2 definition of done:
 
 - every documented route is authenticated and same-origin protected;
 - create retries are idempotent and do not consume extra sequence values;
@@ -464,4 +465,4 @@ Phase 3A2 is complete when:
 - host SQLite, Hono, real workerd, migration, full tests, mounted tests, and
   production build all pass on the exact PR head.
 
-Only then should Phase 3B1 introduce React Flow and the Project UI shell.
+Phase 3B1 may now introduce React Flow and the Project UI shell.
