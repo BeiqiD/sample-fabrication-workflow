@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link } from "react-router-dom";
 import {
   Background,
   Controls,
@@ -126,12 +125,12 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
     <h2>{descriptor.title}</h2>
     {descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
     {descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>}
-    {descriptor.openReferenceUrl && <Link
+    {descriptor.openReferenceUrl && <a
       className="project-node-open-reference nodrag nopan"
-      to={descriptor.openReferenceUrl}
+      href={descriptor.openReferenceUrl}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
-    >Open reference</Link>}
+    >Open reference</a>}
   </article>;
 }
 
