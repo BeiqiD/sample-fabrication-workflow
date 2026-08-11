@@ -35,8 +35,12 @@ The Draft implementation adds:
   resize changes;
 - visible Saved, Saving, Unsaved, Error, and Conflict states;
 - router-level dirty-navigation protection: Unsaved/Saving internal navigation
-  safely flushes before proceeding, while Error/Conflict requires explicit user
-  action rather than silent loss;
+  safely drains all dirty geometry before proceeding and exposes no discard
+  action, while Error/Conflict requires explicit user action rather than silent
+  loss;
+- page-lifecycle save generations that invalidate stale asynchronous completions
+  so an unmounted or explicitly discarded Project session cannot schedule later
+  autosaves or additional placement writes;
 - `beforeunload` protection for hard refresh/close while placement state is not
   safely Saved;
 - `409` handling that retains local unsaved geometry and requires an explicit
@@ -66,8 +70,10 @@ sends one compact `PATCH /projects/:projectId/placements/:placementId` mutation
 per dirty placement. An uncertain failure retains that exact payload and
 operation ID so Retry can use the backend's bounded replay contract. A
 successful response replaces that placement's baseline and revision. Geometry
-changed again during an in-flight request remains dirty and is flushed with a
-fresh operation ID through a later save boundary.
+changed again during an in-flight request remains dirty. During ordinary editing
+it is flushed through the next bounded save boundary; while navigation is
+blocked waiting for persistence, it is drained immediately with a fresh
+operation ID before navigation may proceed.
 
 Pointer drag/resize frames stay renderer-local until drag stop/resize end.
 React Flow keyboard position changes do not have a pointer stop event, so their
@@ -76,11 +82,16 @@ commands. Pointer interactions are marked while active so their frame events do
 not create duplicate commands.
 
 Internal SPA navigation uses the router blocker while any Project placement
-state is Unsaved, Saving, Error, or Conflict. A normal dirty state first flushes
-and proceeds only after reaching Saved. Error/Conflict keeps the attempted
-navigation blocked until the user stays, retries/resolves, or explicitly leaves
-without saving. Hard refresh/close cannot safely await an asynchronous PATCH, so
-`beforeunload` provides the corresponding browser protection instead.
+state is Unsaved, Saving, Error, or Conflict. Unsaved/Saving has no discard
+escape hatch: a normal dirty state first flushes, drains geometry created while
+a request is in flight, and proceeds only after reaching Saved. Error/Conflict
+keeps the attempted navigation blocked until the user stays, retries/resolves,
+or explicitly leaves without saving. Each mounted Project page owns a save
+generation; unmount or explicit discard invalidates that generation so a stale
+request completion cannot update the old controller, schedule another autosave,
+or issue a follow-up write. Hard refresh/close cannot safely await an
+asynchronous PATCH, so `beforeunload` provides the corresponding browser
+protection instead.
 
 The Map projection preserves the identity split:
 
@@ -130,8 +141,12 @@ The dedicated `verify:project-map` gate covers:
 - mounted mobile ordering without Map initialization;
 - mounted explicit-save, bounded autosave, retry replay, and `409` reload
   behavior;
-- mounted internal-navigation safe flush, refresh/close protection, save-error
-  retry, and conflict/discard behavior;
+- mounted internal-navigation safe flush, including a deferred in-flight save
+  followed by more geometry that must drain before navigation;
+- mounted stale-session invalidation proving an in-flight result cannot create
+  follow-up writes after ProjectPage unmount;
+- mounted refresh/close protection, save-error retry, and conflict/discard
+  behavior;
 - a production build plus bundle inspection proving React Flow remains in the
   separate desktop Map chunk.
 
