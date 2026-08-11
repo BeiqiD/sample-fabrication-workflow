@@ -3,7 +3,8 @@
 Status: Phase 3B1 implementation review checklist for Draft PR #133
 
 Last reviewed: 2026-08-11 after Phase 3A2 was squash-merged in PR #132 and the
-first desktop Project Map kernel was implemented in PR #133
+desktop Project Map kernel was implemented and placement-loss review findings
+were addressed in PR #133
 
 This checklist is intentionally narrower than the full Project Canvas contract.
 It defines what an independent review must prove before Phase 3B1 can move from
@@ -48,9 +49,13 @@ The PR must not include:
 
 ## Placement persistence
 
-- Live drag and resize frames update local geometry only.
-- Network writes occur only at drag stop, resize end, explicit Save, or the
-  documented bounded autosave flush.
+- Live pointer drag and resize frames update local renderer geometry only.
+- Pointer movement becomes a formal geometry command at drag stop or resize end.
+- React Flow keyboard position changes also become formal geometry commands;
+  they must enter Unsaved state, participate in undo/redo and autosave, and may
+  never remain renderer-only movement that disappears after reload.
+- Network writes occur only after a semantic geometry command, explicit Save,
+  or the documented bounded autosave flush; never once per pointer frame.
 - Each new placement mutation sends the placement's current expected revision
   and a fresh retry-safe operation ID; an exact retry after an uncertain failure
   reuses that same operation ID and payload.
@@ -61,10 +66,26 @@ The PR must not include:
 - Failed writes keep unsaved local geometry discoverable until reload or a
   successful retry.
 
+## Navigation and unload safety
+
+- A pending 1.6-second autosave must not be silently discarded by internal SPA
+  navigation.
+- Internal navigation while Unsaved/Saving is blocked until the current dirty
+  geometry is safely flushed; after success the originally requested navigation
+  may proceed.
+- Save Error and Conflict keep navigation blocked rather than silently dropping
+  local placement state; the user must explicitly retry/resolve, stay, or choose
+  to leave without saving.
+- Browser refresh/close with Unsaved, Saving, Error, or Conflict state activates
+  `beforeunload` protection.
+- The production router must provide the data-router context required by the
+  navigation blocker, and mounted tests must exercise the same routing mode.
+
 ## Undo, redo, and selection
 
 - Move and resize commands record before/after geometry at semantic boundaries,
   not per pointer frame.
+- Keyboard nudges are ordinary client-session geometry commands and are undoable.
 - Undo and redo are client-session only and do not claim permanent history.
 - A subsequent save persists the restored current geometry as an ordinary new
   placement revision.
@@ -85,7 +106,10 @@ The PR must not include:
 
 Before Ready, the exact PR head must pass:
 
-- the dedicated `verify:project-map` contract;
+- the dedicated `verify:project-map` contract, including a mounted real React
+  Flow keyboard-movement regression;
+- mounted internal-navigation, hard-unload, save-error, and conflict protection
+  regressions;
 - Project foundation and persistence contracts;
 - Reference and blob-lifecycle regression contracts;
 - the complete ordinary and mounted test suites;
