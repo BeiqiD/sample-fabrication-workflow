@@ -5,22 +5,53 @@ import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
 import { projectMapNodes } from "./lib/project-map-model";
 import { projectTestSnapshot } from "./project-test-fixture";
 
+function testContentRect(target: Element): DOMRectReadOnly {
+  const width = target instanceof HTMLElement ? target.offsetWidth : 1;
+  const height = target instanceof HTMLElement ? target.offsetHeight : 1;
+  return {
+    x: 0,
+    y: 0,
+    width,
+    height,
+    top: 0,
+    right: width,
+    bottom: height,
+    left: 0,
+    toJSON: () => ({ x: 0, y: 0, width, height }),
+  } as DOMRectReadOnly;
+}
+
 class TestResizeObserver {
   private readonly callback: ResizeObserverCallback;
+  private readonly timers = new Set<number>();
+  private active = true;
 
   constructor(callback: ResizeObserverCallback) {
     this.callback = callback;
   }
 
   observe(target: Element) {
-    window.setTimeout(() => {
-      this.callback([{ target } as ResizeObserverEntry], this as unknown as ResizeObserver);
+    const timer = window.setTimeout(() => {
+      this.timers.delete(timer);
+      if (!this.active) return;
+      this.callback([{
+        target,
+        contentRect: testContentRect(target),
+        borderBoxSize: [],
+        contentBoxSize: [],
+        devicePixelContentBoxSize: [],
+      } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver);
     }, 0);
+    this.timers.add(timer);
   }
 
   unobserve() {}
 
-  disconnect() {}
+  disconnect() {
+    this.active = false;
+    for (const timer of this.timers) window.clearTimeout(timer);
+    this.timers.clear();
+  }
 }
 
 class TestDOMMatrixReadOnly {
