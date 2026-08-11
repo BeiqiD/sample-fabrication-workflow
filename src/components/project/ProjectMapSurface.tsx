@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -15,9 +15,10 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { ProjectMapGeometry } from "../../../shared/project-types";
-import type {
-  ProjectGeometryCommand,
-  ProjectNodeDescriptor,
+import {
+  projectGeometryEquals,
+  type ProjectGeometryCommand,
+  type ProjectNodeDescriptor,
 } from "../../lib/project-map-model";
 import "./project-map-surface.css";
 
@@ -142,25 +143,48 @@ export function ProjectMapSurface({
     handleResizeEnd,
   )), [descriptors, handleResizeEnd, handleResizeStart]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
+  const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
 
   useEffect(() => {
-    setFlowNodes((current) => projectedNodes.map((projected) => ({
-      ...projected,
-      selected: current.find((candidate) => candidate.id === projected.id)?.selected ?? false,
-    })));
+    setFlowNodes((current) => {
+      const next = projectedNodes.map((projected) => ({
+        ...projected,
+        selected: current.find((candidate) => candidate.id === projected.id)?.selected ?? false,
+      }));
+      flowNodesRef.current = next;
+      return next;
+    });
   }, [projectedNodes]);
 
   useEffect(() => {
     setFlowNodes((current) => {
       const selectionChanged = current.some((node) => node.selected !== (node.id === selectedItemId));
       if (!selectionChanged) return current;
-      return current.map((node) => ({ ...node, selected: node.id === selectedItemId }));
+      const next = current.map((node) => ({ ...node, selected: node.id === selectedItemId }));
+      flowNodesRef.current = next;
+      return next;
     });
   }, [selectedItemId]);
 
   const onNodesChange = useCallback((changes: NodeChange<ProjectFlowNode>[]) => {
-    setFlowNodes((current) => applyNodeChanges(changes, current));
-  }, []);
+    const current = flowNodesRef.current;
+    const next = applyNodeChanges(changes, current);
+    flowNodesRef.current = next;
+    setFlowNodes(next);
+
+    for (const change of changes) {
+      if (change.type !== "position" || change.dragging || !change.position) continue;
+      const beforeNode = current.find((candidate) => candidate.id === change.id);
+      const afterNode = next.find((candidate) => candidate.id === change.id);
+      if (!beforeNode || !afterNode) continue;
+      const placementId = afterNode.data.descriptor.placementId;
+      if (interactionStarts.has(placementId)) continue;
+      const before = nodeGeometry(beforeNode);
+      const after = nodeGeometry(afterNode);
+      if (projectGeometryEquals(before, after)) continue;
+      onGeometryCommit({ placementId, before, after });
+    }
+  }, [interactionStarts, onGeometryCommit]);
 
   const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
     onSelect(node.id);
