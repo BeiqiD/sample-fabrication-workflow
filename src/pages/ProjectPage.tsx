@@ -96,8 +96,15 @@ export function ProjectPage() {
   const saveAgainRef = useRef(false);
   const flushSaveRef = useRef<() => Promise<void>>(async () => undefined);
   const navigationSaveRequestedRef = useRef(false);
+  const pageActiveRef = useRef(true);
+  const saveSessionGenerationRef = useRef(0);
+
+  const saveSessionIsActive = useCallback((generation: number) => (
+    pageActiveRef.current && saveSessionGenerationRef.current === generation
+  ), []);
 
   const updateSaveState = useCallback((next: SaveState) => {
+    if (!pageActiveRef.current) return;
     saveStateRef.current = next;
     setSaveState(next);
   }, []);
@@ -155,21 +162,35 @@ export function ProjectPage() {
     return () => controller.abort();
   }, [loadProject]);
 
-  useEffect(() => () => {
-    if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+  useEffect(() => {
+    pageActiveRef.current = true;
+    return () => {
+      pageActiveRef.current = false;
+      saveSessionGenerationRef.current += 1;
+      navigationSaveRequestedRef.current = false;
+      saveAgainRef.current = false;
+      savingRef.current = false;
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
   }, []);
 
   const scheduleAutosave = useCallback(() => {
-    if (saveStateRef.current === "conflict") return;
+    if (!pageActiveRef.current || saveStateRef.current === "conflict") return;
+    const generation = saveSessionGenerationRef.current;
     if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => {
       autosaveTimerRef.current = null;
+      if (!saveSessionIsActive(generation)) return;
       void flushSaveRef.current();
     }, 1_600);
-  }, []);
+  }, [saveSessionIsActive]);
 
   const flushSave = useCallback(async () => {
-    if (!projectId || saveStateRef.current === "conflict") return;
+    const generation = saveSessionGenerationRef.current;
+    if (!saveSessionIsActive(generation) || !projectId || saveStateRef.current === "conflict") return;
     if (savingRef.current) {
       saveAgainRef.current = true;
       return;
@@ -180,6 +201,7 @@ export function ProjectPage() {
       ...dirty.map(([placementId]) => placementId),
     ]);
     if (!placementIds.size) {
+      if (!saveSessionIsActive(generation)) return;
       updateSaveState("saved");
       setSaveError("");
       return;
@@ -192,6 +214,7 @@ export function ProjectPage() {
     let succeeded = false;
     try {
       for (const placementId of placementIds) {
+        if (!saveSessionIsActive(generation)) return;
         const baseline = baselineRef.current[placementId];
         const attemptedGeometry = geometryRef.current[placementId];
         if (!baseline || !attemptedGeometry) continue;
@@ -206,29 +229,38 @@ export function ProjectPage() {
           pendingMutationRef.current[placementId] = mutation;
         }
         const result = await projectApi.updatePlacement(projectId, placementId, mutation);
+        if (!saveSessionIsActive(generation)) return;
         baselineRef.current = { ...baselineRef.current, [placementId]: result.value };
         delete pendingMutationRef.current[placementId];
       }
       succeeded = true;
     } catch (caught) {
+      if (!saveSessionIsActive(generation)) return;
       const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
       setSaveError(message);
       updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
     } finally {
-      savingRef.current = false;
+      if (saveSessionIsActive(generation)) savingRef.current = false;
     }
 
-    if (!succeeded) return;
+    if (!saveSessionIsActive(generation) || !succeeded) return;
     const remainsDirty = Object.keys(pendingMutationRef.current).length > 0
       || projectDirtyPlacements(baselineRef.current, geometryRef.current).length > 0;
     if (remainsDirty) {
       updateSaveState("unsaved");
-      if (saveAgainRef.current) void flushSaveRef.current();
-      else scheduleAutosave();
+      if (navigationSaveRequestedRef.current || saveAgainRef.current) {
+        if (autosaveTimerRef.current !== null) {
+          window.clearTimeout(autosaveTimerRef.current);
+          autosaveTimerRef.current = null;
+        }
+        void flushSaveRef.current();
+      } else {
+        scheduleAutosave();
+      }
     } else {
       updateSaveState("saved");
     }
-  }, [projectId, scheduleAutosave, updateSaveState]);
+  }, [projectId, saveSessionIsActive, scheduleAutosave, updateSaveState]);
 
   useEffect(() => {
     flushSaveRef.current = flushSave;
@@ -314,12 +346,17 @@ export function ProjectPage() {
   }, [blocker]);
 
   const leaveWithoutSaving = useCallback(() => {
+    if (blocker.state !== "blocked") return;
+    const state = saveStateRef.current;
+    if (state !== "error" && state !== "conflict") return;
     navigationSaveRequestedRef.current = false;
+    saveAgainRef.current = false;
+    saveSessionGenerationRef.current += 1;
     if (autosaveTimerRef.current !== null) {
       window.clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
     }
-    if (blocker.state === "blocked") blocker.proceed();
+    blocker.proceed();
   }, [blocker]);
 
   const retrySaveAndLeave = useCallback(() => {
@@ -391,7 +428,7 @@ export function ProjectPage() {
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
         {saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
-        <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>
+        {(saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
       </div>
     </div>}
 
