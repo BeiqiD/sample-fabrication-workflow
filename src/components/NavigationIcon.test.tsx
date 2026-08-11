@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { NavigationIcon, type NavigationIconName } from "./NavigationIcon";
 
-const iconNames: NavigationIconName[] = ["brand", "processing", "samples", "templates", "export"];
+const iconNames: NavigationIconName[] = ["brand", "processing", "samples", "projects", "templates", "export"];
 
 describe("NavigationIcon", () => {
   it("uses exactly the same SVG dimensions for every navigation icon", () => {

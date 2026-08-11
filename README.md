@@ -31,7 +31,8 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Open every current reference target through one opaque, refresh-safe canonical URL, with lifecycle-aware read-only behavior when an ordinary source route is unavailable.
 - Follow canonical references into the exact Run Step, Comment, attachment, execution image, Sample note, or metrology reference while preserving source context and browser history.
 - Search all nine current reference target types through one bounded, explainable, lifecycle-aware read-only service without creating registry rows or exposing physical storage locators.
-- Use one reusable, Project-oriented search and selection surface to find stable targets. The current `/search` reference browser is temporary integration scaffolding and is expected to be replaced by Project-owned discovery once the Project workspace exists.
+- Create and open Projects, inspect existing occurrences on a desktop Map, move or resize nodes with explicit Save and bounded autosave, and review the deterministic read-only occurrence projection on mobile.
+- Use one reusable, Project-oriented search and selection surface to find stable targets. The current `/search` reference browser remains integration scaffolding until Phase 3B2 embeds discovery and authoritative insertion inside Project.
 
 ## Architecture
 
@@ -54,11 +55,11 @@ Reference resolution is similarly source-owned. The sparse `reference_targets` r
 
 Deterministic reference search reads those same authoritative source and occurrence rows through type-specific queries. It uses explicit exact-ID, exact-primary, prefix, target-content, and metadata ranking tiers, then revalidates candidates through the resolver. Query count, bindings, candidates, and resolver work are bounded, while the first source-scan backend still scales its row examination with the underlying tables.
 
-The reusable reference-search surface keeps committed state separate from form drafts, submits explicitly instead of scanning on every keystroke, renders server order without client-side scoring, and returns a stable `ReferenceTarget` without registering it or writing source data. Its long-term host is the Project workspace. The current URL-owned `/search` page is only a thin browser and integration harness until Project identity and insertion exist.
+The reusable reference-search surface keeps committed state separate from form drafts, submits explicitly instead of scanning on every keystroke, renders server order without client-side scoring, and returns a stable `ReferenceTarget` without registering it or writing source data. Its long-term host is the Project workspace. The current URL-owned `/search` page remains a thin browser and integration harness until Phase 3B2 embeds Project-owned discovery and insertion UI.
 
-The planned Map-first Project model stores one immutable per-Project `created_sequence` on each item occurrence. The first Reading projection follows that insertion sequence directly; it has no separate Reading-placement table, manual reorder, or edge-derived ordering until real use justifies a later dedicated design.
+The Map-first Project model stores one immutable per-Project `created_sequence` on each item occurrence. The desktop Map dynamically loads React Flow and persists compact placement mutations rather than frontend graph JSON. The temporary mobile occurrence projection follows insertion sequence directly; it has no separate Reading-placement table, manual reorder, or edge-derived ordering until real use justifies a later dedicated design.
 
-The search domain contract is deployment-neutral. D1 currently supplies the portable SQLite query interface; a future Docker/self-hosted SQLite runtime can use the same contract, and a derived FTS5 backend can replace scans without becoming a second source of truth. Search reads do not register targets. Actual Project backlinks and insertion remain deferred until `project_items` exists rather than being represented by a parallel placeholder table.
+The search domain contract is deployment-neutral. D1 currently supplies the portable SQLite query interface; a future Docker/self-hosted SQLite runtime can use the same contract, and a derived FTS5 backend can replace scans without becoming a second source of truth. Search reads do not register targets. Project backlinks derive from authoritative `project_items`, and insertion registration remains confined to the Project mutation boundary rather than a parallel placeholder table.
 
 ## Deploy your own instance
 
@@ -99,7 +100,7 @@ The recommended workflow needs no persistent local checkout:
    ```
 
    `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store passwords and tokens as encrypted Worker Secrets.
-8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle gate, reference host tests, Wrangler migration verification, real Worker/D1 resolver and deterministic-search smokes, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
+8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle, Reference, Project persistence, and Project Map gates, Wrangler migration and Worker/D1 smokes, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
 9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
 
 `v2/backend-foundation` is an isolated integration branch, not a production branch. Its exact merged head must pass the dedicated v3 deployment gate before any isolated v3 remote migration or deployment is authorized.
@@ -161,6 +162,8 @@ The first full-export implementation builds the ZIP in browser memory. Large arc
 - [Product goal and roadmap](./docs/PRODUCT_ROADMAP.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)
+- [Project Map kernel implementation record](./docs/PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md)
+- [Project Map kernel review checklist](./docs/PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md)
 - [v3 backend identity and lifecycle foundation](./docs/V3_BACKEND_FOUNDATION.md)
 - [Blob lifecycle, export integrity, and permanent-delete contract](./docs/BLOB_LIFECYCLE_CONTRACT.md)
 - [Blob lifecycle implementation plan](./docs/BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md)

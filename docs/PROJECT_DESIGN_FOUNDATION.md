@@ -1,10 +1,11 @@
 # Project design foundation
 
-Status: current product and architecture contract after Phase 3A2 persistence completion
+Status: current product and architecture contract during Phase 3B1 Draft review
 
-Last reviewed: 2026-08-10 after the Map-first Project interaction review,
+Last reviewed: 2026-08-11 after the Map-first Project interaction review,
 Phase 3A1 implemented in PR #131, and the authoritative persistence service
-completed independent review in PR #132
+completed independent review in PR #132, and the Map kernel was implemented in
+Draft PR #133
 
 This document defines the durable Project identity and ownership model. The
 canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
@@ -15,6 +16,9 @@ The frozen Phase 3A1 schema boundary is recorded in
 The completed Phase 3A2 route, transaction, idempotency, snapshot, and rollback
 contract is in
 [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
+The bounded Map implementation and review evidence are recorded in
+[PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md](./PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md)
+and [PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md](./PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md).
 
 The longer Text-first design record that preceded the Map-first decision is
 preserved in `PROJECT_DESIGN_FOUNDATION_LEGACY.md` for history. Where it
