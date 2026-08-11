@@ -36,12 +36,20 @@ function desktopMatchMedia() {
   }));
 }
 
-function placementResponse(revision = 2) {
+function placementResponse(revision = 2, x?: number) {
   const placement = projectTestSnapshot().placements.find((candidate) => candidate.id === "placement-note")!;
   return {
-    value: { ...placement, x: placement.x + 80, revision },
+    value: { ...placement, x: x ?? placement.x + 80, revision },
     replayed: false,
   };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }
 
 function renderProjectPage() {
@@ -171,6 +179,91 @@ describe("mounted desktop Project Map save behavior", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls[1][1]?.method).toBe("PATCH");
     expect(await screen.findByText("Projects route")).toBeTruthy();
+  });
+
+  it("drains in-flight geometry before navigation and never offers discard while the save can still succeed", async () => {
+    const firstPatch = deferred<Response>();
+    let patchCount = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (init?.method !== "PATCH") {
+        return Promise.resolve(new Response(JSON.stringify(projectTestSnapshot()), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }));
+      }
+      patchCount += 1;
+      if (patchCount === 1) return firstPatch.promise;
+      return Promise.resolve(new Response(JSON.stringify(placementResponse(3, 180)), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
+    });
+
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
+    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("button", { name: "Leave without saving" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Simulate semantic move" }));
+    expect(screen.queryByRole("button", { name: "Leave without saving" })).toBeNull();
+
+    firstPatch.resolve(new Response(JSON.stringify(placementResponse(2, 100)), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const secondMutation = JSON.parse(String(fetchMock.mock.calls[2][1]?.body));
+    expect(secondMutation).toMatchObject({
+      geometry: { x: 180, y: 40, width: 250, height: 180, zIndex: 0 },
+      expectedRevision: 2,
+    });
+    expect(await screen.findByText("Projects route")).toBeTruthy();
+
+    const callsAfterNavigation = fetchMock.mock.calls.length;
+    await new Promise((resolve) => window.setTimeout(resolve, 1_750));
+    expect(fetchMock).toHaveBeenCalledTimes(callsAfterNavigation);
+  });
+
+  it("invalidates a stale save session so an in-flight result cannot schedule writes after unmount", async () => {
+    const firstPatch = deferred<Response>();
+    let patchCount = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (init?.method !== "PATCH") {
+        return Promise.resolve(new Response(JSON.stringify(projectTestSnapshot()), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }));
+      }
+      patchCount += 1;
+      if (patchCount === 1) {
+        return firstPatch.promise;
+      }
+      return Promise.resolve(new Response(JSON.stringify(placementResponse(3, 180)), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
+    });
+
+    const mounted = renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Simulate semantic move" }));
+    mounted.unmount();
+
+    firstPatch.resolve(new Response(JSON.stringify(placementResponse(2, 100)), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    await new Promise((resolve) => window.setTimeout(resolve, 1_750));
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("protects refresh or close while placement changes are not safely saved", async () => {
