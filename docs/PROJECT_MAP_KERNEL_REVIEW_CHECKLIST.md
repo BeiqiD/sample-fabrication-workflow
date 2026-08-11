@@ -70,12 +70,18 @@ The PR must not include:
 
 - A pending 1.6-second autosave must not be silently discarded by internal SPA
   navigation.
-- Internal navigation while Unsaved/Saving is blocked until the current dirty
-  geometry is safely flushed; after success the originally requested navigation
-  may proceed.
+- Internal navigation while Unsaved/Saving is blocked until all current dirty
+  geometry is safely flushed; geometry created while a save is in flight must be
+  drained before the originally requested navigation may proceed.
+- Unsaved/Saving navigation exposes no `Leave without saving` action. Explicit
+  discard is available only after Save Error or Conflict makes safe flush
+  impossible without further user action.
 - Save Error and Conflict keep navigation blocked rather than silently dropping
   local placement state; the user must explicitly retry/resolve, stay, or choose
   to leave without saving.
+- ProjectPage save work is scoped to a mounted session/generation. Unmount or an
+  explicit Error/Conflict discard invalidates the old generation so stale async
+  completions cannot schedule autosave or issue any later placement write.
 - Browser refresh/close with Unsaved, Saving, Error, or Conflict state activates
   `beforeunload` protection.
 - The production router must provide the data-router context required by the
@@ -108,8 +114,12 @@ Before Ready, the exact PR head must pass:
 
 - the dedicated `verify:project-map` contract, including a mounted real React
   Flow keyboard-movement regression;
-- mounted internal-navigation, hard-unload, save-error, and conflict protection
-  regressions;
+- mounted internal-navigation protection including a deferred PATCH, an
+  in-flight geometry change, and proof that navigation waits for the follow-up
+  placement write;
+- mounted stale-session invalidation proving no request can be scheduled after
+  ProjectPage unmount;
+- mounted hard-unload, save-error, and conflict protection regressions;
 - Project foundation and persistence contracts;
 - Reference and blob-lifecycle regression contracts;
 - the complete ordinary and mounted test suites;
