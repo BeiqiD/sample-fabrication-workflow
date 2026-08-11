@@ -11,6 +11,9 @@ import {
 } from "../../shared/reference-types";
 import { searchReferences } from "../lib/reference-api";
 import {
+  writeProjectReferenceDragPayload,
+} from "../lib/project-reference-placement";
+import {
   REFERENCE_SEARCH_MATCH_LABELS,
   REFERENCE_SEARCH_TYPE_LABELS,
   activeReferenceSearchFilterCount,
@@ -35,17 +38,30 @@ type ReferenceSearchSurfaceBrowseProps = ReferenceSearchSurfaceCommonProps & {
   mode?: "browse";
   selectedTarget?: never;
   onSelect?: never;
+  placementDisabled?: never;
+  onPlaceAtCenter?: never;
 };
 
 type ReferenceSearchSurfaceSelectProps = ReferenceSearchSurfaceCommonProps & {
   mode: "select";
   selectedTarget?: ReferenceTarget | null;
   onSelect: (target: ReferenceTarget) => void;
+  placementDisabled?: never;
+  onPlaceAtCenter?: never;
+};
+
+type ReferenceSearchSurfacePlaceProps = ReferenceSearchSurfaceCommonProps & {
+  mode: "place";
+  selectedTarget?: never;
+  onSelect?: never;
+  placementDisabled?: boolean;
+  onPlaceAtCenter: (result: ReferenceSearchResult) => void;
 };
 
 export type ReferenceSearchSurfaceProps =
   | ReferenceSearchSurfaceBrowseProps
-  | ReferenceSearchSurfaceSelectProps;
+  | ReferenceSearchSurfaceSelectProps
+  | ReferenceSearchSurfacePlaceProps;
 
 function copySearchState(state: ReferenceSearchUiState): ReferenceSearchUiState {
   return { ...state, types: [...state.types] };
@@ -67,11 +83,15 @@ function ReferenceSearchResultCard({
   mode,
   selected,
   onSelect,
+  placementDisabled,
+  onPlaceAtCenter,
 }: {
   result: ReferenceSearchResult;
-  mode: "browse" | "select";
+  mode: "browse" | "select" | "place";
   selected: boolean;
   onSelect?: (target: ReferenceTarget) => void;
+  placementDisabled?: boolean;
+  onPlaceAtCenter?: (result: ReferenceSearchResult) => void;
 }) {
   const source = result.resolution.source;
   const context = resultContext(result);
@@ -100,6 +120,26 @@ function ReferenceSearchResultCard({
           aria-pressed={selected}
           onClick={() => onSelect?.(result.target)}
         >{selected ? "Selected" : "Select"}</button>}
+        {mode === "place" && <>
+          <span
+            className={`reference-search-drag-handle${placementDisabled ? " disabled" : ""}`}
+            draggable={!placementDisabled}
+            title={placementDisabled ? "Finish the current reference placement first" : "Drag reference to Map"}
+            onDragStart={(event) => {
+              if (placementDisabled) {
+                event.preventDefault();
+                return;
+              }
+              writeProjectReferenceDragPayload(event.dataTransfer, result);
+            }}
+          >Drag to Map</span>
+          <button
+            type="button"
+            className="button primary compact-button"
+            disabled={placementDisabled}
+            onClick={() => onPlaceAtCenter?.(result)}
+          >Place at Map center</button>
+        </>}
         {result.resolution.destination.openSourceUrl && <Link
           className="button compact-button"
           to={result.resolution.destination.openSourceUrl}
@@ -359,6 +399,8 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
         mode={mode}
         selected={mode === "select" && referenceTargetEquals(props.selectedTarget, result.target)}
         onSelect={mode === "select" ? props.onSelect : undefined}
+        placementDisabled={mode === "place" ? props.placementDisabled : undefined}
+        onPlaceAtCenter={mode === "place" ? props.onPlaceAtCenter : undefined}
       />)}
     </div>}
   </section>;
