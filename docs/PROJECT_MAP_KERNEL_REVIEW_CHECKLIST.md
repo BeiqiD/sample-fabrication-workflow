@@ -2,7 +2,7 @@
 
 Status: Phase 3B1 implementation review checklist for Draft PR #133
 
-Last reviewed: 2026-08-10 after Phase 3A2 was squash-merged in PR #132 and the
+Last reviewed: 2026-08-11 after Phase 3A2 was squash-merged in PR #132 and the
 first desktop Project Map kernel was implemented in PR #133
 
 This checklist is intentionally narrower than the full Project Canvas contract.

@@ -31,9 +31,12 @@
     "verify:blob-lifecycle": "npm run test:blob-lifecycle && npm run verify:d1-migrations",
     "verify:reference-foundation": "npm run test:reference-foundation && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker",
     "verify:project-persistence": "npm run test:project-persistence && npm run verify:d1-migrations && npm run verify:project-worker",
-    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy"
+    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
+    "test:project-map": "vitest run src/lib/project-api.test.ts src/lib/project-map.test.ts src/project-map-integration.test.ts && vitest run --config vitest.mounted.config.ts src/project-pages.mount.test.tsx src/project-map-editor.mount.test.tsx",
+    "verify:project-map": "npm run test:project-map"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.2",
     "hono": "^4.12.31",
     "jose": "^6.2.3",
     "jszip": "^3.10.1",

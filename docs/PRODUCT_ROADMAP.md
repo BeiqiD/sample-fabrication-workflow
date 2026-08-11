@@ -2,11 +2,11 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-10 after the reference/search foundation through PR #129,
+Last reviewed: 2026-08-11 after the reference/search foundation through PR #129,
 the reusable Project discovery surface implemented in PR #130, the Map-first
 Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
-and the Phase 3A2 authoritative persistence service completed in PR #132; the
-Phase 3B1 desktop Map kernel is now the immediate next implementation slice
+the Phase 3A2 authoritative persistence service completed in PR #132, and the
+Phase 3B1 desktop Map kernel implemented in current Draft PR #133
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -163,7 +163,9 @@ The following prerequisites are complete on `v2/backend-foundation`:
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-The active implementation target is now Phase 3B1, the desktop Map kernel.
+The active implementation target is current Draft PR #133, Phase 3B1: the
+desktop Map kernel. Phase 3B2 remains the next implementation slice after #133
+passes independent review and is squash-merged.
 
 ## Active implementation roadmap
 
@@ -248,6 +250,8 @@ repeated references, persist Map placements and basic edges, derive Reading from
 creation sequence, save safely, reopen the Project, and export it completely.
 
 ### Phase 3B1 — Map kernel
+
+**Status:** implemented in current Draft PR #133 and awaiting independent review.
 
 **Goal:** deliver the primary Project interaction surface without yet combining
 all creation modes.
@@ -511,7 +515,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Add the desktop **Map kernel**.
+1. Complete independent review and squash merge of **Phase 3B1 Map kernel PR #133**.
 2. Add the **reference sidebar and drag/drop placement**.
 3. Add **double-click Markdown and generic attachment insertion**.
 4. Add **basic Bezier directional edges**.
