@@ -69,4 +69,46 @@ describe("Project client", () => {
       }),
     ]);
   });
+
+  it("uses Project-owned reference insertion and item-lifecycle routes", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+      replayed: false,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const createInput = {
+      itemId: "item-a",
+      placementId: "placement-a",
+      target: { type: "sample" as const, id: "sample-a" },
+      geometry: { x: 10, y: 20, width: 300, height: 180, zIndex: 0 },
+      expectedProjectRevision: 3,
+      operationId: "operation-create",
+    };
+    await projectApi.createReferenceItem("project-a", createInput);
+    await projectApi.removeItem("project-a", "item-a", {
+      expectedItemRevision: 1,
+      operationId: "operation-remove",
+    });
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      "/api/projects/project-a/items/reference",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(createInput),
+      }),
+    ]);
+    expect(fetchMock.mock.calls[1]).toEqual([
+      "/api/projects/project-a/items/item-a",
+      expect.objectContaining({
+        method: "DELETE",
+        body: JSON.stringify({
+          expectedItemRevision: 1,
+          operationId: "operation-remove",
+        }),
+      }),
+    ]);
+  });
 });
