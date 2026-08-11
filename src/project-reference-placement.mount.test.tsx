@@ -67,6 +67,7 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
     useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 500, y: 300 }) }));
     const note = nodes.find((node) => node.itemId === "item-note");
     return <div>
+      <p>Map ready</p>
       <p>Map node count: {nodes.length}</p>
       <p>Note x: {note?.geometry.x}</p>
       {pendingReference && <p>Pending ghost: {pendingReference.status} · {pendingReference.preview.title}</p>}
@@ -177,6 +178,10 @@ function renderProjectPage() {
   return render(<RouterProvider router={router} />);
 }
 
+async function waitForMapReady() {
+  await screen.findByText("Map ready");
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((next) => { resolve = next; });
@@ -201,14 +206,11 @@ describe("mounted Project reference placement", () => {
     const pending = deferred<Response>();
     fetchMock
       .mockImplementationOnce(() => jsonResponse(projectTestSnapshot()))
-      .mockImplementationOnce((_path, init) => {
-        const input = JSON.parse(String(init?.body)) as CreateReferenceProjectItemInput;
-        void input;
-        return pending.promise;
-      });
+      .mockImplementationOnce(() => pending.promise);
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Place fixture at center" }));
+    await waitForMapReady();
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const [path, init] = fetchMock.mock.calls[1];
@@ -240,7 +242,8 @@ describe("mounted Project reference placement", () => {
     });
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Dirty existing geometry" }));
+    await waitForMapReady();
+    fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
     expect(screen.getByText("Unsaved")).toBeTruthy();
     expect(screen.getByText("Note x: 100")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
@@ -261,7 +264,8 @@ describe("mounted Project reference placement", () => {
       });
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Place fixture at center" }));
+    await waitForMapReady();
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
     const first = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
@@ -279,8 +283,8 @@ describe("mounted Project reference placement", () => {
     });
 
     renderProjectPage();
-    const button = await screen.findByRole("button", { name: "Place fixture at center" });
-    fireEvent.click(button);
+    await waitForMapReady();
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     await waitFor(() => expect(screen.getByText("Map node count: 3")).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     await waitFor(() => expect(screen.getByText("Map node count: 4")).toBeTruthy());
@@ -300,7 +304,8 @@ describe("mounted Project reference placement", () => {
       .mockImplementationOnce(() => jsonResponse(removalResponse()));
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Select existing reference" }));
+    await waitForMapReady();
+    fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
