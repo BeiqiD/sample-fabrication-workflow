@@ -1,3 +1,4 @@
+import { referenceUrlForTarget } from "../../shared/reference-destinations";
 import type { ReferenceSearchResult } from "../../shared/reference-search";
 import {
   isReferenceTarget,
@@ -67,7 +68,7 @@ export function projectReferencePreviewFromResult(
     subtitle: boundedText(source?.subtitle, MAX_PREVIEW_SUBTITLE),
     excerpt: boundedText(source?.excerpt, MAX_PREVIEW_EXCERPT),
     referenceUrl: safeReferenceUrl(result.resolution.destination.referenceUrl)
-      || `/references/${encodeURIComponent(result.target.type)}/${encodeURIComponent(result.target.id)}`,
+      || referenceUrlForTarget(result.target),
     openSourceUrl: safeReferenceUrl(result.resolution.destination.openSourceUrl),
   };
 }
