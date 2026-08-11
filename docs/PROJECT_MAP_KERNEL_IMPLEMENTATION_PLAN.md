@@ -3,7 +3,8 @@
 Status: Phase 3B1 implemented in Draft PR #133; independent review required
 
 Last reviewed: 2026-08-11 against `v2/backend-foundation` after Phase 3A2 was
-squash-merged in PR #132
+squash-merged in PR #132 and the keyboard/navigation placement-loss findings
+were addressed in Draft PR #133
 
 This document records the bounded Phase 3B1 implementation. The durable product
 contract remains in
@@ -19,18 +20,27 @@ The Draft implementation adds:
 - one normalized Project snapshot projection used by Map, Inspector, and the
   temporary mobile occurrence view;
 - a desktop-only lazy boundary around `@xyflow/react`;
-- pan, zoom, fit view, selection, lightweight node renderers, movement, and
-  border resize;
-- explicit Save and a bounded 1.6-second autosave after completed interactions;
-- placement writes only at drag stop, resize end, explicit Save, or autosave
-  flush, never during pointer frames;
+- pan, zoom, fit view, selection, lightweight node renderers, pointer movement,
+  keyboard nudging, and border resize;
+- explicit Save and a bounded 1.6-second autosave after completed semantic
+  geometry changes;
+- placement writes only after semantic geometry commands, explicit Save, or an
+  autosave flush, never during live pointer frames;
+- keyboard position changes promoted from React Flow renderer changes into the
+  same geometry command/save/undo state machine used by pointer interactions;
 - object-owned placement revisions and one operation ID per attempted semantic
   mutation, reused only when replaying the exact payload after an uncertain
   failure;
-- client-session undo/redo commands recorded once per completed move or resize;
+- client-session undo/redo commands for pointer moves, keyboard nudges, and
+  resize changes;
 - visible Saved, Saving, Unsaved, Error, and Conflict states;
+- router-level dirty-navigation protection: Unsaved/Saving internal navigation
+  safely flushes before proceeding, while Error/Conflict requires explicit user
+  action rather than silent loss;
+- `beforeunload` protection for hard refresh/close while placement state is not
+  safely Saved;
 - `409` handling that retains local unsaved geometry and requires an explicit
-  authoritative reload;
+  authoritative reload or explicit discard before leaving;
 - a lightweight read-only mobile occurrence projection ordered by immutable
   `createdSequence` plus item-ID tie-breaker.
 
@@ -48,6 +58,7 @@ authoritative placement rows with revisions
 + current local geometry by placement ID
 + bounded undo and redo command stacks
 + save/conflict state
++ blocked navigation intent while placement state is dirty
 ```
 
 A save computes placement deltas against the latest authoritative rows and
@@ -57,6 +68,19 @@ operation ID so Retry can use the backend's bounded replay contract. A
 successful response replaces that placement's baseline and revision. Geometry
 changed again during an in-flight request remains dirty and is flushed with a
 fresh operation ID through a later save boundary.
+
+Pointer drag/resize frames stay renderer-local until drag stop/resize end.
+React Flow keyboard position changes do not have a pointer stop event, so their
+non-dragging position changes are promoted directly into semantic geometry
+commands. Pointer interactions are marked while active so their frame events do
+not create duplicate commands.
+
+Internal SPA navigation uses the router blocker while any Project placement
+state is Unsaved, Saving, Error, or Conflict. A normal dirty state first flushes
+and proceeds only after reaching Saved. Error/Conflict keeps the attempted
+navigation blocked until the user stays, retries/resolves, or explicitly leaves
+without saving. Hard refresh/close cannot safely await an asynchronous PATCH, so
+`beforeunload` provides the corresponding browser protection instead.
 
 The Map projection preserves the identity split:
 
@@ -73,6 +97,10 @@ Only the desktop branch imports `ProjectMapSurface`; that module alone imports
 React Flow and its stylesheet. The production build must therefore emit a
 separate `ProjectMapSurface` JavaScript chunk, and the initial application entry
 must contain no React Flow runtime or stylesheet selectors.
+
+The app entry uses a React Router data router only to provide durable navigation
+blocking semantics to the existing route tree; the existing `App` route layout
+remains the route owner and is not duplicated.
 
 Mobile renders a deterministic, read-only occurrence list. It is deliberately
 not the complete Phase 3C Reading projection and provides no creation, upload,
@@ -97,9 +125,13 @@ The dedicated `verify:project-map` gate covers:
 - geometry delta and semantic undo/redo behavior;
 - API conflict preservation and compact placement payloads;
 - desktop lazy-import and semantic-boundary source contracts;
+- a mounted real React Flow surface that verifies arrow-key movement produces a
+  formal geometry command rather than renderer-only movement;
 - mounted mobile ordering without Map initialization;
 - mounted explicit-save, bounded autosave, retry replay, and `409` reload
   behavior;
+- mounted internal-navigation safe flush, refresh/close protection, save-error
+  retry, and conflict/discard behavior;
 - a production build plus bundle inspection proving React Flow remains in the
   separate desktop Map chunk.
 
