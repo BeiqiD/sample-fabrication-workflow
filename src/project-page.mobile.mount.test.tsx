@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
@@ -16,6 +16,14 @@ function matchMedia(matches: boolean) {
     removeListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }));
+}
+
+function renderProjectPage() {
+  const router = createMemoryRouter([{
+    path: "/projects/:projectId",
+    element: <ProjectPage />,
+  }], { initialEntries: ["/projects/project-a"] });
+  return render(<RouterProvider router={router} />);
 }
 
 describe("mounted mobile Project occurrence projection", () => {
@@ -37,9 +45,7 @@ describe("mounted mobile Project occurrence projection", () => {
   });
 
   it("renders a deterministic read-only occurrence projection without initializing the Map", async () => {
-    render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-      <Routes><Route path="/projects/:projectId" element={<ProjectPage />} /></Routes>
-    </MemoryRouter>);
+    renderProjectPage();
 
     expect(await screen.findByRole("heading", { name: "Topological laser" })).toBeTruthy();
     expect(screen.getByText("Read-only occurrence view")).toBeTruthy();
@@ -51,9 +57,7 @@ describe("mounted mobile Project occurrence projection", () => {
   });
 
   it("keeps source navigation explicit on a reference occurrence", async () => {
-    render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-      <Routes><Route path="/projects/:projectId" element={<ProjectPage />} /></Routes>
-    </MemoryRouter>);
+    renderProjectPage();
 
     const link = await screen.findByRole("link", { name: "Open reference" });
     expect(link.getAttribute("href")).toBe("/references/sample/r1_sample-a");
