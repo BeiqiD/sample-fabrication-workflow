@@ -1,10 +1,11 @@
 # Project Map kernel implementation record
 
-Status: Phase 3B1 implemented in Draft PR #133; independent review required
+Status: Phase 3B1 independently reviewed in PR #133; Ready pending final exact-head verification
 
 Last reviewed: 2026-08-11 against `v2/backend-foundation` after Phase 3A2 was
-squash-merged in PR #132 and the keyboard/navigation placement-loss findings
-were addressed in Draft PR #133
+squash-merged in PR #132, the keyboard/navigation placement-loss findings were
+addressed in PR #133, and the final independent review found no remaining
+runtime or schema merge blocker
 
 This document records the bounded Phase 3B1 implementation. The durable product
 contract remains in
@@ -14,7 +15,7 @@ and the review gate remains in
 
 ## Delivered boundary
 
-The Draft implementation adds:
+The implementation adds:
 
 - Project navigation plus list, create, and open routes;
 - one normalized Project snapshot projection used by Map, Inspector, and the
@@ -156,10 +157,11 @@ also remain green on the exact PR head.
 
 ## Ready and merge boundary
 
-PR #133 remains Draft until independent review confirms the checklist, the
-temporary bootstrap workflow is absent, and every exact-head context is green.
-No remote D1 migration, Worker deployment, or production-data operation belongs
-to this phase.
+Independent review for PR #133 is complete and found no remaining runtime or
+schema merge blocker. The PR may be marked Ready. Squash merge is permitted only
+after every required context is green on the final exact head. No remote D1
+migration, Worker deployment, or production-data operation belongs to this
+phase.
 
 After squash merge, Phase 3B1 becomes complete and Phase 3B2 — the reference
 sidebar and authoritative Map placement flow — becomes the immediate next PR.
