@@ -1,0 +1,33 @@
+name: PR133 Lock Helper
+
+on:
+  push:
+    branches:
+      - agent/pr133-lock-helper
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Generate lockfile only
+        run: |
+          npm install @xyflow/react@12.11.2 --save --package-lock-only --ignore-scripts
+          git restore package.json
+      - name: Commit lockfile blob on helper branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package-lock.json
+          git commit -m 'chore: generate PR 133 lockfile'
+          git push origin HEAD:agent/pr133-lock-helper
