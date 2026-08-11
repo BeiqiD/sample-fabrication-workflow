@@ -25,7 +25,7 @@
     "test:project-database-inputs": "vitest run worker/project-database-input-guards.test.ts worker/project-identifier-byte-guards.test.ts worker/project-payload-and-external-identity-guards.test.ts worker/project-unicode-payload-contract.test.ts",
     "test:project-persistence": "npm run test:project-database-inputs && vitest run shared/project-api.test.ts shared/project-api-unicode-contract.test.ts worker/project-persistence-service.test.ts worker/project-persistence-guards.test.ts worker/project-attachment-metadata-guard.test.ts worker/project-snapshot-trash.test.ts worker/project-placement-required.test.ts worker/project-routes.test.ts worker/project-attachment-locator-routes.test.ts",
     "test:project-map": "vitest run src/lib/project-map-model.test.ts src/lib/project-client.test.ts src/project-map-kernel.test.ts",
-    "test:project-map-mounted": "vitest run --config vitest.mounted.config.ts src/project-page.mobile.mount.test.tsx src/project-map-save.mount.test.tsx",
+    "test:project-map-mounted": "vitest run --config vitest.mounted.config.ts src/project-page.mobile.mount.test.tsx src/project-map-save.mount.test.tsx src/project-map-surface.mount.test.tsx",
     "verify:d1-migrations": "node scripts/verify-d1-migrations.mjs",
     "verify:reference-worker": "node scripts/verify-reference-worker.mjs",
     "verify:reference-search-worker": "node scripts/verify-reference-search-worker.mjs",
