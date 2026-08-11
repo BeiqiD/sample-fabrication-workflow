@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createRef } from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectMapSurface, type ProjectMapSurfaceHandle } from "./components/project/ProjectMapSurface";
 import {
@@ -108,6 +108,21 @@ function installReactFlowDomMocks() {
   });
 }
 
+function dispatchDrop(
+  target: HTMLElement,
+  payload: ProjectReferenceDragPayload,
+  clientX: number,
+  clientY: number,
+) {
+  const dataTransfer = new TestDataTransfer(payload) as unknown as DataTransfer;
+  const dragOver = new MouseEvent("dragover", { bubbles: true, cancelable: true, clientX, clientY });
+  Object.defineProperty(dragOver, "dataTransfer", { value: dataTransfer });
+  target.dispatchEvent(dragOver);
+  const drop = new MouseEvent("drop", { bubbles: true, cancelable: true, clientX, clientY });
+  Object.defineProperty(drop, "dataTransfer", { value: dataTransfer });
+  target.dispatchEvent(drop);
+}
+
 describe("real Project Map reference drop", () => {
   beforeEach(installReactFlowDomMocks);
 
@@ -160,9 +175,7 @@ describe("real Project Map reference drop", () => {
 
     const center = ref.current!.getViewportCenter();
     expect(center).toBeTruthy();
-    const transfer = new TestDataTransfer(payload) as unknown as DataTransfer;
-    fireEvent.dragOver(canvas, { clientX: 410, clientY: 320, dataTransfer: transfer });
-    fireEvent.drop(canvas, { clientX: 410, clientY: 320, dataTransfer: transfer });
+    dispatchDrop(canvas, payload, 410, 320);
 
     await waitFor(() => expect(onReferenceDrop).toHaveBeenCalledTimes(1));
     const [receivedPayload, point] = onReferenceDrop.mock.calls[0];
