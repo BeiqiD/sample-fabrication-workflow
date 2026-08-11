@@ -42,6 +42,7 @@
 .project-save-state.conflict { color: var(--danger); }
 .project-save-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px; margin-bottom: 12px; border-radius: 9px; color: var(--danger); background: var(--danger-soft); }
 .project-save-banner p { margin: 0; overflow-wrap: anywhere; }
+.project-navigation-actions { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .project-desktop-workspace { height: max(610px, calc(100vh - 196px)); display: grid; grid-template-columns: minmax(0, 1fr) 286px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 2px 8px var(--shadow); }
 .project-map-panel { min-width: 0; min-height: 0; }
 .project-map-loading { height: 100%; display: grid; place-items: center; background: var(--surface-warm); }
@@ -68,6 +69,8 @@
   .project-directory-head { display: none; }
   .project-directory-row { grid-template-columns: minmax(0, 1fr) auto; }
   .project-directory-row time { grid-column: 1 / -1; text-align: left; }
+  .project-save-banner { align-items: stretch; flex-direction: column; }
+  .project-navigation-actions { justify-content: flex-start; }
 }
 
 @media (max-width: 560px) {
