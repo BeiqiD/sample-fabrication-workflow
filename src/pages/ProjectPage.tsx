@@ -7,7 +7,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useParams } from "react-router-dom";
+import {
+  Link,
+  useBeforeUnload,
+  useBlocker,
+  useParams,
+  type BlockerFunction,
+} from "react-router-dom";
 import type {
   ProjectMapGeometry,
 } from "../../shared/project-types";
@@ -89,11 +95,28 @@ export function ProjectPage() {
   const savingRef = useRef(false);
   const saveAgainRef = useRef(false);
   const flushSaveRef = useRef<() => Promise<void>>(async () => undefined);
+  const navigationSaveRequestedRef = useRef(false);
 
   const updateSaveState = useCallback((next: SaveState) => {
     saveStateRef.current = next;
     setSaveState(next);
   }, []);
+
+  const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
+    saveState !== "saved"
+    && (
+      currentLocation.pathname !== nextLocation.pathname
+      || currentLocation.search !== nextLocation.search
+      || currentLocation.hash !== nextLocation.hash
+    )
+  ), [saveState]);
+  const blocker = useBlocker(shouldBlockNavigation);
+
+  useBeforeUnload(useCallback((event) => {
+    if (saveStateRef.current === "saved") return;
+    event.preventDefault();
+    event.returnValue = "";
+  }, []), { capture: true });
 
   const installSnapshot = useCallback((next: ProjectSnapshot) => {
     const baseline = projectPlacementIndex(next);
@@ -211,6 +234,36 @@ export function ProjectPage() {
     flushSaveRef.current = flushSave;
   }, [flushSave]);
 
+  useEffect(() => {
+    if (blocker.state !== "blocked") {
+      navigationSaveRequestedRef.current = false;
+      return;
+    }
+    const state = saveStateRef.current;
+    if (state !== "unsaved" && state !== "saving") return;
+    navigationSaveRequestedRef.current = true;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (state === "unsaved") void flushSaveRef.current();
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    if (saveState === "error" || saveState === "conflict") {
+      navigationSaveRequestedRef.current = false;
+      return;
+    }
+    if (saveState !== "saved") return;
+    if (navigationSaveRequestedRef.current) {
+      navigationSaveRequestedRef.current = false;
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [blocker, saveState]);
+
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
     if (projectGeometryEquals(command.before, command.after)) return;
     const next = { ...geometryRef.current, [command.placementId]: command.after };
@@ -254,6 +307,30 @@ export function ProjectPage() {
       scheduleAutosave();
     }
   }, [redoStack, scheduleAutosave, updateSaveState]);
+
+  const stayOnProject = useCallback(() => {
+    navigationSaveRequestedRef.current = false;
+    if (blocker.state === "blocked") blocker.reset();
+  }, [blocker]);
+
+  const leaveWithoutSaving = useCallback(() => {
+    navigationSaveRequestedRef.current = false;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (blocker.state === "blocked") blocker.proceed();
+  }, [blocker]);
+
+  const retrySaveAndLeave = useCallback(() => {
+    if (blocker.state !== "blocked") return;
+    navigationSaveRequestedRef.current = true;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    void flushSave();
+  }, [blocker.state, flushSave]);
 
   const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
     ...node,
@@ -303,6 +380,19 @@ export function ProjectPage() {
       {saveState === "error" && <button type="button" className="button compact-button" onClick={() => void flushSave()}>
         Retry save
       </button>}
+    </div>}
+
+    {blocker.state === "blocked" && <div className="project-save-banner warning" role="alertdialog" aria-label="Unsaved Project changes">
+      <p>{saveState === "conflict"
+        ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
+        : saveState === "error"
+          ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
+          : "Saving placement changes before leaving this Project…"}</p>
+      <div className="project-navigation-actions">
+        <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
+        {saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
+        <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>
+      </div>
     </div>}
 
     {desktop ? <div className="project-desktop-workspace">
