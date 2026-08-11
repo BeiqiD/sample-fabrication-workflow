@@ -44,8 +44,39 @@
 .project-save-banner p { margin: 0; overflow-wrap: anywhere; }
 .project-navigation-actions { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .project-desktop-workspace { height: max(610px, calc(100vh - 196px)); display: grid; grid-template-columns: minmax(0, 1fr) 286px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 2px 8px var(--shadow); }
+.project-desktop-workspace.with-reference-sidebar { grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) 270px; }
 .project-map-panel { min-width: 0; min-height: 0; }
 .project-map-loading { height: 100%; display: grid; place-items: center; background: var(--surface-warm); }
+.project-reference-sidebar { min-width: 0; padding: 16px; overflow-y: auto; border-right: 1px solid var(--line); background: var(--paper); }
+.project-reference-sidebar-heading { display: grid; gap: 5px; margin-bottom: 14px; }
+.project-reference-sidebar-heading p { margin: 0; }
+.project-reference-pending { display: grid; gap: 7px; padding: 11px; margin-bottom: 12px; border: 1px dashed var(--warning); border-radius: 9px; background: var(--warning-soft); font-size: 11px; }
+.project-reference-pending strong,
+.project-reference-pending span { overflow-wrap: anywhere; }
+.project-reference-pending.error,
+.project-reference-pending.conflict { border-color: var(--danger); background: var(--danger-soft); }
+.project-reference-pending-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 3px; }
+.project-reference-sidebar .reference-search-surface { gap: 12px; }
+.project-reference-sidebar .reference-search-query-row { grid-template-columns: minmax(0, 1fr) auto; }
+.project-reference-sidebar .reference-search-query-field { grid-column: 1 / -1; }
+.project-reference-sidebar .reference-search-query-field input { height: 44px; padding: 0 12px; font-size: 14px; }
+.project-reference-sidebar .reference-search-submit { min-width: 0; }
+.project-reference-sidebar .reference-search-toolbar { align-items: flex-start; }
+.project-reference-sidebar .reference-search-filter-grid,
+.project-reference-sidebar .reference-search-type-grid { grid-template-columns: 1fr; }
+.project-reference-sidebar .reference-search-filter-panel { padding: 13px; gap: 14px; }
+.project-reference-sidebar .reference-search-results { gap: 9px; }
+.project-reference-sidebar .reference-search-result { padding: 12px; }
+.project-reference-sidebar .reference-search-result-heading { display: grid; gap: 10px; }
+.project-reference-sidebar .reference-search-result h2 { font-size: 15px; }
+.project-reference-sidebar .reference-search-result-actions { justify-content: flex-start; }
+.project-reference-sidebar .reference-search-result-actions .button { font-size: 10px; }
+.project-reference-sidebar .reference-search-result-excerpt { margin-top: 9px; font-size: 11px; }
+.project-reference-sidebar .reference-search-result-footer { display: grid; gap: 7px; }
+.reference-search-drag-handle { display: inline-flex; min-height: 30px; align-items: center; padding: 5px 8px; border: 1px dashed var(--line-strong); border-radius: 7px; color: var(--muted); background: var(--surface-warm); cursor: grab; font-size: 10px; font-weight: 720; user-select: none; }
+.reference-search-drag-handle:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.reference-search-drag-handle:active { cursor: grabbing; }
+.reference-search-drag-handle.disabled { opacity: .5; cursor: not-allowed; }
 .project-inspector { min-width: 0; padding: 18px; overflow-y: auto; border-left: 1px solid var(--line); background: var(--paper); }
 .project-inspector > .muted { font-size: 12px; }
 .project-inspector-content { display: grid; gap: 12px; margin-top: 16px; }
@@ -61,6 +92,13 @@
 .project-reading-item header small { color: var(--muted); font-size: 11px; }
 .project-reading-item h2 { margin: 0; overflow-wrap: anywhere; }
 .project-reading-excerpt { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 13px; }
+
+@media (max-width: 1180px) and (min-width: 860px) {
+  .project-page { width: calc(100% - 24px); }
+  .project-desktop-workspace.with-reference-sidebar { grid-template-columns: 250px minmax(0, 1fr) 230px; }
+  .project-reference-sidebar { padding: 12px; }
+  .project-inspector { padding: 13px; }
+}
 
 @media (max-width: 859px) {
   .project-page { width: min(720px, calc(100% - 28px)); padding-top: 26px; }
