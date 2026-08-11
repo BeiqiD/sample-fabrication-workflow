@@ -44,6 +44,15 @@ function placementResponse(revision = 2) {
   };
 }
 
+function renderProjectPage() {
+  return render(<MemoryRouter initialEntries={["/projects/project-a"]}>
+    <Routes>
+      <Route path="/projects/:projectId" element={<ProjectPage />} />
+      <Route path="/projects" element={<p>Projects route</p>} />
+    </Routes>
+  </MemoryRouter>);
+}
+
 describe("mounted desktop Project Map save behavior", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
@@ -63,9 +72,7 @@ describe("mounted desktop Project Map save behavior", () => {
       init?.method === "PATCH" ? placementResponse() : projectTestSnapshot(),
     ), { status: 200, headers: { "content-type": "application/json" } })));
 
-    render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-      <Routes><Route path="/projects/:projectId" element={<ProjectPage />} /></Routes>
-    </MemoryRouter>);
+    renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
     expect(screen.getByText("Unsaved")).toBeTruthy();
@@ -87,9 +94,7 @@ describe("mounted desktop Project Map save behavior", () => {
       init?.method === "PATCH" ? placementResponse() : projectTestSnapshot(),
     ), { status: 200, headers: { "content-type": "application/json" } })));
 
-    render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-      <Routes><Route path="/projects/:projectId" element={<ProjectPage />} /></Routes>
-    </MemoryRouter>);
+    renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
     expect(screen.getByText("Unsaved")).toBeTruthy();
@@ -114,9 +119,7 @@ describe("mounted desktop Project Map save behavior", () => {
         headers: { "content-type": "application/json" },
       }));
 
-    render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-      <Routes><Route path="/projects/:projectId" element={<ProjectPage />} /></Routes>
-    </MemoryRouter>);
+    renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -141,9 +144,7 @@ describe("mounted desktop Project Map save behavior", () => {
       headers: { "content-type": "application/json" },
     })));
 
-    render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-      <Routes><Route path="/projects/:projectId" element={<ProjectPage />} /></Routes>
-    </MemoryRouter>);
+    renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -152,5 +153,91 @@ describe("mounted desktop Project Map save behavior", () => {
     expect(screen.getByText("Conflict")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reload authoritative Project" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("flushes unsaved placement changes before internal navigation proceeds", async () => {
+    fetchMock.mockImplementation((_path, init) => Promise.resolve(new Response(JSON.stringify(
+      init?.method === "PATCH" ? placementResponse() : projectTestSnapshot(),
+    ), { status: 200, headers: { "content-type": "application/json" } })));
+
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
+    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+
+    expect(screen.queryByText("Projects route")).toBeNull();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls[1][1]?.method).toBe("PATCH");
+    expect(await screen.findByText("Projects route")).toBeTruthy();
+  });
+
+  it("protects refresh or close while placement changes are not safely saved", async () => {
+    fetchMock.mockImplementation((_path, init) => Promise.resolve(new Response(JSON.stringify(
+      init?.method === "PATCH" ? placementResponse() : projectTestSnapshot(),
+    ), { status: 200, headers: { "content-type": "application/json" } })));
+
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
+    const unsavedUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unsavedUnload);
+    expect(unsavedUnload.defaultPrevented).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
+    const savedUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(savedUnload);
+    expect(savedUnload.defaultPrevented).toBe(false);
+  });
+
+  it("keeps internal navigation blocked after a save error until retry succeeds", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify(projectTestSnapshot()), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Temporary save failure" }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(placementResponse()), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
+
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
+    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+
+    expect(await screen.findByText("Temporary save failure")).toBeTruthy();
+    expect(screen.queryByText("Projects route")).toBeNull();
+    expect(screen.getByRole("alertdialog", { name: "Unsaved Project changes" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry save and leave" }));
+    expect(await screen.findByText("Projects route")).toBeTruthy();
+  });
+
+  it("keeps internal navigation blocked on conflict until the user explicitly discards local placement changes", async () => {
+    fetchMock.mockImplementation((_path, init) => Promise.resolve(new Response(JSON.stringify(
+      init?.method === "PATCH"
+        ? { error: "Placement revision conflict" }
+        : projectTestSnapshot(),
+    ), {
+      status: init?.method === "PATCH" ? 409 : 200,
+      headers: { "content-type": "application/json" },
+    })));
+
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
+    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+
+    expect(await screen.findByText("Placement revision conflict")).toBeTruthy();
+    expect(screen.queryByText("Projects route")).toBeNull();
+    expect(screen.getByRole("alertdialog", { name: "Unsaved Project changes" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Leave without saving" }));
+    expect(await screen.findByText("Projects route")).toBeTruthy();
   });
 });
