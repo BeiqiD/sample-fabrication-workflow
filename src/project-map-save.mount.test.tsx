@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/project-map-model";
 import { ProjectPage } from "./pages/ProjectPage";
@@ -45,12 +45,14 @@ function placementResponse(revision = 2) {
 }
 
 function renderProjectPage() {
-  return render(<MemoryRouter initialEntries={["/projects/project-a"]}>
-    <Routes>
-      <Route path="/projects/:projectId" element={<ProjectPage />} />
-      <Route path="/projects" element={<p>Projects route</p>} />
-    </Routes>
-  </MemoryRouter>);
+  const router = createMemoryRouter([{
+    path: "/projects/:projectId",
+    element: <ProjectPage />,
+  }, {
+    path: "/projects",
+    element: <p>Projects route</p>,
+  }], { initialEntries: ["/projects/project-a"] });
+  return render(<RouterProvider router={router} />);
 }
 
 describe("mounted desktop Project Map save behavior", () => {
