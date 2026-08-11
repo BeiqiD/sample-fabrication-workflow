@@ -612,9 +612,10 @@ The PR is complete when:
 ## Follow-on status
 
 Phase 2A, canonical destinations, exact source focus, deterministic search, and
-the reusable Project discovery surface are complete through PR #130. The
-`/search` route is temporary integration scaffolding until Project identity and
-Map placement exist.
+the reusable Project discovery surface are complete through PR #130. Project
+identity and Map placement persistence are now available through Phase 3A; the
+`/search` route remains temporary integration scaffolding until Phase 3B2 embeds
+that discovery surface inside the Project workspace.
 
 This implementation record does not define later product order. The active
 Map-first Project sequence, Reading behavior, and phase boundaries are governed

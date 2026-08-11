@@ -184,7 +184,7 @@ jobs:
             const log = fs.existsSync("project-map.log") ? fs.readFileSync("project-map.log", "utf8") : "";
             const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
             const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

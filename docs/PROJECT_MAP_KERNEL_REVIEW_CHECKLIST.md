@@ -9,6 +9,8 @@ This checklist is intentionally narrower than the full Project Canvas contract.
 It defines what an independent review must prove before Phase 3B1 can move from
 Draft to Ready. The canonical behavior remains in
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md),
+the implemented boundary is recorded in
+[PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md](./PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md),
 and the roadmap order remains in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 ## Phase boundary
@@ -49,8 +51,9 @@ The PR must not include:
 - Live drag and resize frames update local geometry only.
 - Network writes occur only at drag stop, resize end, explicit Save, or the
   documented bounded autosave flush.
-- Each placement mutation sends the placement's current expected revision and a
-  fresh retry-safe operation ID.
+- Each new placement mutation sends the placement's current expected revision
+  and a fresh retry-safe operation ID; an exact retry after an uncertain failure
+  reuses that same operation ID and payload.
 - Successful saves replace the local baseline with the authoritative returned
   placement revision.
 - A `409` conflict is never converted into silent last-write-wins; the UI keeps a

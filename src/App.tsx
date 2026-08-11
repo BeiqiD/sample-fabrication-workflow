@@ -8,8 +8,11 @@ import "./reference-search.css";
 const SamplesPage = lazy(() => import("./pages/SamplesPage").then((module) => ({ default: module.SamplesPage })));
 const NewSamplePage = lazy(() => import("./pages/NewSamplePage").then((module) => ({ default: module.NewSamplePage })));
 const SamplePage = lazy(() => import("./pages/SamplePage").then((module) => ({ default: module.SamplePage })));
+// The standalone Search route remains a development/integration browser. Project
+// owns the primary navigation destination from Phase 3B onward.
+const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage").then((module) => ({ default: module.ProjectsPage })));
-const ProjectWorkspacePage = lazy(() => import("./pages/ProjectWorkspacePage").then((module) => ({ default: module.ProjectWorkspacePage })));
+const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({ default: module.ProjectPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
 const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
@@ -81,7 +84,8 @@ export function App() {
             <Route path="/samples/:sampleId/timeline" element={<SampleTimelinePage />} />
             <Route path="/samples/:sampleId" element={<SamplePage />} />
             <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/projects/:projectId" element={<ProjectWorkspacePage />} />
+            <Route path="/projects/:projectId" element={<ProjectPage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
             <Route path="/templates/:templateId" element={<TemplatePage />} />

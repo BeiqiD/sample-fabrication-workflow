@@ -1,105 +1,118 @@
-# Project Map kernel implementation plan
+# Project Map kernel implementation record
 
-Status: Phase 3B1 implemented in current Draft PR #133; independent review pending
+Status: Phase 3B1 implemented in Draft PR #133; independent review required
 
-Last reviewed: 2026-08-11 after Phase 3A2 was squash-merged in PR #132
+Last reviewed: 2026-08-11 against `v2/backend-foundation` after Phase 3A2 was
+squash-merged in PR #132
 
-This plan defines the bounded frontend slice that turns the normalized Project
-snapshot into the first spatial Project surface. It is subordinate to
-[PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
-[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
-The authoritative persistence boundary remains
-[PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
+This document records the bounded Phase 3B1 implementation. The durable product
+contract remains in
+[PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md),
+and the review gate remains in
+[PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md](./PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md).
 
-## Scope
+## Delivered boundary
 
-Phase 3B1 implements only the Map kernel required to view and reposition existing
-Project occurrences:
+The Draft implementation adds:
 
-- replace the temporary standalone Search navigation destination with Projects;
-- Project list, create, and open shell;
-- load `@xyflow/react` dynamically only when a desktop Project Map is opened;
-- derive lightweight Markdown, attachment, and reference cards from the
-  normalized Project snapshot;
-- pan, zoom, selection, fit view, move, and border resize;
-- maintain placement drafts separately from the authoritative snapshot;
-- explicit Save plus bounded 1.6-second autosave after semantic placement changes;
-- client-session undo/redo for completed move and resize commands;
-- lightweight read-only selection Inspector;
-- deterministic mobile read-only occurrence projection ordered by
-  `createdSequence` and item ID.
+- Project navigation plus list, create, and open routes;
+- one normalized Project snapshot projection used by Map, Inspector, and the
+  temporary mobile occurrence view;
+- a desktop-only lazy boundary around `@xyflow/react`;
+- pan, zoom, fit view, selection, lightweight node renderers, movement, and
+  border resize;
+- explicit Save and a bounded 1.6-second autosave after completed interactions;
+- placement writes only at drag stop, resize end, explicit Save, or autosave
+  flush, never during pointer frames;
+- object-owned placement revisions and one operation ID per attempted semantic
+  mutation, reused only when replaying the exact payload after an uncertain
+  failure;
+- client-session undo/redo commands recorded once per completed move or resize;
+- visible Saved, Saving, Unsaved, Error, and Conflict states;
+- `409` handling that retains local unsaved geometry and requires an explicit
+  authoritative reload;
+- a lightweight read-only mobile occurrence projection ordered by immutable
+  `createdSequence` plus item-ID tie-breaker.
 
-It deliberately does not add reference insertion, Markdown creation, attachment
-upload/creation, edge authoring, a rich Markdown editor, or the complete Reading
-projection.
+The temporary standalone `/search` route remains as an integration harness, but
+it is no longer a primary navigation destination. Phase 3B2 embeds the reusable
+search surface in Project and owns reference insertion.
 
-## Renderer and persistence boundary
+## State ownership
 
-React Flow is a renderer and interaction model, never the persistence format.
-The client derives nodes from `ProjectSnapshot` and writes only normalized
-placement mutations.
+React Flow owns transient renderer interaction state only. The page controller
+keeps:
 
-Live pointer movement and resize frames update local geometry only. Persistence
-is permitted at four semantic boundaries:
+```text
+authoritative placement rows with revisions
++ current local geometry by placement ID
++ bounded undo and redo command stacks
++ save/conflict state
+```
 
-1. drag stop;
-2. resize end, through the bounded autosave queue;
-3. explicit Save;
-4. the bounded autosave flush.
+A save computes placement deltas against the latest authoritative rows and
+sends one compact `PATCH /projects/:projectId/placements/:placementId` mutation
+per dirty placement. An uncertain failure retains that exact payload and
+operation ID so Retry can use the backend's bounded replay contract. A
+successful response replaces that placement's baseline and revision. Geometry
+changed again during an in-flight request remains dirty and is flushed with a
+fresh operation ID through a later save boundary.
 
-Each write sends the placement's current expected revision and a fresh operation
-ID. A successful response replaces the local authoritative baseline and revision.
-A `409` preserves the visible local draft, enters Conflict state, and requires
-an authoritative snapshot reload rather than silent overwrite.
+The Map projection preserves the identity split:
 
-## Undo and redo
+- `project_item.id` is the React Flow node and selection identity;
+- `project_map_placements.id` is the mutation target;
+- Project-owned content or a `reference_target` remains the rendered source.
 
-Session history records one before/after command per completed move or resize.
-It is not permanent operation history. Undo and redo only change the local
-placement draft; Save or autosave persists the resulting current geometry as an
-ordinary new placement revision.
+No React Flow JSON document is persisted.
 
-## Responsive boundary
+## Desktop and mobile loading
 
-Desktop (`min-width: 901px`) may initialize the dynamically imported Map editor.
-Narrow/mobile layouts do not import or initialize React Flow. They render the
-same active occurrences as a read-only deterministic list and explicitly avoid
-claiming the later Phase 3C Reading editing contract.
+`ProjectPage` decides the presentation before rendering the lazy Map module.
+Only the desktop branch imports `ProjectMapSurface`; that module alone imports
+React Flow and its stylesheet. The production build must therefore emit a
+separate `ProjectMapSurface` JavaScript chunk, and the initial application entry
+must contain no React Flow runtime or stylesheet selectors.
 
-## Dependency boundary
+Mobile renders a deterministic, read-only occurrence list. It is deliberately
+not the complete Phase 3C Reading projection and provides no creation, upload,
+placement, resize, edge, or bulk Canvas controls.
 
-Phase 3B1 uses `@xyflow/react` 12.11.2 under the MIT license. The dependency is
-owned by the lazy desktop Map module, not by the initial application route
-bundle. No editor, PDF renderer, or other Project creation dependency is added in
-this slice.
+## Deliberately deferred
+
+Phase 3B1 does not add:
+
+- a Project reference-search sidebar, drag/drop insertion, or pending nodes;
+- Project-owned Markdown or attachment creation;
+- Markdown editing or a rich editor dependency;
+- Project-local edge authoring;
+- the complete Reading projection;
+- PDF preview, groups, collaboration, permanent delete, or deployment.
 
 ## Verification
 
-The permanent `verify:project-map` gate must run on the exact PR head and cover:
+The dedicated `verify:project-map` gate covers:
 
-- Project API list/create/open and placement request contracts;
-- normalized snapshot-to-node projection;
-- deterministic mobile ordering;
-- desktop lazy ownership and removal of the temporary Search navigation route;
-- no reference/content creation or edge-authoring authority in the Map kernel;
-- semantic-boundary placement persistence with no per-frame network writes;
-- explicit Save and bounded autosave;
-- session undo/redo;
-- `409` conflict preservation and authoritative reload;
-- mobile non-initialization of React Flow.
+- normalized Map/Reading projection and occurrence identity;
+- geometry delta and semantic undo/redo behavior;
+- API conflict preservation and compact placement payloads;
+- desktop lazy-import and semantic-boundary source contracts;
+- mounted mobile ordering without Map initialization;
+- mounted explicit-save, bounded autosave, retry replay, and `409` reload
+  behavior;
+- a production build plus bundle inspection proving React Flow remains in the
+  separate desktop Map chunk.
 
-The long-lived Verify workflow owns `pre-pr/project-map`; no temporary workflow
-may synthesize that status or mutate the PR branch. The exact head must also pass
-Project foundation/persistence, Reference, blob, full ordinary/mounted tests,
-and production build gates.
+CI records this as `pre-pr/project-map`. Existing blob, Reference, Project
+foundation, Project persistence, complete test, and production-build gates must
+also remain green on the exact PR head.
 
-## Exit
+## Ready and merge boundary
 
-Phase 3B1 exits only when the implementation is visible in the ordinary GitHub
-PR diff, the bootstrap/finalizer workflow is absent, the exact head has a real
-`pre-pr/project-map` status from the permanent Verify workflow, and independent
-review finds no runtime merge blocker.
+PR #133 remains Draft until independent review confirms the checklist, the
+temporary bootstrap workflow is absent, and every exact-head context is green.
+No remote D1 migration, Worker deployment, or production-data operation belongs
+to this phase.
 
-After squash merge, Phase 3B2 becomes the immediate next PR and mounts the
-existing reusable Reference search surface inside Project for authoritative
-reference placement.
+After squash merge, Phase 3B1 becomes complete and Phase 3B2 — the reference
+sidebar and authoritative Map placement flow — becomes the immediate next PR.

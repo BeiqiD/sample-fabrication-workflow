@@ -1,15 +1,16 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract after Phase 3A2 backend completion
+Status: product and architecture contract during Phase 3B1 Draft review
 
-Last reviewed: 2026-08-10 after the Map-first Project interaction review,
+Last reviewed: 2026-08-11 after the Map-first Project interaction review,
 Phase 3A1 implemented in PR #131, and the authoritative persistence service
-completed independent review in PR #132
+completed independent review in PR #132, and the Map kernel was implemented in
+Draft PR #133
 
-This document defines the intended Project workspace before React Flow or an
-editor dependency are selected. Phase 3A1, implemented in PR #131, freezes the
-normalized schema; PR #132 implements the completed Phase 3A2 authoritative
-read/write transactions.
+This document defines the intended Project workspace. Phase 3A1, implemented in
+PR #131, freezes the normalized schema; PR #132 implements the completed Phase
+3A2 authoritative read/write transactions; Draft PR #133 introduces the bounded
+desktop React Flow Map kernel without selecting a Markdown editor.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 
@@ -470,11 +471,11 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1 and Phase 3A2 are complete in PR #131 and PR #132. The active
-implementation sequence is now:
+Phase 3A1 and Phase 3A2 are complete in PR #131 and PR #132. Phase 3B1 is
+implemented in Draft PR #133 and awaits independent review. The sequence is:
 
-1. **Phase 3B1 — Map kernel**: dynamic React Flow, pan/zoom, selection, move,
-   resize, save state, and lightweight nodes.
+1. **Phase 3B1 — Map kernel (Draft PR #133)**: dynamic React Flow, pan/zoom,
+   selection, move, resize, save state, and lightweight nodes.
 2. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
    pending nodes, keyboard center placement, authoritative insertion.
 3. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
