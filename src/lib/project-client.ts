@@ -3,7 +3,6 @@ import type {
   CreateMarkdownProjectItemInput,
   CreateProjectInput,
   CreateReferenceProjectItemInput,
-  ProjectAttachmentIntrinsicMetadataInput,
   ProjectContentRecord,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
@@ -53,8 +52,6 @@ export function createProjectApiId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-const attachmentMetadataByAssetId = new Map<string, ProjectAttachmentIntrinsicMetadataInput>();
-
 export const projectApi = {
   list: (signal?: AbortSignal) => projectRequest<ProjectListResponse>(
     "/projects",
@@ -75,40 +72,24 @@ export const projectApi = {
     `/projects/${encodeURIComponent(projectId)}/items/markdown`,
     jsonRequest("POST", input),
   ),
-  createAttachmentItem: async (
+  createAttachmentItem: (
     projectId: string,
     input: CreateAttachmentProjectItemInput,
-  ) => {
-    const intrinsicMetadata = "assetId" in input.locator
-      ? attachmentMetadataByAssetId.get(input.locator.assetId)
-      : undefined;
-    const requestInput = intrinsicMetadata ? { ...input, intrinsicMetadata } : input;
-    const result = await projectRequest<ProjectItemMutationResponse>(
-      `/projects/${encodeURIComponent(projectId)}/items/attachment`,
-      jsonRequest("POST", requestInput),
-    );
-    if ("assetId" in input.locator) attachmentMetadataByAssetId.delete(input.locator.assetId);
-    return result;
-  },
-  uploadAttachmentAsset: async (file: File) => {
-    const result = await projectRequest<{ id: string; key: string; deduplicated: boolean }>(
-      "/project-assets",
-      {
-        method: "POST",
-        headers: {
-          "content-type": file.type || "application/octet-stream",
-          "x-project-filename-uri": encodeURIComponent(file.name),
-        },
-        body: file,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/attachment`,
+    jsonRequest("POST", input),
+  ),
+  uploadAttachmentAsset: (file: File) => projectRequest<{ id: string; key: string; deduplicated: boolean }>(
+    "/project-assets",
+    {
+      method: "POST",
+      headers: {
+        "content-type": file.type || "application/octet-stream",
+        "x-project-filename-uri": encodeURIComponent(file.name),
       },
-    );
-    attachmentMetadataByAssetId.set(result.id, {
-      originalName: file.name,
-      mimeType: file.type || "application/octet-stream",
-      byteSize: file.size,
-    });
-    return result;
-  },
+      body: file,
+    },
+  ),
   createReferenceItem: (
     projectId: string,
     input: CreateReferenceProjectItemInput,
