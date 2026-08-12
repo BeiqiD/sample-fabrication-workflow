@@ -17,11 +17,22 @@ function fixture() {
   const database = referenceTestDatabase();
   const adapter = new SqliteD1Database(database);
   const bytes = Uint8Array.from([1, 2, 3, 4]);
+  const uploaded = new Map<string, Uint8Array>();
   const bucket = {
+    async put(key: string, value: ArrayBuffer | ArrayBufferView) {
+      const source = value instanceof ArrayBuffer
+        ? new Uint8Array(value)
+        : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+      uploaded.set(key, new Uint8Array(source));
+    },
+    async delete(key: string) {
+      uploaded.delete(key);
+    },
     async get(key: string) {
-      if (key !== "projects/route-asset.bin") return null;
+      const body = key === "projects/route-asset.bin" ? bytes : uploaded.get(key);
+      if (!body) return null;
       return {
-        body: new Blob([bytes]).stream(),
+        body: new Blob([body]).stream(),
         httpEtag: '"route-etag"',
         writeHttpMetadata(headers: Headers) {
           headers.set("content-type", "application/octet-stream");
@@ -44,7 +55,7 @@ function fixture() {
     throw error;
   });
   app.route("/", projectRoutes);
-  return { app, env, database, bytes };
+  return { app, env, database, bytes, uploaded };
 }
 
 function jsonRequest(
@@ -58,6 +69,23 @@ function jsonRequest(
     method,
     headers: body === undefined ? undefined : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
+  }, env);
+}
+
+function attachmentUploadRequest(
+  app: Hono<AppBindings>,
+  env: Env,
+  filename: string,
+  mimeType: string,
+  body: Uint8Array,
+) {
+  return app.request("/project-assets", {
+    method: "POST",
+    headers: {
+      "content-type": mimeType,
+      "x-project-filename-uri": encodeURIComponent(filename),
+    },
+    body,
   }, env);
 }
 
@@ -139,7 +167,44 @@ describe("Project persistence routes", () => {
     database.close();
   });
 
-  it("snapshots occurrence metadata for a deduplicated asset and streams it only while active", async () => {
+  it("accepts generic bytes and only deduplicates when intrinsic metadata also matches", async () => {
+    const { app, env, database, uploaded } = fixture();
+    const body = Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]);
+
+    const first = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/pdf", body);
+    expect(first.status).toBe(201);
+    const firstBody = await first.json<{ id: string; key: string; deduplicated: boolean }>();
+    expect(firstBody.deduplicated).toBe(false);
+    expect(uploaded.get(firstBody.key)).toEqual(body);
+    expect(database.prepare(`
+      SELECT original_name, mime_type, byte_size
+      FROM assets WHERE id = ?
+    `).get(firstBody.id)).toEqual({
+      original_name: "实验结果.pdf",
+      mime_type: "application/pdf",
+      byte_size: body.byteLength,
+    });
+
+    const exactDuplicate = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/pdf", body);
+    expect(exactDuplicate.status).toBe(200);
+    expect(await exactDuplicate.json()).toMatchObject({
+      id: firstBody.id,
+      key: firstBody.key,
+      deduplicated: true,
+    });
+
+    const renamedDuplicate = await attachmentUploadRequest(app, env, "renamed.pdf", "application/pdf", body);
+    expect(renamedDuplicate.status).toBe(409);
+    expect(await renamedDuplicate.json()).toMatchObject({
+      error: expect.stringContaining("different intrinsic filename or MIME metadata"),
+    });
+
+    const retypedDuplicate = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/octet-stream", body);
+    expect(retypedDuplicate.status).toBe(409);
+    database.close();
+  });
+
+  it("uses authoritative asset metadata for attachment occurrences and streams only while active", async () => {
     const { app, env, database, bytes } = fixture();
     seedRouteAsset(database);
     await jsonRequest(app, env, "/projects", "POST", {
@@ -157,11 +222,6 @@ describe("Project persistence routes", () => {
         itemId: "item-media",
         placementId: "placement-media",
         locator: { assetId: "route-asset" },
-        intrinsicMetadata: {
-          originalName: "实验结果.pdf",
-          mimeType: "application/pdf",
-          byteSize: 4,
-        },
         caption: null,
         sourceUrl: null,
         geometry,
@@ -173,8 +233,8 @@ describe("Project persistence routes", () => {
     const attachmentBody = await attachment.json<Record<string, unknown>>();
     expect(attachmentBody).toMatchObject({
       attachment: {
-        originalName: "实验结果.pdf",
-        mimeType: "application/pdf",
+        originalName: "route-asset.bin",
+        mimeType: "application/octet-stream",
         byteSize: 4,
       },
     });
@@ -187,7 +247,7 @@ describe("Project persistence routes", () => {
     const file = await app.request(filePath, {}, env);
     expect(file.status).toBe(200);
     expect(file.headers.get("content-disposition")).toContain("attachment");
-    expect(file.headers.get("content-type")).toContain("application/pdf");
+    expect(file.headers.get("content-type")).toContain("application/octet-stream");
     expect(file.headers.get("cache-control")).toBe("private, no-store");
     expect(new Uint8Array(await file.arrayBuffer())).toEqual(bytes);
 
