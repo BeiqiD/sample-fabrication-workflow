@@ -114,7 +114,7 @@ function pendingLabel(status: string) {
   if (status === "saving") return "Saving…";
   if (status === "uncertain") return "Outcome uncertain";
   if (status === "conflict") return "Conflict";
-  if (status === "error") return "Retry required";
+  if (status === "error") return "Action failed";
   return status;
 }
 
@@ -192,14 +192,14 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
         onChange={(event) => data.onMarkdownChange(event.currentTarget.value)}
         onKeyDown={(event) => {
           if (event.key !== "Escape") return;
-          if (!markdownEditor.isNew || !markdownEditor.value.trim()) data.onMarkdownCancel();
+          if (markdownEditor.isNew && !markdownEditor.value.trim()) data.onMarkdownCancel();
         }}
       />
       {markdownEditor.message && <p className={`project-markdown-editor-message ${markdownEditor.status}`}>{markdownEditor.message}</p>}
       <div className="project-markdown-editor-actions">
-        <button type="button" className="button primary compact-button" disabled={markdownEditor.status === "saving" || !markdownEditor.value.trim()} onClick={data.onMarkdownSave}>
+        {markdownEditor.status !== "error" && markdownEditor.status !== "conflict" && <button type="button" className="button primary compact-button" disabled={markdownEditor.status === "saving" || !markdownEditor.value.trim()} onClick={data.onMarkdownSave}>
           {markdownEditor.status === "saving" ? "Saving…" : markdownEditor.status === "uncertain" ? "Retry exact save" : "Save Markdown"}
-        </button>
+        </button>}
         {(markdownEditor.status === "editing" || markdownEditor.status === "error" || markdownEditor.status === "conflict") && <button type="button" className="button compact-button" onClick={data.onMarkdownCancel}>Cancel</button>}
       </div>
     </div> : <>
