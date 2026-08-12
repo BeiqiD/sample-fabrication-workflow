@@ -1,14 +1,12 @@
 # Project Map kernel review checklist
 
-Status: Phase 3B1 implementation review checklist for Draft PR #133
+Status: historical Phase 3B1 review record; PR #133 was independently reviewed and squash-merged
 
-Last reviewed: 2026-08-11 after Phase 3A2 was squash-merged in PR #132 and the
-desktop Project Map kernel was implemented and placement-loss review findings
-were addressed in PR #133
+Last reviewed: 2026-08-12 after PR #133 passed its final exact-head verification and was squash-merged into `v2/backend-foundation`; Phase 3B2 is now implemented in Draft PR #134
 
 This checklist is intentionally narrower than the full Project Canvas contract.
-It defines what an independent review must prove before Phase 3B1 can move from
-Draft to Ready. The canonical behavior remains in
+It records what independent review proved before Phase 3B1 moved from Draft to
+Ready and was merged. The canonical behavior remains in
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md),
 the implemented boundary is recorded in
 [PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md](./PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md),
@@ -16,7 +14,7 @@ and the roadmap order remains in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 ## Phase boundary
 
-The PR may include:
+The Phase 3B1 PR was permitted to include:
 
 - Project navigation and list/create/open shell;
 - desktop-only dynamic loading of `@xyflow/react`;
@@ -27,7 +25,7 @@ The PR may include:
 - a lightweight selection Inspector;
 - a deterministic read-only mobile occurrence projection.
 
-The PR must not include:
+The Phase 3B1 PR was not permitted to include:
 
 - reference search or authoritative reference insertion;
 - Project-owned Markdown or attachment creation;
@@ -108,9 +106,9 @@ The PR must not include:
 - The surface is explicitly described as a read-only occurrence projection, not
   as the complete Phase 3C Reading implementation.
 
-## Required verification
+## Verification record
 
-Before Ready, the exact PR head must pass:
+Before Ready, the exact PR #133 head was required to pass:
 
 - the dedicated `verify:project-map` contract, including a mounted real React
   Flow keyboard-movement regression;
@@ -125,22 +123,22 @@ Before Ready, the exact PR head must pass:
 - the complete ordinary and mounted test suites;
 - production and deploy-configuration TypeScript/Vite builds;
 - `git diff --check`;
-- confirmation that no temporary bootstrap/finalizer workflow remains.
+- confirmation that no temporary bootstrap/finalizer workflow remained.
 
-The independent reviewer should also inspect the production bundle split and
-confirm that drag/resize handlers contain no per-frame placement request.
+The independent reviewer also inspected the production bundle split and
+confirmed that drag/resize handlers contain no per-frame placement request.
 
-## Ready gate
+## Historical Ready gate
 
-Phase 3B1 can move to Ready only when:
+Phase 3B1 moved to Ready only after:
 
-1. this bounded scope is preserved;
-2. no runtime merge blocker remains;
-3. the canonical documents identify PR #133 as the current Draft rather than an
-   already completed phase;
-4. all exact-head status contexts, including `pre-pr/project-map`, are green;
-5. no remote migration, deployment, or production-data operation has occurred.
+1. the bounded Phase 3B1 scope was preserved;
+2. no runtime merge blocker remained;
+3. independent review was complete and the implementation record was synchronized
+   to that reviewed state;
+4. every exact-head status context, including `pre-pr/project-map`, was green;
+5. no remote migration, deployment, or production-data operation had occurred.
 
-After squash merge, the canonical status moves Phase 3B1 to complete and makes
-Phase 3B2 — the reference sidebar and authoritative Map placement flow — the
-immediate next PR.
+PR #133 then passed final exact-head CI and was squash-merged. Phase 3B1 is
+therefore complete. The current active implementation is Phase 3B2 — the
+reference sidebar and authoritative Map placement flow — in Draft PR #134.

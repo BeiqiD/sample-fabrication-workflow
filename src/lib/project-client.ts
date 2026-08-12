@@ -1,5 +1,8 @@
 import type {
   CreateProjectInput,
+  CreateReferenceProjectItemInput,
+  ProjectItemLifecycleInput,
+  ProjectItemMutationResponse,
   ProjectListResponse,
   ProjectMutationResponse,
   ProjectRowMutationResponse,
@@ -56,6 +59,21 @@ export const projectApi = {
   read: (projectId: string, signal?: AbortSignal) => projectRequest<ProjectSnapshot>(
     `/projects/${encodeURIComponent(projectId)}`,
     signal ? { signal } : undefined,
+  ),
+  createReferenceItem: (
+    projectId: string,
+    input: CreateReferenceProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/reference`,
+    jsonRequest("POST", input),
+  ),
+  removeItem: (
+    projectId: string,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(itemId)}`,
+    jsonRequest("DELETE", input),
   ),
   updatePlacement: (
     projectId: string,

@@ -1,10 +1,8 @@
 # Project core implementation plan
 
-Status: Phase 3A1 and Phase 3A2 complete; Phase 3B1 is in Draft review in PR #133
+Status: Phase 3A1 and Phase 3A2 complete; Phase 3B1 complete in PR #133; Phase 3B2 is in Draft review in PR #134
 
-Last reviewed: 2026-08-11 after Phase 3A1 was merged in PR #131, the Phase 3A2
-authoritative persistence service was merged in PR #132, and Phase 3B1 entered
-Draft review in PR #133
+Last reviewed: 2026-08-12 after Phase 3A1 was merged in PR #131, the Phase 3A2 authoritative persistence service was merged in PR #132, Phase 3B1 was squash-merged in PR #133, and Phase 3B2 reference placement entered Draft review in PR #134
 
 This document translates the active Project roadmap into a reviewable backend
 sequence. The product direction remains governed by
@@ -343,6 +341,7 @@ PR #131 satisfied the following definition of done:
 - `pre-pr/project-foundation`, general tests, and production build pass on the
   exact pull-request head.
 
-Phase 3A2 is complete in PR #132. Phase 3B1, the desktop Map kernel, is now
-implemented in Draft PR #133 and remains subject to exact-head CI and
-independent review.
+Phase 3A2 is complete in PR #132 and Phase 3B1 is complete in merged PR #133.
+Phase 3B2, the reference sidebar and authoritative Map placement slice, is the
+current Draft PR #134. Phase 3B3 becomes the immediate next implementation PR
+only after #134 completes review and is merged.

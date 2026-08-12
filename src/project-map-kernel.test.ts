@@ -11,7 +11,7 @@ describe("Project Map kernel boundaries", () => {
     expect(appSource).not.toContain("@xyflow/react");
     expect(pageSource).not.toContain("@xyflow/react");
     expect(pageSource).toContain("lazy(() => import(\"../components/project/ProjectMapSurface\")");
-    expect(pageSource).toContain("desktop ? <div className=\"project-desktop-workspace\"");
+    expect(pageSource).toContain('{desktop ? <div className="project-desktop-workspace');
     expect(surfaceSource).toContain('from "@xyflow/react"');
   });
 

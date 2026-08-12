@@ -73,6 +73,22 @@
 .project-map-node-attachment::before { background: var(--info); }
 .project-map-node-reference::before { background: var(--warning); }
 
+.project-map-node.pending {
+  border-style: dashed;
+  opacity: .88;
+  background: var(--surface-warm);
+  box-shadow: 0 3px 12px var(--shadow);
+}
+
+.project-map-node.pending.error,
+.project-map-node.pending.conflict {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.project-map-node.pending.error::before,
+.project-map-node.pending.conflict::before { background: var(--danger); }
+
 .project-map-node header {
   display: flex;
   align-items: center;
@@ -106,6 +122,44 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 6;
   line-clamp: 6;
+}
+
+.project-node-open-reference {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  box-shadow: 0 2px 8px var(--shadow);
+  font-size: 10px;
+  font-weight: 720;
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+.project-flow-canvas .react-flow__node-projectItem:hover .project-node-open-reference,
+.project-flow-canvas .react-flow__node-projectItem.selected .project-node-open-reference,
+.project-flow-canvas .react-flow__node-projectItem:focus-within .project-node-open-reference {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.project-node-open-reference:hover,
+.project-node-open-reference:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
 }
 
 .project-node-resize-line { border-color: var(--accent) !important; }

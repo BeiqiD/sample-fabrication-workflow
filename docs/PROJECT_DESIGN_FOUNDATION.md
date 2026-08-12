@@ -1,11 +1,11 @@
 # Project design foundation
 
-Status: current product and architecture contract during Phase 3B1 Draft review
+Status: current product and architecture contract during Phase 3B2 Draft review in PR #134
 
-Last reviewed: 2026-08-11 after the Map-first Project interaction review,
-Phase 3A1 implemented in PR #131, and the authoritative persistence service
-completed independent review in PR #132, and the Map kernel was implemented in
-Draft PR #133
+Last reviewed: 2026-08-12 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, the authoritative persistence service merged
+in PR #132, the Map kernel squash-merged in PR #133, and Phase 3B2 reference
+placement entered Draft review in PR #134
 
 This document defines the durable Project identity and ownership model. The
 canonical phase order is in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md). Detailed
@@ -16,9 +16,11 @@ The frozen Phase 3A1 schema boundary is recorded in
 The completed Phase 3A2 route, transaction, idempotency, snapshot, and rollback
 contract is in
 [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
-The bounded Map implementation and review evidence are recorded in
+The completed Map implementation and historical review evidence are recorded in
 [PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md](./PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md)
 and [PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md](./PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md).
+The active Phase 3B2 reference-placement state machine is recorded in
+[PROJECT_REFERENCE_PLACEMENT_IMPLEMENTATION_PLAN.md](./PROJECT_REFERENCE_PLACEMENT_IMPLEMENTATION_PLAN.md).
 
 The longer Text-first design record that preceded the Map-first decision is
 preserved in `PROJECT_DESIGN_FOUNDATION_LEGACY.md` for history. Where it
@@ -284,7 +286,7 @@ Map is the main desktop editor. The first interaction model supports:
 - node move and border resize;
 - sidebar reference search and exact-position drop;
 - double-click empty space to create Markdown;
-- explicit or context-menu generic attachment insertion;
+- explicit or context-menu generic attachment insertion at a coordinate;
 - top/right/bottom/left connection handles;
 - Bezier edges with none/arrow markers at each endpoint;
 - optional short free-text edge labels;
@@ -299,7 +301,19 @@ Reference insertion starts no write at drag start. A successful drop invokes one
 authoritative server operation that validates the Project, re-resolves the
 target, registers or refreshes `reference_targets`, reserves the next immutable
 `created_sequence`, creates the item occurrence, creates the Map placement, and
-returns the new Project revision. Any failure rolls back the entire operation.
+returns the new Project revision. Any transaction failure rolls back the entire
+operation.
+
+A transport or 5xx response failure is not proof of rollback. The client must
+retain the exact creation request and operation ID and exact-replay/reconcile it
+before allowing cancellation. If reconciliation confirms that the occurrence
+was committed, cancellation uses the ordinary Project-local recoverable removal
+operation rather than merely hiding local state.
+
+Project-local removal follows the same bounded retry principle: one lifecycle
+request and operation ID are retained until the outcome is authoritative. Map
+geometry interaction is frozen while removal is unresolved so a deleted
+occurrence cannot race a stale placement write.
 
 Project-owned Markdown and attachment creation use the same item-plus-placement
 transaction boundary after their content-specific validation succeeds.
@@ -476,16 +490,18 @@ metadata.
 
 ## Roadmap
 
-Phase 2C2, Phase 3A1, and Phase 3A2 are complete in PR #130, PR #131, and
-PR #132. The active sequence now begins with the Map kernel:
+Phase 2C2, Phase 3A1, Phase 3A2, and Phase 3B1 are complete in PR #130, PR #131,
+PR #132, and merged PR #133. Phase 3B2 is the current Draft PR #134. The active
+sequence is:
 
-1. Phase 3B1 Map kernel;
-2. Phase 3B2 reference sidebar and drag/drop placement;
-3. Phase 3B3 Markdown and generic attachment creation;
-4. Phase 3B4 basic Bezier directional edges;
-5. Phase 3C no-creation insertion-order Reading projection;
-6. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
-7. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
+1. Phase 3B2 reference sidebar and authoritative drag/drop placement — current
+   Draft PR #134;
+2. Phase 3B3 Markdown and generic attachment creation — immediate next only
+   after #134 completes and merges;
+3. Phase 3B4 basic Bezier directional edges;
+4. Phase 3C no-creation insertion-order Reading projection;
+5. Phase 3D Markdown/TeX, media, save/conflict, and export hardening;
+6. Phase 4 advanced Canvas, Inspector, PDF preview, screenshot capture, and
    performance work.
 
 See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) for completion criteria,
@@ -510,7 +526,7 @@ tracks.
 
 ## Dependency and licensing boundary
 
-React Flow is selected and license-verified when Phase 3B1 begins. It is not
-required for Phase 3A schema or persistence-service work. Any Markdown editor, TeX renderer, PDF
-renderer, or preview dependency is selected only in its corresponding slice and
-must not determine the persistent Project model.
+React Flow was selected and license-verified in Phase 3B1 and remains behind the
+desktop-only lazy Map boundary. Any Markdown editor, TeX renderer, PDF renderer,
+or preview dependency is selected only in its corresponding later slice and must
+not determine the persistent Project model.

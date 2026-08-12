@@ -2,12 +2,13 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-11 after the reference/search foundation through PR #129,
+Last reviewed: 2026-08-12 after the reference/search foundation through PR #129,
 the reusable Project discovery surface implemented in PR #130, the Map-first
 Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
-and the Phase 3A2 authoritative persistence service completed in PR #132; the
-Phase 3B1 desktop Map kernel is implemented in Draft PR #133 and awaits
-independent review
+the Phase 3A2 authoritative persistence service completed in PR #132, the
+Phase 3B1 desktop Map kernel squash-merged in PR #133, and Phase 3B2 reference
+placement completed independent review in PR #134; Phase 3B3 is the immediate
+next implementation phase after the #134 squash merge
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -160,13 +161,18 @@ The following prerequisites are complete on `v2/backend-foundation`:
   in PR #131;
 - authoritative Project CRUD, normalized active and Trash snapshots,
   rollback-safe item-plus-placement creation, bounded retry idempotency,
-  attachment media, and basic graph mutations implemented in PR #132.
+  attachment media, and basic graph mutations implemented in PR #132;
+- desktop React Flow Map kernel, normalized geometry save/undo state,
+  navigation protection, and mobile occurrence projection implemented and
+  squash-merged in PR #133;
+- Project reference sidebar, exact Map placement, repeated occurrence handling,
+  uncertain-result reconciliation, Project-local removal, and the permanent
+  `pre-pr/project-reference-placement` gate completed in PR #134.
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-The active implementation target is independent review and completion of Draft
-PR #133, the Phase 3B1 desktop Map kernel. Phase 3B2 starts only after that PR is
-squash-merged.
+After the #134 squash merge, the active implementation target is Phase 3B3 —
+Project-owned Markdown and generic attachment creation.
 
 ## Active implementation roadmap
 
@@ -252,8 +258,7 @@ creation sequence, save safely, reopen the Project, and export it completely.
 
 ### Phase 3B1 — Map kernel
 
-**Status:** implemented in Draft PR #133; independent review and exact-head
-verification are required before Ready or merge.
+**Status:** complete; squash-merged in PR #133.
 
 **Goal:** deliver the primary Project interaction surface without yet combining
 all creation modes.
@@ -273,11 +278,13 @@ all creation modes.
 - simple Inspector selection shell;
 - Reading-only default on mobile.
 
-**Exit:** existing Project item occurrences can be viewed, moved, resized, saved,
-and reopened through the desktop Map without React Flow state becoming the
-database.
+**Exit:** complete. Existing Project item occurrences can be viewed, moved,
+resized, saved, and reopened through the desktop Map without React Flow state
+becoming the database.
 
 ### Phase 3B2 — reference sidebar and Map placement
+
+**Status:** complete in PR #134; independent exact-head review passed.
 
 **Goal:** make reference discovery and spatial placement the core Project
 creation flow.
@@ -287,20 +294,27 @@ creation flow.
 - mount `ReferenceSearchSurface` in the Project sidebar/operation area;
 - desktop drag result to exact Map coordinate;
 - keyboard-equivalent `Place at Map center` action;
-- pending ghost node and retry/failure behavior;
+- pending ghost node and explicit known-failure/uncertain-result behavior;
 - authoritative server insertion after drop, never at drag start;
+- exact replay/reconciliation before an uncertain insertion may be cancelled;
+- Project-local removal with exact retry identity and Map geometry freeze while
+  the removal outcome is unresolved;
 - hover/selected/focused `Open reference` action;
 - node body selects rather than navigates;
 - allow repeated occurrences of the same reference target;
-- make the new occurrence appear in Reading automatically through creation sequence.
+- make the new occurrence appear in Reading automatically through creation sequence;
+- permanent `pre-pr/project-reference-placement` CI coverage.
 
-**Exit:** a user can stay inside a Project, find any supported source object,
-place it on the Map, reopen the Project, and remove the local occurrence without
-changing source data.
+**Exit:** complete. A user can stay inside a Project, find any supported source
+object, place it on the Map, safely reconcile response-loss cases, reopen the
+Project, and remove the local occurrence without changing source data or racing
+stale geometry writes.
 
 This milestone is the first useful **Project reference-workspace alpha**.
 
 ### Phase 3B3 — Project-owned Markdown and generic attachments
+
+**Status:** immediate next implementation phase after the #134 squash merge.
 
 **Goal:** allow the Map to create the only two Project-owned content classes.
 
@@ -517,15 +531,12 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Independently review and squash-merge the Draft desktop **Map kernel** in PR
-   #133.
-2. Add the **reference sidebar and drag/drop placement** after Phase 3B1 merges.
-3. Add **double-click Markdown and generic attachment insertion**.
-4. Add **basic Bezier directional edges**.
-5. Add the no-creation **Reading projection**.
-6. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
-7. Add advanced **Inspector/Canvas/previews/performance**.
-8. Run the dedicated Docker portability implementation after Project content
+1. Add **double-click Markdown and generic attachment insertion** as Phase 3B3.
+2. Add **basic Bezier directional edges**.
+3. Add the no-creation **Reading projection**.
+4. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+5. Add advanced **Inspector/Canvas/previews/performance**.
+6. Run the dedicated Docker portability implementation after Project content
    and save semantics stabilize.
 
 ## Work that should not happen next
