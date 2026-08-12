@@ -111,15 +111,15 @@ describe("Project client", () => {
     ]);
   });
 
-  it("uses an ASCII-safe filename header and snapshots current upload metadata onto the Project occurrence", async () => {
-    const file = new File(["same bytes"], "实验结果.pdf", { type: "application/pdf" });
+  it("uses the generic Project asset route with an ASCII-safe Unicode filename header", async () => {
+    const file = new File(["pdf"], "实验结果.pdf", { type: "application/pdf" });
     const fetchMock = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(JSON.stringify({
-        id: "asset-deduplicated",
-        key: "2026-08-13/original.bin",
-        deduplicated: true,
+        id: "asset-uploaded",
+        key: "2026-08-13/asset.pdf",
+        deduplicated: false,
       }), {
-        status: 200,
+        status: 201,
         headers: { "content-type": "application/json" },
       }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ replayed: false }), {
@@ -151,14 +151,6 @@ describe("Project client", () => {
       },
       body: file,
     });
-    const createBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
-    expect(createBody).toEqual({
-      ...createInput,
-      intrinsicMetadata: {
-        originalName: "实验结果.pdf",
-        mimeType: "application/pdf",
-        byteSize: file.size,
-      },
-    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(createInput);
   });
 });
