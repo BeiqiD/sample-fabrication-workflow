@@ -139,7 +139,7 @@ describe("Project persistence routes", () => {
     database.close();
   });
 
-  it("binds an existing asset and streams it only while its occurrence is active", async () => {
+  it("snapshots occurrence metadata for a deduplicated asset and streams it only while active", async () => {
     const { app, env, database, bytes } = fixture();
     seedRouteAsset(database);
     await jsonRequest(app, env, "/projects", "POST", {
@@ -157,6 +157,11 @@ describe("Project persistence routes", () => {
         itemId: "item-media",
         placementId: "placement-media",
         locator: { assetId: "route-asset" },
+        intrinsicMetadata: {
+          originalName: "实验结果.pdf",
+          mimeType: "application/pdf",
+          byteSize: 4,
+        },
         caption: null,
         sourceUrl: null,
         geometry,
@@ -166,6 +171,13 @@ describe("Project persistence routes", () => {
     );
     expect(attachment.status).toBe(201);
     const attachmentBody = await attachment.json<Record<string, unknown>>();
+    expect(attachmentBody).toMatchObject({
+      attachment: {
+        originalName: "实验结果.pdf",
+        mimeType: "application/pdf",
+        byteSize: 4,
+      },
+    });
     expect(JSON.stringify(attachmentBody)).toContain(
       "/api/projects/project-media/contents/content-media/file",
     );
@@ -175,6 +187,7 @@ describe("Project persistence routes", () => {
     const file = await app.request(filePath, {}, env);
     expect(file.status).toBe(200);
     expect(file.headers.get("content-disposition")).toContain("attachment");
+    expect(file.headers.get("content-type")).toContain("application/pdf");
     expect(file.headers.get("cache-control")).toBe("private, no-store");
     expect(new Uint8Array(await file.arrayBuffer())).toEqual(bytes);
 
