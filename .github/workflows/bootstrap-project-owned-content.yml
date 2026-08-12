@@ -20,15 +20,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive=.tmp/project-owned-content-changes.xz.b64
-          if [[ ! -f "$archive" ]]; then
-            echo "No staged implementation archive; nothing to finalize."
+          if [[ ! -f .tmp/READY ]]; then
+            echo "Staging is not complete; nothing to finalize."
             exit 0
           fi
-          base64 --decode "$archive" > /tmp/project-owned-content-changes.tar.xz
+          cat .tmp/chunk-* > /tmp/project-owned-content-changes.xz.b64
+          echo "ae492b2f9111f3a058af87a9e56465a1b93acf27a653c587777bb1cd67a5c321  /tmp/project-owned-content-changes.xz.b64" | sha256sum --check --strict
+          base64 --decode /tmp/project-owned-content-changes.xz.b64 > /tmp/project-owned-content-changes.tar.xz
+          echo "94cd2ff4460b001862e14e9f15e59e9bbf760af499507dfc7cafaf00fa53cf6a  /tmp/project-owned-content-changes.tar.xz" | sha256sum --check --strict
           tar -xJf /tmp/project-owned-content-changes.tar.xz -C .
-          rm -f "$archive"
-          rmdir .tmp 2>/dev/null || true
+          rm -rf .tmp
           git rm --ignore-unmatch .github/workflows/bootstrap-project-owned-content.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
