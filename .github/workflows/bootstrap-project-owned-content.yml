@@ -14,12 +14,19 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Package workspace
-        run: tar --exclude=.git -czf /tmp/project-owned-content.tgz .
-      - name: Upload workspace
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Package dependencies
+        run: tar -czf /tmp/project-owned-content-deps.tgz node_modules
+      - name: Upload dependencies
         uses: actions/upload-artifact@v4
         with:
-          name: project-owned-content-workspace
-          path: /tmp/project-owned-content.tgz
+          name: project-owned-content-dependencies
+          path: /tmp/project-owned-content-deps.tgz
           if-no-files-found: error
           retention-days: 1
