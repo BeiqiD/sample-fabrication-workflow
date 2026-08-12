@@ -159,8 +159,8 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     await waitFor(() => expect(screen.queryByLabelText("Mock Markdown editor")).toBeNull());
   });
 
-  it("uploads a generic file before creating the attachment occurrence with the returned asset identity", async () => {
-    const file = new File(["pdf"], "paper.pdf", { type: "application/pdf" });
+  it("uploads a generic Unicode-named file before creating the attachment occurrence", async () => {
+    const file = new File(["pdf"], "实验结果.pdf", { type: "application/pdf" });
     fetchMock
       .mockResolvedValueOnce(new Response(JSON.stringify(projectTestSnapshot()), {
         status: 200,
@@ -183,8 +183,15 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(fetchMock.mock.calls[1][0]).toBe("/api/assets");
-    expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: "POST", body: file });
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/project-assets");
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      method: "POST",
+      body: file,
+      headers: {
+        "content-type": "application/pdf",
+        "x-project-filename-uri": encodeURIComponent(file.name),
+      },
+    });
     expect(fetchMock.mock.calls[2][0]).toBe("/api/projects/project-a/items/attachment");
     const createBody = JSON.parse(String(fetchMock.mock.calls[2][1]?.body));
     expect(createBody).toMatchObject({
