@@ -2,7 +2,7 @@
 
 Status: Phase 3B3 implemented in Draft PR #135; independent exact-head review pending
 
-Last reviewed: 2026-08-12 after Phase 3B2 reference placement was squash-merged in PR #134 and Phase 3B3 was published as Draft PR #135
+Last reviewed: 2026-08-13 after the PR #135 review fixes for generic attachment upload, intrinsic metadata deduplication, Markdown cancellation, and deterministic retry handling
 
 This document defines the bounded Phase 3B3 implementation for Project-owned Markdown and generic attachments. The durable interaction contract remains in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), while authoritative persistence remains in [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
@@ -27,7 +27,9 @@ Phase 3B3 requires no new schema or migration. The Phase 3A2 service already pro
 - atomic Project sequence reservation plus content, item, and placement creation; and
 - retry-idempotent operation identities.
 
-Generic bytes continue to enter the existing asset pipeline first. The Project attachment create operation receives the resulting `assetId`, revalidates that blob identity, and atomically creates the Project content occurrence and placement.
+Phase 3B3 adds one bounded upload ingress, `POST /project-assets`, for Project-owned generic bytes. It deliberately does **not** widen the existing `/assets` endpoint, which remains image-only for its existing callers. `/project-assets` still stores bytes in the same authoritative `assets` registry and R2 lifecycle, returns the stable `assetId`, and lets the Project attachment create transaction revalidate that blob identity before creating content, occurrence, and placement.
+
+The local filename is transported in an ASCII-safe percent-encoded `x-project-filename-uri` header and decoded/validated by the Worker. Generic MIME types such as `application/pdf` and `application/octet-stream` are accepted up to the existing Phase 3B3 10 MB upload bound.
 
 ## Markdown creation and editing
 
@@ -37,13 +39,14 @@ Before the first explicit Save:
 
 - no Project API write occurs;
 - the draft owns stable local content/item/placement identities;
-- Escape may cancel an empty unsaved draft;
+- Escape may cancel **only an empty new draft**;
+- Escape never discards an existing Markdown edit or a non-empty new draft;
 - explicit Cancel may discard a deterministic unsaved/error/conflict draft; and
 - geometry interaction and other Project content creation are disabled while the editor is active.
 
 The first Save freezes one complete authoritative create request. If the outcome is uncertain, retries reuse the exact same content ID, item ID, placement ID, geometry, expected Project revision, Markdown source, and operation ID. The editor becomes read-only after the request starts so the client never reuses one operation identity with changed content.
 
-Existing Markdown uses the same rule for `PATCH`: one frozen source payload, expected content revision, and operation ID remain attached to an uncertain retry. A deterministic conflict never silently overwrites authoritative content.
+Existing Markdown uses the same rule for `PATCH`: one frozen source payload, expected content revision, and operation ID remain attached to an uncertain retry. A deterministic `4xx` or `409` result is terminal for that frozen mutation: it is not presented as an exact-retry loop. The user can discard the failed edit, resolve the cause, and begin a new mutation. A conflict never silently overwrites authoritative content.
 
 Phase 3B3 intentionally uses a lightweight textarea editor. Rich Markdown/TeX rendering and editor selection remain Phase 3D work.
 
@@ -59,14 +62,24 @@ Direct local-file drag onto the Map remains optional future polish rather than a
 Creation order is fixed:
 
 1. choose one local file;
-2. upload/register the bytes through the existing `/assets` pipeline;
+2. upload/register the generic bytes through `POST /project-assets`;
 3. retain the returned stable `assetId`;
 4. create one Project attachment content + occurrence + creation sequence + Map placement through the authoritative Project transaction; and
 5. merge only the returned authoritative records into local Project state.
 
-An uncertain asset upload may be retried or cancelled because no Project occurrence has been requested yet. A cancelled or response-lost upload may leave a deduplicated/unreferenced asset for the existing blob lifecycle/GC policy; the client does not directly delete a possibly shared asset.
+An outcome-uncertain asset upload may be retried because content addressing makes replay safe; if no Project occurrence request has started, it may also be cancelled. A cancelled or response-lost upload may leave a deduplicated/unreferenced asset for the existing blob lifecycle/GC policy; the client does not directly delete a possibly shared asset.
 
-Once the Project attachment create request starts, an uncertain result cannot be discarded locally. Retry exact-replays the same Project identities and operation ID so a response-loss case cannot create a duplicate occurrence.
+Once the Project attachment create request starts, an uncertain result cannot be discarded locally. Retry exact-replays the same Project identities and operation ID so a response-loss case cannot create a duplicate occurrence. Deterministic upload or Project-create failures are not exact-retried: the user cancels the failed operation and starts a new one after resolving the cause.
+
+### Content-addressed identity and intrinsic metadata
+
+The existing asset registry has one canonical intrinsic metadata tuple for each SHA-addressed object. Phase 3B3 preserves that database invariant rather than creating a second occurrence-local identity for the same bytes.
+
+- same SHA + same original filename + same MIME type + same byte size: reuse the existing asset identity;
+- same SHA but different filename or MIME metadata: return an explicit `409` instead of silently inheriting the first upload's metadata or weakening the database guard;
+- race-winner deduplication applies the same metadata check before reuse.
+
+This keeps content addressing deterministic without a schema migration and prevents a later upload from being displayed with surprising metadata from an earlier upload.
 
 ## Attachment metadata and rendering
 
@@ -82,7 +95,7 @@ The user may edit only:
 - Project-local caption; and
 - optional source URL.
 
-Those metadata updates use one frozen revision/operation request for uncertain retries. Replacing attachment bytes is deferred.
+Those metadata updates use one frozen revision/operation request for uncertain retries. Deterministic validation/conflict failures are terminal for the frozen request and expose discard/cancel rather than another exact retry. Replacing attachment bytes is deferred.
 
 Rendering follows MIME identity rather than filename guessing:
 
@@ -100,7 +113,13 @@ At most one Project-owned editor or structural attachment operation is active at
 - selection cannot silently switch away from the active editor; and
 - SPA navigation plus hard refresh/close stay protected until the operation is saved, deterministically discarded, or authoritatively reconciled.
 
+Only an **outcome-uncertain** owned-content mutation exposes exact retry. Deterministic `4xx` and `409` results retain the error/conflict state for user visibility but do not resubmit the frozen operation from retry controls.
+
 Existing Phase 3B1 placement saves remain separate from content revision saves. Successful content insertion merges its authoritative placement baseline without resetting unrelated dirty geometry, undo/redo history, or pending placement operations.
+
+## Map context-menu coordinate boundary
+
+The Project Map canvas establishes its own positioning context (`position: relative`). The attachment context menu therefore uses the same canvas-relative client coordinates from which the exact React Flow Map point is derived, rather than accidentally positioning relative to an outer ancestor.
 
 ## Mobile boundary
 
@@ -112,10 +131,14 @@ Phase 3B3 adds a permanent `pre-pr/project-owned-content` verification status. T
 
 - helper geometry/MIME/failure classification;
 - Project client content/upload routes;
+- generic PDF/non-image upload and Unicode filename transport;
+- exact SHA + metadata deduplication plus deterministic metadata-mismatch rejection;
 - static source-boundary checks;
 - mounted local-draft zero-write behavior;
-- exact retry after uncertain Markdown creation;
+- Escape preservation for edited/non-empty Markdown;
+- exact retry only after uncertain owned-content outcomes;
 - generic asset upload followed by authoritative Project attachment creation;
+- context-menu positioning ownership;
 - existing mobile no-creation behavior;
 - existing real React Flow semantic geometry behavior;
 - production TypeScript/build and Project Map bundle splitting.
@@ -138,4 +161,4 @@ Phase 3B3 does not add:
 
 ## Exit criteria
 
-Phase 3B3 is complete when a desktop user can create/save/reopen Project Markdown, upload/place/reopen a generic Project attachment, edit only its allowed Project-local metadata, and see both content classes in creation-sequence Reading without duplicate occurrences after response loss and without React Flow becoming the database.
+Phase 3B3 is complete when a desktop user can create/save/reopen Project Markdown, upload/place/reopen a generic Project attachment, edit only its allowed Project-local metadata, and see both content classes in creation-sequence Reading without duplicate occurrences after response loss, without deterministic errors being trapped in retry loops, and without React Flow becoming the database.
