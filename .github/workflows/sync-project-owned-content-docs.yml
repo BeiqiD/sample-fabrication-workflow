@@ -1,0 +1,80 @@
+name: Sync Project owned content docs
+
+on:
+  push:
+    branches:
+      - agent/project-owned-content
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Sync PR 135 status
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "docs/PRODUCT_ROADMAP.md": [
+                  (
+                      "Phase 3B1 desktop Map kernel squash-merged in PR #133, Phase 3B2 reference\nplacement squash-merged in PR #134, and Phase 3B3 Project-owned Markdown and\ngeneric attachment creation entered implementation",
+                      "Phase 3B1 desktop Map kernel squash-merged in PR #133, Phase 3B2 reference\nplacement squash-merged in PR #134, and Phase 3B3 Project-owned Markdown and\ngeneric attachment creation is implemented in Draft PR #135 and awaits\nindependent exact-head review",
+                  ),
+                  (
+                      "After the #134 squash merge, the active implementation target is Phase 3B3 —\nProject-owned Markdown and generic attachment creation.",
+                      "The active implementation target is independent review and completion of Draft\nPR #135, the Phase 3B3 Project-owned Markdown and generic attachment creation\nslice. Phase 3B4 starts only after that PR is squash-merged.",
+                  ),
+                  (
+                      "**Status:** active implementation phase; keep Draft until exact-head review and verification pass.",
+                      "**Status:** implemented in Draft PR #135; keep Draft until independent exact-head\nreview and verification pass.",
+                  ),
+              ],
+              "docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md": [
+                  (
+                      "Status: product and architecture contract during Phase 3B3 Project-owned content implementation",
+                      "Status: product and architecture contract during Phase 3B3 Draft review in PR #135",
+                  ),
+                  (
+                      "placement squash-merged in PR #134, and Phase 3B3 Project-owned content began\nimplementation",
+                      "placement squash-merged in PR #134, and Phase 3B3 Project-owned content entered\nDraft review in PR #135",
+                  ),
+                  (
+                      "discovery and authoritative placement; Phase 3B3 adds the bounded Project-owned\nMarkdown and generic attachment creation layer without selecting a rich editor.",
+                      "discovery and authoritative placement; Draft PR #135 implements the bounded\nPhase 3B3 Project-owned Markdown and generic attachment creation layer without\nselecting a rich editor.",
+                  ),
+              ],
+              "docs/PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md": [
+                  (
+                      "Status: Phase 3B3 implementation in progress on the dedicated Project-owned content branch",
+                      "Status: Phase 3B3 implemented in Draft PR #135; independent exact-head review pending",
+                  ),
+                  (
+                      "Last reviewed: 2026-08-12 after Phase 3B2 reference placement was squash-merged in PR #134",
+                      "Last reviewed: 2026-08-12 after Phase 3B2 reference placement was squash-merged in PR #134 and Phase 3B3 was published as Draft PR #135",
+                  ),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f"expected status text missing in {filename}: {old!r}")
+                  text = text.replace(old, new, 1)
+              path.write_text(text)
+          PY
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PRODUCT_ROADMAP.md docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md docs/PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md
+          git commit -m "docs: record PR 135 project content review"
+          git push origin HEAD:agent/project-owned-content
