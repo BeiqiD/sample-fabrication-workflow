@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReferenceSearchResult } from "../shared/reference-search";
+import type { CreateReferenceProjectItemInput, ProjectItemMutationResponse } from "../shared/project-api";
 import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/project-map-model";
 import type { ProjectPendingReferencePlacement } from "./lib/project-reference-placement";
 import { ProjectPage } from "./pages/ProjectPage";
@@ -104,6 +105,55 @@ function placementResponse() {
   };
 }
 
+function insertionResponse(input: CreateReferenceProjectItemInput): ProjectItemMutationResponse {
+  const snapshot = projectTestSnapshot();
+  const now = "2026-08-11T12:30:00.000Z";
+  return {
+    item: {
+      id: input.itemId,
+      projectId: "project-a",
+      itemType: "reference",
+      projectContentId: null,
+      referenceTargetId: "registry-new",
+      createdSequence: 3,
+      revision: 1,
+      createdBy: "user@example.com",
+      updatedBy: "user@example.com",
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedBy: null,
+    },
+    content: null,
+    attachment: null,
+    placement: {
+      id: input.placementId,
+      projectItemId: input.itemId,
+      ...input.geometry,
+      revision: 1,
+      createdBy: "user@example.com",
+      updatedBy: "user@example.com",
+      createdAt: now,
+      updatedAt: now,
+    },
+    project: { ...snapshot.project, revision: 3, nextCreatedSequence: 4, updatedAt: now },
+    replayed: true,
+  };
+}
+
+function removedInsertionResponse(created: ProjectItemMutationResponse): ProjectItemMutationResponse {
+  return {
+    ...created,
+    item: {
+      ...created.item,
+      revision: created.item.revision + 1,
+      deletedAt: "2026-08-11T12:31:00.000Z",
+      deletedBy: "user@example.com",
+    },
+    replayed: false,
+  };
+}
+
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
   const promise = new Promise<T>((resolvePromise) => {
@@ -137,12 +187,25 @@ describe("Project reference navigation safety", () => {
     vi.unstubAllGlobals();
   });
 
-  it("keeps navigation blocked after cancelling a failed reference until unrelated geometry finishes saving", async () => {
+  it("reconciles an uncertain committed insertion before cancelling, then waits for unrelated geometry before leaving", async () => {
     const pendingPatch = deferred<Response>();
+    let originalInput: CreateReferenceProjectItemInput | null = null;
+    let created: ProjectItemMutationResponse | null = null;
+    let postCount = 0;
     fetchMock.mockImplementation((_path, init) => {
       if (!init?.method) return jsonResponse(projectTestSnapshot());
-      if (init.method === "POST") return jsonResponse({ error: "Temporary insertion failure" }, 500);
       if (init.method === "PATCH") return pendingPatch.promise;
+      if (init.method === "POST") {
+        postCount += 1;
+        const input = JSON.parse(String(init.body)) as CreateReferenceProjectItemInput;
+        if (postCount === 1) {
+          originalInput = input;
+          created = insertionResponse(input);
+          return jsonResponse({ error: "Temporary insertion failure" }, 500);
+        }
+        return jsonResponse(created, 201);
+      }
+      if (init.method === "DELETE" && created) return jsonResponse(removedInsertionResponse(created));
       return jsonResponse({ error: "unexpected request" }, 500);
     });
 
@@ -153,11 +216,19 @@ describe("Project reference navigation safety", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    expect(screen.getByText("Pending reference: uncertain")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
 
+    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(true));
     expect(screen.queryByText("Projects route")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel placement and leave" }));
+    expect(screen.queryByRole("button", { name: "Cancel placement and leave" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reconcile, cancel and leave" }));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(2));
+    const posts = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(JSON.parse(String(posts[1][1]?.body))).toEqual(originalInput);
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
     expect(screen.queryByText("Projects route")).toBeNull();
 
     pendingPatch.resolve(new Response(JSON.stringify(placementResponse()), {

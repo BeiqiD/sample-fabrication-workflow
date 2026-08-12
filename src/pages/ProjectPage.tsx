@@ -17,6 +17,7 @@ import {
 import type { ReferenceSearchResult } from "../../shared/reference-search";
 import type {
   CreateReferenceProjectItemInput,
+  ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
   ProjectPlacementRecord,
   ProjectSnapshot,
@@ -59,6 +60,14 @@ const DesktopProjectMap = lazy(() => import("../components/project/ProjectMapSur
   .then((module) => ({ default: module.ProjectMapSurface })));
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "conflict";
+type ReferenceRemovalStatus = "removing" | "error";
+
+type PendingReferenceRemoval = {
+  itemId: string;
+  input: ProjectItemLifecycleInput;
+  status: ReferenceRemovalStatus;
+  message: string | null;
+};
 
 function useDesktopProjectMap() {
   const query = "(min-width: 860px)";
@@ -91,6 +100,16 @@ function saveLabel(state: SaveState) {
   return "Saved";
 }
 
+function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error" | "conflict" {
+  if (caught instanceof ProjectApiError) {
+    if (caught.status === 409) return "conflict";
+    if (caught.status >= 400 && caught.status < 500 && caught.status !== 408 && caught.status !== 429) {
+      return "error";
+    }
+  }
+  return "uncertain";
+}
+
 export function ProjectPage() {
   const { projectId = "" } = useParams();
   const desktop = useDesktopProjectMap();
@@ -105,8 +124,8 @@ export function ProjectPage() {
   const [saveError, setSaveError] = useState("");
   const [referenceSearch, setReferenceSearch] = useState<ReferenceSearchUiState>(() => defaultReferenceSearchUiState());
   const [pendingReference, setPendingReferenceState] = useState<ProjectPendingReferencePlacement | null>(null);
+  const [pendingReferenceRemoval, setPendingReferenceRemovalState] = useState<PendingReferenceRemoval | null>(null);
   const [referenceActionError, setReferenceActionError] = useState("");
-  const [removingReference, setRemovingReference] = useState(false);
 
   const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
   const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
@@ -124,11 +143,18 @@ export function ProjectPage() {
   const pendingReferenceInputRef = useRef<CreateReferenceProjectItemInput | null>(null);
   const pendingReferencePayloadRef = useRef<ProjectReferenceDragPayload | null>(null);
   const referenceInsertionGenerationRef = useRef(0);
+  const pendingReferenceRemovalRef = useRef<PendingReferenceRemoval | null>(null);
+  const referenceRemovalGenerationRef = useRef(0);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
 
   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
     pendingReferenceRef.current = next;
     setPendingReferenceState(next);
+  }, []);
+
+  const updatePendingReferenceRemoval = useCallback((next: PendingReferenceRemoval | null) => {
+    pendingReferenceRemovalRef.current = next;
+    setPendingReferenceRemovalState(next);
   }, []);
 
   const saveSessionIsActive = useCallback((generation: number) => (
@@ -139,6 +165,10 @@ export function ProjectPage() {
     pageActiveRef.current && referenceInsertionGenerationRef.current === generation
   ), []);
 
+  const referenceRemovalIsActive = useCallback((generation: number) => (
+    pageActiveRef.current && referenceRemovalGenerationRef.current === generation
+  ), []);
+
   const updateSaveState = useCallback((next: SaveState) => {
     if (!pageActiveRef.current) return;
     saveStateRef.current = next;
@@ -146,17 +176,19 @@ export function ProjectPage() {
   }, []);
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
-    (saveState !== "saved" || pendingReference !== null)
+    (saveState !== "saved" || pendingReference !== null || pendingReferenceRemoval !== null)
     && (
       currentLocation.pathname !== nextLocation.pathname
       || currentLocation.search !== nextLocation.search
       || currentLocation.hash !== nextLocation.hash
     )
-  ), [pendingReference, saveState]);
+  ), [pendingReference, pendingReferenceRemoval, saveState]);
   const blocker = useBlocker(shouldBlockNavigation);
 
   useBeforeUnload(useCallback((event) => {
-    if (saveStateRef.current === "saved" && pendingReferenceRef.current === null) return;
+    if (saveStateRef.current === "saved"
+      && pendingReferenceRef.current === null
+      && pendingReferenceRemovalRef.current === null) return;
     event.preventDefault();
     event.returnValue = "";
   }, []), { capture: true });
@@ -168,6 +200,11 @@ export function ProjectPage() {
     updatePendingReference(null);
   }, [updatePendingReference]);
 
+  const clearReferenceRemoval = useCallback(() => {
+    referenceRemovalGenerationRef.current += 1;
+    updatePendingReferenceRemoval(null);
+  }, [updatePendingReferenceRemoval]);
+
   const installSnapshot = useCallback((next: ProjectSnapshot) => {
     const baseline = projectPlacementIndex(next);
     const nextGeometry = geometryIndex(next);
@@ -175,6 +212,7 @@ export function ProjectPage() {
     geometryRef.current = nextGeometry;
     pendingMutationRef.current = {};
     clearReferenceInsertion();
+    clearReferenceRemoval();
     setSnapshot(next);
     setGeometry(nextGeometry);
     setSelectedItemId(null);
@@ -183,7 +221,7 @@ export function ProjectPage() {
     setSaveError("");
     setReferenceActionError("");
     updateSaveState("saved");
-  }, [clearReferenceInsertion, updateSaveState]);
+  }, [clearReferenceInsertion, clearReferenceRemoval, updateSaveState]);
 
   const loadProject = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
@@ -213,6 +251,7 @@ export function ProjectPage() {
       pageActiveRef.current = false;
       saveSessionGenerationRef.current += 1;
       referenceInsertionGenerationRef.current += 1;
+      referenceRemovalGenerationRef.current += 1;
       navigationSaveRequestedRef.current = false;
       referenceNavigationRequestedRef.current = false;
       saveAgainRef.current = false;
@@ -220,6 +259,7 @@ export function ProjectPage() {
       pendingReferenceInputRef.current = null;
       pendingReferencePayloadRef.current = null;
       pendingReferenceRef.current = null;
+      pendingReferenceRemovalRef.current = null;
       if (autosaveTimerRef.current !== null) {
         window.clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
@@ -322,7 +362,9 @@ export function ProjectPage() {
       referenceNavigationRequestedRef.current = false;
       return;
     }
-    if (pendingReferenceRef.current) referenceNavigationRequestedRef.current = true;
+    if (pendingReferenceRef.current || pendingReferenceRemovalRef.current) {
+      referenceNavigationRequestedRef.current = true;
+    }
     const state = saveStateRef.current;
     if (state !== "unsaved" && state !== "saving") return;
     navigationSaveRequestedRef.current = true;
@@ -334,7 +376,7 @@ export function ProjectPage() {
   }, [blocker.state]);
 
   useEffect(() => {
-    if (blocker.state !== "blocked" || pendingReference !== null) return;
+    if (blocker.state !== "blocked" || pendingReference !== null || pendingReferenceRemoval !== null) return;
     if (saveState === "error" || saveState === "conflict") {
       navigationSaveRequestedRef.current = false;
       return;
@@ -347,10 +389,10 @@ export function ProjectPage() {
     } else {
       blocker.reset();
     }
-  }, [blocker, pendingReference, saveState]);
+  }, [blocker, pendingReference, pendingReferenceRemoval, saveState]);
 
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
-    if (projectGeometryEquals(command.before, command.after)) return;
+    if (pendingReferenceRemovalRef.current || projectGeometryEquals(command.before, command.after)) return;
     const next = { ...geometryRef.current, [command.placementId]: command.after };
     geometryRef.current = next;
     setGeometry(next);
@@ -364,6 +406,7 @@ export function ProjectPage() {
   }, [scheduleAutosave, updateSaveState]);
 
   const undo = useCallback(() => {
+    if (pendingReferenceRemovalRef.current) return;
     const command = undoStack.at(-1);
     if (!command) return;
     const next = applyProjectGeometryCommand(geometryRef.current, command, "undo");
@@ -379,6 +422,7 @@ export function ProjectPage() {
   }, [scheduleAutosave, undoStack, updateSaveState]);
 
   const redo = useCallback(() => {
+    if (pendingReferenceRemovalRef.current) return;
     const command = redoStack.at(-1);
     if (!command) return;
     const next = applyProjectGeometryCommand(geometryRef.current, command, "redo");
@@ -458,14 +502,14 @@ export function ProjectPage() {
       updatePendingReference(null);
     } catch (caught) {
       if (!referenceInsertionIsActive(generation)) return;
-      const conflict = caught instanceof ProjectApiError && caught.status === 409;
+      const status = referenceInsertionFailureStatus(caught);
       const message = caught instanceof Error ? caught.message : "The reference could not be placed";
       updatePendingReference({
         localId: `pending-${input.itemId}`,
         target: payload.target,
         preview: payload.preview,
         geometry: input.geometry,
-        status: conflict ? "conflict" : "error",
+        status,
         message,
       });
       setReferenceActionError(message);
@@ -476,7 +520,7 @@ export function ProjectPage() {
     payload: ProjectReferenceDragPayload,
     point: { x: number; y: number },
   ) => {
-    if (!snapshot || pendingReferenceRef.current || removingReference) return;
+    if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current) return;
     const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
     const geometry = projectReferenceGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!geometry) {
@@ -496,7 +540,7 @@ export function ProjectPage() {
     pendingReferenceInputRef.current = input;
     pendingReferencePayloadRef.current = payload;
     void performReferenceInsertion(generation, input, payload);
-  }, [performReferenceInsertion, removingReference, snapshot]);
+  }, [performReferenceInsertion, snapshot]);
 
   const placeReferenceAtCenter = useCallback((result: ReferenceSearchResult) => {
     const point = mapSurfaceRef.current?.getViewportCenter();
@@ -510,20 +554,18 @@ export function ProjectPage() {
   const retryReferencePlacement = useCallback(() => {
     const input = pendingReferenceInputRef.current;
     const payload = pendingReferencePayloadRef.current;
-    if (!input || !payload || pendingReferenceRef.current?.status !== "error") return;
+    const status = pendingReferenceRef.current?.status;
+    if (!input || !payload || (status !== "error" && status !== "uncertain")) return;
     void performReferenceInsertion(referenceInsertionGenerationRef.current, input, payload);
   }, [performReferenceInsertion]);
 
-  const cancelReferencePlacement = useCallback((leave = false) => {
-    clearReferenceInsertion();
-    setReferenceActionError("");
+  const continueReferenceNavigation = useCallback((leave: boolean) => {
     if (blocker.state !== "blocked") return;
     if (!leave) {
       referenceNavigationRequestedRef.current = false;
       blocker.reset();
       return;
     }
-
     referenceNavigationRequestedRef.current = true;
     const state = saveStateRef.current;
     if (state !== "unsaved" && state !== "saving") return;
@@ -533,10 +575,170 @@ export function ProjectPage() {
       autosaveTimerRef.current = null;
     }
     if (state === "unsaved") void flushSaveRef.current();
-  }, [blocker, clearReferenceInsertion]);
+  }, [blocker]);
+
+  const cancelReferencePlacement = useCallback((leave = false) => {
+    const status = pendingReferenceRef.current?.status;
+    if (status !== "error" && status !== "conflict") return;
+    clearReferenceInsertion();
+    setReferenceActionError("");
+    continueReferenceNavigation(leave);
+  }, [clearReferenceInsertion, continueReferenceNavigation]);
+
+  const finalizeReferenceRemoval = useCallback((
+    result: ProjectItemMutationResponse,
+    itemId: string,
+  ) => {
+    const removed = new Set<string>([result.placement.id]);
+    for (const [placementId, placement] of Object.entries(baselineRef.current)) {
+      if (placement.projectItemId === itemId) removed.add(placementId);
+    }
+    baselineRef.current = Object.fromEntries(
+      Object.entries(baselineRef.current).filter(([placementId]) => !removed.has(placementId)),
+    );
+    geometryRef.current = Object.fromEntries(
+      Object.entries(geometryRef.current).filter(([placementId]) => !removed.has(placementId)),
+    );
+    for (const placementId of removed) delete pendingMutationRef.current[placementId];
+    setGeometry(geometryRef.current);
+    setUndoStack((current) => current.filter((command) => !removed.has(command.placementId)));
+    setRedoStack((current) => current.filter((command) => !removed.has(command.placementId)));
+    setSnapshot((current) => current ? {
+      ...current,
+      project: result.project,
+      items: current.items.filter((item) => item.id !== itemId),
+      placements: current.placements.filter((placement) => placement.projectItemId !== itemId),
+      edges: current.edges.filter((edge) => edge.sourceItemId !== itemId && edge.targetItemId !== itemId),
+    } : current);
+    setSelectedItemId((current) => current === itemId ? null : current);
+    setSaveError("");
+    setReferenceActionError("");
+    clearReferenceRemoval();
+
+    const remainsDirty = Object.keys(pendingMutationRef.current).length > 0
+      || projectDirtyPlacements(baselineRef.current, geometryRef.current).length > 0;
+    if (remainsDirty) {
+      updateSaveState("unsaved");
+      scheduleAutosave();
+    } else {
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      updateSaveState("saved");
+    }
+  }, [clearReferenceRemoval, scheduleAutosave, updateSaveState]);
+
+  const performReferenceRemoval = useCallback(async (
+    generation: number,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+  ) => {
+    if (!projectId || !referenceRemovalIsActive(generation)) return;
+    updatePendingReferenceRemoval({ itemId, input, status: "removing", message: null });
+    setReferenceActionError("");
+    try {
+      const result = await projectApi.removeItem(projectId, itemId, input);
+      if (!referenceRemovalIsActive(generation)) return;
+      finalizeReferenceRemoval(result, itemId);
+    } catch (caught) {
+      if (!referenceRemovalIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "The Project occurrence could not be removed";
+      updatePendingReferenceRemoval({ itemId, input, status: "error", message });
+      setReferenceActionError(message);
+    }
+  }, [finalizeReferenceRemoval, projectId, referenceRemovalIsActive, updatePendingReferenceRemoval]);
+
+  const startReferenceRemoval = useCallback((itemId: string, expectedItemRevision: number) => {
+    if (pendingReferenceRemovalRef.current) return;
+    const input: ProjectItemLifecycleInput = {
+      expectedItemRevision,
+      operationId: createProjectApiId("operation"),
+    };
+    const generation = referenceRemovalGenerationRef.current + 1;
+    referenceRemovalGenerationRef.current = generation;
+    void performReferenceRemoval(generation, itemId, input);
+  }, [performReferenceRemoval]);
+
+  const retryReferenceRemoval = useCallback(() => {
+    const pending = pendingReferenceRemovalRef.current;
+    if (!pending || pending.status !== "error") return;
+    void performReferenceRemoval(referenceRemovalGenerationRef.current, pending.itemId, pending.input);
+  }, [performReferenceRemoval]);
+
+  const reconcileAndCancelUncertainReference = useCallback(async (leave = false) => {
+    const input = pendingReferenceInputRef.current;
+    const payload = pendingReferencePayloadRef.current;
+    const current = pendingReferenceRef.current;
+    const generation = referenceInsertionGenerationRef.current;
+    if (!projectId || !input || !payload || current?.status !== "uncertain"
+      || !referenceInsertionIsActive(generation) || pendingReferenceRemovalRef.current) return;
+
+    if (leave && blocker.state === "blocked") referenceNavigationRequestedRef.current = true;
+    updatePendingReference({
+      ...current,
+      status: "reconciling",
+      message: "Reconciling the original insertion before cancelling it…",
+    });
+    setReferenceActionError("");
+
+    try {
+      try {
+        const result = await projectApi.createReferenceItem(projectId, input);
+        if (!referenceInsertionIsActive(generation)) return;
+        mergeReferenceInsertion(result, payload);
+        clearReferenceInsertion();
+        startReferenceRemoval(result.item.id, result.item.revision);
+        return;
+      } catch (caught) {
+        if (!(caught instanceof ProjectApiError) || caught.status !== 409) throw caught;
+      }
+
+      const authoritative = await projectApi.read(projectId);
+      if (!referenceInsertionIsActive(generation)) return;
+      const item = authoritative.items.find((candidate) => candidate.id === input.itemId) ?? null;
+      if (!item) {
+        clearReferenceInsertion();
+        setReferenceActionError("");
+        continueReferenceNavigation(leave);
+        return;
+      }
+      const placement = authoritative.placements.find((candidate) => candidate.projectItemId === item.id) ?? null;
+      const reference = item.referenceTargetId
+        ? authoritative.references.find((candidate) => candidate.registryId === item.referenceTargetId) ?? null
+        : null;
+      const target = reference?.resolution.target;
+      const exactOccurrence = item.itemType === "reference"
+        && placement?.id === input.placementId
+        && target?.type === input.target.type
+        && target.id === input.target.id;
+      if (!exactOccurrence) {
+        const message = "The original insertion could not be reconciled to the same Project occurrence. Reload authoritative Project state before continuing.";
+        updatePendingReference({ ...current, status: "conflict", message });
+        setReferenceActionError(message);
+        return;
+      }
+      clearReferenceInsertion();
+      startReferenceRemoval(item.id, item.revision);
+    } catch (caught) {
+      if (!referenceInsertionIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "The insertion outcome could not be reconciled";
+      updatePendingReference({ ...current, status: "uncertain", message });
+      setReferenceActionError(message);
+    }
+  }, [
+    blocker.state,
+    clearReferenceInsertion,
+    continueReferenceNavigation,
+    mergeReferenceInsertion,
+    projectId,
+    referenceInsertionIsActive,
+    startReferenceRemoval,
+    updatePendingReference,
+  ]);
 
   const reloadAfterReferenceConflict = useCallback(() => {
-    if (saveStateRef.current !== "saved") return;
+    if (saveStateRef.current !== "saved" || pendingReferenceRemovalRef.current) return;
     clearReferenceInsertion();
     setReferenceActionError("");
     referenceNavigationRequestedRef.current = false;
@@ -551,7 +753,7 @@ export function ProjectPage() {
   }, [blocker]);
 
   const leaveWithoutSaving = useCallback(() => {
-    if (blocker.state !== "blocked" || pendingReferenceRef.current) return;
+    if (blocker.state !== "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current) return;
     const state = saveStateRef.current;
     if (state !== "error" && state !== "conflict") return;
     navigationSaveRequestedRef.current = false;
@@ -585,44 +787,11 @@ export function ProjectPage() {
   const selected = descriptors.find((node) => node.itemId === selectedItemId) ?? null;
   const selectedItem = snapshot?.items.find((item) => item.id === selectedItemId) ?? null;
 
-  const removeSelectedReference = useCallback(async () => {
+  const removeSelectedReference = useCallback(() => {
     if (!snapshot || !selectedItem || selectedItem.itemType !== "reference"
-      || saveStateRef.current !== "saved" || pendingReferenceRef.current || removingReference) return;
-    setRemovingReference(true);
-    setReferenceActionError("");
-    try {
-      const result = await projectApi.removeItem(projectId, selectedItem.id, {
-        expectedItemRevision: selectedItem.revision,
-        operationId: createProjectApiId("operation"),
-      });
-      if (!pageActiveRef.current) return;
-      const removedPlacementIds = snapshot.placements
-        .filter((placement) => placement.projectItemId === selectedItem.id)
-        .map((placement) => placement.id);
-      const removed = new Set(removedPlacementIds);
-      baselineRef.current = Object.fromEntries(
-        Object.entries(baselineRef.current).filter(([placementId]) => !removed.has(placementId)),
-      );
-      geometryRef.current = Object.fromEntries(
-        Object.entries(geometryRef.current).filter(([placementId]) => !removed.has(placementId)),
-      );
-      for (const placementId of removed) delete pendingMutationRef.current[placementId];
-      setGeometry(geometryRef.current);
-      setUndoStack((current) => current.filter((command) => !removed.has(command.placementId)));
-      setRedoStack((current) => current.filter((command) => !removed.has(command.placementId)));
-      setSnapshot((current) => current ? {
-        ...current,
-        project: result.project,
-        items: current.items.filter((item) => item.id !== selectedItem.id),
-        placements: current.placements.filter((placement) => placement.projectItemId !== selectedItem.id),
-      } : current);
-      setSelectedItemId(null);
-    } catch (caught) {
-      setReferenceActionError(caught instanceof Error ? caught.message : "The Project occurrence could not be removed");
-    } finally {
-      if (pageActiveRef.current) setRemovingReference(false);
-    }
-  }, [projectId, removingReference, selectedItem, snapshot]);
+      || saveStateRef.current !== "saved" || pendingReferenceRef.current || pendingReferenceRemovalRef.current) return;
+    startReferenceRemoval(selectedItem.id, selectedItem.revision);
+  }, [selectedItem, snapshot, startReferenceRemoval]);
 
   if (loading) return <div className="page project-page"><p className="muted">Loading Project…</p></div>;
   if (loadError || !snapshot) return <div className="page project-page">
@@ -630,8 +799,10 @@ export function ProjectPage() {
     <p className="error-banner">{loadError || "Project not found"}</p>
   </div>;
 
-  const referencePlacementDisabled = Boolean(pendingReference || removingReference || saveState === "conflict");
-  const referenceConflictReloadDisabled = saveState !== "saved";
+  const removingReference = pendingReferenceRemoval?.status === "removing";
+  const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || saveState === "conflict");
+  const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null;
+  const geometryInteractionDisabled = pendingReferenceRemoval !== null;
 
   return <div className={`project-page${desktop ? " desktop" : " mobile"}`}>
     <header className="project-workspace-header">
@@ -642,12 +813,12 @@ export function ProjectPage() {
       </div>
       {desktop && <div className="project-save-toolbar">
         <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-        <button type="button" className="button compact-button" disabled={!undoStack.length || saveState === "saving"} onClick={undo}>Undo</button>
-        <button type="button" className="button compact-button" disabled={!redoStack.length || saveState === "saving"} onClick={redo}>Redo</button>
+        <button type="button" className="button compact-button" disabled={!undoStack.length || saveState === "saving" || geometryInteractionDisabled} onClick={undo}>Undo</button>
+        <button type="button" className="button compact-button" disabled={!redoStack.length || saveState === "saving" || geometryInteractionDisabled} onClick={redo}>Redo</button>
         <button
           type="button"
           className="button primary compact-button"
-          disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict"}
+          disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled}
           onClick={() => {
             if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
             autosaveTimerRef.current = null;
@@ -659,37 +830,50 @@ export function ProjectPage() {
 
     {saveError && <div className={`project-save-banner ${saveState}`}>
       <p>{saveError}</p>
-      {saveState === "conflict" && <button type="button" className="button compact-button" onClick={() => void loadProject()}>
+      {saveState === "conflict" && <button type="button" className="button compact-button" disabled={geometryInteractionDisabled} onClick={() => void loadProject()}>
         Reload authoritative Project
       </button>}
-      {saveState === "error" && <button type="button" className="button compact-button" onClick={() => void flushSave()}>
+      {saveState === "error" && <button type="button" className="button compact-button" disabled={geometryInteractionDisabled} onClick={() => void flushSave()}>
         Retry save
       </button>}
     </div>}
 
-    {referenceActionError && !pendingReference && <div className="project-save-banner error">
+    {pendingReferenceRemoval?.status === "error" && <div className="project-save-banner error">
+      <p>{pendingReferenceRemoval.message || "The Project occurrence removal outcome is unresolved."}</p>
+      <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry removal</button>
+    </div>}
+
+    {referenceActionError && !pendingReference && !pendingReferenceRemoval && <div className="project-save-banner error">
       <p>{referenceActionError}</p>
     </div>}
 
     {blocker.state === "blocked" && <div className="project-save-banner warning" role="alertdialog" aria-label="Unsaved Project changes">
-      <p>{pendingReference
-        ? pendingReference.status === "placing"
-          ? "Finishing the reference placement before leaving this Project…"
-          : pendingReference.status === "conflict" && referenceConflictReloadDisabled
-            ? "The reference placement conflicted while this Project also has placement changes to resolve. Save or resolve those geometry changes before reloading, or cancel only the reference placement."
-            : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
-        : saveState === "conflict"
-          ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
-          : saveState === "error"
-            ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
-            : "Saving placement changes before leaving this Project…"}</p>
+      <p>{pendingReferenceRemoval
+        ? pendingReferenceRemoval.status === "removing"
+          ? "Finishing the Project occurrence removal before leaving this Project…"
+          : "The Project occurrence removal outcome is unresolved. Retry the exact removal before leaving."
+        : pendingReference
+          ? pendingReference.status === "placing" || pendingReference.status === "reconciling"
+            ? "Finishing the reference placement reconciliation before leaving this Project…"
+            : pendingReference.status === "uncertain"
+              ? "The reference insertion outcome is uncertain. Retry the exact insertion or reconcile it before cancelling and leaving."
+              : pendingReference.status === "conflict" && referenceConflictReloadDisabled
+                ? "The reference placement conflicted while this Project also has placement changes to resolve. Save or resolve those geometry changes before reloading, or cancel only the reference placement."
+                : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
+          : saveState === "conflict"
+            ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
+            : saveState === "error"
+              ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
+              : "Saving placement changes before leaving this Project…"}</p>
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
-        {pendingReference?.status === "error" && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
+        {pendingReferenceRemoval?.status === "error" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry removal</button>}
+        {(pendingReference?.status === "error" || pendingReference?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
+        {pendingReference?.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(true)}>Reconcile, cancel and leave</button>}
         {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
-        {!pendingReference && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
-        {!pendingReference && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
+        {!pendingReference && !pendingReferenceRemoval && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
+        {!pendingReference && !pendingReferenceRemoval && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
       </div>
     </div>}
 
@@ -701,11 +885,17 @@ export function ProjectPage() {
         </div>
         {pendingReference && <div className={`project-reference-pending ${pendingReference.status}`}>
           <strong>{pendingReference.preview.title}</strong>
-          <span>{pendingReference.status === "placing" ? "Placing reference…" : pendingReference.message}</span>
-          {pendingReference.status === "error" && <div className="project-reference-pending-actions">
+          <span>{pendingReference.status === "placing"
+            ? "Placing reference…"
+            : pendingReference.status === "reconciling"
+              ? "Reconciling the original insertion…"
+              : pendingReference.message}</span>
+          {(pendingReference.status === "error" || pendingReference.status === "uncertain") && <div className="project-reference-pending-actions">
             <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry</button>
-            <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>
+            {pendingReference.status === "error" && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>}
+            {pendingReference.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(false)}>Reconcile and cancel</button>}
           </div>}
+          {pendingReference.status === "uncertain" && <small className="muted">The server may already have committed this occurrence. Cancellation first replays the original operation and removes any confirmed occurrence.</small>}
           {pendingReference.status === "conflict" && <div className="project-reference-pending-actions">
             <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>
             <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>
@@ -727,6 +917,7 @@ export function ProjectPage() {
             nodes={descriptors}
             pendingReference={pendingReference}
             selectedItemId={selectedItemId}
+            geometryInteractionDisabled={geometryInteractionDisabled}
             onSelect={setSelectedItemId}
             onGeometryCommit={commitGeometry}
             onReferenceDrop={startReferencePlacement}
@@ -750,9 +941,11 @@ export function ProjectPage() {
           {selected.kind === "reference" && <button
             type="button"
             className="button wide"
-            disabled={saveState !== "saved" || Boolean(pendingReference) || removingReference}
-            onClick={() => void removeSelectedReference()}
-          >{removingReference ? "Removing…" : "Remove from Project"}</button>}
+            disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            onClick={removeSelectedReference}
+          >{pendingReferenceRemoval?.itemId === selected.itemId
+            ? removingReference ? "Removing…" : "Removal needs retry"
+            : "Remove from Project"}</button>}
           {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
         </div> : <p className="muted">Select a Map item to inspect its Project occurrence.</p>}
       </aside>

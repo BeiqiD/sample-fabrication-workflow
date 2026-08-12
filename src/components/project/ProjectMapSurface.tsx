@@ -40,6 +40,7 @@ import "./project-map-surface.css";
 type ProjectFlowNodeData = {
   descriptor: ProjectNodeDescriptor;
   pendingReference: ProjectPendingReferencePlacement | null;
+  geometryInteractionDisabled: boolean;
   onResizeStart: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
   onResizeEnd: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
 };
@@ -54,6 +55,7 @@ export interface ProjectMapSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   pendingReference?: ProjectPendingReferencePlacement | null;
   selectedItemId: string | null;
+  geometryInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => void;
   onGeometryCommit: (command: ProjectGeometryCommand) => void;
   onReferenceDrop?: (
@@ -89,16 +91,20 @@ function geometryFromResize(
 }
 
 function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
-  const { descriptor, pendingReference } = data;
+  const { descriptor, pendingReference, geometryInteractionDisabled } = data;
   if (pendingReference) {
     return <article className={`project-map-node project-map-node-reference pending ${pendingReference.status}`}>
       <header>
         <span>reference</span>
         <small>{pendingReference.status === "placing"
           ? "Placing…"
-          : pendingReference.status === "conflict"
-            ? "Conflict"
-            : "Retry required"}</small>
+          : pendingReference.status === "reconciling"
+            ? "Reconciling…"
+            : pendingReference.status === "uncertain"
+              ? "Outcome uncertain"
+              : pendingReference.status === "conflict"
+                ? "Conflict"
+                : "Retry required"}</small>
       </header>
       <h2>{pendingReference.preview.title}</h2>
       {pendingReference.preview.subtitle && <p className="project-node-subtitle">{pendingReference.preview.subtitle}</p>}
@@ -108,15 +114,19 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
 
   return <article className={`project-map-node project-map-node-${descriptor.kind}`}>
     <NodeResizer
-      isVisible={selected}
+      isVisible={selected && !geometryInteractionDisabled}
       minWidth={180}
       minHeight={110}
       maxWidth={1_200}
       maxHeight={1_000}
       lineClassName="project-node-resize-line nodrag nopan"
       handleClassName="project-node-resize-handle nodrag nopan"
-      onResizeStart={(_event, params) => data.onResizeStart(descriptor, params)}
-      onResizeEnd={(_event, params) => data.onResizeEnd(descriptor, params)}
+      onResizeStart={(_event, params) => {
+        if (!geometryInteractionDisabled) data.onResizeStart(descriptor, params);
+      }}
+      onResizeEnd={(_event, params) => {
+        if (!geometryInteractionDisabled) data.onResizeEnd(descriptor, params);
+      }}
     />
     <header>
       <span>{descriptor.kind}</span>
@@ -141,6 +151,7 @@ const PROJECT_PRO_OPTIONS = { hideAttribution: true } as const;
 
 function buildFlowNode(
   descriptor: ProjectNodeDescriptor,
+  geometryInteractionDisabled: boolean,
   onResizeStart: ProjectFlowNodeData["onResizeStart"],
   onResizeEnd: ProjectFlowNodeData["onResizeEnd"],
 ): ProjectFlowNode {
@@ -155,12 +166,12 @@ function buildFlowNode(
       height: descriptor.geometry.height,
       zIndex: descriptor.geometry.zIndex,
     },
-    data: { descriptor, pendingReference: null, onResizeStart, onResizeEnd },
-    draggable: true,
+    data: { descriptor, pendingReference: null, geometryInteractionDisabled, onResizeStart, onResizeEnd },
+    draggable: !geometryInteractionDisabled,
     selectable: true,
     connectable: false,
     deletable: false,
-    focusable: true,
+    focusable: !geometryInteractionDisabled,
     ariaLabel: `${descriptor.kind}: ${descriptor.title}`,
   };
 }
@@ -193,7 +204,7 @@ function buildPendingFlowNode(
       height: descriptor.geometry.height,
       zIndex: descriptor.geometry.zIndex,
     },
-    data: { descriptor, pendingReference, onResizeStart, onResizeEnd },
+    data: { descriptor, pendingReference, geometryInteractionDisabled: true, onResizeStart, onResizeEnd },
     draggable: false,
     selectable: false,
     connectable: false,
@@ -207,6 +218,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   nodes: descriptors,
   pendingReference = null,
   selectedItemId,
+  geometryInteractionDisabled = false,
   onSelect,
   onGeometryCommit,
   onReferenceDrop,
@@ -216,26 +228,29 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const flowInstanceRef = useRef<ReactFlowInstance<ProjectFlowNode> | null>(null);
 
   const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
+    if (geometryInteractionDisabled) return;
     interactionStarts.set(descriptor.placementId, geometryFromResize(descriptor, params));
-  }, [interactionStarts]);
+  }, [geometryInteractionDisabled, interactionStarts]);
 
   const handleResizeEnd = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
+    if (geometryInteractionDisabled) return;
     const after = geometryFromResize(descriptor, params);
     const before = interactionStarts.get(descriptor.placementId) ?? descriptor.geometry;
     interactionStarts.delete(descriptor.placementId);
     onGeometryCommit({ placementId: descriptor.placementId, before, after });
-  }, [interactionStarts, onGeometryCommit]);
+  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
   const projectedNodes = useMemo(() => {
     const active = descriptors.map((descriptor) => buildFlowNode(
       descriptor,
+      geometryInteractionDisabled,
       handleResizeStart,
       handleResizeEnd,
     ));
     return pendingReference
       ? [...active, buildPendingFlowNode(pendingReference, handleResizeStart, handleResizeEnd)]
       : active;
-  }, [descriptors, handleResizeEnd, handleResizeStart, pendingReference]);
+  }, [descriptors, geometryInteractionDisabled, handleResizeEnd, handleResizeStart, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
 
@@ -282,12 +297,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }), [flowPointFromClient]);
 
   const onNodesChange = useCallback((changes: NodeChange<ProjectFlowNode>[]) => {
+    const effectiveChanges = geometryInteractionDisabled
+      ? changes.filter((change) => change.type !== "position")
+      : changes;
     const current = flowNodesRef.current;
-    const next = applyNodeChanges(changes, current);
+    const next = applyNodeChanges(effectiveChanges, current);
     flowNodesRef.current = next;
     setFlowNodes(next);
 
-    for (const change of changes) {
+    if (geometryInteractionDisabled) return;
+    for (const change of effectiveChanges) {
       if (change.type !== "position" || change.dragging || !change.position) continue;
       const beforeNode = current.find((candidate) => candidate.id === change.id);
       const afterNode = next.find((candidate) => candidate.id === change.id);
@@ -299,7 +318,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (projectGeometryEquals(before, after)) continue;
       onGeometryCommit({ placementId, before, after });
     }
-  }, [interactionStarts, onGeometryCommit]);
+  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
   const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
     if (!node.data.pendingReference) onSelect(node.id);
@@ -310,25 +329,27 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onSelect(selected?.id ?? null);
   }, [onSelect]);
   const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
-    if (node.data.pendingReference) return;
+    if (geometryInteractionDisabled || node.data.pendingReference) return;
     interactionStarts.set(node.data.descriptor.placementId, nodeGeometry(node));
-  }, [interactionStarts]);
+  }, [geometryInteractionDisabled, interactionStarts]);
   const handleNodeDragStop = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
-    if (node.data.pendingReference) return;
+    if (geometryInteractionDisabled || node.data.pendingReference) return;
     const placementId = node.data.descriptor.placementId;
     const before = interactionStarts.get(placementId) ?? node.data.descriptor.geometry;
     interactionStarts.delete(placementId);
     onGeometryCommit({ placementId, before, after: nodeGeometry(node) });
-  }, [interactionStarts, onGeometryCommit]);
+  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (geometryInteractionDisabled) return;
     const types = Array.from(event.dataTransfer.types ?? []);
     if (!types.includes(PROJECT_REFERENCE_DRAG_MIME)) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
-  }, []);
+  }, [geometryInteractionDisabled]);
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (geometryInteractionDisabled) return;
     const payload = readProjectReferenceDragPayload(event.dataTransfer);
     if (!payload || !onReferenceDrop) return;
     const point = flowPointFromClient(event.clientX, event.clientY);
@@ -336,7 +357,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     event.preventDefault();
     event.stopPropagation();
     onReferenceDrop(payload, point);
-  }, [flowPointFromClient, onReferenceDrop]);
+  }, [flowPointFromClient, geometryInteractionDisabled, onReferenceDrop]);
 
   return <div
     ref={canvasRef}
@@ -356,6 +377,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onPaneClick={handlePaneClick}
       onNodeDragStart={handleNodeDragStart}
       onNodeDragStop={handleNodeDragStop}
+      nodesDraggable={!geometryInteractionDisabled}
       nodesConnectable={false}
       elementsSelectable
       fitView

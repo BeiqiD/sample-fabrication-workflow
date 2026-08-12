@@ -36,7 +36,7 @@ export interface ProjectReferenceDragPayload {
   preview: ProjectReferencePreview;
 }
 
-export type ProjectPendingReferenceStatus = "placing" | "error" | "conflict";
+export type ProjectPendingReferenceStatus = "placing" | "reconciling" | "uncertain" | "error" | "conflict";
 
 export interface ProjectPendingReferencePlacement {
   localId: string;

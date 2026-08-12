@@ -28,7 +28,26 @@ describe("Phase 3B2 source contract", () => {
     expect(page).toContain("mergeReferenceInsertion(result, payload)");
     expect(page).toContain("baselineRef.current = {");
     expect(page).not.toContain("installSnapshot(result");
-    expect(page).toContain("projectApi.removeItem(projectId, selectedItem.id");
+    expect(page).toContain("projectApi.removeItem(projectId, itemId, input)");
+  });
+
+  it("treats transport and 5xx insertion failures as uncertain until exact replay or reconciliation", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    expect(page).toContain('return "uncertain"');
+    expect(page).toContain('current?.status !== "uncertain"');
+    expect(page).toContain("projectApi.createReferenceItem(projectId, input)");
+    expect(page).toContain("Reconcile and cancel");
+    expect(page).toContain("pendingReference.status === \"error\" && <button");
+  });
+
+  it("freezes geometry and preserves one exact lifecycle request while a reference removal is unresolved", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    expect(page).toContain("pendingReferenceRemovalRef");
+    expect(page).toContain("retryReferenceRemoval");
+    expect(page).toContain("geometryInteractionDisabled={geometryInteractionDisabled}");
+    expect(map).toContain("nodesDraggable={!geometryInteractionDisabled}");
+    expect(map).toContain('changes.filter((change) => change.type !== "position")');
   });
 
   it("keeps reference creation desktop-only and preserves the mobile no-creation boundary", () => {
