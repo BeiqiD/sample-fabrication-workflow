@@ -15,12 +15,24 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page.indexOf("projectApi.createMarkdownItem(projectId, input)")).toBeGreaterThan(page.indexOf("const saveMarkdown"));
   });
 
-  it("uploads generic files first and then creates one authoritative Project attachment occurrence", () => {
+  it("only lets Escape cancel an empty new Markdown draft", () => {
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    expect(map).toContain('if (event.key !== "Escape") return;');
+    expect(map).toContain("if (markdownEditor.isNew && !markdownEditor.value.trim()) data.onMarkdownCancel()");
+    expect(map).not.toContain("if (!markdownEditor.isNew || !markdownEditor.value.trim()) data.onMarkdownCancel()");
+  });
+
+  it("uploads generic files through the Project asset route before creating one authoritative occurrence", () => {
     const page = read("./pages/ProjectPage.tsx");
     const client = read("./lib/project-client.ts");
+    const foundation = read("../worker/project-foundation-routes.ts");
     expect(client).toContain('uploadAttachmentAsset: (file: File)');
-    expect(client).toContain('"/assets"');
+    expect(client).toContain('"/project-assets"');
+    expect(client).toContain('"x-project-filename-uri": encodeURIComponent(file.name)');
     expect(client).toContain('/items/attachment`');
+    expect(foundation).toContain('routes.post("/project-assets"');
+    expect(foundation).not.toContain('startsWith("image/")');
+    expect(foundation).toContain("decodeURIComponent(encoded)");
     expect(page).toContain("const asset = await projectApi.uploadAttachmentAsset(file)");
     expect(page).toContain("locator: { assetId: asset.id }");
     expect(page).toContain("await performAttachmentProjectCreate(generation, input, file)");
@@ -47,6 +59,13 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(model).toContain("attachmentCaption");
     expect(page).toContain("<ReferenceSearchSurface");
     expect(page).not.toContain("sourceAttachmentId");
+  });
+
+  it("anchors the context menu to the Project Map canvas", () => {
+    const css = read("./components/project/project-map-surface.css");
+    expect(css).toMatch(/\.project-flow-canvas\s*\{[\s\S]*?position:\s*relative;/);
+    expect(css).toContain(".project-map-context-menu {");
+    expect(css).toContain("position: absolute;");
   });
 
   it("keeps Project-owned content creation desktop-only and leaves edges for Phase 3B4", () => {
