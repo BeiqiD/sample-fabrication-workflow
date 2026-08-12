@@ -6,9 +6,9 @@ Last reviewed: 2026-08-12 after the reference/search foundation through PR #129,
 the reusable Project discovery surface implemented in PR #130, the Map-first
 Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
 the Phase 3A2 authoritative persistence service completed in PR #132, the
-Phase 3B1 desktop Map kernel squash-merged in PR #133, and Phase 3B2 reference
-placement completed independent review in PR #134; Phase 3B3 is the immediate
-next implementation phase after the #134 squash merge
+Phase 3B1 desktop Map kernel squash-merged in PR #133, Phase 3B2 reference
+placement squash-merged in PR #134, and Phase 3B3 Project-owned Markdown and
+generic attachment creation entered implementation
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -284,7 +284,7 @@ becoming the database.
 
 ### Phase 3B2 — reference sidebar and Map placement
 
-**Status:** complete in PR #134; independent exact-head review passed.
+**Status:** complete; squash-merged in PR #134.
 
 **Goal:** make reference discovery and spatial placement the core Project
 creation flow.
@@ -314,7 +314,7 @@ This milestone is the first useful **Project reference-workspace alpha**.
 
 ### Phase 3B3 — Project-owned Markdown and generic attachments
 
-**Status:** immediate next implementation phase after the #134 squash merge.
+**Status:** active implementation phase; keep Draft until exact-head review and verification pass.
 
 **Goal:** allow the Map to create the only two Project-owned content classes.
 

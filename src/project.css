@@ -117,3 +117,16 @@
   .project-create-form .form-actions { justify-content: stretch; }
   .project-create-form .form-actions .button { flex: 1 1 0; }
 }
+
+.project-owned-content-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.project-hidden-file-input { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.project-owned-content-pending { display: grid; gap: 7px; padding: 11px; margin-bottom: 12px; border: 1px dashed var(--warning); border-radius: 9px; background: var(--warning-soft); font-size: 11px; }
+.project-owned-content-pending.error,
+.project-owned-content-pending.conflict { border-color: var(--danger); background: var(--danger-soft); }
+.project-owned-content-pending-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.project-attachment-meta-form { display: grid; gap: 10px; }
+.project-attachment-meta-form label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.project-attachment-meta-form input,
+.project-attachment-meta-form textarea { width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--paper); font: inherit; }
+.project-attachment-meta-form textarea { min-height: 88px; resize: vertical; }
+.project-reading-image { width: 100%; max-height: 420px; object-fit: contain; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-warm); }

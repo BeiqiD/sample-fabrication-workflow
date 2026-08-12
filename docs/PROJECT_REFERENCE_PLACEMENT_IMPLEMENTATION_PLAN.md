@@ -1,6 +1,6 @@
 # Project reference placement implementation plan
 
-Status: Phase 3B2 implementation complete in PR #134; independent review passed and merge-ready
+Status: Phase 3B2 complete; squash-merged in PR #134
 
 Last reviewed: 2026-08-12 after Phase 3B1 desktop Map kernel was squash-merged in PR #133 and Phase 3B2 completed independent exact-head review
 
