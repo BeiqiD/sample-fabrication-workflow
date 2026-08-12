@@ -80,12 +80,12 @@ export const projectApi = {
     jsonRequest("POST", input),
   ),
   uploadAttachmentAsset: (file: File) => projectRequest<{ id: string; key: string; deduplicated: boolean }>(
-    "/assets",
+    "/project-assets",
     {
       method: "POST",
       headers: {
         "content-type": file.type || "application/octet-stream",
-        "x-filename": file.name,
+        "x-project-filename-uri": encodeURIComponent(file.name),
       },
       body: file,
     },
