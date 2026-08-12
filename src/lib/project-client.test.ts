@@ -110,4 +110,55 @@ describe("Project client", () => {
       }),
     ]);
   });
+
+  it("uses an ASCII-safe filename header and snapshots current upload metadata onto the Project occurrence", async () => {
+    const file = new File(["same bytes"], "实验结果.pdf", { type: "application/pdf" });
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: "asset-deduplicated",
+        key: "2026-08-13/original.bin",
+        deduplicated: true,
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ replayed: false }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const asset = await projectApi.uploadAttachmentAsset(file);
+    const createInput = {
+      contentId: "content-a",
+      itemId: "item-a",
+      placementId: "placement-a",
+      locator: { assetId: asset.id },
+      caption: null,
+      sourceUrl: null,
+      geometry: { x: 10, y: 20, width: 340, height: 170, zIndex: 1 },
+      expectedProjectRevision: 3,
+      operationId: "operation-attachment",
+    };
+    await projectApi.createAttachmentItem("project-a", createInput);
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/project-assets");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: "POST",
+      headers: {
+        "content-type": "application/pdf",
+        "x-project-filename-uri": encodeURIComponent(file.name),
+      },
+      body: file,
+    });
+    const createBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
+    expect(createBody).toEqual({
+      ...createInput,
+      intrinsicMetadata: {
+        originalName: "实验结果.pdf",
+        mimeType: "application/pdf",
+        byteSize: file.size,
+      },
+    });
+  });
 });
