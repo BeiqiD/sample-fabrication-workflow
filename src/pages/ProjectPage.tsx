@@ -50,6 +50,7 @@ import {
   type ProjectPendingReferencePlacement,
   type ProjectReferenceDragPayload,
 } from "../lib/project-reference-placement";
+import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
 import {
   defaultReferenceSearchUiState,
   type ReferenceSearchUiState,
@@ -60,7 +61,7 @@ const DesktopProjectMap = lazy(() => import("../components/project/ProjectMapSur
   .then((module) => ({ default: module.ProjectMapSurface })));
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "conflict";
-type ReferenceRemovalStatus = "removing" | "error";
+type ReferenceRemovalStatus = "removing" | "uncertain" | "reconciling" | "conflict";
 
 type PendingReferenceRemoval = {
   itemId: string;
@@ -629,6 +630,51 @@ export function ProjectPage() {
     }
   }, [clearReferenceRemoval, scheduleAutosave, updateSaveState]);
 
+  const reconcileReferenceRemoval = useCallback(async (
+    generation: number,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+    failureMessage: string,
+  ) => {
+    if (!projectId || !referenceRemovalIsActive(generation)) return;
+    updatePendingReferenceRemoval({
+      itemId,
+      input,
+      status: "reconciling",
+      message: "Reloading authoritative Project state after the removal conflict…",
+    });
+    setReferenceActionError("");
+    try {
+      const authoritative = await projectApi.read(projectId);
+      if (!referenceRemovalIsActive(generation)) return;
+      const authoritativeItem = authoritative.items.find((item) => item.id === itemId) ?? null;
+      installSnapshot(authoritative);
+      if (authoritativeItem) {
+        setReferenceActionError(
+          "The occurrence changed elsewhere. The latest Project state was loaded; review it before starting a new removal.",
+        );
+      }
+    } catch (caught) {
+      if (!referenceRemovalIsActive(generation)) return;
+      if (caught instanceof ProjectApiError && caught.status === 404) {
+        clearReferenceRemoval();
+        setReferenceActionError("");
+        setLoadError("Project is no longer available");
+        return;
+      }
+      const detail = caught instanceof Error ? caught.message : "The authoritative Project could not be loaded";
+      const message = `${failureMessage}. Authoritative reconciliation failed: ${detail}`;
+      updatePendingReferenceRemoval({ itemId, input, status: "conflict", message });
+      setReferenceActionError(message);
+    }
+  }, [
+    clearReferenceRemoval,
+    installSnapshot,
+    projectId,
+    referenceRemovalIsActive,
+    updatePendingReferenceRemoval,
+  ]);
+
   const performReferenceRemoval = useCallback(async (
     generation: number,
     itemId: string,
@@ -644,10 +690,20 @@ export function ProjectPage() {
     } catch (caught) {
       if (!referenceRemovalIsActive(generation)) return;
       const message = caught instanceof Error ? caught.message : "The Project occurrence could not be removed";
-      updatePendingReferenceRemoval({ itemId, input, status: "error", message });
+      if (projectReferenceRemovalNeedsReconciliation(caught)) {
+        await reconcileReferenceRemoval(generation, itemId, input, message);
+        return;
+      }
+      updatePendingReferenceRemoval({ itemId, input, status: "uncertain", message });
       setReferenceActionError(message);
     }
-  }, [finalizeReferenceRemoval, projectId, referenceRemovalIsActive, updatePendingReferenceRemoval]);
+  }, [
+    finalizeReferenceRemoval,
+    projectId,
+    reconcileReferenceRemoval,
+    referenceRemovalIsActive,
+    updatePendingReferenceRemoval,
+  ]);
 
   const startReferenceRemoval = useCallback((itemId: string, expectedItemRevision: number) => {
     if (pendingReferenceRemovalRef.current) return;
@@ -662,9 +718,20 @@ export function ProjectPage() {
 
   const retryReferenceRemoval = useCallback(() => {
     const pending = pendingReferenceRemovalRef.current;
-    if (!pending || pending.status !== "error") return;
+    if (!pending || pending.status !== "uncertain") return;
     void performReferenceRemoval(referenceRemovalGenerationRef.current, pending.itemId, pending.input);
   }, [performReferenceRemoval]);
+
+  const retryReferenceRemovalReconciliation = useCallback(() => {
+    const pending = pendingReferenceRemovalRef.current;
+    if (!pending || pending.status !== "conflict") return;
+    void reconcileReferenceRemoval(
+      referenceRemovalGenerationRef.current,
+      pending.itemId,
+      pending.input,
+      pending.message || "The Project occurrence removal conflicted",
+    );
+  }, [reconcileReferenceRemoval]);
 
   const reconcileAndCancelUncertainReference = useCallback(async (leave = false) => {
     const input = pendingReferenceInputRef.current;
@@ -799,7 +866,8 @@ export function ProjectPage() {
     <p className="error-banner">{loadError || "Project not found"}</p>
   </div>;
 
-  const removingReference = pendingReferenceRemoval?.status === "removing";
+  const removingReference = pendingReferenceRemoval?.status === "removing"
+    || pendingReferenceRemoval?.status === "reconciling";
   const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || saveState === "conflict");
   const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null;
   const geometryInteractionDisabled = pendingReferenceRemoval !== null;
@@ -838,9 +906,14 @@ export function ProjectPage() {
       </button>}
     </div>}
 
-    {pendingReferenceRemoval?.status === "error" && <div className="project-save-banner error">
-      <p>{pendingReferenceRemoval.message || "The Project occurrence removal outcome is unresolved."}</p>
-      <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry removal</button>
+    {pendingReferenceRemoval?.status === "uncertain" && <div className="project-save-banner error">
+      <p>{pendingReferenceRemoval.message || "The Project occurrence removal outcome is uncertain."}</p>
+      <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>
+    </div>}
+
+    {pendingReferenceRemoval?.status === "conflict" && <div className="project-save-banner error">
+      <p>{pendingReferenceRemoval.message || "The Project occurrence removal conflict needs authoritative reconciliation."}</p>
+      <button type="button" className="button primary compact-button" onClick={retryReferenceRemovalReconciliation}>Retry reconciliation</button>
     </div>}
 
     {referenceActionError && !pendingReference && !pendingReferenceRemoval && <div className="project-save-banner error">
@@ -851,7 +924,11 @@ export function ProjectPage() {
       <p>{pendingReferenceRemoval
         ? pendingReferenceRemoval.status === "removing"
           ? "Finishing the Project occurrence removal before leaving this Project…"
-          : "The Project occurrence removal outcome is unresolved. Retry the exact removal before leaving."
+          : pendingReferenceRemoval.status === "reconciling"
+            ? "Reconciling the Project occurrence against authoritative state before leaving…"
+            : pendingReferenceRemoval.status === "uncertain"
+              ? "The Project occurrence removal outcome is uncertain. Retry the exact removal before leaving."
+              : "The Project occurrence removal conflict needs authoritative reconciliation before leaving."
         : pendingReference
           ? pendingReference.status === "placing" || pendingReference.status === "reconciling"
             ? "Finishing the reference placement reconciliation before leaving this Project…"
@@ -867,7 +944,8 @@ export function ProjectPage() {
               : "Saving placement changes before leaving this Project…"}</p>
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
-        {pendingReferenceRemoval?.status === "error" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry removal</button>}
+        {pendingReferenceRemoval?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>}
+        {pendingReferenceRemoval?.status === "conflict" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemovalReconciliation}>Retry reconciliation</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
         {pendingReference?.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(true)}>Reconcile, cancel and leave</button>}
         {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
@@ -944,7 +1022,13 @@ export function ProjectPage() {
             disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
             onClick={removeSelectedReference}
           >{pendingReferenceRemoval?.itemId === selected.itemId
-            ? removingReference ? "Removing…" : "Removal needs retry"
+            ? pendingReferenceRemoval.status === "removing"
+              ? "Removing…"
+              : pendingReferenceRemoval.status === "reconciling"
+                ? "Reconciling removal…"
+                : pendingReferenceRemoval.status === "uncertain"
+                  ? "Removal needs exact retry"
+                  : "Removal needs reconciliation"
             : "Remove from Project"}</button>}
           {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
         </div> : <p className="muted">Select a Map item to inspect its Project occurrence.</p>}
