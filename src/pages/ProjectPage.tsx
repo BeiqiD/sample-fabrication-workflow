@@ -518,12 +518,25 @@ export function ProjectPage() {
     clearReferenceInsertion();
     setReferenceActionError("");
     if (blocker.state !== "blocked") return;
-    referenceNavigationRequestedRef.current = false;
-    if (leave) blocker.proceed();
-    else blocker.reset();
+    if (!leave) {
+      referenceNavigationRequestedRef.current = false;
+      blocker.reset();
+      return;
+    }
+
+    referenceNavigationRequestedRef.current = true;
+    const state = saveStateRef.current;
+    if (state !== "unsaved" && state !== "saving") return;
+    navigationSaveRequestedRef.current = true;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (state === "unsaved") void flushSaveRef.current();
   }, [blocker, clearReferenceInsertion]);
 
   const reloadAfterReferenceConflict = useCallback(() => {
+    if (saveStateRef.current !== "saved") return;
     clearReferenceInsertion();
     setReferenceActionError("");
     referenceNavigationRequestedRef.current = false;
@@ -618,6 +631,7 @@ export function ProjectPage() {
   </div>;
 
   const referencePlacementDisabled = Boolean(pendingReference || removingReference || saveState === "conflict");
+  const referenceConflictReloadDisabled = saveState !== "saved";
 
   return <div className={`project-page${desktop ? " desktop" : " mobile"}`}>
     <header className="project-workspace-header">
@@ -661,7 +675,9 @@ export function ProjectPage() {
       <p>{pendingReference
         ? pendingReference.status === "placing"
           ? "Finishing the reference placement before leaving this Project…"
-          : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
+          : pendingReference.status === "conflict" && referenceConflictReloadDisabled
+            ? "The reference placement conflicted while this Project also has placement changes to resolve. Save or resolve those geometry changes before reloading, or cancel only the reference placement."
+            : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
         : saveState === "conflict"
           ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
           : saveState === "error"
@@ -670,7 +686,7 @@ export function ProjectPage() {
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
         {pendingReference?.status === "error" && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
-        {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" onClick={reloadAfterReferenceConflict}>Reload Project</button>}
+        {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
         {!pendingReference && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
         {!pendingReference && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
@@ -691,9 +707,10 @@ export function ProjectPage() {
             <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>
           </div>}
           {pendingReference.status === "conflict" && <div className="project-reference-pending-actions">
-            <button type="button" className="button primary compact-button" onClick={reloadAfterReferenceConflict}>Reload Project</button>
+            <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>
             <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>
           </div>}
+          {pendingReference.status === "conflict" && referenceConflictReloadDisabled && <small className="muted">Resolve existing placement changes before reloading the Project.</small>}
         </div>}
         <ReferenceSearchSurface
           mode="place"
