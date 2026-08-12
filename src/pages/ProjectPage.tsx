@@ -70,6 +70,12 @@ type PendingReferenceRemoval = {
   message: string | null;
 };
 
+type PendingReferenceCancellationRemoval = {
+  itemId: string;
+  expectedItemRevision: number;
+  leave: boolean;
+};
+
 function useDesktopProjectMap() {
   const query = "(min-width: 860px)";
   const [desktop, setDesktop] = useState(() => window.matchMedia(query).matches);
@@ -145,6 +151,7 @@ export function ProjectPage() {
   const pendingReferencePayloadRef = useRef<ProjectReferenceDragPayload | null>(null);
   const referenceInsertionGenerationRef = useRef(0);
   const pendingReferenceRemovalRef = useRef<PendingReferenceRemoval | null>(null);
+  const pendingReferenceCancellationRemovalRef = useRef<PendingReferenceCancellationRemoval | null>(null);
   const referenceRemovalGenerationRef = useRef(0);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
 
@@ -198,6 +205,7 @@ export function ProjectPage() {
     referenceInsertionGenerationRef.current += 1;
     pendingReferenceInputRef.current = null;
     pendingReferencePayloadRef.current = null;
+    pendingReferenceCancellationRemovalRef.current = null;
     updatePendingReference(null);
   }, [updatePendingReference]);
 
@@ -261,6 +269,7 @@ export function ProjectPage() {
       pendingReferencePayloadRef.current = null;
       pendingReferenceRef.current = null;
       pendingReferenceRemovalRef.current = null;
+      pendingReferenceCancellationRemovalRef.current = null;
       if (autosaveTimerRef.current !== null) {
         window.clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
@@ -393,7 +402,9 @@ export function ProjectPage() {
   }, [blocker, pendingReference, pendingReferenceRemoval, saveState]);
 
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
-    if (pendingReferenceRemovalRef.current || projectGeometryEquals(command.before, command.after)) return;
+    if (pendingReferenceRemovalRef.current
+      || pendingReferenceRef.current?.status === "reconciling"
+      || projectGeometryEquals(command.before, command.after)) return;
     const next = { ...geometryRef.current, [command.placementId]: command.after };
     geometryRef.current = next;
     setGeometry(next);
@@ -407,7 +418,7 @@ export function ProjectPage() {
   }, [scheduleAutosave, updateSaveState]);
 
   const undo = useCallback(() => {
-    if (pendingReferenceRemovalRef.current) return;
+    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling") return;
     const command = undoStack.at(-1);
     if (!command) return;
     const next = applyProjectGeometryCommand(geometryRef.current, command, "undo");
@@ -423,7 +434,7 @@ export function ProjectPage() {
   }, [scheduleAutosave, undoStack, updateSaveState]);
 
   const redo = useCallback(() => {
-    if (pendingReferenceRemovalRef.current) return;
+    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling") return;
     const command = redoStack.at(-1);
     if (!command) return;
     const next = applyProjectGeometryCommand(geometryRef.current, command, "redo");
@@ -650,6 +661,7 @@ export function ProjectPage() {
       const authoritativeItem = authoritative.items.find((item) => item.id === itemId) ?? null;
       installSnapshot(authoritative);
       if (authoritativeItem) {
+        referenceNavigationRequestedRef.current = false;
         setReferenceActionError(
           "The occurrence changed elsewhere. The latest Project state was loaded; review it before starting a new removal.",
         );
@@ -657,6 +669,7 @@ export function ProjectPage() {
     } catch (caught) {
       if (!referenceRemovalIsActive(generation)) return;
       if (caught instanceof ProjectApiError && caught.status === 404) {
+        referenceNavigationRequestedRef.current = false;
         clearReferenceRemoval();
         setReferenceActionError("");
         setLoadError("Project is no longer available");
@@ -716,6 +729,56 @@ export function ProjectPage() {
     void performReferenceRemoval(generation, itemId, input);
   }, [performReferenceRemoval]);
 
+  const beginQueuedReferenceCancellationRemoval = useCallback(() => {
+    const pending = pendingReferenceCancellationRemovalRef.current;
+    if (!pending || saveStateRef.current !== "saved" || pendingReferenceRemovalRef.current) return;
+    pendingReferenceCancellationRemovalRef.current = null;
+    clearReferenceInsertion();
+    startReferenceRemoval(pending.itemId, pending.expectedItemRevision);
+  }, [clearReferenceInsertion, startReferenceRemoval]);
+
+  const queueReferenceCancellationRemoval = useCallback((
+    itemId: string,
+    expectedItemRevision: number,
+    leave: boolean,
+  ) => {
+    pendingReferenceCancellationRemovalRef.current = { itemId, expectedItemRevision, leave };
+    if (leave && blocker.state === "blocked") referenceNavigationRequestedRef.current = true;
+
+    const current = pendingReferenceRef.current;
+    if (current) {
+      const state = saveStateRef.current;
+      updatePendingReference({
+        ...current,
+        status: "reconciling",
+        message: state === "saved"
+          ? "Starting the confirmed Project-local cancellation removal…"
+          : state === "error" || state === "conflict"
+            ? "Resolve the existing placement save state before the confirmed occurrence can be cancelled."
+            : "Saving existing placement changes before the confirmed occurrence is cancelled…",
+      });
+    }
+
+    const state = saveStateRef.current;
+    if (state === "saved") {
+      beginQueuedReferenceCancellationRemoval();
+      return;
+    }
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (state === "unsaved") {
+      void flushSaveRef.current();
+    } else if (state === "saving") {
+      saveAgainRef.current = true;
+    }
+  }, [blocker.state, beginQueuedReferenceCancellationRemoval, updatePendingReference]);
+
+  useEffect(() => {
+    if (saveState === "saved") beginQueuedReferenceCancellationRemoval();
+  }, [beginQueuedReferenceCancellationRemoval, saveState]);
+
   const retryReferenceRemoval = useCallback(() => {
     const pending = pendingReferenceRemovalRef.current;
     if (!pending || pending.status !== "uncertain") return;
@@ -753,9 +816,8 @@ export function ProjectPage() {
       try {
         const result = await projectApi.createReferenceItem(projectId, input);
         if (!referenceInsertionIsActive(generation)) return;
-        mergeReferenceInsertion(result, payload);
-        clearReferenceInsertion();
-        startReferenceRemoval(result.item.id, result.item.revision);
+        setSnapshot((local) => local ? { ...local, project: result.project } : local);
+        queueReferenceCancellationRemoval(result.item.id, result.item.revision, leave);
         return;
       } catch (caught) {
         if (!(caught instanceof ProjectApiError) || caught.status !== 409) throw caught;
@@ -764,6 +826,7 @@ export function ProjectPage() {
       const authoritative = await projectApi.read(projectId);
       if (!referenceInsertionIsActive(generation)) return;
       const item = authoritative.items.find((candidate) => candidate.id === input.itemId) ?? null;
+      setSnapshot((local) => local ? { ...local, project: authoritative.project } : local);
       if (!item) {
         clearReferenceInsertion();
         setReferenceActionError("");
@@ -785,8 +848,7 @@ export function ProjectPage() {
         setReferenceActionError(message);
         return;
       }
-      clearReferenceInsertion();
-      startReferenceRemoval(item.id, item.revision);
+      queueReferenceCancellationRemoval(item.id, item.revision, leave);
     } catch (caught) {
       if (!referenceInsertionIsActive(generation)) return;
       const message = caught instanceof Error ? caught.message : "The insertion outcome could not be reconciled";
@@ -797,10 +859,9 @@ export function ProjectPage() {
     blocker.state,
     clearReferenceInsertion,
     continueReferenceNavigation,
-    mergeReferenceInsertion,
     projectId,
+    queueReferenceCancellationRemoval,
     referenceInsertionIsActive,
-    startReferenceRemoval,
     updatePendingReference,
   ]);
 
@@ -870,7 +931,8 @@ export function ProjectPage() {
     || pendingReferenceRemoval?.status === "reconciling";
   const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || saveState === "conflict");
   const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null;
-  const geometryInteractionDisabled = pendingReferenceRemoval !== null;
+  const geometryInteractionDisabled = pendingReferenceRemoval !== null
+    || pendingReference?.status === "reconciling";
 
   return <div className={`project-page${desktop ? " desktop" : " mobile"}`}>
     <header className="project-workspace-header">
@@ -898,10 +960,20 @@ export function ProjectPage() {
 
     {saveError && <div className={`project-save-banner ${saveState}`}>
       <p>{saveError}</p>
-      {saveState === "conflict" && <button type="button" className="button compact-button" disabled={geometryInteractionDisabled} onClick={() => void loadProject()}>
+      {saveState === "conflict" && <button
+        type="button"
+        className="button compact-button"
+        disabled={pendingReferenceRemoval !== null}
+        onClick={() => void loadProject()}
+      >
         Reload authoritative Project
       </button>}
-      {saveState === "error" && <button type="button" className="button compact-button" disabled={geometryInteractionDisabled} onClick={() => void flushSave()}>
+      {saveState === "error" && <button
+        type="button"
+        className="button compact-button"
+        disabled={pendingReferenceRemoval !== null}
+        onClick={() => void flushSave()}
+      >
         Retry save
       </button>}
     </div>}
@@ -966,7 +1038,7 @@ export function ProjectPage() {
           <span>{pendingReference.status === "placing"
             ? "Placing reference…"
             : pendingReference.status === "reconciling"
-              ? "Reconciling the original insertion…"
+              ? pendingReference.message || "Reconciling the original insertion…"
               : pendingReference.message}</span>
           {(pendingReference.status === "error" || pendingReference.status === "uncertain") && <div className="project-reference-pending-actions">
             <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry</button>
