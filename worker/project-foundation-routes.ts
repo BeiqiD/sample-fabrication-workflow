@@ -1,10 +1,35 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { sha256Hex } from "../shared/content-addressing";
 import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
+import { refreshOrphanGrace } from "./blob-lifecycle/reachability";
 import { buildBlobExportPlan } from "./export-data";
+import { contentLengthWithin } from "./request-guards";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 type ExportRow = Record<string, unknown>;
+
+const MAX_PROJECT_ATTACHMENT_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+function projectUploadFilename(encoded: string | undefined) {
+  if (!encoded) throw new HTTPException(400, { message: "A Project attachment filename is required" });
+  let filename: string;
+  try {
+    filename = decodeURIComponent(encoded);
+  } catch {
+    throw new HTTPException(400, { message: "Project attachment filename encoding is invalid" });
+  }
+  if (!filename || filename.includes("\u0000") || [...filename].length > 255) {
+    throw new HTTPException(400, { message: "Project attachment filename is invalid" });
+  }
+  return filename;
+}
+
+function projectAssetKeyFilename(filename: string) {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return safe || "attachment";
+}
 
 // Project owns the canonical complete export. The core Worker mounts the
 // Project aggregate directly, and the superseded monolithic export handler has
@@ -47,6 +72,74 @@ export const PROJECT_EXPORT_TABLE_QUERIES = {
 } as const;
 
 export const routes = new Hono<AppBindings>();
+
+routes.post("/project-assets", async (c) => {
+  if (!contentLengthWithin(c.req.raw, MAX_PROJECT_ATTACHMENT_UPLOAD_BYTES)) {
+    throw new HTTPException(413, { message: "Project attachment uploads are limited to 10 MB" });
+  }
+  const contentType = (c.req.header("content-type") || "application/octet-stream").trim();
+  const filename = projectUploadFilename(c.req.header("x-project-filename-uri"));
+  if (!contentType || contentType.length > 200) {
+    throw new HTTPException(400, { message: "Project attachment MIME metadata is invalid" });
+  }
+  const buffer = await c.req.arrayBuffer();
+  if (buffer.byteLength > MAX_PROJECT_ATTACHMENT_UPLOAD_BYTES) {
+    throw new HTTPException(413, { message: "Project attachment uploads are limited to 10 MB" });
+  }
+
+  const sha256 = await sha256Hex(buffer);
+  const existing = await c.env.DB.prepare(
+    `SELECT id, r2_key FROM assets a
+     WHERE sha256 = ? AND status = 'ready'
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       )
+     LIMIT 1`,
+  ).bind(sha256).first<{ id: string; r2_key: string }>();
+  if (existing && await refreshOrphanGrace(c.env.DB, {
+    storeKind: "r2",
+    provider: "r2",
+    objectKey: existing.r2_key,
+    blobRecordId: existing.id,
+  }, crypto.randomUUID(), new Date())) {
+    return c.json({ id: existing.id, key: existing.r2_key, deduplicated: true });
+  }
+
+  const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${projectAssetKeyFilename(filename)}`;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
+       VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+    ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
+  } catch (error) {
+    await c.env.ASSETS.delete(key);
+    const winner = await c.env.DB.prepare(
+      `SELECT id, r2_key FROM assets a
+       WHERE sha256 = ? AND status = 'ready'
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_gc_ledger bg
+           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )
+       LIMIT 1`,
+    ).bind(sha256).first<{ id: string; r2_key: string }>();
+    if (winner && await refreshOrphanGrace(c.env.DB, {
+      storeKind: "r2",
+      provider: "r2",
+      objectKey: winner.r2_key,
+      blobRecordId: winner.id,
+    }, crypto.randomUUID(), new Date())) {
+      return c.json({ id: winner.id, key: winner.r2_key, deduplicated: true });
+    }
+    throw error;
+  }
+  return c.json({ id, key, deduplicated: false }, 201);
+});
 
 routes.get("/exports/all", async (c) => {
   const names = Object.keys(PROJECT_EXPORT_TABLE_QUERIES);
