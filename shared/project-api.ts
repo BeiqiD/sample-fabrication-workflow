@@ -190,11 +190,18 @@ export type ProjectAttachmentLocatorInput =
   | { assetId: string; storageObjectId?: never }
   | { assetId?: never; storageObjectId: string };
 
+export interface ProjectAttachmentIntrinsicMetadataInput {
+  originalName: string;
+  mimeType: string;
+  byteSize: number;
+}
+
 export interface CreateAttachmentProjectItemInput {
   contentId: string;
   itemId: string;
   placementId: string;
   locator: ProjectAttachmentLocatorInput;
+  intrinsicMetadata?: ProjectAttachmentIntrinsicMetadataInput;
   caption: string | null;
   sourceUrl: string | null;
   geometry: ProjectMapGeometry;
@@ -332,6 +339,23 @@ export function isProjectAttachmentLocator(
     : isProjectApiId(candidate.storageObjectId);
 }
 
+export function isProjectAttachmentIntrinsicMetadata(
+  value: unknown,
+): value is ProjectAttachmentIntrinsicMetadataInput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<ProjectAttachmentIntrinsicMetadataInput>;
+  return isProjectPayloadText(candidate.originalName)
+    && candidate.originalName.length > 0
+    && hasProjectCodePointLengthAtMost(candidate.originalName, 255)
+    && isProjectPayloadText(candidate.mimeType)
+    && candidate.mimeType.length > 0
+    && candidate.mimeType.trim() === candidate.mimeType
+    && candidate.mimeType.length <= 200
+    && typeof candidate.byteSize === "number"
+    && Number.isSafeInteger(candidate.byteSize)
+    && candidate.byteSize >= 0;
+}
+
 export function isProjectEdgeLabel(value: unknown): value is string | null {
   return value === null
     || (isProjectPayloadText(value)
@@ -398,6 +422,8 @@ export function isCreateAttachmentProjectItemInput(
     && isProjectApiId(candidate.itemId)
     && isProjectApiId(candidate.placementId)
     && isProjectAttachmentLocator(candidate.locator)
+    && (candidate.intrinsicMetadata === undefined
+      || isProjectAttachmentIntrinsicMetadata(candidate.intrinsicMetadata))
     && isProjectAttachmentCaption(candidate.caption)
     && isProjectAttachmentSourceUrl(candidate.sourceUrl)
     && isProjectMapGeometry(candidate.geometry)
