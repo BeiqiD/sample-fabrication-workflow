@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReferenceSearchResult } from "../shared/reference-search";
-import type { CreateReferenceProjectItemInput, ProjectItemMutationResponse } from "../shared/project-api";
+import type { CreateReferenceProjectItemInput, ProjectItemMutationResponse, ProjectSnapshot } from "../shared/project-api";
 import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/project-map-model";
 import type { ProjectPendingReferencePlacement } from "./lib/project-reference-placement";
 import { ProjectPage } from "./pages/ProjectPage";
@@ -64,6 +64,7 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
     const note = nodes.find((node) => node.itemId === "item-note");
     return <div>
       <p>Map ready</p>
+      <p>Note x: {note?.geometry.x}</p>
       {pendingReference && <p>Pending reference: {pendingReference.status}</p>}
       <button type="button" onClick={() => {
         if (!note) return;
@@ -102,6 +103,22 @@ function placementResponse() {
   return {
     value: { ...placement, x: placement.x + 80, revision: 2 },
     replayed: false,
+  };
+}
+
+function authoritativeSnapshotWithSavedGeometry(): ProjectSnapshot {
+  const snapshot = projectTestSnapshot();
+  return {
+    ...snapshot,
+    project: {
+      ...snapshot.project,
+      revision: 3,
+      nextCreatedSequence: 4,
+      updatedAt: "2026-08-11T12:31:00.000Z",
+    },
+    placements: snapshot.placements.map((placement) => placement.id === "placement-note"
+      ? { ...placement, x: placement.x + 80, revision: 2, updatedAt: "2026-08-11T12:31:00.000Z" }
+      : placement),
   };
 }
 
@@ -187,7 +204,7 @@ describe("Project reference navigation safety", () => {
     vi.unstubAllGlobals();
   });
 
-  it("reconciles an uncertain committed insertion before cancelling, then waits for unrelated geometry before leaving", async () => {
+  it("reconciles an uncertain committed insertion before cancelling, then drains unrelated geometry before DELETE and leaving", async () => {
     const pendingPatch = deferred<Response>();
     let originalInput: CreateReferenceProjectItemInput | null = null;
     let created: ProjectItemMutationResponse | null = null;
@@ -228,14 +245,67 @@ describe("Project reference navigation safety", () => {
     await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(2));
     const posts = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
     expect(JSON.parse(String(posts[1][1]?.body))).toEqual(originalInput);
-    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(0);
     expect(screen.queryByText("Projects route")).toBeNull();
 
     pendingPatch.resolve(new Response(JSON.stringify(placementResponse()), {
       status: 200,
       headers: { "content-type": "application/json" },
     }));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(1));
     expect(await screen.findByText("Projects route")).toBeTruthy();
+  });
+
+  it("saves dirty geometry before a cancellation DELETE conflict can reconcile authoritative structure", async () => {
+    const pendingPatch = deferred<Response>();
+    let readCount = 0;
+    let postCount = 0;
+    let created: ProjectItemMutationResponse | null = null;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) {
+        readCount += 1;
+        return jsonResponse(readCount === 1 ? projectTestSnapshot() : authoritativeSnapshotWithSavedGeometry());
+      }
+      if (init.method === "PATCH") return pendingPatch.promise;
+      if (init.method === "POST") {
+        postCount += 1;
+        const input = JSON.parse(String(init.body)) as CreateReferenceProjectItemInput;
+        if (postCount === 1) {
+          created = insertionResponse(input);
+          return jsonResponse({ error: "Temporary insertion failure" }, 500);
+        }
+        return jsonResponse(created, 201);
+      }
+      if (init.method === "DELETE") return jsonResponse({ error: "Project item is already removed" }, 409);
+      return jsonResponse({ error: "unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Map ready");
+    expect(screen.getByText("Note x: 20")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
+    expect(screen.getByText("Note x: 100")).toBeTruthy();
+    expect(screen.getByText("Unsaved")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
+    expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Reconcile and cancel" }));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(2));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1));
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(0);
+    expect(readCount).toBe(1);
+    expect(screen.getByText("Pending reference: reconciling")).toBeTruthy();
+
+    pendingPatch.resolve(new Response(JSON.stringify(placementResponse()), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(1));
+    await waitFor(() => expect(readCount).toBe(2));
+    await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
+    expect(screen.getByText("Note x: 100")).toBeTruthy();
+    expect(screen.queryByText("Pending reference: reconciling")).toBeNull();
   });
 
   it("cannot reload a reference conflict over unsaved geometry", async () => {
