@@ -1,8 +1,8 @@
 # Project reference placement implementation plan
 
-Status: active Phase 3B2 implementation contract in Draft PR #134
+Status: Phase 3B2 implementation complete in PR #134; independent review passed and merge-ready
 
-Last reviewed: 2026-08-12 after Phase 3B1 desktop Map kernel was squash-merged in PR #133 and the Phase 3B2 data-consistency reviews were addressed in Draft PR #134
+Last reviewed: 2026-08-12 after Phase 3B1 desktop Map kernel was squash-merged in PR #133 and Phase 3B2 completed independent exact-head review
 
 This document defines the bounded Phase 3B2 implementation for Project-owned reference discovery and authoritative Map placement. The durable product contract remains in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), while the authoritative Project mutation semantics remain in [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
@@ -324,9 +324,9 @@ The dedicated ordinary script includes the removal failure classifier, and the d
 
 All existing blob, Reference, Project foundation, Project persistence, Project Map, complete test, and build contexts must also remain green on the exact PR head.
 
-## Ready boundary
+## Completion record
 
-The Phase 3B2 PR remains Draft until independent review confirms:
+Independent review confirmed the Phase 3B2 Ready criteria:
 
 - search remains read-only before placement;
 - no half-created occurrence can survive insertion failure;
@@ -340,6 +340,6 @@ The Phase 3B2 PR remains Draft until independent review confirms:
 - removal cannot race geometry mutation and cannot leave a stale save conflict after success;
 - no source mutation is performed by Project-local removal;
 - mobile creation remains excluded;
-- the permanent `pre-pr/project-reference-placement` gate and all previous gates are green on the exact head.
+- the permanent `pre-pr/project-reference-placement` gate and all previous gates are green on the final reviewed implementation head.
 
-After squash merge, Phase 3B2 is complete and Phase 3B3 — Project-owned Markdown and generic attachment creation — becomes the immediate next implementation PR.
+With PR #134 squash-merged, Phase 3B2 is complete and Phase 3B3 — Project-owned Markdown and generic attachment creation — is the immediate next implementation PR.

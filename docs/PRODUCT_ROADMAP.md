@@ -5,9 +5,10 @@ Status: canonical product direction and active implementation roadmap
 Last reviewed: 2026-08-12 after the reference/search foundation through PR #129,
 the reusable Project discovery surface implemented in PR #130, the Map-first
 Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
-the Phase 3A2 authoritative persistence service completed in PR #132, and the
-Phase 3B1 desktop Map kernel squash-merged in PR #133; Phase 3B2 reference
-placement is the current Draft PR #134
+the Phase 3A2 authoritative persistence service completed in PR #132, the
+Phase 3B1 desktop Map kernel squash-merged in PR #133, and Phase 3B2 reference
+placement completed independent review in PR #134; Phase 3B3 is the immediate
+next implementation phase after the #134 squash merge
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -163,13 +164,15 @@ The following prerequisites are complete on `v2/backend-foundation`:
   attachment media, and basic graph mutations implemented in PR #132;
 - desktop React Flow Map kernel, normalized geometry save/undo state,
   navigation protection, and mobile occurrence projection implemented and
-  squash-merged in PR #133.
+  squash-merged in PR #133;
+- Project reference sidebar, exact Map placement, repeated occurrence handling,
+  uncertain-result reconciliation, Project-local removal, and the permanent
+  `pre-pr/project-reference-placement` gate completed in PR #134.
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-The active implementation target is independent review and completion of Draft
-PR #134, the Phase 3B2 reference sidebar and authoritative Map placement slice.
-Phase 3B3 starts only after #134 is completed and squash-merged.
+After the #134 squash merge, the active implementation target is Phase 3B3 —
+Project-owned Markdown and generic attachment creation.
 
 ## Active implementation roadmap
 
@@ -281,8 +284,7 @@ becoming the database.
 
 ### Phase 3B2 — reference sidebar and Map placement
 
-**Status:** implemented in current Draft PR #134; independent exact-head review
-remains required before Ready or merge.
+**Status:** complete in PR #134; independent exact-head review passed.
 
 **Goal:** make reference discovery and spatial placement the core Project
 creation flow.
@@ -303,16 +305,16 @@ creation flow.
 - make the new occurrence appear in Reading automatically through creation sequence;
 - permanent `pre-pr/project-reference-placement` CI coverage.
 
-**Exit:** a user can stay inside a Project, find any supported source object,
-place it on the Map, safely reconcile response-loss cases, reopen the Project,
-and remove the local occurrence without changing source data or racing stale
-geometry writes.
+**Exit:** complete. A user can stay inside a Project, find any supported source
+object, place it on the Map, safely reconcile response-loss cases, reopen the
+Project, and remove the local occurrence without changing source data or racing
+stale geometry writes.
 
 This milestone is the first useful **Project reference-workspace alpha**.
 
 ### Phase 3B3 — Project-owned Markdown and generic attachments
 
-**Status:** deferred until Phase 3B2 / PR #134 is complete and merged.
+**Status:** immediate next implementation phase after the #134 squash merge.
 
 **Goal:** allow the Map to create the only two Project-owned content classes.
 
@@ -529,15 +531,12 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and squash-merge the current **Phase 3B2
-   reference sidebar and authoritative Map placement** in Draft PR #134.
-2. Only after #134 merges, add **double-click Markdown and generic attachment
-   insertion** as Phase 3B3.
-3. Add **basic Bezier directional edges**.
-4. Add the no-creation **Reading projection**.
-5. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
-6. Add advanced **Inspector/Canvas/previews/performance**.
-7. Run the dedicated Docker portability implementation after Project content
+1. Add **double-click Markdown and generic attachment insertion** as Phase 3B3.
+2. Add **basic Bezier directional edges**.
+3. Add the no-creation **Reading projection**.
+4. Harden **Markdown/TeX, mixed media, save/conflict UX, and export**.
+5. Add advanced **Inspector/Canvas/previews/performance**.
+6. Run the dedicated Docker portability implementation after Project content
    and save semantics stabilize.
 
 ## Work that should not happen next
