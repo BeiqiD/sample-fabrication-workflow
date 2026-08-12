@@ -1,19 +1,20 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract during Phase 3B3 Project-owned content implementation
+Status: product and architecture contract during Phase 3B3 Draft review in PR #135
 
 Last reviewed: 2026-08-12 after the Map-first Project interaction review,
 Phase 3A1 implemented in PR #131, the authoritative persistence service merged
 in PR #132, the Map kernel squash-merged in PR #133, Phase 3B2 reference
-placement squash-merged in PR #134, and Phase 3B3 Project-owned content began
-implementation
+placement squash-merged in PR #134, and Phase 3B3 Project-owned content entered
+Draft review in PR #135
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
 3A2 authoritative read/write transactions; merged PR #133 delivers the bounded
 desktop React Flow Map kernel; merged PR #134 delivers Phase 3B2 reference
-discovery and authoritative placement; Phase 3B3 adds the bounded Project-owned
-Markdown and generic attachment creation layer without selecting a rich editor.
+discovery and authoritative placement; Draft PR #135 implements the bounded
+Phase 3B3 Project-owned Markdown and generic attachment creation layer without
+selecting a rich editor.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 

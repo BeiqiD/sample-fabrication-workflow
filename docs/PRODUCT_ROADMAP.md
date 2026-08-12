@@ -8,7 +8,8 @@ Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
 the Phase 3A2 authoritative persistence service completed in PR #132, the
 Phase 3B1 desktop Map kernel squash-merged in PR #133, Phase 3B2 reference
 placement squash-merged in PR #134, and Phase 3B3 Project-owned Markdown and
-generic attachment creation entered implementation
+generic attachment creation is implemented in Draft PR #135 and awaits
+independent exact-head review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -171,8 +172,9 @@ The following prerequisites are complete on `v2/backend-foundation`:
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-After the #134 squash merge, the active implementation target is Phase 3B3 —
-Project-owned Markdown and generic attachment creation.
+The active implementation target is independent review and completion of Draft
+PR #135, the Phase 3B3 Project-owned Markdown and generic attachment creation
+slice. Phase 3B4 starts only after that PR is squash-merged.
 
 ## Active implementation roadmap
 
@@ -314,7 +316,8 @@ This milestone is the first useful **Project reference-workspace alpha**.
 
 ### Phase 3B3 — Project-owned Markdown and generic attachments
 
-**Status:** active implementation phase; keep Draft until exact-head review and verification pass.
+**Status:** implemented in Draft PR #135; keep Draft until independent exact-head
+review and verification pass.
 
 **Goal:** allow the Map to create the only two Project-owned content classes.
 

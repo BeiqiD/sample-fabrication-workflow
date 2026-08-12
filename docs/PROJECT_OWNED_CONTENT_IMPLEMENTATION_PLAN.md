@@ -1,8 +1,8 @@
 # Project-owned content implementation plan
 
-Status: Phase 3B3 implementation in progress on the dedicated Project-owned content branch
+Status: Phase 3B3 implemented in Draft PR #135; independent exact-head review pending
 
-Last reviewed: 2026-08-12 after Phase 3B2 reference placement was squash-merged in PR #134
+Last reviewed: 2026-08-12 after Phase 3B2 reference placement was squash-merged in PR #134 and Phase 3B3 was published as Draft PR #135
 
 This document defines the bounded Phase 3B3 implementation for Project-owned Markdown and generic attachments. The durable interaction contract remains in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), while authoritative persistence remains in [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
