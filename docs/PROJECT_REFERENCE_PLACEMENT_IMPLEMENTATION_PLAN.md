@@ -2,7 +2,7 @@
 
 Status: active Phase 3B2 implementation contract in Draft PR #134
 
-Last reviewed: 2026-08-12 after Phase 3B1 desktop Map kernel was squash-merged in PR #133 and the Phase 3B2 data-consistency review was addressed in Draft PR #134
+Last reviewed: 2026-08-12 after Phase 3B1 desktop Map kernel was squash-merged in PR #133 and the Phase 3B2 data-consistency reviews were addressed in Draft PR #134
 
 This document defines the bounded Phase 3B2 implementation for Project-owned reference discovery and authoritative Map placement. The durable product contract remains in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), while the authoritative Project mutation semantics remain in [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
@@ -27,7 +27,8 @@ Phase 3B2 adds:
 - explicit conflict handling rather than last-write-wins insertion;
 - repeated occurrences of the same stable target through distinct Project item and placement IDs;
 - Project-local occurrence removal from Inspector without deleting or editing source data;
-- exact retry of an unresolved removal with the same lifecycle request and operation ID;
+- exact retry of an uncertain removal with the same lifecycle request and operation ID;
+- authoritative reconciliation for deterministic removal conflicts/not-found responses instead of replaying a stale DELETE forever;
 - Map geometry freeze while a Project-local removal result is unresolved;
 - automatic appearance of every committed occurrence in the existing creation-sequence mobile/Reading projection.
 
@@ -71,10 +72,13 @@ preview {
   subtitle
   excerpt
   referenceUrl
+  openSourceUrl
 }
 ```
 
-The preview is display/navigation data only. It must not contain:
+The preview is display/navigation data only. `referenceUrl` is the canonical Reference destination and `openSourceUrl` is an optional display-safe direct source destination already supplied by the resolver. Neither field is a storage locator.
+
+The payload must not contain:
 
 - registry IDs;
 - R2 keys;
@@ -213,20 +217,45 @@ Navigation is an explicit action:
 
 Phase 3B2 exposes `Remove from Project` for an active reference occurrence.
 
-Removal:
+Removal begins only when ordinary placement state is safely `Saved` and captures one complete lifecycle request containing the expected item revision and one operation ID.
 
-- begins only when ordinary placement state is safely `Saved`;
-- captures one complete lifecycle request containing the expected item revision and one operation ID;
-- calls the existing Project item lifecycle endpoint with that exact request;
-- retains the request after an uncertain/error result so `Retry removal` uses the same endpoint body and operation ID;
-- removes only the Project occurrence and its active Map projection;
-- never deletes, archives, edits, or tombstones the source object;
-- preserves recoverable Project lifecycle semantics from Phase 3A2;
-- uses the backend's existing deletion-operation replay behavior if the delete committed but its response was lost.
+Removal failures are split by whether the DELETE outcome is uncertain or deterministic:
 
-From the moment removal starts until it is authoritatively completed, the whole Map geometry interaction is frozen. Persisted nodes cannot be dragged, keyboard-moved, resized, or mutated through undo/redo; placement Save/Reload actions and reference placement are disabled. Runtime guards reject geometry callbacks even if a renderer event races the UI disable state.
+### Uncertain DELETE outcome
 
-The unresolved removal also participates in internal-navigation and `beforeunload` protection. A removal failure does not create a new delete operation; the user may stay or exact-retry the retained request.
+Transport failures, `5xx`, `408`, and `429` remain **uncertain** because the deletion may already have committed before the response was lost.
+
+For these failures:
+
+- retain the complete original lifecycle request;
+- `Retry exact removal` sends the same item endpoint, expected item revision, and operation ID;
+- do not create a new operation ID;
+- rely on the Phase 3A2 deletion-operation replay contract if the first DELETE committed;
+- keep Map interaction and navigation frozen/protected until the result is authoritative.
+
+### Deterministic DELETE conflict or not-found
+
+A deterministic non-timeout 4xx response such as `409` or `404` is **not** exact-retried forever. The stale request cannot be repaired by changing its revision or guessing a new operation.
+
+The page immediately enters `reconciling` and performs an authoritative Project read:
+
+- if the occurrence is absent from the active snapshot, synchronize the page to that snapshot and treat the occurrence as already removed elsewhere;
+- if the occurrence is still active but its revision/state changed, synchronize the page to that latest snapshot, clear the old removal request, unfreeze Map interaction, and require a new explicit `Remove from Project` action before any fresh DELETE is created;
+- the new user-confirmed removal, if requested, uses the authoritative current item revision and a **new** operation ID;
+- if the Project read itself returns `404`, clear the unresolved deletion state and show the Project as unavailable;
+- if authoritative reconciliation cannot be completed because the read fails for another reason, retain a `conflict` reconciliation state and offer `Retry reconciliation`; do not replay the stale DELETE.
+
+This split ensures a stale revision conflict cannot trap the page in an infinite exact-retry loop while still preserving exact replay for genuinely uncertain deletion outcomes.
+
+For every successful Project-local removal:
+
+- remove only the Project occurrence and its active Map projection;
+- never delete, archive, edit, or tombstone the source object;
+- preserve recoverable Project lifecycle semantics from Phase 3A2.
+
+From the moment removal starts until it is authoritatively completed or reconciled, the whole Map geometry interaction is frozen. Persisted nodes cannot be dragged, keyboard-moved, resized, or mutated through undo/redo; placement Save/Reload actions and reference placement are disabled. Runtime guards reject geometry callbacks even if a renderer event races the UI disable state.
+
+The unresolved removal also participates in internal-navigation and `beforeunload` protection.
 
 On successful removal, the page removes that occurrence's placement baseline, local geometry, pending placement mutation, connected local edges, and undo/redo commands. It then clears stale geometry error/conflict text and recomputes dirty state from the remaining placements. If nothing else is dirty the page returns to `Saved`; unrelated dirty geometry remains `Unsaved` and follows the normal Phase 3B1 save path.
 
@@ -256,6 +285,9 @@ The dedicated `verify:project-reference-placement` gate covers:
 - local occurrence removal never calls a source deletion endpoint;
 - a deferred removal freezes geometry and cannot race a later placement PATCH;
 - a response-lost removal exact-retries the same lifecycle request and operation ID;
+- deterministic `409`/`404` removal responses enter authoritative reconciliation instead of replaying the stale request;
+- an occurrence already removed by another operation disappears after authoritative reconciliation without a second stale DELETE;
+- an occurrence whose item revision changed is reloaded at the new revision and can be removed only through a new user action with a new operation ID;
 - unresolved insertion/removal participates in navigation protection;
 - mobile remains no-creation;
 - existing Phase 3B1 save/navigation regressions stay green;
@@ -267,7 +299,7 @@ The permanent Verify workflow records this as:
 pre-pr/project-reference-placement
 ```
 
-The dedicated mounted script explicitly includes the reference search/drop/placement tests plus the navigation-safety and removal-safety suites; those tests do not rely only on the complete mounted wildcard for coverage.
+The dedicated ordinary script includes the removal failure classifier, and the dedicated mounted script explicitly includes the reference search/drop/placement tests plus the navigation-safety and removal-safety suites; those tests do not rely only on the complete test wildcards for coverage.
 
 All existing blob, Reference, Project foundation, Project persistence, Project Map, complete test, and build contexts must also remain green on the exact PR head.
 
@@ -278,7 +310,8 @@ The Phase 3B2 PR remains Draft until independent review confirms:
 - search remains read-only before placement;
 - no half-created occurrence can survive insertion failure;
 - uncertain insertion cancellation reconciles server state before discarding local state;
-- retries preserve exact mutation identity for both create and remove operations;
+- retries preserve exact mutation identity for uncertain create and remove operations;
+- deterministic removal conflicts reconcile authoritative state without guessing a revision or reusing a stale DELETE indefinitely;
 - repeated references work;
 - drop coordinates remain correct under pan/zoom;
 - dirty Phase 3B1 geometry cannot be lost during insertion/removal;
