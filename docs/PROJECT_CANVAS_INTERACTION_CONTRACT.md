@@ -1,16 +1,17 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract during Phase 3B1 Draft review
+Status: product and architecture contract during Phase 3B2 Draft review in PR #134
 
-Last reviewed: 2026-08-11 after the Map-first Project interaction review,
-Phase 3A1 implemented in PR #131, and the authoritative persistence service
-completed independent review in PR #132, and the Map kernel was implemented in
-Draft PR #133
+Last reviewed: 2026-08-12 after the Map-first Project interaction review,
+Phase 3A1 implemented in PR #131, the authoritative persistence service merged
+in PR #132, the Map kernel squash-merged in PR #133, and Phase 3B2 reference
+placement entered Draft review in PR #134
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
-3A2 authoritative read/write transactions; Draft PR #133 introduces the bounded
-desktop React Flow Map kernel without selecting a Markdown editor.
+3A2 authoritative read/write transactions; merged PR #133 delivers the bounded
+desktop React Flow Map kernel without selecting a Markdown editor; Draft PR #134
+implements Phase 3B2 reference discovery and authoritative placement.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 
@@ -19,6 +20,8 @@ The Phase 3A1 database guarantees are recorded in
 [PROJECT_CORE_IMPLEMENTATION_PLAN.md](./PROJECT_CORE_IMPLEMENTATION_PLAN.md), and
 the completed Phase 3A2 service guarantees are in
 [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
+The Phase 3B2 mutation-state details are in
+[PROJECT_REFERENCE_PLACEMENT_IMPLEMENTATION_PLAN.md](./PROJECT_REFERENCE_PLACEMENT_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -171,10 +174,22 @@ All steps occur in one rollback-safe transaction. The database permits zero or
 one placement row per item, but the service never commits a newly created active
 item without its placement.
 
-A pending ghost node may appear immediately. Failure removes or marks the ghost
-and offers retry; it never leaves a half-created Project item.
+A pending ghost node appears immediately after the placement command and remains
+renderer-only until an authoritative response is known. Known non-commit
+validation/conflict responses may be retried or discarded according to their
+explicit response. A transport, timeout, rate-limit, or 5xx result is different:
+it is **uncertain**, because the transaction may have committed before the
+response was lost.
 
-Keyboard users need an equivalent `Place at Map center` action. Full mobile
+For an uncertain insertion, the client preserves the complete original request
+and operation ID. Retry exact-replays that request. Direct local cancellation is
+forbidden; cancellation first exact-replays/reconciles the original item and
+placement identity. If the occurrence is confirmed, cancellation uses the
+normal Project-local recoverable removal route. If it cannot be safely
+reconciled, the user receives an explicit conflict rather than a guessed delete
+or a hidden local ghost.
+
+Keyboard users have the equivalent `Place at Map center` action. Full mobile
 placement is deferred rather than emulated through fragile touch dragging.
 
 ### Markdown creation
@@ -228,6 +243,14 @@ references found through the sidebar.
 - right-click: context menu.
 
 Interactive controls and editor regions must not initiate node dragging.
+
+A Project-local occurrence removal is a mutation boundary. It starts only from a
+safely saved placement state, retains one exact lifecycle request and operation
+ID until the outcome is known, and freezes Map geometry interaction while the
+removal is unresolved. This prevents drag, keyboard move, resize, or undo/redo
+from creating a placement write that races a committed removal. Navigation and
+hard refresh/close remain protected until the removal is authoritatively
+resolved.
 
 ### Resize semantics
 
@@ -472,28 +495,28 @@ The migration and service must not:
 ## Implementation sequence
 
 Phase 3A1 and Phase 3A2 are complete in PR #131 and PR #132. Phase 3B1 is
-implemented in Draft PR #133 and awaits independent review. The sequence is:
+complete in merged PR #133. Phase 3B2 is the current Draft PR #134. The sequence
+is:
 
-1. **Phase 3B1 — Map kernel (Draft PR #133)**: dynamic React Flow, pan/zoom,
-   selection, move, resize, save state, and lightweight nodes.
-2. **Phase 3B2 — Reference sidebar and placement**: search, desktop drag/drop,
-   pending nodes, keyboard center placement, authoritative insertion.
-3. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
+1. **Phase 3B2 — Reference sidebar and placement (Draft PR #134)**: search,
+   desktop drag/drop, pending/reconciliation states, keyboard center placement,
+   authoritative insertion, exact retry, and Project-local removal.
+2. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
    attachment, image/file rendering, and automatic insertion-order Reading
-   inclusion.
-4. **Phase 3B4 — Basic edges**: four handles, Bezier, endpoint direction, label,
+   inclusion; this starts only after #134 is complete and merged.
+3. **Phase 3B4 — Basic edges**: four handles, Bezier, endpoint direction, label,
    delete/recreate behavior.
-5. **Phase 3C — Reading projection**: no creation, complete insertion-order
+4. **Phase 3C — Reading projection**: no creation, complete insertion-order
    rendering, and editing of existing owned content.
-6. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
+5. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
    previews, save/conflict UX, and accessible Reading presentation.
-7. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
+6. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
    multi-select hardening, PDF preview, screenshot capture, advanced performance,
    and optional order/layout tooling.
 
 ## Deferred questions
 
-The following do not block Phase 3B1 or later work provided the frozen contracts
+The following do not block Phase 3B2 or later work provided the frozen contracts
 above are kept:
 
 - whether later versions need manual or edge-informed Reading order;

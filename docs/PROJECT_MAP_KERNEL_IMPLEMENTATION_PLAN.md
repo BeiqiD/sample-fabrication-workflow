@@ -1,16 +1,13 @@
 # Project Map kernel implementation record
 
-Status: Phase 3B1 independently reviewed in PR #133; Ready pending final exact-head verification
+Status: Phase 3B1 complete; squash-merged in PR #133. Phase 3B2 is active in Draft PR #134.
 
-Last reviewed: 2026-08-11 against `v2/backend-foundation` after Phase 3A2 was
-squash-merged in PR #132, the keyboard/navigation placement-loss findings were
-addressed in PR #133, and the final independent review found no remaining
-runtime or schema merge blocker
+Last reviewed: 2026-08-12 after Phase 3A2 was squash-merged in PR #132, Phase 3B1 completed independent review and exact-head verification, PR #133 was squash-merged, and Phase 3B2 reference placement entered Draft review in PR #134
 
 This document records the bounded Phase 3B1 implementation. The durable product
 contract remains in
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md),
-and the review gate remains in
+and the historical review gate remains in
 [PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md](./PROJECT_MAP_KERNEL_REVIEW_CHECKLIST.md).
 
 ## Delivered boundary
@@ -120,7 +117,7 @@ placement, resize, edge, or bulk Canvas controls.
 
 ## Deliberately deferred
 
-Phase 3B1 does not add:
+Phase 3B1 did not add:
 
 - a Project reference-search sidebar, drag/drop insertion, or pending nodes;
 - Project-owned Markdown or attachment creation;
@@ -128,6 +125,9 @@ Phase 3B1 does not add:
 - Project-local edge authoring;
 - the complete Reading projection;
 - PDF preview, groups, collaboration, permanent delete, or deployment.
+
+The first deferred item is now owned by Phase 3B2 Draft PR #134; the remaining
+items stay in their later roadmap phases.
 
 ## Verification
 
@@ -155,13 +155,13 @@ CI records this as `pre-pr/project-map`. Existing blob, Reference, Project
 foundation, Project persistence, complete test, and production-build gates must
 also remain green on the exact PR head.
 
-## Ready and merge boundary
+## Completion record and next boundary
 
-Independent review for PR #133 is complete and found no remaining runtime or
-schema merge blocker. The PR may be marked Ready. Squash merge is permitted only
-after every required context is green on the final exact head. No remote D1
-migration, Worker deployment, or production-data operation belongs to this
-phase.
+PR #133 completed independent review, passed its permanent gates on the final
+exact head, and was squash-merged into `v2/backend-foundation`. No remote D1
+migration, Worker deployment, or production-data operation was part of the
+Phase 3B1 merge.
 
-After squash merge, Phase 3B1 becomes complete and Phase 3B2 — the reference
-sidebar and authoritative Map placement flow — becomes the immediate next PR.
+Phase 3B2 — the reference sidebar and authoritative Map placement flow — is the
+current implementation in Draft PR #134. Phase 3B3 becomes the immediate next
+implementation PR only after #134 completes independent review and is merged.
