@@ -71,12 +71,11 @@ describe("Project client", () => {
   });
 
   it("uses Project-owned reference insertion and item-lifecycle routes", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
-      replayed: false,
-    }), {
+    const responseBody = JSON.stringify({ replayed: false });
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(responseBody, {
       status: 200,
       headers: { "content-type": "application/json" },
-    }));
+    })));
     vi.stubGlobal("fetch", fetchMock);
 
     const createInput = {
