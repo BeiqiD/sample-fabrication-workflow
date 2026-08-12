@@ -3,7 +3,7 @@ import { forwardRef, useImperativeHandle } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProjectItemMutationResponse } from "../shared/project-api";
+import type { ProjectItemMutationResponse, ProjectSnapshot } from "../shared/project-api";
 import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/project-map-model";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
@@ -74,6 +74,28 @@ function removalResponse(replayed = false): ProjectItemMutationResponse {
     placement,
     project: snapshot.project,
     replayed,
+  };
+}
+
+function snapshotWithoutReference(): ProjectSnapshot {
+  const snapshot = projectTestSnapshot();
+  return {
+    ...snapshot,
+    items: snapshot.items.filter((item) => item.id !== "item-reference"),
+    placements: snapshot.placements.filter((placement) => placement.projectItemId !== "item-reference"),
+    edges: snapshot.edges.filter((edge) => (
+      edge.sourceItemId !== "item-reference" && edge.targetItemId !== "item-reference"
+    )),
+  };
+}
+
+function snapshotWithReferenceRevision(revision: number): ProjectSnapshot {
+  const snapshot = projectTestSnapshot();
+  return {
+    ...snapshot,
+    items: snapshot.items.map((item) => item.id === "item-reference"
+      ? { ...item, revision, updatedAt: "2026-08-11T13:05:00.000Z" }
+      : item),
   };
 }
 
@@ -158,7 +180,7 @@ describe("Project reference removal safety", () => {
     expect(screen.getByText("Geometry locked: yes")).toBeTruthy();
     const deletes = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
     const originalBody = JSON.parse(String(deletes()[0][1]?.body));
-    fireEvent.click(screen.getByRole("button", { name: "Retry removal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact removal" }));
     await waitFor(() => expect(deletes()).toHaveLength(2));
     expect(JSON.parse(String(deletes()[1][1]?.body))).toEqual(originalBody);
     expect(deletes()[1][0]).toBe(deletes()[0][0]);
@@ -166,5 +188,70 @@ describe("Project reference removal safety", () => {
     await waitFor(() => expect(screen.getByText("Map node count: 1")).toBeTruthy());
     expect(screen.getByText("Geometry locked: no")).toBeTruthy();
     expect(screen.getByText("Saved")).toBeTruthy();
+  });
+
+  it("reconciles a deterministic conflict when another operation already removed the occurrence", async () => {
+    let readCount = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) {
+        readCount += 1;
+        return jsonResponse(readCount === 1 ? projectTestSnapshot() : snapshotWithoutReference());
+      }
+      if (init.method === "DELETE") return jsonResponse({ error: "Project item is already removed" }, 409);
+      return jsonResponse({ error: "unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Map ready");
+    fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
+
+    await waitFor(() => expect(readCount).toBe(2));
+    await waitFor(() => expect(screen.getByText("Map node count: 1")).toBeTruthy());
+    expect(screen.getByText("Geometry locked: no")).toBeTruthy();
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Retry exact removal" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Retry reconciliation" })).toBeNull();
+  });
+
+  it("reloads an active occurrence with a changed revision instead of replaying the stale DELETE", async () => {
+    let readCount = 0;
+    let deleteCount = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) {
+        readCount += 1;
+        return jsonResponse(readCount === 1 ? projectTestSnapshot() : snapshotWithReferenceRevision(2));
+      }
+      if (init.method === "DELETE") {
+        deleteCount += 1;
+        return deleteCount === 1
+          ? jsonResponse({ error: "Item revision conflict" }, 409)
+          : jsonResponse(removalResponse());
+      }
+      return jsonResponse({ error: "unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Map ready");
+    fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
+
+    expect(await screen.findByText(
+      "The occurrence changed elsewhere. The latest Project state was loaded; review it before starting a new removal.",
+    )).toBeTruthy();
+    expect(screen.getByText("Geometry locked: no")).toBeTruthy();
+    const deletes = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
+    expect(deletes()).toHaveLength(1);
+    const staleBody = JSON.parse(String(deletes()[0][1]?.body));
+    expect(staleBody.expectedItemRevision).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
+    await waitFor(() => expect(deletes()).toHaveLength(2));
+    const freshBody = JSON.parse(String(deletes()[1][1]?.body));
+    expect(freshBody.expectedItemRevision).toBe(2);
+    expect(freshBody.operationId).not.toBe(staleBody.operationId);
+
+    await waitFor(() => expect(screen.getByText("Map node count: 1")).toBeTruthy());
   });
 });
