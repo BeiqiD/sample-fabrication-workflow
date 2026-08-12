@@ -19,8 +19,8 @@ import {
 import { getBlob } from "./blob-lifecycle/storage";
 import { safeMediaResponseHeaders } from "./media-response";
 import { routes as projectFoundationRoutes } from "./project-foundation-routes";
+import { createAttachmentProjectItem } from "./projects/attachment-service";
 import {
-  createAttachmentProjectItem,
   createMarkdownProjectItem,
   createProject,
   createProjectEdge,
