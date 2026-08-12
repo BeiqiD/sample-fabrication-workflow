@@ -1,0 +1,25 @@
+name: Bootstrap project owned content workspace
+
+on:
+  push:
+    branches:
+      - agent/project-owned-content
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Package workspace
+        run: tar --exclude=.git -czf /tmp/project-owned-content.tgz .
+      - name: Upload workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-owned-content-workspace
+          path: /tmp/project-owned-content.tgz
+          if-no-files-found: error
+          retention-days: 1
