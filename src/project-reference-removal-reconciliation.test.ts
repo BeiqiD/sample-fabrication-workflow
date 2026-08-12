@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProjectApiError } from "./lib/project-client";
-
-export function projectReferenceRemovalNeedsReconciliation(caught: unknown) {
-  return caught instanceof ProjectApiError
-    && caught.status >= 400
-    && caught.status < 500
-    && caught.status !== 408
-    && caught.status !== 429;
-}
+import { projectReferenceRemovalNeedsReconciliation } from "./lib/project-reference-removal";
 
 describe("Project reference removal failure classification", () => {
   it("treats deterministic 4xx removal responses as reconciliation candidates", () => {
