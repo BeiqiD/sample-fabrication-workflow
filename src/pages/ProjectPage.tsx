@@ -1078,7 +1078,7 @@ export function ProjectPage() {
 
   const saveMarkdown = useCallback(async () => {
     const current = markdownEditorRef.current;
-    if (!projectId || !snapshot || !current || current.status === "saving" || !current.value.trim()) return;
+    if (!projectId || !snapshot || !current || (current.status !== "editing" && current.status !== "uncertain") || !current.value.trim()) return;
     const generation = ownedContentGenerationRef.current;
     updateMarkdownEditor({ ...current, status: "saving", message: null });
     setOwnedContentActionError("");
@@ -1134,7 +1134,7 @@ export function ProjectPage() {
 
   const retryMarkdownSave = useCallback(() => {
     const current = markdownEditorRef.current;
-    if (!current || (current.status !== "error" && current.status !== "conflict" && current.status !== "uncertain")) return;
+    if (!current || current.status !== "uncertain") return;
     void saveMarkdown();
   }, [saveMarkdown]);
 
@@ -1261,7 +1261,7 @@ export function ProjectPage() {
     const file = pendingAttachmentFileRef.current;
     const input = pendingAttachmentInputRef.current;
     const current = pendingAttachmentRef.current;
-    if (!file || !current || (current.status !== "error" && current.status !== "conflict" && current.status !== "uncertain")) return;
+    if (!file || !current || current.status !== "uncertain") return;
     if (input) {
       void performAttachmentProjectCreate(ownedContentGenerationRef.current, input, file);
       return;
@@ -1328,7 +1328,7 @@ export function ProjectPage() {
 
   const saveAttachmentMetadata = useCallback(async () => {
     const current = attachmentEditorRef.current;
-    if (!projectId || !snapshot || !current || current.status === "saving") return;
+    if (!projectId || !snapshot || !current || (current.status !== "editing" && current.status !== "uncertain")) return;
     const content = snapshot.contents.find((candidate) => candidate.id === current.contentId);
     if (!content || content.contentType !== "attachment") return;
     const generation = ownedContentGenerationRef.current;
@@ -1364,7 +1364,7 @@ export function ProjectPage() {
 
   const retryAttachmentMetadata = useCallback(() => {
     const current = attachmentEditorRef.current;
-    if (!current || (current.status !== "error" && current.status !== "conflict" && current.status !== "uncertain")) return;
+    if (!current || current.status !== "uncertain") return;
     void saveAttachmentMetadata();
   }, [saveAttachmentMetadata]);
 
@@ -1464,7 +1464,7 @@ export function ProjectPage() {
           ? "Finishing the Project attachment operation before leaving this Project…"
           : pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current
             ? "The Project attachment creation outcome is uncertain. Retry the exact creation before leaving."
-            : "The attachment operation must be retried or explicitly cancelled before leaving."
+            : "The attachment operation failed deterministically. Cancel it before leaving, then start a new attachment operation if needed."
         : markdownEditor
           ? markdownEditor.status === "saving"
             ? "Finishing the Project Markdown save before leaving…"
@@ -1556,10 +1556,10 @@ export function ProjectPage() {
         {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
         {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
-        {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || pendingAttachment?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry attachment</button>}
-        {(markdownEditor?.status === "error" || markdownEditor?.status === "conflict" || markdownEditor?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
+        {pendingAttachment?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
+        {markdownEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
         {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
-        {(attachmentEditor?.status === "error" || attachmentEditor?.status === "conflict" || attachmentEditor?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
+        {attachmentEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
         {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
         {!pendingReference && !pendingReferenceRemoval && !ownedContentBusy && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
         {!pendingReference && !pendingReferenceRemoval && !ownedContentBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
@@ -1594,7 +1594,7 @@ export function ProjectPage() {
               ? "Creating Project attachment…"
               : pendingAttachment.message}</span>
           {(pendingAttachment.status === "error" || pendingAttachment.status === "conflict" || pendingAttachment.status === "uncertain") && <div className="project-owned-content-pending-actions">
-            <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry</button>
+            {pendingAttachment.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
             {(pendingAttachment.status !== "uncertain" || !pendingAttachmentInputRef.current) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(false)}>Cancel</button>}
           </div>}
           {pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current && <small className="muted">The Project occurrence may already be committed. Retry replays the exact original creation request.</small>}
@@ -1698,9 +1698,9 @@ export function ProjectPage() {
             </label>
             {attachmentEditor.message && <p className="error-banner">{attachmentEditor.message}</p>}
             <div className="project-owned-content-pending-actions">
-              <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
+              {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
                 {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
-              </button>
+              </button>}
               {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(false)}>Cancel</button>}
             </div>
           </div>}

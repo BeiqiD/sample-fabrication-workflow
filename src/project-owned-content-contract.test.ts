@@ -49,6 +49,17 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page).toContain('disabled={attachmentEditor.status !== "editing"}');
   });
 
+  it("only exact-retries outcome-uncertain owned-content mutations", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    expect(page).toContain('if (!current || current.status !== "uncertain") return;\n    void saveMarkdown();');
+    expect(page).toContain('if (!file || !current || current.status !== "uncertain") return;');
+    expect(page).toContain('if (!current || current.status !== "uncertain") return;\n    void saveAttachmentMetadata();');
+    expect(page).toContain('pendingAttachment?.status === "uncertain"');
+    expect(page).toContain('markdownEditor?.status === "uncertain"');
+    expect(page).toContain('attachmentEditor?.status === "uncertain"');
+    expect(page).not.toContain('pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || pendingAttachment?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryAttachment}');
+  });
+
   it("uses MIME identity for image rendering and keeps source attachments on the reference path", () => {
     const page = read("./pages/ProjectPage.tsx");
     const map = read("./components/project/ProjectMapSurface.tsx");
