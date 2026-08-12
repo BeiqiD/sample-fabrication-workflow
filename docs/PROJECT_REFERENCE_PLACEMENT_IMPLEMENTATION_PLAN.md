@@ -29,7 +29,8 @@ Phase 3B2 adds:
 - Project-local occurrence removal from Inspector without deleting or editing source data;
 - exact retry of an uncertain removal with the same lifecycle request and operation ID;
 - authoritative reconciliation for deterministic removal conflicts/not-found responses instead of replaying a stale DELETE forever;
-- Map geometry freeze while a Project-local removal result is unresolved;
+- mandatory geometry-save drain before a confirmed uncertain-insertion cancellation may start its Project-local DELETE;
+- Map geometry freeze while a cancellation reconciliation or Project-local removal result is unresolved;
 - automatic appearance of every committed occurrence in the existing creation-sequence mobile/Reading projection.
 
 ## Deliberately deferred
@@ -163,15 +164,31 @@ For an uncertain result:
 - `Retry` replays exactly the same item ID, placement ID, expected Project revision, geometry, target, and operation ID;
 - do **not** expose direct Cancel;
 - cancellation first enters `reconciling` and exact-replays the original create request;
-- if exact replay returns the canonical occurrence, cancellation removes that confirmed occurrence through the Project-local item lifecycle endpoint;
+- if exact replay returns the canonical occurrence, record the confirmed item identity but do **not** start its cancellation DELETE while unrelated geometry is Unsaved or Saving;
 - if exact replay returns a structural conflict, perform a read-only authoritative Project snapshot check without installing that snapshot over local geometry;
 - only when the original item identity is absent may the transient ghost be discarded directly;
 - if the original item identity exists, remove it only when its item type, placement identity, and resolved target match the original request;
 - if identity cannot be reconciled safely, retain an explicit conflict and require authoritative reload rather than deleting an unknown occurrence.
 
-A reconciliation or the follow-up local removal can itself have an uncertain response. In that case the request identity is retained and navigation remains protected until exact retry establishes an authoritative result.
+Once cancellation has confirmed that the occurrence exists, it adopts the same prerequisite as an ordinary user-initiated removal: **all pre-existing placement geometry must first reach `Saved`**.
 
-This is the bounded frontend counterpart to the Phase 3A2 backend replay contract: uncertain failure never means "not committed".
+- if geometry is `Unsaved`, cancellation immediately flushes it;
+- if a placement PATCH is already `Saving`, cancellation waits for that request and any follow-up dirty geometry to drain;
+- while this drain is pending, the reference remains in `reconciling`, Map geometry interaction is frozen, and no cancellation DELETE is sent;
+- only after there is no dirty placement state and no placement PATCH in flight may the Project-local DELETE begin;
+- if the placement save enters `Error` or `Conflict`, the cancellation intent remains pending and the user must retry or resolve that geometry state first; the DELETE is not sent and no DELETE reconciliation snapshot may overwrite the local geometry;
+- if the user resolves a geometry conflict by explicitly loading authoritative state, that explicit resolution may clear the cancellation intent and expose the confirmed occurrence from the authoritative snapshot for a later normal removal.
+
+A cancellation DELETE or its reconciliation can itself have an uncertain or deterministic failure. Those cases follow the Project-local occurrence removal contract below. The crucial ordering invariant is:
+
+```text
+confirm occurrence
+→ drain existing geometry to Saved
+→ start cancellation DELETE
+→ reconcile DELETE only if needed
+```
+
+This is the bounded frontend counterpart to the Phase 3A2 backend replay contract: uncertain failure never means "not committed", and cancellation never makes an authoritative structural reload eligible while unsaved geometry still exists.
 
 ## Existing dirty placement interaction
 
@@ -184,6 +201,8 @@ Existing moved/resized nodes may remain dirty while a reference insertion runs b
 - the backend does not use one global Project lock for placement updates.
 
 A successful insertion merges only the new item/placement and updated Project row into local state. It must not call the Phase 3B1 snapshot installer in a way that discards unrelated dirty geometry, undo/redo history, pending placement mutations, or navigation protection.
+
+For uncertain-insertion cancellation, confirmation of the server-side occurrence does **not** relax this rule. The cancellation intent freezes additional geometry commands and drains the existing placement state through the ordinary Phase 3B1 save controller. A follow-up DELETE can begin only from `Saved`. Therefore any later deterministic DELETE reconciliation may safely install authoritative structure without silently discarding an unsaved placement draft.
 
 Navigation protection covers unresolved placement-save state, a pending reference insertion/reconciliation, and an unresolved Project-local removal. A normal internal navigation cannot proceed until all three mutation domains are in a safe state. Hard refresh/close uses the same unresolved-reference/removal state in `beforeunload` protection.
 
@@ -200,7 +219,7 @@ It shows:
 
 It is non-draggable, non-resizable, non-connectable, and excluded from Reading until the authoritative mutation succeeds.
 
-A known non-commit failure may be cancelled locally. An uncertain result may **not** be cancelled locally: the original operation must first be replayed/reconciled, and any confirmed committed occurrence must be removed through the normal Project-local lifecycle operation.
+A known non-commit failure may be cancelled locally. An uncertain result may **not** be cancelled locally: the original operation must first be replayed/reconciled. If that proves an occurrence committed, the ghost remains as reconciliation state while existing geometry is drained to `Saved`; only then may the normal Project-local lifecycle operation remove the confirmed occurrence.
 
 ## Open-reference behavior
 
@@ -217,7 +236,7 @@ Navigation is an explicit action:
 
 Phase 3B2 exposes `Remove from Project` for an active reference occurrence.
 
-Removal begins only when ordinary placement state is safely `Saved` and captures one complete lifecycle request containing the expected item revision and one operation ID.
+Removal begins only when ordinary placement state is safely `Saved` and captures one complete lifecycle request containing the expected item revision and one operation ID. **This Saved prerequisite applies equally to an internal cancellation removal after uncertain insertion reconciliation.** Internal cancellation first queues the confirmed occurrence, drains any existing placement PATCH/dirtiness to `Saved`, and only then creates and sends the DELETE request.
 
 Removal failures are split by whether the DELETE outcome is uncertain or deterministic:
 
@@ -237,7 +256,7 @@ For these failures:
 
 A deterministic non-timeout 4xx response such as `409` or `404` is **not** exact-retried forever. The stale request cannot be repaired by changing its revision or guessing a new operation.
 
-The page immediately enters `reconciling` and performs an authoritative Project read:
+The page immediately enters `reconciling` and performs an authoritative Project read. Because every DELETE—including an internal cancellation DELETE—can start only after geometry is safely `Saved`, this authoritative read is never permitted to overwrite an unsaved placement draft.
 
 - if the occurrence is absent from the active snapshot, synchronize the page to that snapshot and treat the occurrence as already removed elsewhere;
 - if the occurrence is still active but its revision/state changed, synchronize the page to that latest snapshot, clear the old removal request, unfreeze Map interaction, and require a new explicit `Remove from Project` action before any fresh DELETE is created;
@@ -253,9 +272,9 @@ For every successful Project-local removal:
 - never delete, archive, edit, or tombstone the source object;
 - preserve recoverable Project lifecycle semantics from Phase 3A2.
 
-From the moment removal starts until it is authoritatively completed or reconciled, the whole Map geometry interaction is frozen. Persisted nodes cannot be dragged, keyboard-moved, resized, or mutated through undo/redo; placement Save/Reload actions and reference placement are disabled. Runtime guards reject geometry callbacks even if a renderer event races the UI disable state.
+From the moment an actual removal starts until it is authoritatively completed or reconciled, the whole Map geometry interaction is frozen. The pre-DELETE drain used by uncertain-insertion cancellation also freezes new geometry commands. Persisted nodes cannot be dragged, keyboard-moved, resized, or mutated through undo/redo; placement Save/Reload actions and reference placement are disabled except for the save/reconciliation actions specifically required to resolve an already pending cancellation. Runtime guards reject geometry callbacks even if a renderer event races the UI disable state.
 
-The unresolved removal also participates in internal-navigation and `beforeunload` protection.
+The unresolved removal or queued cancellation removal also participates in internal-navigation and `beforeunload` protection.
 
 On successful removal, the page removes that occurrence's placement baseline, local geometry, pending placement mutation, connected local edges, and undo/redo commands. It then clears stale geometry error/conflict text and recomputes dirty state from the remaining placements. If nothing else is dirty the page returns to `Saved`; unrelated dirty geometry remains `Unsaved` and follows the normal Phase 3B1 save path.
 
@@ -278,6 +297,8 @@ The dedicated `verify:project-reference-placement` gate covers:
 - the same target can be placed twice as two distinct occurrences;
 - uncertain retry reuses the exact insertion request and operation ID;
 - a response-lost-after-commit insertion cannot be directly cancelled and is exact-replayed/reconciled before any Project-local removal;
+- a confirmed uncertain-insertion cancellation with dirty or in-flight geometry sends no DELETE until the placement save reaches `Saved`;
+- a cancellation DELETE `409` after that drain may reconcile authoritative structure without reverting the already-saved geometry;
 - `409`/unavailable target never creates last-write-wins state;
 - insertion during unrelated dirty geometry does not reset that geometry or undo history;
 - reference conflict reload cannot overwrite unrelated unsaved geometry;
@@ -310,11 +331,12 @@ The Phase 3B2 PR remains Draft until independent review confirms:
 - search remains read-only before placement;
 - no half-created occurrence can survive insertion failure;
 - uncertain insertion cancellation reconciles server state before discarding local state;
+- a confirmed cancellation removal cannot begin until pre-existing placement geometry is fully Saved, including any in-flight PATCH drain;
 - retries preserve exact mutation identity for uncertain create and remove operations;
 - deterministic removal conflicts reconcile authoritative state without guessing a revision or reusing a stale DELETE indefinitely;
 - repeated references work;
 - drop coordinates remain correct under pan/zoom;
-- dirty Phase 3B1 geometry cannot be lost during insertion/removal;
+- dirty Phase 3B1 geometry cannot be lost during insertion/removal or cancellation reconciliation;
 - removal cannot race geometry mutation and cannot leave a stale save conflict after success;
 - no source mutation is performed by Project-local removal;
 - mobile creation remains excluded;
