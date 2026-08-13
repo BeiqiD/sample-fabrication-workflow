@@ -307,10 +307,14 @@ export function useProjectEdgeController({
 
   const cancelEdit = useCallback(() => {
     const current = editorRef.current;
-    if (!current || current.status === "saving" || current.status === "uncertain") return;
+    if (!current || current.status === "saving" || current.status === "uncertain" || current.status === "conflict") return;
+    const pendingUpdate = pendingRef.current;
+    if (pendingUpdate?.kind === "update" && pendingUpdate.edgeId === current.edgeId && pendingUpdate.status === "error") {
+      updatePending(null);
+    }
     updateEditor(null);
     setActionError("");
-  }, [updateEditor]);
+  }, [updateEditor, updatePending]);
 
   const saveEdit = useCallback(() => {
     const currentSnapshot = snapshotRef.current;
