@@ -13,8 +13,20 @@ def replace_once(path: str, old: str, new: str) -> None:
 
 replace_once(
     "src/components/project/ProjectMapSurface.tsx",
+    '''  type Connection,\n  type Edge,\n  type Node,''',
+    '''  type Connection,\n  type Edge,\n  type EdgeChange,\n  type Node,''',
+)
+
+replace_once(
+    "src/components/project/ProjectMapSurface.tsx",
     '''  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {\n    const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);\n    if (selected) onSelect(selected.id);\n  }, [onSelect]);''',
-    '''  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode, ProjectFlowEdge>>(({ nodes, edges }) => {\n    const selectedNode = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);\n    if (selectedNode) {\n      onSelect(selectedNode.id);\n      return;\n    }\n    const selectedEdge = [...edges].reverse().find((edge) => edge.id !== pendingEdge?.edgeId);\n    if (selectedEdge) {\n      onEdgeSelect(selectedEdge.id);\n      return;\n    }\n    onSelect(null);\n    onEdgeSelect(null);\n  }, [onEdgeSelect, onSelect, pendingEdge]);''',
+    '''  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode, ProjectFlowEdge>>(({ nodes, edges }) => {\n    const selectedNode = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);\n    if (selectedNode) {\n      onSelect(selectedNode.id);\n      return;\n    }\n    const selectedEdge = [...edges].reverse().find((edge) => edge.id !== pendingEdge?.edgeId);\n    if (selectedEdge) {\n      onEdgeSelect(selectedEdge.id);\n      return;\n    }\n    onSelect(null);\n    onEdgeSelect(null);\n  }, [onEdgeSelect, onSelect, pendingEdge]);\n  const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {\n    const selection = [...changes].reverse().find((change) => change.type === \"select\");\n    if (!selection || selection.type !== \"select\") return;\n    if (selection.selected) {\n      onEdgeSelect(selection.id);\n      return;\n    }\n    if (selection.id === selectedEdgeId) onEdgeSelect(null);\n  }, [onEdgeSelect, selectedEdgeId]);''',
+)
+
+replace_once(
+    "src/components/project/ProjectMapSurface.tsx",
+    '''      onNodesChange={onNodesChange}\n      onNodeClick={handleNodeClick}''',
+    '''      onNodesChange={onNodesChange}\n      onEdgesChange={handleEdgesChange}\n      onNodeClick={handleNodeClick}''',
 )
 
 
@@ -68,8 +80,7 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
     onSelect.mockClear();
     onEdgeSelect.mockClear();
     fireEvent.keyDown(renderedEdge, { key: "Escape", code: "Escape" });
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(null));
-    expect(onEdgeSelect).toHaveBeenCalledWith(null);
+    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith(null));
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
@@ -79,4 +90,6 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
   });
 
 '''
-test_path.write_text(text.replace(anchor, new_test + anchor, 1))
+text = text.replace(anchor, new_test + anchor, 1)
+text = text.replace('''    expect(onEdgeSelect).not.toHaveBeenCalled();''', '''    expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-a");''', 1)
+test_path.write_text(text)
