@@ -32,35 +32,26 @@ jobs:
           path = Path('src/pages/ProjectPage.tsx')
           text = path.read_text()
 
-          old_catch = '''    } catch (caught) {
-              if (!saveSessionIsActive(generation)) return;
-              const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
-              setSaveError(message);
-              updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
-            } finally {'''
-          new_catch = '''    } catch (caught) {
-              if (!saveSessionIsActive(generation)) return;
-              const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
-              navigationSaveRequestedRef.current = false;
-              setSaveError(message);
-              updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
-            } finally {'''
+          old_catch = '''      const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+                setSaveError(message);'''
+          new_catch = '''      const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+                navigationSaveRequestedRef.current = false;
+                setSaveError(message);'''
 
           old_effect = '''    if (saveState === "error" || saveState === "conflict") {
-              navigationSaveRequestedRef.current = false;
-              return;
-            }
-            if (saveState !== "saved") return;'''
+                navigationSaveRequestedRef.current = false;
+                return;
+              }
+              if (saveState !== "saved") return;'''
           new_effect = '''    if (saveState === "error" || saveState === "conflict") return;
-            if (saveState !== "saved") return;'''
+              if (saveState !== "saved") return;'''
 
           if text.count(old_catch) != 1:
-              raise SystemExit(f'expected one save catch, found {text.count(old_catch)}')
+              raise SystemExit(f'expected one save catch anchor, found {text.count(old_catch)}')
           if text.count(old_effect) != 1:
               raise SystemExit(f'expected one blocker failure effect, found {text.count(old_effect)}')
 
-          text = text.replace(old_catch, new_catch).replace(old_effect, new_effect)
-          path.write_text(text)
+          path.write_text(text.replace(old_catch, new_catch).replace(old_effect, new_effect))
           PY
       - name: Verify mounted Project Map behavior
         run: npm run test:project-map-mounted
