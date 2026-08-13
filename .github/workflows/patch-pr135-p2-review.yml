@@ -1,0 +1,175 @@
+name: Patch remaining PR135 review fixes
+
+on:
+  push:
+    branches:
+      - agent/project-owned-content
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/project-owned-content
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Apply review fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}: {old[:120]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          # 1. Reject whitespace-only names before any bytes reach R2, while preserving valid original names verbatim.
+          replace_once(
+              "worker/project-foundation-routes.ts",
+              '  if (!filename || filename.includes("\\u0000") || [...filename].length > 255) {',
+              '  if (!filename.trim() || filename.includes("\\u0000") || [...filename].length > 255) {',
+          )
+
+          # 2. Use a browser-preview whitelist rather than every image/* MIME.
+          Path("src/lib/project-owned-content.ts").write_text('''import type { ProjectMapGeometry } from "../../shared/project-types";\nimport {\n  isProjectMapGeometry,\n  MAX_PROJECT_MAP_COORDINATE_ABS,\n  MAX_PROJECT_MAP_Z_INDEX_ABS,\n} from "../../shared/project-types";\nimport { ProjectApiError } from "./project-client";\n\nexport type ProjectOwnedContentMutationStatus = "editing" | "uploading" | "saving" | "error" | "conflict" | "uncertain";\n\nexport interface ProjectMapMarkdownEditorState {\n  itemId: string;\n  value: string;\n  isNew: boolean;\n  geometry: ProjectMapGeometry | null;\n  status: ProjectOwnedContentMutationStatus;\n  message: string | null;\n}\n\nexport interface ProjectPendingAttachmentPlacement {\n  localId: string;\n  filename: string;\n  mimeType: string;\n  geometry: ProjectMapGeometry;\n  status: Exclude<ProjectOwnedContentMutationStatus, "editing">;\n  message: string | null;\n}\n\nconst PROJECT_ATTACHMENT_IMAGE_PREVIEW_MIME_TYPES = new Set([\n  "image/avif",\n  "image/bmp",\n  "image/gif",\n  "image/jpeg",\n  "image/png",\n  "image/webp",\n]);\n\nfunction normalizedProjectAttachmentMimeType(value: string | null | undefined) {\n  return (value ?? "").split(";", 1)[0].trim().toLowerCase();\n}\n\nfunction boundedCoordinate(value: number) {\n  return Math.max(-MAX_PROJECT_MAP_COORDINATE_ABS, Math.min(MAX_PROJECT_MAP_COORDINATE_ABS, value));\n}\n\nfunction boundedZIndex(value: number) {\n  return Math.max(-MAX_PROJECT_MAP_Z_INDEX_ABS, Math.min(MAX_PROJECT_MAP_Z_INDEX_ABS, Math.trunc(value)));\n}\n\nfunction centeredGeometry(\n  point: { x: number; y: number },\n  width: number,\n  height: number,\n  zIndex: number,\n): ProjectMapGeometry | null {\n  const geometry: ProjectMapGeometry = {\n    x: boundedCoordinate(point.x - width / 2),\n    y: boundedCoordinate(point.y - Math.min(72, height / 3)),\n    width,\n    height,\n    zIndex: boundedZIndex(zIndex),\n  };\n  return isProjectMapGeometry(geometry) ? geometry : null;\n}\n\nexport function projectMarkdownGeometryAtPoint(\n  point: { x: number; y: number },\n  zIndex: number,\n) {\n  return centeredGeometry(point, 360, 220, zIndex);\n}\n\nexport function projectAttachmentGeometryAtPoint(\n  point: { x: number; y: number },\n  zIndex: number,\n  mimeType: string,\n) {\n  return projectAttachmentCanPreviewImage(mimeType)\n    ? centeredGeometry(point, 360, 300, zIndex)\n    : centeredGeometry(point, 340, 170, zIndex);\n}\n\nexport function projectAttachmentCanPreviewImage(mimeType: string | null | undefined) {\n  return PROJECT_ATTACHMENT_IMAGE_PREVIEW_MIME_TYPES.has(\n    normalizedProjectAttachmentMimeType(mimeType),\n  );\n}\n\nexport function projectOwnedContentFailureStatus(caught: unknown): "uncertain" | "error" | "conflict" {\n  if (caught instanceof ProjectApiError) {\n    if (caught.status === 409) return "conflict";\n    if (caught.status >= 400 && caught.status < 500 && caught.status !== 408 && caught.status !== 429) {\n      return "error";\n    }\n  }\n  return "uncertain";\n}\n''')
+
+          Path("src/lib/project-owned-content.test.ts").write_text('''import { describe, expect, it } from "vitest";\nimport {\n  projectAttachmentCanPreviewImage,\n  projectAttachmentGeometryAtPoint,\n  projectMarkdownGeometryAtPoint,\n  projectOwnedContentFailureStatus,\n} from "./project-owned-content";\nimport { ProjectApiError } from "./project-client";\n\ndescribe("Project owned content helpers", () => {\n  it("creates valid centered Markdown and attachment geometry", () => {\n    expect(projectMarkdownGeometryAtPoint({ x: 100, y: 200 }, 3)).toEqual({\n      x: -80,\n      y: 128,\n      width: 360,\n      height: 220,\n      zIndex: 3,\n    });\n    expect(projectAttachmentGeometryAtPoint({ x: 100, y: 200 }, 4, "image/png")).toEqual({\n      x: -80,\n      y: 128,\n      width: 360,\n      height: 300,\n      zIndex: 4,\n    });\n    expect(projectAttachmentGeometryAtPoint({ x: 100, y: 200 }, 5, "image/tiff")).toEqual({\n      x: -70,\n      y: 143.33333333333334,\n      width: 340,\n      height: 170,\n      zIndex: 5,\n    });\n  });\n\n  it("only previews explicitly supported browser raster MIME types", () => {\n    expect(projectAttachmentCanPreviewImage("IMAGE/PNG")).toBe(true);\n    expect(projectAttachmentCanPreviewImage("image/jpeg; charset=binary")).toBe(true);\n    expect(projectAttachmentCanPreviewImage("image/webp")).toBe(true);\n    expect(projectAttachmentCanPreviewImage("image/tiff")).toBe(false);\n    expect(projectAttachmentCanPreviewImage("image/svg+xml")).toBe(false);\n    expect(projectAttachmentCanPreviewImage("application/pdf")).toBe(false);\n    expect(projectAttachmentCanPreviewImage("")).toBe(false);\n  });\n\n  it("keeps deterministic 4xx failures distinct from uncertain outcomes", () => {\n    expect(projectOwnedContentFailureStatus(new ProjectApiError("conflict", 409))).toBe("conflict");\n    expect(projectOwnedContentFailureStatus(new ProjectApiError("bad", 400))).toBe("error");\n    expect(projectOwnedContentFailureStatus(new ProjectApiError("timeout", 408))).toBe("uncertain");\n    expect(projectOwnedContentFailureStatus(new ProjectApiError("rate", 429))).toBe("uncertain");\n    expect(projectOwnedContentFailureStatus(new ProjectApiError("server", 503))).toBe("uncertain");\n    expect(projectOwnedContentFailureStatus(new TypeError("network"))).toBe("uncertain");\n  });\n});\n''')
+
+          # Rename the helper at call sites and add runtime preview fallback on the Map.
+          for name in [
+              "src/components/project/ProjectMapSurface.tsx",
+              "src/pages/ProjectPage.tsx",
+              "src/project-owned-content-contract.test.ts",
+          ]:
+              p = Path(name)
+              p.write_text(p.read_text().replace("projectAttachmentIsImage", "projectAttachmentCanPreviewImage"))
+
+          replace_once(
+              "src/components/project/ProjectMapSurface.tsx",
+              '''  } = data;\n  if (pendingReference) {''',
+              '''  } = data;\n  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);\n  const previewUrl = descriptor.kind === "attachment"\n    && descriptor.fileUrl\n    && projectAttachmentCanPreviewImage(descriptor.mimeType)\n    && failedPreviewUrl !== descriptor.fileUrl\n    ? descriptor.fileUrl\n    : null;\n  if (pendingReference) {''',
+          )
+          replace_once(
+              "src/components/project/ProjectMapSurface.tsx",
+              '''      {descriptor.kind === "attachment" && descriptor.fileUrl && projectAttachmentCanPreviewImage(descriptor.mimeType) && <img\n        className="project-node-image"\n        src={descriptor.fileUrl}\n        alt={descriptor.attachmentCaption || descriptor.title}\n      />}''',
+              '''      {previewUrl && <img\n        className="project-node-image"\n        src={previewUrl}\n        alt={descriptor.attachmentCaption || descriptor.title}\n        onError={() => setFailedPreviewUrl(previewUrl)}\n      />}\n      {descriptor.kind === "attachment" && descriptor.fileUrl && !previewUrl && <a\n        className="project-node-open-reference nodrag nopan"\n        href={descriptor.fileUrl}\n        onMouseDown={(event) => event.stopPropagation()}\n        onClick={(event) => event.stopPropagation()}\n      >Open attachment</a>}''',
+          )
+
+          # Mobile Reading uses the same preview whitelist and hides a failed image, leaving the existing file-card/open action intact.
+          replace_once(
+              "src/pages/ProjectPage.tsx",
+              '''export function ProjectPage() {''',
+              '''function ProjectReadingAttachmentPreview({\n  fileUrl,\n  mimeType,\n  alt,\n}: {\n  fileUrl: string | null;\n  mimeType: string | null;\n  alt: string;\n}) {\n  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);\n  if (!fileUrl || !projectAttachmentCanPreviewImage(mimeType) || failedPreviewUrl === fileUrl) return null;\n  return <img\n    className="project-reading-image"\n    src={fileUrl}\n    alt={alt}\n    onError={() => setFailedPreviewUrl(fileUrl)}\n  />;\n}\n\nexport function ProjectPage() {''',
+          )
+          replace_once(
+              "src/pages/ProjectPage.tsx",
+              '''        {node.kind === "attachment" && node.fileUrl && projectAttachmentCanPreviewImage(node.mimeType) && <img className="project-reading-image" src={node.fileUrl} alt={node.attachmentCaption || node.title} />}''',
+              '''        {node.kind === "attachment" && <ProjectReadingAttachmentPreview\n          fileUrl={node.fileUrl}\n          mimeType={node.mimeType}\n          alt={node.attachmentCaption || node.title}\n        />}''',
+          )
+
+          # 3. Backend route regression: whitespace-only names fail before R2/DB writes.
+          replace_once(
+              "worker/project-routes.test.ts",
+              '''    const body = Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]);\n\n    const first = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/pdf", body);''',
+              '''    const body = Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]);\n\n    const blankName = await attachmentUploadRequest(app, env, "   ", "application/pdf", body);\n    expect(blankName.status).toBe(400);\n    expect(uploaded.size).toBe(0);\n    expect(database.prepare("SELECT COUNT(*) AS count FROM assets").get()).toEqual({ count: 0 });\n\n    const first = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/pdf", body);''',
+          )
+
+          # Mounted React Flow regression for decode failure -> file-card action.
+          test_path = Path("src/project-map-surface.mount.test.tsx")
+          test = test_path.read_text()
+          marker = '\n});\n'
+          addition = '''\n  it("falls back to the attachment file card when a previewable image cannot decode", async () => {\n    const snapshot = projectTestSnapshot();\n    const actor = "user@example.com";\n    const createdAt = "2026-08-11T08:00:00.000Z";\n    snapshot.contents.push({\n      id: "content-image",\n      projectId: "project-a",\n      contentType: "attachment",\n      markdownSource: null,\n      attachmentCaption: "Broken preview",\n      attachmentSourceUrl: null,\n      formatVersion: 1,\n      revision: 1,\n      createdBy: actor,\n      updatedBy: actor,\n      createdAt,\n      updatedAt: createdAt,\n      deletedAt: null,\n      deletedBy: null,\n    });\n    snapshot.attachments.push({\n      projectContentId: "content-image",\n      originalName: "broken.png",\n      mimeType: "image/png",\n      byteSize: 12,\n      createdBy: actor,\n      createdAt,\n      fileUrl: "/api/projects/project-a/contents/content-image/file",\n    });\n    snapshot.items.push({\n      id: "item-image",\n      projectId: "project-a",\n      itemType: "content",\n      projectContentId: "content-image",\n      referenceTargetId: null,\n      createdSequence: 3,\n      revision: 1,\n      createdBy: actor,\n      updatedBy: actor,\n      createdAt,\n      updatedAt: createdAt,\n      deletedAt: null,\n      deletedBy: null,\n    });\n    snapshot.placements.push({\n      id: "placement-image",\n      projectItemId: "item-image",\n      x: 600,\n      y: 40,\n      width: 360,\n      height: 300,\n      zIndex: 2,\n      revision: 1,\n      createdBy: actor,\n      updatedBy: actor,\n      createdAt,\n      updatedAt: createdAt,\n    });\n\n    const { container } = render(<div style={{ width: 1000, height: 700 }}>\n      <ProjectMapSurface\n        nodes={projectMapNodes(snapshot)}\n        selectedItemId={null}\n        onSelect={() => undefined}\n        onGeometryCommit={() => undefined}\n      />\n    </div>);\n\n    const image = await waitFor(() => {\n      const candidate = container.querySelector<HTMLImageElement>("img.project-node-image");\n      expect(candidate).toBeTruthy();\n      return candidate!;\n    });\n    fireEvent.error(image);\n    await waitFor(() => expect(container.querySelector("img.project-node-image")).toBeNull());\n    const fallback = container.querySelector<HTMLAnchorElement>(\n      'a.project-node-open-reference[href="/api/projects/project-a/contents/content-image/file"]',\n    );\n    expect(fallback?.textContent).toContain("Open attachment");\n  });\n'''
+          if not test.endswith(marker):
+              raise SystemExit("src/project-map-surface.mount.test.tsx: unexpected ending")
+          test_path.write_text(test[:-len(marker)] + addition + marker)
+
+          # Static contract checks both fallback surfaces and dedicated Worker coverage.
+          contract = Path("src/project-owned-content-contract.test.ts")
+          text = contract.read_text()
+          replace_old = '''    expect(map).toContain("projectAttachmentCanPreviewImage(descriptor.mimeType)");\n    expect(map).toContain('className="project-node-image"');\n    expect(page).toContain("projectAttachmentCanPreviewImage(node.mimeType)");'''
+          replace_new = '''    expect(map).toContain("projectAttachmentCanPreviewImage(descriptor.mimeType)");\n    expect(map).toContain('className="project-node-image"');\n    expect(map).toContain("onError={() => setFailedPreviewUrl(previewUrl)}");\n    expect(page).toContain("<ProjectReadingAttachmentPreview");\n    expect(page).toContain("onError={() => setFailedPreviewUrl(fileUrl)}");'''
+          if text.count(replace_old) != 1:
+              raise SystemExit("owned-content contract: preview block not found")
+          text = text.replace(replace_old, replace_new, 1)
+          contract_marker = '\n  it("keeps Project-owned content creation desktop-only and leaves edges for Phase 3B4", () => {'
+          gate_test = '''\n  it("keeps the dedicated gate on the real Project asset Worker path", () => {\n    const packageJson = read("../package.json");\n    const workerSmoke = read("../scripts/verify-project-worker.mjs");\n    expect(packageJson).toContain("worker/project-routes.test.ts");\n    expect(packageJson).toContain("npm run verify:project-worker");\n    expect(workerSmoke).toContain('"/api/project-assets"');\n    expect(workerSmoke).toContain('encodeURIComponent("smoke.bin")');\n    expect(workerSmoke).not.toContain("project-smoke-asset");\n  });\n'''
+          if contract_marker not in text:
+              raise SystemExit("owned-content contract: gate insertion marker not found")
+          contract.write_text(text.replace(contract_marker, gate_test + contract_marker, 1))
+
+          # Dedicated gate now runs route regression + full Miniflare Worker smoke.
+          replace_once(
+              "package.json",
+              '    "test:project-owned-content": "vitest run src/lib/project-owned-content.test.ts src/project-owned-content-contract.test.ts src/lib/project-client.test.ts src/lib/project-map-model.test.ts",',
+              '    "test:project-owned-content": "vitest run src/lib/project-owned-content.test.ts src/project-owned-content-contract.test.ts src/lib/project-client.test.ts src/lib/project-map-model.test.ts worker/project-routes.test.ts",',
+          )
+          replace_once(
+              "package.json",
+              '    "verify:project-owned-content": "npm run test:project-owned-content && npm run test:project-owned-content-mounted && npm run build && node scripts/verify-project-map-bundle.mjs"',
+              '    "verify:project-owned-content": "npm run test:project-owned-content && npm run test:project-owned-content-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs"',
+          )
+
+          # Full Worker smoke now uploads through /api/project-assets instead of pre-seeding asset identity.
+          smoke = Path("scripts/verify-project-worker.mjs")
+          text = smoke.read_text()
+          text = text.replace('import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";', 'import { mkdir, mkdtemp, rm } from "node:fs/promises";')
+          text = text.replace('const projectFixturePath = resolve(scratch, "project-fixture.sql");\n', '')
+          start = text.index('const projectFixtureSql = `')
+          end = text.index('`;\n\nlet miniflare;', start) + 3
+          text = text[:start] + 'let miniflare;' + text[end + len('\n\nlet miniflare;'):]
+          text = text.replace('  await writeFile(projectFixturePath, projectFixtureSql, "utf8");\n', '')
+          text = text.replace('  runWrangler(["d1", "execute", "DB", "--file", projectFixturePath, "--yes", ...localDatabaseArgs]);\n', '')
+          old_bytes = '''  const bytes = Uint8Array.from([1, 2, 3, 4]);\n  const assets = await miniflare.getR2Bucket("ASSETS");\n  await assets.put("projects/smoke.bin", bytes, {\n    httpMetadata: { contentType: "application/octet-stream" },\n  });'''
+          new_bytes = '''  const bytes = Uint8Array.from([1, 2, 3, 4]);\n  const blankAsset = await miniflare.dispatchFetch("https://app.test/api/project-assets", {\n    method: "POST",\n    headers: {\n      "content-type": "application/octet-stream",\n      "x-project-filename-uri": encodeURIComponent("   "),\n    },\n    body: bytes,\n  });\n  assert.equal(blankAsset.status, 400, "Whitespace-only Project attachment names must fail before storage");\n\n  const assetUpload = await miniflare.dispatchFetch("https://app.test/api/project-assets", {\n    method: "POST",\n    headers: {\n      "content-type": "application/octet-stream",\n      "x-project-filename-uri": encodeURIComponent("smoke.bin"),\n    },\n    body: bytes,\n  });\n  const uploadedAsset = await assetUpload.json();\n  assert.equal(assetUpload.status, 201, JSON.stringify(uploadedAsset));\n  assert.equal(uploadedAsset.deduplicated, false);\n  assert.equal(typeof uploadedAsset.id, "string");\n\n  const duplicateUpload = await miniflare.dispatchFetch("https://app.test/api/project-assets", {\n    method: "POST",\n    headers: {\n      "content-type": "application/octet-stream",\n      "x-project-filename-uri": encodeURIComponent("smoke.bin"),\n    },\n    body: bytes,\n  });\n  const duplicateAsset = await duplicateUpload.json();\n  assert.equal(duplicateUpload.status, 200, JSON.stringify(duplicateAsset));\n  assert.equal(duplicateAsset.id, uploadedAsset.id);\n  assert.equal(duplicateAsset.deduplicated, true);'''
+          if text.count(old_bytes) != 1:
+              raise SystemExit("verify-project-worker: preseeded R2 block not found")
+          text = text.replace(old_bytes, new_bytes, 1)
+          text = text.replace('locator: { assetId: "project-smoke-asset" }', 'locator: { assetId: uploadedAsset.id }')
+          text = text.replace('assert(!serialized.includes("projects/smoke.bin"));', 'assert(!serialized.includes(uploadedAsset.key));')
+          text = text.replace('Project Worker/D1 smoke passed: middleware, retry idempotency, rollback, reference registration, attachment media, snapshot, conflict, and lifecycle.', 'Project Worker/D1 smoke passed: middleware, generic asset upload/deduplication, retry idempotency, rollback, reference registration, attachment media, snapshot, conflict, and lifecycle.')
+          smoke.write_text(text)
+
+          # Keep implementation-plan boundaries synchronized with the review fixes.
+          docs = Path("docs/PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md")
+          text = docs.read_text()
+          text = text.replace(
+              'The local filename is transported in an ASCII-safe percent-encoded `x-project-filename-uri` header and decoded/validated by the Worker. Generic MIME types such as `application/pdf` and `application/octet-stream` are accepted up to the existing Phase 3B3 10 MB upload bound.',
+              'The local filename is transported in an ASCII-safe percent-encoded `x-project-filename-uri` header and decoded/validated by the Worker. Whitespace-only names are rejected before the request body reaches R2 while otherwise valid original filenames are preserved verbatim. Generic MIME types such as `application/pdf` and `application/octet-stream` are accepted up to the existing Phase 3B3 10 MB upload bound.',
+          )
+          text = text.replace(
+              '- images render inside Map/Reading with `object-fit: contain`;\n- PDFs and all other generic files remain file cards/open-file actions in this phase.',
+              '- browser-stable raster previews are limited to AVIF, BMP, GIF, JPEG, PNG, and WebP and render with `object-fit: contain`;\n- a decode failure falls back to the normal attachment file-card/open-file action;\n- TIFF, SVG, PDFs, and all other generic files remain file cards/open-file actions in this phase; TIFF preview integration with the existing decoder remains deferred.',
+          )
+          text = text.replace(
+              '- generic PDF/non-image upload and Unicode filename transport;',
+              '- generic PDF/non-image upload, Unicode filename transport, and whitespace-only filename rejection before storage;',
+          )
+          text = text.replace(
+              '- generic asset upload followed by authoritative Project attachment creation;',
+              '- generic asset upload followed by authoritative Project attachment creation;\n- the dedicated gate explicitly runs `worker/project-routes.test.ts` and the full Miniflare `verify:project-worker` smoke through `/api/project-assets`;',
+          )
+          docs.write_text(text)
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify focused slice
+        run: npm run verify:project-owned-content
+      - name: Commit fixes and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/patch-pr135-p2-review.yml
+          git add worker/project-foundation-routes.ts worker/project-routes.test.ts src/lib/project-owned-content.ts src/lib/project-owned-content.test.ts src/components/project/ProjectMapSurface.tsx src/pages/ProjectPage.tsx src/project-map-surface.mount.test.tsx src/project-owned-content-contract.test.ts package.json scripts/verify-project-worker.mjs docs/PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md
+          git diff --cached --check
+          git commit -m "fix(project): close remaining owned-content review gaps"
+          git push origin HEAD:agent/project-owned-content
