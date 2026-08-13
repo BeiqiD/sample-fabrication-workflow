@@ -206,4 +206,37 @@ describe("real Project Map surface keyboard behavior", () => {
     expect(fallback?.textContent).toContain("Open attachment");
   });
 
+
+  it("reserves empty-pane double click for Markdown creation instead of viewport zoom", async () => {
+    const onMarkdownCreateRequest = vi.fn();
+    const descriptors = projectMapNodes(projectTestSnapshot());
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={descriptors}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+        onMarkdownCreateRequest={onMarkdownCreateRequest}
+      />
+    </div>);
+
+    const pane = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>(".react-flow__pane");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    const viewport = container.querySelector<HTMLElement>(".react-flow__viewport");
+    expect(viewport).toBeTruthy();
+    const beforeTransform = viewport!.style.transform;
+
+    fireEvent.doubleClick(pane, { clientX: 400, clientY: 300 });
+
+    await waitFor(() => expect(onMarkdownCreateRequest).toHaveBeenCalledTimes(1));
+    const point = onMarkdownCreateRequest.mock.calls[0][0];
+    expect(Number.isFinite(point.x)).toBe(true);
+    expect(Number.isFinite(point.y)).toBe(true);
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    expect(viewport!.style.transform).toBe(beforeTransform);
+  });
+
 });

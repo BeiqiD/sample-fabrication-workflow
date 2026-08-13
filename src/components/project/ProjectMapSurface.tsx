@@ -731,6 +731,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       fitViewOptions={PROJECT_FIT_VIEW_OPTIONS}
       minZoom={0.1}
       maxZoom={2.5}
+      zoomOnDoubleClick={false}
       deleteKeyCode={null}
       proOptions={PROJECT_PRO_OPTIONS}
     >
