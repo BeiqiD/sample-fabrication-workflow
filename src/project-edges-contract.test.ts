@@ -22,4 +22,17 @@ describe("Phase 3B4 edge contract", () => {
     expect(plan).toContain("ordinary Bezier edges only");
     expect(plan).toContain("No first-version self-loop, obstacle avoidance, draggable control point, relation ontology");
   });
+
+  it("keeps Phase 3B4 in the permanent fail-closed verification chain", () => {
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
+    const workflow = fs.readFileSync(".github/workflows/verify.yml", "utf8");
+    expect(pkg.scripts["test:project-edges"]).toContain("src/project-edges-contract.test.ts");
+    expect(pkg.scripts["test:project-edges-mounted"]).toContain("src/project-edges.mount.test.tsx");
+    expect(pkg.scripts["test:project-edges-mounted"]).toContain("src/project-edge-surface.mount.test.tsx");
+    expect(pkg.scripts["verify:project-edges"]).toContain("verify:project-worker");
+    expect(pkg.scripts["verify:project-edges"]).toContain("verify-project-map-bundle.mjs");
+    expect(pkg.scripts["verify:v3-deployment"]).toContain("verify:project-edges");
+    expect(workflow).toContain("Run Project edges contract");
+    expect(workflow).toContain('context: "pre-pr/project-edges"');
+  });
 });
