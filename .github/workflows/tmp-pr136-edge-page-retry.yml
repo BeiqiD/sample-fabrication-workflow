@@ -1,0 +1,42 @@
+name: Temporary PR136 edge page retry
+
+on:
+  push:
+    branches:
+      - agent/project-basic-edges
+    paths:
+      - .github/workflows/tmp-pr136-edge-page-retry.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/project-basic-edges
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Integrate authoritative edge controller
+        run: python scripts/tmp-pr136-edge-page-integration.py
+      - name: Verify integrated edge controller
+        run: |
+          npx vitest run src/lib/project-edges.test.ts src/lib/project-edge-history.test.ts src/lib/project-edge-client.test.ts src/project-edges-contract.test.ts
+          npm run test:project-map-mounted
+          npm run build
+      - name: Commit verified edge integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-pr136-edge-page-retry.yml scripts/tmp-pr136-edge-page-integration.py
+          git add src/pages/ProjectPage.tsx src/lib/use-project-edge-controller.ts
+          git diff --cached --check
+          git commit -m "feat(project): integrate authoritative edge editing"
+          git push origin HEAD:agent/project-basic-edges
