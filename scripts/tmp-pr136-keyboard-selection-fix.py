@@ -43,6 +43,8 @@ if text.count(anchor) != 1:
 new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized", async () => {
     const snapshot = projectTestSnapshot();
     const edge = edgeRecord();
+    const stableNodes = projectMapNodes(snapshot);
+    const stableEdges = [edge];
     const onSelect = vi.fn();
     const onEdgeSelect = vi.fn();
 
@@ -50,8 +52,8 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
       const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
       const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
       return <ProjectMapSurface
-        nodes={projectMapNodes(snapshot)}
-        edges={[edge]}
+        nodes={stableNodes}
+        edges={stableEdges}
         selectedItemId={selectedItemId}
         selectedEdgeId={selectedEdgeId}
         onSelect={(itemId) => {
