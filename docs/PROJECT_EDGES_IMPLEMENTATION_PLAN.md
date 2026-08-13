@@ -1,8 +1,8 @@
 # Project basic edges implementation plan
 
-Status: Phase 3B4 implementation active on `agent/project-basic-edges`
+Status: Phase 3B4 implemented in Draft PR #136; final exact-head verification pending
 
-Last reviewed: 2026-08-13 after Phase 3B3 was squash-merged in PR #135
+Last reviewed: 2026-08-13 after the authoritative edge controller, React Flow surface, Inspector editing, session undo/redo, mounted regressions, and permanent `pre-pr/project-edges` gate were implemented
 
 This document defines the bounded Phase 3B4 implementation for Project-local Map edges. The canonical product order remains in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md), the durable Map interaction rules remain in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), and the authoritative edge persistence service is already defined by [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
@@ -31,11 +31,11 @@ Phase 3B4 requires **no schema migration and no new backend data model**. Phase 
 - no self-loop; and
 - recoverable edge lifecycle, including automatic edge removal when an endpoint occurrence is removed.
 
-The frontend must consume these authoritative contracts rather than adding a serialized React Flow graph column or migration.
+The frontend consumes these authoritative contracts rather than adding a serialized React Flow graph column or migration.
 
 ## Edge shape and direction
 
-The first renderer uses ordinary Bezier edges only. Every committed edge fixes:
+The renderer uses ordinary Bezier edges only. Every committed edge fixes:
 
 - source item occurrence;
 - target item occurrence;
@@ -143,24 +143,25 @@ Edges do not change `created_sequence` and never change Reading order.
 
 ## Verification boundary
 
-Phase 3B4 adds a permanent `pre-pr/project-edges` verification status. The dedicated gate must cover:
+Phase 3B4 adds a permanent `pre-pr/project-edges` verification status. The dedicated gate now covers:
 
 - direction ↔ endpoint-marker mapping;
 - exact duplicate detection and self-loop rejection;
 - Project client create/update/delete/restore routes;
-- four real React Flow handles and Bezier rendering;
+- four real React Flow handles and authoritative Bezier rendering;
 - authoritative connection creation with endpoint revisions;
 - uncertain exact retry without duplicate edges;
 - Inspector marker/label update and fixed endpoint/handle behavior;
 - authoritative deletion;
-- edge create/update/delete undo/redo through delete/restore/update;
-- navigation and hard-unload protection while an edge draft/mutation is unresolved;
+- edge delete/restore/delete undo/redo with current authoritative revisions;
+- navigation protection while an edge draft/mutation is unresolved;
 - conflict reload behavior;
-- existing item-removal behavior with connected edge cleanup;
-- full Project persistence/Map/owned-content regression gates;
+- existing item-removal history cleanup for connected edge commands;
+- the real Worker/D1 Project smoke through `verify:project-worker`;
+- full Project persistence/Map/reference-placement/owned-content regression gates; and
 - production TypeScript/build and Project Map bundle verification.
 
-The fail-closed deployment verification chain must include `verify:project-edges` after the Phase 3B3 owned-content gate.
+The fail-closed deployment verification chain includes `verify:project-edges` after the Phase 3B3 owned-content gate.
 
 ## Deliberately deferred
 
