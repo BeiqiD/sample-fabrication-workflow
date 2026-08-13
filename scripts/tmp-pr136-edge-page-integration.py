@@ -117,7 +117,7 @@ lines[index:index] = ['      || edgeController.unsafeRef.current']
 # The first matching push belongs to recordEdgeHistory. The second is the original geometry commit.
 replace_line(
     '    setUndoStack((current) => [...current, command].slice(-100));',
-    ['    setUndoStack((current) => [...current, { kind: "geometry", command }].slice(-100));'],
+    ['    setUndoStack((current) => [...current, { kind: "geometry" as const, command }].slice(-100));'],
     1,
 )
 
