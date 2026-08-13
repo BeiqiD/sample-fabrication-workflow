@@ -587,6 +587,7 @@ export function ProjectPage() {
       }
       return;
     }
+    if (edgeController.interactionDisabled) return;
     edgeController.applyHistory(command, "undo", () => {
       setUndoStack((current) => current.slice(0, -1));
       setRedoStack((current) => [...current, command].slice(-100));
@@ -612,6 +613,7 @@ export function ProjectPage() {
       }
       return;
     }
+    if (edgeController.interactionDisabled) return;
     edgeController.applyHistory(command, "redo", () => {
       setRedoStack((current) => current.slice(0, -1));
       setUndoStack((current) => [...current, command].slice(-100));
@@ -1541,6 +1543,16 @@ export function ProjectPage() {
   const geometryInteractionDisabled = pendingReferenceRemoval !== null
     || pendingReference?.status === "reconciling"
     || workspaceOperationBusy;
+  const undoCommand = undoStack.at(-1) ?? null;
+  const redoCommand = redoStack.at(-1) ?? null;
+  const undoDisabled = !undoCommand
+    || saveState === "saving"
+    || geometryInteractionDisabled
+    || (undoCommand.kind !== "geometry" && edgeController.interactionDisabled);
+  const redoDisabled = !redoCommand
+    || saveState === "saving"
+    || geometryInteractionDisabled
+    || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
 
   const navigationBlockMessage = edgeController.pending
     ? edgeController.pending.status === "saving"
@@ -1605,8 +1617,8 @@ export function ProjectPage() {
       </div>
       {desktop && <div className="project-save-toolbar">
         <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-        <button type="button" className="button compact-button" disabled={!undoStack.length || saveState === "saving" || geometryInteractionDisabled} onClick={undo}>Undo</button>
-        <button type="button" className="button compact-button" disabled={!redoStack.length || saveState === "saving" || geometryInteractionDisabled} onClick={redo}>Redo</button>
+        <button type="button" className="button compact-button" disabled={undoDisabled} onClick={undo}>Undo</button>
+        <button type="button" className="button compact-button" disabled={redoDisabled} onClick={redo}>Redo</button>
         <button
           type="button"
           className="button primary compact-button"
@@ -1771,6 +1783,7 @@ export function ProjectPage() {
             selectedItemId={selectedItemId}
             selectedEdgeId={edgeController.selectedEdgeId}
             geometryInteractionDisabled={geometryInteractionDisabled}
+            edgeInteractionDisabled={edgeController.interactionDisabled}
             onSelect={selectProjectItem}
             onEdgeSelect={selectProjectEdge}
             onEdgeConnect={edgeController.connect}

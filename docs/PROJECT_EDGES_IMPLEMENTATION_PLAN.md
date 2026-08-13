@@ -1,8 +1,8 @@
 # Project basic edges implementation plan
 
-Status: Phase 3B4 implemented in Draft PR #136; final exact-head verification pending
+Status: Phase 3B4 implemented in PR #136; formal-review fixes addressed and awaiting clean re-review before merge
 
-Last reviewed: 2026-08-13 after the authoritative edge controller, React Flow surface, Inspector editing, session undo/redo, mounted regressions, and permanent `pre-pr/project-edges` gate were implemented
+Last reviewed: 2026-08-13 after formal review of edge interaction gating, deterministic update restart, canonical history semantics, multi-edge keyboard selection, and accessibility labeling
 
 This document defines the bounded Phase 3B4 implementation for Project-local Map edges. The canonical product order remains in [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md), the durable Map interaction rules remain in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), and the authoritative edge persistence service is already defined by [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
@@ -84,7 +84,7 @@ Edge marker/label editing is different: selecting an edge and explicitly choosin
 Every dispatched edge mutation freezes the complete request. Outcome handling follows the same project-wide distinction used by the preceding phases:
 
 - success: merge the returned authoritative edge record;
-- deterministic client/validation failure: keep an explicit local error that may be dismissed/restarted;
+- deterministic client/validation failure: keep an explicit local error; for an Inspector update, changing the draft discards the failed request and the next Save creates a fresh operation ID;
 - `409`: enter conflict state and require authoritative reload before further edge editing;
 - transport, timeout, `408`, `429`, or `5xx`: outcome is uncertain and exposes **exact retry only** using the original edge ID, expected revision(s), payload, and operation ID.
 
@@ -125,6 +125,8 @@ When an item occurrence is removed and its connected edges are removed by the ba
 
 Unresolved edge creation/update/delete/restore and a dirty edge Inspector draft participate in the same SPA and `beforeunload` protection as placement/content mutations.
 
+Edge connection handles are also disabled while placement save state is not `Saved` or another Project reference/content operation makes the edge controller externally busy. This gate is separate from node geometry interaction so a temporary edge-only lock does not unnecessarily disable node movement.
+
 While an edge mutation outcome is unresolved:
 
 - another edge mutation cannot start;
@@ -148,10 +150,11 @@ Phase 3B4 adds a permanent `pre-pr/project-edges` verification status. The dedic
 - direction ↔ endpoint-marker mapping;
 - exact duplicate detection and self-loop rejection;
 - Project client create/update/delete/restore routes;
-- four real React Flow handles and authoritative Bezier rendering;
+- four real React Flow handles, independent busy-state connection gating, and authoritative Bezier rendering;
+- direction-accurate accessible names for undirected, forward, reverse, and bidirectional edges;
 - authoritative connection creation with endpoint revisions;
 - uncertain exact retry without duplicate edges;
-- Inspector marker/label update and fixed endpoint/handle behavior;
+- Inspector marker/label update, deterministic-failure edit restart with a fresh operation ID, and fixed endpoint/handle behavior;
 - authoritative deletion;
 - edge delete/restore/delete undo/redo with current authoritative revisions;
 - navigation protection while an edge draft/mutation is unresolved;

@@ -10,6 +10,7 @@ import type {
   UpdateProjectEdgeInput,
 } from "../shared/project-api";
 import type { ProjectPendingEdgePreview } from "./lib/project-edges";
+import type { ProjectGeometryCommand } from "./lib/project-map-model";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
@@ -21,11 +22,14 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
   ProjectMapSurface: forwardRef(function MockProjectMapSurface({
     edges = [],
     pendingEdge,
+    edgeInteractionDisabled = false,
     onEdgeConnect,
     onEdgeSelect,
+    onGeometryCommit,
   }: {
     edges?: ProjectEdgeRecord[];
     pendingEdge?: ProjectPendingEdgePreview | null;
+    edgeInteractionDisabled?: boolean;
     onEdgeConnect?: (connection: {
       sourceItemId: string;
       targetItemId: string;
@@ -33,18 +37,25 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
       targetHandle: "top" | "right" | "bottom" | "left";
     }) => void;
     onEdgeSelect?: (edgeId: string | null) => void;
+    onGeometryCommit?: (command: ProjectGeometryCommand) => void;
   }, ref) {
     useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 500, y: 300 }) }));
     return <div>
       <p>Edge Map ready</p>
       <p>Edge count: {edges.length}</p>
+      <p>Edge interaction: {edgeInteractionDisabled ? "disabled" : "enabled"}</p>
       {pendingEdge && <p>Pending edge: {pendingEdge.status}</p>}
-      <button type="button" onClick={() => onEdgeConnect?.({
+      <button type="button" disabled={edgeInteractionDisabled} onClick={() => onEdgeConnect?.({
         sourceItemId: "item-note",
         targetItemId: "item-reference",
         sourceHandle: "right",
         targetHandle: "left",
       })}>Connect edge fixture</button>
+      <button type="button" onClick={() => onGeometryCommit?.({
+        placementId: "placement-note",
+        before: { x: 20, y: 40, width: 250, height: 180, zIndex: 0 },
+        after: { x: 42, y: 40, width: 250, height: 180, zIndex: 0 },
+      })}>Move node fixture</button>
       {edges[0] && <button type="button" onClick={() => onEdgeSelect?.(edges[0].id)}>Select edge fixture</button>}
     </div>;
   }),
@@ -258,6 +269,79 @@ describe("mounted Project edge behavior", () => {
       "operationId",
     ]);
     await screen.findByText("feeds");
+  });
+
+  it("starts a fresh edge update after a deterministic PATCH failure when the user changes the draft", async () => {
+    const patchInputs: UpdateProjectEdgeInput[] = [];
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshotWithEdge());
+      if (String(path) === "/api/projects/project-a/edges/edge-a" && init?.method === "PATCH") {
+        const input = JSON.parse(String(init.body)) as UpdateProjectEdgeInput;
+        patchInputs.push(input);
+        if (patchInputs.length === 1) return jsonResponse({ error: "Invalid edge metadata" }, 400);
+        return jsonResponse({
+          value: edgeRecord({
+            markerStart: input.markerStart,
+            markerEnd: input.markerEnd,
+            label: input.label,
+            revision: 2,
+          }),
+          replayed: false,
+        });
+      }
+      return jsonResponse({ error: "Unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await waitForMap();
+    fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
+    fireEvent.change(screen.getByLabelText("Label"), { target: { value: "invalid" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save edge" }));
+
+    expect((await screen.findAllByText("Invalid edge metadata")).length).toBeGreaterThan(0);
+    expect(patchInputs).toHaveLength(1);
+
+    fireEvent.change(screen.getByLabelText("Label"), { target: { value: "recovered" } });
+    expect(screen.getByRole("button", { name: "Save edge" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save edge" }));
+
+    await waitFor(() => expect(patchInputs).toHaveLength(2));
+    expect(patchInputs[1].label).toBe("recovered");
+    expect(patchInputs[1].expectedRevision).toBe(1);
+    expect(patchInputs[1].operationId).not.toBe(patchInputs[0].operationId);
+    await screen.findByText("recovered");
+  });
+
+  it("disables edge connection and edge-history undo while placement state is unsaved", async () => {
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshotWithEdge());
+      if (String(path) === "/api/projects/project-a/edges/edge-a" && init?.method === "DELETE") {
+        return jsonResponse({
+          value: edgeRecord({ revision: 2, deletedAt: "2026-08-13T12:00:00.000Z", deletedBy: "user@example.com" }),
+          replayed: false,
+        });
+      }
+      return jsonResponse({ error: "Unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await waitForMap();
+    expect(screen.getByText("Edge interaction: enabled")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete edge" }));
+    await waitFor(() => expect(screen.getByText("Edge count: 0")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Move node fixture" }));
+    await waitFor(() => expect(screen.getByText("Edge interaction: disabled")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Connect edge fixture" }).hasAttribute("disabled")).toBe(true);
+
+    const undoGeometry = screen.getByRole("button", { name: "Undo" });
+    expect(undoGeometry.hasAttribute("disabled")).toBe(false);
+    fireEvent.click(undoGeometry);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(true));
   });
 
   it("undoes and redoes a committed edge deletion through authoritative restore and delete revisions", async () => {

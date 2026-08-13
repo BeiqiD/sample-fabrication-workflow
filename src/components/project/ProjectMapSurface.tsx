@@ -32,7 +32,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { ProjectEdgeRecord } from "../../../shared/project-api";
 import type { ProjectEdgeHandle, ProjectMapGeometry } from "../../../shared/project-types";
-import type { ProjectPendingEdgePreview } from "../../lib/project-edges";
+import { projectEdgeDirection, type ProjectPendingEdgePreview } from "../../lib/project-edges";
 import {
   projectAttachmentCanPreviewImage,
   type ProjectMapMarkdownEditorState,
@@ -57,6 +57,7 @@ type ProjectFlowNodeData = {
   pendingAttachment: ProjectPendingAttachmentPlacement | null;
   markdownEditor: ProjectMapMarkdownEditorState | null;
   geometryInteractionDisabled: boolean;
+  edgeInteractionDisabled: boolean;
   onResizeStart: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
   onResizeEnd: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
   onMarkdownEditRequest: (itemId: string) => void;
@@ -82,6 +83,7 @@ export interface ProjectMapSurfaceProps {
   selectedItemId: string | null;
   selectedEdgeId?: string | null;
   geometryInteractionDisabled?: boolean;
+  edgeInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => void;
   onEdgeSelect?: (edgeId: string | null) => void;
   onEdgeConnect?: (connection: {
@@ -145,6 +147,7 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
     pendingAttachment,
     markdownEditor,
     geometryInteractionDisabled,
+    edgeInteractionDisabled,
   } = data;
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
   const previewUrl = descriptor.kind === "attachment"
@@ -191,10 +194,10 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
       data.onMarkdownEditRequest(descriptor.itemId);
     }}
   >
-    <Handle type="source" id="top" position={Position.Top} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-    <Handle type="source" id="right" position={Position.Right} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-    <Handle type="source" id="bottom" position={Position.Bottom} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-    <Handle type="source" id="left" position={Position.Left} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
+    <Handle type="source" id="top" position={Position.Top} className="project-edge-handle nodrag nopan" isConnectable={!edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="right" position={Position.Right} className="project-edge-handle nodrag nopan" isConnectable={!edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="bottom" position={Position.Bottom} className="project-edge-handle nodrag nopan" isConnectable={!edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="left" position={Position.Left} className="project-edge-handle nodrag nopan" isConnectable={!edgeInteractionDisabled && !editing} />
     <NodeResizer
       isVisible={selected && !geometryInteractionDisabled && !editing}
       minWidth={180}
@@ -275,7 +278,22 @@ function projectFlowMarker(marker: "none" | "arrow") {
   return marker === "arrow" ? { type: MarkerType.ArrowClosed } : undefined;
 }
 
-function buildFlowEdge(edge: ProjectEdgeRecord, selected: boolean): ProjectFlowEdge {
+function projectFlowEdgeAriaLabel(edge: ProjectEdgeRecord, sourceLabel: string, targetLabel: string) {
+  const label = edge.label ? `; label: ${edge.label}` : "";
+  switch (projectEdgeDirection(edge.markerStart, edge.markerEnd)) {
+    case "undirected": return `Undirected edge between ${sourceLabel} and ${targetLabel}${label}`;
+    case "forward": return `Directed edge from ${sourceLabel} to ${targetLabel}${label}`;
+    case "reverse": return `Directed edge from ${targetLabel} to ${sourceLabel}${label}`;
+    case "bidirectional": return `Bidirectional edge between ${sourceLabel} and ${targetLabel}${label}`;
+  }
+}
+
+function buildFlowEdge(
+  edge: ProjectEdgeRecord,
+  selected: boolean,
+  sourceLabel: string,
+  targetLabel: string,
+): ProjectFlowEdge {
   return {
     id: edge.id,
     source: edge.sourceItemId,
@@ -289,6 +307,7 @@ function buildFlowEdge(edge: ProjectEdgeRecord, selected: boolean): ProjectFlowE
     selected,
     selectable: true,
     deletable: false,
+    ariaLabel: projectFlowEdgeAriaLabel(edge, sourceLabel, targetLabel),
   };
 }
 
@@ -339,6 +358,7 @@ function emptyDescriptor(
 function buildFlowNode(
   descriptor: ProjectNodeDescriptor,
   geometryInteractionDisabled: boolean,
+  edgeInteractionDisabled: boolean,
   markdownEditor: ProjectMapMarkdownEditorState | null,
   callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
 ): ProjectFlowNode {
@@ -360,11 +380,12 @@ function buildFlowNode(
       pendingAttachment: null,
       markdownEditor,
       geometryInteractionDisabled,
+      edgeInteractionDisabled,
       ...callbacks,
     },
     draggable: !geometryInteractionDisabled && !editing,
     selectable: true,
-    connectable: false,
+    connectable: !edgeInteractionDisabled && !editing,
     deletable: false,
     focusable: !geometryInteractionDisabled,
     ariaLabel: `${descriptor.kind}: ${descriptor.title}`,
@@ -383,9 +404,9 @@ function buildPendingReferenceFlowNode(
     pendingReference.geometry,
   );
   return {
-    ...buildFlowNode(descriptor, true, null, callbacks),
+    ...buildFlowNode(descriptor, true, true, null, callbacks),
     data: {
-      ...buildFlowNode(descriptor, true, null, callbacks).data,
+      ...buildFlowNode(descriptor, true, true, null, callbacks).data,
       pendingReference,
     },
     selectable: false,
@@ -405,9 +426,9 @@ function buildPendingAttachmentFlowNode(
     pendingAttachment.geometry,
   );
   return {
-    ...buildFlowNode(descriptor, true, null, callbacks),
+    ...buildFlowNode(descriptor, true, true, null, callbacks),
     data: {
-      ...buildFlowNode(descriptor, true, null, callbacks).data,
+      ...buildFlowNode(descriptor, true, true, null, callbacks).data,
       pendingAttachment,
     },
     selectable: false,
@@ -422,7 +443,7 @@ function buildMarkdownDraftFlowNode(
   if (!editor.isNew || !editor.geometry) return null;
   const descriptor = emptyDescriptor(editor.itemId, editor.itemId, "markdown", "New Markdown", editor.geometry);
   return {
-    ...buildFlowNode(descriptor, true, editor, callbacks),
+    ...buildFlowNode(descriptor, true, true, editor, callbacks),
     selectable: true,
   };
 }
@@ -437,6 +458,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   selectedItemId,
   selectedEdgeId = null,
   geometryInteractionDisabled = false,
+  edgeInteractionDisabled = false,
   onSelect,
   onEdgeSelect = NOOP_EDGE_SELECT,
   onEdgeConnect,
@@ -484,6 +506,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     const active = descriptors.map((descriptor) => buildFlowNode(
       descriptor,
       geometryInteractionDisabled,
+      edgeInteractionDisabled,
       markdownEditor?.itemId === descriptor.itemId ? markdownEditor : null,
       callbacks,
     ));
@@ -492,14 +515,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     if (pendingReference) active.push(buildPendingReferenceFlowNode(pendingReference, callbacks));
     if (pendingAttachment) active.push(buildPendingAttachmentFlowNode(pendingAttachment, callbacks));
     return active;
-  }, [callbacks, descriptors, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
+  }, [callbacks, descriptors, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
   const projectedEdges = useMemo(() => {
-    const active = edges.map((edge) => buildFlowEdge(edge, edge.id === selectedEdgeId));
+    const labels = new Map(descriptors.map((descriptor) => [descriptor.itemId, descriptor.title]));
+    const active = edges.map((edge) => buildFlowEdge(
+      edge,
+      edge.id === selectedEdgeId,
+      labels.get(edge.sourceItemId) ?? edge.sourceItemId,
+      labels.get(edge.targetItemId) ?? edge.targetItemId,
+    ));
     if (pendingEdge && !active.some((edge) => edge.id === pendingEdge.edgeId)) active.push(buildPendingFlowEdge(pendingEdge));
     return active;
-  }, [edges, pendingEdge, selectedEdgeId]);
+  }, [descriptors, edges, pendingEdge, selectedEdgeId]);
 
   useEffect(() => {
     setFlowNodes((current) => {
@@ -605,7 +634,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     )) onEdgeSelect(null);
   }, [onEdgeSelect, selectedEdgeId]);
   const handleConnect = useCallback((connection: Connection) => {
-    if (geometryInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
+    if (edgeInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
       || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;
     onEdgeConnect({
       sourceItemId: connection.source,
@@ -613,7 +642,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       sourceHandle: connection.sourceHandle,
       targetHandle: connection.targetHandle,
     });
-  }, [geometryInteractionDisabled, onEdgeConnect]);
+  }, [edgeInteractionDisabled, onEdgeConnect]);
   const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
     if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
     interactionStarts.set(node.data.descriptor.placementId, nodeGeometry(node));
@@ -694,7 +723,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onNodeDragStart={handleNodeDragStart}
       onNodeDragStop={handleNodeDragStop}
       nodesDraggable={!geometryInteractionDisabled}
-      nodesConnectable={!geometryInteractionDisabled}
+      nodesConnectable={!edgeInteractionDisabled}
       edgesReconnectable={false}
       connectionMode={ConnectionMode.Loose}
       elementsSelectable

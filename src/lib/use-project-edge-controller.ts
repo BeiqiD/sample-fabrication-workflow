@@ -300,13 +300,21 @@ export function useProjectEdgeController({
   const changeEdit = useCallback((field: "direction" | "label", value: string) => {
     const current = editorRef.current;
     if (!current || current.status === "saving" || current.status === "uncertain" || current.status === "conflict") return;
+    const failedPending = pendingRef.current;
+    if (current.status === "error"
+      && failedPending?.kind === "update"
+      && failedPending.edgeId === current.edgeId
+      && failedPending.status === "error") {
+      updatePending(null);
+    }
+    setActionError("");
     updateEditor({
       ...current,
       [field]: value,
       status: "editing",
       message: null,
     } as ProjectEdgeEditorState);
-  }, [updateEditor]);
+  }, [updateEditor, updatePending]);
 
   const cancelEdit = useCallback(() => {
     const current = editorRef.current;

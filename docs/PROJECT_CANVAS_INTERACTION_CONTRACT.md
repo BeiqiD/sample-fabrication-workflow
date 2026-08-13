@@ -1,20 +1,19 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract during Phase 3B4 implementation and Draft review in PR #136
+Status: canonical product and architecture contract; Phase 3B4 is implemented in PR #136 and awaits clean formal re-review before merge
 
 Last reviewed: 2026-08-13 after Phase 3A persistence in PRs #131/#132, the Map
 kernel in PR #133, reference placement in PR #134, and Project-owned content in
 PR #135 were completed; Phase 3B4 basic Project-local edges are implemented in
-Draft PR #136 and await final exact-head verification and independent review
+PR #136, with formal-review fixes awaiting clean independent re-review before merge
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
 3A2 authoritative read/write transactions; merged PR #133 delivers the bounded
 desktop React Flow Map kernel; merged PR #134 delivers Phase 3B2 reference
 discovery and authoritative placement; merged PR #135 delivers bounded Phase
-3B3 Project-owned Markdown and generic attachment creation; Draft PR #136
-implements Phase 3B4 basic Project-local edges without widening the normalized
-graph model.
+3B3 Project-owned Markdown and generic attachment creation; PR #136 implements
+Phase 3B4 basic Project-local edges without widening the normalized graph model.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 
@@ -411,10 +410,19 @@ local draft
 Save always flushes pending deltas. UI shows `Saved`, `Saving`, `Unsaved`, and
 `Conflict/Error` state.
 
-Undo/redo is client-session only. It operates on local commands/current state;
-a subsequent save persists the restored current state as an ordinary new
-revision. There is no requirement to permanently store every drag, resize,
-keystroke, or undo command.
+Undo/redo is client-session history, but persistence depends on command type:
+
+- **Geometry undo/redo** applies the inverse placement geometry locally. The
+  restored current geometry then follows the ordinary bounded autosave / explicit
+  Save path and persists as a new placement revision.
+- **Edge undo/redo** immediately dispatches the authoritative inverse edge
+  mutation (`update`, `delete`, or `restore`) with the current authoritative edge
+  revision and a new operation ID. The history stack advances only after that
+  inverse mutation succeeds; an uncertain outcome must exact-retry the frozen
+  inverse request before history may move.
+
+There is no requirement to permanently store every drag, resize, keystroke, or
+undo command.
 
 Coarse Project history/checkpoints may be added later, but they are separate
 from session undo and should not promise restoration to every intermediate UI

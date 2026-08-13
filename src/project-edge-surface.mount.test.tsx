@@ -214,6 +214,63 @@ describe("real Project edge surface", () => {
     await waitFor(() => expect(liveEdge("edge-b").classList.contains("selected")).toBe(false));
   });
 
+  it("disables connection handles independently from node geometry interaction", async () => {
+    const snapshot = projectTestSnapshot();
+    const stableNodes = projectMapNodes(snapshot);
+    const { container, rerender } = render(<div style={{ width: 900, height: 700 }}>
+      <ProjectMapSurface
+        nodes={stableNodes}
+        edgeInteractionDisabled
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    await waitFor(() => expect(container.querySelectorAll(".project-edge-handle").length).toBe(8));
+    expect(container.querySelectorAll(".project-edge-handle.connectable").length).toBe(0);
+    expect(container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')?.classList.contains("draggable")).toBe(true);
+
+    rerender(<div style={{ width: 900, height: 700 }}>
+      <ProjectMapSurface
+        nodes={stableNodes}
+        edgeInteractionDisabled={false}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+    await waitFor(() => expect(container.querySelectorAll(".project-edge-handle.connectable").length).toBe(8));
+  });
+
+  it("describes undirected, forward, reverse, and bidirectional edges accurately for keyboard users", async () => {
+    const snapshot = projectTestSnapshot();
+    const nodes = projectMapNodes(snapshot);
+    const sourceTitle = nodes.find((node) => node.itemId === "item-note")!.title;
+    const targetTitle = nodes.find((node) => node.itemId === "item-reference")!.title;
+    const edges = [
+      edgeRecord({ id: "edge-undirected", markerStart: "none", markerEnd: "none", label: null }),
+      edgeRecord({ id: "edge-forward", markerStart: "none", markerEnd: "arrow", label: "feeds" }),
+      edgeRecord({ id: "edge-reverse", markerStart: "arrow", markerEnd: "none", label: null }),
+      edgeRecord({ id: "edge-bidirectional", markerStart: "arrow", markerEnd: "arrow", label: "coupled" }),
+    ];
+    const { container } = render(<div style={{ width: 900, height: 700 }}>
+      <ProjectMapSurface
+        nodes={nodes}
+        edges={edges}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    const aria = (edgeId: string) => container.querySelector<SVGGElement>(`.react-flow__edge[data-id="${edgeId}"]`)?.getAttribute("aria-label");
+    await waitFor(() => expect(aria("edge-undirected")).toBe(`Undirected edge between ${sourceTitle} and ${targetTitle}`));
+    expect(aria("edge-forward")).toBe(`Directed edge from ${sourceTitle} to ${targetTitle}; label: feeds`);
+    expect(aria("edge-reverse")).toBe(`Directed edge from ${targetTitle} to ${sourceTitle}`);
+    expect(aria("edge-bidirectional")).toBe(`Bidirectional edge between ${sourceTitle} and ${targetTitle}; label: coupled`);
+  });
+
   it("renders four loose connection handles per node and an authoritative selectable Bezier edge", async () => {
     const snapshot = projectTestSnapshot();
     const edge = edgeRecord();
