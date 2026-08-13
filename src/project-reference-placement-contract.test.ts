@@ -18,7 +18,8 @@ describe("Phase 3B2 source contract", () => {
     expect(map).toContain("instance.screenToFlowPosition");
     expect(map).toContain("getViewportCenter()");
     expect(map).toContain("readProjectReferenceDragPayload(event.dataTransfer)");
-    expect(map).toContain("buildFlowNode(descriptor, true, null, callbacks)");
+    expect(map).toContain("buildFlowNode(descriptor, true, true, null, callbacks)");
+    expect(map).toContain("edgeInteractionDisabled: boolean");
     expect(map).toContain("selectable: false");
     expect(map).toContain("pendingReference");
   });

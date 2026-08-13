@@ -54,6 +54,13 @@ import {
   type ProjectPendingReferencePlacement,
   type ProjectReferenceDragPayload,
 } from "../lib/project-reference-placement";
+import { projectEdgeDirection } from "../lib/project-edges";
+import {
+  projectSessionHistoryTouchesItem,
+  type ProjectEdgeHistoryCommand,
+  type ProjectSessionHistoryCommand,
+} from "../lib/project-edge-history";
+import { useProjectEdgeController } from "../lib/use-project-edge-controller";
 import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
 import {
   projectAttachmentGeometryAtPoint,
@@ -171,8 +178,8 @@ export function ProjectPage() {
   const [loadError, setLoadError] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [geometry, setGeometry] = useState<Record<string, ProjectMapGeometry>>({});
-  const [undoStack, setUndoStack] = useState<ProjectGeometryCommand[]>([]);
-  const [redoStack, setRedoStack] = useState<ProjectGeometryCommand[]>([]);
+  const [undoStack, setUndoStack] = useState<ProjectSessionHistoryCommand[]>([]);
+  const [redoStack, setRedoStack] = useState<ProjectSessionHistoryCommand[]>([]);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [saveError, setSaveError] = useState("");
   const [referenceSearch, setReferenceSearch] = useState<ReferenceSearchUiState>(() => defaultReferenceSearchUiState());
@@ -277,19 +284,38 @@ export function ProjectPage() {
     setSaveState(next);
   }, []);
 
+  const recordEdgeHistory = useCallback((command: ProjectEdgeHistoryCommand) => {
+    setUndoStack((current) => [...current, command].slice(-100));
+    setRedoStack([]);
+  }, []);
+
+  const edgeController = useProjectEdgeController({
+    projectId,
+    snapshot,
+    setSnapshot,
+    externalBusy: saveState !== "saved"
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || markdownEditor !== null
+      || pendingAttachment !== null
+      || attachmentEditor !== null,
+    onHistory: recordEdgeHistory,
+  });
+
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
     (saveState !== "saved"
       || pendingReference !== null
       || pendingReferenceRemoval !== null
       || markdownEditor !== null
       || pendingAttachment !== null
-      || attachmentEditor !== null)
+      || attachmentEditor !== null
+      || edgeController.unsafe)
     && (
       currentLocation.pathname !== nextLocation.pathname
       || currentLocation.search !== nextLocation.search
       || currentLocation.hash !== nextLocation.hash
     )
-  ), [attachmentEditor, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
+  ), [attachmentEditor, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
   const blocker = useBlocker(shouldBlockNavigation);
 
   useBeforeUnload(useCallback((event) => {
@@ -298,7 +324,8 @@ export function ProjectPage() {
       && pendingReferenceRemovalRef.current === null
       && markdownEditorRef.current === null
       && pendingAttachmentRef.current === null
-      && attachmentEditorRef.current === null) return;
+      && attachmentEditorRef.current === null
+      && !edgeController.unsafeRef.current) return;
     event.preventDefault();
     event.returnValue = "";
   }, []), { capture: true });
@@ -325,6 +352,7 @@ export function ProjectPage() {
     clearReferenceInsertion();
     clearReferenceRemoval();
     clearOwnedContentState();
+    edgeController.resetForAuthoritativeReload();
     setSnapshot(next);
     setGeometry(nextGeometry);
     setSelectedItemId(null);
@@ -333,7 +361,7 @@ export function ProjectPage() {
     setSaveError("");
     setReferenceActionError("");
     updateSaveState("saved");
-  }, [clearOwnedContentState, clearReferenceInsertion, clearReferenceRemoval, updateSaveState]);
+  }, [clearOwnedContentState, clearReferenceInsertion, clearReferenceRemoval, edgeController.resetForAuthoritativeReload, updateSaveState]);
 
   const loadProject = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
@@ -487,7 +515,8 @@ export function ProjectPage() {
       return;
     }
     if (pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) {
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) {
       referenceNavigationRequestedRef.current = true;
     }
     const state = saveStateRef.current;
@@ -506,7 +535,8 @@ export function ProjectPage() {
       || pendingReferenceRemoval !== null
       || markdownEditor !== null
       || pendingAttachment !== null
-      || attachmentEditor !== null) return;
+      || attachmentEditor !== null
+      || edgeController.unsafe) return;
     if (saveState === "error" || saveState === "conflict") return;
     if (saveState !== "saved") return;
     if (navigationSaveRequestedRef.current || referenceNavigationRequestedRef.current) {
@@ -516,7 +546,7 @@ export function ProjectPage() {
     } else {
       blocker.reset();
     }
-  }, [attachmentEditor, blocker, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
+  }, [attachmentEditor, blocker, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
 
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
     if (pendingReferenceRemovalRef.current
@@ -524,11 +554,12 @@ export function ProjectPage() {
       || markdownEditorRef.current
       || pendingAttachmentRef.current
       || attachmentEditorRef.current
+      || edgeController.unsafeRef.current
       || projectGeometryEquals(command.before, command.after)) return;
     const next = { ...geometryRef.current, [command.placementId]: command.after };
     geometryRef.current = next;
     setGeometry(next);
-    setUndoStack((current) => [...current, command].slice(-100));
+    setUndoStack((current) => [...current, { kind: "geometry" as const, command }].slice(-100));
     setRedoStack([]);
     if (saveStateRef.current !== "conflict") {
       setSaveError("");
@@ -539,37 +570,55 @@ export function ProjectPage() {
 
   const undo = useCallback(() => {
     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const command = undoStack.at(-1);
     if (!command) return;
-    const next = applyProjectGeometryCommand(geometryRef.current, command, "undo");
-    geometryRef.current = next;
-    setGeometry(next);
-    setUndoStack((current) => current.slice(0, -1));
-    setRedoStack((current) => [...current, command].slice(-100));
-    if (saveStateRef.current !== "conflict") {
-      setSaveError("");
-      updateSaveState("unsaved");
-      scheduleAutosave();
+    if (command.kind === "geometry") {
+      const next = applyProjectGeometryCommand(geometryRef.current, command.command, "undo");
+      geometryRef.current = next;
+      setGeometry(next);
+      setUndoStack((current) => current.slice(0, -1));
+      setRedoStack((current) => [...current, command].slice(-100));
+      if (saveStateRef.current !== "conflict") {
+        setSaveError("");
+        updateSaveState("unsaved");
+        scheduleAutosave();
+      }
+      return;
     }
-  }, [scheduleAutosave, undoStack, updateSaveState]);
+    if (edgeController.interactionDisabled) return;
+    edgeController.applyHistory(command, "undo", () => {
+      setUndoStack((current) => current.slice(0, -1));
+      setRedoStack((current) => [...current, command].slice(-100));
+    });
+  }, [edgeController, scheduleAutosave, undoStack, updateSaveState]);
 
   const redo = useCallback(() => {
     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const command = redoStack.at(-1);
     if (!command) return;
-    const next = applyProjectGeometryCommand(geometryRef.current, command, "redo");
-    geometryRef.current = next;
-    setGeometry(next);
-    setRedoStack((current) => current.slice(0, -1));
-    setUndoStack((current) => [...current, command].slice(-100));
-    if (saveStateRef.current !== "conflict") {
-      setSaveError("");
-      updateSaveState("unsaved");
-      scheduleAutosave();
+    if (command.kind === "geometry") {
+      const next = applyProjectGeometryCommand(geometryRef.current, command.command, "redo");
+      geometryRef.current = next;
+      setGeometry(next);
+      setRedoStack((current) => current.slice(0, -1));
+      setUndoStack((current) => [...current, command].slice(-100));
+      if (saveStateRef.current !== "conflict") {
+        setSaveError("");
+        updateSaveState("unsaved");
+        scheduleAutosave();
+      }
+      return;
     }
-  }, [redoStack, scheduleAutosave, updateSaveState]);
+    if (edgeController.interactionDisabled) return;
+    edgeController.applyHistory(command, "redo", () => {
+      setRedoStack((current) => current.slice(0, -1));
+      setUndoStack((current) => [...current, command].slice(-100));
+    });
+  }, [edgeController, redoStack, scheduleAutosave, updateSaveState]);
 
   const mergeReferenceInsertion = useCallback((
     result: ProjectItemMutationResponse,
@@ -655,7 +704,8 @@ export function ProjectPage() {
     point: { x: number; y: number },
   ) => {
     if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
     const geometry = projectReferenceGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!geometry) {
@@ -736,8 +786,12 @@ export function ProjectPage() {
     );
     for (const placementId of removed) delete pendingMutationRef.current[placementId];
     setGeometry(geometryRef.current);
-    setUndoStack((current) => current.filter((command) => !removed.has(command.placementId)));
-    setRedoStack((current) => current.filter((command) => !removed.has(command.placementId)));
+    setUndoStack((current) => current.filter((command) => command.kind === "geometry"
+      ? !removed.has(command.command.placementId)
+      : !projectSessionHistoryTouchesItem(command, itemId)));
+    setRedoStack((current) => current.filter((command) => command.kind === "geometry"
+      ? !removed.has(command.command.placementId)
+      : !projectSessionHistoryTouchesItem(command, itemId)));
     setSnapshot((current) => current ? {
       ...current,
       project: result.project,
@@ -1024,7 +1078,8 @@ export function ProjectPage() {
   const startMarkdownCreate = useCallback((point: { x: number; y: number }) => {
     if (!snapshot || !desktop || saveStateRef.current === "conflict"
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
     const draftGeometry = projectMarkdownGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!draftGeometry) {
@@ -1052,7 +1107,8 @@ export function ProjectPage() {
   const startMarkdownEdit = useCallback((itemId: string) => {
     if (!snapshot || saveStateRef.current === "conflict"
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const item = snapshot.items.find((candidate) => candidate.id === itemId);
     const content = item?.projectContentId
       ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
@@ -1158,7 +1214,8 @@ export function ProjectPage() {
   const requestAttachmentAt = useCallback((point: { x: number; y: number }) => {
     if (!snapshot || !desktop || saveStateRef.current === "conflict"
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     attachmentRequestPointRef.current = point;
     attachmentInputRef.current?.click();
   }, [desktop, snapshot]);
@@ -1305,7 +1362,8 @@ export function ProjectPage() {
 
   const startAttachmentEdit = useCallback((itemId: string) => {
     if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const item = snapshot.items.find((candidate) => candidate.id === itemId);
     const content = item?.projectContentId
       ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
@@ -1385,6 +1443,13 @@ export function ProjectPage() {
     void saveAttachmentMetadata();
   }, [saveAttachmentMetadata]);
 
+  const reloadAfterEdgeConflict = useCallback(() => {
+    edgeController.resetForAuthoritativeReload();
+    referenceNavigationRequestedRef.current = false;
+    if (blocker.state === "blocked") blocker.reset();
+    void loadProject();
+  }, [blocker, edgeController.resetForAuthoritativeReload, loadProject]);
+
   const reloadAfterReferenceConflict = useCallback(() => {
     if (saveStateRef.current !== "saved" || pendingReferenceRemovalRef.current) return;
     clearReferenceInsertion();
@@ -1402,7 +1467,8 @@ export function ProjectPage() {
 
   const leaveWithoutSaving = useCallback(() => {
     if (blocker.state !== "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     const state = saveStateRef.current;
     if (state !== "error" && state !== "conflict") return;
     navigationSaveRequestedRef.current = false;
@@ -1428,8 +1494,16 @@ export function ProjectPage() {
   const selectProjectItem = useCallback((itemId: string | null) => {
     const lockedItemId = markdownEditorRef.current?.itemId ?? attachmentEditorRef.current?.itemId ?? null;
     if (lockedItemId && itemId !== lockedItemId) return;
+    if (edgeController.unsafeRef.current && itemId !== null) return;
+    if (itemId !== null) edgeController.selectEdge(null);
     setSelectedItemId(itemId);
-  }, []);
+  }, [edgeController.selectEdge, edgeController.unsafeRef]);
+
+  const selectProjectEdge = useCallback((edgeId: string | null) => {
+    if (markdownEditorRef.current || attachmentEditorRef.current) return;
+    if (edgeId !== null) setSelectedItemId(null);
+    edgeController.selectEdge(edgeId);
+  }, [edgeController.selectEdge]);
 
   const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
     ...node,
@@ -1441,11 +1515,18 @@ export function ProjectPage() {
   })) : [], [geometry, snapshot]);
   const selected = descriptors.find((node) => node.itemId === selectedItemId) ?? null;
   const selectedItem = snapshot?.items.find((item) => item.id === selectedItemId) ?? null;
+  const selectedEdgeSource = edgeController.selectedEdge
+    ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.sourceItemId) ?? null
+    : null;
+  const selectedEdgeTarget = edgeController.selectedEdge
+    ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.targetItemId) ?? null
+    : null;
 
   const removeSelectedReference = useCallback(() => {
     if (!snapshot || !selectedItem || selectedItem.itemType !== "reference"
       || saveStateRef.current !== "saved" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
     startReferenceRemoval(selectedItem.id, selectedItem.revision);
   }, [selectedItem, snapshot, startReferenceRemoval]);
 
@@ -1456,13 +1537,40 @@ export function ProjectPage() {
   </div>;
 
   const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
-  const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || ownedContentBusy || saveState === "conflict");
-  const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null || ownedContentBusy;
+  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe;
+  const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || workspaceOperationBusy || saveState === "conflict");
+  const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null || workspaceOperationBusy;
   const geometryInteractionDisabled = pendingReferenceRemoval !== null
     || pendingReference?.status === "reconciling"
-    || ownedContentBusy;
+    || workspaceOperationBusy;
+  const undoCommand = undoStack.at(-1) ?? null;
+  const redoCommand = redoStack.at(-1) ?? null;
+  const undoDisabled = !undoCommand
+    || saveState === "saving"
+    || geometryInteractionDisabled
+    || (undoCommand.kind !== "geometry" && edgeController.interactionDisabled);
+  const redoDisabled = !redoCommand
+    || saveState === "saving"
+    || geometryInteractionDisabled
+    || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
 
-  const navigationBlockMessage = pendingReferenceRemoval
+  const navigationBlockMessage = edgeController.pending
+    ? edgeController.pending.status === "saving"
+      ? "Finishing the Project edge operation before leaving…"
+      : edgeController.pending.status === "uncertain"
+        ? "The Project edge outcome is uncertain. Retry the exact operation before leaving."
+        : edgeController.pending.status === "conflict"
+          ? "The Project edge conflicted with authoritative state. Reload the Project before continuing."
+          : "The Project edge operation failed deterministically. Dismiss it before leaving."
+    : edgeController.editor
+      ? edgeController.editor.status === "saving"
+        ? "Finishing the Project edge metadata save before leaving…"
+        : edgeController.editor.status === "uncertain"
+          ? "The Project edge metadata outcome is uncertain. Retry the exact save before leaving."
+          : edgeController.editor.status === "conflict"
+            ? "The Project edge edit conflicted with authoritative state. Reload the Project before continuing."
+            : "Save or discard the open Project edge edit before leaving."
+      : pendingReferenceRemoval
     ? pendingReferenceRemoval.status === "removing"
       ? "Finishing the Project occurrence removal before leaving this Project…"
       : pendingReferenceRemoval.status === "reconciling"
@@ -1509,8 +1617,8 @@ export function ProjectPage() {
       </div>
       {desktop && <div className="project-save-toolbar">
         <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-        <button type="button" className="button compact-button" disabled={!undoStack.length || saveState === "saving" || geometryInteractionDisabled} onClick={undo}>Undo</button>
-        <button type="button" className="button compact-button" disabled={!redoStack.length || saveState === "saving" || geometryInteractionDisabled} onClick={redo}>Redo</button>
+        <button type="button" className="button compact-button" disabled={undoDisabled} onClick={undo}>Undo</button>
+        <button type="button" className="button compact-button" disabled={redoDisabled} onClick={redo}>Redo</button>
         <button
           type="button"
           className="button primary compact-button"
@@ -1529,7 +1637,7 @@ export function ProjectPage() {
       {saveState === "conflict" && <button
         type="button"
         className="button compact-button"
-        disabled={pendingReferenceRemoval !== null || ownedContentBusy}
+        disabled={pendingReferenceRemoval !== null || workspaceOperationBusy}
         onClick={() => void loadProject()}
       >
         Reload authoritative Project
@@ -1537,7 +1645,7 @@ export function ProjectPage() {
       {saveState === "error" && <button
         type="button"
         className="button compact-button"
-        disabled={pendingReferenceRemoval !== null || ownedContentBusy}
+        disabled={pendingReferenceRemoval !== null || workspaceOperationBusy}
         onClick={() => void flushSave()}
       >
         Retry save
@@ -1562,10 +1670,25 @@ export function ProjectPage() {
       <p>{ownedContentActionError}</p>
     </div>}
 
+    {edgeController.actionError && <div className="project-save-banner error">
+      <p>{edgeController.actionError}</p>
+      <div className="project-navigation-actions">
+        {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
+        {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss failed edge operation</button>}
+        {(edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict") && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload authoritative Project</button>}
+      </div>
+    </div>}
+
     {blocker.state === "blocked" && <div className="project-save-banner warning" role="alertdialog" aria-label="Unsaved Project changes">
       <p>{navigationBlockMessage}</p>
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
+        {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
+        {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss edge operation and leave</button>}
+        {(edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict") && <button type="button" className="button primary compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
+        {edgeController.editor?.status === "editing" && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge and leave</button>}
+        {edgeController.editor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge save</button>}
+        {(edgeController.editor?.status === "editing" || edgeController.editor?.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Discard edge edit and leave</button>}
         {pendingReferenceRemoval?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>}
         {pendingReferenceRemoval?.status === "conflict" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemovalReconciliation}>Retry reconciliation</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
@@ -1578,8 +1701,8 @@ export function ProjectPage() {
         {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
         {attachmentEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
         {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
-        {!pendingReference && !pendingReferenceRemoval && !ownedContentBusy && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
-        {!pendingReference && !pendingReferenceRemoval && !ownedContentBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
+        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
+        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
       </div>
     </div>}
 
@@ -1590,7 +1713,7 @@ export function ProjectPage() {
           <p className="card-meta">Double-click empty Map space for Markdown, or add a generic file at the visible Map center.</p>
         </div>
         <div className="project-owned-content-actions">
-          <button type="button" className="button wide" disabled={ownedContentBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || saveState === "conflict"} onClick={requestAttachmentAtCenter}>Add attachment</button>
+          <button type="button" className="button wide" disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || saveState === "conflict"} onClick={requestAttachmentAtCenter}>Add attachment</button>
           <input
             ref={attachmentInputRef}
             className="project-hidden-file-input"
@@ -1652,12 +1775,18 @@ export function ProjectPage() {
           <DesktopProjectMap
             ref={mapSurfaceRef}
             nodes={descriptors}
+            edges={snapshot.edges}
+            pendingEdge={edgeController.pendingEdge}
             pendingReference={pendingReference}
             pendingAttachment={pendingAttachment}
             markdownEditor={markdownEditor}
             selectedItemId={selectedItemId}
+            selectedEdgeId={edgeController.selectedEdgeId}
             geometryInteractionDisabled={geometryInteractionDisabled}
+            edgeInteractionDisabled={edgeController.interactionDisabled}
             onSelect={selectProjectItem}
+            onEdgeSelect={selectProjectEdge}
+            onEdgeConnect={edgeController.connect}
             onGeometryCommit={commitGeometry}
             onReferenceDrop={startReferencePlacement}
             onMarkdownCreateRequest={startMarkdownCreate}
@@ -1671,7 +1800,48 @@ export function ProjectPage() {
       </section>
       <aside className="project-inspector" aria-label="Project Inspector">
         <p className="card-label">Inspector</p>
-        {selected ? <div className="project-inspector-content">
+        {edgeController.selectedEdge ? <div className="project-inspector-content">
+          <span className="meta-badge">edge</span>
+          <h2>{edgeController.selectedEdge.label || "Relationship"}</h2>
+          <dl>
+            <dt>Source</dt><dd>{selectedEdgeSource?.title || edgeController.selectedEdge.sourceItemId}</dd>
+            <dt>Target</dt><dd>{selectedEdgeTarget?.title || edgeController.selectedEdge.targetItemId}</dd>
+            <dt>Handles</dt><dd>{edgeController.selectedEdge.sourceHandle} → {edgeController.selectedEdge.targetHandle}</dd>
+            <dt>Direction</dt><dd>{projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)}</dd>
+          </dl>
+          {edgeController.editor?.edgeId === edgeController.selectedEdge.id ? <div className="project-attachment-meta-form">
+            <label>Direction
+              <select
+                value={edgeController.editor.direction}
+                disabled={edgeController.editor.status === "saving" || edgeController.editor.status === "uncertain" || edgeController.editor.status === "conflict"}
+                onChange={(event) => edgeController.changeEdit("direction", event.currentTarget.value)}
+              >
+                <option value="undirected">Undirected</option>
+                <option value="forward">Forward</option>
+                <option value="reverse">Reverse</option>
+                <option value="bidirectional">Bidirectional</option>
+              </select>
+            </label>
+            <label>Label
+              <input
+                type="text"
+                value={edgeController.editor.label}
+                disabled={edgeController.editor.status === "saving" || edgeController.editor.status === "uncertain" || edgeController.editor.status === "conflict"}
+                onChange={(event) => edgeController.changeEdit("label", event.currentTarget.value)}
+              />
+            </label>
+            {edgeController.editor.message && <p className="error-banner">{edgeController.editor.message}</p>}
+            <div className="project-owned-content-pending-actions">
+              {edgeController.editor.status === "editing" && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge</button>}
+              {edgeController.editor.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact save</button>}
+              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Cancel</button>}
+              {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
+            </div>
+          </div> : <>
+            <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.startEdit}>Edit edge</button>
+            <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
+          </>}
+        </div> : selected ? <div className="project-inspector-content">
           <span className="meta-badge">{selected.kind}</span>
           <h2>{selected.title}</h2>
           {selected.subtitle && <p className="card-meta">{selected.subtitle}</p>}
@@ -1686,14 +1856,14 @@ export function ProjectPage() {
           {selected.kind === "markdown" && <button
             type="button"
             className="button wide"
-            disabled={ownedContentBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
             onClick={() => startMarkdownEdit(selected.itemId)}
           >Edit Markdown</button>}
           {selected.kind === "attachment" && selected.attachmentSourceUrl && <a className="button wide" href={selected.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
           {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
             type="button"
             className="button wide"
-            disabled={ownedContentBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
             onClick={() => startAttachmentEdit(selected.itemId)}
           >Edit attachment metadata</button>}
           {selected.kind === "attachment" && attachmentEditor?.itemId === selected.itemId && <div className="project-attachment-meta-form">
@@ -1724,7 +1894,7 @@ export function ProjectPage() {
           {selected.kind === "reference" && <button
             type="button"
             className="button wide"
-            disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || ownedContentBusy}
+            disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || workspaceOperationBusy}
             onClick={removeSelectedReference}
           >{pendingReferenceRemoval?.itemId === selected.itemId
             ? pendingReferenceRemoval.status === "removing"
@@ -1736,7 +1906,7 @@ export function ProjectPage() {
                   : "Removal needs reconciliation"
             : "Remove from Project"}</button>}
           {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
-        </div> : <p className="muted">Select a Map item to inspect its Project occurrence.</p>}
+        </div> : <p className="muted">Select a Map item or edge to inspect it.</p>}
       </aside>
     </div> : <section className="project-mobile-reading" aria-label="Project occurrences">
       <div className="project-mobile-reading-heading">

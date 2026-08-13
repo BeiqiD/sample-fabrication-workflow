@@ -253,3 +253,12 @@
   background: var(--accent-soft);
   outline: none;
 }
+.project-edge-handle {
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+
+.project-edge-pending {
+  stroke-dasharray: 6 5;
+}

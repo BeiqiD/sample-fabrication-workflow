@@ -91,9 +91,8 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(workerSmoke).not.toContain("project-smoke-asset");
   });
 
-  it("keeps Project-owned content creation desktop-only and leaves edges for Phase 3B4", () => {
+  it("keeps Project-owned content creation desktop-only", () => {
     const page = read("./pages/ProjectPage.tsx");
-    const map = read("./components/project/ProjectMapSurface.tsx");
     const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
     const mobileBranch = page.indexOf(': <section className="project-mobile-reading"', desktopBranch);
     expect(desktopBranch).toBeGreaterThan(-1);
@@ -101,7 +100,5 @@ describe("Phase 3B3 Project-owned content contract", () => {
     const mobile = page.slice(mobileBranch);
     expect(mobile).not.toContain("Add attachment");
     expect(mobile).not.toContain("New Project Markdown");
-    expect(map).toContain("const PROJECT_EDGES: [] = []");
-    expect(page).not.toContain("createProjectEdge");
   });
 });

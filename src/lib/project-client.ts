@@ -1,9 +1,12 @@
 import type {
   CreateAttachmentProjectItemInput,
   CreateMarkdownProjectItemInput,
+  CreateProjectEdgeInput,
   CreateProjectInput,
   CreateReferenceProjectItemInput,
   ProjectContentRecord,
+  ProjectEdgeLifecycleInput,
+  ProjectEdgeRecord,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
   ProjectListResponse,
@@ -12,6 +15,7 @@ import type {
   ProjectRowMutationResponse,
   ProjectSnapshot,
   UpdateProjectAttachmentInput,
+  UpdateProjectEdgeInput,
   UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
@@ -128,5 +132,36 @@ export const projectApi = {
   ) => projectRequest<ProjectRowMutationResponse<ProjectPlacementRecord>>(
     `/projects/${encodeURIComponent(projectId)}/placements/${encodeURIComponent(placementId)}`,
     jsonRequest("PATCH", input),
+  ),
+  createEdge: (
+    projectId: string,
+    input: CreateProjectEdgeInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges`,
+    jsonRequest("POST", input),
+  ),
+  updateEdge: (
+    projectId: string,
+    edgeId: string,
+    input: UpdateProjectEdgeInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges/${encodeURIComponent(edgeId)}`,
+    jsonRequest("PATCH", input),
+  ),
+  deleteEdge: (
+    projectId: string,
+    edgeId: string,
+    input: ProjectEdgeLifecycleInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges/${encodeURIComponent(edgeId)}`,
+    jsonRequest("DELETE", input),
+  ),
+  restoreEdge: (
+    projectId: string,
+    edgeId: string,
+    input: ProjectEdgeLifecycleInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges/${encodeURIComponent(edgeId)}/restore`,
+    jsonRequest("POST", input),
   ),
 };
