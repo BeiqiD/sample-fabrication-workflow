@@ -88,7 +88,7 @@ function installReactFlowDomMocks() {
   });
 }
 
-function edgeRecord(): ProjectEdgeRecord {
+function edgeRecord(overrides: Partial<ProjectEdgeRecord> = {}): ProjectEdgeRecord {
   const now = "2026-08-13T11:30:00.000Z";
   return {
     id: "edge-a",
@@ -107,6 +107,7 @@ function edgeRecord(): ProjectEdgeRecord {
     updatedAt: now,
     deletedAt: null,
     deletedBy: null,
+    ...overrides,
   };
 }
 
@@ -120,11 +121,18 @@ describe("real Project edge surface", () => {
     vi.unstubAllGlobals();
   });
 
-  it("keeps keyboard node, edge, and empty selection synchronized", async () => {
+  it("keeps keyboard node, multi-edge, and empty selection synchronized", async () => {
     const snapshot = projectTestSnapshot();
-    const edge = edgeRecord();
+    const edgeA = edgeRecord();
+    const edgeB = edgeRecord({
+      id: "edge-b",
+      sourceHandle: "bottom",
+      targetHandle: "top",
+      markerEnd: "none",
+      label: "backs",
+    });
     const stableNodes = projectMapNodes(snapshot);
-    const stableEdges = [edge];
+    const stableEdges = [edgeA, edgeB];
     const onSelect = vi.fn();
     const onEdgeSelect = vi.fn();
     const onGeometryCommit = vi.fn();
@@ -156,8 +164,11 @@ describe("real Project edge surface", () => {
     const { container } = render(<div style={{ width: 900, height: 700 }}><KeyboardSelectionHarness /></div>);
     await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
     const liveNoteNode = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
-    const liveEdge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
-    await waitFor(() => expect(liveEdge()).toBeTruthy());
+    const liveEdge = (edgeId: string) => container.querySelector<SVGGElement>(`.react-flow__edge[data-id="${edgeId}"]`)!;
+    await waitFor(() => {
+      expect(liveEdge("edge-a")).toBeTruthy();
+      expect(liveEdge("edge-b")).toBeTruthy();
+    });
 
     fireEvent.focus(liveNoteNode());
     fireEvent.keyDown(liveNoteNode(), { key: "Enter", code: "Enter" });
@@ -168,25 +179,39 @@ describe("real Project edge surface", () => {
     fireEvent.keyDown(liveNoteNode(), { key: "Escape", code: "Escape" });
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(null));
     expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-a");
+    expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-b");
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
-    fireEvent.focus(liveEdge());
-    fireEvent.keyDown(liveEdge(), { key: "Enter", code: "Enter" });
+    fireEvent.focus(liveEdge("edge-b"));
+    fireEvent.keyDown(liveEdge("edge-b"), { key: "Enter", code: "Enter" });
+    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-b"));
+    await waitFor(() => expect(liveEdge("edge-b").classList.contains("selected")).toBe(true));
+
+    onEdgeSelect.mockClear();
+    fireEvent.focus(liveEdge("edge-a"));
+    fireEvent.keyDown(liveEdge("edge-a"), { key: "Enter", code: "Enter" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
-    await waitFor(() => expect(liveEdge().classList.contains("selected")).toBe(true));
+    await waitFor(() => {
+      expect(liveEdge("edge-a").classList.contains("selected")).toBe(true);
+      expect(liveEdge("edge-b").classList.contains("selected")).toBe(false);
+    });
+    expect(onEdgeSelect).not.toHaveBeenLastCalledWith(null);
 
-    onSelect.mockClear();
     onEdgeSelect.mockClear();
-    fireEvent.keyDown(liveEdge(), { key: "Escape", code: "Escape" });
+    fireEvent.focus(liveEdge("edge-b"));
+    fireEvent.keyDown(liveEdge("edge-b"), { key: " ", code: "Space" });
+    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-b"));
+    await waitFor(() => {
+      expect(liveEdge("edge-b").classList.contains("selected")).toBe(true);
+      expect(liveEdge("edge-a").classList.contains("selected")).toBe(false);
+    });
+    expect(onEdgeSelect).not.toHaveBeenLastCalledWith(null);
+
+    onEdgeSelect.mockClear();
+    fireEvent.keyDown(liveEdge("edge-b"), { key: "Escape", code: "Escape" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith(null));
-    await waitFor(() => expect(liveEdge().classList.contains("selected")).toBe(false));
-
-    onSelect.mockClear();
-    onEdgeSelect.mockClear();
-    fireEvent.focus(liveEdge());
-    fireEvent.keyDown(liveEdge(), { key: " ", code: "Space" });
-    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
+    await waitFor(() => expect(liveEdge("edge-b").classList.contains("selected")).toBe(false));
   });
 
   it("renders four loose connection handles per node and an authoritative selectable Bezier edge", async () => {

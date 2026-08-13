@@ -595,13 +595,14 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     if (selectedItemId !== null) onSelect(null);
   }, [onEdgeSelect, onSelect, pendingEdge, selectedItemId]);
   const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {
-    const selection = [...changes].reverse().find((change) => change.type === "select");
-    if (!selection || selection.type !== "select") return;
-    if (selection.selected) {
-      onEdgeSelect(selection.id);
+    const selected = [...changes].reverse().find((change) => change.type === "select" && change.selected);
+    if (selected?.type === "select") {
+      onEdgeSelect(selected.id);
       return;
     }
-    if (selection.id === selectedEdgeId) onEdgeSelect(null);
+    if (selectedEdgeId !== null && changes.some((change) =>
+      change.type === "select" && !change.selected && change.id === selectedEdgeId
+    )) onEdgeSelect(null);
   }, [onEdgeSelect, selectedEdgeId]);
   const handleConnect = useCallback((connection: Connection) => {
     if (geometryInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
