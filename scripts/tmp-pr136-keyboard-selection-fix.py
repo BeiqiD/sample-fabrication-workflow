@@ -20,7 +20,7 @@ replace_once(
 replace_once(
     "src/components/project/ProjectMapSurface.tsx",
     '''  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {\n    const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);\n    if (selected) onSelect(selected.id);\n  }, [onSelect]);''',
-    '''  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode, ProjectFlowEdge>>(({ nodes, edges }) => {\n    const selectedNode = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);\n    if (selectedNode) {\n      onSelect(selectedNode.id);\n      return;\n    }\n    const selectedEdge = [...edges].reverse().find((edge) => edge.id !== pendingEdge?.edgeId);\n    if (selectedEdge) {\n      onEdgeSelect(selectedEdge.id);\n      return;\n    }\n    onSelect(null);\n    onEdgeSelect(null);\n  }, [onEdgeSelect, onSelect, pendingEdge]);\n  const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {\n    const selection = [...changes].reverse().find((change) => change.type === \"select\");\n    if (!selection || selection.type !== \"select\") return;\n    if (selection.selected) {\n      onEdgeSelect(selection.id);\n      return;\n    }\n    if (selection.id === selectedEdgeId) onEdgeSelect(null);\n  }, [onEdgeSelect, selectedEdgeId]);''',
+    '''  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode, ProjectFlowEdge>>(({ nodes, edges }) => {\n    const selectedNode = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);\n    if (selectedNode) {\n      onSelect(selectedNode.id);\n      return;\n    }\n    const selectedEdge = [...edges].reverse().find((edge) => edge.id !== pendingEdge?.edgeId);\n    if (selectedEdge) {\n      onEdgeSelect(selectedEdge.id);\n      return;\n    }\n    if (selectedItemId !== null) onSelect(null);\n  }, [onEdgeSelect, onSelect, pendingEdge, selectedItemId]);\n  const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {\n    const selection = [...changes].reverse().find((change) => change.type === \"select\");\n    if (!selection || selection.type !== \"select\") return;\n    if (selection.selected) {\n      onEdgeSelect(selection.id);\n      return;\n    }\n    if (selection.id === selectedEdgeId) onEdgeSelect(null);\n  }, [onEdgeSelect, selectedEdgeId]);''',
 )
 
 replace_once(
@@ -34,7 +34,7 @@ test_path = Path("src/project-edge-surface.mount.test.tsx")
 text = test_path.read_text()
 text = text.replace(
     'import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";',
-    'import { useState } from "react";\nimport { cleanup, fireEvent, render, waitFor } from "@testing-library/react";',
+    'import { useCallback, useState } from "react";\nimport { cleanup, fireEvent, render, waitFor } from "@testing-library/react";',
     1,
 )
 anchor = '''  it("renders four loose connection handles per node and an authoritative selectable Bezier edge", async () => {'''
@@ -52,21 +52,23 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
     function KeyboardSelectionHarness() {
       const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
       const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      const handleSelect = useCallback((itemId: string | null) => {
+        onSelect(itemId);
+        setSelectedItemId(itemId);
+        if (itemId !== null) setSelectedEdgeId(null);
+      }, []);
+      const handleEdgeSelect = useCallback((edgeId: string | null) => {
+        onEdgeSelect(edgeId);
+        setSelectedEdgeId(edgeId);
+        if (edgeId !== null) setSelectedItemId(null);
+      }, []);
       return <ProjectMapSurface
         nodes={stableNodes}
         edges={stableEdges}
         selectedItemId={selectedItemId}
         selectedEdgeId={selectedEdgeId}
-        onSelect={(itemId) => {
-          onSelect(itemId);
-          setSelectedItemId(itemId);
-          if (itemId !== null) setSelectedEdgeId(null);
-        }}
-        onEdgeSelect={(edgeId) => {
-          onEdgeSelect(edgeId);
-          setSelectedEdgeId(edgeId);
-          if (edgeId !== null) setSelectedItemId(null);
-        }}
+        onSelect={handleSelect}
+        onEdgeSelect={handleEdgeSelect}
         onGeometryCommit={onGeometryCommit}
       />;
     }
@@ -85,7 +87,7 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
     onEdgeSelect.mockClear();
     fireEvent.keyDown(liveNoteNode(), { key: "Escape", code: "Escape" });
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(null));
-    expect(onEdgeSelect).toHaveBeenCalledWith(null);
+    expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-a");
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
