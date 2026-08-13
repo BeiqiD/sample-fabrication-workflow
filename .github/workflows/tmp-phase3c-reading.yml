@@ -42,6 +42,16 @@ jobs:
           path.write_text(text.replace(needle, "dedent(r'''\n"))
           PY
           python scripts/tmp-phase3c-reading.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/project-reading-contract.test.ts")
+          text = path.read_text()
+          old = "reserves empty-pane double click for Markdown creation without zooming"
+          new = "reserves empty-pane double click for Markdown creation instead of viewport zoom"
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one folded regression name anchor, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1))
+          PY
 
       - name: Run focused Reading tests
         run: |
