@@ -44,13 +44,55 @@ jobs:
           python scripts/tmp-phase3c-reading.py
           python - <<'PY'
           from pathlib import Path
-          path = Path("src/project-reading-contract.test.ts")
-          text = path.read_text()
-          old = "reserves empty-pane double click for Markdown creation without zooming"
-          new = "reserves empty-pane double click for Markdown creation instead of viewport zoom"
-          if text.count(old) != 1:
-              raise SystemExit(f"expected one folded regression name anchor, found {text.count(old)}")
-          path.write_text(text.replace(old, new, 1))
+
+          def replace_once(path, old, new):
+              target = Path(path)
+              text = target.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one test anchor in {path}, found {count}: {old[:100]!r}")
+              target.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "src/project-reading-contract.test.ts",
+              "reserves empty-pane double click for Markdown creation without zooming",
+              "reserves empty-pane double click for Markdown creation instead of viewport zoom",
+          )
+          replace_once(
+              "src/project-page.mobile.mount.test.tsx",
+              'expect(screen.getByText("# Design note\\n\\nPreserve the occurrence identity.")).toBeTruthy();',
+              'expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Design note\\n\\nPreserve the occurrence identity.");',
+          )
+          replace_once(
+              "src/project-reading.mount.test.tsx",
+              'expect(screen.getByText("# Design note\\n\\nPreserve the occurrence identity.")).toBeTruthy();',
+              'expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Design note\\n\\nPreserve the occurrence identity.");',
+          )
+          replace_once(
+              "src/project-reading.mount.test.tsx",
+              'if (String(path) === "/api/projects/project-a/contents/content-note" && init?.method === "PATCH") {',
+              'if (String(path) === "/api/projects/project-a/contents/content-note/markdown" && init?.method === "PATCH") {',
+          )
+          replace_once(
+              "src/project-reading.mount.test.tsx",
+              'expect(request[0]).toBe("/api/projects/project-a/contents/content-note");',
+              'expect(request[0]).toBe("/api/projects/project-a/contents/content-note/markdown");',
+          )
+          replace_once(
+              "src/project-reading.mount.test.tsx",
+              'expect(await screen.findByText("# Updated reading note\\n\\nFull body")).toBeTruthy();',
+              'await waitFor(() => expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Updated reading note\\n\\nFull body"));',
+          )
+          replace_once(
+              "src/project-reading.mount.test.tsx",
+              'if (String(path) === "/api/projects/project-a/contents/content-attachment" && init?.method === "PATCH") {',
+              'if (String(path) === "/api/projects/project-a/contents/content-attachment/attachment" && init?.method === "PATCH") {',
+          )
+          replace_once(
+              "src/project-reading.mount.test.tsx",
+              'const body = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));',
+              'expect(fetchMock.mock.calls[1][0]).toBe("/api/projects/project-a/contents/content-attachment/attachment");\n    const body = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));',
+          )
           PY
 
       - name: Run focused Reading tests
