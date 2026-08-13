@@ -1,18 +1,18 @@
 # Project Canvas interaction contract
 
-Status: canonical product and architecture contract; Phase 3B4 is implemented in PR #136 and awaits clean formal re-review before merge
+Status: canonical product and architecture contract; Phase 3B4 is complete in PR #136 and Phase 3C Reading is the active implementation slice
 
 Last reviewed: 2026-08-13 after Phase 3A persistence in PRs #131/#132, the Map
 kernel in PR #133, reference placement in PR #134, and Project-owned content in
-PR #135 were completed; Phase 3B4 basic Project-local edges are implemented in
-PR #136, with formal-review fixes awaiting clean independent re-review before merge
+PR #135 were completed; Phase 3B4 basic Project-local edges are complete in
+squash-merged PR #136 and Phase 3C Reading is now the active implementation slice
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
 3A2 authoritative read/write transactions; merged PR #133 delivers the bounded
 desktop React Flow Map kernel; merged PR #134 delivers Phase 3B2 reference
 discovery and authoritative placement; merged PR #135 delivers bounded Phase
-3B3 Project-owned Markdown and generic attachment creation; PR #136 implements
+3B3 Project-owned Markdown and generic attachment creation; merged PR #136 delivers
 Phase 3B4 basic Project-local edges without widening the normalized graph model.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
@@ -28,6 +28,8 @@ The Phase 3B3 content-creation boundary is in
 [PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md](./PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md).
 The Phase 3B4 edge mutation, retry, history, and verification boundary is in
 [PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md).
+The Phase 3C projection/editing boundary is in
+[PROJECT_READING_IMPLEMENTATION_PLAN.md](./PROJECT_READING_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -509,9 +511,9 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1/3A2 and Phase 3B1/3B2/3B3 are complete through PR #135. Phase 3B4
-is implemented in PR #136 and awaits clean re-review and squash merge. After
-that merge, the remaining sequence starts with Phase 3C:
+Phase 3A1/3A2 and Phase 3B1/3B2/3B3 are complete through PR #135, and Phase 3B4
+is complete in squash-merged PR #136. Phase 3C is the active implementation slice,
+with the remaining sequence:
 
 1. **Phase 3C — Reading projection**: no creation, complete insertion-order
    rendering, and editing of existing owned content.

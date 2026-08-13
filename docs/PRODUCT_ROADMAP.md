@@ -5,8 +5,8 @@ Status: canonical product direction and active implementation roadmap
 Last reviewed: 2026-08-13 after the reference/search foundation through PR #130,
 Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
 reference placement in PR #134, and Project-owned content in PR #135 were
-completed; Phase 3B4 basic Project-local edges are implemented in PR #136, with
-formal-review fixes awaiting clean re-review and squash merge before Phase 3C
+completed; Phase 3B4 basic Project-local edges are complete in squash-merged PR #136,
+and Phase 3C Reading projection is the active implementation target
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -170,9 +170,9 @@ The following prerequisites are complete on `v2/backend-foundation`:
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
 Phase 3B3 Project-owned Markdown and generic attachment creation is complete in
-squash-merged PR #135. Phase 3B4 basic Project-local edges are implemented in
-PR #136 and are awaiting clean formal re-review and squash merge. Phase 3C is
-the next implementation phase after that merge.
+squash-merged PR #135. Phase 3B4 basic Project-local edges are complete in
+squash-merged PR #136. Phase 3C Reading projection is the active implementation
+target.
 
 ## Active implementation roadmap
 
@@ -335,7 +335,7 @@ editable Markdown, images, PDFs as file cards, and other generic files.
 
 ### Phase 3B4 — basic Project-local edges
 
-**Status:** implemented in PR #136; formal-review fixes addressed and awaiting clean re-review and squash merge.
+**Status:** complete; squash-merged in PR #136.
 
 **Goal:** support Obsidian-Canvas-like relationship drawing without advanced
 routing complexity.
@@ -357,6 +357,8 @@ normalized edge model.
 This milestone is the **Map-first Project workspace alpha**.
 
 ### Phase 3C — Reading projection
+
+**Status:** active implementation.
 
 **Goal:** provide a mobile-friendly and linear review/editing projection over the
 same occurrences without creating a second content system.
@@ -533,7 +535,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. After PR #136 is squash-merged, add the no-creation **Reading projection** as Phase 3C.
+1. Complete the no-creation **Reading projection** as Phase 3C.
 2. Harden **Markdown/TeX, mixed media, save/conflict UX, and export** as Phase 3D.
 3. Add advanced **Inspector/Canvas/previews/performance**.
 4. Run the dedicated Docker portability implementation after Project content

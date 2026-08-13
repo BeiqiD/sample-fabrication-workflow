@@ -56,11 +56,12 @@ describe("Phase 3B2 source contract", () => {
     const page = read("./pages/ProjectPage.tsx");
     const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
     const searchSurface = page.indexOf("<ReferenceSearchSurface", desktopBranch);
-    const mobileBranch = page.indexOf(": <section className=\"project-mobile-reading\"", searchSurface);
+    const readingBranch = page.indexOf(": <ProjectReadingSurface", searchSurface);
     expect(desktopBranch).toBeGreaterThan(-1);
     expect(searchSurface).toBeGreaterThan(desktopBranch);
-    expect(mobileBranch).toBeGreaterThan(searchSurface);
-    expect(page.slice(mobileBranch)).not.toContain("<ReferenceSearchSurface");
-    expect(page.slice(mobileBranch)).not.toContain("Remove from Project");
+    expect(readingBranch).toBeGreaterThan(searchSurface);
+    expect(page.slice(readingBranch)).not.toContain("<ReferenceSearchSurface");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    expect(reading).not.toContain("Remove from Project");
   });
 });
