@@ -134,7 +134,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm scripts/tmp-phase3c-reading.py
+          git rm -f scripts/tmp-phase3c-reading.py
           git add \
             .github/workflows/verify.yml \
             docs/PRODUCT_ROADMAP.md \
