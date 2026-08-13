@@ -1,0 +1,32 @@
+name: Temporary PR136 documentation sync
+
+on:
+  push:
+    branches:
+      - agent/project-basic-edges
+    paths:
+      - .github/workflows/tmp-pr136-doc-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/project-basic-edges
+          fetch-depth: 0
+      - name: Synchronize canonical Phase 3B4 documents
+        run: python scripts/tmp-pr136-doc-sync.py
+      - name: Commit synchronized documents and remove temporary files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-pr136-doc-sync.yml scripts/tmp-pr136-doc-sync.py
+          git add docs/PRODUCT_ROADMAP.md docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md
+          git diff --cached --check
+          git commit -m "docs(project): synchronize Phase 3B4 edge status"
+          git push origin HEAD:agent/project-basic-edges
