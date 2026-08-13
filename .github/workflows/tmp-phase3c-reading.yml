@@ -93,6 +93,21 @@ jobs:
               'const body = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));',
               'expect(fetchMock.mock.calls[1][0]).toBe("/api/projects/project-a/contents/content-attachment/attachment");\n    const body = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));',
           )
+          replace_once(
+              "docs/PRODUCT_ROADMAP.md",
+              "Phase 3B3 Project-owned Markdown and generic attachment creation is complete in\nsquash-merged PR #135. Phase 3B4 basic Project-local edges are implemented in\nPR #136 and are awaiting clean formal re-review and squash merge. Phase 3C is\nthe next implementation phase after that merge.",
+              "Phase 3B3 Project-owned Markdown and generic attachment creation is complete in\nsquash-merged PR #135. Phase 3B4 basic Project-local edges are complete in\nsquash-merged PR #136. Phase 3C Reading projection is the active implementation\ntarget.",
+          )
+          replace_once(
+              "src/project-edges-contract.test.ts",
+              'expect(roadmap).toContain("After PR #136 is squash-merged, add the no-creation **Reading projection** as Phase 3C");',
+              'expect(roadmap).toContain("**Status:** complete; squash-merged in PR #136.");',
+          )
+          replace_once(
+              "src/project-edges-contract.test.ts",
+              'expect(canvas).toContain("the remaining sequence starts with Phase 3C");',
+              'expect(canvas).toContain("Phase 3C is the active implementation slice");',
+          )
           PY
 
       - name: Run focused Reading tests
@@ -134,6 +149,7 @@ jobs:
             src/project-reading-contract.test.ts \
             src/project-owned-content-contract.test.ts \
             src/project-reference-placement-contract.test.ts \
+            src/project-edges-contract.test.ts \
             worker/deployment-routing.test.ts
           if git diff --cached --quiet; then
             echo "No Phase 3C changes to commit"
