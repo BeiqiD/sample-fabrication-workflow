@@ -252,6 +252,35 @@ jobs:
               description: outcome === "success" ? "Project owned content passed" : detail.slice(0, 140),
             });
 
+      - name: Run Project edges contract
+        id: project_edges
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify:project-edges 2>&1 | tee project-edges.log
+
+      - name: Record Project edges status
+        if: ${{ always() && steps.project_edges.outcome != 'skipped' }}
+        uses: actions/github-script@v7
+        env:
+          STAGE_OUTCOME: ${{ steps.project_edges.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const outcome = process.env.STAGE_OUTCOME;
+            const log = fs.existsSync("project-edges.log") ? fs.readFileSync("project-edges.log", "utf8") : "";
+            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
+            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
+            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: outcome === "success" ? "success" : "failure",
+              context: "pre-pr/project-edges",
+              description: outcome === "success" ? "Project edges passed" : detail.slice(0, 140),
+            });
+
       - name: Run tests
         id: tests
         shell: bash
