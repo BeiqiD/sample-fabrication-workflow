@@ -32,145 +32,134 @@ jobs:
           path = Path('src/components/project/ProjectMapSurface.tsx')
           text = path.read_text()
 
-          def replace_once(old, new):
+          def once(old, new):
               global text
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'expected one anchor, found {count}: {old[:100]!r}')
+              if text.count(old) != 1:
+                  raise SystemExit(f'expected one anchor, found {text.count(old)}: {old!r}')
               text = text.replace(old, new, 1)
 
-          replace_once('''  Background,
-          Controls,
-          NodeResizer,
-          ReactFlow,
-          applyNodeChanges,
-          type Node,''', '''  Background,
-          ConnectionMode,
-          Controls,
-          Handle,
-          MarkerType,
-          NodeResizer,
-          Position,
-          ReactFlow,
-          applyNodeChanges,
-          type Connection,
-          type Edge,
-          type Node,''')
-          replace_once('import type { ProjectMapGeometry } from "../../../shared/project-types";', 'import type { ProjectEdgeRecord } from "../../../shared/project-api";\nimport type { ProjectEdgeHandle, ProjectMapGeometry } from "../../../shared/project-types";\nimport type { ProjectPendingEdgePreview } from "../../lib/project-edges";')
-          replace_once('type ProjectFlowNode = Node<ProjectFlowNodeData, "projectItem">;', 'type ProjectFlowNode = Node<ProjectFlowNodeData, "projectItem">;\ntype ProjectFlowEdge = Edge;')
-          replace_once('  nodes: ProjectNodeDescriptor[];\n', '  nodes: ProjectNodeDescriptor[];\n  edges?: ProjectEdgeRecord[];\n  pendingEdge?: ProjectPendingEdgePreview | null;\n')
-          replace_once('  selectedItemId: string | null;\n  geometryInteractionDisabled?: boolean;\n  onSelect: (itemId: string | null) => void;\n', '  selectedItemId: string | null;\n  selectedEdgeId?: string | null;\n  geometryInteractionDisabled?: boolean;\n  onSelect: (itemId: string | null) => void;\n  onEdgeSelect?: (edgeId: string | null) => void;\n  onEdgeConnect?: (connection: {\n    sourceItemId: string;\n    targetItemId: string;\n    sourceHandle: ProjectEdgeHandle;\n    targetHandle: ProjectEdgeHandle;\n  }) => void;\n')
-          replace_once('  >\n    <NodeResizer', '''  >
-            <Handle type="source" id="top" position={Position.Top} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-            <Handle type="source" id="right" position={Position.Right} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-            <Handle type="source" id="bottom" position={Position.Bottom} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-            <Handle type="source" id="left" position={Position.Left} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
-            <NodeResizer''')
-          replace_once('const PROJECT_EDGES: [] = [];\n', '')
-          replace_once('const NOOP_ACTION = () => undefined;\n', '''const NOOP_ACTION = () => undefined;
-          const NOOP_EDGE_SELECT = (_edgeId: string | null) => undefined;
+          once('  Background,\n', '  Background,\n  ConnectionMode,\n')
+          once('  Controls,\n', '  Controls,\n  Handle,\n  MarkerType,\n')
+          once('  NodeResizer,\n', '  NodeResizer,\n  Position,\n')
+          once('  type Node,\n', '  type Connection,\n  type Edge,\n  type Node,\n')
+          once(
+              'import type { ProjectMapGeometry } from "../../../shared/project-types";',
+              'import type { ProjectEdgeRecord } from "../../../shared/project-api";\n'
+              'import type { ProjectEdgeHandle, ProjectMapGeometry } from "../../../shared/project-types";\n'
+              'import type { ProjectPendingEdgePreview } from "../../lib/project-edges";',
+          )
+          once('type ProjectFlowNode = Node<ProjectFlowNodeData, "projectItem">;', 'type ProjectFlowNode = Node<ProjectFlowNodeData, "projectItem">;\ntype ProjectFlowEdge = Edge;')
+          once('  nodes: ProjectNodeDescriptor[];\n', '  nodes: ProjectNodeDescriptor[];\n  edges?: ProjectEdgeRecord[];\n  pendingEdge?: ProjectPendingEdgePreview | null;\n')
+          once('  selectedItemId: string | null;\n', '  selectedItemId: string | null;\n  selectedEdgeId?: string | null;\n')
+          once('  onSelect: (itemId: string | null) => void;\n', '  onSelect: (itemId: string | null) => void;\n  onEdgeSelect?: (edgeId: string | null) => void;\n  onEdgeConnect?: (connection: {\n    sourceItemId: string;\n    targetItemId: string;\n    sourceHandle: ProjectEdgeHandle;\n    targetHandle: ProjectEdgeHandle;\n  }) => void;\n')
+          once('    <NodeResizer', '''    <Handle type="source" id="top" position={Position.Top} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
+    <Handle type="source" id="right" position={Position.Right} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
+    <Handle type="source" id="bottom" position={Position.Bottom} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
+    <Handle type="source" id="left" position={Position.Left} className="project-edge-handle nodrag nopan" isConnectable={!geometryInteractionDisabled && !editing} />
+    <NodeResizer''')
+          once('const PROJECT_EDGES: [] = [];\n', '')
+          helper = '''
+const NOOP_EDGE_SELECT = (_edgeId: string | null) => undefined;
 
-          function isProjectEdgeHandle(value: string | null | undefined): value is ProjectEdgeHandle {
-            return value === "top" || value === "right" || value === "bottom" || value === "left";
-          }
+function isProjectEdgeHandle(value: string | null | undefined): value is ProjectEdgeHandle {
+  return value === "top" || value === "right" || value === "bottom" || value === "left";
+}
 
-          function projectFlowMarker(marker: "none" | "arrow") {
-            return marker === "arrow" ? { type: MarkerType.ArrowClosed } : undefined;
-          }
+function projectFlowMarker(marker: "none" | "arrow") {
+  return marker === "arrow" ? { type: MarkerType.ArrowClosed } : undefined;
+}
 
-          function buildFlowEdge(edge: ProjectEdgeRecord, selected: boolean): ProjectFlowEdge {
-            return {
-              id: edge.id,
-              source: edge.sourceItemId,
-              target: edge.targetItemId,
-              sourceHandle: edge.sourceHandle,
-              targetHandle: edge.targetHandle,
-              type: "default",
-              label: edge.label ?? undefined,
-              markerStart: projectFlowMarker(edge.markerStart),
-              markerEnd: projectFlowMarker(edge.markerEnd),
-              selected,
-              selectable: true,
-              deletable: false,
-            };
-          }
+function buildFlowEdge(edge: ProjectEdgeRecord, selected: boolean): ProjectFlowEdge {
+  return {
+    id: edge.id,
+    source: edge.sourceItemId,
+    target: edge.targetItemId,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    type: "default",
+    label: edge.label ?? undefined,
+    markerStart: projectFlowMarker(edge.markerStart),
+    markerEnd: projectFlowMarker(edge.markerEnd),
+    selected,
+    selectable: true,
+    deletable: false,
+  };
+}
 
-          function buildPendingFlowEdge(edge: ProjectPendingEdgePreview): ProjectFlowEdge {
-            return {
-              id: edge.edgeId,
-              source: edge.sourceItemId,
-              target: edge.targetItemId,
-              sourceHandle: edge.sourceHandle,
-              targetHandle: edge.targetHandle,
-              type: "default",
-              label: edge.label ?? undefined,
-              markerStart: projectFlowMarker(edge.markerStart),
-              markerEnd: projectFlowMarker(edge.markerEnd),
-              selectable: false,
-              deletable: false,
-              animated: edge.status === "saving",
-              className: `project-edge-pending ${edge.status}`,
-            };
-          }
-          ''')
-          replace_once('  nodes: descriptors,\n  pendingReference = null,\n', '  nodes: descriptors,\n  edges = [],\n  pendingEdge = null,\n  pendingReference = null,\n')
-          replace_once('  selectedItemId,\n  geometryInteractionDisabled = false,\n  onSelect,\n  onGeometryCommit,\n', '  selectedItemId,\n  selectedEdgeId = null,\n  geometryInteractionDisabled = false,\n  onSelect,\n  onEdgeSelect = NOOP_EDGE_SELECT,\n  onEdgeConnect,\n  onGeometryCommit,\n')
-          replace_once('  const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);\n', '''  const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
-          const projectedEdges = useMemo(() => {
-            const active = edges.map((edge) => buildFlowEdge(edge, edge.id === selectedEdgeId));
-            if (pendingEdge && !active.some((edge) => edge.id === pendingEdge.edgeId)) active.push(buildPendingFlowEdge(pendingEdge));
-            return active;
-          }, [edges, pendingEdge, selectedEdgeId]);
-          ''')
-          replace_once('''  const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
-            if (!node.data.pendingReference && !node.data.pendingAttachment) onSelect(node.id);
-            setContextMenu(null);
-          }, [onSelect]);
-          const handlePaneClick = useCallback(() => {
-            onSelect(null);
-            setContextMenu(null);
-          }, [onSelect]);
-          const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {
-            const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
-            onSelect(selected?.id ?? null);
-          }, [onSelect]);''', '''  const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
-            if (!node.data.pendingReference && !node.data.pendingAttachment) {
-              onSelect(node.id);
-              onEdgeSelect(null);
-            }
-            setContextMenu(null);
-          }, [onEdgeSelect, onSelect]);
-          const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: ProjectFlowEdge) => {
-            if (pendingEdge?.edgeId === edge.id) return;
-            onEdgeSelect(edge.id);
-            onSelect(null);
-            setContextMenu(null);
-          }, [onEdgeSelect, onSelect, pendingEdge]);
-          const handlePaneClick = useCallback(() => {
-            onSelect(null);
-            onEdgeSelect(null);
-            setContextMenu(null);
-          }, [onEdgeSelect, onSelect]);
-          const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {
-            const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
-            if (selected) {
-              onSelect(selected.id);
-              onEdgeSelect(null);
-            }
-          }, [onEdgeSelect, onSelect]);
-          const handleConnect = useCallback((connection: Connection) => {
-            if (geometryInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
-              || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;
-            onEdgeConnect({
-              sourceItemId: connection.source,
-              targetItemId: connection.target,
-              sourceHandle: connection.sourceHandle,
-              targetHandle: connection.targetHandle,
-            });
-          }, [geometryInteractionDisabled, onEdgeConnect]);''')
-          replace_once('    <ReactFlow<ProjectFlowNode>\n      nodes={flowNodes}\n      edges={PROJECT_EDGES}', '    <ReactFlow<ProjectFlowNode, ProjectFlowEdge>\n      nodes={flowNodes}\n      edges={projectedEdges}')
-          replace_once('      onNodeClick={handleNodeClick}\n      onSelectionChange={handleSelectionChange}', '      onNodeClick={handleNodeClick}\n      onEdgeClick={handleEdgeClick}\n      onConnect={handleConnect}\n      onSelectionChange={handleSelectionChange}')
-          replace_once('      nodesDraggable={!geometryInteractionDisabled}\n      nodesConnectable={false}\n      elementsSelectable', '      nodesDraggable={!geometryInteractionDisabled}\n      nodesConnectable={!geometryInteractionDisabled}\n      edgesReconnectable={false}\n      connectionMode={ConnectionMode.Loose}\n      elementsSelectable')
+function buildPendingFlowEdge(edge: ProjectPendingEdgePreview): ProjectFlowEdge {
+  return {
+    id: edge.edgeId,
+    source: edge.sourceItemId,
+    target: edge.targetItemId,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    type: "default",
+    label: edge.label ?? undefined,
+    markerStart: projectFlowMarker(edge.markerStart),
+    markerEnd: projectFlowMarker(edge.markerEnd),
+    selectable: false,
+    deletable: false,
+    animated: edge.status === "saving",
+    className: `project-edge-pending ${edge.status}`,
+  };
+}
+'''
+          once('const NOOP_ACTION = () => undefined;\n', 'const NOOP_ACTION = () => undefined;\n' + helper)
+          once('  nodes: descriptors,\n', '  nodes: descriptors,\n  edges = [],\n  pendingEdge = null,\n')
+          once('  selectedItemId,\n', '  selectedItemId,\n  selectedEdgeId = null,\n')
+          once('  onSelect,\n', '  onSelect,\n  onEdgeSelect = NOOP_EDGE_SELECT,\n  onEdgeConnect,\n')
+          once('  const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);\n', '''  const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
+  const projectedEdges = useMemo(() => {
+    const active = edges.map((edge) => buildFlowEdge(edge, edge.id === selectedEdgeId));
+    if (pendingEdge && !active.some((edge) => edge.id === pendingEdge.edgeId)) active.push(buildPendingFlowEdge(pendingEdge));
+    return active;
+  }, [edges, pendingEdge, selectedEdgeId]);
+''')
+
+          handler_start = text.index('  const handleNodeClick = useCallback')
+          handler_end = text.index('  const handleNodeDragStart = useCallback', handler_start)
+          new_handlers = '''  const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
+    if (!node.data.pendingReference && !node.data.pendingAttachment) {
+      onSelect(node.id);
+      onEdgeSelect(null);
+    }
+    setContextMenu(null);
+  }, [onEdgeSelect, onSelect]);
+  const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: ProjectFlowEdge) => {
+    if (pendingEdge?.edgeId === edge.id) return;
+    onEdgeSelect(edge.id);
+    onSelect(null);
+    setContextMenu(null);
+  }, [onEdgeSelect, onSelect, pendingEdge]);
+  const handlePaneClick = useCallback(() => {
+    onSelect(null);
+    onEdgeSelect(null);
+    setContextMenu(null);
+  }, [onEdgeSelect, onSelect]);
+  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {
+    const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
+    if (selected) {
+      onSelect(selected.id);
+      onEdgeSelect(null);
+    }
+  }, [onEdgeSelect, onSelect]);
+  const handleConnect = useCallback((connection: Connection) => {
+    if (geometryInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
+      || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;
+    onEdgeConnect({
+      sourceItemId: connection.source,
+      targetItemId: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle,
+    });
+  }, [geometryInteractionDisabled, onEdgeConnect]);
+'''
+          text = text[:handler_start] + new_handlers + text[handler_end:]
+
+          once('<ReactFlow<ProjectFlowNode>', '<ReactFlow<ProjectFlowNode, ProjectFlowEdge>')
+          once('      edges={PROJECT_EDGES}\n', '      edges={projectedEdges}\n')
+          once('      onNodeClick={handleNodeClick}\n', '      onNodeClick={handleNodeClick}\n      onEdgeClick={handleEdgeClick}\n      onConnect={handleConnect}\n')
+          once('      nodesConnectable={false}\n', '      nodesConnectable={!geometryInteractionDisabled}\n      edgesReconnectable={false}\n      connectionMode={ConnectionMode.Loose}\n')
 
           path.write_text(text)
 
