@@ -143,7 +143,7 @@ Phase 3B3 adds a permanent `pre-pr/project-owned-content` verification status. T
 - existing real React Flow semantic geometry behavior;
 - production TypeScript/build and Project Map bundle splitting.
 
-The normal `pre-pr/tests` and `pre-pr/build` gates remain required as well. PR #135 final exact-head merge-context verification is recorded in the PR description so this implementation plan does not embed a head SHA that becomes stale on documentation-only synchronization commits.
+The normal `pre-pr/tests` and `pre-pr/build` gates remain required as well.
 
 ## Deliberately deferred
 
