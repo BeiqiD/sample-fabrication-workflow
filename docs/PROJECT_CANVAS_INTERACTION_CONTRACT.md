@@ -1,20 +1,20 @@
 # Project Canvas interaction contract
 
-Status: product and architecture contract during Phase 3B3 Draft review in PR #135
+Status: product and architecture contract during Phase 3B4 implementation and Draft review in PR #136
 
-Last reviewed: 2026-08-12 after the Map-first Project interaction review,
-Phase 3A1 implemented in PR #131, the authoritative persistence service merged
-in PR #132, the Map kernel squash-merged in PR #133, Phase 3B2 reference
-placement squash-merged in PR #134, and Phase 3B3 Project-owned content entered
-Draft review in PR #135
+Last reviewed: 2026-08-13 after Phase 3A persistence in PRs #131/#132, the Map
+kernel in PR #133, reference placement in PR #134, and Project-owned content in
+PR #135 were completed; Phase 3B4 basic Project-local edges are implemented in
+Draft PR #136 and await final exact-head verification and independent review
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
 3A2 authoritative read/write transactions; merged PR #133 delivers the bounded
 desktop React Flow Map kernel; merged PR #134 delivers Phase 3B2 reference
-discovery and authoritative placement; Draft PR #135 implements the bounded
-Phase 3B3 Project-owned Markdown and generic attachment creation layer without
-selecting a rich editor.
+discovery and authoritative placement; merged PR #135 delivers bounded Phase
+3B3 Project-owned Markdown and generic attachment creation; Draft PR #136
+implements Phase 3B4 basic Project-local edges without widening the normalized
+graph model.
 This document supersedes any older statement that Text is the primary Project
 workspace or that Map and Text are independent content systems.
 
@@ -27,6 +27,8 @@ The Phase 3B2 mutation-state details are in
 [PROJECT_REFERENCE_PLACEMENT_IMPLEMENTATION_PLAN.md](./PROJECT_REFERENCE_PLACEMENT_IMPLEMENTATION_PLAN.md).
 The Phase 3B3 content-creation boundary is in
 [PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md](./PROJECT_OWNED_CONTENT_IMPLEMENTATION_PLAN.md).
+The Phase 3B4 edge mutation, retry, history, and verification boundary is in
+[PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -499,23 +501,17 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1 and Phase 3A2 are complete in PR #131 and PR #132. Phase 3B1 is
-complete in merged PR #133. Phase 3B2 is the current Draft PR #134. The sequence
-is:
+Phase 3A1/3A2 and Phase 3B1/3B2/3B3 are complete through PR #135. Draft PR
+#136 implements Phase 3B4. The remaining sequence is:
 
-1. **Phase 3B2 — Reference sidebar and placement (Draft PR #134)**: search,
-   desktop drag/drop, pending/reconciliation states, keyboard center placement,
-   authoritative insertion, exact retry, and Project-local removal.
-2. **Phase 3B3 — Project-owned creation**: double-click Markdown, generic Add
-   attachment, image/file rendering, and automatic insertion-order Reading
-   inclusion; this starts only after #134 is complete and merged.
-3. **Phase 3B4 — Basic edges**: four handles, Bezier, endpoint direction, label,
-   delete/recreate behavior.
-4. **Phase 3C — Reading projection**: no creation, complete insertion-order
+1. **Phase 3B4 — Basic edges (Draft PR #136)**: four handles, Bezier rendering,
+   endpoint direction, optional label, fixed endpoints, authoritative lifecycle,
+   exact retry, and client-session undo/redo.
+2. **Phase 3C — Reading projection**: no creation, complete insertion-order
    rendering, and editing of existing owned content.
-5. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
+3. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
    previews, save/conflict UX, and accessible Reading presentation.
-6. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
+4. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
    multi-select hardening, PDF preview, screenshot capture, advanced performance,
    and optional order/layout tooling.
 

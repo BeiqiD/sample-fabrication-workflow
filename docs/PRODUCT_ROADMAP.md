@@ -2,14 +2,11 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-12 after the reference/search foundation through PR #129,
-the reusable Project discovery surface implemented in PR #130, the Map-first
-Project review, the Phase 3A1 schema/export foundation implemented in PR #131,
-the Phase 3A2 authoritative persistence service completed in PR #132, the
-Phase 3B1 desktop Map kernel squash-merged in PR #133, Phase 3B2 reference
-placement squash-merged in PR #134, and Phase 3B3 Project-owned Markdown and
-generic attachment creation is implemented in Draft PR #135 and awaits
-independent exact-head review
+Last reviewed: 2026-08-13 after the reference/search foundation through PR #130,
+Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
+reference placement in PR #134, and Project-owned content in PR #135 were
+completed; Phase 3B4 basic Project-local edges are implemented in Draft PR #136
+and await final exact-head verification and independent review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -172,9 +169,10 @@ The following prerequisites are complete on `v2/backend-foundation`:
 
 These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
-The active implementation target is independent review and completion of Draft
-PR #135, the Phase 3B3 Project-owned Markdown and generic attachment creation
-slice. Phase 3B4 starts only after that PR is squash-merged.
+Phase 3B3 Project-owned Markdown and generic attachment creation is complete in
+squash-merged PR #135. The active implementation target is Draft PR #136,
+Phase 3B4 basic Project-local edges; Phase 3C starts only after this edge slice
+is independently reviewed, exact-head verified, and squash-merged.
 
 ## Active implementation roadmap
 
@@ -316,8 +314,7 @@ This milestone is the first useful **Project reference-workspace alpha**.
 
 ### Phase 3B3 — Project-owned Markdown and generic attachments
 
-**Status:** implemented in Draft PR #135; keep Draft until independent exact-head
-review and verification pass.
+**Status:** complete; squash-merged in PR #135.
 
 **Goal:** allow the Map to create the only two Project-owned content classes.
 
@@ -337,6 +334,8 @@ review and verification pass.
 editable Markdown, images, PDFs as file cards, and other generic files.
 
 ### Phase 3B4 — basic Project-local edges
+
+**Status:** implemented in Draft PR #136; final exact-head verification and independent review pending.
 
 **Goal:** support Obsidian-Canvas-like relationship drawing without advanced
 routing complexity.
