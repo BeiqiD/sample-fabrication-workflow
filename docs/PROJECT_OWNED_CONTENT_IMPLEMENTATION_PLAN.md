@@ -1,8 +1,8 @@
 # Project-owned content implementation plan
 
-Status: Phase 3B3 remaining P2/P3 review fixes implemented in Draft PR #135; final exact-head verification pending
+Status: Phase 3B3 review fixes implemented in Draft PR #135; final exact-head verification pending after the navigation-retry race fix
 
-Last reviewed: 2026-08-13 after adding whitespace-only filename rejection, aligning browser preview and inline-media MIME policy, and extending the dedicated gate through the real `/project-assets` Worker path
+Last reviewed: 2026-08-13 after adding whitespace-only filename rejection, aligning browser preview and inline-media MIME policy, extending the dedicated gate through the real `/project-assets` Worker path, and making placement-save navigation retry intent deterministic
 
 This document defines the bounded Phase 3B3 implementation for Project-owned Markdown and generic attachments. The durable interaction contract remains in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), while authoritative persistence remains in [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
@@ -118,6 +118,8 @@ Only an **outcome-uncertain** owned-content mutation exposes exact retry. Determ
 
 Existing Phase 3B1 placement saves remain separate from content revision saves. Successful content insertion merges its authoritative placement baseline without resetting unrelated dirty geometry, undo/redo history, or pending placement operations.
 
+Placement-save navigation retries are attempt-scoped. A failed placement-save attempt clears the prior auto-leave intent synchronously before publishing its error/conflict state; an explicit `Retry save and leave` then re-arms that intent for the new attempt. Passive save-state effects do not clear a newly re-armed retry intent, so a successful retry deterministically proceeds through the existing router blocker instead of remaining on a visually `Saved` Project page.
+
 ## Map context-menu coordinate boundary
 
 The Project Map canvas establishes its own positioning context (`position: relative`). The attachment context menu therefore uses the same canvas-relative client coordinates from which the exact React Flow Map point is derived, rather than accidentally positioning relative to an outer ancestor.
@@ -144,6 +146,8 @@ Phase 3B3 adds a permanent `pre-pr/project-owned-content` verification status. T
 - existing mobile no-creation behavior;
 - existing real React Flow semantic geometry behavior;
 - production TypeScript/build and Project Map bundle splitting.
+
+The existing mounted Project Map navigation regression also covers the placement-save failure → blocked navigation → explicit retry → successful route continuation path, which protects the attempt-scoped navigation-intent rule above under the full mounted suite.
 
 The normal `pre-pr/tests` and `pre-pr/build` gates remain required as well.
 
