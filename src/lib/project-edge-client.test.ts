@@ -7,13 +7,13 @@ afterEach(() => {
 
 describe("Project edge client", () => {
   it("uses the normalized create, update, delete, and restore edge routes", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
       value: { id: "edge-a", revision: 1 },
       replayed: false,
     }), {
       status: 200,
       headers: { "content-type": "application/json" },
-    }));
+    })));
     vi.stubGlobal("fetch", fetchMock);
 
     const createInput = {
