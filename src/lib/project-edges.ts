@@ -2,6 +2,7 @@ import type { ProjectEdgeRecord, ProjectSnapshot } from "../../shared/project-ap
 import type { ProjectEdgeHandle, ProjectEdgeMarker } from "../../shared/project-types";
 
 export type ProjectEdgeDirection = "undirected" | "forward" | "reverse" | "bidirectional";
+export type ProjectEdgeMutationStatus = "saving" | "uncertain" | "error" | "conflict";
 
 export interface ProjectEdgeEndpointShape {
   sourceItemId: string;
@@ -10,6 +11,12 @@ export interface ProjectEdgeEndpointShape {
   targetHandle: ProjectEdgeHandle;
   markerStart: ProjectEdgeMarker;
   markerEnd: ProjectEdgeMarker;
+}
+
+export interface ProjectPendingEdgePreview extends ProjectEdgeEndpointShape {
+  edgeId: string;
+  label: string | null;
+  status: ProjectEdgeMutationStatus;
 }
 
 export interface ProjectEdgeMetadataShape {
