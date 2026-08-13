@@ -1,10 +1,89 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { sha256Hex } from "../shared/content-addressing";
 import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
+import { refreshOrphanGrace } from "./blob-lifecycle/reachability";
 import { buildBlobExportPlan } from "./export-data";
+import { contentLengthWithin } from "./request-guards";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 type ExportRow = Record<string, unknown>;
+type ProjectAssetRow = {
+  id: string;
+  r2_key: string;
+  original_name: string;
+  mime_type: string;
+  byte_size: number;
+};
+
+const MAX_PROJECT_ATTACHMENT_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+function projectUploadFilename(encoded: string | undefined) {
+  if (!encoded) throw new HTTPException(400, { message: "A Project attachment filename is required" });
+  let filename: string;
+  try {
+    filename = decodeURIComponent(encoded);
+  } catch {
+    throw new HTTPException(400, { message: "Project attachment filename encoding is invalid" });
+  }
+  if (!filename.trim() || filename.includes("\u0000") || [...filename].length > 255) {
+    throw new HTTPException(400, { message: "Project attachment filename is invalid" });
+  }
+  return filename;
+}
+
+function projectAssetKeyFilename(filename: string) {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return safe || "attachment";
+}
+
+function requireMatchingProjectAssetMetadata(
+  row: ProjectAssetRow,
+  filename: string,
+  contentType: string,
+  byteSize: number,
+) {
+  if (row.original_name === filename
+    && row.mime_type === contentType
+    && Number(row.byte_size) === byteSize) return;
+  throw new HTTPException(409, {
+    message: "Identical file bytes already exist with different intrinsic filename or MIME metadata; reuse the canonical file identity instead of silently changing it",
+  });
+}
+
+async function reusableProjectAsset(
+  db: D1Database,
+  sha256: string,
+) {
+  return db.prepare(
+    `SELECT id, r2_key, original_name, mime_type, byte_size FROM assets a
+     WHERE sha256 = ? AND status = 'ready'
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+       )
+     LIMIT 1`,
+  ).bind(sha256).first<ProjectAssetRow>();
+}
+
+async function returnReusableProjectAsset(
+  db: D1Database,
+  row: ProjectAssetRow,
+  filename: string,
+  contentType: string,
+  byteSize: number,
+) {
+  requireMatchingProjectAssetMetadata(row, filename, contentType, byteSize);
+  if (!await refreshOrphanGrace(db, {
+    storeKind: "r2",
+    provider: "r2",
+    objectKey: row.r2_key,
+    blobRecordId: row.id,
+  }, crypto.randomUUID(), new Date())) return null;
+  return { id: row.id, key: row.r2_key, deduplicated: true as const };
+}
 
 // Project owns the canonical complete export. The core Worker mounts the
 // Project aggregate directly, and the superseded monolithic export handler has
@@ -47,6 +126,60 @@ export const PROJECT_EXPORT_TABLE_QUERIES = {
 } as const;
 
 export const routes = new Hono<AppBindings>();
+
+routes.post("/project-assets", async (c) => {
+  if (!contentLengthWithin(c.req.raw, MAX_PROJECT_ATTACHMENT_UPLOAD_BYTES)) {
+    throw new HTTPException(413, { message: "Project attachment uploads are limited to 10 MB" });
+  }
+  const contentType = (c.req.header("content-type") || "application/octet-stream").trim();
+  const filename = projectUploadFilename(c.req.header("x-project-filename-uri"));
+  if (!contentType || contentType.length > 200) {
+    throw new HTTPException(400, { message: "Project attachment MIME metadata is invalid" });
+  }
+  const buffer = await c.req.arrayBuffer();
+  if (buffer.byteLength > MAX_PROJECT_ATTACHMENT_UPLOAD_BYTES) {
+    throw new HTTPException(413, { message: "Project attachment uploads are limited to 10 MB" });
+  }
+
+  const sha256 = await sha256Hex(buffer);
+  const existing = await reusableProjectAsset(c.env.DB, sha256);
+  if (existing) {
+    const reusable = await returnReusableProjectAsset(
+      c.env.DB,
+      existing,
+      filename,
+      contentType,
+      buffer.byteLength,
+    );
+    if (reusable) return c.json(reusable);
+  }
+
+  const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${projectAssetKeyFilename(filename)}`;
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
+       VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+    ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
+  } catch (error) {
+    await c.env.ASSETS.delete(key);
+    const winner = await reusableProjectAsset(c.env.DB, sha256);
+    if (winner) {
+      const reusable = await returnReusableProjectAsset(
+        c.env.DB,
+        winner,
+        filename,
+        contentType,
+        buffer.byteLength,
+      );
+      if (reusable) return c.json(reusable);
+    }
+    throw error;
+  }
+  return c.json({ id, key, deduplicated: false }, 201);
+});
 
 routes.get("/exports/all", async (c) => {
   const names = Object.keys(PROJECT_EXPORT_TABLE_QUERIES);

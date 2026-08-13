@@ -4,9 +4,7 @@ const SAFE_INLINE_RASTER_MIME_TYPES = new Set([
   "image/gif",
   "image/jpeg",
   "image/png",
-  "image/tiff",
   "image/webp",
-  "image/x-tiff",
 ]);
 
 export function normalizedMediaMimeType(value: string | null | undefined) {

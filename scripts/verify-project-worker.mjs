@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
@@ -13,7 +13,6 @@ const bundlePath = resolve(scratch, "worker.mjs");
 const configPath = resolve(scratch, "deploy.jsonc");
 const persistPath = resolve(scratch, "state");
 const fixturePath = resolve(root, "worker/fixtures/reference-graph.sql");
-const projectFixturePath = resolve(scratch, "project-fixture.sql");
 const wranglerPath = resolve(root, "node_modules/wrangler/bin/wrangler.js");
 const commandEnvironment = {
   ...process.env,
@@ -58,29 +57,8 @@ async function jsonRequest(miniflare, path, method, body, headers = {}) {
 }
 
 const geometry = { x: 0, y: 0, width: 320, height: 180, zIndex: 0 };
-const projectFixtureSql = `
-INSERT INTO assets (
-  id, r2_key, original_name, mime_type, byte_size,
-  status, actor_email, created_at, sha256
-) VALUES (
-  'project-smoke-asset', 'projects/smoke.bin', 'smoke.bin',
-  'application/octet-stream', 4, 'ready', 'smoke@example.com',
-  '2026-08-09T20:00:00.000Z',
-  'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-);
-INSERT INTO blob_gc_ledger (
-  store_kind, provider, object_key, blob_record_id, state,
-  operation_id, orphaned_at, updated_at
-) VALUES (
-  'r2', 'r2', 'projects/smoke.bin', 'project-smoke-asset', 'orphaned',
-  'project-smoke-orphan', '2026-08-09T20:00:00.000Z',
-  '2026-08-09T20:00:00.000Z'
-);
-`;
-
 let miniflare;
 try {
-  await writeFile(projectFixturePath, projectFixtureSql, "utf8");
   run(process.execPath, [
     "scripts/generate-wrangler-config.mjs",
     "--local",
@@ -97,7 +75,6 @@ try {
   ];
   runWrangler(["d1", "migrations", "apply", "DB", ...localDatabaseArgs]);
   runWrangler(["d1", "execute", "DB", "--file", fixturePath, "--yes", ...localDatabaseArgs]);
-  runWrangler(["d1", "execute", "DB", "--file", projectFixturePath, "--yes", ...localDatabaseArgs]);
   await delay(500);
 
   await build({
@@ -123,10 +100,41 @@ try {
   });
 
   const bytes = Uint8Array.from([1, 2, 3, 4]);
-  const assets = await miniflare.getR2Bucket("ASSETS");
-  await assets.put("projects/smoke.bin", bytes, {
-    httpMetadata: { contentType: "application/octet-stream" },
+  const blankAsset = await miniflare.dispatchFetch("https://app.test/api/project-assets", {
+    method: "POST",
+    headers: {
+      "content-type": "application/octet-stream",
+      "x-project-filename-uri": encodeURIComponent("   "),
+    },
+    body: bytes,
   });
+  assert.equal(blankAsset.status, 400, "Whitespace-only Project attachment names must fail before storage");
+
+  const assetUpload = await miniflare.dispatchFetch("https://app.test/api/project-assets", {
+    method: "POST",
+    headers: {
+      "content-type": "application/octet-stream",
+      "x-project-filename-uri": encodeURIComponent("smoke.bin"),
+    },
+    body: bytes,
+  });
+  const uploadedAsset = await assetUpload.json();
+  assert.equal(assetUpload.status, 201, JSON.stringify(uploadedAsset));
+  assert.equal(uploadedAsset.deduplicated, false);
+  assert.equal(typeof uploadedAsset.id, "string");
+
+  const duplicateUpload = await miniflare.dispatchFetch("https://app.test/api/project-assets", {
+    method: "POST",
+    headers: {
+      "content-type": "application/octet-stream",
+      "x-project-filename-uri": encodeURIComponent("smoke.bin"),
+    },
+    body: bytes,
+  });
+  const duplicateAsset = await duplicateUpload.json();
+  assert.equal(duplicateUpload.status, 200, JSON.stringify(duplicateAsset));
+  assert.equal(duplicateAsset.id, uploadedAsset.id);
+  assert.equal(duplicateAsset.deduplicated, true);
 
   const projectInput = {
     id: "project-smoke",
@@ -214,7 +222,7 @@ try {
       contentId: "content-smoke-attachment",
       itemId: "item-smoke-attachment",
       placementId: "placement-smoke-attachment",
-      locator: { assetId: "project-smoke-asset" },
+      locator: { assetId: uploadedAsset.id },
       caption: "Smoke file",
       sourceUrl: null,
       geometry: { ...geometry, x: 800 },
@@ -259,7 +267,7 @@ try {
   assert.equal(snapshot.references[0].resolution.resolution, "resolved");
   assert.equal(snapshot.edges.length, 1);
   const serialized = JSON.stringify(snapshot);
-  assert(!serialized.includes("projects/smoke.bin"));
+  assert(!serialized.includes(uploadedAsset.key));
   assert(!serialized.includes("r2_key"));
   assert(!serialized.includes("object_key"));
 
@@ -329,7 +337,7 @@ try {
   assert.equal(restored.response.status, 200, JSON.stringify(restored.payload));
   assert.equal(restored.payload.project.revision, 6);
 
-  console.log("Project Worker/D1 smoke passed: middleware, retry idempotency, rollback, reference registration, attachment media, snapshot, conflict, and lifecycle.");
+  console.log("Project Worker/D1 smoke passed: middleware, generic asset upload/deduplication, retry idempotency, rollback, reference registration, attachment media, snapshot, conflict, and lifecycle.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);

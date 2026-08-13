@@ -25,6 +25,11 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { ProjectMapGeometry } from "../../../shared/project-types";
 import {
+  projectAttachmentCanPreviewImage,
+  type ProjectMapMarkdownEditorState,
+  type ProjectPendingAttachmentPlacement,
+} from "../../lib/project-owned-content";
+import {
   PROJECT_REFERENCE_DRAG_MIME,
   readProjectReferenceDragPayload,
   type ProjectPendingReferencePlacement,
@@ -40,9 +45,15 @@ import "./project-map-surface.css";
 type ProjectFlowNodeData = {
   descriptor: ProjectNodeDescriptor;
   pendingReference: ProjectPendingReferencePlacement | null;
+  pendingAttachment: ProjectPendingAttachmentPlacement | null;
+  markdownEditor: ProjectMapMarkdownEditorState | null;
   geometryInteractionDisabled: boolean;
   onResizeStart: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
   onResizeEnd: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
+  onMarkdownEditRequest: (itemId: string) => void;
+  onMarkdownChange: (value: string) => void;
+  onMarkdownSave: () => void;
+  onMarkdownCancel: () => void;
 };
 
 type ProjectFlowNode = Node<ProjectFlowNodeData, "projectItem">;
@@ -54,6 +65,8 @@ export interface ProjectMapSurfaceHandle {
 export interface ProjectMapSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   pendingReference?: ProjectPendingReferencePlacement | null;
+  pendingAttachment?: ProjectPendingAttachmentPlacement | null;
+  markdownEditor?: ProjectMapMarkdownEditorState | null;
   selectedItemId: string | null;
   geometryInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => void;
@@ -62,6 +75,12 @@ export interface ProjectMapSurfaceProps {
     payload: ProjectReferenceDragPayload,
     point: { x: number; y: number },
   ) => void;
+  onMarkdownCreateRequest?: (point: { x: number; y: number }) => void;
+  onMarkdownEditRequest?: (itemId: string) => void;
+  onMarkdownChange?: (value: string) => void;
+  onMarkdownSave?: () => void;
+  onMarkdownCancel?: () => void;
+  onAttachmentRequest?: (point: { x: number; y: number }) => void;
 }
 
 function nodeGeometry(node: ProjectFlowNode): ProjectMapGeometry {
@@ -90,8 +109,30 @@ function geometryFromResize(
   };
 }
 
+function pendingLabel(status: string) {
+  if (status === "uploading") return "Uploading…";
+  if (status === "saving") return "Saving…";
+  if (status === "uncertain") return "Outcome uncertain";
+  if (status === "conflict") return "Conflict";
+  if (status === "error") return "Action failed";
+  return status;
+}
+
 function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
-  const { descriptor, pendingReference, geometryInteractionDisabled } = data;
+  const {
+    descriptor,
+    pendingReference,
+    pendingAttachment,
+    markdownEditor,
+    geometryInteractionDisabled,
+  } = data;
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  const previewUrl = descriptor.kind === "attachment"
+    && descriptor.fileUrl
+    && projectAttachmentCanPreviewImage(descriptor.mimeType)
+    && failedPreviewUrl !== descriptor.fileUrl
+    ? descriptor.fileUrl
+    : null;
   if (pendingReference) {
     return <article className={`project-map-node project-map-node-reference pending ${pendingReference.status}`}>
       <header>
@@ -112,9 +153,26 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
     </article>;
   }
 
-  return <article className={`project-map-node project-map-node-${descriptor.kind}`}>
+  if (pendingAttachment) {
+    return <article className={`project-map-node project-map-node-attachment pending ${pendingAttachment.status}`}>
+      <header><span>attachment</span><small>{pendingLabel(pendingAttachment.status)}</small></header>
+      <h2>{pendingAttachment.filename}</h2>
+      <p className="project-node-subtitle">{pendingAttachment.mimeType || "File"}</p>
+      {pendingAttachment.message && <p className="project-node-excerpt">{pendingAttachment.message}</p>}
+    </article>;
+  }
+
+  const editing = Boolean(markdownEditor);
+  return <article
+    className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}`}
+    onDoubleClick={(event) => {
+      if (descriptor.kind !== "markdown" || editing) return;
+      event.stopPropagation();
+      data.onMarkdownEditRequest(descriptor.itemId);
+    }}
+  >
     <NodeResizer
-      isVisible={selected && !geometryInteractionDisabled}
+      isVisible={selected && !geometryInteractionDisabled && !editing}
       minWidth={180}
       minHeight={110}
       maxWidth={1_200}
@@ -122,25 +180,58 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
       lineClassName="project-node-resize-line nodrag nopan"
       handleClassName="project-node-resize-handle nodrag nopan"
       onResizeStart={(_event, params) => {
-        if (!geometryInteractionDisabled) data.onResizeStart(descriptor, params);
+        if (!geometryInteractionDisabled && !editing) data.onResizeStart(descriptor, params);
       }}
       onResizeEnd={(_event, params) => {
-        if (!geometryInteractionDisabled) data.onResizeEnd(descriptor, params);
+        if (!geometryInteractionDisabled && !editing) data.onResizeEnd(descriptor, params);
       }}
     />
     <header>
       <span>{descriptor.kind}</span>
-      <small>#{descriptor.createdSequence}</small>
+      <small>{markdownEditor?.isNew ? "draft" : `#${descriptor.createdSequence}`}</small>
     </header>
-    <h2>{descriptor.title}</h2>
-    {descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
-    {descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>}
-    {descriptor.openReferenceUrl && <a
-      className="project-node-open-reference nodrag nopan"
-      href={descriptor.openReferenceUrl}
-      onMouseDown={(event) => event.stopPropagation()}
-      onClick={(event) => event.stopPropagation()}
-    >Open reference</a>}
+    {markdownEditor ? <div className="project-markdown-editor nodrag nopan">
+      <textarea
+        autoFocus
+        aria-label={markdownEditor.isNew ? "New Project Markdown" : "Edit Project Markdown"}
+        value={markdownEditor.value}
+        disabled={markdownEditor.status !== "editing"}
+        onChange={(event) => data.onMarkdownChange(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          if (markdownEditor.isNew && !markdownEditor.value.trim()) data.onMarkdownCancel();
+        }}
+      />
+      {markdownEditor.message && <p className={`project-markdown-editor-message ${markdownEditor.status}`}>{markdownEditor.message}</p>}
+      <div className="project-markdown-editor-actions">
+        {markdownEditor.status !== "error" && markdownEditor.status !== "conflict" && <button type="button" className="button primary compact-button" disabled={markdownEditor.status === "saving" || !markdownEditor.value.trim()} onClick={data.onMarkdownSave}>
+          {markdownEditor.status === "saving" ? "Saving…" : markdownEditor.status === "uncertain" ? "Retry exact save" : "Save Markdown"}
+        </button>}
+        {(markdownEditor.status === "editing" || markdownEditor.status === "error" || markdownEditor.status === "conflict") && <button type="button" className="button compact-button" onClick={data.onMarkdownCancel}>Cancel</button>}
+      </div>
+    </div> : <>
+      <h2>{descriptor.title}</h2>
+      {descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
+      {previewUrl && <img
+        className="project-node-image"
+        src={previewUrl}
+        alt={descriptor.attachmentCaption || descriptor.title}
+        onError={() => setFailedPreviewUrl(previewUrl)}
+      />}
+      {descriptor.kind === "attachment" && descriptor.fileUrl && !previewUrl && <a
+        className="project-node-open-reference nodrag nopan"
+        href={descriptor.fileUrl}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >Open attachment</a>}
+      {descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>}
+      {descriptor.openReferenceUrl && <a
+        className="project-node-open-reference nodrag nopan"
+        href={descriptor.openReferenceUrl}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >Open reference</a>}
+    </>}
   </article>;
 }
 
@@ -148,13 +239,43 @@ const PROJECT_NODE_TYPES = { projectItem: ProjectItemNode } as const;
 const PROJECT_EDGES: [] = [];
 const PROJECT_FIT_VIEW_OPTIONS = { padding: 0.22, maxZoom: 1 } as const;
 const PROJECT_PRO_OPTIONS = { hideAttribution: true } as const;
+const NOOP_MARKDOWN_EDIT = (_itemId: string) => undefined;
+const NOOP_MARKDOWN_CHANGE = (_value: string) => undefined;
+const NOOP_ACTION = () => undefined;
+
+function emptyDescriptor(
+  itemId: string,
+  placementId: string,
+  kind: ProjectNodeDescriptor["kind"],
+  title: string,
+  geometry: ProjectMapGeometry,
+): ProjectNodeDescriptor {
+  return {
+    itemId,
+    placementId,
+    kind,
+    title,
+    subtitle: null,
+    excerpt: null,
+    geometry,
+    createdSequence: 0,
+    contentId: null,
+    markdownSource: null,
+    attachmentCaption: null,
+    attachmentSourceUrl: null,
+    mimeType: null,
+    fileUrl: null,
+    openReferenceUrl: null,
+  };
+}
 
 function buildFlowNode(
   descriptor: ProjectNodeDescriptor,
   geometryInteractionDisabled: boolean,
-  onResizeStart: ProjectFlowNodeData["onResizeStart"],
-  onResizeEnd: ProjectFlowNodeData["onResizeEnd"],
+  markdownEditor: ProjectMapMarkdownEditorState | null,
+  callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
 ): ProjectFlowNode {
+  const editing = Boolean(markdownEditor);
   return {
     id: descriptor.itemId,
     type: "projectItem",
@@ -166,8 +287,15 @@ function buildFlowNode(
       height: descriptor.geometry.height,
       zIndex: descriptor.geometry.zIndex,
     },
-    data: { descriptor, pendingReference: null, geometryInteractionDisabled, onResizeStart, onResizeEnd },
-    draggable: !geometryInteractionDisabled,
+    data: {
+      descriptor,
+      pendingReference: null,
+      pendingAttachment: null,
+      markdownEditor,
+      geometryInteractionDisabled,
+      ...callbacks,
+    },
+    draggable: !geometryInteractionDisabled && !editing,
     selectable: true,
     connectable: false,
     deletable: false,
@@ -176,56 +304,87 @@ function buildFlowNode(
   };
 }
 
-function buildPendingFlowNode(
+function buildPendingReferenceFlowNode(
   pendingReference: ProjectPendingReferencePlacement,
-  onResizeStart: ProjectFlowNodeData["onResizeStart"],
-  onResizeEnd: ProjectFlowNodeData["onResizeEnd"],
+  callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
 ): ProjectFlowNode {
-  const descriptor: ProjectNodeDescriptor = {
-    itemId: pendingReference.localId,
-    placementId: pendingReference.localId,
-    kind: "reference",
-    title: pendingReference.preview.title,
-    subtitle: pendingReference.preview.subtitle,
-    excerpt: pendingReference.preview.excerpt,
-    geometry: pendingReference.geometry,
-    createdSequence: 0,
-    fileUrl: null,
-    openReferenceUrl: null,
-  };
+  const descriptor = emptyDescriptor(
+    pendingReference.localId,
+    pendingReference.localId,
+    "reference",
+    pendingReference.preview.title,
+    pendingReference.geometry,
+  );
   return {
-    id: pendingReference.localId,
-    type: "projectItem",
-    position: { x: descriptor.geometry.x, y: descriptor.geometry.y },
-    width: descriptor.geometry.width,
-    height: descriptor.geometry.height,
-    style: {
-      width: descriptor.geometry.width,
-      height: descriptor.geometry.height,
-      zIndex: descriptor.geometry.zIndex,
+    ...buildFlowNode(descriptor, true, null, callbacks),
+    data: {
+      ...buildFlowNode(descriptor, true, null, callbacks).data,
+      pendingReference,
     },
-    data: { descriptor, pendingReference, geometryInteractionDisabled: true, onResizeStart, onResizeEnd },
-    draggable: false,
     selectable: false,
-    connectable: false,
-    deletable: false,
     focusable: false,
-    ariaLabel: `Pending reference: ${descriptor.title}`,
+  };
+}
+
+function buildPendingAttachmentFlowNode(
+  pendingAttachment: ProjectPendingAttachmentPlacement,
+  callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
+): ProjectFlowNode {
+  const descriptor = emptyDescriptor(
+    pendingAttachment.localId,
+    pendingAttachment.localId,
+    "attachment",
+    pendingAttachment.filename,
+    pendingAttachment.geometry,
+  );
+  return {
+    ...buildFlowNode(descriptor, true, null, callbacks),
+    data: {
+      ...buildFlowNode(descriptor, true, null, callbacks).data,
+      pendingAttachment,
+    },
+    selectable: false,
+    focusable: false,
+  };
+}
+
+function buildMarkdownDraftFlowNode(
+  editor: ProjectMapMarkdownEditorState,
+  callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
+): ProjectFlowNode | null {
+  if (!editor.isNew || !editor.geometry) return null;
+  const descriptor = emptyDescriptor(editor.itemId, editor.itemId, "markdown", "New Markdown", editor.geometry);
+  return {
+    ...buildFlowNode(descriptor, true, editor, callbacks),
+    selectable: true,
   };
 }
 
 export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapSurfaceProps>(function ProjectMapSurface({
   nodes: descriptors,
   pendingReference = null,
+  pendingAttachment = null,
+  markdownEditor = null,
   selectedItemId,
   geometryInteractionDisabled = false,
   onSelect,
   onGeometryCommit,
   onReferenceDrop,
+  onMarkdownCreateRequest,
+  onMarkdownEditRequest = NOOP_MARKDOWN_EDIT,
+  onMarkdownChange = NOOP_MARKDOWN_CHANGE,
+  onMarkdownSave = NOOP_ACTION,
+  onMarkdownCancel = NOOP_ACTION,
+  onAttachmentRequest,
 }, ref) {
   const interactionStarts = useMemo(() => new Map<string, ProjectMapGeometry>(), []);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const flowInstanceRef = useRef<ReactFlowInstance<ProjectFlowNode> | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    left: number;
+    top: number;
+    point: { x: number; y: number };
+  } | null>(null);
 
   const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
     if (geometryInteractionDisabled) return;
@@ -240,17 +399,28 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onGeometryCommit({ placementId: descriptor.placementId, before, after });
   }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
+  const callbacks = useMemo(() => ({
+    onResizeStart: handleResizeStart,
+    onResizeEnd: handleResizeEnd,
+    onMarkdownEditRequest,
+    onMarkdownChange,
+    onMarkdownSave,
+    onMarkdownCancel,
+  }), [handleResizeEnd, handleResizeStart, onMarkdownCancel, onMarkdownChange, onMarkdownEditRequest, onMarkdownSave]);
+
   const projectedNodes = useMemo(() => {
     const active = descriptors.map((descriptor) => buildFlowNode(
       descriptor,
       geometryInteractionDisabled,
-      handleResizeStart,
-      handleResizeEnd,
+      markdownEditor?.itemId === descriptor.itemId ? markdownEditor : null,
+      callbacks,
     ));
-    return pendingReference
-      ? [...active, buildPendingFlowNode(pendingReference, handleResizeStart, handleResizeEnd)]
-      : active;
-  }, [descriptors, geometryInteractionDisabled, handleResizeEnd, handleResizeStart, pendingReference]);
+    const draft = markdownEditor ? buildMarkdownDraftFlowNode(markdownEditor, callbacks) : null;
+    if (draft) active.push(draft);
+    if (pendingReference) active.push(buildPendingReferenceFlowNode(pendingReference, callbacks));
+    if (pendingAttachment) active.push(buildPendingAttachmentFlowNode(pendingAttachment, callbacks));
+    return active;
+  }, [callbacks, descriptors, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
 
@@ -258,24 +428,24 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     setFlowNodes((current) => {
       const next = projectedNodes.map((projected) => ({
         ...projected,
-        selected: projected.data.pendingReference
+        selected: projected.data.pendingReference || projected.data.pendingAttachment
           ? false
-          : current.find((candidate) => candidate.id === projected.id)?.selected ?? false,
+          : current.find((candidate) => candidate.id === projected.id)?.selected ?? projected.id === selectedItemId,
       }));
       flowNodesRef.current = next;
       return next;
     });
-  }, [projectedNodes]);
+  }, [projectedNodes, selectedItemId]);
 
   useEffect(() => {
     setFlowNodes((current) => {
       const selectionChanged = current.some((node) => (
-        !node.data.pendingReference && node.selected !== (node.id === selectedItemId)
+        !node.data.pendingReference && !node.data.pendingAttachment && node.selected !== (node.id === selectedItemId)
       ));
       if (!selectionChanged) return current;
       const next = current.map((node) => ({
         ...node,
-        selected: !node.data.pendingReference && node.id === selectedItemId,
+        selected: !node.data.pendingReference && !node.data.pendingAttachment && node.id === selectedItemId,
       }));
       flowNodesRef.current = next;
       return next;
@@ -310,7 +480,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (change.type !== "position" || change.dragging || !change.position) continue;
       const beforeNode = current.find((candidate) => candidate.id === change.id);
       const afterNode = next.find((candidate) => candidate.id === change.id);
-      if (!beforeNode || !afterNode || afterNode.data.pendingReference) continue;
+      if (!beforeNode || !afterNode || afterNode.data.pendingReference || afterNode.data.pendingAttachment || afterNode.data.markdownEditor) continue;
       const placementId = afterNode.data.descriptor.placementId;
       if (interactionStarts.has(placementId)) continue;
       const before = nodeGeometry(beforeNode);
@@ -321,19 +491,23 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
   const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
-    if (!node.data.pendingReference) onSelect(node.id);
+    if (!node.data.pendingReference && !node.data.pendingAttachment) onSelect(node.id);
+    setContextMenu(null);
   }, [onSelect]);
-  const handlePaneClick = useCallback(() => onSelect(null), [onSelect]);
+  const handlePaneClick = useCallback(() => {
+    onSelect(null);
+    setContextMenu(null);
+  }, [onSelect]);
   const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {
-    const selected = [...nodes].reverse().find((node) => !node.data.pendingReference);
+    const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
     onSelect(selected?.id ?? null);
   }, [onSelect]);
   const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
-    if (geometryInteractionDisabled || node.data.pendingReference) return;
+    if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
     interactionStarts.set(node.data.descriptor.placementId, nodeGeometry(node));
   }, [geometryInteractionDisabled, interactionStarts]);
   const handleNodeDragStop = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
-    if (geometryInteractionDisabled || node.data.pendingReference) return;
+    if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
     const placementId = node.data.descriptor.placementId;
     const before = interactionStarts.get(placementId) ?? node.data.descriptor.geometry;
     interactionStarts.delete(placementId);
@@ -359,10 +533,37 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onReferenceDrop(payload, point);
   }, [flowPointFromClient, geometryInteractionDisabled, onReferenceDrop]);
 
+  const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (geometryInteractionDisabled || !onMarkdownCreateRequest) return;
+    const target = event.target as HTMLElement;
+    if (!target.classList.contains("react-flow__pane")) return;
+    const point = flowPointFromClient(event.clientX, event.clientY);
+    if (!point) return;
+    event.preventDefault();
+    onMarkdownCreateRequest(point);
+  }, [flowPointFromClient, geometryInteractionDisabled, onMarkdownCreateRequest]);
+
+  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (geometryInteractionDisabled || !onAttachmentRequest) return;
+    const target = event.target as HTMLElement;
+    if (!target.classList.contains("react-flow__pane")) return;
+    const point = flowPointFromClient(event.clientX, event.clientY);
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!point || !rect) return;
+    event.preventDefault();
+    setContextMenu({
+      left: Math.max(8, Math.min(rect.width - 180, event.clientX - rect.left)),
+      top: Math.max(8, Math.min(rect.height - 58, event.clientY - rect.top)),
+      point,
+    });
+  }, [flowPointFromClient, geometryInteractionDisabled, onAttachmentRequest]);
+
   return <div
     ref={canvasRef}
     className="project-flow-canvas"
     data-testid="project-flow-canvas"
+    onDoubleClick={handleDoubleClick}
+    onContextMenu={handleContextMenu}
     onDragOver={handleDragOver}
     onDrop={handleDrop}
   >
@@ -390,5 +591,12 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       <Background gap={22} size={1.2} />
       <Controls showInteractive={false} />
     </ReactFlow>
+    {contextMenu && <div className="project-map-context-menu" style={{ left: contextMenu.left, top: contextMenu.top }} role="menu">
+      <button type="button" role="menuitem" onClick={() => {
+        const point = contextMenu.point;
+        setContextMenu(null);
+        onAttachmentRequest?.(point);
+      }}>Add attachment here</button>
+    </div>}
   </div>;
 });

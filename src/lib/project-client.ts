@@ -1,13 +1,18 @@
 import type {
+  CreateAttachmentProjectItemInput,
+  CreateMarkdownProjectItemInput,
   CreateProjectInput,
   CreateReferenceProjectItemInput,
+  ProjectContentRecord,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
   ProjectListResponse,
   ProjectMutationResponse,
+  ProjectPlacementRecord,
   ProjectRowMutationResponse,
   ProjectSnapshot,
-  ProjectPlacementRecord,
+  UpdateProjectAttachmentInput,
+  UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
 
@@ -60,6 +65,31 @@ export const projectApi = {
     `/projects/${encodeURIComponent(projectId)}`,
     signal ? { signal } : undefined,
   ),
+  createMarkdownItem: (
+    projectId: string,
+    input: CreateMarkdownProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/markdown`,
+    jsonRequest("POST", input),
+  ),
+  createAttachmentItem: (
+    projectId: string,
+    input: CreateAttachmentProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/attachment`,
+    jsonRequest("POST", input),
+  ),
+  uploadAttachmentAsset: (file: File) => projectRequest<{ id: string; key: string; deduplicated: boolean }>(
+    "/project-assets",
+    {
+      method: "POST",
+      headers: {
+        "content-type": file.type || "application/octet-stream",
+        "x-project-filename-uri": encodeURIComponent(file.name),
+      },
+      body: file,
+    },
+  ),
   createReferenceItem: (
     projectId: string,
     input: CreateReferenceProjectItemInput,
@@ -74,6 +104,22 @@ export const projectApi = {
   ) => projectRequest<ProjectItemMutationResponse>(
     `/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(itemId)}`,
     jsonRequest("DELETE", input),
+  ),
+  updateMarkdown: (
+    projectId: string,
+    contentId: string,
+    input: UpdateProjectMarkdownInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectContentRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/contents/${encodeURIComponent(contentId)}/markdown`,
+    jsonRequest("PATCH", input),
+  ),
+  updateAttachment: (
+    projectId: string,
+    contentId: string,
+    input: UpdateProjectAttachmentInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectContentRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/contents/${encodeURIComponent(contentId)}/attachment`,
+    jsonRequest("PATCH", input),
   ),
   updatePlacement: (
     projectId: string,

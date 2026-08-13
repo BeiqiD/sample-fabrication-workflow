@@ -1,4 +1,5 @@
 .project-flow-canvas {
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 560px;
@@ -169,4 +170,86 @@
   border: 1px solid var(--paper) !important;
   border-radius: 3px !important;
   background: var(--accent) !important;
+}
+
+.project-map-node.editing {
+  overflow: visible;
+  border-color: var(--accent);
+}
+
+.project-markdown-editor {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+
+.project-markdown-editor textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: none;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  font: inherit;
+  line-height: 1.45;
+}
+
+.project-markdown-editor textarea:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+}
+
+.project-markdown-editor-message {
+  margin: 0;
+  color: var(--danger);
+  font-size: 10px;
+}
+
+.project-markdown-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-node-image {
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-warm);
+}
+
+.project-map-context-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 168px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.project-map-context-menu button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.project-map-context-menu button:hover,
+.project-map-context-menu button:focus-visible {
+  color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
 }

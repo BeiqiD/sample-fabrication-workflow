@@ -6,7 +6,7 @@ safeMediaResponseHeaders,
 } from "./media-response";
 
 describe("safe media response policy", () => {
-it.each(["image/png", "IMAGE/JPEG; charset=binary", "image/webp", "image/tiff"])(
+it.each(["image/png", "IMAGE/JPEG; charset=binary", "image/webp"])(
   "allows safe raster media inline for %s",
   (mimeType) => {
     const headers = safeMediaResponseHeaders({
@@ -23,7 +23,7 @@ it.each(["image/png", "IMAGE/JPEG; charset=binary", "image/webp", "image/tiff"])
   },
 );
 
-it.each(["image/svg+xml", "text/html", "application/octet-stream", ""])(
+it.each(["image/svg+xml", "image/tiff", "image/x-tiff", "text/html", "application/octet-stream", ""])(
   "forces active or unknown media to a sandboxed attachment for %j",
   (mimeType) => {
     const headers = safeMediaResponseHeaders({

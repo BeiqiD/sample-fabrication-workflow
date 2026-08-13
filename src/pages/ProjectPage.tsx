@@ -16,11 +16,15 @@ import {
 } from "react-router-dom";
 import type { ReferenceSearchResult } from "../../shared/reference-search";
 import type {
+  CreateAttachmentProjectItemInput,
+  CreateMarkdownProjectItemInput,
   CreateReferenceProjectItemInput,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
   ProjectPlacementRecord,
   ProjectSnapshot,
+  UpdateProjectAttachmentInput,
+  UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
 import type {
@@ -52,6 +56,14 @@ import {
 } from "../lib/project-reference-placement";
 import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
 import {
+  projectAttachmentGeometryAtPoint,
+  projectAttachmentCanPreviewImage,
+  projectMarkdownGeometryAtPoint,
+  projectOwnedContentFailureStatus,
+  type ProjectMapMarkdownEditorState,
+  type ProjectPendingAttachmentPlacement,
+} from "../lib/project-owned-content";
+import {
   defaultReferenceSearchUiState,
   type ReferenceSearchUiState,
 } from "../lib/reference-search-ui";
@@ -74,6 +86,21 @@ type PendingReferenceCancellationRemoval = {
   itemId: string;
   expectedItemRevision: number;
   leave: boolean;
+};
+
+
+type MarkdownEditorState = ProjectMapMarkdownEditorState & {
+  contentId: string;
+  placementId: string | null;
+};
+
+type AttachmentEditorState = {
+  itemId: string;
+  contentId: string;
+  caption: string;
+  sourceUrl: string;
+  status: "editing" | "saving" | "error" | "conflict" | "uncertain";
+  message: string | null;
 };
 
 function useDesktopProjectMap() {
@@ -117,6 +144,25 @@ function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error"
   return "uncertain";
 }
 
+function ProjectReadingAttachmentPreview({
+  fileUrl,
+  mimeType,
+  alt,
+}: {
+  fileUrl: string | null;
+  mimeType: string | null;
+  alt: string;
+}) {
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  if (!fileUrl || !projectAttachmentCanPreviewImage(mimeType) || failedPreviewUrl === fileUrl) return null;
+  return <img
+    className="project-reading-image"
+    src={fileUrl}
+    alt={alt}
+    onError={() => setFailedPreviewUrl(fileUrl)}
+  />;
+}
+
 export function ProjectPage() {
   const { projectId = "" } = useParams();
   const desktop = useDesktopProjectMap();
@@ -133,6 +179,10 @@ export function ProjectPage() {
   const [pendingReference, setPendingReferenceState] = useState<ProjectPendingReferencePlacement | null>(null);
   const [pendingReferenceRemoval, setPendingReferenceRemovalState] = useState<PendingReferenceRemoval | null>(null);
   const [referenceActionError, setReferenceActionError] = useState("");
+  const [markdownEditor, setMarkdownEditorState] = useState<MarkdownEditorState | null>(null);
+  const [pendingAttachment, setPendingAttachmentState] = useState<ProjectPendingAttachmentPlacement | null>(null);
+  const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
+  const [ownedContentActionError, setOwnedContentActionError] = useState("");
 
   const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
   const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
@@ -153,6 +203,17 @@ export function ProjectPage() {
   const pendingReferenceRemovalRef = useRef<PendingReferenceRemoval | null>(null);
   const pendingReferenceCancellationRemovalRef = useRef<PendingReferenceCancellationRemoval | null>(null);
   const referenceRemovalGenerationRef = useRef(0);
+  const markdownEditorRef = useRef<MarkdownEditorState | null>(null);
+  const markdownCreateInputRef = useRef<CreateMarkdownProjectItemInput | null>(null);
+  const markdownUpdateInputRef = useRef<UpdateProjectMarkdownInput | null>(null);
+  const pendingAttachmentRef = useRef<ProjectPendingAttachmentPlacement | null>(null);
+  const pendingAttachmentInputRef = useRef<CreateAttachmentProjectItemInput | null>(null);
+  const pendingAttachmentFileRef = useRef<File | null>(null);
+  const attachmentRequestPointRef = useRef<{ x: number; y: number } | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentEditorRef = useRef<AttachmentEditorState | null>(null);
+  const attachmentUpdateInputRef = useRef<UpdateProjectAttachmentInput | null>(null);
+  const ownedContentGenerationRef = useRef(0);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
 
   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
@@ -164,6 +225,39 @@ export function ProjectPage() {
     pendingReferenceRemovalRef.current = next;
     setPendingReferenceRemovalState(next);
   }, []);
+
+  const updateMarkdownEditor = useCallback((next: MarkdownEditorState | null) => {
+    markdownEditorRef.current = next;
+    setMarkdownEditorState(next);
+  }, []);
+
+  const updatePendingAttachment = useCallback((next: ProjectPendingAttachmentPlacement | null) => {
+    pendingAttachmentRef.current = next;
+    setPendingAttachmentState(next);
+  }, []);
+
+  const updateAttachmentEditor = useCallback((next: AttachmentEditorState | null) => {
+    attachmentEditorRef.current = next;
+    setAttachmentEditorState(next);
+  }, []);
+
+  const ownedContentMutationIsActive = useCallback((generation: number) => (
+    pageActiveRef.current && ownedContentGenerationRef.current === generation
+  ), []);
+
+  const clearOwnedContentState = useCallback(() => {
+    ownedContentGenerationRef.current += 1;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    pendingAttachmentInputRef.current = null;
+    pendingAttachmentFileRef.current = null;
+    attachmentRequestPointRef.current = null;
+    attachmentUpdateInputRef.current = null;
+    updateMarkdownEditor(null);
+    updatePendingAttachment(null);
+    updateAttachmentEditor(null);
+    setOwnedContentActionError("");
+  }, [updateAttachmentEditor, updateMarkdownEditor, updatePendingAttachment]);
 
   const saveSessionIsActive = useCallback((generation: number) => (
     pageActiveRef.current && saveSessionGenerationRef.current === generation
@@ -184,19 +278,27 @@ export function ProjectPage() {
   }, []);
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
-    (saveState !== "saved" || pendingReference !== null || pendingReferenceRemoval !== null)
+    (saveState !== "saved"
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || markdownEditor !== null
+      || pendingAttachment !== null
+      || attachmentEditor !== null)
     && (
       currentLocation.pathname !== nextLocation.pathname
       || currentLocation.search !== nextLocation.search
       || currentLocation.hash !== nextLocation.hash
     )
-  ), [pendingReference, pendingReferenceRemoval, saveState]);
+  ), [attachmentEditor, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
   const blocker = useBlocker(shouldBlockNavigation);
 
   useBeforeUnload(useCallback((event) => {
     if (saveStateRef.current === "saved"
       && pendingReferenceRef.current === null
-      && pendingReferenceRemovalRef.current === null) return;
+      && pendingReferenceRemovalRef.current === null
+      && markdownEditorRef.current === null
+      && pendingAttachmentRef.current === null
+      && attachmentEditorRef.current === null) return;
     event.preventDefault();
     event.returnValue = "";
   }, []), { capture: true });
@@ -222,6 +324,7 @@ export function ProjectPage() {
     pendingMutationRef.current = {};
     clearReferenceInsertion();
     clearReferenceRemoval();
+    clearOwnedContentState();
     setSnapshot(next);
     setGeometry(nextGeometry);
     setSelectedItemId(null);
@@ -230,7 +333,7 @@ export function ProjectPage() {
     setSaveError("");
     setReferenceActionError("");
     updateSaveState("saved");
-  }, [clearReferenceInsertion, clearReferenceRemoval, updateSaveState]);
+  }, [clearOwnedContentState, clearReferenceInsertion, clearReferenceRemoval, updateSaveState]);
 
   const loadProject = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
@@ -261,6 +364,7 @@ export function ProjectPage() {
       saveSessionGenerationRef.current += 1;
       referenceInsertionGenerationRef.current += 1;
       referenceRemovalGenerationRef.current += 1;
+      ownedContentGenerationRef.current += 1;
       navigationSaveRequestedRef.current = false;
       referenceNavigationRequestedRef.current = false;
       saveAgainRef.current = false;
@@ -270,6 +374,15 @@ export function ProjectPage() {
       pendingReferenceRef.current = null;
       pendingReferenceRemovalRef.current = null;
       pendingReferenceCancellationRemovalRef.current = null;
+      markdownEditorRef.current = null;
+      markdownCreateInputRef.current = null;
+      markdownUpdateInputRef.current = null;
+      pendingAttachmentRef.current = null;
+      pendingAttachmentInputRef.current = null;
+      pendingAttachmentFileRef.current = null;
+      attachmentRequestPointRef.current = null;
+      attachmentEditorRef.current = null;
+      attachmentUpdateInputRef.current = null;
       if (autosaveTimerRef.current !== null) {
         window.clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
@@ -337,6 +450,7 @@ export function ProjectPage() {
     } catch (caught) {
       if (!saveSessionIsActive(generation)) return;
       const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+      navigationSaveRequestedRef.current = false;
       setSaveError(message);
       updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
     } finally {
@@ -372,7 +486,8 @@ export function ProjectPage() {
       referenceNavigationRequestedRef.current = false;
       return;
     }
-    if (pendingReferenceRef.current || pendingReferenceRemovalRef.current) {
+    if (pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) {
       referenceNavigationRequestedRef.current = true;
     }
     const state = saveStateRef.current;
@@ -386,11 +501,13 @@ export function ProjectPage() {
   }, [blocker.state]);
 
   useEffect(() => {
-    if (blocker.state !== "blocked" || pendingReference !== null || pendingReferenceRemoval !== null) return;
-    if (saveState === "error" || saveState === "conflict") {
-      navigationSaveRequestedRef.current = false;
-      return;
-    }
+    if (blocker.state !== "blocked"
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || markdownEditor !== null
+      || pendingAttachment !== null
+      || attachmentEditor !== null) return;
+    if (saveState === "error" || saveState === "conflict") return;
     if (saveState !== "saved") return;
     if (navigationSaveRequestedRef.current || referenceNavigationRequestedRef.current) {
       navigationSaveRequestedRef.current = false;
@@ -399,11 +516,14 @@ export function ProjectPage() {
     } else {
       blocker.reset();
     }
-  }, [blocker, pendingReference, pendingReferenceRemoval, saveState]);
+  }, [attachmentEditor, blocker, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
 
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
     if (pendingReferenceRemovalRef.current
       || pendingReferenceRef.current?.status === "reconciling"
+      || markdownEditorRef.current
+      || pendingAttachmentRef.current
+      || attachmentEditorRef.current
       || projectGeometryEquals(command.before, command.after)) return;
     const next = { ...geometryRef.current, [command.placementId]: command.after };
     geometryRef.current = next;
@@ -418,7 +538,8 @@ export function ProjectPage() {
   }, [scheduleAutosave, updateSaveState]);
 
   const undo = useCallback(() => {
-    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling") return;
+    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
     const command = undoStack.at(-1);
     if (!command) return;
     const next = applyProjectGeometryCommand(geometryRef.current, command, "undo");
@@ -434,7 +555,8 @@ export function ProjectPage() {
   }, [scheduleAutosave, undoStack, updateSaveState]);
 
   const redo = useCallback(() => {
-    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling") return;
+    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
     const command = redoStack.at(-1);
     if (!command) return;
     const next = applyProjectGeometryCommand(geometryRef.current, command, "redo");
@@ -532,7 +654,8 @@ export function ProjectPage() {
     payload: ProjectReferenceDragPayload,
     point: { x: number; y: number },
   ) => {
-    if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current) return;
+    if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
     const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
     const geometry = projectReferenceGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!geometry) {
@@ -865,6 +988,403 @@ export function ProjectPage() {
     updatePendingReference,
   ]);
 
+  const mergeOwnedContentInsertion = useCallback((result: ProjectItemMutationResponse) => {
+    const insertedContent = result.content;
+    const insertedAttachment = result.attachment;
+    if (!insertedContent) throw new Error("Inserted Project-owned content has no content record");
+    baselineRef.current = {
+      ...baselineRef.current,
+      [result.placement.id]: result.placement,
+    };
+    const nextGeometry = {
+      ...geometryRef.current,
+      [result.placement.id]: {
+        x: result.placement.x,
+        y: result.placement.y,
+        width: result.placement.width,
+        height: result.placement.height,
+        zIndex: result.placement.zIndex,
+      },
+    };
+    geometryRef.current = nextGeometry;
+    setGeometry(nextGeometry);
+    setSnapshot((current) => current ? {
+      ...current,
+      project: result.project,
+      contents: [...current.contents.filter((content) => content.id !== insertedContent.id), insertedContent],
+      attachments: insertedAttachment
+        ? [...current.attachments.filter((attachment) => attachment.projectContentId !== insertedAttachment.projectContentId), insertedAttachment]
+        : current.attachments,
+      items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
+      placements: [...current.placements.filter((placement) => placement.id !== result.placement.id), result.placement],
+    } : current);
+    setSelectedItemId(result.item.id);
+  }, []);
+
+  const startMarkdownCreate = useCallback((point: { x: number; y: number }) => {
+    if (!snapshot || !desktop || saveStateRef.current === "conflict"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const draftGeometry = projectMarkdownGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
+    if (!draftGeometry) {
+      setOwnedContentActionError("The requested Map coordinate is outside the supported Project geometry range");
+      return;
+    }
+    ownedContentGenerationRef.current += 1;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    setOwnedContentActionError("");
+    const itemId = createProjectApiId("item");
+    updateMarkdownEditor({
+      itemId,
+      contentId: createProjectApiId("content"),
+      placementId: createProjectApiId("placement"),
+      value: "",
+      isNew: true,
+      geometry: draftGeometry,
+      status: "editing",
+      message: null,
+    });
+    setSelectedItemId(itemId);
+  }, [desktop, snapshot, updateMarkdownEditor]);
+
+  const startMarkdownEdit = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current === "conflict"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || !content || content.contentType !== "markdown") return;
+    ownedContentGenerationRef.current += 1;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    setOwnedContentActionError("");
+    updateMarkdownEditor({
+      itemId,
+      contentId: content.id,
+      placementId: null,
+      value: content.markdownSource ?? "",
+      isNew: false,
+      geometry: null,
+      status: "editing",
+      message: null,
+    });
+    setSelectedItemId(itemId);
+  }, [snapshot, updateMarkdownEditor]);
+
+  const changeMarkdown = useCallback((value: string) => {
+    const current = markdownEditorRef.current;
+    if (!current || current.status !== "editing") return;
+    updateMarkdownEditor({ ...current, value, message: null });
+  }, [updateMarkdownEditor]);
+
+  const cancelMarkdown = useCallback((leave = false) => {
+    const current = markdownEditorRef.current;
+    if (!current || current.status === "saving" || current.status === "uncertain") return;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    ownedContentGenerationRef.current += 1;
+    updateMarkdownEditor(null);
+    if (current.isNew) setSelectedItemId(null);
+    setOwnedContentActionError("");
+    continueReferenceNavigation(leave);
+  }, [continueReferenceNavigation, updateMarkdownEditor]);
+
+  const saveMarkdown = useCallback(async () => {
+    const current = markdownEditorRef.current;
+    if (!projectId || !snapshot || !current || (current.status !== "editing" && current.status !== "uncertain") || !current.value.trim()) return;
+    const generation = ownedContentGenerationRef.current;
+    updateMarkdownEditor({ ...current, status: "saving", message: null });
+    setOwnedContentActionError("");
+    try {
+      if (current.isNew) {
+        let input = markdownCreateInputRef.current;
+        if (!input) {
+          if (!current.geometry || !current.placementId) throw new Error("The local Markdown draft has no placement");
+          input = {
+            contentId: current.contentId,
+            itemId: current.itemId,
+            placementId: current.placementId,
+            markdownSource: current.value,
+            geometry: current.geometry,
+            expectedProjectRevision: snapshot.project.revision,
+            operationId: createProjectApiId("operation"),
+          };
+          markdownCreateInputRef.current = input;
+        }
+        const result = await projectApi.createMarkdownItem(projectId, input);
+        if (!ownedContentMutationIsActive(generation)) return;
+        mergeOwnedContentInsertion(result);
+      } else {
+        const content = snapshot.contents.find((candidate) => candidate.id === current.contentId);
+        if (!content || content.contentType !== "markdown") throw new Error("Project Markdown content is no longer available");
+        let input = markdownUpdateInputRef.current;
+        if (!input) {
+          input = {
+            markdownSource: current.value,
+            expectedRevision: content.revision,
+            operationId: createProjectApiId("operation"),
+          };
+          markdownUpdateInputRef.current = input;
+        }
+        const result = await projectApi.updateMarkdown(projectId, current.contentId, input);
+        if (!ownedContentMutationIsActive(generation)) return;
+        setSnapshot((local) => local ? {
+          ...local,
+          contents: [...local.contents.filter((candidate) => candidate.id !== result.value.id), result.value],
+        } : local);
+      }
+      markdownCreateInputRef.current = null;
+      markdownUpdateInputRef.current = null;
+      updateMarkdownEditor(null);
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const status = projectOwnedContentFailureStatus(caught);
+      const message = caught instanceof Error ? caught.message : "Project Markdown could not be saved";
+      updateMarkdownEditor({ ...current, status, message });
+      setOwnedContentActionError(message);
+    }
+  }, [mergeOwnedContentInsertion, ownedContentMutationIsActive, projectId, snapshot, updateMarkdownEditor]);
+
+  const retryMarkdownSave = useCallback(() => {
+    const current = markdownEditorRef.current;
+    if (!current || current.status !== "uncertain") return;
+    void saveMarkdown();
+  }, [saveMarkdown]);
+
+  const requestAttachmentAt = useCallback((point: { x: number; y: number }) => {
+    if (!snapshot || !desktop || saveStateRef.current === "conflict"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+    attachmentRequestPointRef.current = point;
+    attachmentInputRef.current?.click();
+  }, [desktop, snapshot]);
+
+  const requestAttachmentAtCenter = useCallback(() => {
+    const point = mapSurfaceRef.current?.getViewportCenter();
+    if (!point) {
+      setOwnedContentActionError("The Map viewport is not ready for attachment placement yet");
+      return;
+    }
+    requestAttachmentAt(point);
+  }, [requestAttachmentAt]);
+
+  const performAttachmentProjectCreate = useCallback(async (
+    generation: number,
+    input: CreateAttachmentProjectItemInput,
+    file: File,
+  ) => {
+    if (!projectId || !ownedContentMutationIsActive(generation)) return;
+    updatePendingAttachment({
+      localId: `pending-${input.itemId}`,
+      filename: file.name,
+      mimeType: file.type || "application/octet-stream",
+      geometry: input.geometry,
+      status: "saving",
+      message: null,
+    });
+    try {
+      const result = await projectApi.createAttachmentItem(projectId, input);
+      if (!ownedContentMutationIsActive(generation)) return;
+      mergeOwnedContentInsertion(result);
+      pendingAttachmentInputRef.current = null;
+      pendingAttachmentFileRef.current = null;
+      updatePendingAttachment(null);
+      setOwnedContentActionError("");
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const status = projectOwnedContentFailureStatus(caught);
+      const message = caught instanceof Error ? caught.message : "The attachment occurrence could not be created";
+      updatePendingAttachment({
+        localId: `pending-${input.itemId}`,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        geometry: input.geometry,
+        status,
+        message,
+      });
+      setOwnedContentActionError(message);
+    }
+  }, [mergeOwnedContentInsertion, ownedContentMutationIsActive, projectId, updatePendingAttachment]);
+
+  const uploadAndCreateAttachment = useCallback(async (file: File, point: { x: number; y: number }) => {
+    if (!snapshot || pendingAttachmentRef.current) return;
+    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const attachmentGeometry = projectAttachmentGeometryAtPoint(
+      point,
+      Math.min(1_000_000, maxZ + 1),
+      file.type || "application/octet-stream",
+    );
+    if (!attachmentGeometry) {
+      setOwnedContentActionError("The requested Map coordinate is outside the supported Project geometry range");
+      return;
+    }
+    const generation = ownedContentGenerationRef.current + 1;
+    ownedContentGenerationRef.current = generation;
+    pendingAttachmentInputRef.current = null;
+    pendingAttachmentFileRef.current = file;
+    setOwnedContentActionError("");
+    const itemId = createProjectApiId("item");
+    updatePendingAttachment({
+      localId: `pending-${itemId}`,
+      filename: file.name,
+      mimeType: file.type || "application/octet-stream",
+      geometry: attachmentGeometry,
+      status: "uploading",
+      message: null,
+    });
+    try {
+      const asset = await projectApi.uploadAttachmentAsset(file);
+      if (!ownedContentMutationIsActive(generation)) return;
+      const input: CreateAttachmentProjectItemInput = {
+        contentId: createProjectApiId("content"),
+        itemId,
+        placementId: createProjectApiId("placement"),
+        locator: { assetId: asset.id },
+        caption: null,
+        sourceUrl: null,
+        geometry: attachmentGeometry,
+        expectedProjectRevision: snapshot.project.revision,
+        operationId: createProjectApiId("operation"),
+      };
+      pendingAttachmentInputRef.current = input;
+      await performAttachmentProjectCreate(generation, input, file);
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "The attachment file could not be uploaded";
+      updatePendingAttachment({
+        localId: `pending-${itemId}`,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        geometry: attachmentGeometry,
+        status: projectOwnedContentFailureStatus(caught),
+        message,
+      });
+      setOwnedContentActionError(message);
+    }
+  }, [ownedContentMutationIsActive, performAttachmentProjectCreate, snapshot, updatePendingAttachment]);
+
+  const handleAttachmentFile = useCallback((file: File | null) => {
+    const point = attachmentRequestPointRef.current;
+    attachmentRequestPointRef.current = null;
+    if (!file || !point) return;
+    void uploadAndCreateAttachment(file, point);
+  }, [uploadAndCreateAttachment]);
+
+  const retryAttachment = useCallback(() => {
+    const file = pendingAttachmentFileRef.current;
+    const input = pendingAttachmentInputRef.current;
+    const current = pendingAttachmentRef.current;
+    if (!file || !current || current.status !== "uncertain") return;
+    if (input) {
+      void performAttachmentProjectCreate(ownedContentGenerationRef.current, input, file);
+      return;
+    }
+    const point = {
+      x: current.geometry.x + current.geometry.width / 2,
+      y: current.geometry.y + Math.min(72, current.geometry.height / 3),
+    };
+    updatePendingAttachment(null);
+    void uploadAndCreateAttachment(file, point);
+  }, [performAttachmentProjectCreate, updatePendingAttachment, uploadAndCreateAttachment]);
+
+  const cancelAttachment = useCallback((leave = false) => {
+    const current = pendingAttachmentRef.current;
+    if (!current || current.status === "uploading" || current.status === "saving"
+      || (current.status === "uncertain" && pendingAttachmentInputRef.current)) return;
+    ownedContentGenerationRef.current += 1;
+    pendingAttachmentInputRef.current = null;
+    pendingAttachmentFileRef.current = null;
+    updatePendingAttachment(null);
+    setOwnedContentActionError("");
+    continueReferenceNavigation(leave);
+  }, [continueReferenceNavigation, updatePendingAttachment]);
+
+  const startAttachmentEdit = useCallback((itemId: string) => {
+    if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || !content || content.contentType !== "attachment") return;
+    ownedContentGenerationRef.current += 1;
+    attachmentUpdateInputRef.current = null;
+    const caption = content.attachmentCaption ?? "";
+    const sourceUrl = content.attachmentSourceUrl ?? "";
+    updateAttachmentEditor({
+      itemId,
+      contentId: content.id,
+      caption,
+      sourceUrl,
+      status: "editing",
+      message: null,
+    });
+    setSelectedItemId(itemId);
+    setOwnedContentActionError("");
+  }, [snapshot, updateAttachmentEditor]);
+
+  const updateAttachmentDraft = useCallback((field: "caption" | "sourceUrl", value: string) => {
+    const current = attachmentEditorRef.current;
+    if (!current || current.status !== "editing") return;
+    updateAttachmentEditor({ ...current, [field]: value, message: null });
+  }, [updateAttachmentEditor]);
+
+  const cancelAttachmentEdit = useCallback((leave = false) => {
+    const current = attachmentEditorRef.current;
+    if (!current || current.status === "saving" || current.status === "uncertain") return;
+    attachmentUpdateInputRef.current = null;
+    ownedContentGenerationRef.current += 1;
+    updateAttachmentEditor(null);
+    setOwnedContentActionError("");
+    continueReferenceNavigation(leave);
+  }, [continueReferenceNavigation, updateAttachmentEditor]);
+
+  const saveAttachmentMetadata = useCallback(async () => {
+    const current = attachmentEditorRef.current;
+    if (!projectId || !snapshot || !current || (current.status !== "editing" && current.status !== "uncertain")) return;
+    const content = snapshot.contents.find((candidate) => candidate.id === current.contentId);
+    if (!content || content.contentType !== "attachment") return;
+    const generation = ownedContentGenerationRef.current;
+    updateAttachmentEditor({ ...current, status: "saving", message: null });
+    setOwnedContentActionError("");
+    try {
+      let input = attachmentUpdateInputRef.current;
+      if (!input) {
+        input = {
+          caption: current.caption === "" ? null : current.caption,
+          sourceUrl: current.sourceUrl.trim() === "" ? null : current.sourceUrl.trim(),
+          expectedRevision: content.revision,
+          operationId: createProjectApiId("operation"),
+        };
+        attachmentUpdateInputRef.current = input;
+      }
+      const result = await projectApi.updateAttachment(projectId, current.contentId, input);
+      if (!ownedContentMutationIsActive(generation)) return;
+      setSnapshot((local) => local ? {
+        ...local,
+        contents: [...local.contents.filter((candidate) => candidate.id !== result.value.id), result.value],
+      } : local);
+      attachmentUpdateInputRef.current = null;
+      updateAttachmentEditor(null);
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const status = projectOwnedContentFailureStatus(caught);
+      const message = caught instanceof Error ? caught.message : "Attachment metadata could not be saved";
+      updateAttachmentEditor({ ...current, status, message });
+      setOwnedContentActionError(message);
+    }
+  }, [ownedContentMutationIsActive, projectId, snapshot, updateAttachmentEditor]);
+
+  const retryAttachmentMetadata = useCallback(() => {
+    const current = attachmentEditorRef.current;
+    if (!current || current.status !== "uncertain") return;
+    void saveAttachmentMetadata();
+  }, [saveAttachmentMetadata]);
+
   const reloadAfterReferenceConflict = useCallback(() => {
     if (saveStateRef.current !== "saved" || pendingReferenceRemovalRef.current) return;
     clearReferenceInsertion();
@@ -881,7 +1401,8 @@ export function ProjectPage() {
   }, [blocker]);
 
   const leaveWithoutSaving = useCallback(() => {
-    if (blocker.state !== "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current) return;
+    if (blocker.state !== "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
     const state = saveStateRef.current;
     if (state !== "error" && state !== "conflict") return;
     navigationSaveRequestedRef.current = false;
@@ -904,6 +1425,12 @@ export function ProjectPage() {
     void flushSave();
   }, [blocker.state, flushSave]);
 
+  const selectProjectItem = useCallback((itemId: string | null) => {
+    const lockedItemId = markdownEditorRef.current?.itemId ?? attachmentEditorRef.current?.itemId ?? null;
+    if (lockedItemId && itemId !== lockedItemId) return;
+    setSelectedItemId(itemId);
+  }, []);
+
   const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
     ...node,
     geometry: geometry[node.placementId] ?? node.geometry,
@@ -917,7 +1444,8 @@ export function ProjectPage() {
 
   const removeSelectedReference = useCallback(() => {
     if (!snapshot || !selectedItem || selectedItem.itemType !== "reference"
-      || saveStateRef.current !== "saved" || pendingReferenceRef.current || pendingReferenceRemovalRef.current) return;
+      || saveStateRef.current !== "saved" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current) return;
     startReferenceRemoval(selectedItem.id, selectedItem.revision);
   }, [selectedItem, snapshot, startReferenceRemoval]);
 
@@ -927,12 +1455,50 @@ export function ProjectPage() {
     <p className="error-banner">{loadError || "Project not found"}</p>
   </div>;
 
-  const removingReference = pendingReferenceRemoval?.status === "removing"
-    || pendingReferenceRemoval?.status === "reconciling";
-  const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || saveState === "conflict");
-  const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null;
+  const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
+  const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || ownedContentBusy || saveState === "conflict");
+  const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null || ownedContentBusy;
   const geometryInteractionDisabled = pendingReferenceRemoval !== null
-    || pendingReference?.status === "reconciling";
+    || pendingReference?.status === "reconciling"
+    || ownedContentBusy;
+
+  const navigationBlockMessage = pendingReferenceRemoval
+    ? pendingReferenceRemoval.status === "removing"
+      ? "Finishing the Project occurrence removal before leaving this Project…"
+      : pendingReferenceRemoval.status === "reconciling"
+        ? "Reconciling the Project occurrence against authoritative state before leaving…"
+        : pendingReferenceRemoval.status === "uncertain"
+          ? "The Project occurrence removal outcome is uncertain. Retry the exact removal before leaving."
+          : "The Project occurrence removal conflict needs authoritative reconciliation before leaving."
+    : pendingReference
+      ? pendingReference.status === "placing" || pendingReference.status === "reconciling"
+        ? "Finishing the reference placement reconciliation before leaving this Project…"
+        : pendingReference.status === "uncertain"
+          ? "The reference insertion outcome is uncertain. Retry the exact insertion or reconcile it before cancelling and leaving."
+          : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
+      : pendingAttachment
+        ? pendingAttachment.status === "uploading" || pendingAttachment.status === "saving"
+          ? "Finishing the Project attachment operation before leaving this Project…"
+          : pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current
+            ? "The Project attachment creation outcome is uncertain. Retry the exact creation before leaving."
+            : "The attachment operation failed deterministically. Cancel it before leaving, then start a new attachment operation if needed."
+        : markdownEditor
+          ? markdownEditor.status === "saving"
+            ? "Finishing the Project Markdown save before leaving…"
+            : markdownEditor.status === "uncertain"
+              ? "The Project Markdown save outcome is uncertain. Retry the exact save before leaving."
+              : "The open Project Markdown editor must be saved or discarded before leaving; deterministic save failures must be discarded and restarted."
+          : attachmentEditor
+            ? attachmentEditor.status === "saving"
+              ? "Finishing the attachment metadata save before leaving…"
+              : attachmentEditor.status === "uncertain"
+                ? "The attachment metadata save outcome is uncertain. Retry the exact save before leaving."
+                : "The attachment metadata editor must be saved or discarded before leaving; deterministic save failures must be discarded and restarted."
+            : saveState === "conflict"
+              ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
+              : saveState === "error"
+                ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
+                : "Saving placement changes before leaving this Project…";
 
   return <div className={`project-page${desktop ? " desktop" : " mobile"}`}>
     <header className="project-workspace-header">
@@ -963,7 +1529,7 @@ export function ProjectPage() {
       {saveState === "conflict" && <button
         type="button"
         className="button compact-button"
-        disabled={pendingReferenceRemoval !== null}
+        disabled={pendingReferenceRemoval !== null || ownedContentBusy}
         onClick={() => void loadProject()}
       >
         Reload authoritative Project
@@ -971,7 +1537,7 @@ export function ProjectPage() {
       {saveState === "error" && <button
         type="button"
         className="button compact-button"
-        disabled={pendingReferenceRemoval !== null}
+        disabled={pendingReferenceRemoval !== null || ownedContentBusy}
         onClick={() => void flushSave()}
       >
         Retry save
@@ -992,28 +1558,12 @@ export function ProjectPage() {
       <p>{referenceActionError}</p>
     </div>}
 
+    {ownedContentActionError && !markdownEditor && !pendingAttachment && !attachmentEditor && <div className="project-save-banner error">
+      <p>{ownedContentActionError}</p>
+    </div>}
+
     {blocker.state === "blocked" && <div className="project-save-banner warning" role="alertdialog" aria-label="Unsaved Project changes">
-      <p>{pendingReferenceRemoval
-        ? pendingReferenceRemoval.status === "removing"
-          ? "Finishing the Project occurrence removal before leaving this Project…"
-          : pendingReferenceRemoval.status === "reconciling"
-            ? "Reconciling the Project occurrence against authoritative state before leaving…"
-            : pendingReferenceRemoval.status === "uncertain"
-              ? "The Project occurrence removal outcome is uncertain. Retry the exact removal before leaving."
-              : "The Project occurrence removal conflict needs authoritative reconciliation before leaving."
-        : pendingReference
-          ? pendingReference.status === "placing" || pendingReference.status === "reconciling"
-            ? "Finishing the reference placement reconciliation before leaving this Project…"
-            : pendingReference.status === "uncertain"
-              ? "The reference insertion outcome is uncertain. Retry the exact insertion or reconcile it before cancelling and leaving."
-              : pendingReference.status === "conflict" && referenceConflictReloadDisabled
-                ? "The reference placement conflicted while this Project also has placement changes to resolve. Save or resolve those geometry changes before reloading, or cancel only the reference placement."
-                : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
-          : saveState === "conflict"
-            ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
-            : saveState === "error"
-              ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
-              : "Saving placement changes before leaving this Project…"}</p>
+      <p>{navigationBlockMessage}</p>
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
         {pendingReferenceRemoval?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>}
@@ -1022,13 +1572,50 @@ export function ProjectPage() {
         {pendingReference?.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(true)}>Reconcile, cancel and leave</button>}
         {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
-        {!pendingReference && !pendingReferenceRemoval && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
-        {!pendingReference && !pendingReferenceRemoval && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
+        {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
+        {pendingAttachment?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
+        {markdownEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
+        {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
+        {attachmentEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
+        {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
+        {!pendingReference && !pendingReferenceRemoval && !ownedContentBusy && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
+        {!pendingReference && !pendingReferenceRemoval && !ownedContentBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
       </div>
     </div>}
 
     {desktop ? <div className="project-desktop-workspace with-reference-sidebar">
       <aside className="project-reference-sidebar" aria-label="Reference search and placement">
+        <div className="project-reference-sidebar-heading">
+          <p className="card-label">Add Project content</p>
+          <p className="card-meta">Double-click empty Map space for Markdown, or add a generic file at the visible Map center.</p>
+        </div>
+        <div className="project-owned-content-actions">
+          <button type="button" className="button wide" disabled={ownedContentBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || saveState === "conflict"} onClick={requestAttachmentAtCenter}>Add attachment</button>
+          <input
+            ref={attachmentInputRef}
+            className="project-hidden-file-input"
+            type="file"
+            aria-label="Choose Project attachment"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0] ?? null;
+              event.currentTarget.value = "";
+              handleAttachmentFile(file);
+            }}
+          />
+        </div>
+        {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}>
+          <strong>{pendingAttachment.filename}</strong>
+          <span>{pendingAttachment.status === "uploading"
+            ? "Uploading file…"
+            : pendingAttachment.status === "saving"
+              ? "Creating Project attachment…"
+              : pendingAttachment.message}</span>
+          {(pendingAttachment.status === "error" || pendingAttachment.status === "conflict" || pendingAttachment.status === "uncertain") && <div className="project-owned-content-pending-actions">
+            {pendingAttachment.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
+            {(pendingAttachment.status !== "uncertain" || !pendingAttachmentInputRef.current) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(false)}>Cancel</button>}
+          </div>}
+          {pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current && <small className="muted">The Project occurrence may already be committed. Retry replays the exact original creation request.</small>}
+        </div>}
         <div className="project-reference-sidebar-heading">
           <p className="card-label">Add references</p>
           <p className="card-meta">Search the research record, then drag a result onto the Map or place it at the visible Map center.</p>
@@ -1066,11 +1653,19 @@ export function ProjectPage() {
             ref={mapSurfaceRef}
             nodes={descriptors}
             pendingReference={pendingReference}
+            pendingAttachment={pendingAttachment}
+            markdownEditor={markdownEditor}
             selectedItemId={selectedItemId}
             geometryInteractionDisabled={geometryInteractionDisabled}
-            onSelect={setSelectedItemId}
+            onSelect={selectProjectItem}
             onGeometryCommit={commitGeometry}
             onReferenceDrop={startReferencePlacement}
+            onMarkdownCreateRequest={startMarkdownCreate}
+            onMarkdownEditRequest={startMarkdownEdit}
+            onMarkdownChange={changeMarkdown}
+            onMarkdownSave={() => void saveMarkdown()}
+            onMarkdownCancel={() => cancelMarkdown(false)}
+            onAttachmentRequest={requestAttachmentAt}
           />
         </Suspense>
       </section>
@@ -1088,10 +1683,48 @@ export function ProjectPage() {
           </dl>
           {selected.openReferenceUrl && <Link className="button wide" to={selected.openReferenceUrl}>Open reference</Link>}
           {selected.fileUrl && <a className="button wide" href={selected.fileUrl}>Open attachment</a>}
+          {selected.kind === "markdown" && <button
+            type="button"
+            className="button wide"
+            disabled={ownedContentBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            onClick={() => startMarkdownEdit(selected.itemId)}
+          >Edit Markdown</button>}
+          {selected.kind === "attachment" && selected.attachmentSourceUrl && <a className="button wide" href={selected.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
+          {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
+            type="button"
+            className="button wide"
+            disabled={ownedContentBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            onClick={() => startAttachmentEdit(selected.itemId)}
+          >Edit attachment metadata</button>}
+          {selected.kind === "attachment" && attachmentEditor?.itemId === selected.itemId && <div className="project-attachment-meta-form">
+            <label>Caption
+              <textarea
+                value={attachmentEditor.caption}
+                disabled={attachmentEditor.status !== "editing"}
+                onChange={(event) => updateAttachmentDraft("caption", event.currentTarget.value)}
+              />
+            </label>
+            <label>Source URL
+              <input
+                type="url"
+                placeholder="https://…"
+                value={attachmentEditor.sourceUrl}
+                disabled={attachmentEditor.status !== "editing"}
+                onChange={(event) => updateAttachmentDraft("sourceUrl", event.currentTarget.value)}
+              />
+            </label>
+            {attachmentEditor.message && <p className="error-banner">{attachmentEditor.message}</p>}
+            <div className="project-owned-content-pending-actions">
+              {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
+                {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
+              </button>}
+              {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(false)}>Cancel</button>}
+            </div>
+          </div>}
           {selected.kind === "reference" && <button
             type="button"
             className="button wide"
-            disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || ownedContentBusy}
             onClick={removeSelectedReference}
           >{pendingReferenceRemoval?.itemId === selected.itemId
             ? pendingReferenceRemoval.status === "removing"
@@ -1114,11 +1747,17 @@ export function ProjectPage() {
         <header><span className="meta-badge">{node.kind}</span><small>#{node.createdSequence}</small></header>
         <h2>{node.title}</h2>
         {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
+        {node.kind === "attachment" && <ProjectReadingAttachmentPreview
+          fileUrl={node.fileUrl}
+          mimeType={node.mimeType}
+          alt={node.attachmentCaption || node.title}
+        />}
         {node.excerpt && <p className="project-reading-excerpt">{node.excerpt}</p>}
+        {node.attachmentSourceUrl && <a className="button wide" href={node.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
         {node.openReferenceUrl && <Link className="button wide" to={node.openReferenceUrl}>Open reference</Link>}
         {node.fileUrl && <a className="button wide" href={node.fileUrl}>Open attachment</a>}
       </article>) : <EmptyState title="This Project is empty">
-        Add references from the desktop Project workspace.
+        Add references or Project-owned content from the desktop Project workspace.
       </EmptyState>}
     </section>}
   </div>;

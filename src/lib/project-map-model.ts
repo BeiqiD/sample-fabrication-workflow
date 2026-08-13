@@ -19,6 +19,11 @@ export interface ProjectNodeDescriptor {
   excerpt: string | null;
   geometry: ProjectMapGeometry;
   createdSequence: number;
+  contentId: string | null;
+  markdownSource: string | null;
+  attachmentCaption: string | null;
+  attachmentSourceUrl: string | null;
+  mimeType: string | null;
   fileUrl: string | null;
   openReferenceUrl: string | null;
 }
@@ -70,6 +75,11 @@ function contentNode(
       excerpt: boundedExcerpt(content.attachmentCaption),
       geometry: geometryFromPlacement(placement),
       createdSequence: item.createdSequence,
+      contentId: content.id,
+      markdownSource: null,
+      attachmentCaption: content.attachmentCaption,
+      attachmentSourceUrl: content.attachmentSourceUrl,
+      mimeType: attachment?.mimeType ?? null,
       fileUrl: attachment?.fileUrl ?? null,
       openReferenceUrl: null,
     };
@@ -84,6 +94,11 @@ function contentNode(
     excerpt: boundedExcerpt(content.markdownSource),
     geometry: geometryFromPlacement(placement),
     createdSequence: item.createdSequence,
+    contentId: content.id,
+    markdownSource: content.markdownSource,
+    attachmentCaption: null,
+    attachmentSourceUrl: null,
+    mimeType: null,
     fileUrl: null,
     openReferenceUrl: null,
   };
@@ -106,6 +121,11 @@ function referenceNode(
     excerpt: boundedExcerpt(resolution?.source?.excerpt ?? null),
     geometry: geometryFromPlacement(placement),
     createdSequence: item.createdSequence,
+    contentId: null,
+    markdownSource: null,
+    attachmentCaption: null,
+    attachmentSourceUrl: null,
+    mimeType: null,
     fileUrl: null,
     openReferenceUrl: resolution?.destination.referenceUrl ?? null,
   };
