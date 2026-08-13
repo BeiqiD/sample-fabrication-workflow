@@ -35,8 +35,11 @@ jobs:
           from pathlib import Path
           path = Path("scripts/tmp-phase3c-reading.py")
           text = path.read_text()
-          text = text.replace("dedent(r'''\\\\\n", "dedent(r'''\n")
-          path.write_text(text)
+          needle = "dedent(r'''" + chr(92) + "\n"
+          count = text.count(needle)
+          if count != 5:
+              raise SystemExit(f"expected 5 generated raw-string prefixes, found {count}")
+          path.write_text(text.replace(needle, "dedent(r'''\n"))
           PY
           python scripts/tmp-phase3c-reading.py
 
