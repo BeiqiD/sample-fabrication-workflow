@@ -47,6 +47,7 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
     const stableEdges = [edge];
     const onSelect = vi.fn();
     const onEdgeSelect = vi.fn();
+    const onGeometryCommit = vi.fn();
 
     function KeyboardSelectionHarness() {
       const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -66,7 +67,7 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
           setSelectedEdgeId(edgeId);
           if (edgeId !== null) setSelectedItemId(null);
         }}
-        onGeometryCommit={() => undefined}
+        onGeometryCommit={onGeometryCommit}
       />;
     }
 
