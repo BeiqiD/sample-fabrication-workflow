@@ -1,0 +1,77 @@
+name: Temporary PR135 navigation retry fix
+
+on:
+  push:
+    branches:
+      - agent/project-owned-content
+    paths:
+      - .github/workflows/tmp-pr135-navigation-retry-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/project-owned-content
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Move navigation-intent reset into the failed save attempt
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/pages/ProjectPage.tsx')
+          text = path.read_text()
+
+          old_catch = '''    } catch (caught) {
+              if (!saveSessionIsActive(generation)) return;
+              const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+              setSaveError(message);
+              updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
+            } finally {'''
+          new_catch = '''    } catch (caught) {
+              if (!saveSessionIsActive(generation)) return;
+              const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+              navigationSaveRequestedRef.current = false;
+              setSaveError(message);
+              updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
+            } finally {'''
+
+          old_effect = '''    if (saveState === "error" || saveState === "conflict") {
+              navigationSaveRequestedRef.current = false;
+              return;
+            }
+            if (saveState !== "saved") return;'''
+          new_effect = '''    if (saveState === "error" || saveState === "conflict") return;
+            if (saveState !== "saved") return;'''
+
+          if text.count(old_catch) != 1:
+              raise SystemExit(f'expected one save catch, found {text.count(old_catch)}')
+          if text.count(old_effect) != 1:
+              raise SystemExit(f'expected one blocker failure effect, found {text.count(old_effect)}')
+
+          text = text.replace(old_catch, new_catch).replace(old_effect, new_effect)
+          path.write_text(text)
+          PY
+      - name: Verify mounted Project Map behavior
+        run: npm run test:project-map-mounted
+      - name: Verify full test suite
+        run: npm test
+      - name: Commit verified fix and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-pr135-navigation-retry-fix.yml
+          git add src/pages/ProjectPage.tsx
+          git diff --cached --check
+          git commit -m "fix(project): make navigation retry deterministic"
+          git push origin HEAD:agent/project-owned-content
