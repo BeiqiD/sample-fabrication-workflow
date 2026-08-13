@@ -57,7 +57,7 @@ import {
 import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
 import {
   projectAttachmentGeometryAtPoint,
-  projectAttachmentIsImage,
+  projectAttachmentCanPreviewImage,
   projectMarkdownGeometryAtPoint,
   projectOwnedContentFailureStatus,
   type ProjectMapMarkdownEditorState,
@@ -142,6 +142,25 @@ function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error"
     }
   }
   return "uncertain";
+}
+
+function ProjectReadingAttachmentPreview({
+  fileUrl,
+  mimeType,
+  alt,
+}: {
+  fileUrl: string | null;
+  mimeType: string | null;
+  alt: string;
+}) {
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  if (!fileUrl || !projectAttachmentCanPreviewImage(mimeType) || failedPreviewUrl === fileUrl) return null;
+  return <img
+    className="project-reading-image"
+    src={fileUrl}
+    alt={alt}
+    onError={() => setFailedPreviewUrl(fileUrl)}
+  />;
 }
 
 export function ProjectPage() {
@@ -1730,7 +1749,11 @@ export function ProjectPage() {
         <header><span className="meta-badge">{node.kind}</span><small>#{node.createdSequence}</small></header>
         <h2>{node.title}</h2>
         {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
-        {node.kind === "attachment" && node.fileUrl && projectAttachmentIsImage(node.mimeType) && <img className="project-reading-image" src={node.fileUrl} alt={node.attachmentCaption || node.title} />}
+        {node.kind === "attachment" && <ProjectReadingAttachmentPreview
+          fileUrl={node.fileUrl}
+          mimeType={node.mimeType}
+          alt={node.attachmentCaption || node.title}
+        />}
         {node.excerpt && <p className="project-reading-excerpt">{node.excerpt}</p>}
         {node.attachmentSourceUrl && <a className="button wide" href={node.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
         {node.openReferenceUrl && <Link className="button wide" to={node.openReferenceUrl}>Open reference</Link>}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  projectAttachmentCanPreviewImage,
   projectAttachmentGeometryAtPoint,
-  projectAttachmentIsImage,
   projectMarkdownGeometryAtPoint,
   projectOwnedContentFailureStatus,
 } from "./project-owned-content";
@@ -23,7 +23,7 @@ describe("Project owned content helpers", () => {
       height: 300,
       zIndex: 4,
     });
-    expect(projectAttachmentGeometryAtPoint({ x: 100, y: 200 }, 5, "application/pdf")).toEqual({
+    expect(projectAttachmentGeometryAtPoint({ x: 100, y: 200 }, 5, "image/tiff")).toEqual({
       x: -70,
       y: 143.33333333333334,
       width: 340,
@@ -32,11 +32,14 @@ describe("Project owned content helpers", () => {
     });
   });
 
-  it("identifies image attachments without guessing from filenames", () => {
-    expect(projectAttachmentIsImage("image/tiff")).toBe(true);
-    expect(projectAttachmentIsImage("IMAGE/PNG")).toBe(true);
-    expect(projectAttachmentIsImage("application/pdf")).toBe(false);
-    expect(projectAttachmentIsImage("")).toBe(false);
+  it("only previews explicitly supported browser raster MIME types", () => {
+    expect(projectAttachmentCanPreviewImage("IMAGE/PNG")).toBe(true);
+    expect(projectAttachmentCanPreviewImage("image/jpeg; charset=binary")).toBe(true);
+    expect(projectAttachmentCanPreviewImage("image/webp")).toBe(true);
+    expect(projectAttachmentCanPreviewImage("image/tiff")).toBe(false);
+    expect(projectAttachmentCanPreviewImage("image/svg+xml")).toBe(false);
+    expect(projectAttachmentCanPreviewImage("application/pdf")).toBe(false);
+    expect(projectAttachmentCanPreviewImage("")).toBe(false);
   });
 
   it("keeps deterministic 4xx failures distinct from uncertain outcomes", () => {

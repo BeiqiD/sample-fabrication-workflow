@@ -29,7 +29,7 @@ Phase 3B3 requires no new schema or migration. The Phase 3A2 service already pro
 
 Phase 3B3 adds one bounded upload ingress, `POST /project-assets`, for Project-owned generic bytes. It deliberately does **not** widen the existing `/assets` endpoint, which remains image-only for its existing callers. `/project-assets` still stores bytes in the same authoritative `assets` registry and R2 lifecycle, returns the stable `assetId`, and lets the Project attachment create transaction revalidate that blob identity before creating content, occurrence, and placement.
 
-The local filename is transported in an ASCII-safe percent-encoded `x-project-filename-uri` header and decoded/validated by the Worker. Generic MIME types such as `application/pdf` and `application/octet-stream` are accepted up to the existing Phase 3B3 10 MB upload bound.
+The local filename is transported in an ASCII-safe percent-encoded `x-project-filename-uri` header and decoded/validated by the Worker. Whitespace-only names are rejected before the request body reaches R2 while otherwise valid original filenames are preserved verbatim. Generic MIME types such as `application/pdf` and `application/octet-stream` are accepted up to the existing Phase 3B3 10 MB upload bound.
 
 ## Markdown creation and editing
 
@@ -99,8 +99,9 @@ Those metadata updates use one frozen revision/operation request for uncertain r
 
 Rendering follows MIME identity rather than filename guessing:
 
-- images render inside Map/Reading with `object-fit: contain`;
-- PDFs and all other generic files remain file cards/open-file actions in this phase.
+- browser-stable raster previews and inline media responses use the same AVIF, BMP, GIF, JPEG, PNG, and WebP whitelist and render with `object-fit: contain`;
+- a decode failure falls back to the normal attachment file-card/open-file action;
+- TIFF, SVG, PDFs, and all other generic files remain file cards/open-file actions in this phase; TIFF preview integration with the existing decoder remains deferred.
 
 Existing source attachments are never copied by this creation flow. They remain read-only Reference targets discovered through `ReferenceSearchSurface`.
 
@@ -131,13 +132,14 @@ Phase 3B3 adds a permanent `pre-pr/project-owned-content` verification status. T
 
 - helper geometry/MIME/failure classification;
 - Project client content/upload routes;
-- generic PDF/non-image upload and Unicode filename transport;
+- generic PDF/non-image upload, Unicode filename transport, and whitespace-only filename rejection before storage;
 - exact SHA + metadata deduplication plus deterministic metadata-mismatch rejection;
 - static source-boundary checks;
 - mounted local-draft zero-write behavior;
 - Escape preservation for edited/non-empty Markdown;
 - exact retry only after uncertain owned-content outcomes;
 - generic asset upload followed by authoritative Project attachment creation;
+- the dedicated gate explicitly runs `worker/project-routes.test.ts` and the full Miniflare `verify:project-worker` smoke through `/api/project-assets`;
 - context-menu positioning ownership;
 - existing mobile no-creation behavior;
 - existing real React Flow semantic geometry behavior;

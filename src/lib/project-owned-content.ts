@@ -26,6 +26,19 @@ export interface ProjectPendingAttachmentPlacement {
   message: string | null;
 }
 
+const PROJECT_ATTACHMENT_IMAGE_PREVIEW_MIME_TYPES = new Set([
+  "image/avif",
+  "image/bmp",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+function normalizedProjectAttachmentMimeType(value: string | null | undefined) {
+  return (value ?? "").split(";", 1)[0].trim().toLowerCase();
+}
+
 function boundedCoordinate(value: number) {
   return Math.max(-MAX_PROJECT_MAP_COORDINATE_ABS, Math.min(MAX_PROJECT_MAP_COORDINATE_ABS, value));
 }
@@ -62,13 +75,15 @@ export function projectAttachmentGeometryAtPoint(
   zIndex: number,
   mimeType: string,
 ) {
-  return projectAttachmentIsImage(mimeType)
+  return projectAttachmentCanPreviewImage(mimeType)
     ? centeredGeometry(point, 360, 300, zIndex)
     : centeredGeometry(point, 340, 170, zIndex);
 }
 
-export function projectAttachmentIsImage(mimeType: string | null | undefined) {
-  return Boolean(mimeType && mimeType.toLowerCase().startsWith("image/"));
+export function projectAttachmentCanPreviewImage(mimeType: string | null | undefined) {
+  return PROJECT_ATTACHMENT_IMAGE_PREVIEW_MIME_TYPES.has(
+    normalizedProjectAttachmentMimeType(mimeType),
+  );
 }
 
 export function projectOwnedContentFailureStatus(caught: unknown): "uncertain" | "error" | "conflict" {

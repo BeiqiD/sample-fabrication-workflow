@@ -125,4 +125,85 @@ describe("real Project Map surface keyboard behavior", () => {
     expect(command.after.width).toBe(command.before.width);
     expect(command.after.height).toBe(command.before.height);
   });
+  it("falls back to the attachment file card when a previewable image cannot decode", async () => {
+    const snapshot = projectTestSnapshot();
+    const actor = "user@example.com";
+    const createdAt = "2026-08-11T08:00:00.000Z";
+    snapshot.contents.push({
+      id: "content-image",
+      projectId: "project-a",
+      contentType: "attachment",
+      markdownSource: null,
+      attachmentCaption: "Broken preview",
+      attachmentSourceUrl: null,
+      formatVersion: 1,
+      revision: 1,
+      createdBy: actor,
+      updatedBy: actor,
+      createdAt,
+      updatedAt: createdAt,
+      deletedAt: null,
+      deletedBy: null,
+    });
+    snapshot.attachments.push({
+      projectContentId: "content-image",
+      originalName: "broken.png",
+      mimeType: "image/png",
+      byteSize: 12,
+      createdBy: actor,
+      createdAt,
+      fileUrl: "/api/projects/project-a/contents/content-image/file",
+    });
+    snapshot.items.push({
+      id: "item-image",
+      projectId: "project-a",
+      itemType: "content",
+      projectContentId: "content-image",
+      referenceTargetId: null,
+      createdSequence: 3,
+      revision: 1,
+      createdBy: actor,
+      updatedBy: actor,
+      createdAt,
+      updatedAt: createdAt,
+      deletedAt: null,
+      deletedBy: null,
+    });
+    snapshot.placements.push({
+      id: "placement-image",
+      projectItemId: "item-image",
+      x: 600,
+      y: 40,
+      width: 360,
+      height: 300,
+      zIndex: 2,
+      revision: 1,
+      createdBy: actor,
+      updatedBy: actor,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    const { container } = render(<div style={{ width: 1000, height: 700 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    const image = await waitFor(() => {
+      const candidate = container.querySelector<HTMLImageElement>("img.project-node-image");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    fireEvent.error(image);
+    await waitFor(() => expect(container.querySelector("img.project-node-image")).toBeNull());
+    const fallback = container.querySelector<HTMLAnchorElement>(
+      'a.project-node-open-reference[href="/api/projects/project-a/contents/content-image/file"]',
+    );
+    expect(fallback?.textContent).toContain("Open attachment");
+  });
+
 });

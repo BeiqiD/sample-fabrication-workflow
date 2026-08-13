@@ -25,7 +25,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { ProjectMapGeometry } from "../../../shared/project-types";
 import {
-  projectAttachmentIsImage,
+  projectAttachmentCanPreviewImage,
   type ProjectMapMarkdownEditorState,
   type ProjectPendingAttachmentPlacement,
 } from "../../lib/project-owned-content";
@@ -126,6 +126,13 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
     markdownEditor,
     geometryInteractionDisabled,
   } = data;
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  const previewUrl = descriptor.kind === "attachment"
+    && descriptor.fileUrl
+    && projectAttachmentCanPreviewImage(descriptor.mimeType)
+    && failedPreviewUrl !== descriptor.fileUrl
+    ? descriptor.fileUrl
+    : null;
   if (pendingReference) {
     return <article className={`project-map-node project-map-node-reference pending ${pendingReference.status}`}>
       <header>
@@ -205,11 +212,18 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
     </div> : <>
       <h2>{descriptor.title}</h2>
       {descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
-      {descriptor.kind === "attachment" && descriptor.fileUrl && projectAttachmentIsImage(descriptor.mimeType) && <img
+      {previewUrl && <img
         className="project-node-image"
-        src={descriptor.fileUrl}
+        src={previewUrl}
         alt={descriptor.attachmentCaption || descriptor.title}
+        onError={() => setFailedPreviewUrl(previewUrl)}
       />}
+      {descriptor.kind === "attachment" && descriptor.fileUrl && !previewUrl && <a
+        className="project-node-open-reference nodrag nopan"
+        href={descriptor.fileUrl}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >Open attachment</a>}
       {descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>}
       {descriptor.openReferenceUrl && <a
         className="project-node-open-reference nodrag nopan"

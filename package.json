@@ -38,9 +38,9 @@
     "verify:project-map": "npm run test:project-map && npm run test:project-map-mounted && npm run build && node scripts/verify-project-map-bundle.mjs",
     "verify:project-reference-placement": "npm run test:project-reference-placement && npm run test:project-reference-placement-mounted && npm run build && node scripts/verify-project-map-bundle.mjs",
     "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
-    "test:project-owned-content": "vitest run src/lib/project-owned-content.test.ts src/project-owned-content-contract.test.ts src/lib/project-client.test.ts src/lib/project-map-model.test.ts",
+    "test:project-owned-content": "vitest run src/lib/project-owned-content.test.ts src/project-owned-content-contract.test.ts src/lib/project-client.test.ts src/lib/project-map-model.test.ts worker/project-routes.test.ts worker/media-response.test.ts",
     "test:project-owned-content-mounted": "vitest run --config vitest.mounted.config.ts src/project-owned-content.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",
-    "verify:project-owned-content": "npm run test:project-owned-content && npm run test:project-owned-content-mounted && npm run build && node scripts/verify-project-map-bundle.mjs"
+    "verify:project-owned-content": "npm run test:project-owned-content && npm run test:project-owned-content-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

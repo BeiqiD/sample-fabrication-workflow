@@ -27,7 +27,7 @@ function projectUploadFilename(encoded: string | undefined) {
   } catch {
     throw new HTTPException(400, { message: "Project attachment filename encoding is invalid" });
   }
-  if (!filename || filename.includes("\u0000") || [...filename].length > 255) {
+  if (!filename.trim() || filename.includes("\u0000") || [...filename].length > 255) {
     throw new HTTPException(400, { message: "Project attachment filename is invalid" });
   }
   return filename;

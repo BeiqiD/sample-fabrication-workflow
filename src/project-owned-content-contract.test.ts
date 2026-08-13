@@ -64,9 +64,11 @@ describe("Phase 3B3 Project-owned content contract", () => {
     const page = read("./pages/ProjectPage.tsx");
     const map = read("./components/project/ProjectMapSurface.tsx");
     const model = read("./lib/project-map-model.ts");
-    expect(map).toContain("projectAttachmentIsImage(descriptor.mimeType)");
+    expect(map).toContain("projectAttachmentCanPreviewImage(descriptor.mimeType)");
     expect(map).toContain('className="project-node-image"');
-    expect(page).toContain("projectAttachmentIsImage(node.mimeType)");
+    expect(map).toContain("onError={() => setFailedPreviewUrl(previewUrl)}");
+    expect(page).toContain("<ProjectReadingAttachmentPreview");
+    expect(page).toContain("onError={() => setFailedPreviewUrl(fileUrl)}");
     expect(model).toContain("attachmentCaption");
     expect(page).toContain("<ReferenceSearchSurface");
     expect(page).not.toContain("sourceAttachmentId");
@@ -77,6 +79,16 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(css).toMatch(/\.project-flow-canvas\s*\{[\s\S]*?position:\s*relative;/);
     expect(css).toContain(".project-map-context-menu {");
     expect(css).toContain("position: absolute;");
+  });
+
+  it("keeps the dedicated gate on the real Project asset Worker path", () => {
+    const packageJson = read("../package.json");
+    const workerSmoke = read("../scripts/verify-project-worker.mjs");
+    expect(packageJson).toContain("worker/project-routes.test.ts");
+    expect(packageJson).toContain("npm run verify:project-worker");
+    expect(workerSmoke).toContain("/api/project-assets");
+    expect(workerSmoke).toContain('encodeURIComponent("smoke.bin")');
+    expect(workerSmoke).not.toContain("project-smoke-asset");
   });
 
   it("keeps Project-owned content creation desktop-only and leaves edges for Phase 3B4", () => {

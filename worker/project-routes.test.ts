@@ -171,6 +171,11 @@ describe("Project persistence routes", () => {
     const { app, env, database, uploaded } = fixture();
     const body = Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]);
 
+    const blankName = await attachmentUploadRequest(app, env, "   ", "application/pdf", body);
+    expect(blankName.status).toBe(400);
+    expect(uploaded.size).toBe(0);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM assets").get()).toEqual({ count: 0 });
+
     const first = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/pdf", body);
     expect(first.status).toBe(201);
     const firstBody = await first.json<{ id: string; key: string; deduplicated: boolean }>();
