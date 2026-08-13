@@ -509,17 +509,15 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1/3A2 and Phase 3B1/3B2/3B3 are complete through PR #135. Draft PR
-#136 implements Phase 3B4. The remaining sequence is:
+Phase 3A1/3A2 and Phase 3B1/3B2/3B3 are complete through PR #135. Phase 3B4
+is implemented in PR #136 and awaits clean re-review and squash merge. After
+that merge, the remaining sequence starts with Phase 3C:
 
-1. **Phase 3B4 — Basic edges (Draft PR #136)**: four handles, Bezier rendering,
-   endpoint direction, optional label, fixed endpoints, authoritative lifecycle,
-   exact retry, and client-session undo/redo.
-2. **Phase 3C — Reading projection**: no creation, complete insertion-order
+1. **Phase 3C — Reading projection**: no creation, complete insertion-order
    rendering, and editing of existing owned content.
-3. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
+2. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
    previews, save/conflict UX, and accessible Reading presentation.
-4. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
+3. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
    multi-select hardening, PDF preview, screenshot capture, advanced performance,
    and optional order/layout tooling.
 

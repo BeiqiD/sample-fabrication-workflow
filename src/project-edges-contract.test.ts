@@ -26,6 +26,8 @@ describe("Phase 3B4 edge contract", () => {
     expect(plan).toContain("ordinary Bezier edges only");
     expect(plan).toContain("No first-version self-loop, obstacle avoidance, draggable control point, relation ontology");
     expect(roadmap).toContain("After PR #136 is squash-merged, add the no-creation **Reading projection** as Phase 3C");
+    for (const document of [plan, roadmap, canvas]) expect(document).not.toContain("Draft PR #136");
+    expect(canvas).toContain("the remaining sequence starts with Phase 3C");
     expect(canvas).toContain("**Geometry undo/redo**");
     expect(canvas).toContain("**Edge undo/redo**");
     expect(canvas).toContain("[PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md)");
