@@ -18,9 +18,14 @@ describe("Phase 3B4 edge contract", () => {
 
   it("keeps endpoint reconnection and advanced routing outside the first edge slice", () => {
     const plan = fs.readFileSync("docs/PROJECT_EDGES_IMPLEMENTATION_PLAN.md", "utf8");
+    const roadmap = fs.readFileSync("docs/PRODUCT_ROADMAP.md", "utf8");
+    const canvas = fs.readFileSync("docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md", "utf8");
+    expect(plan).toContain("Status: Phase 3B4 implemented in Draft PR #136");
     expect(plan).toContain("Changing source/target occurrence or either handle is deliberately **not** an update");
     expect(plan).toContain("ordinary Bezier edges only");
     expect(plan).toContain("No first-version self-loop, obstacle avoidance, draggable control point, relation ontology");
+    expect(roadmap).toContain("**Status:** implemented in Draft PR #136");
+    expect(canvas).toContain("[PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md)");
   });
 
   it("keeps Phase 3B4 in the permanent fail-closed verification chain", () => {
