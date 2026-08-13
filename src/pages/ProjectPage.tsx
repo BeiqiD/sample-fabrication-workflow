@@ -450,6 +450,7 @@ export function ProjectPage() {
     } catch (caught) {
       if (!saveSessionIsActive(generation)) return;
       const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+      navigationSaveRequestedRef.current = false;
       setSaveError(message);
       updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
     } finally {
@@ -506,10 +507,7 @@ export function ProjectPage() {
       || markdownEditor !== null
       || pendingAttachment !== null
       || attachmentEditor !== null) return;
-    if (saveState === "error" || saveState === "conflict") {
-      navigationSaveRequestedRef.current = false;
-      return;
-    }
+    if (saveState === "error" || saveState === "conflict") return;
     if (saveState !== "saved") return;
     if (navigationSaveRequestedRef.current || referenceNavigationRequestedRef.current) {
       navigationSaveRequestedRef.current = false;
