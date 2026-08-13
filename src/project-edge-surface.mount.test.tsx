@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useCallback, useState } from "react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectEdgeRecord } from "../shared/project-api";
@@ -119,6 +120,75 @@ describe("real Project edge surface", () => {
     vi.unstubAllGlobals();
   });
 
+  it("keeps keyboard node, edge, and empty selection synchronized", async () => {
+    const snapshot = projectTestSnapshot();
+    const edge = edgeRecord();
+    const stableNodes = projectMapNodes(snapshot);
+    const stableEdges = [edge];
+    const onSelect = vi.fn();
+    const onEdgeSelect = vi.fn();
+    const onGeometryCommit = vi.fn();
+
+    function KeyboardSelectionHarness() {
+      const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      const handleSelect = useCallback((itemId: string | null) => {
+        onSelect(itemId);
+        setSelectedItemId(itemId);
+        if (itemId !== null) setSelectedEdgeId(null);
+      }, []);
+      const handleEdgeSelect = useCallback((edgeId: string | null) => {
+        onEdgeSelect(edgeId);
+        setSelectedEdgeId(edgeId);
+        if (edgeId !== null) setSelectedItemId(null);
+      }, []);
+      return <ProjectMapSurface
+        nodes={stableNodes}
+        edges={stableEdges}
+        selectedItemId={selectedItemId}
+        selectedEdgeId={selectedEdgeId}
+        onSelect={handleSelect}
+        onEdgeSelect={handleEdgeSelect}
+        onGeometryCommit={onGeometryCommit}
+      />;
+    }
+
+    const { container } = render(<div style={{ width: 900, height: 700 }}><KeyboardSelectionHarness /></div>);
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
+    const liveNoteNode = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    const liveEdge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    await waitFor(() => expect(liveEdge()).toBeTruthy());
+
+    fireEvent.focus(liveNoteNode());
+    fireEvent.keyDown(liveNoteNode(), { key: "Enter", code: "Enter" });
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith("item-note"));
+
+    onSelect.mockClear();
+    onEdgeSelect.mockClear();
+    fireEvent.keyDown(liveNoteNode(), { key: "Escape", code: "Escape" });
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(null));
+    expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-a");
+
+    onSelect.mockClear();
+    onEdgeSelect.mockClear();
+    fireEvent.focus(liveEdge());
+    fireEvent.keyDown(liveEdge(), { key: "Enter", code: "Enter" });
+    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
+    await waitFor(() => expect(liveEdge().classList.contains("selected")).toBe(true));
+
+    onSelect.mockClear();
+    onEdgeSelect.mockClear();
+    fireEvent.keyDown(liveEdge(), { key: "Escape", code: "Escape" });
+    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith(null));
+    await waitFor(() => expect(liveEdge().classList.contains("selected")).toBe(false));
+
+    onSelect.mockClear();
+    onEdgeSelect.mockClear();
+    fireEvent.focus(liveEdge());
+    fireEvent.keyDown(liveEdge(), { key: " ", code: "Space" });
+    await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
+  });
+
   it("renders four loose connection handles per node and an authoritative selectable Bezier edge", async () => {
     const snapshot = projectTestSnapshot();
     const edge = edgeRecord();
@@ -148,7 +218,7 @@ describe("real Project edge surface", () => {
     const noteNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
     fireEvent.click(noteNode);
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith("item-note"));
-    expect(onEdgeSelect).not.toHaveBeenCalled();
+    expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-a");
 
     const renderedEdge = await waitFor(() => {
       const candidate = container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]');
@@ -159,6 +229,6 @@ describe("real Project edge surface", () => {
     expect(renderedEdge.querySelector(".react-flow__edge-path")).toBeTruthy();
     fireEvent.click(renderedEdge);
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
-    expect(onSelect).not.toHaveBeenCalledWith(null);
+    expect(onEdgeSelect).toHaveBeenCalledWith("edge-a");
   });
 });

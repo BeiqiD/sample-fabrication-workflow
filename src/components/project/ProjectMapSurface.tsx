@@ -19,6 +19,7 @@ import {
   applyNodeChanges,
   type Connection,
   type Edge,
+  type EdgeChange,
   type Node,
   type NodeChange,
   type NodeMouseHandler,
@@ -580,10 +581,28 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onEdgeSelect(null);
     setContextMenu(null);
   }, [onEdgeSelect, onSelect]);
-  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {
-    const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
-    if (selected) onSelect(selected.id);
-  }, [onSelect]);
+  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode, ProjectFlowEdge>>(({ nodes, edges }) => {
+    const selectedNode = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
+    if (selectedNode) {
+      onSelect(selectedNode.id);
+      return;
+    }
+    const selectedEdge = [...edges].reverse().find((edge) => edge.id !== pendingEdge?.edgeId);
+    if (selectedEdge) {
+      onEdgeSelect(selectedEdge.id);
+      return;
+    }
+    if (selectedItemId !== null) onSelect(null);
+  }, [onEdgeSelect, onSelect, pendingEdge, selectedItemId]);
+  const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {
+    const selection = [...changes].reverse().find((change) => change.type === "select");
+    if (!selection || selection.type !== "select") return;
+    if (selection.selected) {
+      onEdgeSelect(selection.id);
+      return;
+    }
+    if (selection.id === selectedEdgeId) onEdgeSelect(null);
+  }, [onEdgeSelect, selectedEdgeId]);
   const handleConnect = useCallback((connection: Connection) => {
     if (geometryInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
       || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;
@@ -665,6 +684,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       nodeTypes={PROJECT_NODE_TYPES}
       onInit={(instance) => { flowInstanceRef.current = instance; }}
       onNodesChange={onNodesChange}
+      onEdgesChange={handleEdgesChange}
       onNodeClick={handleNodeClick}
       onEdgeClick={handleEdgeClick}
       onConnect={handleConnect}
