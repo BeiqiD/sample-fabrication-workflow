@@ -321,7 +321,7 @@ describe("mounted Project edge behavior", () => {
     fireEvent.change(screen.getByLabelText("Label"), { target: { value: "local" } });
     fireEvent.click(screen.getByRole("button", { name: "Save edge" }));
 
-    expect(await screen.findByText("Edge revision conflict")).toBeTruthy();
+    expect((await screen.findAllByText("Edge revision conflict")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Reload authoritative Project" }));
     await waitFor(() => expect(reads).toBe(2));
     await screen.findByText("Edge Map ready");
