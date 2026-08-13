@@ -1,0 +1,42 @@
+name: Temporary PR136 history literal fix
+
+on:
+  push:
+    branches:
+      - agent/project-basic-edges
+    paths:
+      - .github/workflows/tmp-pr136-fix-history-literal.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/project-basic-edges
+          fetch-depth: 0
+      - name: Keep geometry history discriminant literal
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/tmp-pr136-edge-page-integration.py')
+          text = path.read_text()
+          old = "['    setUndoStack((current) => [...current, { kind: \"geometry\", command }].slice(-100));'],"
+          new = "['    setUndoStack((current) => [...current, { kind: \"geometry\" as const, command }].slice(-100));'],"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one geometry history literal, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+      - name: Commit script correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-pr136-fix-history-literal.yml
+          git add scripts/tmp-pr136-edge-page-integration.py
+          git diff --cached --check
+          git commit -m "chore(ci): preserve Project history discriminant"
+          git push origin HEAD:agent/project-basic-edges
