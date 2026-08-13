@@ -30,7 +30,15 @@ jobs:
         run: npm ci
 
       - name: Apply Phase 3C implementation
-        run: python scripts/tmp-phase3c-reading.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/tmp-phase3c-reading.py")
+          text = path.read_text()
+          text = text.replace("dedent(r'''\\\\\n", "dedent(r'''\n")
+          path.write_text(text)
+          PY
+          python scripts/tmp-phase3c-reading.py
 
       - name: Run focused Reading tests
         run: |
