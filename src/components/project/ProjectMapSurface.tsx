@@ -567,18 +567,14 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
   const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
-    if (!node.data.pendingReference && !node.data.pendingAttachment) {
-      onSelect(node.id);
-      onEdgeSelect(null);
-    }
+    if (!node.data.pendingReference && !node.data.pendingAttachment) onSelect(node.id);
     setContextMenu(null);
-  }, [onEdgeSelect, onSelect]);
+  }, [onSelect]);
   const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: ProjectFlowEdge) => {
     if (pendingEdge?.edgeId === edge.id) return;
     onEdgeSelect(edge.id);
-    onSelect(null);
     setContextMenu(null);
-  }, [onEdgeSelect, onSelect, pendingEdge]);
+  }, [onEdgeSelect, pendingEdge]);
   const handlePaneClick = useCallback(() => {
     onSelect(null);
     onEdgeSelect(null);
@@ -586,11 +582,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [onEdgeSelect, onSelect]);
   const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode>>(({ nodes }) => {
     const selected = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
-    if (selected) {
-      onSelect(selected.id);
-      onEdgeSelect(null);
-    }
-  }, [onEdgeSelect, onSelect]);
+    if (selected) onSelect(selected.id);
+  }, [onSelect]);
   const handleConnect = useCallback((connection: Connection) => {
     if (geometryInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
       || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;

@@ -122,6 +122,7 @@ describe("real Project edge surface", () => {
   it("renders four loose connection handles per node and an authoritative selectable Bezier edge", async () => {
     const snapshot = projectTestSnapshot();
     const edge = edgeRecord();
+    const onSelect = vi.fn();
     const onEdgeSelect = vi.fn();
     const { container } = render(<div style={{ width: 900, height: 700 }}>
       <ProjectMapSurface
@@ -129,7 +130,7 @@ describe("real Project edge surface", () => {
         edges={[edge]}
         selectedItemId={null}
         selectedEdgeId={null}
-        onSelect={() => undefined}
+        onSelect={onSelect}
         onEdgeSelect={onEdgeSelect}
         onGeometryCommit={() => undefined}
       />
@@ -144,6 +145,11 @@ describe("real Project edge surface", () => {
       }
     }
 
+    const noteNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    fireEvent.click(noteNode);
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith("item-note"));
+    expect(onEdgeSelect).not.toHaveBeenCalled();
+
     const renderedEdge = await waitFor(() => {
       const candidate = container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]');
       expect(candidate).toBeTruthy();
@@ -153,5 +159,6 @@ describe("real Project edge surface", () => {
     expect(renderedEdge.querySelector(".react-flow__edge-path")).toBeTruthy();
     fireEvent.click(renderedEdge);
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
+    expect(onSelect).not.toHaveBeenCalledWith(null);
   });
 });

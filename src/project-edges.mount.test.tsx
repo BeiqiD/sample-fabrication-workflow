@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { forwardRef, useImperativeHandle } from "react";
+import { forwardRef, StrictMode, useImperativeHandle } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -99,7 +99,7 @@ function snapshotWithEdge(edge = edgeRecord()): ProjectSnapshot {
   return snapshot;
 }
 
-function renderProjectPage() {
+function renderProjectPage({ strict = false }: { strict?: boolean } = {}) {
   const router = createMemoryRouter([{
     path: "/projects/:projectId",
     element: <ProjectPage />,
@@ -107,7 +107,8 @@ function renderProjectPage() {
     path: "/projects",
     element: <p>Projects route</p>,
   }], { initialEntries: ["/projects/project-a"] });
-  return render(<RouterProvider router={router} />);
+  const view = <RouterProvider router={router} />;
+  return render(strict ? <StrictMode>{view}</StrictMode> : view);
 }
 
 async function waitForMap() {
@@ -126,6 +127,38 @@ describe("mounted Project edge behavior", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("keeps edge mutations active after the React StrictMode setup-cleanup-setup cycle", async () => {
+    let createCalls = 0;
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(projectTestSnapshot());
+      if (String(path) === "/api/projects/project-a/edges" && init?.method === "POST") {
+        createCalls += 1;
+        const input = JSON.parse(String(init.body)) as CreateProjectEdgeInput;
+        return jsonResponse({
+          value: edgeRecord({
+            id: input.edgeId,
+            sourceItemId: input.sourceItemId,
+            targetItemId: input.targetItemId,
+            sourceHandle: input.sourceHandle,
+            targetHandle: input.targetHandle,
+            markerStart: input.markerStart,
+            markerEnd: input.markerEnd,
+            label: input.label,
+          }),
+          replayed: false,
+        }, 201);
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method || "GET"} ${String(path)}` }, 500);
+    });
+
+    renderProjectPage({ strict: true });
+    await waitForMap();
+    fireEvent.click(screen.getByRole("button", { name: "Connect edge fixture" }));
+
+    await waitFor(() => expect(screen.getByText("Edge count: 1")).toBeTruthy());
+    expect(createCalls).toBe(1);
   });
 
   it("exact-retries an uncertain edge create with the original endpoint revisions and operation identity", async () => {

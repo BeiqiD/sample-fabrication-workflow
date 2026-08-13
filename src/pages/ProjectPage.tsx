@@ -1499,7 +1499,7 @@ export function ProjectPage() {
 
   const selectProjectEdge = useCallback((edgeId: string | null) => {
     if (markdownEditorRef.current || attachmentEditorRef.current) return;
-    setSelectedItemId(null);
+    if (edgeId !== null) setSelectedItemId(null);
     edgeController.selectEdge(edgeId);
   }, [edgeController.selectEdge]);
 

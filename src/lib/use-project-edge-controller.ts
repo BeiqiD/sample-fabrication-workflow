@@ -136,9 +136,12 @@ export function useProjectEdgeController({
   externalBusyRef.current = externalBusy;
   unsafeRef.current = editor !== null || pending !== null;
 
-  useEffect(() => () => {
-    activeRef.current = false;
-    transitionRef.current = null;
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+      transitionRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
