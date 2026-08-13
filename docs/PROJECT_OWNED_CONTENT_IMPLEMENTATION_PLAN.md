@@ -1,8 +1,8 @@
 # Project-owned content implementation plan
 
-Status: Phase 3B3 review fixes implemented in Draft PR #135; independent exact-head review pending
+Status: Phase 3B3 remaining P2/P3 review fixes implemented in Draft PR #135; final exact-head verification pending
 
-Last reviewed: 2026-08-13 after the PR #135 review fixes for generic attachment upload, intrinsic metadata deduplication, Markdown cancellation, and deterministic retry handling
+Last reviewed: 2026-08-13 after adding whitespace-only filename rejection, aligning browser preview and inline-media MIME policy, and extending the dedicated gate through the real `/project-assets` Worker path
 
 This document defines the bounded Phase 3B3 implementation for Project-owned Markdown and generic attachments. The durable interaction contract remains in [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md), while authoritative persistence remains in [PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md](./PROJECT_PERSISTENCE_SERVICE_IMPLEMENTATION_PLAN.md).
 
