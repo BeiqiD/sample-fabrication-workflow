@@ -32,6 +32,11 @@ replace_once(
 
 test_path = Path("src/project-edge-surface.mount.test.tsx")
 text = test_path.read_text()
+text = text.replace(
+    'import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";',
+    'import { useState } from "react";\nimport { cleanup, fireEvent, render, waitFor } from "@testing-library/react";',
+    1,
+)
 anchor = '''  it("renders four loose connection handles per node and an authoritative selectable Bezier edge", async () => {'''
 if text.count(anchor) != 1:
     raise SystemExit("surface test anchor not unique")
@@ -40,18 +45,30 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
     const edge = edgeRecord();
     const onSelect = vi.fn();
     const onEdgeSelect = vi.fn();
-    const { container } = render(<div style={{ width: 900, height: 700 }}>
-      <ProjectMapSurface
+
+    function KeyboardSelectionHarness() {
+      const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      return <ProjectMapSurface
         nodes={projectMapNodes(snapshot)}
         edges={[edge]}
-        selectedItemId={null}
-        selectedEdgeId={null}
-        onSelect={onSelect}
-        onEdgeSelect={onEdgeSelect}
+        selectedItemId={selectedItemId}
+        selectedEdgeId={selectedEdgeId}
+        onSelect={(itemId) => {
+          onSelect(itemId);
+          setSelectedItemId(itemId);
+          if (itemId !== null) setSelectedEdgeId(null);
+        }}
+        onEdgeSelect={(edgeId) => {
+          onEdgeSelect(edgeId);
+          setSelectedEdgeId(edgeId);
+          if (edgeId !== null) setSelectedItemId(null);
+        }}
         onGeometryCommit={() => undefined}
-      />
-    </div>);
+      />;
+    }
 
+    const { container } = render(<div style={{ width: 900, height: 700 }}><KeyboardSelectionHarness /></div>);
     await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
     const noteNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
     const renderedEdge = await waitFor(() => {
@@ -75,12 +92,13 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
     fireEvent.focus(renderedEdge);
     fireEvent.keyDown(renderedEdge, { key: "Enter", code: "Enter" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
-    expect(onSelect).not.toHaveBeenCalledWith(null);
+    await waitFor(() => expect(renderedEdge.classList.contains("selected")).toBe(true));
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
     fireEvent.keyDown(renderedEdge, { key: "Escape", code: "Escape" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith(null));
+    await waitFor(() => expect(renderedEdge.classList.contains("selected")).toBe(false));
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
@@ -92,4 +110,5 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
 '''
 text = text.replace(anchor, new_test + anchor, 1)
 text = text.replace('''    expect(onEdgeSelect).not.toHaveBeenCalled();''', '''    expect(onEdgeSelect).not.toHaveBeenCalledWith("edge-a");''', 1)
+text = text.replace('''    expect(onSelect).not.toHaveBeenCalledWith(null);''', '''    expect(onEdgeSelect).toHaveBeenCalledWith("edge-a");''', 1)
 test_path.write_text(text)
