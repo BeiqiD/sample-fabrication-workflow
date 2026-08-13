@@ -1,3 +1,4 @@
+import type { ProjectGeometryCommand } from "./project-map-model";
 import type { ProjectEdgeMetadataShape } from "./project-edges";
 
 export type ProjectEdgeHistoryCommand =
@@ -22,6 +23,14 @@ export type ProjectEdgeHistoryCommand =
     after: ProjectEdgeMetadataShape;
   };
 
+export type ProjectSessionHistoryCommand =
+  | { kind: "geometry"; command: ProjectGeometryCommand }
+  | ProjectEdgeHistoryCommand;
+
 export function projectEdgeHistoryTouchesItem(command: ProjectEdgeHistoryCommand, itemId: string) {
   return command.sourceItemId === itemId || command.targetItemId === itemId;
+}
+
+export function projectSessionHistoryTouchesItem(command: ProjectSessionHistoryCommand, itemId: string) {
+  return command.kind === "geometry" ? false : projectEdgeHistoryTouchesItem(command, itemId);
 }
