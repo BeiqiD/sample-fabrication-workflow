@@ -70,40 +70,37 @@ new_test = r'''  it("keeps keyboard node, edge, and empty selection synchronized
 
     const { container } = render(<div style={{ width: 900, height: 700 }}><KeyboardSelectionHarness /></div>);
     await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
-    const noteNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
-    const renderedEdge = await waitFor(() => {
-      const candidate = container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]');
-      expect(candidate).toBeTruthy();
-      return candidate!;
-    });
+    const liveNoteNode = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    const liveEdge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    await waitFor(() => expect(liveEdge()).toBeTruthy());
 
-    fireEvent.focus(noteNode);
-    fireEvent.keyDown(noteNode, { key: "Enter", code: "Enter" });
+    fireEvent.focus(liveNoteNode());
+    fireEvent.keyDown(liveNoteNode(), { key: "Enter", code: "Enter" });
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith("item-note"));
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
-    fireEvent.keyDown(noteNode, { key: "Escape", code: "Escape" });
+    fireEvent.keyDown(liveNoteNode(), { key: "Escape", code: "Escape" });
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith(null));
     expect(onEdgeSelect).toHaveBeenCalledWith(null);
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
-    fireEvent.focus(renderedEdge);
-    fireEvent.keyDown(renderedEdge, { key: "Enter", code: "Enter" });
+    fireEvent.focus(liveEdge());
+    fireEvent.keyDown(liveEdge(), { key: "Enter", code: "Enter" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
-    await waitFor(() => expect(renderedEdge.classList.contains("selected")).toBe(true));
+    await waitFor(() => expect(liveEdge().classList.contains("selected")).toBe(true));
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
-    fireEvent.keyDown(renderedEdge, { key: "Escape", code: "Escape" });
+    fireEvent.keyDown(liveEdge(), { key: "Escape", code: "Escape" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith(null));
-    await waitFor(() => expect(renderedEdge.classList.contains("selected")).toBe(false));
+    await waitFor(() => expect(liveEdge().classList.contains("selected")).toBe(false));
 
     onSelect.mockClear();
     onEdgeSelect.mockClear();
-    fireEvent.focus(renderedEdge);
-    fireEvent.keyDown(renderedEdge, { key: " ", code: "Space" });
+    fireEvent.focus(liveEdge());
+    fireEvent.keyDown(liveEdge(), { key: " ", code: "Space" });
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
   });
 
