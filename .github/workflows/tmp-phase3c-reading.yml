@@ -1,0 +1,80 @@
+name: Temporary Phase 3C Reading implementation
+
+on:
+  push:
+    branches:
+      - agent/project-reading-projection
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/project-reading-projection
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply Phase 3C implementation
+        run: python scripts/tmp-phase3c-reading.py
+
+      - name: Run focused Reading tests
+        run: |
+          npm run test:project-reading
+          npm run test:project-reading-mounted
+
+      - name: Verify Reading slice
+        run: npm run verify:project-reading
+
+      - name: Re-run edge gate
+        run: npm run verify:project-edges
+
+      - name: Run complete tests
+        run: npm test
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Check whitespace
+        run: git diff --check
+
+      - name: Commit verified Phase 3C implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm scripts/tmp-phase3c-reading.py
+          git add \
+            .github/workflows/verify.yml \
+            docs/PRODUCT_ROADMAP.md \
+            docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md \
+            docs/PROJECT_READING_IMPLEMENTATION_PLAN.md \
+            package.json \
+            src/components/project/ProjectReadingSurface.tsx \
+            src/pages/ProjectPage.tsx \
+            src/project.css \
+            src/project-page.mobile.mount.test.tsx \
+            src/project-reading.mount.test.tsx \
+            src/project-reading-contract.test.ts \
+            src/project-owned-content-contract.test.ts \
+            src/project-reference-placement-contract.test.ts \
+            worker/deployment-routing.test.ts
+          if git diff --cached --quiet; then
+            echo "No Phase 3C changes to commit"
+            exit 0
+          fi
+          git commit -m "feat(project): add Reading projection"
+          git push origin HEAD:agent/project-reading-projection
