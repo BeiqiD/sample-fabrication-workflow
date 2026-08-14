@@ -10,6 +10,15 @@ def replace_once(path: str, old: str, new: str) -> None:
     target.write_text(text.replace(old, new, 1))
 
 
+def replace_exact(path: str, old: str, new: str, expected: int) -> None:
+    target = Path(path)
+    text = target.read_text()
+    count = text.count(old)
+    if count != expected:
+        raise SystemExit(f"expected {expected} deletion navigation anchors in {path}, found {count}: {old[:140]!r}")
+    target.write_text(text.replace(old, new))
+
+
 replace_once(
     "src/pages/ProjectPage.tsx",
     '''  const ownedContentGenerationRef = useRef(0);
@@ -72,7 +81,7 @@ replace_once(
         setProjectDeleteError("The Project changed before it could be moved to trash. The latest authoritative state has been reloaded; review it and confirm again.");
 ''',
 )
-replace_once(
+replace_exact(
     "src/pages/ProjectPage.tsx",
     '''    projectDeleteInputRef.current = null;
     setProjectDeleteConfirmation("");
@@ -81,6 +90,7 @@ replace_once(
     projectDeletionNavigationRequestedRef.current = false;
     setProjectDeleteConfirmation("");
 ''',
+    2,
 )
 replace_once(
     "src/pages/ProjectPage.tsx",
