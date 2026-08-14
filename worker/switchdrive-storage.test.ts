@@ -62,6 +62,35 @@ describe("SWITCHdrive managed storage", () => {
     expect(put?.[1]?.body).toBe(body);
   });
 
+  it("stats objects with HEAD without downloading their bytes", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, {
+        status: 200,
+        headers: {
+          "content-length": "12",
+          "content-type": "application/pdf",
+          etag: '"stat-etag"',
+        },
+      }))
+      .mockResolvedValueOnce(new Response("", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const storage = new SwitchdriveStorage(configuration);
+
+    await expect(storage.stat("comment-attachments/submission/file.pdf")).resolves.toEqual({
+      byteSize: 12,
+      contentType: "application/pdf",
+      etag: '"stat-etag"',
+    });
+    await expect(storage.stat("comment-attachments/submission/missing.pdf")).resolves.toBeNull();
+    expect(fetchMock.mock.calls.every((call) => call[1]?.method === "HEAD")).toBe(true);
+  });
+
+  it("does not reinterpret provider failures as missing objects", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503 })));
+    await expect(new SwitchdriveStorage(configuration).stat("file.bin"))
+      .rejects.toThrow("status 503");
+  });
+
   it("streams downloads and treats a missing object as absent", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response("file", {

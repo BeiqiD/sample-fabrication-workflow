@@ -21,11 +21,18 @@ export interface ManagedStorageObject {
   etag: string | null;
 }
 
+export interface ManagedStorageStat {
+  byteSize: number | null;
+  contentType: string;
+  etag: string | null;
+}
+
 export interface ManagedStorage {
   readonly provider: string;
   readonly authentication: ManagedStorageStatus["authentication"];
   check(): Promise<void>;
   put(input: ManagedStoragePut): Promise<{ byteSize: number }>;
+  stat(key: string): Promise<ManagedStorageStat | null>;
   get(key: string): Promise<ManagedStorageObject | null>;
   delete(key: string): Promise<void>;
 }

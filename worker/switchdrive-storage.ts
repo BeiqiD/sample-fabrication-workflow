@@ -2,6 +2,7 @@ import type {
   ManagedStorage,
   ManagedStorageObject,
   ManagedStoragePut,
+  ManagedStorageStat,
 } from "./managed-storage";
 
 const DEFAULT_ROOT = "sample-fabrication-workflow";
@@ -131,17 +132,35 @@ export class SwitchdriveStorage implements ManagedStorage {
     });
     await checkedResponse(response, [200, 201, 204]);
 
-    const metadata = await fetch(url, { method: "HEAD", headers: this.headers() });
-    await checkedResponse(metadata, [200]);
-    const storedSizeHeader = metadata.headers.get("content-length");
-    if (storedSizeHeader !== null) {
-      const storedSize = Number(storedSizeHeader);
-      if (Number.isFinite(storedSize) && storedSize !== input.byteSize) {
-        await this.delete(input.key);
-        throw new Error("SWITCHdrive reported a different attachment size after upload");
-      }
+    const metadata = await this.stat(input.key);
+    if (!metadata) {
+      await this.delete(input.key);
+      throw new Error("SWITCHdrive could not verify the attachment after upload");
+    }
+    if (metadata.byteSize !== null && metadata.byteSize !== input.byteSize) {
+      await this.delete(input.key);
+      throw new Error("SWITCHdrive reported a different attachment size after upload");
     }
     return { byteSize: input.byteSize };
+  }
+
+  async stat(key: string): Promise<ManagedStorageStat | null> {
+    const keySegments = safeSegments(key, "Managed object key");
+    const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
+      method: "HEAD",
+      headers: this.headers(),
+    });
+    if (response.status === 404) return null;
+    await checkedResponse(response, [200]);
+    const sizeHeader = response.headers.get("content-length");
+    const parsedSize = sizeHeader === null ? null : Number(sizeHeader);
+    return {
+      byteSize: parsedSize !== null && Number.isSafeInteger(parsedSize) && parsedSize >= 0
+        ? parsedSize
+        : null,
+      contentType: response.headers.get("content-type") || "application/octet-stream",
+      etag: response.headers.get("etag"),
+    };
   }
 
   async get(key: string): Promise<ManagedStorageObject | null> {

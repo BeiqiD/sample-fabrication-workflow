@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { sha256Hex } from "../shared/content-addressing";
 import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
-import { refreshOrphanGrace } from "./blob-lifecycle/reachability";
+import {
+  BlobReuseProviderUnavailableError,
+  findReusableR2Asset,
+} from "./blob-lifecycle/reuse";
 import { buildBlobExportPlan } from "./export-data";
 import { contentLengthWithin } from "./request-guards";
 import type { Env } from "./types";
@@ -53,35 +56,26 @@ function requireMatchingProjectAssetMetadata(
 }
 
 async function reusableProjectAsset(
-  db: D1Database,
+  env: Env,
   sha256: string,
 ) {
-  return db.prepare(
-    `SELECT id, r2_key, original_name, mime_type, byte_size FROM assets a
-     WHERE sha256 = ? AND status = 'ready'
-       AND NOT EXISTS (
-         SELECT 1 FROM blob_gc_ledger bg
-         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       )
-     LIMIT 1`,
-  ).bind(sha256).first<ProjectAssetRow>();
+  try {
+    return await findReusableR2Asset(env, sha256);
+  } catch (error) {
+    if (error instanceof BlobReuseProviderUnavailableError) {
+      throw new HTTPException(503, { message: error.message });
+    }
+    throw error;
+  }
 }
 
-async function returnReusableProjectAsset(
-  db: D1Database,
+function returnReusableProjectAsset(
   row: ProjectAssetRow,
   filename: string,
   contentType: string,
   byteSize: number,
 ) {
   requireMatchingProjectAssetMetadata(row, filename, contentType, byteSize);
-  if (!await refreshOrphanGrace(db, {
-    storeKind: "r2",
-    provider: "r2",
-    objectKey: row.r2_key,
-    blobRecordId: row.id,
-  }, crypto.randomUUID(), new Date())) return null;
   return { id: row.id, key: row.r2_key, deduplicated: true as const };
 }
 
@@ -121,6 +115,7 @@ export const PROJECT_EXPORT_TABLE_QUERIES = {
   project_map_placements: "SELECT * FROM project_map_placements ORDER BY project_item_id, id",
   project_edges: "SELECT * FROM project_edges ORDER BY project_id, created_at, id",
   blob_gc_ledger: "SELECT * FROM blob_gc_ledger ORDER BY store_kind, provider, object_key",
+  blob_integrity_quarantine: "SELECT * FROM blob_integrity_quarantine ORDER BY store_kind, provider, object_key",
   blob_retention_edges: `SELECT * FROM blob_retention_edges
     ORDER BY store_kind, provider, object_key, source_type, source_id, occurrence_type, occurrence_id`,
 } as const;
@@ -142,43 +137,42 @@ routes.post("/project-assets", async (c) => {
   }
 
   const sha256 = await sha256Hex(buffer);
-  const existing = await reusableProjectAsset(c.env.DB, sha256);
+  const existing = await reusableProjectAsset(c.env, sha256);
   if (existing) {
-    const reusable = await returnReusableProjectAsset(
-      c.env.DB,
+    return c.json(returnReusableProjectAsset(
       existing,
       filename,
       contentType,
       buffer.byteLength,
-    );
-    if (reusable) return c.json(reusable);
+    ));
   }
 
-  const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${projectAssetKeyFilename(filename)}`;
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-  await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
-  try {
-    await c.env.DB.prepare(
-      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-       VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-    ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
-  } catch (error) {
-    await c.env.ASSETS.delete(key);
-    const winner = await reusableProjectAsset(c.env.DB, sha256);
-    if (winner) {
-      const reusable = await returnReusableProjectAsset(
-        c.env.DB,
-        winner,
-        filename,
-        contentType,
-        buffer.byteLength,
-      );
-      if (reusable) return c.json(reusable);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${projectAssetKeyFilename(filename)}`;
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
+         VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+      ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
+      return c.json({ id, key, deduplicated: false }, 201);
+    } catch (error) {
+      await c.env.ASSETS.delete(key);
+      const winner = await reusableProjectAsset(c.env, sha256);
+      if (winner) {
+        return c.json(returnReusableProjectAsset(
+          winner,
+          filename,
+          contentType,
+          buffer.byteLength,
+        ));
+      }
+      if (attempt === 1) throw error;
     }
-    throw error;
   }
-  return c.json({ id, key, deduplicated: false }, 201);
+  throw new HTTPException(409, { message: "Project attachment registration could not be reconciled" });
 });
 
 routes.get("/exports/all", async (c) => {

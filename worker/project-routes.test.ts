@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { routes as projectRoutes } from "./project-routes";
 import {
   referenceTestDatabase,
@@ -18,7 +18,19 @@ function fixture() {
   const adapter = new SqliteD1Database(database);
   const bytes = Uint8Array.from([1, 2, 3, 4]);
   const uploaded = new Map<string, Uint8Array>();
+  const head = vi.fn(async (key: string) => {
+    const body = key === "projects/route-asset.bin" ? bytes : uploaded.get(key);
+    if (!body) return null;
+    return {
+      size: body.byteLength,
+      httpEtag: '"route-etag"',
+      writeHttpMetadata(headers: Headers) {
+        headers.set("content-type", "application/octet-stream");
+      },
+    };
+  });
   const bucket = {
+    head,
     async put(key: string, value: ArrayBuffer | ArrayBufferView) {
       const source = value instanceof ArrayBuffer
         ? new Uint8Array(value)
@@ -55,7 +67,7 @@ function fixture() {
     throw error;
   });
   app.route("/", projectRoutes);
-  return { app, env, database, bytes, uploaded };
+  return { app, env, database, bytes, uploaded, head };
 }
 
 function jsonRequest(
@@ -196,6 +208,22 @@ describe("Project persistence routes", () => {
       id: firstBody.id,
       key: firstBody.key,
       deduplicated: true,
+    });
+
+    uploaded.delete(firstBody.key);
+    const repaired = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/pdf", body);
+    expect(repaired.status).toBe(201);
+    const repairedBody = await repaired.json<{ id: string; key: string; deduplicated: boolean }>();
+    expect(repairedBody).toMatchObject({ deduplicated: false });
+    expect(repairedBody.id).not.toBe(firstBody.id);
+    expect(database.prepare(`
+      SELECT reason, expected_byte_size, observed_byte_size
+      FROM blob_integrity_quarantine
+      WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ?
+    `).get(firstBody.key)).toEqual({
+      reason: "missing",
+      expected_byte_size: body.byteLength,
+      observed_byte_size: null,
     });
 
     const renamedDuplicate = await attachmentUploadRequest(app, env, "renamed.pdf", "application/pdf", body);
