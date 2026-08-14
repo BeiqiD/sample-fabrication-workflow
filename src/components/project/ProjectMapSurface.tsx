@@ -603,6 +603,9 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     }
   }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit, onSelect]);
 
+  const handleElementClick = useCallback(() => {
+    setContextMenu(null);
+  }, []);
   const handlePaneClick = useCallback(() => {
     setContextMenu(null);
   }, []);
@@ -702,6 +705,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onInit={(instance) => { flowInstanceRef.current = instance; }}
       onNodesChange={onNodesChange}
       onEdgesChange={handleEdgesChange}
+      onNodeClick={handleElementClick}
+      onEdgeClick={handleElementClick}
       onConnect={handleConnect}
       onPaneClick={handlePaneClick}
       onNodeDragStart={handleNodeDragStart}

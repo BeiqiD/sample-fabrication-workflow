@@ -427,4 +427,66 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(transitions.length).toBeLessThanOrEqual(4);
   });
 
+
+  it("closes the attachment menu when an already-selected node or edge is clicked without rewriting selection", async () => {
+    const snapshot = projectTestSnapshot();
+    const stableNodes = projectMapNodes(snapshot);
+    const stableEdges = [edgeRecord()];
+    const nodeSelections: Array<string | null> = [];
+    const edgeSelections: Array<string | null> = [];
+
+    function ControlledMenuHarness() {
+      const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      const handleSelect = useCallback((itemId: string | null) => {
+        nodeSelections.push(itemId);
+        setSelectedItemId(itemId);
+        if (itemId !== null) setSelectedEdgeId(null);
+      }, []);
+      const handleEdgeSelect = useCallback((edgeId: string | null) => {
+        edgeSelections.push(edgeId);
+        setSelectedEdgeId(edgeId);
+        if (edgeId !== null) setSelectedItemId(null);
+      }, []);
+      return <ProjectMapSurface
+        nodes={stableNodes}
+        edges={stableEdges}
+        selectedItemId={selectedItemId}
+        selectedEdgeId={selectedEdgeId}
+        onSelect={handleSelect}
+        onEdgeSelect={handleEdgeSelect}
+        onGeometryCommit={() => undefined}
+        onAttachmentRequest={() => undefined}
+      />;
+    }
+
+    const { container } = render(<div style={{ width: 900, height: 700 }}><ControlledMenuHarness /></div>);
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
+    const node = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    const edge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    const pane = () => container.querySelector<HTMLElement>(".react-flow__pane")!;
+    const menu = () => container.querySelector<HTMLElement>('.project-map-context-menu[role="menu"]');
+    await waitFor(() => expect(edge()).toBeTruthy());
+
+    fireEvent.click(node());
+    await waitFor(() => expect(node().classList.contains("selected")).toBe(true));
+    const nodeSelectionCount = nodeSelections.length;
+
+    fireEvent.contextMenu(pane(), { clientX: 120, clientY: 110 });
+    await waitFor(() => expect(menu()).toBeTruthy());
+    fireEvent.click(node());
+    await waitFor(() => expect(menu()).toBeNull());
+    expect(nodeSelections).toHaveLength(nodeSelectionCount);
+
+    fireEvent.click(edge());
+    await waitFor(() => expect(edge().classList.contains("selected")).toBe(true));
+    const edgeSelectionCount = edgeSelections.length;
+
+    fireEvent.contextMenu(pane(), { clientX: 160, clientY: 130 });
+    await waitFor(() => expect(menu()).toBeTruthy());
+    fireEvent.click(edge());
+    await waitFor(() => expect(menu()).toBeNull());
+    expect(edgeSelections).toHaveLength(edgeSelectionCount);
+  });
+
 });
