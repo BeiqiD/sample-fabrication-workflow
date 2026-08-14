@@ -1,0 +1,25 @@
+name: Storage integrity diagnostic
+
+on:
+  push:
+    branches:
+      - agent/storage-integrity-markdown-removal
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List deduplication and live-locator reuse paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== SHA/status queries ==='
+          grep -RInE "sha256.*status|status.*sha256|status IN \('ready', 'orphaned'\)" worker src shared migrations || true
+          echo '=== deduplicated responses/state ==='
+          grep -RIn "deduplicated" worker src shared || true
+          echo '=== refreshOrphanGrace callers ==='
+          grep -RIn "refreshOrphanGrace" worker src shared || true
