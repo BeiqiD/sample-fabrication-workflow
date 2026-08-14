@@ -30,6 +30,12 @@ import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
+import {
+  ASSET_OWNING_IMPORT_NOT_READY_SQL_ERROR,
+  publishedAssetSql,
+  publishedTemplateVersionSql,
+  TEMPLATE_VERSION_NOT_PUBLISHED_SQL_ERROR,
+} from "./template-publication";
 import { getBlob } from "./blob-lifecycle/storage";
 import { managedStorageStatus } from "./managed-storage";
 import { directoryFilterValue, likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, sampleDirectorySort, searchTokens } from "./directory-query";
@@ -90,6 +96,13 @@ function blobLocatorConflict(error: unknown): "unavailable" | "quarantined" | nu
   return null;
 }
 
+function publicationBoundaryConflict(error: unknown): "template" | "asset" | null {
+  const message = String(error);
+  if (message.includes(TEMPLATE_VERSION_NOT_PUBLISHED_SQL_ERROR)) return "template";
+  if (message.includes(ASSET_OWNING_IMPORT_NOT_READY_SQL_ERROR)) return "asset";
+  return null;
+}
+
 async function requireVisibleCommentOperationGroup(db: D1Database, operationGroupId: string) {
   const counts = await db.prepare(
     `SELECT COUNT(*) AS target_count,
@@ -132,6 +145,13 @@ app.onError((error, c) => {
   }
   if (locatorConflict === "unavailable") {
     return c.json({ error: "The selected file is being cleaned up. Retry with a new upload." }, 409);
+  }
+  const publicationConflict = publicationBoundaryConflict(error);
+  if (publicationConflict === "template") {
+    return c.json({ error: "The selected template import has not been published yet." }, 409);
+  }
+  if (publicationConflict === "asset") {
+    return c.json({ error: "The selected imported file has not been published yet." }, 409);
   }
   console.error(error);
   return c.json({ error: "Unexpected server error" }, 500);
@@ -186,6 +206,7 @@ async function stateAssets(db: D1Database, stateHash: string | null) {
      FROM state_representation_assets sra
      JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
      WHERE sra.state_hash = ?
+       AND ${publishedAssetSql("a")}
      ORDER BY sra.position, a.id`,
   ).bind(stateHash).all<{ r2_key: string; sha256: string }>();
   return rows.results;
@@ -5144,8 +5165,10 @@ app.post("/imports/fabublox", async (c) => {
          VALUES (?, ?, ?, ?, ?)`,
       ).bind(recipeFamilyId, recipeName, internalTemplateType, userEmail, now)] : []),
       c.env.DB.prepare(
-        "UPDATE imports SET template_version_id = ? WHERE id = ? AND status = 'pending' AND operation_id = ?",
-      ).bind(templateVersionId, importId, importOperationId),
+        `UPDATE imports SET template_version_id = ?
+         WHERE id = ? AND status = 'pending' AND operation_id = ?
+           AND finalization_id IS NULL AND lease_expires_at > ?`,
+      ).bind(templateVersionId, importId, importOperationId, now),
       ...bulkInsertStatements(c.env.DB, "step_definitions",
         ["hash", "hash_scheme", "name", "tool_name", "parameters_text", "comments_text", "canonical_json", "created_at"],
         [...definitions.values()].filter((definition) => !existingDefinitionHashes.has(definition.hash)).map((definition) => [
@@ -5157,14 +5180,15 @@ app.post("/imports/fabublox", async (c) => {
         [...states.values()].filter((state) => !existingStateHashes.has(state.hash)).map((state) => [
           state.hash, String(state.canonical.schema), String(state.canonical.type), stableJson(state.canonical), now,
         ])),
-      ...bulkInsertStatements(c.env.DB, "state_representation_assets",
-        ["state_hash", "asset_id", "position"],
-        [...stateAssetRows.values()].filter(([stateHash]) => !existingStateHashes.has(stateHash))),
       c.env.DB.prepare(
         `INSERT INTO template_versions
           (id, recipe_family_id, name, template_type, version, manifest_hash, initial_state_hash,
            source_filename, source_asset_key, content_json, created_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         FROM imports owning_import
+         WHERE owning_import.id = ? AND owning_import.status = 'pending'
+           AND owning_import.operation_id = ? AND owning_import.finalization_id IS NULL
+           AND owning_import.template_version_id = ? AND owning_import.lease_expires_at > ?`,
       ).bind(templateVersionId, recipeFamilyId, recipeName, internalTemplateType, version, manifestHash, initialStateHash, workbook.name, workbookAsset.key, JSON.stringify({
         schemaVersion: manifest.schemaVersion,
         source: manifest.source,
@@ -5172,7 +5196,7 @@ app.post("/imports/fabublox", async (c) => {
         objectKind: "process_template",
         initialSubstrateStep: manifest.initialSubstrateStep,
         warningCount: manifest.warnings.length,
-      }), userEmail, now),
+      }), userEmail, now, importId, importOperationId, templateVersionId, now),
       ...bulkInsertStatements(c.env.DB, "template_steps",
         ["id", "template_version_id", "logical_step_key", "position", "source_row", "step_number", "section_name", "definition_hash", "expected_state_hash", "raw_json"],
         preparedSteps.map((step) => [stepIds.get(step.source.localId), templateVersionId, step.logicalKey, step.source.position,
@@ -5184,6 +5208,7 @@ app.post("/imports/fabublox", async (c) => {
 
     const completedAt = new Date().toISOString();
     const finalizationDb = primaryD1(c.env.DB);
+    const finalizationAssetRows = JSON.stringify([...stateAssetRows.values()]);
     const [finalizationResult] = await finalizationDb.batch([
       finalizationDb.prepare(`
         UPDATE imports
@@ -5200,6 +5225,28 @@ app.post("/imports/fabublox", async (c) => {
         importOperationId,
         templateVersionId,
         completedAt,
+      ),
+      finalizationDb.prepare(`
+        INSERT INTO state_representation_assets (state_hash, asset_id, position)
+        SELECT CAST(json_extract(entry.value, '$[0]') AS TEXT),
+               CAST(json_extract(entry.value, '$[1]') AS TEXT),
+               CAST(json_extract(entry.value, '$[2]') AS INTEGER)
+        FROM json_each(?) entry
+        WHERE EXISTS (
+          SELECT 1 FROM imports owning_import
+          WHERE owning_import.id = ? AND owning_import.status = 'ready'
+            AND owning_import.operation_id = ?
+            AND owning_import.finalization_id = ?
+            AND owning_import.template_version_id = ?
+        )
+        ON CONFLICT(state_hash, asset_id) DO UPDATE SET
+          position = excluded.position
+      `).bind(
+        finalizationAssetRows,
+        importId,
+        importOperationId,
+        finalizationId,
+        templateVersionId,
       ),
     ]);
     if (!finalizationResult.meta.changes) {
@@ -5284,15 +5331,20 @@ function processTemplateVersionSummary(row: ProcessTemplateDirectoryRow) {
   };
 }
 
+async function requirePublishedTemplateVersion(db: D1Database, id: string) {
+  const row = await db.prepare(`
+    SELECT 1 AS published
+    FROM template_versions tv
+    WHERE tv.id = ? AND ${publishedTemplateVersionSql("tv")}
+  `).bind(id).first<{ published: number }>();
+  if (!row) throw new HTTPException(404, { message: "Template version not found" });
+}
+
 const visibleProcessTemplateSql = (alias: string) => `
   ${alias}.template_kind = 'process'
   AND ${alias}.archived_at IS NULL
   AND ${alias}.deleted_at IS NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM imports hidden_import
-    WHERE hidden_import.template_version_id = ${alias}.id
-      AND hidden_import.status != 'ready'
-  )`;
+  AND ${publishedTemplateVersionSql(alias)}`;
 
 function processTemplateFamilySearch(query: string, familyAlias: string) {
   const tokens = searchTokens(query);
@@ -5340,7 +5392,8 @@ const processTemplateDirectoryColumns = `
   (SELECT COUNT(*)
    FROM state_representation_assets sra
    JOIN assets initial_asset ON initial_asset.id = sra.asset_id AND initial_asset.status = 'ready'
-   WHERE sra.state_hash = tv.initial_state_hash) AS initial_asset_count`;
+   WHERE sra.state_hash = tv.initial_state_hash
+     AND ${publishedAssetSql("initial_asset")}) AS initial_asset_count`;
 
 app.get("/template-families/options", async (c) => {
   const d1Started = performance.now();
@@ -5451,11 +5504,7 @@ app.get("/metrology-templates", async (c) => {
     WHERE tv.template_kind = 'metrology'
       AND tv.archived_at IS NULL
       AND tv.deleted_at IS NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM imports hidden_import
-        WHERE hidden_import.template_version_id = tv.id
-          AND hidden_import.status != 'ready'
-      )
+      AND ${publishedTemplateVersionSql("tv")}
       AND ${search.sql}`;
   const d1Started = performance.now();
   const [result, countRow] = await Promise.all([
@@ -5513,7 +5562,7 @@ app.get("/templates", async (c) => {
              WHERE ts.template_version_id = tv.id ORDER BY ts.position LIMIT 1) AS comments_text
      FROM template_versions tv
      WHERE tv.archived_at IS NULL AND tv.deleted_at IS NULL
-       AND NOT EXISTS (SELECT 1 FROM imports i WHERE i.template_version_id = tv.id AND i.status != 'ready')
+       AND ${publishedTemplateVersionSql("tv")}
      ORDER BY tv.name, tv.template_type, tv.version DESC`,
   ).all<{
     id: string;
@@ -5540,6 +5589,8 @@ app.get("/templates", async (c) => {
        JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
        WHERE tv.archived_at IS NULL AND tv.deleted_at IS NULL
+         AND ${publishedTemplateVersionSql("tv")}
+         AND ${publishedAssetSql("a")}
        ORDER BY tv.id, sra.position, a.id`,
     ).all<{ template_version_id: string; r2_key: string }>(),
   ]);
@@ -5636,6 +5687,7 @@ app.post("/metrology-templates", async (c) => {
 
 app.patch("/metrology-templates/:id", async (c) => {
   const id = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const input = await c.req.json<{
     name?: string; toolName?: string; parametersText?: string; commentsText?: string;
   }>();
@@ -5698,6 +5750,7 @@ app.patch("/metrology-templates/:id", async (c) => {
 
 app.patch("/metrology-templates/:id/notes", async (c) => {
   const id = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const input = await c.req.json<{ notes?: string }>();
   if (typeof input.notes !== "string" || input.notes.length > 20_000) {
     throw new HTTPException(400, { message: "Equipment or method notes must be at most 20,000 characters" });
@@ -5713,6 +5766,7 @@ app.patch("/metrology-templates/:id/notes", async (c) => {
 
 app.post("/metrology-templates/:id/references", async (c) => {
   const templateId = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, templateId);
   if (!contentLengthWithin(c.req.raw, 25 * 1024 * 1024)) {
     throw new HTTPException(413, { message: "Template reference files are limited to 25 MB" });
   }
@@ -5737,6 +5791,7 @@ app.post("/metrology-templates/:id/references", async (c) => {
      FROM metrology_template_references mtr
      JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
      WHERE mtr.template_version_id = ? AND a.sha256 = ?
+       AND ${publishedAssetSql("a")}
      ORDER BY mtr.created_at DESC LIMIT 1`,
   ).bind(templateId, sha256).first<{
     id: string; asset_id: string; display_name: string;
@@ -5851,6 +5906,7 @@ app.post("/metrology-templates/:id/references", async (c) => {
 
 app.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
   const { id, referenceId } = c.req.param();
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const now = new Date().toISOString();
   const result = await c.env.DB.prepare(
     `UPDATE metrology_template_references
@@ -5869,6 +5925,7 @@ app.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
 
 app.post("/metrology-templates/:id/references/:referenceId/restore", async (c) => {
   const { id, referenceId } = c.req.param();
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const result = await c.env.DB.prepare(
     `UPDATE metrology_template_references
      SET deleted_at = NULL, deleted_by = NULL
@@ -5887,7 +5944,9 @@ app.post("/templates/:id/clone", async (c) => {
   const sourceId = c.req.param("id");
   const [source, steps] = await Promise.all([
     c.env.DB.prepare(
-      "SELECT * FROM template_versions WHERE id = ? AND deleted_at IS NULL",
+      `SELECT * FROM template_versions tv
+       WHERE tv.id = ? AND tv.deleted_at IS NULL
+         AND ${publishedTemplateVersionSql("tv")}`,
     ).bind(sourceId).first<Record<string, unknown>>(),
     c.env.DB.prepare("SELECT * FROM template_steps WHERE template_version_id = ? ORDER BY position").bind(sourceId).all<Record<string, unknown>>(),
   ]);
@@ -5925,7 +5984,9 @@ app.get("/templates/:id", async (c) => {
       `SELECT id, recipe_family_id, name, template_type, template_kind, metrology_notes,
               version, manifest_hash, initial_state_hash,
               source_filename, content_json, locked_at, archived_at, created_at
-       FROM template_versions WHERE id = ? AND deleted_at IS NULL`,
+       FROM template_versions tv
+       WHERE tv.id = ? AND tv.deleted_at IS NULL
+         AND ${publishedTemplateVersionSql("tv")}`,
     ).bind(id).first<Record<string, unknown>>(),
     c.env.DB.prepare(
       `SELECT ts.id, ts.logical_step_key, ts.definition_hash, ts.expected_state_hash,
@@ -5939,20 +6000,26 @@ app.get("/templates/:id", async (c) => {
        FROM template_steps ts
        JOIN state_representation_assets sra ON sra.state_hash = ts.expected_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-       WHERE ts.template_version_id = ? ORDER BY ts.id, sra.position, a.id`,
+       WHERE ts.template_version_id = ?
+         AND ${publishedAssetSql("a")}
+       ORDER BY ts.id, sra.position, a.id`,
     ).bind(id).all<{ template_step_id: string; r2_key: string }>(),
     c.env.DB.prepare(
       `SELECT a.r2_key
        FROM template_versions tv
        JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
-       WHERE tv.id = ? ORDER BY sra.position, a.id`,
+       WHERE tv.id = ?
+         AND ${publishedTemplateVersionSql("tv")}
+         AND ${publishedAssetSql("a")}
+       ORDER BY sra.position, a.id`,
     ).bind(id).all<{ r2_key: string }>(),
     c.env.DB.prepare(
       `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at
        FROM metrology_template_references mtr
        JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
        WHERE mtr.template_version_id = ? AND mtr.deleted_at IS NULL
+         AND ${publishedAssetSql("a")}
        ORDER BY mtr.position, mtr.created_at, mtr.id`,
     ).bind(id).all<{
       id: string; display_name: string; mime_type: string; byte_size: number;
@@ -5997,6 +6064,7 @@ app.get("/templates/:id", async (c) => {
 
 app.patch("/templates/:id", async (c) => {
   const id = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const input = await c.req.json<{ name?: string; version?: number }>();
   if (typeof input.name !== "string" || typeof input.version !== "number" || !Number.isInteger(input.version) || input.version < 1) throw new HTTPException(400, { message: "A template name and positive integer version are required" });
   const name = input.name.trim();
@@ -6023,6 +6091,7 @@ app.patch("/templates/:id", async (c) => {
 
 app.post("/templates/:id/steps", async (c) => {
   const templateId = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, templateId);
   const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string }>();
   if (typeof input.name !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid template step fields are required" });
   const name = input.name.trim();
@@ -6036,6 +6105,7 @@ app.post("/templates/:id/steps", async (c) => {
       .bind(templateId).all<{ logical_step_key: string; definition_hash: string; expected_state_hash: string | null; position: number }>(),
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
+         AND ${publishedAssetSql("a")}
          AND NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
@@ -6087,6 +6157,7 @@ app.post("/templates/:id/steps", async (c) => {
 
 app.patch("/templates/:templateId/steps/:stepId", async (c) => {
   const { templateId, stepId } = c.req.param();
+  await requirePublishedTemplateVersion(c.env.DB, templateId);
   const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string }>();
   if (typeof input.name !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid template step fields are required" });
   const name = input.name.trim();
@@ -6102,6 +6173,7 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
       .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
+         AND ${publishedAssetSql("a")}
          AND NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
@@ -6151,6 +6223,7 @@ app.patch("/templates/:templateId/steps/:stepId", async (c) => {
 
 app.delete("/templates/:templateId/steps/:stepId", async (c) => {
   const { templateId, stepId } = c.req.param();
+  await requirePublishedTemplateVersion(c.env.DB, templateId);
   const [template, step, remainingSteps] = await Promise.all([
     c.env.DB.prepare("SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?")
       .bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
@@ -6195,6 +6268,7 @@ app.delete("/templates/:templateId/steps/:stepId", async (c) => {
 
 app.delete("/templates/:id", async (c) => {
   const id = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const template = await c.env.DB.prepare(
     `SELECT tv.recipe_family_id, tv.locked_at, tv.archived_at, tv.deleted_at,
             EXISTS (SELECT 1 FROM runs r WHERE r.template_version_id = tv.id) OR
@@ -6232,6 +6306,7 @@ app.delete("/templates/:id", async (c) => {
 
 app.post("/templates/:id/restore", async (c) => {
   const id = c.req.param("id");
+  await requirePublishedTemplateVersion(c.env.DB, id);
   const template = await c.env.DB.prepare(
     `SELECT deleted_at, deleted_by, archived_at, archived_by
      FROM template_versions WHERE id = ? AND deleted_at IS NOT NULL`,

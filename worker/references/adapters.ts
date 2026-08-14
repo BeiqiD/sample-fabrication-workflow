@@ -4,6 +4,7 @@ import type {
   ReferenceTargetType,
   ResolvedReferenceSource,
 } from "../../shared/reference-types";
+import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
 
 export interface ResolvedReferenceRecord {
   source: ResolvedReferenceSource;
@@ -445,6 +446,8 @@ const executionImageAdapter: ReferenceAdapter = async (db, ids) => {
     LEFT JOIN samples s ON s.id = r.sample_id
     WHERE rsa.id IN (SELECT value FROM json_each(?))
       AND rsa.role = 'execution'
+      AND a.status = 'ready'
+      AND ${publishedAssetSql("a")}
     ORDER BY rsa.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.id);
@@ -476,6 +479,9 @@ const metrologyReferenceAdapter: ReferenceAdapter = async (db, ids) => {
     LEFT JOIN assets a ON a.id = mtr.asset_id
     LEFT JOIN template_versions tv ON tv.id = mtr.template_version_id
     WHERE mtr.id IN (SELECT value FROM json_each(?))
+      AND a.status = 'ready'
+      AND ${publishedAssetSql("a")}
+      AND ${publishedTemplateVersionSql("tv")}
     ORDER BY mtr.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.id);
@@ -502,9 +508,10 @@ const recipeRevisionAdapter: ReferenceAdapter = async (db, ids) => {
     SELECT id AS recipe_id, name AS recipe_name, version AS recipe_version,
            template_kind, template_type, locked_at, archived_at AS recipe_archived_at,
            deleted_at AS recipe_deleted_at, created_at, source_filename
-    FROM template_versions
-    WHERE id IN (SELECT value FROM json_each(?))
-    ORDER BY id`, ids);
+    FROM template_versions tv
+    WHERE tv.id IN (SELECT value FROM json_each(?))
+      AND ${publishedTemplateVersionSql("tv")}
+    ORDER BY tv.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.recipe_id);
     const recipe = recipeSegment(row)!;

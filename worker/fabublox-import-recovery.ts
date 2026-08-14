@@ -55,6 +55,9 @@ export async function queueFabubloxImportCleanup(
     : String(input.error)).slice(0, 1_000);
   const db = primaryD1(env.DB);
   const results = await db.batch([
+    // Claim the exact pending operation. Every later statement is gated by the
+    // persisted recovery identity, so a competing finalization cannot be torn
+    // down after it wins.
     db.prepare(`
       UPDATE imports
       SET status = 'failed', error_message = ?, completed_at = ?,
@@ -68,6 +71,56 @@ export async function queueFabubloxImportCleanup(
       input.importId,
       input.operationId,
     ),
+    // A pending revision should never have been registered, but tombstone a
+    // pre-existing row defensively before removing its partial source record.
+    db.prepare(`
+      UPDATE reference_targets
+      SET tombstoned_at = COALESCE(tombstoned_at, ?), last_validated_at = ?
+      WHERE target_type = 'recipe_revision'
+        AND target_id = (
+          SELECT template_version_id FROM imports
+          WHERE id = ? AND status = 'failed'
+            AND recovery_operation_id = ?
+        )
+    `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
+    // Detach global state-image occurrences created by an older interrupted
+    // implementation before changing asset status or asking GC to reclaim it.
+    db.prepare(`
+      DELETE FROM state_representation_assets
+      WHERE asset_id IN (
+        SELECT a.id
+        FROM assets a
+        JOIN imports i ON i.id = a.import_id
+        WHERE i.id = ? AND i.status = 'failed'
+          AND i.recovery_operation_id = ?
+      )
+    `).bind(input.importId, recoveryOperationId),
+    // Template revisions are stable identities and cannot be physically
+    // deleted. Remove their cascade-owned step rows, then quarantine the
+    // revision in place and release every direct blob locator. The owning
+    // failed import remains linked as durable publication/audit state.
+    db.prepare(`
+      DELETE FROM template_steps
+      WHERE template_version_id = (
+        SELECT template_version_id FROM imports
+        WHERE id = ? AND status = 'failed'
+          AND recovery_operation_id = ?
+      )
+    `).bind(input.importId, recoveryOperationId),
+    db.prepare(`
+      UPDATE template_versions
+      SET source_asset_key = NULL,
+          initial_state_hash = NULL,
+          archived_at = COALESCE(archived_at, ?),
+          archived_by = COALESCE(archived_by, 'system:fabublox-import-recovery'),
+          deleted_at = COALESCE(deleted_at, ?),
+          deleted_by = COALESCE(deleted_by, 'system:fabublox-import-recovery')
+      WHERE id = (
+        SELECT template_version_id FROM imports
+        WHERE id = ? AND status = 'failed'
+          AND recovery_operation_id = ?
+      )
+    `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
     db.prepare(`
       UPDATE assets
       SET status = 'failed', sha256 = NULL
@@ -78,6 +131,9 @@ export async function queueFabubloxImportCleanup(
             AND i.recovery_operation_id = ?
         )
     `).bind(input.importId, input.importId, recoveryOperationId),
+    // Queue every failed provider object. Deletion still rechecks current
+    // retention before claiming, but a stale edge can no longer make the
+    // cleanup task disappear permanently.
     db.prepare(`
       INSERT INTO blob_gc_ledger (
         store_kind, provider, object_key, blob_record_id, state, operation_id,
@@ -92,11 +148,6 @@ export async function queueFabubloxImportCleanup(
           SELECT 1 FROM imports i
           WHERE i.id = ? AND i.status = 'failed'
             AND i.recovery_operation_id = ?
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM blob_retention_edges bre
-          WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
-            AND bre.object_key = a.r2_key
         )
       ON CONFLICT(store_kind, provider, object_key) DO UPDATE SET
         blob_record_id = excluded.blob_record_id,
@@ -117,8 +168,11 @@ export async function queueFabubloxImportCleanup(
   ]);
   return {
     importsFailed: Number(results[0].meta.changes ?? 0),
-    assetsReleased: Number(results[1].meta.changes ?? 0),
-    objectsQueued: Number(results[2].meta.changes ?? 0),
+    relationshipsRemoved: Number(results[2].meta.changes ?? 0),
+    templateStepsRemoved: Number(results[3].meta.changes ?? 0),
+    templatesQuarantined: Number(results[4].meta.changes ?? 0),
+    assetsReleased: Number(results[5].meta.changes ?? 0),
+    objectsQueued: Number(results[6].meta.changes ?? 0),
   };
 }
 

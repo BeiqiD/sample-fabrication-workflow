@@ -1,6 +1,7 @@
 import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
+import { runBlobGarbageCollection } from "./blob-lifecycle/gc";
 import { encodeReferenceRouteId } from "../shared/reference-destinations";
 import worker from "./index";
 import {
@@ -723,4 +724,314 @@ describe("FabuBlox storage winner recovery", () => {
     expect(liveAfterFailure.status).toBe(404);
     database.close();
   });
+
+  it("keeps staged revisions private and rebuilds image relationships after finalization failure and retry", async () => {
+    const database = referenceTestDatabase();
+    const workbookBytes = Uint8Array.from([80, 75, 3, 4, 140, 141, 142, 143]);
+    const imageBytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 44, 45, 46]);
+    const workbookBuffer = workbookBytes.buffer.slice(
+      workbookBytes.byteOffset,
+      workbookBytes.byteOffset + workbookBytes.byteLength,
+    ) as ArrayBuffer;
+    const imageBuffer = imageBytes.buffer.slice(
+      imageBytes.byteOffset,
+      imageBytes.byteOffset + imageBytes.byteLength,
+    ) as ArrayBuffer;
+    const workbookSha = await sha256Hex(workbookBuffer);
+    const imageSha = await sha256Hex(imageBuffer);
+    const title = "Atomic publication retry regression";
+    const stored = new Map<string, Uint8Array>();
+    const deletedKeys: string[] = [];
+
+    let finalizationReachedResolve!: () => void;
+    const finalizationReached = new Promise<void>((resolve) => {
+      finalizationReachedResolve = resolve;
+    });
+    let releaseFinalization!: () => void;
+    const finalizationRelease = new Promise<void>((resolve) => {
+      releaseFinalization = resolve;
+    });
+    let failFinalization = true;
+    const d1 = new HookedD1Database(database, undefined, async (statements) => {
+      if (!failFinalization || !statements.some((statement) =>
+        statement.sql.includes("SET status = 'ready'")
+        && statement.sql.includes("finalization_id"))) return;
+      failFinalization = false;
+      finalizationReachedResolve();
+      await finalizationRelease;
+      throw new Error("injected FabuBlox finalization failure before commit");
+    });
+
+    const put = vi.fn(async (key: string, value: unknown) => {
+      if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer upload");
+      stored.set(key, new Uint8Array(value.slice(0)));
+    });
+    const remove = vi.fn(async (key: string) => {
+      deletedKeys.push(key);
+      stored.delete(key);
+    });
+    const head = vi.fn(async (key: string) => {
+      const bytes = stored.get(key);
+      return bytes ? r2Object(bytes) : null;
+    });
+    const get = vi.fn(async (key: string) => {
+      const bytes = stored.get(key);
+      return bytes ? r2Object(bytes, key.endsWith(".png") ? "image/png" : "application/octet-stream") : null;
+    });
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: d1 as unknown as D1Database,
+      ASSETS: {
+        put,
+        delete: remove,
+        head,
+        get,
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const manifest = {
+      schemaVersion: 2,
+      title,
+      source: {
+        fileName: "atomic-publication.xlsx",
+        fileSha256: workbookSha,
+        sheetName: "Process",
+      },
+      initialSubstrateStep: null,
+      steps: [{
+        localId: "step-1",
+        sourceRow: 2,
+        position: 0,
+        stepNumber: "1",
+        sectionName: null,
+        name: "Image-bearing growth",
+        toolName: null,
+        parametersText: null,
+        commentsText: null,
+        imageIds: ["image-1"],
+        rawCells: {},
+      }],
+      images: [{
+        localId: "image-1",
+        sourcePart: "xl/media/image1.png",
+        mimeType: "image/png",
+        assignedStepLocalId: "step-1",
+        anchor: {},
+      }],
+      initialStateImageIds: [],
+      warnings: [],
+    };
+    const importForm = () => {
+      const form = new FormData();
+      form.set("workbook", new File([workbookBytes], "atomic-publication.xlsx", {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }));
+      form.set("manifest", new File([JSON.stringify(manifest)], "manifest.json", {
+        type: "application/json",
+      }));
+      form.set("image:image-1", new File([imageBytes], "state.png", { type: "image/png" }));
+      return form;
+    };
+
+    const firstImportPromise = worker.fetch(new Request(
+      "https://app.test/api/imports/fabublox",
+      { method: "POST", body: importForm() },
+    ), env, executionContext);
+    await finalizationReached;
+
+    const pending = database.prepare(`
+      SELECT id, template_version_id
+      FROM imports
+      WHERE status = 'pending' AND template_version_id IS NOT NULL
+      ORDER BY created_at DESC LIMIT 1
+    `).get() as { id: string; template_version_id: string };
+    const pendingTemplate = database.prepare(`
+      SELECT tv.id, ts.expected_state_hash
+      FROM template_versions tv
+      JOIN template_steps ts ON ts.template_version_id = tv.id
+      WHERE tv.id = ?
+    `).get(pending.template_version_id) as { id: string; expected_state_hash: string };
+    const pendingImage = database.prepare(`
+      SELECT id, r2_key
+      FROM assets
+      WHERE import_id = ? AND sha256 = ? AND status = 'pending'
+    `).get(pending.id, imageSha) as { id: string; r2_key: string };
+
+    const pendingSearch = await worker.fetch(new Request(
+      "https://app.test/api/references/search",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query: title, types: ["recipe_revision"] }),
+      },
+    ), env, executionContext);
+    expect(pendingSearch.status).toBe(200);
+    expect((await pendingSearch.json() as {
+      results: Array<{ target: { id: string } }>;
+    }).results.some((result) => result.target.id === pending.template_version_id)).toBe(false);
+
+    const pendingResolve = await worker.fetch(new Request(
+      "https://app.test/api/references/resolve",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ targets: [{ type: "recipe_revision", id: pending.template_version_id }] }),
+      },
+    ), env, executionContext);
+    expect(pendingResolve.status).toBe(200);
+    expect((await pendingResolve.json() as {
+      results: Array<{ resolution: string }>;
+    }).results[0]?.resolution).not.toBe("resolved");
+
+    expect((await worker.fetch(new Request(
+      `https://app.test/api/templates/${pending.template_version_id}`,
+    ), env, executionContext)).status).toBe(404);
+    expect((await worker.fetch(new Request(
+      `https://app.test/api/templates/${pending.template_version_id}/clone`,
+      { method: "POST" },
+    ), env, executionContext)).status).toBe(404);
+    expect((await worker.fetch(new Request(
+      `https://app.test/api/templates/${pending.template_version_id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: `${title} changed`, version: 1 }),
+      },
+    ), env, executionContext)).status).toBe(404);
+
+    expect(() => database.prepare(`
+      UPDATE template_versions SET name = name WHERE id = ?
+    `).run(pending.template_version_id)).toThrow("template version is not published");
+    expect(() => database.prepare(`
+      INSERT INTO state_representation_assets (state_hash, asset_id, position)
+      VALUES (?, ?, 0)
+    `).run(pendingTemplate.expected_state_hash, pendingImage.id))
+      .toThrow("asset owning import is not ready");
+
+    releaseFinalization();
+    const firstImport = await firstImportPromise;
+    expect(firstImport.status).toBe(500);
+
+    expect(database.prepare(`
+      SELECT status, template_version_id FROM imports WHERE id = ?
+    `).get(pending.id)).toEqual({
+      status: "failed",
+      template_version_id: pending.template_version_id,
+    });
+    expect(database.prepare(`
+      SELECT archived_at IS NOT NULL AS archived,
+             deleted_at IS NOT NULL AS deleted,
+             source_asset_key, initial_state_hash
+      FROM template_versions WHERE id = ?
+    `).get(pending.template_version_id)).toEqual({
+      archived: 1,
+      deleted: 1,
+      source_asset_key: null,
+      initial_state_hash: null,
+    });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count FROM template_steps WHERE template_version_id = ?
+    `).get(pending.template_version_id)).toEqual({ count: 0 });
+
+    const failedAssets = database.prepare(`
+      SELECT id, r2_key, status, sha256
+      FROM assets WHERE import_id = ? ORDER BY r2_key
+    `).all(pending.id) as Array<{
+      id: string; r2_key: string; status: string; sha256: string | null;
+    }>;
+    expect(failedAssets).toHaveLength(3);
+    expect(failedAssets.every((asset) => asset.status === "failed" && asset.sha256 === null)).toBe(true);
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM state_representation_assets
+      WHERE asset_id IN (SELECT id FROM assets WHERE import_id = ?)
+    `).get(pending.id)).toEqual({ count: 0 });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM blob_retention_edges
+      WHERE store_kind = 'r2' AND provider = 'r2'
+        AND object_key IN (SELECT r2_key FROM assets WHERE import_id = ?)
+    `).get(pending.id)).toEqual({ count: 0 });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM blob_gc_ledger
+      WHERE store_kind = 'r2' AND provider = 'r2'
+        AND object_key IN (SELECT r2_key FROM assets WHERE import_id = ?)
+        AND state = 'orphaned'
+    `).get(pending.id)).toEqual({ count: 3 });
+    expect(failedAssets.every((asset) => stored.has(asset.r2_key))).toBe(true);
+
+    const retry = await worker.fetch(new Request(
+      "https://app.test/api/imports/fabublox",
+      { method: "POST", body: importForm() },
+    ), env, executionContext);
+    expect(retry.status).toBe(201);
+    const retried = await retry.json() as { id: string; templateVersionId: string; version: number };
+
+    const detail = await worker.fetch(new Request(
+      `https://app.test/api/templates/${retried.templateVersionId}`,
+    ), env, executionContext);
+    expect(detail.status).toBe(200);
+    const detailBody = await detail.json() as {
+      template: { steps: Array<{ imageKeys: string[] }> };
+    };
+    expect(detailBody.template.steps[0]?.imageKeys).toHaveLength(1);
+    const readyImageKey = detailBody.template.steps[0]!.imageKeys[0]!;
+    expect(stored.has(readyImageKey)).toBe(true);
+
+    const readyRelationship = database.prepare(`
+      SELECT a.id AS asset_id, a.r2_key, ts.expected_state_hash
+      FROM template_steps ts
+      JOIN state_representation_assets sra ON sra.state_hash = ts.expected_state_hash
+      JOIN assets a ON a.id = sra.asset_id
+      JOIN imports i ON i.id = a.import_id
+      WHERE ts.template_version_id = ? AND a.sha256 = ?
+        AND a.status = 'ready' AND i.status = 'ready'
+    `).get(retried.templateVersionId, imageSha) as {
+      asset_id: string; r2_key: string; expected_state_hash: string;
+    };
+    expect(readyRelationship.r2_key).toBe(readyImageKey);
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count FROM blob_retention_edges
+      WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ?
+    `).get(readyImageKey)).toEqual({ count: 1 });
+
+    const readySearch = await worker.fetch(new Request(
+      "https://app.test/api/references/search",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query: title, types: ["recipe_revision"] }),
+      },
+    ), env, executionContext);
+    expect(readySearch.status).toBe(200);
+    expect((await readySearch.json() as {
+      results: Array<{ target: { id: string }; resolution: { resolution: string } }>;
+    }).results).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        target: { type: "recipe_revision", id: retried.templateVersionId },
+        resolution: expect.objectContaining({ resolution: "resolved" }),
+      }),
+    ]));
+
+    const future = new Date(Date.now() + 8 * 24 * 60 * 60 * 1_000);
+    const gc = await runBlobGarbageCollection(env, future);
+    expect(gc.failures).toBe(0);
+    for (const asset of failedAssets) {
+      expect(deletedKeys).toContain(asset.r2_key);
+      expect(stored.has(asset.r2_key)).toBe(false);
+      expect(database.prepare(`
+        SELECT state FROM blob_gc_ledger
+        WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ?
+      `).get(asset.r2_key)).toEqual({ state: "deleted" });
+    }
+    expect(deletedKeys).not.toContain(readyImageKey);
+    expect(stored.has(readyImageKey)).toBe(true);
+    expect((await worker.fetch(new Request(
+      `https://app.test/api/templates/${retried.templateVersionId}`,
+    ), env, executionContext)).status).toBe(200);
+    database.close();
+  });
+
 });

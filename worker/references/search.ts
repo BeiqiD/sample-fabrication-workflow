@@ -18,6 +18,7 @@ import {
   type ReferenceTargetType,
 } from "../../shared/reference-types";
 import { referenceTargetKey, resolveReferences } from "./resolver";
+import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
 
 const SEARCH_CANDIDATE_FLOOR = 60;
 const SEARCH_CANDIDATE_CEILING = 150;
@@ -637,6 +638,8 @@ export const REFERENCE_SEARCH_ADAPTERS = {
       AND rs.deleted_at IS NULL
       AND r.deleted_at IS NULL
       AND s.deleted_at IS NULL
+      AND a.status = 'ready'
+      AND ${publishedAssetSql("a")}
       AND a.original_name IS NOT NULL
     `,
     sampleFilter: (sampleId) => ({ sql: "s.id = ?", bindings: [sampleId] }),
@@ -663,6 +666,9 @@ export const REFERENCE_SEARCH_ADAPTERS = {
     visibilitySql: `
       mtr.deleted_at IS NULL
       AND tv.deleted_at IS NULL
+      AND ${publishedTemplateVersionSql("tv")}
+      AND a.status = 'ready'
+      AND ${publishedAssetSql("a")}
       AND a.original_name IS NOT NULL
     `,
   }),
@@ -683,7 +689,7 @@ export const REFERENCE_SEARCH_ADAPTERS = {
       "CASE WHEN tv.archived_at IS NULL THEN 'active' ELSE 'archived' END",
     ],
     timestampSql: "tv.created_at",
-    visibilitySql: "tv.deleted_at IS NULL",
+    visibilitySql: `tv.deleted_at IS NULL AND ${publishedTemplateVersionSql("tv")}`,
   }),
 } as const satisfies Record<ReferenceTargetType, ReferenceSearchAdapter>;
 
