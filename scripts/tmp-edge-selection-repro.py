@@ -3,8 +3,9 @@ from pathlib import Path
 path = Path("src/project-edge-surface.mount.test.tsx")
 text = path.read_text()
 anchor = '\n});\n'
-if text.count(anchor) != 1:
-    raise SystemExit(f"expected one describe terminator, found {text.count(anchor)}")
+position = text.rfind(anchor)
+if position < 0:
+    raise SystemExit("could not find describe terminator")
 
 test = r'''
 
@@ -42,22 +43,22 @@ test = r'''
 
     const { container } = render(<div style={{ width: 900, height: 700 }}><ControlledClickHarness /></div>);
     await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
-    const noteNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    const liveNoteNode = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
     const liveEdge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
     await waitFor(() => expect(liveEdge()).toBeTruthy());
 
-    fireEvent.click(noteNode);
-    await waitFor(() => expect(noteNode.classList.contains("selected")).toBe(true));
+    fireEvent.click(liveNoteNode());
+    await waitFor(() => expect(liveNoteNode().classList.contains("selected")).toBe(true));
     transitions.length = 0;
 
     fireEvent.click(liveEdge());
     await waitFor(() => {
       expect(liveEdge().classList.contains("selected")).toBe(true);
-      expect(noteNode.classList.contains("selected")).toBe(false);
+      expect(liveNoteNode().classList.contains("selected")).toBe(false);
     });
     expect(transitions).toContain("edge:edge-a");
     expect(transitions.length).toBeLessThanOrEqual(6);
   });
 '''
 
-path.write_text(text.replace(anchor, test + anchor, 1))
+path.write_text(text[:position] + test + text[position:])
