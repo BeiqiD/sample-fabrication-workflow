@@ -88,6 +88,21 @@ quarantined locators; authenticated complete-export routes deliberately retain
 read access so size/hash verification can record the failure in the export
 manifest and warnings.
 
+### FabuBlox import lease and recovery
+
+A FabuBlox import owns a persistent operation ID and lease while its asset rows
+remain pending. Final publication records a separate finalization ID and changes
+the import to ready in the same D1 statement that activates those assets.
+
+If the finalization call fails, the Worker first reads the primary D1 state. A
+matching ready/finalization identity is treated as committed success. If the
+primary read itself is unavailable, the result remains unknown and no R2 object
+is deleted. An authoritatively pending matching operation may be marked failed,
+release its SHA reservation, and enqueue its tracked objects in
+`blob_gc_ledger`. The scheduled stale-import reaper performs the same CAS after
+lease expiry. R2 deletion therefore uses the existing retryable orphan/deleting
+operation-ID queue, including retry after provider failure.
+
 ## Terminal locator rule
 
 A `deleted` ledger entry is terminal for that physical locator. Operators and

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { sha256Hex } from "../shared/content-addressing";
 import worker from "./index";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import type { Env } from "./types";
@@ -111,6 +112,77 @@ function cancel(env: Env, submissionId: string) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("blob garbage collection", () => {
+
+  it("reaps an expired FabuBlox lease, releases its hash, and retries queued deletion", async () => {
+    const database = migratedDatabase();
+    const bytes = new TextEncoder().encode('data');
+    const sha = await sha256Hex(bytes.buffer);
+    database.prepare(`
+      INSERT INTO imports (
+        id, status, source_filename, source_sha256, sheet_name, template_type,
+        warning_count, created_at, operation_id, lease_expires_at
+      ) VALUES (
+        'stale-import', 'pending', 'stale.xlsx', ?, 'Process', 'process',
+        0, '2026-01-01T00:00:00.000Z', 'stale-operation',
+        '2026-01-02T00:00:00.000Z'
+      )
+    `).run(sha);
+    database.prepare(`
+      INSERT INTO assets (
+        id, import_id, r2_key, original_name, mime_type, byte_size,
+        status, created_at, sha256
+      ) VALUES (
+        'stale-import-asset', 'stale-import', 'imports/stale/source.xlsx',
+        'stale.xlsx', 'application/octet-stream', 4,
+        'pending', '2026-01-01T00:00:00.000Z', ?
+      )
+    `).run(sha);
+    const assetDelete = vi.fn()
+      .mockRejectedValueOnce(new Error('temporary R2 delete outage'))
+      .mockResolvedValue(undefined);
+    const assetPut = vi.fn(async () => undefined);
+    const env = envFor(database, assetDelete, { assetPut });
+
+    const first = await cleanupCommentUploads(env, new Date('2026-08-14T00:00:00.000Z'));
+    expect(first).toMatchObject({
+      staleImportsFailed: 1,
+      staleImportAssetsReleased: 1,
+      staleImportObjectsQueued: 1,
+      staleImportRecoveryFailures: 0,
+      failures: 1,
+    });
+    expect(database.prepare(`
+      SELECT status, recovery_operation_id IS NOT NULL AS recovered
+      FROM imports WHERE id = 'stale-import'
+    `).get()).toEqual({ status: 'failed', recovered: 1 });
+    expect(database.prepare(`
+      SELECT status, sha256 FROM assets WHERE id = 'stale-import-asset'
+    `).get()).toEqual({ status: 'failed', sha256: null });
+    expect(database.prepare(`
+      SELECT state, last_error IS NOT NULL AS has_error
+      FROM blob_gc_ledger WHERE object_key = 'imports/stale/source.xlsx'
+    `).get()).toEqual({ state: 'orphaned', has_error: 1 });
+
+    const replacement = await worker.fetch(new Request(
+      'https://samples.run/api/assets',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'image/png', 'x-filename': 'replacement.png' },
+        body: bytes,
+      },
+    ), env, {} as ExecutionContext);
+    expect(replacement.status).toBe(201);
+    expect(assetPut).toHaveBeenCalledTimes(1);
+
+    const second = await cleanupCommentUploads(env, new Date('2026-08-15T00:00:00.000Z'));
+    expect(second.failures).toBe(0);
+    expect(database.prepare(`
+      SELECT state FROM blob_gc_ledger
+      WHERE object_key = 'imports/stale/source.xlsx'
+    `).get()).toEqual({ state: 'deleted' });
+    expect(assetDelete).toHaveBeenCalledTimes(2);
+    database.close();
+  });
   it("keeps shared R2 and managed bytes while another unfinished submission can finalize", async () => {
     const database = migratedDatabase();
     database.exec(`

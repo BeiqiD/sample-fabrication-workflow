@@ -146,7 +146,14 @@ describe("provider-verified blob reuse", () => {
     `).get()).toEqual({ status: 'pending' });
 
     database.prepare(`
-      UPDATE imports SET status = 'ready', completed_at = ?
+      UPDATE imports
+      SET operation_id = 'operation-pending-reuse',
+          lease_expires_at = '2026-08-15T18:00:00.000Z'
+      WHERE id = 'import-pending-reuse'
+    `).run();
+    database.prepare(`
+      UPDATE imports
+      SET status = 'ready', finalization_id = 'finalize-pending-reuse', completed_at = ?
       WHERE id = 'import-pending-reuse'
     `).run(NOW);
     expect(database.prepare(`

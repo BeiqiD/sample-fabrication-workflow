@@ -21,6 +21,12 @@ import { routes as projectRoutes } from "./project-routes";
 import { routes as referenceRoutes } from "./reference-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import {
+  fabubloxImportLeaseExpiresAt,
+  primaryD1,
+  queueFabubloxImportCleanup,
+  readFabubloxImportState,
+} from "./fabublox-import-recovery";
+import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
@@ -114,15 +120,6 @@ async function requireVisibleCommentOperationGroup(db: D1Database, operationGrou
       message: "A common comment target is no longer available. Restore every target before changing the group.",
     });
   }
-}
-
-async function deleteR2KeysInBatches(bucket: R2Bucket, keys: string[]) {
-  const failures: unknown[] = [];
-  for (let index = 0; index < keys.length; index += 5) {
-    const results = await Promise.allSettled(keys.slice(index, index + 5).map((key) => bucket.delete(key)));
-    for (const result of results) if (result.status === "rejected") failures.push(result.reason);
-  }
-  return failures;
 }
 
 app.onError((error, c) => {
@@ -4923,14 +4920,35 @@ app.post("/imports/fabublox", async (c) => {
   const recipeFamilyId = existingFamily?.id ?? crypto.randomUUID();
   const recipeName = existingFamily?.name ?? manifest.title.trim();
   const importId = crypto.randomUUID();
-  const now = new Date().toISOString();
+  const importOperationId = crypto.randomUUID();
+  const finalizationId = crypto.randomUUID();
+  const startedAt = new Date();
+  const now = startedAt.toISOString();
+  const leaseExpiresAt = fabubloxImportLeaseExpiresAt(startedAt);
   const userEmail = c.get("userEmail");
-  await c.env.DB.prepare(
-    `INSERT INTO imports (id, status, source_filename, source_sha256, sheet_name, template_type, recipe_family_id, warning_count, actor_email, created_at)
-     VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(importId, workbook.name, actualSha, manifest.source.sheetName, internalTemplateType, recipeFamilyId, manifest.warnings.length, userEmail, now).run();
+  const importDb = primaryD1(c.env.DB);
+  await importDb.prepare(
+    `INSERT INTO imports (
+       id, status, source_filename, source_sha256, sheet_name, template_type,
+       recipe_family_id, warning_count, actor_email, created_at,
+       operation_id, lease_expires_at
+     ) VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    importId,
+    workbook.name,
+    actualSha,
+    manifest.source.sheetName,
+    internalTemplateType,
+    recipeFamilyId,
+    manifest.warnings.length,
+    userEmail,
+    now,
+    importOperationId,
+    leaseExpiresAt,
+  ).run();
 
-  const uploadedKeys: string[] = [];
+  let completedTemplateVersionId: string | null = null;
+  let completedVersion: number | null = null;
   try {
     const prefix = `imports/${importId}`;
     type Candidate = {
@@ -4969,23 +4987,18 @@ app.post("/imports/fabublox", async (c) => {
           : `images/${candidate.localId}-${safeObjectName(candidate.originalName)}`;
       return { assetId: crypto.randomUUID(), key: `${prefix}/${suffix}` };
     });
-    const newAssets = [...new Map(resolved.filter((asset) => asset.isNew).map((asset) => [asset.assetId, asset])).values()];
-    for (let index = 0; index < newAssets.length; index += 5) {
-      const uploadResults = await Promise.allSettled(newAssets.slice(index, index + 5).map(async (asset) => {
-        await c.env.ASSETS.put(asset.key, asset.buffer, { httpMetadata: { contentType: asset.mimeType } });
-        uploadedKeys.push(asset.key);
-      }));
-      const failedUpload = uploadResults.find((result) => result.status === "rejected");
-      if (failedUpload?.status === "rejected") throw failedUpload.reason;
-    }
-
+    const newAssets = [...new Map(resolved.filter((asset) => asset.isNew)
+      .map((asset) => [asset.assetId, asset])).values()];
+    const stagedAssets: typeof newAssets = [];
     for (const asset of newAssets) {
       let registered = false;
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          await c.env.DB.prepare(
+          const registrationDb = primaryD1(c.env.DB);
+          await registrationDb.prepare(
             `INSERT INTO assets
-             (id, import_id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
+             (id, import_id, r2_key, original_name, mime_type, byte_size,
+              status, actor_email, created_at, sha256)
              VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
           ).bind(
             asset.assetId,
@@ -4998,16 +5011,32 @@ app.post("/imports/fabublox", async (c) => {
             now,
             asset.sha256,
           ).run();
+          stagedAssets.push(asset);
           registered = true;
           break;
         } catch (error) {
+          const ownRegistration = await primaryD1(c.env.DB).prepare(`
+            SELECT id
+            FROM assets
+            WHERE id = ? AND import_id = ? AND r2_key = ?
+              AND original_name = ? AND mime_type = ? AND byte_size = ?
+              AND status = 'pending' AND sha256 = ?
+          `).bind(
+            asset.assetId,
+            importId,
+            asset.key,
+            asset.originalName,
+            asset.mimeType,
+            asset.buffer.byteLength,
+            asset.sha256,
+          ).first<{ id: string }>();
+          if (ownRegistration) {
+            stagedAssets.push(asset);
+            registered = true;
+            break;
+          }
           const winner = await reusableR2Asset(c.env, asset.sha256);
           if (winner) {
-            if (winner.id === asset.assetId && winner.r2_key === asset.key) {
-              registered = true;
-              break;
-            }
-            await c.env.ASSETS.delete(asset.key);
             for (const candidate of resolved) {
               if (candidate.sha256 !== asset.sha256) continue;
               candidate.assetId = winner.id;
@@ -5021,8 +5050,23 @@ app.post("/imports/fabublox", async (c) => {
         }
       }
       if (!registered) {
-        throw new HTTPException(409, { message: "Imported asset registration could not be reconciled" });
+        throw new HTTPException(409, {
+          message: "Imported asset registration could not be reconciled",
+        });
       }
+    }
+
+    // Every provider write now has a durable pending asset row first. A lost or
+    // failed PUT can therefore be recovered by the lease reaper and GC queue.
+    for (let index = 0; index < stagedAssets.length; index += 5) {
+      const uploadResults = await Promise.allSettled(
+        stagedAssets.slice(index, index + 5).map((asset) =>
+          c.env.ASSETS.put(asset.key, asset.buffer, {
+            httpMetadata: { contentType: asset.mimeType },
+          })),
+      );
+      const failedUpload = uploadResults.find((result) => result.status === "rejected");
+      if (failedUpload?.status === "rejected") throw failedUpload.reason;
     }
 
     const workbookAsset = resolved.find((asset) => asset.kind === "workbook")!;
@@ -5033,6 +5077,8 @@ app.post("/imports/fabublox", async (c) => {
     ).bind(recipeFamilyId).first<{ version: number }>();
     const version = (latest?.version ?? 0) + 1;
     const templateVersionId = crypto.randomUUID();
+    completedVersion = version;
+    completedTemplateVersionId = templateVersionId;
     const stepIds = new Map(manifest.steps.map((step) => [step.localId, crypto.randomUUID()]));
 
     const occurrences = new Map<string, number>();
@@ -5092,13 +5138,14 @@ app.post("/imports/fabublox", async (c) => {
       rows.results.forEach((row) => existingStateHashes.add(row.hash));
     }
 
-    const statements: D1PreparedStatement[] = [
+    const metadataStatements: D1PreparedStatement[] = [
       ...(!existingFamily ? [c.env.DB.prepare(
         `INSERT INTO recipe_families (id, name, template_type, created_by, created_at)
          VALUES (?, ?, ?, ?, ?)`,
       ).bind(recipeFamilyId, recipeName, internalTemplateType, userEmail, now)] : []),
-      c.env.DB.prepare("UPDATE imports SET template_version_id = ? WHERE id = ? AND status = 'pending'")
-        .bind(templateVersionId, importId),
+      c.env.DB.prepare(
+        "UPDATE imports SET template_version_id = ? WHERE id = ? AND status = 'pending' AND operation_id = ?",
+      ).bind(templateVersionId, importId, importOperationId),
       ...bulkInsertStatements(c.env.DB, "step_definitions",
         ["hash", "hash_scheme", "name", "tool_name", "parameters_text", "comments_text", "canonical_json", "created_at"],
         [...definitions.values()].filter((definition) => !existingDefinitionHashes.has(definition.hash)).map((definition) => [
@@ -5130,21 +5177,76 @@ app.post("/imports/fabublox", async (c) => {
         ["id", "template_version_id", "logical_step_key", "position", "source_row", "step_number", "section_name", "definition_hash", "expected_state_hash", "raw_json"],
         preparedSteps.map((step) => [stepIds.get(step.source.localId), templateVersionId, step.logicalKey, step.source.position,
           step.source.sourceRow, step.source.stepNumber, step.source.sectionName, step.definitionHash, step.expectedStateHash, JSON.stringify(step.source.rawCells)])),
-      c.env.DB.prepare(
-        `UPDATE imports SET status = 'ready', workbook_asset_key = ?, manifest_asset_key = ?, completed_at = ?
-         WHERE id = ? AND status = 'pending'`,
-      ).bind(workbookAsset.key, manifestAsset.key, new Date().toISOString(), importId),
     ];
-    for (let index = 0; index < statements.length; index += 45) await c.env.DB.batch(statements.slice(index, index + 45));
+    for (let index = 0; index < metadataStatements.length; index += 45) {
+      await c.env.DB.batch(metadataStatements.slice(index, index + 45));
+    }
+
+    const completedAt = new Date().toISOString();
+    const finalizationDb = primaryD1(c.env.DB);
+    const [finalizationResult] = await finalizationDb.batch([
+      finalizationDb.prepare(`
+        UPDATE imports
+        SET status = 'ready', workbook_asset_key = ?, manifest_asset_key = ?,
+            finalization_id = ?, completed_at = ?, lease_expires_at = NULL
+        WHERE id = ? AND status = 'pending' AND operation_id = ?
+          AND template_version_id = ? AND lease_expires_at > ?
+      `).bind(
+        workbookAsset.key,
+        manifestAsset.key,
+        finalizationId,
+        completedAt,
+        importId,
+        importOperationId,
+        templateVersionId,
+        completedAt,
+      ),
+    ]);
+    if (!finalizationResult.meta.changes) {
+      throw new HTTPException(409, {
+        message: "The import lease changed before finalization",
+      });
+    }
     return c.json({ id: importId, templateVersionId, version }, 201);
   } catch (error) {
-    const cleanupFailures = await deleteR2KeysInBatches(c.env.ASSETS, uploadedKeys);
-    if (cleanupFailures.length) console.error("Could not clean every failed import object", cleanupFailures);
-    await c.env.DB.batch([
-      c.env.DB.prepare("UPDATE imports SET status = 'failed', error_message = ?, completed_at = ? WHERE id = ?")
-        .bind(String(error), new Date().toISOString(), importId),
-      c.env.DB.prepare("UPDATE assets SET status = 'failed', sha256 = NULL WHERE import_id = ?").bind(importId),
-    ]);
+    let authoritative;
+    try {
+      authoritative = await readFabubloxImportState(c.env.DB, importId);
+    } catch (readError) {
+      console.error("Could not determine FabuBlox finalization outcome", readError);
+      throw new HTTPException(503, {
+        message: "Import finalization outcome is unknown; persistent recovery will reconcile it",
+      });
+    }
+
+    if (authoritative?.status === "ready"
+      && authoritative.operation_id === importOperationId
+      && authoritative.finalization_id === finalizationId
+      && authoritative.template_version_id === completedTemplateVersionId
+      && completedTemplateVersionId !== null
+      && completedVersion !== null) {
+      return c.json({
+        id: importId,
+        templateVersionId: completedTemplateVersionId,
+        version: completedVersion,
+      }, 201);
+    }
+
+    if (authoritative?.status === "pending"
+      && authoritative.operation_id === importOperationId
+      && authoritative.finalization_id === null) {
+      try {
+        await queueFabubloxImportCleanup(c.env, {
+          importId,
+          operationId: importOperationId,
+          error,
+        });
+      } catch (recoveryError) {
+        // Provider bytes remain untouched. The persisted lease allows the
+        // scheduled reaper to retry this metadata-only recovery safely.
+        console.error("Could not queue failed FabuBlox import recovery", recoveryError);
+      }
+    }
     throw error;
   }
 });

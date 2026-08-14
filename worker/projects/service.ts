@@ -867,6 +867,13 @@ async function readAttachmentBlobRecord(
           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
             AND biq.object_key = a.r2_key
         )
+        AND (
+          a.import_id IS NULL
+          OR EXISTS (
+            SELECT 1 FROM imports i
+            WHERE i.id = a.import_id AND i.status = 'ready'
+          )
+        )
       LIMIT 1
     `).bind(input.locator.assetId).first<BlobRecordRow>();
     if (!row) throw new ProjectServiceError("blob_unavailable", "The selected asset is unavailable");
@@ -1625,6 +1632,13 @@ export async function readProjectAttachmentMediaSource(
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
             AND biq.object_key = a.r2_key
+        )
+        AND (
+          a.import_id IS NULL
+          OR EXISTS (
+            SELECT 1 FROM imports i
+            WHERE i.id = a.import_id AND i.status = 'ready'
+          )
         )
 
       UNION ALL

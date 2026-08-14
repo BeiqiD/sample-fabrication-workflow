@@ -46,7 +46,9 @@ The slice includes:
 10. migration compatibility repairs for malformed historical event metadata and
     legacy managed-object duplicate states;
 11. provider `HEAD`/`stat` verification before content-addressed reuse, with
-    terminal integrity quarantine for definite absence or size mismatch.
+    terminal integrity quarantine for definite absence or size mismatch;
+12. leased FabuBlox staging, primary-authoritative finalization recovery, and a
+    persistent GC queue for stale or failed import objects.
 
 The slice does not include:
 
@@ -158,6 +160,15 @@ export, and repair, while:
 - releasing the content hash so identical bytes can be registered at a fresh
   physical locator;
 - keeping the old locator terminal rather than silently reusing a recycled key.
+
+FabuBlox assets remain `pending` while their owning import lease is active. The
+import request and finalization each have an immutable identity. A finalization
+error is followed by a primary D1 read before any cleanup decision: a committed
+matching finalization is returned as success, an unknown outcome leaves provider
+bytes untouched, and only an authoritatively pending matching operation can be
+moved to failed recovery. Failed/stale assets release their hash and enter
+`blob_gc_ledger`; provider deletion is then retried by the ordinary operation-ID
+GC state machine rather than performed destructively in the request catch path.
 
 ## Authoritative schema surfaces
 

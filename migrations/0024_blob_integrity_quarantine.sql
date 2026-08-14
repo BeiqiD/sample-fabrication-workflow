@@ -30,6 +30,34 @@ CREATE INDEX blob_integrity_quarantine_record_idx
 ON blob_integrity_quarantine(store_kind, blob_record_id)
 WHERE blob_record_id IS NOT NULL;
 
+-- FabuBlox import publication uses an explicit lease and immutable request /
+-- finalization identities. A stale pending import can therefore be claimed by
+-- scheduled recovery without guessing from age alone.
+ALTER TABLE imports ADD COLUMN operation_id TEXT;
+ALTER TABLE imports ADD COLUMN lease_expires_at TEXT;
+ALTER TABLE imports ADD COLUMN finalization_id TEXT;
+ALTER TABLE imports ADD COLUMN recovery_operation_id TEXT;
+
+UPDATE imports
+SET operation_id = 'migration:0024:' || id
+WHERE operation_id IS NULL;
+
+UPDATE imports
+SET lease_expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', created_at, '+1 day')
+WHERE status = 'pending' AND lease_expires_at IS NULL;
+
+CREATE UNIQUE INDEX imports_operation_id_unique_idx
+ON imports(operation_id)
+WHERE operation_id IS NOT NULL;
+
+CREATE UNIQUE INDEX imports_finalization_id_unique_idx
+ON imports(finalization_id)
+WHERE finalization_id IS NOT NULL;
+
+CREATE INDEX imports_pending_lease_idx
+ON imports(lease_expires_at, id)
+WHERE status = 'pending';
+
 -- A quarantined locator no longer reserves its content hash, allowing the same
 -- bytes to be registered again at a fresh physical locator.
 DROP TRIGGER assets_reject_live_sha_duplicate;
@@ -75,6 +103,16 @@ WHEN NEW.sha256 IS NOT NULL AND NEW.status IN ('pending', 'ready') AND EXISTS (
 )
 BEGIN
   SELECT RAISE(ABORT, 'UNIQUE live asset sha256 already registered');
+END;
+
+CREATE TRIGGER imports_require_finalization_identity
+BEFORE UPDATE OF status ON imports
+WHEN OLD.status = 'pending' AND NEW.status = 'ready'
+BEGIN
+  SELECT RAISE(ABORT, 'import finalization identity is required')
+  WHERE NEW.operation_id IS NULL OR NEW.finalization_id IS NULL
+    OR NEW.completed_at IS NULL OR OLD.lease_expires_at IS NULL
+    OR OLD.lease_expires_at <= NEW.completed_at;
 END;
 
 CREATE TRIGGER imports_activate_pending_assets
@@ -256,6 +294,17 @@ BEGIN
       ON biq.store_kind = 'managed' AND biq.provider = mso.provider
         AND biq.object_key = mso.object_key
     WHERE mso.id = NEW.storage_object_id
+  );
+  SELECT RAISE(ABORT, 'blob locator is unavailable')
+  WHERE NEW.asset_id IS NOT NULL AND EXISTS (
+    SELECT 1
+    FROM assets a
+    LEFT JOIN imports i ON i.id = a.import_id
+    WHERE a.id = NEW.asset_id
+      AND (
+        a.status <> 'ready'
+        OR (a.import_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'ready'))
+      )
   );
 END;
 

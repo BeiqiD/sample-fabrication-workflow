@@ -86,6 +86,7 @@ class HookedD1Database {
     readonly database: DatabaseSync,
     readonly beforeExecute?: (query: string, bindings: unknown[]) => void,
     readonly beforeBatch?: (statements: HookedD1Statement[]) => Promise<void> | void,
+    readonly afterBatch?: (statements: HookedD1Statement[]) => Promise<void> | void,
   ) {}
 
   prepare(sql: string) {
@@ -99,6 +100,7 @@ class HookedD1Database {
     try {
       const results = hookedStatements.map((statement) => statement.execute());
       this.database.exec("COMMIT");
+      await this.afterBatch?.(hookedStatements);
       return results;
     } catch (error) {
       this.database.exec("ROLLBACK");
@@ -425,11 +427,152 @@ describe("FabuBlox storage winner recovery", () => {
     expect(database.prepare(`
       SELECT status, import_id FROM assets WHERE id = 'fabublox-race-winner'
     `).get()).toEqual({ status: "ready", import_id: null });
-    expect(deletedKeys.some((key) => key.includes("/source/race.xlsx"))).toBe(true);
+    expect(deletedKeys.some((key) => key.includes("/source/race.xlsx"))).toBe(false);
     expect(deletedKeys).not.toContain(winnerKey);
     expect(database.prepare(`
       SELECT COUNT(*) AS count FROM imports WHERE status = 'failed'
     `).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("recovers a committed finalization after its D1 response is lost", async () => {
+    const database = referenceTestDatabase();
+    const workbookBytes = Uint8Array.from([80, 75, 3, 4, 41, 42, 43, 44]);
+    const workbookBuffer = workbookBytes.buffer.slice(
+      workbookBytes.byteOffset,
+      workbookBytes.byteOffset + workbookBytes.byteLength,
+    ) as ArrayBuffer;
+    const workbookSha = await sha256Hex(workbookBuffer);
+    const stored = new Map<string, Uint8Array>();
+    const deletedKeys: string[] = [];
+    let finalizationCommittedResolve!: () => void;
+    const finalizationCommitted = new Promise<void>((resolve) => {
+      finalizationCommittedResolve = resolve;
+    });
+    let releaseLostResponse!: () => void;
+    const lostResponseRelease = new Promise<void>((resolve) => {
+      releaseLostResponse = resolve;
+    });
+    let injected = false;
+    const d1 = new HookedD1Database(
+      database,
+      undefined,
+      undefined,
+      async (statements) => {
+        if (injected || !statements.some((statement) =>
+          statement.sql.includes("SET status = 'ready'")
+          && statement.sql.includes('finalization_id'))) return;
+        injected = true;
+        finalizationCommittedResolve();
+        await lostResponseRelease;
+        throw new Error('injected D1 response loss after committed finalization');
+      },
+    );
+    const put = vi.fn(async (key: string, value: unknown) => {
+      if (!(value instanceof ArrayBuffer)) throw new Error('Expected an ArrayBuffer upload');
+      stored.set(key, new Uint8Array(value.slice(0)));
+    });
+    const remove = vi.fn(async (key: string) => {
+      deletedKeys.push(key);
+      stored.delete(key);
+    });
+    const head = vi.fn(async (key: string) => {
+      const bytes = stored.get(key);
+      return bytes ? r2Object(bytes) : null;
+    });
+    const get = vi.fn(async (key: string) => {
+      const bytes = stored.get(key);
+      return bytes ? r2Object(bytes, 'image/png') : null;
+    });
+    const env = {
+      AUTH_MODE: 'disabled',
+      DB: d1 as unknown as D1Database,
+      ASSETS: {
+        put,
+        delete: remove,
+        head,
+        get,
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+    const manifest = {
+      schemaVersion: 2,
+      title: 'Committed finalization recovery',
+      source: {
+        fileName: 'committed.xlsx',
+        fileSha256: workbookSha,
+        sheetName: 'Process',
+      },
+      initialSubstrateStep: null,
+      steps: [{
+        localId: 'step-1',
+        sourceRow: 2,
+        position: 0,
+        stepNumber: '1',
+        sectionName: null,
+        name: 'Growth',
+        toolName: null,
+        parametersText: null,
+        commentsText: null,
+        imageIds: [],
+        rawCells: {},
+      }],
+      images: [],
+      initialStateImageIds: [],
+      warnings: [],
+    };
+    const form = new FormData();
+    form.set('workbook', new File([workbookBytes], 'committed.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }));
+    form.set('manifest', new File([JSON.stringify(manifest)], 'manifest.json', {
+      type: 'application/json',
+    }));
+
+    const importResponsePromise = worker.fetch(new Request(
+      'https://app.test/api/imports/fabublox',
+      { method: 'POST', body: form },
+    ), env, executionContext);
+    await finalizationCommitted;
+
+    const published = database.prepare(`
+      SELECT a.id, a.r2_key
+      FROM assets a
+      JOIN imports i ON i.id = a.import_id
+      WHERE i.status = 'ready' AND a.status = 'ready' AND a.sha256 = ?
+    `).get(workbookSha) as { id: string; r2_key: string };
+    const concurrent = await worker.fetch(new Request(
+      'https://app.test/api/assets',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'image/png',
+          'x-filename': 'concurrent.png',
+        },
+        body: workbookBytes,
+      },
+    ), env, executionContext);
+    expect(concurrent.status).toBe(200);
+    expect(await concurrent.json()).toEqual({
+      id: published.id,
+      key: published.r2_key,
+      deduplicated: true,
+    });
+    expect((await worker.fetch(new Request(
+      `https://app.test/api/assets/${published.r2_key}`,
+    ), env, executionContext)).status).toBe(200);
+
+    releaseLostResponse();
+    const recovered = await importResponsePromise;
+    expect(recovered.status).toBe(201);
+    expect(deletedKeys).not.toContain(published.r2_key);
+    expect(database.prepare(`
+      SELECT status, finalization_id IS NOT NULL AS finalized
+      FROM imports WHERE id = (SELECT import_id FROM assets WHERE id = ?)
+    `).get(published.id)).toEqual({ status: 'ready', finalized: 1 });
+    expect((await worker.fetch(new Request(
+      `https://app.test/api/assets/${published.r2_key}`,
+    ), env, executionContext)).status).toBe(200);
     database.close();
   });
 
@@ -567,8 +710,12 @@ describe("FabuBlox storage winner recovery", () => {
     expect(database.prepare(`
       SELECT status, sha256 FROM assets WHERE id = ?
     `).get(pendingAsset.id)).toEqual({ status: 'failed', sha256: null });
-    expect(deletedKeys).toContain(pendingAsset.r2_key);
-    expect(stored.has(pendingAsset.r2_key)).toBe(false);
+    expect(deletedKeys).not.toContain(pendingAsset.r2_key);
+    expect(stored.has(pendingAsset.r2_key)).toBe(true);
+    expect(database.prepare(`
+      SELECT state FROM blob_gc_ledger
+      WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ?
+    `).get(pendingAsset.r2_key)).toEqual({ state: 'orphaned' });
 
     const liveAfterFailure = await worker.fetch(new Request(
       `https://app.test/api/assets/${pendingAsset.r2_key}`,

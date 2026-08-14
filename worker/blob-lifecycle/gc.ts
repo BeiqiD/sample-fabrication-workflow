@@ -1,4 +1,5 @@
 import type { Env } from "../types";
+import { reapStaleFabubloxImports } from "../fabublox-import-recovery";
 import {
   BLOB_ORPHAN_GRACE_MS,
   BLOB_REGISTRATION_GRACE_MS,
@@ -250,8 +251,9 @@ async function deleteClaimedLocators(env: Env, now: Date) {
 }
 
 export async function runBlobGarbageCollection(env: Env, now = new Date()) {
+  const staleImports = await reapStaleFabubloxImports(env, now);
   const retry = await closeExpiredRetryWindows(env, now);
   const orphanCandidatesMarked = await markUnreachableLocators(env, now);
   const deleted = await deleteClaimedLocators(env, now);
-  return { ...retry, orphanCandidatesMarked, ...deleted };
+  return { ...staleImports, ...retry, orphanCandidatesMarked, ...deleted };
 }

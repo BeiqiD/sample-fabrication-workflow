@@ -329,6 +329,8 @@ operations. It allows:
 
 - complete rendering of existing items;
 - editing existing Project-owned Markdown;
+- moving an existing Project-owned Markdown occurrence to Trash through the
+  guarded item/content lifecycle operation;
 - editing attachment caption and optional source URL;
 - never retargeting attachment bytes or intrinsic filename/type/size metadata;
 - opening references and Inspector.
