@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Apply review fixes
-        run: python scripts/tmp-pr139-review-fixes.py
+        run: python scripts/tmp-pr139-review-fixes-v2.py
 
       - name: Run focused mounted regressions
         run: |
@@ -59,7 +59,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -f scripts/tmp-pr139-review-fixes.py
+          git rm -f \
+            scripts/tmp-pr139-review-fixes.py \
+            scripts/tmp-pr139-review-fixes-v2.py
           git add \
             src/pages/ProjectPage.tsx \
             src/project-edges.mount.test.tsx \
