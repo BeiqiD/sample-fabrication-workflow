@@ -450,6 +450,7 @@ export function ProjectPage() {
         projectDeleteInputRef.current = null;
         projectDeletionNavigationRequestedRef.current = false;
         setProjectDeleteUncertain(false);
+        setProjectDeleteConfirmation("");
         setProjectDeleteError("The Project changed before it could be moved to trash. The latest authoritative state has been reloaded; review it and confirm again.");
         await loadProject();
         return;
@@ -1670,11 +1671,11 @@ export function ProjectPage() {
   const undoCommand = undoStack.at(-1) ?? null;
   const redoCommand = redoStack.at(-1) ?? null;
   const undoDisabled = !undoCommand
-    || saveState === "saving"
+    || (undoCommand.kind === "geometry" && saveState === "saving")
     || geometryInteractionDisabled
     || (undoCommand.kind !== "geometry" && edgeController.interactionDisabled);
   const redoDisabled = !redoCommand
-    || saveState === "saving"
+    || (redoCommand.kind === "geometry" && saveState === "saving")
     || geometryInteractionDisabled
     || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
   const viewSwitchDisabled = projectionSwitchLocked;
