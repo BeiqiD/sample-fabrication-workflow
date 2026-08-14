@@ -4957,6 +4957,53 @@ app.post("/imports/fabublox", async (c) => {
       const failedUpload = uploadResults.find((result) => result.status === "rejected");
       if (failedUpload?.status === "rejected") throw failedUpload.reason;
     }
+
+    for (const asset of newAssets) {
+      let registered = false;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await c.env.DB.prepare(
+            `INSERT INTO assets
+             (id, import_id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
+             VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+          ).bind(
+            asset.assetId,
+            importId,
+            asset.key,
+            asset.originalName,
+            asset.mimeType,
+            asset.buffer.byteLength,
+            userEmail,
+            now,
+            asset.sha256,
+          ).run();
+          registered = true;
+          break;
+        } catch (error) {
+          const winner = await reusableR2Asset(c.env, asset.sha256);
+          if (winner) {
+            if (winner.id === asset.assetId && winner.r2_key === asset.key) {
+              registered = true;
+              break;
+            }
+            await c.env.ASSETS.delete(asset.key);
+            for (const candidate of resolved) {
+              if (candidate.sha256 !== asset.sha256) continue;
+              candidate.assetId = winner.id;
+              candidate.key = winner.r2_key;
+              candidate.isNew = false;
+            }
+            registered = true;
+            break;
+          }
+          if (attempt === 1) throw error;
+        }
+      }
+      if (!registered) {
+        throw new HTTPException(409, { message: "Imported asset registration could not be reconciled" });
+      }
+    }
+
     const workbookAsset = resolved.find((asset) => asset.kind === "workbook")!;
     const manifestAsset = resolved.find((asset) => asset.kind === "manifest")!;
     const imageAssets = resolved.filter((asset) => asset.kind === "image");
@@ -5031,9 +5078,6 @@ app.post("/imports/fabublox", async (c) => {
       ).bind(recipeFamilyId, recipeName, internalTemplateType, userEmail, now)] : []),
       c.env.DB.prepare("UPDATE imports SET template_version_id = ? WHERE id = ? AND status = 'pending'")
         .bind(templateVersionId, importId),
-      ...bulkInsertStatements(c.env.DB, "assets",
-        ["id", "import_id", "r2_key", "original_name", "mime_type", "byte_size", "status", "actor_email", "created_at", "sha256"],
-        newAssets.map((asset) => [asset.assetId, importId, asset.key, asset.originalName, asset.mimeType, asset.buffer.byteLength, "ready", userEmail, now, asset.sha256])),
       ...bulkInsertStatements(c.env.DB, "step_definitions",
         ["hash", "hash_scheme", "name", "tool_name", "parameters_text", "comments_text", "canonical_json", "created_at"],
         [...definitions.values()].filter((definition) => !existingDefinitionHashes.has(definition.hash)).map((definition) => [

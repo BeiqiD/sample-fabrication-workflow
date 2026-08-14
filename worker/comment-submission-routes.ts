@@ -1434,6 +1434,11 @@ routes.get("/attachments/:itemId/download", async (c) => {
        AND cs.status = 'ready' AND cs.deleted_at IS NULL
      WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'
        AND csi.deleted_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_integrity_quarantine biq
+         WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
+           AND biq.object_key = mso.object_key
+       )
        AND ${readableSubmissionTargetsSql("cs")}`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Attachment not found" });

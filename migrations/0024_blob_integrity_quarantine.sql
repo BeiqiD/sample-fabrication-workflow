@@ -322,3 +322,75 @@ BEGIN
     WHERE a.id = NEW.asset_id
   );
 END;
+
+
+CREATE TRIGGER state_representation_assets_guard_integrity_update
+BEFORE UPDATE OF asset_id ON state_representation_assets
+WHEN OLD.asset_id <> NEW.asset_id
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM assets a JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
+    WHERE a.id = NEW.asset_id
+  );
+END;
+
+CREATE TRIGGER run_step_assets_guard_integrity_update
+BEFORE UPDATE OF asset_id ON run_step_assets
+WHEN OLD.asset_id <> NEW.asset_id
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM assets a JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
+    WHERE a.id = NEW.asset_id
+  );
+END;
+
+CREATE TRIGGER run_step_comments_guard_integrity_update
+BEFORE UPDATE OF asset_id ON run_step_comments
+WHEN NEW.asset_id IS NOT NULL
+  AND (OLD.asset_id IS NULL OR OLD.asset_id <> NEW.asset_id)
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM assets a JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
+    WHERE a.id = NEW.asset_id
+  );
+END;
+
+CREATE TRIGGER state_verifications_guard_integrity_update
+BEFORE UPDATE OF evidence_asset_id ON state_verifications
+WHEN NEW.evidence_asset_id IS NOT NULL
+  AND (OLD.evidence_asset_id IS NULL OR OLD.evidence_asset_id <> NEW.evidence_asset_id)
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM assets a JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
+    WHERE a.id = NEW.evidence_asset_id
+  );
+END;
+
+CREATE TRIGGER project_content_attachments_guard_asset_integrity_update
+BEFORE UPDATE OF asset_id ON project_content_attachments
+WHEN NEW.asset_id IS NOT NULL
+  AND (OLD.asset_id IS NULL OR OLD.asset_id <> NEW.asset_id)
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM assets a JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
+    WHERE a.id = NEW.asset_id
+  );
+END;
+
+CREATE TRIGGER project_content_attachments_guard_managed_integrity_update
+BEFORE UPDATE OF storage_object_id ON project_content_attachments
+WHEN NEW.storage_object_id IS NOT NULL
+  AND (OLD.storage_object_id IS NULL OR OLD.storage_object_id <> NEW.storage_object_id)
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM managed_storage_objects mso JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'managed' AND biq.provider = mso.provider
+        AND biq.object_key = mso.object_key
+    WHERE mso.id = NEW.storage_object_id
+  );
+END;

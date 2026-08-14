@@ -79,7 +79,10 @@ GC state and does not erase historical metadata or existing relationships.
 
 A provider/authentication/transport failure must never create a quarantine row.
 The operation fails with a retryable service response and leaves metadata,
-retention edges, and ledger state unchanged.
+retention edges, and ledger state unchanged. Ordinary/live media routes exclude
+quarantined locators; authenticated complete-export routes deliberately retain
+read access so size/hash verification can record the failure in the export
+manifest and warnings.
 
 ## Terminal locator rule
 

@@ -4,7 +4,12 @@ import {
   findReusableManagedObject,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
-import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import {
+  REFERENCE_FIXTURE_IDS,
+  referenceTestDatabase,
+  seedReferenceGraph,
+  SqliteD1Database,
+} from "./reference-test-support";
 import type { Env } from "./types";
 
 const NOW = "2026-08-14T18:00:00.000Z";
@@ -165,4 +170,150 @@ describe("provider-verified blob reuse", () => {
     `).run()).toThrow("blob locator is quarantined");
     database.close();
   });
+
+  it("rejects UPDATE rebinding for every quarantined relationship locator", () => {
+    const database = referenceTestDatabase();
+    seedReferenceGraph(database);
+    database.exec(`
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at
+      ) VALUES
+        ('asset-update-safe', 'objects/update-safe.bin', 'safe.bin',
+          'application/octet-stream', 4, 'ready',
+          'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', '${NOW}'),
+        ('asset-update-blocked', 'objects/update-blocked.bin', 'blocked.bin',
+          'application/octet-stream', 4, 'ready',
+          'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', '${NOW}');
+      INSERT INTO managed_storage_objects (
+        id, provider, object_key, original_name, mime_type, byte_size,
+        sha256, status, actor_email, created_at
+      ) VALUES
+        ('managed-update-safe', 'switchdrive', 'objects/managed-safe.bin', 'safe.bin',
+          'application/octet-stream', 4,
+          '1111111111111111111111111111111111111111111111111111111111111111',
+          'ready', 'user@example.com', '${NOW}'),
+        ('managed-update-blocked', 'switchdrive', 'objects/managed-blocked.bin', 'blocked.bin',
+          'application/octet-stream', 4,
+          '2222222222222222222222222222222222222222222222222222222222222222',
+          'ready', 'user@example.com', '${NOW}');
+      INSERT INTO blob_integrity_quarantine (
+        store_kind, provider, object_key, blob_record_id, reason,
+        expected_byte_size, observed_byte_size, operation_id,
+        detected_at, last_checked_at
+      ) VALUES
+        ('r2', 'r2', 'objects/update-blocked.bin', 'asset-update-blocked',
+          'missing', 4, NULL, 'operation-update-r2', '${NOW}', '${NOW}'),
+        ('managed', 'switchdrive', 'objects/managed-blocked.bin', 'managed-update-blocked',
+          'missing', 4, NULL, 'operation-update-managed', '${NOW}', '${NOW}');
+      INSERT INTO state_representations (
+        hash, hash_scheme, representation_type, content_json, created_at
+      ) VALUES ('state-update-guard', 'v1', 'image_set', '{}', '${NOW}');
+      INSERT INTO state_representation_assets (state_hash, asset_id, position)
+      VALUES ('state-update-guard', 'asset-update-safe', 0);
+      INSERT INTO state_verifications (
+        id, sample_id, after_run_step_id, result, evidence_asset_id, created_at
+      ) VALUES (
+        'verification-update-guard', '${REFERENCE_FIXTURE_IDS.sampleA}',
+        '${REFERENCE_FIXTURE_IDS.stepA}', 'matched', 'asset-update-safe', '${NOW}'
+      );
+      INSERT INTO comment_submission_items (
+        id, submission_id, kind, status, position, filename, mime_type,
+        byte_size, storage_object_id, created_at, updated_at
+      ) VALUES (
+        'managed-update-item', '${REFERENCE_FIXTURE_IDS.comment}', 'attachment',
+        'ready', 1, 'safe.bin', 'application/octet-stream', 4,
+        'managed-update-safe', '${NOW}', '${NOW}'
+      );
+      INSERT INTO projects (
+        id, title, last_mutation_id, created_by, updated_by, created_at, updated_at
+      ) VALUES (
+        'project-update-guard', 'Update guard', 'operation-project-update',
+        'user@example.com', 'user@example.com', '${NOW}', '${NOW}'
+      );
+      INSERT INTO project_contents (
+        id, project_id, content_type, attachment_caption, last_mutation_id,
+        created_by, updated_by, created_at, updated_at
+      ) VALUES
+        ('content-update-asset', 'project-update-guard', 'attachment', NULL,
+          'operation-content-asset', 'user@example.com', 'user@example.com', '${NOW}', '${NOW}'),
+        ('content-update-managed', 'project-update-guard', 'attachment', NULL,
+          'operation-content-managed', 'user@example.com', 'user@example.com', '${NOW}', '${NOW}');
+      INSERT INTO project_content_attachments (
+        project_content_id, asset_id, original_name, mime_type, byte_size,
+        created_by, created_at, creation_operation_id
+      ) VALUES (
+        'content-update-asset', 'asset-update-safe', 'safe.bin',
+        'application/octet-stream', 4, 'user@example.com', '${NOW}',
+        'operation-attachment-asset'
+      );
+      INSERT INTO project_content_attachments (
+        project_content_id, storage_object_id, original_name, mime_type, byte_size,
+        created_by, created_at, creation_operation_id
+      ) VALUES (
+        'content-update-managed', 'managed-update-safe', 'safe.bin',
+        'application/octet-stream', 4, 'user@example.com', '${NOW}',
+        'operation-attachment-managed'
+      );
+    `);
+
+    const updates = [
+      () => database.prepare(`
+        UPDATE state_representation_assets SET asset_id = 'asset-update-blocked'
+        WHERE state_hash = 'state-update-guard'
+      `).run(),
+      () => database.prepare(`
+        UPDATE run_step_assets SET asset_id = 'asset-update-blocked'
+        WHERE id = ?
+      `).run(REFERENCE_FIXTURE_IDS.executionImage),
+      () => database.prepare(`
+        UPDATE metrology_template_references SET asset_id = 'asset-update-blocked'
+        WHERE id = ?
+      `).run(REFERENCE_FIXTURE_IDS.metrologyReference),
+      () => database.prepare(`
+        UPDATE run_step_comments SET asset_id = 'asset-update-blocked'
+        WHERE id = ?
+      `).run(REFERENCE_FIXTURE_IDS.commentOccurrenceA),
+      () => database.prepare(`
+        UPDATE state_verifications SET evidence_asset_id = 'asset-update-blocked'
+        WHERE id = 'verification-update-guard'
+      `).run(),
+      () => database.prepare(`
+        UPDATE comment_submission_items SET asset_id = 'asset-update-blocked'
+        WHERE id = ?
+      `).run(REFERENCE_FIXTURE_IDS.commentAttachment),
+      () => database.prepare(`
+        UPDATE comment_submission_items SET storage_object_id = 'managed-update-blocked'
+        WHERE id = 'managed-update-item'
+      `).run(),
+      () => database.prepare(`
+        UPDATE project_content_attachments SET asset_id = 'asset-update-blocked'
+        WHERE project_content_id = 'content-update-asset'
+      `).run(),
+      () => database.prepare(`
+        UPDATE project_content_attachments SET storage_object_id = 'managed-update-blocked'
+        WHERE project_content_id = 'content-update-managed'
+      `).run(),
+    ];
+    for (const update of updates) {
+      expect(update).toThrow("blob locator is quarantined");
+    }
+
+    const triggerNames = database.prepare(`
+      SELECT name FROM sqlite_master
+      WHERE type = 'trigger' AND name IN (
+        'state_representation_assets_guard_integrity_update',
+        'run_step_assets_guard_integrity_update',
+        'metrology_template_references_guard_integrity_update',
+        'run_step_comments_guard_integrity_update',
+        'state_verifications_guard_integrity_update',
+        'comment_submission_items_guard_asset_integrity_update',
+        'comment_submission_items_guard_managed_integrity_update',
+        'project_content_attachments_guard_asset_integrity_update',
+        'project_content_attachments_guard_managed_integrity_update'
+      ) ORDER BY name
+    `).all().map((row) => (row as { name: string }).name);
+    expect(triggerNames).toHaveLength(9);
+    database.close();
+  });
+
 });

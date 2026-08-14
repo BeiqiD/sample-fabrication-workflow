@@ -150,8 +150,9 @@ provider errors do not quarantine metadata.
 Quarantine preserves historical metadata and existing relationships for audit,
 export, and repair, while:
 
-- excluding the locator from future deduplication reuse and live attachment
-  delivery;
+- excluding the locator from future deduplication reuse and every ordinary/live
+  media-delivery route while preserving authenticated export retrieval for
+  integrity warnings;
 - rejecting new relationships to the locator at the SQL boundary;
 - releasing the content hash so identical bytes can be registered at a fresh
   physical locator;
@@ -321,9 +322,11 @@ authoritative boundaries:
 3. a definite provider byte-size must match registered metadata;
 4. provider/auth/transport failure returns a retryable service error and leaves
    metadata unchanged;
-5. source/occurrence and blob metadata must still be writable and ready;
-6. the relationship write succeeds;
-7. an unclaimed `orphaned` row is released atomically.
+5. ordinary/live media delivery must exclude quarantined locators, while
+   authenticated complete-export delivery remains readable for warning capture;
+6. source/occurrence and blob metadata must still be writable and ready;
+7. the relationship write succeeds;
+8. an unclaimed `orphaned` row is released atomically.
 
 A definite missing or size-mismatched candidate is quarantined and skipped. The
 upload then registers the same bytes at a fresh locator. Content-addressed winner

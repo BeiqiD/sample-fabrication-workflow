@@ -45,6 +45,13 @@ routes.get("/assets/:key{.+}", async (c) => {
           AND bg.object_key = a.r2_key
           AND bg.state IN ('deleting', 'deleted')
       )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'r2'
+          AND biq.provider = 'r2'
+          AND biq.object_key = a.r2_key
+      )
     LIMIT 1
   `).bind(key).first<MediaSource>();
   if (!source) throw new HTTPException(404, { message: "Asset not found" });
@@ -145,6 +152,13 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
           AND bg.provider = 'r2'
           AND bg.object_key = a.r2_key
           AND bg.state IN ('deleting', 'deleted')
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'r2'
+          AND biq.provider = 'r2'
+          AND biq.object_key = a.r2_key
       )
   `).bind(id, stepId).first<MediaSource>();
   if (!source) {
