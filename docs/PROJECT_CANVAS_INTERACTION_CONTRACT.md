@@ -1,11 +1,10 @@
 # Project Canvas interaction contract
 
-Status: canonical product and architecture contract; Phase 3B4 is complete in PR #136 and Phase 3C Reading is the active implementation slice
+Status: canonical product and architecture contract; Phase 3C Reading is complete in squash-merged PR #138, with stability fixes landing before Phase 3D
 
-Last reviewed: 2026-08-13 after Phase 3A persistence in PRs #131/#132, the Map
-kernel in PR #133, reference placement in PR #134, and Project-owned content in
-PR #135 were completed; Phase 3B4 basic Project-local edges are complete in
-squash-merged PR #136 and Phase 3C Reading is now the active implementation slice
+Last reviewed: 2026-08-14 after Phase 3A persistence in PRs #131/#132, the Map
+kernel in PR #133, reference placement in PR #134, Project-owned content in PR #135,
+basic edges in PR #136, and Reading projection in squash-merged PR #138
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
@@ -395,10 +394,17 @@ Project rows and compact mutations:
 Intrinsic attachment bytes and file metadata are create-once; replacing them is
 a new content operation rather than an update mutation.
 
-Drag and resize update local state continuously but persist only at semantic
-boundaries such as drag stop and resize end. Text and attachment-description
-edits use an idle debounce, blur, explicit Save, or another documented flush
-boundary.
+Drag and resize update the local working copy immediately. Placement persistence
+is asynchronous and may remain `Unsaved` or `Saving` after the geometry already
+behaves as the current UI truth. Text and attachment-description edits use an
+idle debounce, blur, explicit Save, or another documented flush boundary.
+
+Dirty or in-flight placement persistence is not a global workspace mutation lock.
+Operations whose optimistic-concurrency tokens are independent of placement
+revision — notably selecting or creating Project-local edges from stable item
+occurrences — remain usable while geometry waits for autosave. Structural/content
+mutations that share identity or authoritative revision domains keep their existing
+serialization and retry rules.
 
 The initial persistence model is:
 

@@ -6,7 +6,7 @@ Last reviewed: 2026-08-13 after the reference/search foundation through PR #130,
 Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
 reference placement in PR #134, and Project-owned content in PR #135 were
 completed; Phase 3B4 basic Project-local edges are complete in squash-merged PR #136,
-and Phase 3C Reading projection is the active implementation target
+and Phase 3C Reading projection is complete in squash-merged PR #138
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -535,7 +535,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete the no-creation **Reading projection** as Phase 3C.
+1. Land the bounded **Project stability fixes** discovered after Phase 3C: local-working-copy interaction safety and Project lifecycle UI.
 2. Harden **Markdown/TeX, mixed media, save/conflict UX, and export** as Phase 3D.
 3. Add advanced **Inspector/Canvas/previews/performance**.
 4. Run the dedicated Docker portability implementation after Project content

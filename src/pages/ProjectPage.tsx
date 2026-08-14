@@ -11,6 +11,7 @@ import {
   Link,
   useBeforeUnload,
   useBlocker,
+  useNavigate,
   useParams,
   type BlockerFunction,
 } from "react-router-dom";
@@ -21,6 +22,7 @@ import type {
   CreateReferenceProjectItemInput,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
+  ProjectLifecycleInput,
   ProjectPlacementRecord,
   ProjectSnapshot,
   UpdateProjectAttachmentInput,
@@ -30,6 +32,7 @@ import type {
 import type {
   ProjectMapGeometry,
 } from "../../shared/project-types";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
 import { ProjectReadingSurface } from "../components/project/ProjectReadingSurface";
 import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
@@ -111,6 +114,11 @@ type AttachmentEditorState = {
 
 type ProjectWorkspaceView = "map" | "reading";
 
+type ProjectDeletionRequest = {
+  projectId: string;
+  input: ProjectLifecycleInput;
+};
+
 function useDesktopProjectMap(
   projectionLocked: boolean,
   projectionLockedNow: () => boolean,
@@ -167,8 +175,16 @@ function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error"
   return "uncertain";
 }
 
+function projectDeletionOutcomeIsUncertain(caught: unknown) {
+  if (!(caught instanceof ProjectApiError)) return true;
+  return caught.status === 408 || caught.status === 429 || caught.status >= 500;
+}
+
 export function ProjectPage() {
   const { projectId = "" } = useParams();
+  const navigate = useNavigate();
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -187,6 +203,11 @@ export function ProjectPage() {
   const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
   const [ownedContentActionError, setOwnedContentActionError] = useState("");
   const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
+  const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
+  const [projectDeleteConfirmation, setProjectDeleteConfirmation] = useState("");
+  const [projectDeleteError, setProjectDeleteError] = useState("");
+  const [projectDeleteUncertain, setProjectDeleteUncertain] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
 
   const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
   const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
@@ -218,6 +239,8 @@ export function ProjectPage() {
   const attachmentEditorRef = useRef<AttachmentEditorState | null>(null);
   const attachmentUpdateInputRef = useRef<UpdateProjectAttachmentInput | null>(null);
   const ownedContentGenerationRef = useRef(0);
+  const projectDeleteRequestRef = useRef<ProjectDeletionRequest | null>(null);
+  const projectDeletionNavigationRequestedRef = useRef(false);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
 
   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
@@ -290,8 +313,10 @@ export function ProjectPage() {
     projectId,
     snapshot,
     setSnapshot,
-    externalBusy: saveState !== "saved"
-      || pendingReference !== null
+    // Placement geometry is an immediate local working copy with independent
+    // asynchronous persistence. Dirty/saving placement state must not serialize
+    // edge operations, which are revisioned against Project item identities.
+    externalBusy: pendingReference !== null
       || pendingReferenceRemoval !== null
       || markdownEditor !== null
       || pendingAttachment !== null
@@ -305,6 +330,8 @@ export function ProjectPage() {
     || markdownEditor !== null
     || pendingAttachment !== null
     || attachmentEditor !== null
+    || deletingProject
+    || projectDeleteUncertain
     || edgeController.unsafe;
   const desktop = useDesktopProjectMap(projectionSwitchLocked, () => (
     saveStateRef.current !== "saved"
@@ -313,23 +340,27 @@ export function ProjectPage() {
       || markdownEditorRef.current !== null
       || pendingAttachmentRef.current !== null
       || attachmentEditorRef.current !== null
+      || projectDeleteRequestRef.current !== null
       || edgeController.unsafeRef.current
   ));
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
-    (saveState !== "saved"
+    !projectDeletionNavigationRequestedRef.current
+    && (saveState !== "saved"
       || pendingReference !== null
       || pendingReferenceRemoval !== null
       || markdownEditor !== null
       || pendingAttachment !== null
       || attachmentEditor !== null
+      || deletingProject
+      || projectDeleteUncertain
       || edgeController.unsafe)
     && (
       currentLocation.pathname !== nextLocation.pathname
       || currentLocation.search !== nextLocation.search
       || currentLocation.hash !== nextLocation.hash
     )
-  ), [attachmentEditor, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
+  ), [attachmentEditor, deletingProject, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, projectDeleteUncertain, saveState]);
   const blocker = useBlocker(shouldBlockNavigation);
 
   useBeforeUnload(useCallback((event) => {
@@ -339,6 +370,7 @@ export function ProjectPage() {
       && markdownEditorRef.current === null
       && pendingAttachmentRef.current === null
       && attachmentEditorRef.current === null
+      && projectDeleteRequestRef.current === null
       && !edgeController.unsafeRef.current) return;
     event.preventDefault();
     event.returnValue = "";
@@ -394,10 +426,123 @@ export function ProjectPage() {
   }, [installSnapshot, projectId]);
 
   useEffect(() => {
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setConfirmingProjectDeletion(false);
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setProjectDeleteUncertain(false);
+    setDeletingProject(false);
+  }, [projectId]);
+
+  useEffect(() => {
     const controller = new AbortController();
     void loadProject(controller.signal);
     return () => controller.abort();
   }, [loadProject]);
+
+  const performProjectDeletion = useCallback(async (request: ProjectDeletionRequest) => {
+    const requestIsCurrent = () => (
+      pageActiveRef.current
+      && projectIdRef.current === request.projectId
+      && projectDeleteRequestRef.current === request
+    );
+    if (!request.projectId || !requestIsCurrent()) return;
+    setDeletingProject(true);
+    setProjectDeleteError("");
+    try {
+      await projectApi.deleteProject(request.projectId, request.input);
+      if (!requestIsCurrent()) return;
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = true;
+      setProjectDeleteUncertain(false);
+      setDeletingProject(false);
+      navigate("/projects", { replace: true });
+    } catch (caught) {
+      if (!requestIsCurrent()) return;
+      if (caught instanceof ProjectApiError && caught.status === 404) {
+        projectDeleteRequestRef.current = null;
+        projectDeletionNavigationRequestedRef.current = true;
+        setProjectDeleteUncertain(false);
+        setDeletingProject(false);
+        navigate("/projects", { replace: true });
+        return;
+      }
+      if (caught instanceof ProjectApiError && caught.status === 409) {
+        projectDeleteRequestRef.current = null;
+        projectDeletionNavigationRequestedRef.current = false;
+        setProjectDeleteUncertain(false);
+        setProjectDeleteConfirmation("");
+        setProjectDeleteError("The Project changed before it could be moved to trash. The latest authoritative state has been reloaded; review it and confirm again.");
+        await loadProject();
+        return;
+      }
+      const uncertain = projectDeletionOutcomeIsUncertain(caught);
+      setProjectDeleteUncertain(uncertain);
+      setProjectDeleteError(caught instanceof Error
+        ? caught.message
+        : "The Project could not be moved to trash");
+    } finally {
+      if (pageActiveRef.current && projectIdRef.current === request.projectId) setDeletingProject(false);
+    }
+  }, [loadProject, navigate]);
+
+  const openProjectDeletion = useCallback(() => {
+    if (!snapshot || !projectId || snapshot.project.id !== projectId
+      || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current
+      || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current
+      || pendingAttachmentRef.current
+      || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setProjectDeleteUncertain(false);
+    setConfirmingProjectDeletion(true);
+  }, [edgeController.unsafeRef, projectId, snapshot]);
+
+  const cancelProjectDeletion = useCallback(() => {
+    if (deletingProject || projectDeleteUncertain) return;
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setConfirmingProjectDeletion(false);
+  }, [deletingProject, projectDeleteUncertain]);
+
+  const moveProjectToTrash = useCallback(() => {
+    if (!projectId || !snapshot || snapshot.project.id !== projectId
+      || deletingProject || projectDeleteConfirmation !== snapshot.project.title) return;
+    let request = projectDeleteRequestRef.current;
+    if (request && request.projectId !== projectId) {
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = false;
+      setProjectDeleteUncertain(false);
+      setProjectDeleteError("");
+      return;
+    }
+    if (!request) {
+      if (saveStateRef.current !== "saved"
+        || pendingReferenceRef.current
+        || pendingReferenceRemovalRef.current
+        || markdownEditorRef.current
+        || pendingAttachmentRef.current
+        || attachmentEditorRef.current
+        || edgeController.unsafeRef.current) return;
+      request = {
+        projectId,
+        input: {
+          expectedRevision: snapshot.project.revision,
+          operationId: createProjectApiId("operation"),
+        },
+      };
+      projectDeleteRequestRef.current = request;
+    }
+    void performProjectDeletion(request);
+  }, [deletingProject, edgeController.unsafeRef, performProjectDeletion, projectDeleteConfirmation, projectId, snapshot]);
 
   useEffect(() => {
     pageActiveRef.current = true;
@@ -425,6 +570,8 @@ export function ProjectPage() {
       attachmentRequestPointRef.current = null;
       attachmentEditorRef.current = null;
       attachmentUpdateInputRef.current = null;
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = false;
       if (autosaveTimerRef.current !== null) {
         window.clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
@@ -1560,11 +1707,11 @@ export function ProjectPage() {
   const undoCommand = undoStack.at(-1) ?? null;
   const redoCommand = redoStack.at(-1) ?? null;
   const undoDisabled = !undoCommand
-    || saveState === "saving"
+    || (undoCommand.kind === "geometry" && saveState === "saving")
     || geometryInteractionDisabled
     || (undoCommand.kind !== "geometry" && edgeController.interactionDisabled);
   const redoDisabled = !redoCommand
-    || saveState === "saving"
+    || (redoCommand.kind === "geometry" && saveState === "saving")
     || geometryInteractionDisabled
     || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
   const viewSwitchDisabled = projectionSwitchLocked;
@@ -1574,7 +1721,11 @@ export function ProjectPage() {
     || pendingAttachment !== null
     || edgeController.unsafe;
 
-  const navigationBlockMessage = edgeController.pending
+  const navigationBlockMessage = projectDeleteUncertain
+    ? "The Project trash operation outcome is uncertain. Retry the exact move before leaving this Project."
+    : deletingProject
+      ? "Finishing the Project trash operation before leaving this Project…"
+      : edgeController.pending
     ? edgeController.pending.status === "saving"
       ? "Finishing the Project edge operation before leaving…"
       : edgeController.pending.status === "uncertain"
@@ -1635,7 +1786,8 @@ export function ProjectPage() {
         <p className="eyebrow">Project workspace</p>
         <h1>{snapshot.project.title}</h1>
       </div>
-      {desktop && <div className="project-workspace-header-actions">
+      <div className="project-workspace-header-actions">
+        {desktop && <>
         <div className="project-view-toggle" role="group" aria-label="Project view">
           <button type="button" className={`button compact-button${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
           <button type="button" className={`button compact-button${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
@@ -1655,7 +1807,14 @@ export function ProjectPage() {
             }}
           >Save</button>
         </div>}
-      </div>}
+        </>}
+        <button
+          type="button"
+          className="button danger compact-button"
+          disabled={viewSwitchDisabled || deletingProject}
+          onClick={openProjectDeletion}
+        >Move to trash</button>
+      </div>
     </header>
 
     {saveError && <div className={`project-save-banner ${saveState}`}>
@@ -1963,6 +2122,27 @@ export function ProjectPage() {
       onAttachmentChange={updateAttachmentDraft}
       onAttachmentSave={() => void saveAttachmentMetadata()}
       onAttachmentCancel={() => cancelAttachmentEdit(false)}
+    />}
+
+    {confirmingProjectDeletion && <ConfirmDeleteDialog
+      eyebrow="Project lifecycle"
+      title="Move Project to trash"
+      description="Move this Project out of the active workspace. Its normalized Project data is soft-deleted and can be restored later."
+      summary={snapshot.project.title}
+      deleting={deletingProject}
+      error={projectDeleteError}
+      confirmLabel={projectDeleteUncertain ? "Retry exact move" : "Move to trash"}
+      busyLabel="Moving…"
+      appendIrreversibleWarning={false}
+      cancelDisabled={projectDeleteUncertain}
+      confirmation={{
+        label: "Type the Project title to confirm",
+        target: snapshot.project.title,
+        value: projectDeleteConfirmation,
+        onChange: setProjectDeleteConfirmation,
+      }}
+      onCancel={cancelProjectDeletion}
+      onConfirm={moveProjectToTrash}
     />}
   </div>;
 }

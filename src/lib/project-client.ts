@@ -9,6 +9,7 @@ import type {
   ProjectEdgeRecord,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,
+  ProjectLifecycleInput,
   ProjectListResponse,
   ProjectMutationResponse,
   ProjectPlacementRecord,
@@ -68,6 +69,13 @@ export const projectApi = {
   read: (projectId: string, signal?: AbortSignal) => projectRequest<ProjectSnapshot>(
     `/projects/${encodeURIComponent(projectId)}`,
     signal ? { signal } : undefined,
+  ),
+  deleteProject: (
+    projectId: string,
+    input: ProjectLifecycleInput,
+  ) => projectRequest<ProjectMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}`,
+    jsonRequest("DELETE", input),
   ),
   createMarkdownItem: (
     projectId: string,

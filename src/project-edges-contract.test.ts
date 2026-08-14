@@ -33,6 +33,8 @@ describe("Phase 3B4 edge contract", () => {
     expect(canvas).toContain("[PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md)");
     expect(surface).toContain("edgeInteractionDisabled?: boolean");
     expect(page).toContain("edgeInteractionDisabled={edgeController.interactionDisabled}");
+    expect(page).not.toContain('externalBusy: saveState !== "saved"');
+    expect(page).toContain("Dirty/saving placement state must not serialize");
   });
 
   it("keeps Phase 3B4 in the permanent fail-closed verification chain", () => {

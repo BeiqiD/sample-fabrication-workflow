@@ -1,9 +1,9 @@
 
 # Project Reading implementation plan
 
-Status: Phase 3C implemented in Draft PR #138; pending independent review
+Status: Phase 3C complete in squash-merged PR #138; Project stability fixes land before Phase 3D
 
-Last reviewed: 2026-08-14 after implementing the shared desktop/mobile Reading projection and responsive projection safety
+Last reviewed: 2026-08-14 after the exact-head review and squash merge of PR #138
 
 ## Goal
 
