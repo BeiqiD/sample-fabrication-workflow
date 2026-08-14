@@ -101,6 +101,7 @@ function envFor(
     beforeExecute?: (query: string, bindings: unknown[]) => void;
     assetPut?: ReturnType<typeof vi.fn>;
     assetDelete?: ReturnType<typeof vi.fn>;
+    assetHead?: ReturnType<typeof vi.fn>;
   } = {},
 ): Env {
   return {
@@ -109,6 +110,7 @@ function envFor(
     ASSETS: {
       put: options.assetPut ?? vi.fn(async () => undefined),
       delete: options.assetDelete ?? vi.fn(async () => undefined),
+      head: options.assetHead ?? vi.fn(async () => null),
       get: vi.fn(async () => null),
       list: vi.fn(async () => ({ objects: [], truncated: false })),
     },
@@ -233,6 +235,13 @@ describe("blob lifecycle review fixes", () => {
     const env = envFor(database, {
       assetPut,
       assetDelete,
+      assetHead: vi.fn(async (key: string) => key === "metrology/winner.bin" ? {
+        size: 4,
+        httpEtag: '"winner-etag"',
+        writeHttpMetadata(headers: Headers) {
+          headers.set("content-type", "application/octet-stream");
+        },
+      } : null),
       beforeExecute: (query, bindings) => {
         if (insertedWinner || !/^\s*INSERT INTO assets\b/i.test(query)) return;
         insertedWinner = true;

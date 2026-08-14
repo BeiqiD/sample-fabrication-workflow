@@ -310,3 +310,15 @@ BEGIN
     WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = NEW.source_asset_key
   );
 END;
+
+
+CREATE TRIGGER metrology_template_references_guard_integrity_update
+BEFORE UPDATE OF asset_id ON metrology_template_references
+WHEN OLD.asset_id <> NEW.asset_id
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM assets a JOIN blob_integrity_quarantine biq
+      ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
+    WHERE a.id = NEW.asset_id
+  );
+END;

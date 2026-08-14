@@ -20,7 +20,10 @@ import { routes as commentSubmissionRoutes } from "./comment-submission-routes";
 import { routes as projectRoutes } from "./project-routes";
 import { routes as referenceRoutes } from "./reference-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
-import { refreshOrphanGrace } from "./blob-lifecycle/reachability";
+import {
+  BlobReuseProviderUnavailableError,
+  findReusableR2Asset,
+} from "./blob-lifecycle/reuse";
 import { getBlob } from "./blob-lifecycle/storage";
 import { managedStorageStatus } from "./managed-storage";
 import { directoryFilterValue, likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, sampleDirectorySort, searchTokens } from "./directory-query";
@@ -37,6 +40,17 @@ const MAX_FABUBLOX_IMPORT_IMAGES = MAX_FABUBLOX_IMPORT_STEPS;
 
 async function digestSha256(buffer: ArrayBuffer) {
   return sha256Hex(buffer);
+}
+
+async function reusableR2Asset(env: Env, sha256: string) {
+  try {
+    return await findReusableR2Asset(env, sha256);
+  } catch (error) {
+    if (error instanceof BlobReuseProviderUnavailableError) {
+      throw new HTTPException(503, { message: error.message });
+    }
+    throw error;
+  }
 }
 
 function safeObjectName(name: string) {
@@ -4666,57 +4680,39 @@ app.post("/assets", async (c) => {
   const buffer = await c.req.arrayBuffer();
   if (buffer.byteLength > 10 * 1024 * 1024) throw new HTTPException(413, { message: "Asset uploads are limited to 10 MB" });
   const sha256 = await digestSha256(buffer);
-  const existing = await c.env.DB.prepare(
-    `SELECT id, r2_key FROM assets a
-     WHERE sha256 = ? AND status = 'ready'
-       AND NOT EXISTS (
-         SELECT 1 FROM blob_gc_ledger bg
-         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       )
-     ORDER BY a.created_at DESC LIMIT 1`,
-  ).bind(sha256).first<{ id: string; r2_key: string }>();
-  if (existing && await refreshOrphanGrace(c.env.DB, {
-    storeKind: "r2",
-    provider: "r2",
-    objectKey: existing.r2_key,
-    blobRecordId: existing.id,
-  }, crypto.randomUUID(), new Date())) {
+  const existing = await reusableR2Asset(c.env, sha256);
+  if (existing) {
     return c.json({ id: existing.id, key: existing.r2_key, deduplicated: true });
   }
 
-  const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-  await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
-  try {
-    await c.env.DB.prepare(
-      `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-       VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-    ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
-  } catch (error) {
-    await c.env.ASSETS.delete(key);
-    const winner = await c.env.DB.prepare(
-      `SELECT id, r2_key FROM assets a
-       WHERE sha256 = ? AND status = 'ready'
-         AND NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )
-       ORDER BY a.created_at DESC LIMIT 1`,
-    ).bind(sha256).first<{ id: string; r2_key: string }>();
-    if (winner && await refreshOrphanGrace(c.env.DB, {
-      storeKind: "r2",
-      provider: "r2",
-      objectKey: winner.r2_key,
-      blobRecordId: winner.id,
-    }, crypto.randomUUID(), new Date())) {
-      return c.json({ id: winner.id, key: winner.r2_key, deduplicated: true });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
+         VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+      ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
+      return c.json({ id, key, deduplicated: false }, 201);
+    } catch (error) {
+      let winner;
+      try {
+        winner = await reusableR2Asset(c.env, sha256);
+      } catch (verificationError) {
+        await c.env.ASSETS.delete(key);
+        throw verificationError;
+      }
+      if (winner) {
+        await c.env.ASSETS.delete(key);
+        return c.json({ id: winner.id, key: winner.r2_key, deduplicated: true });
+      }
+      await c.env.ASSETS.delete(key);
+      if (attempt === 1) throw error;
     }
-    throw error;
   }
-  return c.json({ id, key, deduplicated: false }, 201);
+  throw new HTTPException(409, { message: "Asset registration could not be reconciled" });
 });
 
 app.get("/exports/r2/:key{.+}", async (c) => {
@@ -4931,18 +4927,21 @@ app.post("/imports/fabublox", async (c) => {
       ...imageInputs.map(({ image, file, buffer, sha256 }) => ({ kind: "image" as const, localId: image.localId, originalName: file.name, mimeType: file.type || image.mimeType, buffer, sha256, image })),
     ];
     const hashes = [...new Set(candidates.map((candidate) => candidate.sha256))];
-    const existingRows = await c.env.DB.prepare(
-      `SELECT id, r2_key, sha256 FROM assets a
-       WHERE status = 'ready' AND sha256 IN (SELECT value FROM json_each(?))
-         AND NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
-    ).bind(JSON.stringify(hashes)).all<{ id: string; r2_key: string; sha256: string }>();
-    const existingByHash = new Map<string, { assetId: string; key: string }>(
-      existingRows.results.map((asset) => [asset.sha256, { assetId: asset.id, key: asset.r2_key }]),
-    );
+    const existingByHash = new Map<string, { assetId: string; key: string }>();
+    for (let index = 0; index < hashes.length; index += 5) {
+      const verified = await Promise.all(hashes.slice(index, index + 5).map(async (hash) => ({
+        hash,
+        asset: await reusableR2Asset(c.env, hash),
+      })));
+      for (const candidate of verified) {
+        if (candidate.asset) {
+          existingByHash.set(candidate.hash, {
+            assetId: candidate.asset.id,
+            key: candidate.asset.r2_key,
+          });
+        }
+      }
+    }
     const resolved = resolveAssetReferences(candidates, existingByHash, (candidate) => {
       const suffix = candidate.kind === "workbook" ? `source/${safeObjectName(candidate.originalName)}`
         : candidate.kind === "manifest" ? "manifest.json"
@@ -5567,80 +5566,96 @@ app.post("/metrology-templates/:id/references", async (c) => {
   }
   const sha256 = await digestSha256(buffer);
   const existingReference = await c.env.DB.prepare(
-    `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key,
-            mtr.created_at, mtr.deleted_at
+    `SELECT mtr.id, mtr.asset_id, mtr.display_name, mtr.created_at, mtr.deleted_at
      FROM metrology_template_references mtr
      JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
-     WHERE mtr.template_version_id = ? AND a.sha256 = ?`,
+     WHERE mtr.template_version_id = ? AND a.sha256 = ?
+     ORDER BY mtr.created_at DESC LIMIT 1`,
   ).bind(templateId, sha256).first<{
-    id: string; display_name: string; mime_type: string; byte_size: number;
-    r2_key: string; created_at: string; deleted_at: string | null;
+    id: string; asset_id: string; display_name: string;
+    created_at: string; deleted_at: string | null;
   }>();
-  if (existingReference) {
-    if (existingReference.deleted_at) {
-      await c.env.DB.prepare(
-        `UPDATE metrology_template_references
-         SET deleted_at = NULL, deleted_by = NULL, display_name = ?
-         WHERE id = ? AND deleted_at = ?`,
-      ).bind(filename, existingReference.id, existingReference.deleted_at).run();
-    }
-    return c.json({ reference: {
-      id: existingReference.id,
-      filename: existingReference.deleted_at ? filename : existingReference.display_name,
-      mimeType: existingReference.mime_type,
-      byteSize: Number(existingReference.byte_size),
-      assetKey: existingReference.r2_key,
-      createdAt: existingReference.created_at,
-    } });
-  }
 
-  const existingAsset = await c.env.DB.prepare(
-    `SELECT id, r2_key, original_name, mime_type, byte_size FROM assets a
-     WHERE sha256 = ? AND status = 'ready'
-       AND NOT EXISTS (
-         SELECT 1 FROM blob_gc_ledger bg
-         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       )
-     ORDER BY a.created_at DESC LIMIT 1`,
-  ).bind(sha256).first<{
-    id: string; r2_key: string; original_name: string; mime_type: string; byte_size: number;
-  }>();
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
-  let asset = existingAsset;
+  let asset = await reusableR2Asset(c.env, sha256);
   let uploadedKey: string | null = null;
+  let uploadedAssetId: string | null = null;
   if (!asset) {
     const assetId = crypto.randomUUID();
     const key = `metrology/${templateId}/${crypto.randomUUID()}-${safeObjectName(filename)}`;
     await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType: mimeType } });
-    uploadedKey = key;
-    try {
-      await c.env.DB.prepare(
-        `INSERT INTO assets
-         (id, r2_key, original_name, mime_type, byte_size, status, sha256, actor_email, created_at)
-         VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-      ).bind(assetId, key, filename, mimeType, buffer.byteLength, sha256, userEmail, now).run();
-      asset = { id: assetId, r2_key: key, original_name: filename, mime_type: mimeType, byte_size: buffer.byteLength };
-    } catch (error) {
-      await c.env.ASSETS.delete(key);
-      if (!String(error).includes("UNIQUE")) throw error;
-      asset = await c.env.DB.prepare(
-        `SELECT id, r2_key, original_name, mime_type, byte_size FROM assets a
-         WHERE sha256 = ? AND status = 'ready'
-           AND NOT EXISTS (
-             SELECT 1 FROM blob_gc_ledger bg
-             WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-               AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-           )
-         ORDER BY a.created_at DESC LIMIT 1`,
-      ).bind(sha256).first<{
-        id: string; r2_key: string; original_name: string; mime_type: string; byte_size: number;
-      }>();
-      if (!asset) throw error;
-      uploadedKey = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        await c.env.DB.prepare(
+          `INSERT INTO assets
+           (id, r2_key, original_name, mime_type, byte_size, status, sha256, actor_email, created_at)
+           VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+        ).bind(assetId, key, filename, mimeType, buffer.byteLength, sha256, userEmail, now).run();
+        asset = {
+          id: assetId,
+          r2_key: key,
+          original_name: filename,
+          mime_type: mimeType,
+          byte_size: buffer.byteLength,
+          sha256,
+        };
+        uploadedKey = key;
+        uploadedAssetId = assetId;
+        break;
+      } catch (error) {
+        let winner;
+        try {
+          winner = await reusableR2Asset(c.env, sha256);
+        } catch (verificationError) {
+          await c.env.ASSETS.delete(key);
+          throw verificationError;
+        }
+        if (winner) {
+          await c.env.ASSETS.delete(key);
+          asset = winner;
+          break;
+        }
+        if (attempt === 1) {
+          await c.env.ASSETS.delete(key);
+          throw error;
+        }
+      }
     }
   }
+  if (!asset) throw new HTTPException(409, { message: "Reference-file registration could not be reconciled" });
+
+  const cleanupUploadedAsset = async () => {
+    if (!uploadedKey || !uploadedAssetId) return;
+    await c.env.ASSETS.delete(uploadedKey);
+    await c.env.DB.prepare("DELETE FROM assets WHERE id = ?").bind(uploadedAssetId).run();
+  };
+
+  if (existingReference) {
+    const displayName = existingReference.deleted_at ? filename : existingReference.display_name;
+    if (existingReference.deleted_at || existingReference.asset_id !== asset.id) {
+      try {
+        const updated = await c.env.DB.prepare(
+          `UPDATE metrology_template_references
+           SET asset_id = ?, display_name = ?, deleted_at = NULL, deleted_by = NULL
+           WHERE id = ? AND template_version_id = ?`,
+        ).bind(asset.id, displayName, existingReference.id, templateId).run();
+        if (!updated.meta.changes) throw new HTTPException(409, { message: "This reference file changed elsewhere" });
+      } catch (error) {
+        await cleanupUploadedAsset();
+        throw error;
+      }
+    }
+    return c.json({ reference: {
+      id: existingReference.id,
+      filename: displayName,
+      mimeType: asset.mime_type,
+      byteSize: Number(asset.byte_size),
+      assetKey: asset.r2_key,
+      createdAt: existingReference.created_at,
+    } });
+  }
+
   const referenceId = crypto.randomUUID();
   try {
     await c.env.DB.prepare(
@@ -5651,10 +5666,7 @@ app.post("/metrology-templates/:id/references", async (c) => {
        ), 0), ?, ?)`,
     ).bind(referenceId, templateId, asset.id, filename, templateId, userEmail, now).run();
   } catch (error) {
-    if (uploadedKey) {
-      await c.env.ASSETS.delete(uploadedKey);
-      await c.env.DB.prepare("DELETE FROM assets WHERE id = ?").bind(asset.id).run();
-    }
+    await cleanupUploadedAsset();
     if (String(error).includes("UNIQUE")) {
       throw new HTTPException(409, { message: "This reference file is already attached" });
     }
