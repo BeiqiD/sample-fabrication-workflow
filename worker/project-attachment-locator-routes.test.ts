@@ -216,6 +216,34 @@ describe("Project attachment locator route contract", () => {
         '${ACTOR}', '2026-08-14T00:00:00.000Z', 'sql-import-guard'
       )
     `).run()).toThrow('blob locator is unavailable');
+
+    database.exec(`
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size,
+        status, created_at, sha256
+      ) VALUES (
+        'project-standalone-asset', 'projects/standalone.png', 'standalone.png',
+        'image/png', 4, 'ready', '2026-08-14T00:00:00.000Z',
+        '${'a'.repeat(64)}'
+      );
+      INSERT INTO project_content_attachments (
+        project_content_id, asset_id, original_name, mime_type, byte_size,
+        created_by, created_at, creation_operation_id
+      ) VALUES (
+        'content-import-sql', 'project-standalone-asset', 'standalone.png',
+        'image/png', 4, '${ACTOR}', '2026-08-14T00:00:00.000Z',
+        'sql-standalone-attachment'
+      );
+    `);
+    expect(() => database.prepare(`
+      UPDATE project_content_attachments
+      SET asset_id = 'project-import-asset'
+      WHERE project_content_id = 'content-import-sql'
+    `).run()).toThrow('blob locator is unavailable');
+    expect(database.prepare(`
+      SELECT asset_id FROM project_content_attachments
+      WHERE project_content_id = 'content-import-sql'
+    `).get()).toEqual({ asset_id: 'project-standalone-asset' });
     database.close();
   });
 

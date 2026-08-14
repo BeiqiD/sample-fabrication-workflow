@@ -467,6 +467,16 @@ BEGIN
       ON biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key
     WHERE a.id = NEW.asset_id
   );
+  SELECT RAISE(ABORT, 'blob locator is unavailable') WHERE EXISTS (
+    SELECT 1
+    FROM assets a
+    LEFT JOIN imports i ON i.id = a.import_id
+    WHERE a.id = NEW.asset_id
+      AND (
+        a.status <> 'ready'
+        OR (a.import_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'ready'))
+      )
+  );
 END;
 
 CREATE TRIGGER project_content_attachments_guard_managed_integrity_update
