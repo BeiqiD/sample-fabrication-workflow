@@ -30,7 +30,22 @@ jobs:
         run: npm ci
 
       - name: Apply stability fixes
-        run: python scripts/tmp-project-stability-local-geometry-delete.py
+        run: |
+          python scripts/tmp-project-stability-local-geometry-delete.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/project-deletion.mount.test.tsx")
+          text = path.read_text()
+          text = text.replace(
+              'import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";',
+              'import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";',
+          )
+          old = '    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));\n\n    expect(await screen.findByText("Temporary Project deletion failure")).toBeTruthy();'
+          new = '    const dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });\n    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));\n\n    expect(await screen.findByText("Temporary Project deletion failure")).toBeTruthy();'
+          if text.count(old) != 1:
+              raise SystemExit("Project deletion confirmation assertion anchor mismatch")
+          path.write_text(text.replace(old, new, 1))
+          PY
 
       - name: Run focused stability tests
         run: |
