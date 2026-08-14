@@ -2,8 +2,8 @@
 
 Status: operational companion to the normative v3 blob lifecycle contract
 
-Last reviewed: 2026-08-09 after the reference/search and reusable Project
-discovery foundation through PR #130
+Last reviewed: 2026-08-14 after provider-verified storage integrity and
+Project Markdown lifecycle wiring
 
 This document records the implementation boundaries, activation sequence,
 monitoring queries, incident rules, and explicit deferrals for the first blob
@@ -41,7 +41,7 @@ operation-ID finalization.
 
 ## Authoritative surfaces
 
-The implementation has three different kinds of truth. They must not be
+The implementation has four different kinds of truth. They must not be
 collapsed into one status flag.
 
 ### Source and occurrence relationships
@@ -70,6 +70,16 @@ deleted    provider deletion or confirmed absence was finalized
 
 `managed_storage_objects.status` remains a compatibility projection during this
 slice. The ledger is authoritative when the two are interpreted for GC.
+
+### Integrity quarantine
+
+`blob_integrity_quarantine` records a definite provider-level absence or byte-size
+mismatch found while considering a content-addressed reuse candidate. It is not a
+GC state and does not erase historical metadata or existing relationships.
+
+A provider/authentication/transport failure must never create a quarantine row.
+The operation fails with a retryable service response and leaves metadata,
+retention edges, and ledger state unchanged.
 
 ## Terminal locator rule
 
@@ -196,6 +206,19 @@ WHERE bg.state IN ('deleting', 'deleted')
 GROUP BY bg.store_kind, bg.provider, bg.object_key, bg.state;
 ```
 
+### Integrity quarantine
+
+```sql
+SELECT store_kind, provider, object_key, blob_record_id, reason,
+       expected_byte_size, observed_byte_size, detected_at, last_checked_at
+FROM blob_integrity_quarantine
+ORDER BY detected_at DESC
+LIMIT 100;
+```
+
+Each row requires investigation or restoration at a new locator. Do not delete a
+row merely to make the original locator reusable.
+
 ### Managed compatibility projection mismatches
 
 The expected result is zero rows after a completed cleanup operation.
@@ -229,18 +252,23 @@ ORDER BY status;
 
 ### Reachable metadata but missing bytes
 
-Treat this as an integrity incident, not as deletion authorization.
+Treat this as an integrity incident, not as deletion authorization. A definite
+missing or size-mismatched candidate discovered during deduplication is recorded
+in `blob_integrity_quarantine` and is not returned as a reusable winner.
 
-- Preserve the source, occurrence, blob metadata, and export warning.
+- Preserve the source, occurrence, blob metadata, quarantine row, and export
+  warning.
 - Check provider history, credentials, retention, and external backups.
-- Do not remove the retention edge to make the warning disappear.
-- Restore by registering verified bytes at a new locator unless an explicit
-  integrity-repair procedure is introduced later.
+- Do not remove a retention edge or quarantine row to make the warning disappear.
+- Restore by registering verified bytes at a new locator and explicitly repairing
+  affected relationships through a reviewed procedure.
 
 ### Provider unavailable
 
-- Keep the ledger/source state unchanged except for the recorded retryable
-  cleanup error.
+- Keep the ledger/source state unchanged except for any ordinary retryable cleanup
+  error.
+- Deduplication reuse returns a retryable service error and creates no integrity
+  quarantine row.
 - Verify credentials and provider health.
 - Re-run the normal scheduled/idempotent operation after recovery.
 - Do not mark the object missing solely because authentication or transport
@@ -263,16 +291,16 @@ rate limits, and D1 statement limits.
 
 The following are known boundaries, not hidden implementation promises.
 
-### Provider `HEAD`/`stat` before dedup reuse
+### Quarantine revalidation and relationship repair
 
-The first implementation excludes locators claimed or finalized by the GC
-ledger, but it does not probe the provider before every deduplication reuse. A
-ready metadata row whose bytes drifted missing may therefore be selected and
-will fail later retrieval/export.
+The current implementation deliberately treats definite missing and size-mismatch
+quarantine as terminal for the old physical locator. It does not automatically
+clear quarantine when bytes later reappear at the same key, because that could
+silently bind historical metadata to different bytes.
 
-Current behavior is safe for retention: the database history remains intact and
-export emits a warning. A later storage-integrity slice may add `head/stat`,
-quarantine unavailable metadata, and upload/register a replacement locator.
+A future privileged repair workflow may verify restored content, register a new
+locator, and rebind affected relationships with explicit audit records. Until
+then, restoration uses a fresh locator and reviewed data repair.
 
 ### Direct-key physical garbage collection
 
@@ -316,7 +344,8 @@ final concurrency checks, and tombstones.
 
 Reference identity, deep links, exact focus, deterministic search, and the
 reusable Project discovery surface were completed after this operational
-foundation, through PR #130.
+foundation, through PR #130. Provider-verified reuse and integrity quarantine are
+now part of the same permanent blob-lifecycle gate.
 
 This runbook does not define the remaining product sequence. The active
 Map-first Project roadmap and Reading behavior are governed exclusively by

@@ -2,8 +2,8 @@
 
 Status: implemented by the blob-lifecycle safety slice; remote activation requires the exact merged integration head to pass the v3 deployment gate
 
-Last reviewed: 2026-08-09 after the reference/search and reusable Project
-discovery foundation through PR #130
+Last reviewed: 2026-08-14 after provider-verified storage integrity and
+Project Markdown lifecycle wiring
 
 This document records how the normative
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) is implemented in the
@@ -44,7 +44,9 @@ The slice includes:
 8. internal, deterministic, fail-closed permanent-delete blocker queries;
 9. dedicated lifecycle CI plus migration/deployment command gates;
 10. migration compatibility repairs for malformed historical event metadata and
-    legacy managed-object duplicate states.
+    legacy managed-object duplicate states;
+11. provider `HEAD`/`stat` verification before content-addressed reuse, with
+    terminal integrity quarantine for definite absence or size mismatch.
 
 The slice does not include:
 
@@ -52,7 +54,6 @@ The slice does not include:
 - Project or Project-owned attachments;
 - object-level deep links or deterministic/semantic reference search;
 - a privileged permanent-delete or force-delete endpoint;
-- provider-stat-based deduplication repair;
 - a streaming/server-side export implementation;
 - production or remote v3 migration/deployment as part of feature development.
 
@@ -74,7 +75,7 @@ retention semantics.
 
 ## Ordered migration set
 
-The implementation relies on four ordered migration positions around the
+The implementation relies on five ordered migration positions around the
 existing source-lifecycle work:
 
 ```text
@@ -82,6 +83,7 @@ existing source-lifecycle work:
 0015_managed_orphan_dedupe_repair.sql
 0016_blob_lifecycle_control.sql
 0017_blob_lifecycle_review_fixes.sql
+0024_blob_integrity_quarantine.sql
 ```
 
 Wrangler discovers migration files in deterministic order. The managed-object
@@ -137,6 +139,23 @@ This migration rebuilds the retention surface to:
   and triggers;
 - keep the custom live-SHA constraint compatible with concurrent winner
   recovery.
+
+### `0024_blob_integrity_quarantine.sql`
+
+This migration adds `blob_integrity_quarantine` as a terminal record of definite
+physical-locator failure. A locator enters quarantine only after the provider
+confirms absence or reports a byte-size mismatch. Authentication, transport, and
+provider errors do not quarantine metadata.
+
+Quarantine preserves historical metadata and existing relationships for audit,
+export, and repair, while:
+
+- excluding the locator from future deduplication reuse and live attachment
+  delivery;
+- rejecting new relationships to the locator at the SQL boundary;
+- releasing the content hash so identical bytes can be registered at a fresh
+  physical locator;
+- keeping the old locator terminal rather than silently reusing a recycled key.
 
 ## Authoritative schema surfaces
 
@@ -195,8 +214,10 @@ provider key.
 - `managed_storage_objects.status` remains a compatibility projection during
   this slice.
 - `blob_gc_ledger` is authoritative for cross-provider GC state.
+- `blob_integrity_quarantine` is authoritative for definite provider-byte
+  absence or size mismatch discovered during reuse verification.
 
-A collected R2 asset keeps its content hash and metadata. The same content may
+A collected or quarantined R2 asset keeps its content hash and metadata. The same content may
 be registered again under a new live locator after the previous locator reaches
 `deleting` or `deleted`.
 
@@ -209,6 +230,7 @@ worker/blob-lifecycle/
   gc.ts
   export.ts
   storage.ts
+  reuse.ts
   permanent-delete.ts
 ```
 
@@ -246,7 +268,8 @@ Provider I/O occurs after the D1 claim and outside a database transaction.
 
 ### `storage.ts`
 
-Normalizes provider retrieval and removal, distinguishing:
+Normalizes provider retrieval, metadata-only `HEAD`/`stat`, and removal,
+distinguishing:
 
 ```text
 available
@@ -254,8 +277,14 @@ missing
 provider_unavailable
 ```
 
-A provider `HEAD`/`stat` probe before every deduplication reuse is explicitly
-deferred to a later storage-integrity slice.
+Provider unavailability is never reinterpreted as physical absence.
+
+### `reuse.ts`
+
+Owns provider-verified content-addressed reuse for R2 and managed storage. It
+checks byte existence and size before releasing an orphan or returning a winner,
+records definite failures in `blob_integrity_quarantine`, and surfaces temporary
+provider failures as retryable service errors without changing metadata.
 
 ### `export.ts`
 
@@ -284,16 +313,22 @@ reject all physical deletion of protected stable tables.
 
 ### Edge creation and deduplication
 
-Every relationship write is protected at the authoritative SQL boundary:
+Every content-addressed reuse and relationship write is protected at the
+authoritative boundaries:
 
-1. source/occurrence must still be writable;
-2. blob metadata must be ready;
-3. locator must not be `deleting` or `deleted`;
-4. edge write succeeds;
-5. an unclaimed `orphaned` row is released atomically.
+1. a candidate locator must not be `deleting`, `deleted`, or quarantined;
+2. R2 `HEAD` or managed-storage `stat` must confirm that bytes exist;
+3. a definite provider byte-size must match registered metadata;
+4. provider/auth/transport failure returns a retryable service error and leaves
+   metadata unchanged;
+5. source/occurrence and blob metadata must still be writable and ready;
+6. the relationship write succeeds;
+7. an unclaimed `orphaned` row is released atomically.
 
-Content-addressed winner recovery handles concurrent live-SHA registration
-without returning a spurious server error.
+A definite missing or size-mismatched candidate is quarantined and skipped. The
+upload then registers the same bytes at a fresh locator. Content-addressed winner
+recovery still handles concurrent registration without returning a spurious
+server error.
 
 ### Scheduled cleanup
 
@@ -303,10 +338,10 @@ may require multiple runs.
 
 ### Complete export
 
-The server returns schema v3:
+The current complete export returns schema v5:
 
 ```text
-all table/view snapshots
+all table/view snapshots, including integrity quarantine
 + one deduplicated blob plan
 + expected size/hash
 + every source occurrence
@@ -367,6 +402,8 @@ worker/permanent-delete-protection.test.ts
 worker/blob-lifecycle-review-fixes.test.ts
 worker/blob-lifecycle-migration-safety.test.ts
 worker/blob-lifecycle-legacy-managed-migration.test.ts
+worker/blob-integrity.test.ts
+worker/switchdrive-storage.test.ts
 ```
 
 The suites cover:
@@ -382,12 +419,17 @@ The suites cover:
 - export warnings and integrity mismatches;
 - total permanent-delete blocker planning;
 - physical-delete rejection without cascade;
-- D1's 100-binding limit.
+- D1's 100-binding limit;
+- R2 and SWITCHdrive metadata-only verification;
+- missing and size-mismatched quarantine;
+- provider-outage fail-closed behavior;
+- fresh-locator registration after a quarantined winner.
 
 Repository commands are:
 
 ```text
 npm run verify:blob-lifecycle
+npm run verify:storage-integrity
 npm run verify:v3-deployment
 ```
 
@@ -411,7 +453,6 @@ No remote migration or deployment was run while developing this slice.
 The following are outside this implementation and are tracked operationally in
 [BLOB_LIFECYCLE_OPERATIONS.md](./BLOB_LIFECYCLE_OPERATIONS.md):
 
-- provider `HEAD`/`stat` and missing-byte self-healing before dedup reuse;
 - independent physical GC for every direct-key provenance class;
 - streaming/server-side or desktop export for archives beyond browser memory;
 - exponential cleanup retry backoff, alerts, and an administrative GC dashboard;
@@ -420,9 +461,10 @@ The following are outside this implementation and are tracked operationally in
 ## Completion and roadmap ownership
 
 The blob-lifecycle slice completed in PR #123, and PR #124 corrected its
-D1/workerd migration compatibility. Feature-branch success still does not
-authorize a remote operation: the exact merged integration head must pass the
-full deployment gate.
+D1/workerd migration compatibility. The storage-integrity maintenance slice now
+extends that foundation with provider-verified reuse and terminal quarantine.
+Feature-branch success still does not authorize a remote operation: the exact
+merged integration head must pass the full deployment gate.
 
 Reference identity, navigation, deterministic search, and the reusable Project
 discovery surface were subsequently completed through PR #130. This
