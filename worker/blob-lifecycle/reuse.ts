@@ -87,7 +87,9 @@ export async function findReusableR2Asset(
     SELECT a.id, a.r2_key, a.original_name, a.mime_type,
            a.byte_size, a.sha256
     FROM assets a
+    LEFT JOIN imports i ON i.id = a.import_id
     WHERE a.sha256 = ? AND a.status = 'ready'
+      AND (a.import_id IS NULL OR i.status = 'ready')
       AND NOT EXISTS (
         SELECT 1 FROM blob_gc_ledger bg
         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
@@ -110,6 +112,30 @@ export async function findReusableR2Asset(
       blobRecordId: row.id,
     };
     if (await locatorIsReusable(env, locator, Number(row.byte_size))) return row;
+  }
+
+  const pendingImport = await env.DB.prepare(`
+    SELECT 1 AS pending
+    FROM assets a
+    JOIN imports i ON i.id = a.import_id AND i.status = 'pending'
+    WHERE a.sha256 = ? AND a.status IN ('pending', 'ready')
+      AND NOT EXISTS (
+        SELECT 1 FROM blob_gc_ledger bg
+        WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+          AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+          AND biq.object_key = a.r2_key
+      )
+    LIMIT 1
+  `).bind(sha256).first<{ pending: number }>();
+  if (pendingImport) {
+    throw new BlobReuseProviderUnavailableError(
+      "R2",
+      "matching bytes are still owned by a pending FabuBlox import; retry after the import finishes",
+    );
   }
   return null;
 }

@@ -37,6 +37,13 @@ routes.get("/assets/:key{.+}", async (c) => {
     FROM assets a
     WHERE a.r2_key = ?
       AND a.status = 'ready'
+      AND (
+        a.import_id IS NULL
+        OR EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = a.import_id AND i.status = 'ready'
+        )
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM blob_gc_ledger bg
@@ -145,6 +152,13 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
       AND rs.id = ?
       AND rsa.role = 'execution'
       AND rsa.deleted_at IS NULL
+      AND (
+        a.import_id IS NULL
+        OR EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = a.import_id AND i.status = 'ready'
+        )
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM blob_gc_ledger bg

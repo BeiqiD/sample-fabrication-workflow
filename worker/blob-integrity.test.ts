@@ -110,6 +110,56 @@ describe("provider-verified blob reuse", () => {
     database.close();
   });
 
+  it("keeps a pending asset staged while its FabuBlox import is pending", async () => {
+    const database = referenceTestDatabase();
+    database.prepare(`
+      INSERT INTO imports (
+        id, status, source_filename, source_sha256, sheet_name,
+        template_type, warning_count, created_at
+      ) VALUES (
+        'import-pending-reuse', 'pending', 'pending.xlsx', ?, 'Process',
+        'process', 0, ?
+      )
+    `).run(SHA, NOW);
+    database.prepare(`
+      INSERT INTO assets (
+        id, import_id, r2_key, original_name, mime_type, byte_size,
+        status, actor_email, created_at, sha256
+      ) VALUES (
+        'asset-pending-reuse', 'import-pending-reuse', 'imports/pending/source.xlsx',
+        'pending.xlsx', 'application/octet-stream', 4,
+        'pending', 'user@example.com', ?, ?
+      )
+    `).run(NOW, SHA);
+    const head = vi.fn(async () => ({
+      size: 4,
+      httpEtag: '"pending"',
+      writeHttpMetadata() {},
+    }));
+    const env = r2Environment(database, head);
+
+    await expect(findReusableR2Asset(env, SHA))
+      .rejects.toThrow(/pending FabuBlox import/);
+    expect(head).not.toHaveBeenCalled();
+    expect(database.prepare(`
+      SELECT status FROM assets WHERE id = 'asset-pending-reuse'
+    `).get()).toEqual({ status: 'pending' });
+
+    database.prepare(`
+      UPDATE imports SET status = 'ready', completed_at = ?
+      WHERE id = 'import-pending-reuse'
+    `).run(NOW);
+    expect(database.prepare(`
+      SELECT status FROM assets WHERE id = 'asset-pending-reuse'
+    `).get()).toEqual({ status: 'ready' });
+    await expect(findReusableR2Asset(env, SHA)).resolves.toMatchObject({
+      id: 'asset-pending-reuse',
+      r2_key: 'imports/pending/source.xlsx',
+    });
+    expect(head).toHaveBeenCalledWith('imports/pending/source.xlsx');
+    database.close();
+  });
+
   it("verifies managed objects and releases their hash after quarantine", async () => {
     const database = referenceTestDatabase();
     database.prepare(`
@@ -168,6 +218,82 @@ describe("provider-verified blob reuse", () => {
       INSERT INTO state_representation_assets (state_hash, asset_id, position)
       VALUES ('state-quarantine', 'asset-quarantined', 0)
     `).run()).toThrow("blob locator is quarantined");
+    database.close();
+  });
+
+  it("rejects INSERT and UPDATE binding of quarantined Sample thumbnails", () => {
+    const database = referenceTestDatabase();
+    database.exec(`
+      INSERT INTO samples (id, code, title, created_at, updated_at)
+      VALUES ('sample-thumbnail-integrity', 'THUMB', 'Thumbnail integrity', '${NOW}', '${NOW}');
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at
+      ) VALUES
+        ('asset-thumbnail-primary', 'records/primary-safe.bin', 'primary.bin',
+          'application/octet-stream', 4, 'ready',
+          '3333333333333333333333333333333333333333333333333333333333333333', '${NOW}'),
+        ('asset-thumbnail-safe', 'records/thumbnail-safe.bin', 'safe.bin',
+          'application/octet-stream', 4, 'ready',
+          '4444444444444444444444444444444444444444444444444444444444444444', '${NOW}'),
+        ('asset-thumbnail-quarantined', 'records/thumbnail-quarantined.bin', 'blocked.bin',
+          'application/octet-stream', 4, 'ready',
+          '5555555555555555555555555555555555555555555555555555555555555555', '${NOW}');
+      INSERT INTO blob_integrity_quarantine (
+        store_kind, provider, object_key, blob_record_id, reason,
+        expected_byte_size, observed_byte_size, operation_id,
+        detected_at, last_checked_at
+      ) VALUES (
+        'r2', 'r2', 'records/thumbnail-quarantined.bin',
+        'asset-thumbnail-quarantined', 'size_mismatch', 4, 9,
+        'operation-thumbnail-integrity', '${NOW}', '${NOW}'
+      );
+    `);
+
+    expect(() => database.prepare(`
+      INSERT INTO events (
+        id, sample_id, kind, asset_key, metadata_json, created_at
+      ) VALUES (
+        'event-thumbnail-blocked-insert', 'sample-thumbnail-integrity', 'image',
+        'records/primary-safe.bin', ?, ?
+      )
+    `).run(JSON.stringify({
+      action: 'sample_record',
+      thumbnailKey: 'records/thumbnail-quarantined.bin',
+    }), NOW)).toThrow('blob locator is quarantined');
+
+    database.prepare(`
+      INSERT INTO events (
+        id, sample_id, kind, asset_key, metadata_json, created_at
+      ) VALUES (
+        'event-thumbnail-safe', 'sample-thumbnail-integrity', 'image',
+        'records/primary-safe.bin', ?, ?
+      )
+    `).run(JSON.stringify({
+      action: 'sample_record',
+      thumbnailKey: 'records/thumbnail-safe.bin',
+    }), NOW);
+    expect(() => database.prepare(`
+      UPDATE events SET metadata_json = ? WHERE id = 'event-thumbnail-safe'
+    `).run(JSON.stringify({
+      action: 'sample_record',
+      thumbnailKey: 'records/thumbnail-quarantined.bin',
+    }))).toThrow('blob locator is quarantined');
+    expect(database.prepare(`
+      SELECT json_extract(metadata_json, '$.thumbnailKey') AS thumbnail_key
+      FROM events WHERE id = 'event-thumbnail-safe'
+    `).get()).toEqual({ thumbnail_key: 'records/thumbnail-safe.bin' });
+
+    const triggerNames = database.prepare(`
+      SELECT name FROM sqlite_master
+      WHERE type = 'trigger' AND name IN (
+        'events_guard_thumbnail_integrity_insert',
+        'events_guard_thumbnail_integrity_update'
+      ) ORDER BY name
+    `).all().map((row) => (row as { name: string }).name);
+    expect(triggerNames).toEqual([
+      'events_guard_thumbnail_integrity_insert',
+      'events_guard_thumbnail_integrity_update',
+    ]);
     database.close();
   });
 

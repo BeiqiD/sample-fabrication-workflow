@@ -36,9 +36,9 @@ DROP TRIGGER assets_reject_live_sha_duplicate;
 
 CREATE TRIGGER assets_reject_live_sha_duplicate
 BEFORE INSERT ON assets
-WHEN NEW.sha256 IS NOT NULL AND NEW.status = 'ready' AND EXISTS (
+WHEN NEW.sha256 IS NOT NULL AND NEW.status IN ('pending', 'ready') AND EXISTS (
   SELECT 1 FROM assets a
-  WHERE a.sha256 = NEW.sha256 AND a.status = 'ready'
+  WHERE a.sha256 = NEW.sha256 AND a.status IN ('pending', 'ready')
     AND NOT EXISTS (
       SELECT 1 FROM blob_gc_ledger bg
       WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
@@ -57,9 +57,10 @@ END;
 
 CREATE TRIGGER assets_reject_live_sha_duplicate_update
 BEFORE UPDATE OF sha256, status, r2_key ON assets
-WHEN NEW.sha256 IS NOT NULL AND NEW.status = 'ready' AND EXISTS (
+WHEN NEW.sha256 IS NOT NULL AND NEW.status IN ('pending', 'ready') AND EXISTS (
   SELECT 1 FROM assets a
-  WHERE a.id <> NEW.id AND a.sha256 = NEW.sha256 AND a.status = 'ready'
+  WHERE a.id <> NEW.id AND a.sha256 = NEW.sha256
+    AND a.status IN ('pending', 'ready')
     AND NOT EXISTS (
       SELECT 1 FROM blob_gc_ledger bg
       WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
@@ -74,6 +75,15 @@ WHEN NEW.sha256 IS NOT NULL AND NEW.status = 'ready' AND EXISTS (
 )
 BEGIN
   SELECT RAISE(ABORT, 'UNIQUE live asset sha256 already registered');
+END;
+
+CREATE TRIGGER imports_activate_pending_assets
+AFTER UPDATE OF status ON imports
+WHEN OLD.status = 'pending' AND NEW.status = 'ready'
+BEGIN
+  UPDATE assets
+  SET status = 'ready'
+  WHERE import_id = NEW.id AND status = 'pending';
 END;
 
 DROP INDEX managed_storage_objects_content_idx;
@@ -267,6 +277,34 @@ BEGIN
   SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
     SELECT 1 FROM blob_integrity_quarantine
     WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = NEW.asset_key
+  );
+END;
+
+CREATE TRIGGER events_guard_thumbnail_integrity_insert
+BEFORE INSERT ON events
+WHEN NULLIF(TRIM(CASE WHEN json_valid(NEW.metadata_json)
+  THEN json_extract(NEW.metadata_json, '$.thumbnailKey') END), '') IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM blob_integrity_quarantine
+    WHERE store_kind = 'r2' AND provider = 'r2'
+      AND object_key = json_extract(NEW.metadata_json, '$.thumbnailKey')
+  );
+END;
+
+CREATE TRIGGER events_guard_thumbnail_integrity_update
+BEFORE UPDATE OF metadata_json ON events
+WHEN NULLIF(TRIM(CASE WHEN json_valid(NEW.metadata_json)
+  THEN json_extract(NEW.metadata_json, '$.thumbnailKey') END), '') IS NOT NULL
+  AND CASE WHEN json_valid(OLD.metadata_json)
+        THEN json_extract(OLD.metadata_json, '$.thumbnailKey') END
+      IS NOT CASE WHEN json_valid(NEW.metadata_json)
+        THEN json_extract(NEW.metadata_json, '$.thumbnailKey') END
+BEGIN
+  SELECT RAISE(ABORT, 'blob locator is quarantined') WHERE EXISTS (
+    SELECT 1 FROM blob_integrity_quarantine
+    WHERE store_kind = 'r2' AND provider = 'r2'
+      AND object_key = json_extract(NEW.metadata_json, '$.thumbnailKey')
   );
 END;
 

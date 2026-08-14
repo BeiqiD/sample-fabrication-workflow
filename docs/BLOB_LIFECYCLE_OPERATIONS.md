@@ -55,7 +55,11 @@ relationships.
 
 `assets.status` and the readiness part of `managed_storage_objects.status`
 describe whether metadata registration/upload completed. They do not by
-themselves authorize garbage collection.
+themselves authorize garbage collection. FabuBlox first registers new assets as
+`pending` hash reservations. The owning import's atomic transition to `ready`
+promotes those assets to `ready`; until then, ordinary delivery and
+deduplication are closed and competing uploads receive a retryable service
+response rather than a locator that a later failed import may delete.
 
 ### GC work state
 

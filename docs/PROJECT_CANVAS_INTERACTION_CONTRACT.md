@@ -149,13 +149,16 @@ The initial mobile contract permits:
 - reading the complete Project;
 - opening external references;
 - editing existing Project-owned Markdown;
+- moving an existing Project-owned Markdown occurrence to Trash through the
+  guarded item/content lifecycle operation;
 - editing attachment caption and optional source URL;
 - reviewing the fixed insertion-order sequence; and
 - viewing item detail.
 
-The initial mobile contract excludes item creation, file upload, byte
-replacement, Map placement, resize, edge creation/editing, and bulk Canvas
-actions.
+The initial mobile contract excludes item creation, reference removal,
+attachment removal, file upload, byte replacement, Map placement, resize, edge
+creation/editing, and bulk Canvas actions. Recoverable Markdown removal is the
+only mobile structural mutation in this phase.
 
 ## Map creation interactions
 

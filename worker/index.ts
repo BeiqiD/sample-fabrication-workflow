@@ -77,8 +77,11 @@ function validRunStepTargets(value: unknown): value is RunStepTarget[] {
   return true;
 }
 
-function isBlobLocatorUnavailable(error: unknown) {
-  return String(error).includes("blob locator is unavailable");
+function blobLocatorConflict(error: unknown): "unavailable" | "quarantined" | null {
+  const message = String(error);
+  if (message.includes("blob locator is quarantined")) return "quarantined";
+  if (message.includes("blob locator is unavailable")) return "unavailable";
+  return null;
 }
 
 async function requireVisibleCommentOperationGroup(db: D1Database, operationGroupId: string) {
@@ -124,7 +127,13 @@ async function deleteR2KeysInBatches(bucket: R2Bucket, keys: string[]) {
 
 app.onError((error, c) => {
   if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
-  if (isBlobLocatorUnavailable(error)) {
+  const locatorConflict = blobLocatorConflict(error);
+  if (locatorConflict === "quarantined") {
+    return c.json({
+      error: "The selected file failed an integrity check. Upload a verified replacement.",
+    }, 409);
+  }
+  if (locatorConflict === "unavailable") {
     return c.json({ error: "The selected file is being cleaned up. Retry with a new upload." }, 409);
   }
   console.error(error);
@@ -1315,10 +1324,22 @@ app.post("/samples/:id/records", async (c) => {
     const result = await c.env.DB.prepare(
       `SELECT r2_key FROM assets a
        WHERE status = 'ready' AND r2_key IN (${placeholders})
+         AND (
+           a.import_id IS NULL
+           OR EXISTS (
+             SELECT 1 FROM imports i
+             WHERE i.id = a.import_id AND i.status = 'ready'
+           )
+         )
          AND NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM blob_integrity_quarantine biq
+           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+             AND biq.object_key = a.r2_key
          )`,
     ).bind(...assetKeys).all<{ r2_key: string }>();
     if (new Set(result.results.map((row) => row.r2_key)).size !== new Set(assetKeys).size) {
@@ -4965,7 +4986,7 @@ app.post("/imports/fabublox", async (c) => {
           await c.env.DB.prepare(
             `INSERT INTO assets
              (id, import_id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-             VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
           ).bind(
             asset.assetId,
             importId,

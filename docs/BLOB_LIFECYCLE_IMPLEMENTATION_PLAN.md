@@ -37,8 +37,8 @@ The slice includes:
 4. shared reachability use by Cancel and scheduled cleanup;
 5. guarded deduplication/edge creation against `deleting` and `deleted`
    locators;
-6. complete-export schema v3 with per-locator final outcomes and non-fatal
-   warnings;
+6. complete-export schema v5 with per-locator final outcomes, quarantine
+   metadata, and non-fatal warnings;
 7. database triggers that reject accidental physical deletion of stable source
    and occurrence tables;
 8. internal, deterministic, fail-closed permanent-delete blocker queries;
@@ -153,7 +153,8 @@ export, and repair, while:
 - excluding the locator from future deduplication reuse and every ordinary/live
   media-delivery route while preserving authenticated export retrieval for
   integrity warnings;
-- rejecting new relationships to the locator at the SQL boundary;
+- rejecting new relationships, including Sample-record thumbnail INSERT
+  and UPDATE bindings, to the locator at the SQL boundary;
 - releasing the content hash so identical bytes can be registered at a fresh
   physical locator;
 - keeping the old locator terminal rather than silently reusing a recycled key.
@@ -211,7 +212,11 @@ provider key.
 
 ### Existing readiness columns
 
-- `assets.status` remains upload/registration readiness.
+- `assets.status` remains upload/registration readiness. FabuBlox registers
+  new hash reservations as `pending`; an atomic import-status trigger promotes
+  them to `ready` only when the owning import commits `ready`. Ordinary delivery
+  and content-addressed reuse therefore reject staged bytes with a retryable
+  response until the import is complete.
 - `managed_storage_objects.status` remains a compatibility projection during
   this slice.
 - `blob_gc_ledger` is authoritative for cross-provider GC state.

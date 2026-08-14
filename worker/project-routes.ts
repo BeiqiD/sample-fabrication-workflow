@@ -76,7 +76,7 @@ async function requireJson<T>(
 }
 
 function isDatabaseConflict(error: unknown) {
-  return /(SQLITE_CONSTRAINT|constraint failed|UNIQUE constraint|FOREIGN KEY constraint|project item deletion requires|project item restore requires|project edge endpoints|reference target is unavailable|blob locator is unavailable)/i
+  return /(SQLITE_CONSTRAINT|constraint failed|UNIQUE constraint|FOREIGN KEY constraint|project item deletion requires|project item restore requires|project edge endpoints|reference target is unavailable|blob locator is unavailable|blob locator is quarantined)/i
     .test(String(error));
 }
 
