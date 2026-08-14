@@ -1,0 +1,63 @@
+name: Temporary PR 139 Project identity fix
+
+on:
+  push:
+    branches:
+      - agent/project-stability-local-geometry-delete
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/project-stability-local-geometry-delete
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply Project identity fix
+        run: python scripts/tmp-pr139-project-identity.py
+
+      - name: Run focused Project lifecycle regressions
+        run: npm run test:project-map-mounted
+
+      - name: Verify Project Map
+        run: npm run verify:project-map
+
+      - name: Verify Project edges
+        run: npm run verify:project-edges
+
+      - name: Verify Project Reading
+        run: npm run verify:project-reading
+
+      - name: Run complete tests
+        run: npm test
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Check whitespace
+        run: git diff --check
+
+      - name: Commit verified Project identity fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f scripts/tmp-pr139-project-identity.py
+          git add src/pages/ProjectPage.tsx src/project-deletion.mount.test.tsx
+          git commit -m "fix(project): bind deletion requests to Project identity"
+          git push origin HEAD:agent/project-stability-local-geometry-delete
