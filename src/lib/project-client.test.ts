@@ -70,6 +70,25 @@ describe("Project client", () => {
     ]);
   });
 
+  it("uses the authoritative Project lifecycle route to move a Project to trash", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+      project: { id: "project-a", title: "Project A", deletedAt: "2026-08-14T08:00:00.000Z" },
+      replayed: false,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const input = { expectedRevision: 4, operationId: "operation-delete-project" };
+    await projectApi.deleteProject("project-a", input);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/projects/project-a",
+      expect.objectContaining({ method: "DELETE", body: JSON.stringify(input) }),
+    );
+  });
+
   it("uses Project-owned reference insertion and item-lifecycle routes", async () => {
     const responseBody = JSON.stringify({ replayed: false });
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(responseBody, {

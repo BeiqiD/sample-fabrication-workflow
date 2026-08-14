@@ -214,6 +214,52 @@ describe("real Project edge surface", () => {
     await waitFor(() => expect(liveEdge("edge-b").classList.contains("selected")).toBe(false));
   });
 
+
+it("keeps edge selection and connection handles stable after local geometry moves before persistence", async () => {
+  const snapshot = projectTestSnapshot();
+  const edge = edgeRecord();
+  const originalNodes = projectMapNodes(snapshot);
+  const movedNodes = originalNodes.map((node) => node.itemId === "item-note"
+    ? { ...node, geometry: { ...node.geometry, x: node.geometry.x + 96 } }
+    : node);
+  const onEdgeSelect = vi.fn();
+  const { container, rerender } = render(<div style={{ width: 900, height: 700 }}>
+    <ProjectMapSurface
+      nodes={originalNodes}
+      edges={[edge]}
+      selectedItemId={null}
+      selectedEdgeId={null}
+      edgeInteractionDisabled={false}
+      onSelect={() => undefined}
+      onEdgeSelect={onEdgeSelect}
+      onGeometryCommit={() => undefined}
+    />
+  </div>);
+
+  await waitFor(() => expect(container.querySelectorAll(".project-edge-handle.connectable").length).toBe(8));
+  rerender(<div style={{ width: 900, height: 700 }}>
+    <ProjectMapSurface
+      nodes={movedNodes}
+      edges={[edge]}
+      selectedItemId={null}
+      selectedEdgeId={null}
+      edgeInteractionDisabled={false}
+      onSelect={() => undefined}
+      onEdgeSelect={onEdgeSelect}
+      onGeometryCommit={() => undefined}
+    />
+  </div>);
+
+  await waitFor(() => expect(container.querySelectorAll(".project-edge-handle.connectable").length).toBe(8));
+  const renderedEdge = await waitFor(() => {
+    const candidate = container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]');
+    expect(candidate).toBeTruthy();
+    return candidate!;
+  });
+  fireEvent.click(renderedEdge);
+  await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
+});
+
   it("disables connection handles independently from node geometry interaction", async () => {
     const snapshot = projectTestSnapshot();
     const stableNodes = projectMapNodes(snapshot);

@@ -313,14 +313,20 @@ describe("mounted Project edge behavior", () => {
     await screen.findByText("recovered");
   });
 
-  it("disables edge connection and edge-history undo while placement state is unsaved", async () => {
+  it("keeps edge connection and edge-history undo available while placement state is locally unsaved", async () => {
+    const lifecycle: string[] = [];
     fetchMock.mockImplementation((path, init) => {
       if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshotWithEdge());
       if (String(path) === "/api/projects/project-a/edges/edge-a" && init?.method === "DELETE") {
+        lifecycle.push("DELETE");
         return jsonResponse({
           value: edgeRecord({ revision: 2, deletedAt: "2026-08-13T12:00:00.000Z", deletedBy: "user@example.com" }),
           replayed: false,
         });
+      }
+      if (String(path) === "/api/projects/project-a/edges/edge-a/restore" && init?.method === "POST") {
+        lifecycle.push("RESTORE");
+        return jsonResponse({ value: edgeRecord({ revision: 3 }), replayed: false });
       }
       return jsonResponse({ error: "Unexpected request" }, 500);
     });
@@ -334,14 +340,22 @@ describe("mounted Project edge behavior", () => {
     await waitFor(() => expect(screen.getByText("Edge count: 0")).toBeTruthy());
 
     fireEvent.click(screen.getByRole("button", { name: "Move node fixture" }));
-    await waitFor(() => expect(screen.getByText("Edge interaction: disabled")).toBeTruthy());
-    expect(screen.getByRole("button", { name: "Connect edge fixture" }).hasAttribute("disabled")).toBe(true);
+    await waitFor(() => expect(screen.getByText("Unsaved")).toBeTruthy());
+    expect(screen.getByText("Edge interaction: enabled")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Connect edge fixture" }).hasAttribute("disabled")).toBe(false);
 
     const undoGeometry = screen.getByRole("button", { name: "Undo" });
     expect(undoGeometry.hasAttribute("disabled")).toBe(false);
     fireEvent.click(undoGeometry);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(true));
+    const undoEdge = await waitFor(() => {
+      const button = screen.getByRole("button", { name: "Undo" });
+      expect(button.hasAttribute("disabled")).toBe(false);
+      return button;
+    });
+    fireEvent.click(undoEdge);
+    await waitFor(() => expect(screen.getByText("Edge count: 1")).toBeTruthy());
+    expect(lifecycle).toEqual(["DELETE", "RESTORE"]);
   });
 
   it("undoes and redoes a committed edge deletion through authoritative restore and delete revisions", async () => {
