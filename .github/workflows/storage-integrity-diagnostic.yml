@@ -1,4 +1,4 @@
-name: Apply storage integrity routes and Markdown removal
+name: Finalize storage integrity documentation
 
 on:
   push:
@@ -9,10 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  implement:
-    if: "github.event.head_commit.message == 'chore: rerun storage integrity routes and Markdown removal'"
+  finalize:
+    if: "github.event.head_commit.message == 'chore: finalize storage integrity documentation'"
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,26 +23,32 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Apply source patches
-        run: |
-          python .github/scripts/apply-storage-integrity-routes.py
-          python .github/scripts/apply-markdown-removal.py
-          python .github/scripts/fix-storage-integrity-route-tests.py
+      - name: Apply permanent documentation and gate updates
+        run: python .github/scripts/finalize-storage-integrity.py
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify complete implementation
+      - name: Verify the permanent safety gate and Reading lifecycle
         run: |
-          npm test
-          npm run verify:d1-migrations
-          npm run build
+          npm run verify:blob-lifecycle
+          npm run verify:project-reading
           git diff --check
 
-      - name: Commit implementation
+      - name: Remove temporary implementation machinery and commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add migrations worker src shared package.json
-          git commit -m "feat: verify blob reuse and remove Markdown"
+          git add package.json docs/BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md \
+            docs/BLOB_LIFECYCLE_OPERATIONS.md docs/PRODUCT_ROADMAP.md
+          git rm \
+            .github/scripts/apply-markdown-removal.py \
+            .github/scripts/apply-storage-integrity-core.py \
+            .github/scripts/apply-storage-integrity-integration.py \
+            .github/scripts/apply-storage-integrity-routes.py \
+            .github/scripts/fix-storage-integrity-route-tests.py \
+            .github/scripts/fix-storage-integrity-test-import.py \
+            .github/scripts/finalize-storage-integrity.py \
+            .github/workflows/storage-integrity-diagnostic.yml
+          git commit -m "docs: record storage integrity operations"
           git push origin HEAD:agent/storage-integrity-markdown-removal
