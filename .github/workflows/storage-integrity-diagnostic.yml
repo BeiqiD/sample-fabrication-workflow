@@ -1,4 +1,4 @@
-name: Apply storage integrity foundation
+name: Apply storage integrity routes and Markdown removal
 
 on:
   push:
@@ -10,9 +10,9 @@ permissions:
 
 jobs:
   implement:
-    if: "github.event.head_commit.message == 'chore: validate storage integrity foundation'"
+    if: "github.event.head_commit.message == 'chore: apply storage integrity routes and Markdown removal'"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,20 +23,18 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Apply patches
+      - name: Apply source patches
         run: |
-          python .github/scripts/apply-storage-integrity-core.py
-          python .github/scripts/apply-storage-integrity-integration.py
-          python .github/scripts/fix-storage-integrity-test-import.py
+          python .github/scripts/apply-storage-integrity-routes.py
+          python .github/scripts/apply-markdown-removal.py
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify foundation
+      - name: Verify complete implementation
         run: |
-          npm run verify:storage-integrity
-          npm run test:project-persistence
-          npm run test:project-foundation
+          npm test
+          npm run verify:d1-migrations
           npm run build
           git diff --check
 
@@ -44,12 +42,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add migrations/0024_blob_integrity_quarantine.sql \
-            shared/project-types.ts package.json \
-            worker/managed-storage.ts worker/switchdrive-storage.ts \
-            worker/blob-lifecycle/storage.ts worker/blob-lifecycle/reuse.ts \
-            worker/project-foundation-routes.ts worker/project-foundation-routes.test.ts \
-            worker/project-routes.test.ts worker/switchdrive-storage.test.ts \
-            worker/blob-integrity.test.ts
-          git commit -m "feat: verify physical blobs before reuse"
+          git add migrations worker src shared package.json
+          git commit -m "feat: verify blob reuse and remove Markdown"
           git push origin HEAD:agent/storage-integrity-markdown-removal
