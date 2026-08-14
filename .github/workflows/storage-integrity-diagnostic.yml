@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   implement:
-    if: "github.event.head_commit.message == 'chore: apply storage integrity routes and Markdown removal'"
+    if: "github.event.head_commit.message == 'chore: rerun storage integrity routes and Markdown removal'"
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -27,6 +27,7 @@ jobs:
         run: |
           python .github/scripts/apply-storage-integrity-routes.py
           python .github/scripts/apply-markdown-removal.py
+          python .github/scripts/fix-storage-integrity-route-tests.py
 
       - name: Install dependencies
         run: npm ci
