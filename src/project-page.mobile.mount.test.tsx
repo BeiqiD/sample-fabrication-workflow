@@ -44,14 +44,18 @@ describe("mounted mobile Project occurrence projection", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders a deterministic read-only occurrence projection without initializing the Map", async () => {
+  it("defaults to the deterministic Reading projection without initializing the Map", async () => {
     renderProjectPage();
 
     expect(await screen.findByRole("heading", { name: "Topological laser" })).toBeTruthy();
-    expect(screen.getByText("Read-only occurrence view")).toBeTruthy();
+    expect(screen.getByText("Reading")).toBeTruthy();
     expect(screen.queryByTestId("project-flow-canvas")).toBeNull();
     expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent))
       .toEqual(["Design note", "Sample A"]);
+    expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Design note\n\nPreserve the occurrence identity.");
+    expect(screen.getByRole("button", { name: "Edit Markdown" })).toBeTruthy();
+    expect(screen.queryByText("Add references")).toBeNull();
+    expect(screen.queryByText("Add attachment")).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/projects/project-a");
   });

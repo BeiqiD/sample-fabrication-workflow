@@ -30,8 +30,8 @@ import type {
 import type {
   ProjectMapGeometry,
 } from "../../shared/project-types";
-import { EmptyState } from "../components/EmptyState";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
+import { ProjectReadingSurface } from "../components/project/ProjectReadingSurface";
 import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
 import {
   ProjectApiError,
@@ -64,7 +64,6 @@ import { useProjectEdgeController } from "../lib/use-project-edge-controller";
 import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
 import {
   projectAttachmentGeometryAtPoint,
-  projectAttachmentCanPreviewImage,
   projectMarkdownGeometryAtPoint,
   projectOwnedContentFailureStatus,
   type ProjectMapMarkdownEditorState,
@@ -110,16 +109,33 @@ type AttachmentEditorState = {
   message: string | null;
 };
 
-function useDesktopProjectMap() {
+type ProjectWorkspaceView = "map" | "reading";
+
+function useDesktopProjectMap(
+  projectionLocked: boolean,
+  projectionLockedNow: () => boolean,
+) {
   const query = "(min-width: 860px)";
+  const lockCheckRef = useRef(projectionLockedNow);
+  lockCheckRef.current = projectionLockedNow;
   const [desktop, setDesktop] = useState(() => window.matchMedia(query).matches);
+
   useEffect(() => {
     const media = window.matchMedia(query);
-    const update = () => setDesktop(media.matches);
+    const update = () => {
+      if (lockCheckRef.current()) return;
+      setDesktop(media.matches);
+    };
     update();
     media.addEventListener?.("change", update);
     return () => media.removeEventListener?.("change", update);
   }, []);
+
+  useEffect(() => {
+    if (projectionLocked) return;
+    setDesktop(window.matchMedia(query).matches);
+  }, [projectionLocked]);
+
   return desktop;
 }
 
@@ -151,28 +167,8 @@ function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error"
   return "uncertain";
 }
 
-function ProjectReadingAttachmentPreview({
-  fileUrl,
-  mimeType,
-  alt,
-}: {
-  fileUrl: string | null;
-  mimeType: string | null;
-  alt: string;
-}) {
-  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
-  if (!fileUrl || !projectAttachmentCanPreviewImage(mimeType) || failedPreviewUrl === fileUrl) return null;
-  return <img
-    className="project-reading-image"
-    src={fileUrl}
-    alt={alt}
-    onError={() => setFailedPreviewUrl(fileUrl)}
-  />;
-}
-
 export function ProjectPage() {
   const { projectId = "" } = useParams();
-  const desktop = useDesktopProjectMap();
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -190,6 +186,7 @@ export function ProjectPage() {
   const [pendingAttachment, setPendingAttachmentState] = useState<ProjectPendingAttachmentPlacement | null>(null);
   const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
   const [ownedContentActionError, setOwnedContentActionError] = useState("");
+  const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
 
   const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
   const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
@@ -301,6 +298,23 @@ export function ProjectPage() {
       || attachmentEditor !== null,
     onHistory: recordEdgeHistory,
   });
+
+  const projectionSwitchLocked = saveState !== "saved"
+    || pendingReference !== null
+    || pendingReferenceRemoval !== null
+    || markdownEditor !== null
+    || pendingAttachment !== null
+    || attachmentEditor !== null
+    || edgeController.unsafe;
+  const desktop = useDesktopProjectMap(projectionSwitchLocked, () => (
+    saveStateRef.current !== "saved"
+      || pendingReferenceRef.current !== null
+      || pendingReferenceRemovalRef.current !== null
+      || markdownEditorRef.current !== null
+      || pendingAttachmentRef.current !== null
+      || attachmentEditorRef.current !== null
+      || edgeController.unsafeRef.current
+  ));
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
     (saveState !== "saved"
@@ -1553,6 +1567,12 @@ export function ProjectPage() {
     || saveState === "saving"
     || geometryInteractionDisabled
     || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
+  const viewSwitchDisabled = projectionSwitchLocked;
+  const readingInteractionDisabled = saveState !== "saved"
+    || pendingReference !== null
+    || pendingReferenceRemoval !== null
+    || pendingAttachment !== null
+    || edgeController.unsafe;
 
   const navigationBlockMessage = edgeController.pending
     ? edgeController.pending.status === "saving"
@@ -1615,20 +1635,26 @@ export function ProjectPage() {
         <p className="eyebrow">Project workspace</p>
         <h1>{snapshot.project.title}</h1>
       </div>
-      {desktop && <div className="project-save-toolbar">
-        <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-        <button type="button" className="button compact-button" disabled={undoDisabled} onClick={undo}>Undo</button>
-        <button type="button" className="button compact-button" disabled={redoDisabled} onClick={redo}>Redo</button>
-        <button
-          type="button"
-          className="button primary compact-button"
-          disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled}
-          onClick={() => {
-            if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
-            autosaveTimerRef.current = null;
-            void flushSave();
-          }}
-        >Save</button>
+      {desktop && <div className="project-workspace-header-actions">
+        <div className="project-view-toggle" role="group" aria-label="Project view">
+          <button type="button" className={`button compact-button${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
+          <button type="button" className={`button compact-button${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
+        </div>
+        {desktopView === "map" && <div className="project-save-toolbar">
+          <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
+          <button type="button" className="button compact-button" disabled={undoDisabled} onClick={undo}>Undo</button>
+          <button type="button" className="button compact-button" disabled={redoDisabled} onClick={redo}>Redo</button>
+          <button
+            type="button"
+            className="button primary compact-button"
+            disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled}
+            onClick={() => {
+              if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+              autosaveTimerRef.current = null;
+              void flushSave();
+            }}
+          >Save</button>
+        </div>}
       </div>}
     </header>
 
@@ -1707,6 +1733,7 @@ export function ProjectPage() {
     </div>}
 
     {desktop ? <div className="project-desktop-workspace with-reference-sidebar">
+      {desktopView === "map" ? <>
       <aside className="project-reference-sidebar" aria-label="Reference search and placement">
         <div className="project-reference-sidebar-heading">
           <p className="card-label">Add Project content</p>
@@ -1908,27 +1935,34 @@ export function ProjectPage() {
           {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
         </div> : <p className="muted">Select a Map item or edge to inspect it.</p>}
       </aside>
-    </div> : <section className="project-mobile-reading" aria-label="Project occurrences">
-      <div className="project-mobile-reading-heading">
-        <p className="card-label">Read-only occurrence view</p>
-        <p className="card-meta">Reference placement and Map editing are available on a larger screen. Items remain ordered by creation sequence.</p>
-      </div>
-      {readingNodes.length ? readingNodes.map((node) => <article className="card project-reading-item" key={node.itemId}>
-        <header><span className="meta-badge">{node.kind}</span><small>#{node.createdSequence}</small></header>
-        <h2>{node.title}</h2>
-        {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
-        {node.kind === "attachment" && <ProjectReadingAttachmentPreview
-          fileUrl={node.fileUrl}
-          mimeType={node.mimeType}
-          alt={node.attachmentCaption || node.title}
-        />}
-        {node.excerpt && <p className="project-reading-excerpt">{node.excerpt}</p>}
-        {node.attachmentSourceUrl && <a className="button wide" href={node.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
-        {node.openReferenceUrl && <Link className="button wide" to={node.openReferenceUrl}>Open reference</Link>}
-        {node.fileUrl && <a className="button wide" href={node.fileUrl}>Open attachment</a>}
-      </article>) : <EmptyState title="This Project is empty">
-        Add references or Project-owned content from the desktop Project workspace.
-      </EmptyState>}
-    </section>}
+      </> : <ProjectReadingSurface
+        nodes={readingNodes}
+        markdownEditor={markdownEditor}
+        attachmentEditor={attachmentEditor}
+        interactionDisabled={readingInteractionDisabled}
+        onMarkdownEditRequest={startMarkdownEdit}
+        onMarkdownChange={changeMarkdown}
+        onMarkdownSave={() => void saveMarkdown()}
+        onMarkdownCancel={() => cancelMarkdown(false)}
+        onAttachmentEditRequest={startAttachmentEdit}
+        onAttachmentChange={updateAttachmentDraft}
+        onAttachmentSave={() => void saveAttachmentMetadata()}
+        onAttachmentCancel={() => cancelAttachmentEdit(false)}
+      />}
+    </div> : <ProjectReadingSurface
+      nodes={readingNodes}
+      mobile
+      markdownEditor={markdownEditor}
+      attachmentEditor={attachmentEditor}
+      interactionDisabled={readingInteractionDisabled}
+      onMarkdownEditRequest={startMarkdownEdit}
+      onMarkdownChange={changeMarkdown}
+      onMarkdownSave={() => void saveMarkdown()}
+      onMarkdownCancel={() => cancelMarkdown(false)}
+      onAttachmentEditRequest={startAttachmentEdit}
+      onAttachmentChange={updateAttachmentDraft}
+      onAttachmentSave={() => void saveAttachmentMetadata()}
+      onAttachmentCancel={() => cancelAttachmentEdit(false)}
+    />}
   </div>;
 }

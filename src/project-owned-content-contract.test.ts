@@ -67,8 +67,9 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(map).toContain("projectAttachmentCanPreviewImage(descriptor.mimeType)");
     expect(map).toContain('className="project-node-image"');
     expect(map).toContain("onError={() => setFailedPreviewUrl(previewUrl)}");
-    expect(page).toContain("<ProjectReadingAttachmentPreview");
-    expect(page).toContain("onError={() => setFailedPreviewUrl(fileUrl)}");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    expect(reading).toContain("<ReadingAttachmentPreview");
+    expect(reading).toContain("onError={() => setFailedPreviewUrl(fileUrl)}");
     expect(model).toContain("attachmentCaption");
     expect(page).toContain("<ReferenceSearchSurface");
     expect(page).not.toContain("sourceAttachmentId");
@@ -91,14 +92,14 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(workerSmoke).not.toContain("project-smoke-asset");
   });
 
-  it("keeps Project-owned content creation desktop-only", () => {
+  it("keeps Project-owned content creation Map-only while Reading edits existing content", () => {
     const page = read("./pages/ProjectPage.tsx");
-    const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
-    const mobileBranch = page.indexOf(': <section className="project-mobile-reading"', desktopBranch);
-    expect(desktopBranch).toBeGreaterThan(-1);
-    expect(mobileBranch).toBeGreaterThan(desktopBranch);
-    const mobile = page.slice(mobileBranch);
-    expect(mobile).not.toContain("Add attachment");
-    expect(mobile).not.toContain("New Project Markdown");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    expect(page).toContain('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
+    expect(page).toContain('desktopView === "map" ? <>');
+    expect(reading).not.toContain("Add attachment");
+    expect(reading).not.toContain("New Project Markdown");
+    expect(reading).toContain("Edit Markdown");
+    expect(reading).toContain("Edit attachment metadata");
   });
 });
