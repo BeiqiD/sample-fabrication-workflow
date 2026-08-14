@@ -22,10 +22,8 @@ import {
   type EdgeChange,
   type Node,
   type NodeChange,
-  type NodeMouseHandler,
   type NodeProps,
   type OnNodeDrag,
-  type OnSelectionChangeFunc,
   type ReactFlowInstance,
   type ResizeParams,
 } from "@xyflow/react";
@@ -518,6 +516,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [callbacks, descriptors, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
+  const selectedItemIdRef = useRef(selectedItemId);
+  const selectedEdgeIdRef = useRef(selectedEdgeId);
+  selectedItemIdRef.current = selectedItemId;
+  selectedEdgeIdRef.current = selectedEdgeId;
   const projectedEdges = useMemo(() => {
     const labels = new Map(descriptors.map((descriptor) => [descriptor.itemId, descriptor.title]));
     const active = edges.map((edge) => buildFlowEdge(
@@ -530,33 +532,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     return active;
   }, [descriptors, edges, pendingEdge, selectedEdgeId]);
 
+  // Parent selection is authoritative. Do not preserve React Flow's transient
+  // selection here: doing so can re-select a node while an edge click is clearing it.
   useEffect(() => {
-    setFlowNodes((current) => {
+    setFlowNodes(() => {
       const next = projectedNodes.map((projected) => ({
         ...projected,
-        selected: projected.data.pendingReference || projected.data.pendingAttachment
-          ? false
-          : current.find((candidate) => candidate.id === projected.id)?.selected ?? projected.id === selectedItemId,
+        selected: !projected.data.pendingReference
+          && !projected.data.pendingAttachment
+          && projected.id === selectedItemId,
       }));
       flowNodesRef.current = next;
       return next;
     });
   }, [projectedNodes, selectedItemId]);
-
-  useEffect(() => {
-    setFlowNodes((current) => {
-      const selectionChanged = current.some((node) => (
-        !node.data.pendingReference && !node.data.pendingAttachment && node.selected !== (node.id === selectedItemId)
-      ));
-      if (!selectionChanged) return current;
-      const next = current.map((node) => ({
-        ...node,
-        selected: !node.data.pendingReference && !node.data.pendingAttachment && node.id === selectedItemId,
-      }));
-      flowNodesRef.current = next;
-      return next;
-    });
-  }, [selectedItemId]);
 
   const flowPointFromClient = useCallback((clientX: number, clientY: number) => {
     const instance = flowInstanceRef.current;
@@ -581,6 +570,24 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     flowNodesRef.current = next;
     setFlowNodes(next);
 
+    // Selection has one user-event bridge: React Flow NodeChange/EdgeChange.
+    // Click and aggregate selection callbacks must not write the same state again.
+    const selectedChange = [...effectiveChanges].reverse().find(
+      (change) => change.type === "select" && change.selected,
+    );
+    if (selectedChange?.type === "select") {
+      const selectedNode = next.find((candidate) => candidate.id === selectedChange.id);
+      if (selectedNode && !selectedNode.data.pendingReference && !selectedNode.data.pendingAttachment) {
+        onSelect(selectedNode.id);
+        setContextMenu(null);
+      }
+    } else {
+      const selectedItemId = selectedItemIdRef.current;
+      if (selectedItemId !== null && effectiveChanges.some((change) => (
+        change.type === "select" && !change.selected && change.id === selectedItemId
+      ))) onSelect(null);
+    }
+
     if (geometryInteractionDisabled) return;
     for (const change of effectiveChanges) {
       if (change.type !== "position" || change.dragging || !change.position) continue;
@@ -594,45 +601,25 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (projectGeometryEquals(before, after)) continue;
       onGeometryCommit({ placementId, before, after });
     }
-  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
+  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit, onSelect]);
 
-  const handleNodeClick = useCallback<NodeMouseHandler<ProjectFlowNode>>((_event, node) => {
-    if (!node.data.pendingReference && !node.data.pendingAttachment) onSelect(node.id);
-    setContextMenu(null);
-  }, [onSelect]);
-  const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: ProjectFlowEdge) => {
-    if (pendingEdge?.edgeId === edge.id) return;
-    onEdgeSelect(edge.id);
-    setContextMenu(null);
-  }, [onEdgeSelect, pendingEdge]);
   const handlePaneClick = useCallback(() => {
-    onSelect(null);
-    onEdgeSelect(null);
     setContextMenu(null);
-  }, [onEdgeSelect, onSelect]);
-  const handleSelectionChange = useCallback<OnSelectionChangeFunc<ProjectFlowNode, ProjectFlowEdge>>(({ nodes, edges }) => {
-    const selectedNode = [...nodes].reverse().find((node) => !node.data.pendingReference && !node.data.pendingAttachment);
-    if (selectedNode) {
-      onSelect(selectedNode.id);
-      return;
-    }
-    const selectedEdge = [...edges].reverse().find((edge) => edge.id !== pendingEdge?.edgeId);
-    if (selectedEdge) {
-      onEdgeSelect(selectedEdge.id);
-      return;
-    }
-    if (selectedItemId !== null) onSelect(null);
-  }, [onEdgeSelect, onSelect, pendingEdge, selectedItemId]);
+  }, []);
   const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {
-    const selected = [...changes].reverse().find((change) => change.type === "select" && change.selected);
+    const selected = [...changes].reverse().find((change) => (
+      change.type === "select" && change.selected && change.id !== pendingEdge?.edgeId
+    ));
     if (selected?.type === "select") {
       onEdgeSelect(selected.id);
+      setContextMenu(null);
       return;
     }
-    if (selectedEdgeId !== null && changes.some((change) =>
+    const selectedEdgeId = selectedEdgeIdRef.current;
+    if (selectedEdgeId !== null && changes.some((change) => (
       change.type === "select" && !change.selected && change.id === selectedEdgeId
-    )) onEdgeSelect(null);
-  }, [onEdgeSelect, selectedEdgeId]);
+    ))) onEdgeSelect(null);
+  }, [onEdgeSelect, pendingEdge]);
   const handleConnect = useCallback((connection: Connection) => {
     if (edgeInteractionDisabled || !onEdgeConnect || !connection.source || !connection.target
       || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;
@@ -715,10 +702,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onInit={(instance) => { flowInstanceRef.current = instance; }}
       onNodesChange={onNodesChange}
       onEdgesChange={handleEdgesChange}
-      onNodeClick={handleNodeClick}
-      onEdgeClick={handleEdgeClick}
       onConnect={handleConnect}
-      onSelectionChange={handleSelectionChange}
       onPaneClick={handlePaneClick}
       onNodeDragStart={handleNodeDragStart}
       onNodeDragStop={handleNodeDragStop}

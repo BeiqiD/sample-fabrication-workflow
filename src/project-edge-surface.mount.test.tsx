@@ -359,4 +359,72 @@ it("keeps edge selection and connection handles stable after local geometry move
     await waitFor(() => expect(onEdgeSelect).toHaveBeenCalledWith("edge-a"));
     expect(onEdgeSelect).toHaveBeenCalledWith("edge-a");
   });
+
+  it("switches node, edge, node, and pane selection without controlled-selection feedback", async () => {
+    const snapshot = projectTestSnapshot();
+    const stableNodes = projectMapNodes(snapshot);
+    const stableEdges = [edgeRecord()];
+    const transitions: string[] = [];
+
+    function ControlledClickHarness() {
+      const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      const handleSelect = useCallback((itemId: string | null) => {
+        transitions.push(`node:${itemId ?? "none"}`);
+        if (transitions.length > 20) throw new Error("Project Map selection feedback loop");
+        setSelectedItemId(itemId);
+        if (itemId !== null) setSelectedEdgeId(null);
+      }, []);
+      const handleEdgeSelect = useCallback((edgeId: string | null) => {
+        transitions.push(`edge:${edgeId ?? "none"}`);
+        if (transitions.length > 20) throw new Error("Project Map selection feedback loop");
+        setSelectedEdgeId(edgeId);
+        if (edgeId !== null) setSelectedItemId(null);
+      }, []);
+      return <ProjectMapSurface
+        nodes={stableNodes}
+        edges={stableEdges}
+        selectedItemId={selectedItemId}
+        selectedEdgeId={selectedEdgeId}
+        onSelect={handleSelect}
+        onEdgeSelect={handleEdgeSelect}
+        onGeometryCommit={() => undefined}
+      />;
+    }
+
+    const { container } = render(<div style={{ width: 900, height: 700 }}><ControlledClickHarness /></div>);
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(2));
+    const liveNode = (id: string) => container.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`)!;
+    const liveEdge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    const pane = () => container.querySelector<HTMLElement>(".react-flow__pane")!;
+    await waitFor(() => expect(liveEdge()).toBeTruthy());
+
+    fireEvent.click(liveNode("item-note"));
+    await waitFor(() => expect(liveNode("item-note").classList.contains("selected")).toBe(true));
+    transitions.length = 0;
+
+    fireEvent.click(liveEdge());
+    await waitFor(() => {
+      expect(liveEdge().classList.contains("selected")).toBe(true);
+      expect(liveNode("item-note").classList.contains("selected")).toBe(false);
+    });
+    expect(transitions).toContain("edge:edge-a");
+    expect(transitions.length).toBeLessThanOrEqual(6);
+
+    transitions.length = 0;
+    fireEvent.click(liveNode("item-reference"));
+    await waitFor(() => {
+      expect(liveNode("item-reference").classList.contains("selected")).toBe(true);
+      expect(liveEdge().classList.contains("selected")).toBe(false);
+    });
+    expect(transitions).toContain("node:item-reference");
+    expect(transitions.length).toBeLessThanOrEqual(6);
+
+    transitions.length = 0;
+    fireEvent.click(pane());
+    await waitFor(() => expect(liveNode("item-reference").classList.contains("selected")).toBe(false));
+    expect(transitions).toContain("node:none");
+    expect(transitions.length).toBeLessThanOrEqual(4);
+  });
+
 });
