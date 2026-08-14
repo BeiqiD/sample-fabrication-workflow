@@ -1,6 +1,6 @@
 
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectPage } from "./pages/ProjectPage";
@@ -45,7 +45,7 @@ function renderProjectPage() {
     path: "/projects",
     element: <div>Projects destination</div>,
   }], { initialEntries: ["/projects/project-a"] });
-  return render(<RouterProvider router={router} />);
+  return { router, view: render(<RouterProvider router={router} />) };
 }
 
 describe("Project lifecycle UI", () => {
@@ -173,6 +173,97 @@ describe("Project lifecycle UI", () => {
     expect(deleteInputs).toHaveLength(2);
     expect(deleteInputs[1].expectedRevision).toBe(refreshed.project.revision);
     expect(deleteInputs[1].operationId).not.toBe(deleteInputs[0].operationId);
+  });
+
+
+  it("does not carry a deterministic deletion request across Project route identities", async () => {
+    const projectA = projectTestSnapshot();
+    const projectB = projectTestSnapshot();
+    projectB.project = {
+      ...projectB.project,
+      id: "project-b",
+      title: projectA.project.title,
+      revision: projectA.project.revision,
+      updatedAt: "2026-08-14T10:00:00.000Z",
+    };
+    projectB.contents = projectB.contents.map((content) => ({ ...content, projectId: "project-b" }));
+    projectB.items = projectB.items.map((item) => ({ ...item, projectId: "project-b" }));
+
+    const deletionCalls: Array<{
+      projectId: string;
+      expectedRevision: number;
+      operationId: string;
+    }> = [];
+    let projectBReads = 0;
+
+    fetchMock.mockImplementation((path, init) => {
+      const url = String(path);
+      if (url === "/api/projects/project-a" && !init?.method) return jsonResponse(projectA);
+      if (url === "/api/projects/project-b" && !init?.method) {
+        projectBReads += 1;
+        return jsonResponse(projectB);
+      }
+      if ((url === "/api/projects/project-a" || url === "/api/projects/project-b") && init?.method === "DELETE") {
+        const input = JSON.parse(String(init.body)) as { expectedRevision: number; operationId: string };
+        const targetProjectId = url.endsWith("project-a") ? "project-a" : "project-b";
+        deletionCalls.push({ projectId: targetProjectId, ...input });
+        if (targetProjectId === "project-a") {
+          return jsonResponse({ error: "Project deletion rejected" }, 400);
+        }
+        return jsonResponse({
+          project: {
+            ...projectB.project,
+            revision: projectB.project.revision + 1,
+            deletedAt: "2026-08-14T10:05:00.000Z",
+            deletedBy: "user@example.com",
+          },
+          replayed: false,
+        });
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method || "GET"} ${url}` }, 500);
+    });
+
+    const { router } = renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));
+    fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
+      target: { value: projectA.project.title },
+    });
+    let dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));
+
+    expect(await screen.findByText("Project deletion rejected")).toBeTruthy();
+    expect(deletionCalls).toHaveLength(1);
+    expect(deletionCalls[0]).toMatchObject({
+      projectId: "project-a",
+      expectedRevision: projectA.project.revision,
+    });
+    const projectAOperationId = deletionCalls[0].operationId;
+    expect((screen.getByLabelText("Type the Project title to confirm") as HTMLInputElement).value)
+      .toBe(projectA.project.title);
+
+    await act(async () => {
+      await router.navigate("/projects/project-b");
+    });
+    await waitFor(() => expect(projectBReads).toBeGreaterThan(0));
+    await screen.findByText("Project Map fixture");
+    expect(screen.queryByRole("alertdialog", { name: "Move Project to trash" })).toBeNull();
+    expect(deletionCalls).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));
+    dialog = await screen.findByRole("alertdialog", { name: "Move Project to trash" });
+    const confirmation = screen.getByLabelText("Type the Project title to confirm") as HTMLInputElement;
+    expect(confirmation.value).toBe("");
+    fireEvent.change(confirmation, { target: { value: projectB.project.title } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));
+
+    await screen.findByText("Projects destination");
+    expect(deletionCalls).toHaveLength(2);
+    expect(deletionCalls[1]).toMatchObject({
+      projectId: "project-b",
+      expectedRevision: projectB.project.revision,
+    });
+    expect(deletionCalls[1].operationId).not.toBe(projectAOperationId);
   });
 
 });

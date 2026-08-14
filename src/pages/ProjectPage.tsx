@@ -114,6 +114,11 @@ type AttachmentEditorState = {
 
 type ProjectWorkspaceView = "map" | "reading";
 
+type ProjectDeletionRequest = {
+  projectId: string;
+  input: ProjectLifecycleInput;
+};
+
 function useDesktopProjectMap(
   projectionLocked: boolean,
   projectionLockedNow: () => boolean,
@@ -178,6 +183,8 @@ function projectDeletionOutcomeIsUncertain(caught: unknown) {
 export function ProjectPage() {
   const { projectId = "" } = useParams();
   const navigate = useNavigate();
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -232,7 +239,7 @@ export function ProjectPage() {
   const attachmentEditorRef = useRef<AttachmentEditorState | null>(null);
   const attachmentUpdateInputRef = useRef<UpdateProjectAttachmentInput | null>(null);
   const ownedContentGenerationRef = useRef(0);
-  const projectDeleteInputRef = useRef<ProjectLifecycleInput | null>(null);
+  const projectDeleteRequestRef = useRef<ProjectDeletionRequest | null>(null);
   const projectDeletionNavigationRequestedRef = useRef(false);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
 
@@ -333,7 +340,7 @@ export function ProjectPage() {
       || markdownEditorRef.current !== null
       || pendingAttachmentRef.current !== null
       || attachmentEditorRef.current !== null
-      || projectDeleteInputRef.current !== null
+      || projectDeleteRequestRef.current !== null
       || edgeController.unsafeRef.current
   ));
 
@@ -363,7 +370,7 @@ export function ProjectPage() {
       && markdownEditorRef.current === null
       && pendingAttachmentRef.current === null
       && attachmentEditorRef.current === null
-      && projectDeleteInputRef.current === null
+      && projectDeleteRequestRef.current === null
       && !edgeController.unsafeRef.current) return;
     event.preventDefault();
     event.returnValue = "";
@@ -419,27 +426,42 @@ export function ProjectPage() {
   }, [installSnapshot, projectId]);
 
   useEffect(() => {
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setConfirmingProjectDeletion(false);
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setProjectDeleteUncertain(false);
+    setDeletingProject(false);
+  }, [projectId]);
+
+  useEffect(() => {
     const controller = new AbortController();
     void loadProject(controller.signal);
     return () => controller.abort();
   }, [loadProject]);
 
-  const performProjectDeletion = useCallback(async (input: ProjectLifecycleInput) => {
-    if (!projectId || !pageActiveRef.current) return;
+  const performProjectDeletion = useCallback(async (request: ProjectDeletionRequest) => {
+    const requestIsCurrent = () => (
+      pageActiveRef.current
+      && projectIdRef.current === request.projectId
+      && projectDeleteRequestRef.current === request
+    );
+    if (!request.projectId || !requestIsCurrent()) return;
     setDeletingProject(true);
     setProjectDeleteError("");
     try {
-      await projectApi.deleteProject(projectId, input);
-      if (!pageActiveRef.current) return;
-      projectDeleteInputRef.current = null;
+      await projectApi.deleteProject(request.projectId, request.input);
+      if (!requestIsCurrent()) return;
+      projectDeleteRequestRef.current = null;
       projectDeletionNavigationRequestedRef.current = true;
       setProjectDeleteUncertain(false);
       setDeletingProject(false);
       navigate("/projects", { replace: true });
     } catch (caught) {
-      if (!pageActiveRef.current) return;
+      if (!requestIsCurrent()) return;
       if (caught instanceof ProjectApiError && caught.status === 404) {
-        projectDeleteInputRef.current = null;
+        projectDeleteRequestRef.current = null;
         projectDeletionNavigationRequestedRef.current = true;
         setProjectDeleteUncertain(false);
         setDeletingProject(false);
@@ -447,7 +469,7 @@ export function ProjectPage() {
         return;
       }
       if (caught instanceof ProjectApiError && caught.status === 409) {
-        projectDeleteInputRef.current = null;
+        projectDeleteRequestRef.current = null;
         projectDeletionNavigationRequestedRef.current = false;
         setProjectDeleteUncertain(false);
         setProjectDeleteConfirmation("");
@@ -461,29 +483,30 @@ export function ProjectPage() {
         ? caught.message
         : "The Project could not be moved to trash");
     } finally {
-      if (pageActiveRef.current) setDeletingProject(false);
+      if (pageActiveRef.current && projectIdRef.current === request.projectId) setDeletingProject(false);
     }
-  }, [loadProject, navigate, projectId]);
+  }, [loadProject, navigate]);
 
   const openProjectDeletion = useCallback(() => {
-    if (saveStateRef.current !== "saved"
+    if (!snapshot || !projectId || snapshot.project.id !== projectId
+      || saveStateRef.current !== "saved"
       || pendingReferenceRef.current
       || pendingReferenceRemovalRef.current
       || markdownEditorRef.current
       || pendingAttachmentRef.current
       || attachmentEditorRef.current
       || edgeController.unsafeRef.current) return;
-    projectDeleteInputRef.current = null;
+    projectDeleteRequestRef.current = null;
     projectDeletionNavigationRequestedRef.current = false;
     setProjectDeleteConfirmation("");
     setProjectDeleteError("");
     setProjectDeleteUncertain(false);
     setConfirmingProjectDeletion(true);
-  }, [edgeController.unsafeRef]);
+  }, [edgeController.unsafeRef, projectId, snapshot]);
 
   const cancelProjectDeletion = useCallback(() => {
     if (deletingProject || projectDeleteUncertain) return;
-    projectDeleteInputRef.current = null;
+    projectDeleteRequestRef.current = null;
     projectDeletionNavigationRequestedRef.current = false;
     setProjectDeleteConfirmation("");
     setProjectDeleteError("");
@@ -491,8 +514,17 @@ export function ProjectPage() {
   }, [deletingProject, projectDeleteUncertain]);
 
   const moveProjectToTrash = useCallback(() => {
-    if (!snapshot || deletingProject || projectDeleteConfirmation !== snapshot.project.title) return;
-    if (!projectDeleteInputRef.current) {
+    if (!projectId || !snapshot || snapshot.project.id !== projectId
+      || deletingProject || projectDeleteConfirmation !== snapshot.project.title) return;
+    let request = projectDeleteRequestRef.current;
+    if (request && request.projectId !== projectId) {
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = false;
+      setProjectDeleteUncertain(false);
+      setProjectDeleteError("");
+      return;
+    }
+    if (!request) {
       if (saveStateRef.current !== "saved"
         || pendingReferenceRef.current
         || pendingReferenceRemovalRef.current
@@ -500,13 +532,17 @@ export function ProjectPage() {
         || pendingAttachmentRef.current
         || attachmentEditorRef.current
         || edgeController.unsafeRef.current) return;
-      projectDeleteInputRef.current = {
-        expectedRevision: snapshot.project.revision,
-        operationId: createProjectApiId("operation"),
+      request = {
+        projectId,
+        input: {
+          expectedRevision: snapshot.project.revision,
+          operationId: createProjectApiId("operation"),
+        },
       };
+      projectDeleteRequestRef.current = request;
     }
-    void performProjectDeletion(projectDeleteInputRef.current);
-  }, [deletingProject, edgeController.unsafeRef, performProjectDeletion, projectDeleteConfirmation, snapshot]);
+    void performProjectDeletion(request);
+  }, [deletingProject, edgeController.unsafeRef, performProjectDeletion, projectDeleteConfirmation, projectId, snapshot]);
 
   useEffect(() => {
     pageActiveRef.current = true;
@@ -534,7 +570,7 @@ export function ProjectPage() {
       attachmentRequestPointRef.current = null;
       attachmentEditorRef.current = null;
       attachmentUpdateInputRef.current = null;
-      projectDeleteInputRef.current = null;
+      projectDeleteRequestRef.current = null;
       projectDeletionNavigationRequestedRef.current = false;
       if (autosaveTimerRef.current !== null) {
         window.clearTimeout(autosaveTimerRef.current);
