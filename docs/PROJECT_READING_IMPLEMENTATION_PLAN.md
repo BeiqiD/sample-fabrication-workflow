@@ -1,9 +1,9 @@
 
 # Project Reading implementation plan
 
-Status: Phase 3C active implementation; Phase 3B4 is complete in squash-merged PR #136
+Status: Phase 3C implemented in Draft PR #138; pending independent review
 
-Last reviewed: 2026-08-14 before implementing the shared desktop/mobile Reading projection
+Last reviewed: 2026-08-14 after implementing the shared desktop/mobile Reading projection and responsive projection safety
 
 ## Goal
 
@@ -23,6 +23,8 @@ Map position, node size, edge direction, edge labels, viewport state, selection,
 ## Desktop and mobile behavior
 
 Desktop keeps Map as the default creation/organization surface and adds one explicit Map / Reading view switch. The switch is disabled while placement state is unsaved or any Project mutation/editor is unresolved, so an in-progress Map or content operation cannot disappear behind another projection.
+
+Responsive breakpoint changes obey the same lock. While an operation is unresolved or placement state is not saved, the current desktop/mobile projection is frozen even if `matchMedia` changes. Once the lock clears, the page immediately reconciles to the current media query. This keeps Map-only retry, cancel, and reconciliation controls reachable instead of stranding a pending operation in mobile Reading.
 
 Mobile defaults directly to Reading and never initializes React Flow. Mobile does not expose Map placement, reference insertion, attachment upload, edge authoring, occurrence removal, or any other creation/structural mutation.
 
@@ -67,6 +69,7 @@ Phase 3C adds a permanent `pre-pr/project-reading` gate covering:
 - existing Markdown update through Reading;
 - existing attachment caption/source URL update through Reading without byte retargeting;
 - references remaining read-only;
+- responsive breakpoint changes preserving the current projection during pending reference placement, pending attachment upload/create, and unsaved geometry;
 - the folded Map double-click regression;
 - full Project persistence/Map/reference/owned-content/edge regressions;
 - production build and Project Map bundle boundary.

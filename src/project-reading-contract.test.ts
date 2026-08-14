@@ -36,6 +36,15 @@ describe("Phase 3C Reading contract", () => {
     expect(plan).toContain("Rich CommonMark/GFM and TeX rendering remains Phase 3D");
   });
 
+  it("keeps responsive projection changes behind the same unresolved-operation guard", () => {
+    const page = read("src/pages/ProjectPage.tsx");
+    const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+    expect(page).toContain("if (lockCheckRef.current()) return;");
+    expect(page).toContain("const viewSwitchDisabled = projectionSwitchLocked;");
+    expect(page).toContain("setDesktop(window.matchMedia(query).matches)");
+    expect(pkg.scripts["test:project-reading-mounted"]).toContain("src/project-responsive-projection-safety.mount.test.tsx");
+  });
+
   it("keeps the Map double-click regression fix folded into the Phase 3C branch", () => {
     const map = read("src/components/project/ProjectMapSurface.tsx");
     const surfaceTest = read("src/project-map-surface.mount.test.tsx");

@@ -111,16 +111,31 @@ type AttachmentEditorState = {
 
 type ProjectWorkspaceView = "map" | "reading";
 
-function useDesktopProjectMap() {
+function useDesktopProjectMap(
+  projectionLocked: boolean,
+  projectionLockedNow: () => boolean,
+) {
   const query = "(min-width: 860px)";
+  const lockCheckRef = useRef(projectionLockedNow);
+  lockCheckRef.current = projectionLockedNow;
   const [desktop, setDesktop] = useState(() => window.matchMedia(query).matches);
+
   useEffect(() => {
     const media = window.matchMedia(query);
-    const update = () => setDesktop(media.matches);
+    const update = () => {
+      if (lockCheckRef.current()) return;
+      setDesktop(media.matches);
+    };
     update();
     media.addEventListener?.("change", update);
     return () => media.removeEventListener?.("change", update);
   }, []);
+
+  useEffect(() => {
+    if (projectionLocked) return;
+    setDesktop(window.matchMedia(query).matches);
+  }, [projectionLocked]);
+
   return desktop;
 }
 
@@ -154,7 +169,6 @@ function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error"
 
 export function ProjectPage() {
   const { projectId = "" } = useParams();
-  const desktop = useDesktopProjectMap();
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -284,6 +298,23 @@ export function ProjectPage() {
       || attachmentEditor !== null,
     onHistory: recordEdgeHistory,
   });
+
+  const projectionSwitchLocked = saveState !== "saved"
+    || pendingReference !== null
+    || pendingReferenceRemoval !== null
+    || markdownEditor !== null
+    || pendingAttachment !== null
+    || attachmentEditor !== null
+    || edgeController.unsafe;
+  const desktop = useDesktopProjectMap(projectionSwitchLocked, () => (
+    saveStateRef.current !== "saved"
+      || pendingReferenceRef.current !== null
+      || pendingReferenceRemovalRef.current !== null
+      || markdownEditorRef.current !== null
+      || pendingAttachmentRef.current !== null
+      || attachmentEditorRef.current !== null
+      || edgeController.unsafeRef.current
+  ));
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
     (saveState !== "saved"
@@ -1536,13 +1567,7 @@ export function ProjectPage() {
     || saveState === "saving"
     || geometryInteractionDisabled
     || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
-  const viewSwitchDisabled = saveState !== "saved"
-    || pendingReference !== null
-    || pendingReferenceRemoval !== null
-    || markdownEditor !== null
-    || pendingAttachment !== null
-    || attachmentEditor !== null
-    || edgeController.unsafe;
+  const viewSwitchDisabled = projectionSwitchLocked;
   const readingInteractionDisabled = saveState !== "saved"
     || pendingReference !== null
     || pendingReferenceRemoval !== null

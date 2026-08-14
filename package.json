@@ -33,7 +33,7 @@
     "test:project-edges": "vitest run src/lib/project-edges.test.ts src/lib/project-edge-history.test.ts src/lib/project-edge-client.test.ts src/project-edges-contract.test.ts src/lib/project-client.test.ts worker/project-routes.test.ts",
     "test:project-edges-mounted": "vitest run --config vitest.mounted.config.ts src/project-edges.mount.test.tsx src/project-edge-surface.mount.test.tsx",
     "test:project-reading": "vitest run src/project-reading-contract.test.ts src/lib/project-map-model.test.ts src/project-owned-content-contract.test.ts src/project-reference-placement-contract.test.ts",
-    "test:project-reading-mounted": "vitest run --config vitest.mounted.config.ts src/project-reading.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",
+    "test:project-reading-mounted": "vitest run --config vitest.mounted.config.ts src/project-reading.mount.test.tsx src/project-responsive-projection-safety.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",
     "verify:d1-migrations": "node scripts/verify-d1-migrations.mjs",
     "verify:reference-worker": "node scripts/verify-reference-worker.mjs",
     "verify:reference-search-worker": "node scripts/verify-reference-search-worker.mjs",
