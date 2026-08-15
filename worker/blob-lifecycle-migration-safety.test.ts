@@ -166,7 +166,7 @@ describe("blob lifecycle migration safety", () => {
          created_at, updated_at)
       VALUES
         ('legacy-run-step-1', 'legacy-run', 0, 'template', 'current',
-          'legacy-failed-template-step', 'legacy-failed-definition', 'legacy-failed-state',
+          'legacy-failed-template-step', 'legacy-failed-definition', NULL,
           'Failed staged step', 'pending', 'fabrication',
           '2026-07-01T02:00:00.000Z', '2026-07-01T02:00:00.000Z'),
         ('legacy-run-step-2', 'legacy-run', 1, 'template', 'current',
@@ -378,13 +378,15 @@ describe("blob lifecycle migration safety", () => {
       VALUES
         ('shared-import-state', 'diagram', '{}', '2026-07-01T00:00:00.000Z'),
         ('independent-run-state', 'diagram', '{}', '2026-07-01T00:00:00.000Z'),
-        ('inherited-sample-state', 'diagram', '{}', '2026-07-01T00:00:00.000Z');
+        ('inherited-sample-state', 'diagram', '{}', '2026-07-01T00:00:00.000Z'),
+        ('surviving-run-step-state', 'diagram', '{}', '2026-07-01T00:00:00.000Z');
 
       INSERT INTO step_definitions (hash, name, canonical_json, created_at)
       VALUES
         ('shared-definition', 'Shared state', '{}', '2026-07-01T00:00:00.000Z'),
         ('run-state-definition', 'Run state', '{}', '2026-07-01T00:00:00.000Z'),
         ('sample-state-definition', 'Sample state', '{}', '2026-07-01T00:00:00.000Z'),
+        ('surviving-run-step-definition', 'Surviving Run step state', '{}', '2026-07-01T00:00:00.000Z'),
         ('independent-definition', 'Independent step', '{}', '2026-07-01T00:00:00.000Z');
 
       INSERT INTO template_versions
@@ -411,6 +413,8 @@ describe("blob lifecycle migration safety", () => {
           'run-state-definition', 'independent-run-state', '{}'),
         ('failed-sample-state-step', 'failed-template-a', 'failed:sample-state', 2,
           'sample-state-definition', 'inherited-sample-state', '{}'),
+        ('failed-surviving-run-step', 'failed-template-a', 'failed:surviving-run-step', 3,
+          'surviving-run-step-definition', 'surviving-run-step-state', '{}'),
         ('ready-shared-step', 'ready-template-b', 'ready:shared', 0,
           'shared-definition', 'shared-import-state', '{}'),
         ('independent-template-step', 'independent-template', 'independent:step', 0,
@@ -446,13 +450,17 @@ describe("blob lifecycle migration safety", () => {
           '2026-07-01T00:00:00.000Z'),
         ('event-asset-a', 'failed-import-a', 'imports/a/event.png',
           'event.png', 'image/png', 13, 'pending', '${"d".repeat(64)}',
+          '2026-07-01T00:00:00.000Z'),
+        ('run-step-state-asset-a', 'failed-import-a', 'imports/a/run-step-state.png',
+          'run-step-state.png', 'image/png', 14, 'ready', '${"e".repeat(64)}',
           '2026-07-01T00:00:00.000Z');
 
       INSERT INTO state_representation_assets (state_hash, asset_id, position)
       VALUES
         ('shared-import-state', 'shared-asset-a', 0),
         ('independent-run-state', 'run-state-asset-a', 0),
-        ('inherited-sample-state', 'sample-state-asset-a', 0);
+        ('inherited-sample-state', 'sample-state-asset-a', 0),
+        ('surviving-run-step-state', 'run-step-state-asset-a', 0);
 
       INSERT INTO samples
         (id, code, title, inherited_state_hash, created_at, updated_at)
@@ -474,6 +482,17 @@ describe("blob lifecycle migration safety", () => {
           'independent-run-group', 'Independent template', 'process', 1,
           'complete', '2026-07-01T03:00:00.000Z', 'process',
           'independent-run-state');
+
+      INSERT INTO run_steps
+        (id, run_id, position, origin, plan_status, template_step_id,
+         definition_hash, expected_state_hash, title, status, entry_kind,
+         created_at, updated_at)
+      VALUES
+        ('surviving-run-step', 'independent-run', 0, 'template', 'current',
+          'failed-surviving-run-step', 'surviving-run-step-definition',
+          'surviving-run-step-state', 'Surviving Run step', 'pending',
+          'fabrication', '2026-07-01T03:30:00.000Z',
+          '2026-07-01T03:30:00.000Z');
 
       INSERT INTO events
         (id, sample_id, kind, asset_key, metadata_json, created_at)
@@ -516,12 +535,20 @@ describe("blob lifecycle migration safety", () => {
       SELECT status FROM imports WHERE id = 'ready-import-b'
     `).get()).toEqual({ status: "ready" });
     expect(database.prepare(`
+      SELECT template_step_id, expected_state_hash
+      FROM run_steps WHERE id = 'surviving-run-step'
+    `).get()).toEqual({
+      template_step_id: null,
+      expected_state_hash: "surviving-run-step-state",
+    });
+    expect(database.prepare(`
       SELECT COUNT(*) AS count
       FROM state_representation_assets
       WHERE (state_hash = 'shared-import-state' AND asset_id = 'shared-asset-a')
          OR (state_hash = 'independent-run-state' AND asset_id = 'run-state-asset-a')
          OR (state_hash = 'inherited-sample-state' AND asset_id = 'sample-state-asset-a')
-    `).get()).toEqual({ count: 3 });
+         OR (state_hash = 'surviving-run-step-state' AND asset_id = 'run-step-state-asset-a')
+    `).get()).toEqual({ count: 4 });
     expect(database.prepare(`
       SELECT COUNT(*) AS count
       FROM template_versions tv
@@ -534,6 +561,14 @@ describe("blob lifecycle migration safety", () => {
       FROM runs r
       JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
       WHERE r.id = 'independent-run' AND sra.asset_id = 'run-state-asset-a'
+    `).get()).toEqual({ count: 1 });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM run_steps rs
+      JOIN state_representation_assets sra ON sra.state_hash = rs.expected_state_hash
+      WHERE rs.id = 'surviving-run-step'
+        AND rs.template_step_id IS NULL
+        AND sra.asset_id = 'run-step-state-asset-a'
     `).get()).toEqual({ count: 1 });
     expect(database.prepare(`
       SELECT COUNT(*) AS count
@@ -553,16 +588,18 @@ describe("blob lifecycle migration safety", () => {
       FROM assets
       WHERE id IN (
         'shared-asset-a', 'run-state-asset-a',
-        'sample-state-asset-a', 'event-asset-a'
+        'sample-state-asset-a', 'event-asset-a',
+        'run-step-state-asset-a'
       )
         AND import_id IS NULL AND status = 'ready' AND sha256 IS NOT NULL
-    `).get()).toEqual({ count: 4 });
+    `).get()).toEqual({ count: 5 });
     expect(database.prepare(`
       SELECT COUNT(*) AS count
       FROM blob_gc_ledger
       WHERE object_key IN (
         'imports/a/shared.png', 'imports/a/run-state.png',
-        'imports/a/sample-state.png', 'imports/a/event.png'
+        'imports/a/sample-state.png', 'imports/a/event.png',
+        'imports/a/run-step-state.png'
       )
     `).get()).toEqual({ count: 0 });
     expect(database.prepare(`
@@ -570,9 +607,10 @@ describe("blob lifecycle migration safety", () => {
       FROM blob_retention_edges
       WHERE object_key IN (
         'imports/a/shared.png', 'imports/a/run-state.png',
-        'imports/a/sample-state.png', 'imports/a/event.png'
+        'imports/a/sample-state.png', 'imports/a/event.png',
+        'imports/a/run-step-state.png'
       )
-    `).get()).toEqual({ count: 5 });
+    `).get()).toEqual({ count: 6 });
     database.close();
   });
 });
