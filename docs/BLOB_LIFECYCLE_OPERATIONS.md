@@ -2,8 +2,8 @@
 
 Status: operational companion to the normative v3 blob lifecycle contract
 
-Last reviewed: 2026-08-14 after provider-verified storage integrity and
-Project Markdown lifecycle wiring
+Last reviewed: 2026-08-15 after provider-verified storage integrity,
+reachability-preserving FabuBlox recovery, and Project Markdown lifecycle wiring
 
 This document records the implementation boundaries, activation sequence,
 monitoring queries, incident rules, and explicit deferrals for the first blob
@@ -61,6 +61,11 @@ promotes those assets to `ready`; until then, ordinary delivery and
 deduplication are closed and competing uploads receive a retryable service
 response rather than a locator that a later failed import may delete.
 
+A legacy asset may already have an independent durable occurrence before the
+owning import fails. Recovery then clears the import association and promotes
+that retained locator to a standalone `ready` asset. This is a compatibility
+repair for through-0024 data, not a second publication path for new imports.
+
 ### GC work state
 
 `blob_gc_ledger` is the cross-provider authority for cleanup work:
@@ -97,11 +102,29 @@ the import to ready in the same D1 statement that activates those assets.
 If the finalization call fails, the Worker first reads the primary D1 state. A
 matching ready/finalization identity is treated as committed success. If the
 primary read itself is unavailable, the result remains unknown and no R2 object
-is deleted. An authoritatively pending matching operation may be marked failed,
-release its SHA reservation, and enqueue its tracked objects in
-`blob_gc_ledger`. The scheduled stale-import reaper performs the same CAS after
-lease expiry. R2 deletion therefore uses the existing retryable orphan/deleting
-operation-ID queue, including retry after provider failure.
+is deleted. The scheduled stale-import reaper performs the same CAS after lease
+expiry and also resumes through-0024 failed partial imports without a recovery
+identity.
+
+Recovery is reachability-first:
+
+1. claim the exact unfinished operation;
+2. clear only import workbook/manifest and partial-template source provenance;
+3. detach legacy Run-step FKs and remove partial-template structure;
+4. remove a state-image occurrence only when no other template, Run-step,
+   `runs.initial_state_hash`, `samples.inherited_state_hash`, or verification
+   uses that state;
+5. preserve event primary attachments and thumbnails as independent durable
+   occurrences;
+6. query the shared `blob_retention_edges` surface after those failed-import
+   edges are gone;
+7. re-home every still-reachable asset as standalone `ready`, retaining its SHA
+   reservation and releasing only an unclaimed stale `orphaned` ledger row;
+8. mark failed and enqueue only assets with no remaining durable edge.
+
+R2 deletion therefore uses the existing retryable orphan/deleting operation-ID
+queue, including retry after provider failure. Import ownership alone is never
+deletion authority.
 
 ## Terminal locator rule
 
@@ -114,8 +137,10 @@ occurrence/edge write. This prevents old audit history from silently referring
 to different bytes under a recycled key.
 
 An `orphaned` row may be released only through the guarded reachability/edge
-creation path. A `deleting` row may be completed or idempotently reclaimed by
-its operation ID; it must not be manually converted back to live state.
+creation path or the FabuBlox compatibility repair after authoritative external
+reachability is established. A `deleting` row may be completed or idempotently
+reclaimed by its operation ID; it must not be manually converted back to live
+state.
 
 ## Legacy managed-object migration repair
 
@@ -147,8 +172,14 @@ permitted only from the exact merged `v2/backend-foundation` commit.
    - `pre-pr/tests`;
    - `pre-pr/build`.
 2. The migration chain must be tested from 0001 through the latest file,
-   including malformed historical event metadata and the legacy managed-object
-   duplicate scenario.
+   including malformed historical event metadata, the legacy managed-object
+   duplicate scenario, and through-0024 FabuBlox recovery with:
+   - Import A's asset reused by ready Import B;
+   - independent Run initial state;
+   - Sample inherited state;
+   - event primary and thumbnail occurrences;
+   - a retained pending asset and stale unclaimed orphan ledger;
+   - a truly unreachable asset that still converges to GC.
 3. No remote D1 migration or Worker deployment is run from the feature branch.
 
 ### After merge, before remote migration
