@@ -1,0 +1,53 @@
+name: Apply PR 141 review fixes
+
+on:
+  push:
+    branches:
+      - agent/storage-integrity-markdown-removal
+    paths:
+      - .github/workflows/apply-pr141-existing-files.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/storage-integrity-markdown-removal
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Apply exact review patch
+        run: |
+          python .github/apply-pr141-existing-files.py
+          git checkout -- .github/apply-pr141-existing-files.py .github/workflows/apply-pr141-existing-files.yml
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify blob lifecycle and storage integrity
+        run: npm run verify:blob-lifecycle
+
+      - name: Run complete tests
+        run: npm test
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Commit verified changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(storage): reconcile recovery ownership and uncertain uploads"
+          git push origin HEAD:agent/storage-integrity-markdown-removal
