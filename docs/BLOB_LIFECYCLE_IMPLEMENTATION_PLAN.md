@@ -2,8 +2,8 @@
 
 Status: implemented by the blob-lifecycle safety slice; remote activation requires the exact merged integration head to pass the v3 deployment gate
 
-Last reviewed: 2026-08-15 after FabuBlox publication-boundary and
-through-0024 recovery hardening
+Last reviewed: 2026-08-15 after reachability-preserving FabuBlox
+publication and through-0024 recovery hardening
 
 This document records how the normative
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) is implemented in the
@@ -51,8 +51,9 @@ The slice includes:
     owning-import publication guards across template, step, event, and asset
     relationships, and a persistent GC queue for stale or failed import objects;
 13. through-0024 recovery for partial pending or failed imports, including Run
-    step-FK detachment, direct-key provenance cleanup, and release of exclusive
-    state edges that reused an already-ready standalone asset winner.
+    step-FK detachment, import/template provenance cleanup, release of only
+    exclusive failed-template state edges, and standalone re-homing of any
+    import asset still protected by another durable source.
 
 The slice does not include:
 
@@ -171,9 +172,13 @@ import request and finalization each have an immutable identity. A finalization
 error is followed by a primary D1 read before any cleanup decision: a committed
 matching finalization is returned as success, an unknown outcome leaves provider
 bytes untouched, and only an authoritatively unfinished matching operation can
-be moved to failed recovery. Failed/stale assets release their hash and enter
-`blob_gc_ledger`; provider deletion is then retried by the ordinary operation-ID
-GC state machine rather than performed destructively in the request catch path.
+be moved to failed recovery. Recovery first removes only the failed import's
+own direct provenance and failed-template structure. An import asset that is
+still reachable through another durable occurrence is detached from the failed
+import and kept ready with its content hash; only an asset that is unreachable
+under `blob_retention_edges` releases its hash and enters `blob_gc_ledger`.
+Provider deletion is then retried by the ordinary operation-ID GC state machine
+rather than performed destructively in the request catch path.
 
 ### `0025_fabublox_publication_boundaries.sql`
 
@@ -191,20 +196,23 @@ UPDATE operations that would expose an unfinished import through:
   resolves to staged or failed asset metadata.
 
 Provider-only historical event keys remain compatible when no asset metadata row
-exists. A through-0024 fixture proves that the migration can be applied over
+exists. Through-0024 fixtures prove that the migration can be applied over
 legacy interrupted data and that subsequent recovery:
 
 1. claims either a stale pending import or a failed partial import without a
    recovery identity;
-2. clears import/template/event direct-key provenance;
+2. clears only import workbook/manifest and partial-template source provenance,
+   while preserving independent event primary and thumbnail occurrences;
 3. deletes `run_step_plan_links` and nulls the nullable Run-step FK before
    removing partial template steps;
-4. removes state-image relationships owned by failed assets;
-5. removes a reused standalone winner only when the state is exclusive to the
-   failed partial template, preserving shared templates, independent Run states,
-   and explicit verification history;
-6. releases failed asset hashes and persists every failed provider object in
-   `blob_gc_ledger`.
+4. removes a state-image relationship only when the state is exclusive to the
+   failed partial template, preserving other templates, independent Run-step
+   states, `runs.initial_state_hash`, `samples.inherited_state_hash`, and
+   explicit verification history;
+5. detaches any still-reachable import asset from the failed import so it
+   remains a ready standalone canonical winner with its SHA reservation;
+6. marks and queues only assets that have no remaining edge in
+   `blob_retention_edges`.
 
 ## Authoritative schema surfaces
 
@@ -263,16 +271,18 @@ provider key.
   new hash reservations as `pending`; an atomic import-status trigger promotes
   them to `ready` only when the owning import commits `ready`. Ordinary delivery,
   relationship creation, and content-addressed reuse therefore reject staged
-  bytes until both the asset and its owning import are ready.
+  bytes until both the asset and its owning import are ready. Recovery may clear
+  `import_id` only after another durable edge is authoritative, allowing the
+  canonical asset row to continue as a standalone ready winner.
 - `managed_storage_objects.status` remains a compatibility projection during
   this slice.
 - `blob_gc_ledger` is authoritative for cross-provider GC state.
 - `blob_integrity_quarantine` is authoritative for definite provider-byte
   absence or size mismatch discovered during reuse verification.
 
-A collected or quarantined R2 asset keeps its content hash and metadata. The same content may
-be registered again under a new live locator after the previous locator reaches
-`deleting` or `deleted`.
+A collected or quarantined R2 asset keeps its metadata. The same content may be
+registered again under a new live locator after the previous locator reaches
+`deleting` or `deleted`, or after quarantine releases its content identity.
 
 ## Module boundary
 
@@ -305,6 +315,8 @@ reclaim a stale operation-ID claim
 ```
 
 Routes and jobs do not maintain private status-specific reachability trees.
+FabuBlox recovery likewise uses the view before changing asset ownership,
+readiness, hash reservation, or GC state.
 
 ### `gc.ts`
 
@@ -392,7 +404,9 @@ The checked-in cron calls the same GC service daily. Work is bounded to avoid
 unbounded D1 bindings, Worker duration, and provider pressure. A large backlog
 may require multiple runs. The FabuBlox reaper processes both expired pending
 leases and through-0024 failed partial imports that never received a durable
-recovery identity.
+recovery identity. Before changing an import asset to failed or queueing it, the
+reaper removes only the failed import's provenance and then checks the same
+`blob_retention_edges` surface used by ordinary GC.
 
 ### Complete export
 
@@ -432,6 +446,15 @@ Recipe-change evidence, and fail closed for unknown target types.
 A link created before the claim makes the claim fail because reachability is
 rechecked. A link attempted after `deleting` is rejected by the relationship
 trigger.
+
+### Failed-import recovery versus another durable source
+
+A failed import never owns an event or state occurrence merely because its asset
+row supplied the bytes. Recovery first releases only import/template provenance.
+If another ready import, Run, Sample, event, Comment, metrology reference, or
+verification still contributes an edge, the asset is re-homed as standalone and
+cannot enter GC. Only the absence of all authoritative edges permits failure and
+queueing.
 
 ### Restore versus cleanup
 
@@ -474,8 +497,15 @@ The suites cover:
 - malformed historical event metadata;
 - Sample-record thumbnails;
 - legacy managed orphan/ready duplicates;
-- through-0024 pending/failed FabuBlox data, missing publication guards, Run-step
-  FK recovery, event/direct provenance cleanup, and reused-winner release;
+- through-0024 pending/failed FabuBlox data and missing publication guards;
+- Run-step FK recovery and exclusive-state cleanup;
+- A-to-B import deduplication where ready Import B retains Import A's asset;
+- `runs.initial_state_hash` and `samples.inherited_state_hash` state-image
+  preservation;
+- event primary-attachment and thumbnail preservation while import provenance
+  is removed;
+- standalone re-homing of externally reachable failed-import assets and GC of
+  only unreachable assets;
 - export warnings and integrity mismatches;
 - total permanent-delete blocker planning;
 - physical-delete rejection without cascade;
