@@ -1,4 +1,5 @@
 import { primaryD1 } from "../d1-primary";
+import type { Env } from "../types";
 import type { ReusableManagedObject, ReusableR2Asset } from "./reuse";
 
 export async function reconcileCommittedR2Asset(
@@ -23,6 +24,48 @@ export async function reconcileCommittedR2Asset(
           AND bg.state IN ('deleting', 'deleted')
       )
   `).bind(input.id, input.objectKey, input.sha256).first<ReusableR2Asset>();
+}
+
+export interface R2RegistrationReconciliation {
+  asset: ReusableR2Asset;
+  deduplicated: boolean;
+}
+
+/**
+ * Resolve an uncertain ready-R2 INSERT without guessing from the content hash.
+ *
+ * The exact stable identity is authoritative. Only when primary D1 confirms
+ * that this attempt did not commit may a different verified winner make the
+ * uploaded locator redundant. The helper deletes a candidate only when the
+ * winner is physically different; unresolved candidates remain caller-owned so
+ * fixed-key retry loops can retry the INSERT before cleanup.
+ */
+export async function reconcileR2RegistrationFailure(
+  env: Env,
+  input: {
+    id: string;
+    objectKey: string;
+    sha256: string;
+    findWinner: () => Promise<ReusableR2Asset | null>;
+  },
+): Promise<R2RegistrationReconciliation | null> {
+  const committed = await reconcileCommittedR2Asset(env.DB, input);
+  if (committed) {
+    return { asset: committed, deduplicated: false };
+  }
+
+  const winner = await input.findWinner();
+  if (!winner) return null;
+
+  const sameAttempt = winner.id === input.id
+    && winner.r2_key === input.objectKey;
+  if (!sameAttempt) {
+    await env.ASSETS.delete(input.objectKey);
+  }
+  return {
+    asset: winner,
+    deduplicated: !sameAttempt,
+  };
 }
 
 export async function reconcileCommittedManagedObject(

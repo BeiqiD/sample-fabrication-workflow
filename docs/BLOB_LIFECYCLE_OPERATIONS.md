@@ -106,7 +106,7 @@ is deleted. The scheduled stale-import reaper performs the same CAS after lease
 expiry and also resumes through-0024 failed partial imports without a recovery
 identity.
 
-Recovery is reachability-first:
+Recovery is retention-first but publication remains dependency-complete:
 
 1. claim the exact unfinished operation;
 2. clear only import workbook/manifest and partial-template source provenance;
@@ -120,7 +120,10 @@ Recovery is reachability-first:
    edges are gone;
 7. re-home every still-reachable asset as standalone `ready`, retaining its SHA
    reservation and releasing only an unclaimed stale `orphaned` ledger row;
-8. mark failed and enqueue only assets with no remaining durable edge.
+8. mark failed and enqueue only assets with no remaining durable edge;
+9. before any pending import becomes ready, validate every direct and transitive
+   asset in `fabublox_import_asset_dependencies`, including standalone shared
+   state images and final workbook/manifest keys.
 
 R2 deletion therefore uses the existing retryable orphan/deleting operation-ID
 queue, including retry after provider failure. Import ownership alone is never

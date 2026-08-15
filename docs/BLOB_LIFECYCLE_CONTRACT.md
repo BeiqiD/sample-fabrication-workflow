@@ -595,8 +595,22 @@ For an asset whose owning import becomes terminal:
 
 R2 verification occurs before the durable recovery claim. A transient provider failure therefore leaves `recovery_operation_id` unset and the whole operation retryable. A legacy `failed` asset whose SHA was cleared is read from R2, re-hashed, and assigned the provider byte size before any transition to `pending` or `ready`.
 
+## Complete import dependency publication
+
+An import may publish only when every asset in its staged dependency graph is
+publishable. The graph includes direct import-owned assets, workbook and manifest
+provenance, template source files, initial-state images, expected-state images,
+and metrology references. Asset ownership is not sufficient: a standalone or
+other-import asset required by the template must itself be ready, unquarantined,
+outside terminal GC, and either standalone or owned by a ready import.
+
+Recovery and finalization consume the same `fabublox_import_asset_dependencies`
+surface. A pending import may retain or inherit a locator without publishing it;
+a known-missing shared state image therefore blocks finalization even when a
+Sample, Run, or other durable source still retains the historical occurrence.
+
 ## Uncertain registration outcomes
 
 An uploaded provider object and its stable database identity form one registration attempt. If the INSERT response is uncertain, the writer must first read the exact `(id, provider, object_key, sha256)` record from primary D1. An exact committed record is the writer's own successful result and its provider object must not be deleted. Only after that reconciliation returns no record may the writer select a different content-addressed winner and delete the redundant upload.
 
-This rule applies uniformly to ordinary R2 assets, Comment images, and managed Comment attachments. A content-hash lookup alone cannot distinguish the writer's own committed row from a competing winner.
+This rule applies uniformly to ordinary R2 assets, Project uploads, metrology references, Comment images, and managed Comment attachments. A content-hash lookup alone cannot distinguish the writer's own committed row from a competing winner.

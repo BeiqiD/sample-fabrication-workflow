@@ -30,7 +30,7 @@ import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
-import { reconcileCommittedR2Asset } from "./blob-lifecycle/registration";
+import { reconcileR2RegistrationFailure } from "./blob-lifecycle/registration";
 import {
   ASSET_OWNING_IMPORT_NOT_READY_SQL_ERROR,
   publishedAssetSql,
@@ -4737,32 +4737,27 @@ app.post("/assets", async (c) => {
       ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
       return c.json({ id, key, deduplicated: false }, 201);
     } catch (error) {
-      // The INSERT may have committed even when D1 lost the response. Reconcile
-      // the exact stable ID/key on the primary before treating another row as a
-      // deduplication winner or deleting the uploaded provider object.
-      const committed = await reconcileCommittedR2Asset(c.env.DB, {
-        id,
-        objectKey: key,
-        sha256,
-      });
-      if (committed) {
-        return c.json({
-          id: committed.id,
-          key: committed.r2_key,
-          deduplicated: false,
-        }, 201);
-      }
-
-      let winner;
+      let resolution;
       try {
-        winner = await reusableR2Asset(c.env, sha256);
+        resolution = await reconcileR2RegistrationFailure(c.env, {
+          id,
+          objectKey: key,
+          sha256,
+          findWinner: () => reusableR2Asset(c.env, sha256),
+        });
       } catch (verificationError) {
         await c.env.ASSETS.delete(key);
         throw verificationError;
       }
-      if (winner) {
-        await c.env.ASSETS.delete(key);
-        return c.json({ id: winner.id, key: winner.r2_key, deduplicated: true });
+      if (resolution) {
+        const payload = {
+          id: resolution.asset.id,
+          key: resolution.asset.r2_key,
+          deduplicated: resolution.deduplicated,
+        };
+        return resolution.deduplicated
+          ? c.json(payload)
+          : c.json(payload, 201);
       }
       await c.env.ASSETS.delete(key);
       if (attempt === 1) throw error;
@@ -5818,8 +5813,6 @@ app.post("/metrology-templates/:id/references", async (c) => {
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
   let asset = await reusableR2Asset(c.env, sha256);
-  let uploadedKey: string | null = null;
-  let uploadedAssetId: string | null = null;
   if (!asset) {
     const assetId = crypto.randomUUID();
     const key = `metrology/${templateId}/${crypto.randomUUID()}-${safeObjectName(filename)}`;
@@ -5839,20 +5832,22 @@ app.post("/metrology-templates/:id/references", async (c) => {
           byte_size: buffer.byteLength,
           sha256,
         };
-        uploadedKey = key;
-        uploadedAssetId = assetId;
         break;
       } catch (error) {
-        let winner;
+        let resolution;
         try {
-          winner = await reusableR2Asset(c.env, sha256);
+          resolution = await reconcileR2RegistrationFailure(c.env, {
+            id: assetId,
+            objectKey: key,
+            sha256,
+            findWinner: () => reusableR2Asset(c.env, sha256),
+          });
         } catch (verificationError) {
           await c.env.ASSETS.delete(key);
           throw verificationError;
         }
-        if (winner) {
-          await c.env.ASSETS.delete(key);
-          asset = winner;
+        if (resolution) {
+          asset = resolution.asset;
           break;
         }
         if (attempt === 1) {
@@ -5863,12 +5858,6 @@ app.post("/metrology-templates/:id/references", async (c) => {
     }
   }
   if (!asset) throw new HTTPException(409, { message: "Reference-file registration could not be reconciled" });
-
-  const cleanupUploadedAsset = async () => {
-    if (!uploadedKey || !uploadedAssetId) return;
-    await c.env.ASSETS.delete(uploadedKey);
-    await c.env.DB.prepare("DELETE FROM assets WHERE id = ?").bind(uploadedAssetId).run();
-  };
 
   if (existingReference) {
     const displayName = existingReference.deleted_at ? filename : existingReference.display_name;
@@ -5881,7 +5870,8 @@ app.post("/metrology-templates/:id/references", async (c) => {
         ).bind(asset.id, displayName, existingReference.id, templateId).run();
         if (!updated.meta.changes) throw new HTTPException(409, { message: "This reference file changed elsewhere" });
       } catch (error) {
-        await cleanupUploadedAsset();
+        // A committed ready asset may already have been reused elsewhere.
+        // Leave an unattached row to the shared registration-grace/GC path.
         throw error;
       }
     }
@@ -5905,7 +5895,8 @@ app.post("/metrology-templates/:id/references", async (c) => {
        ), 0), ?, ?)`,
     ).bind(referenceId, templateId, asset.id, filename, templateId, userEmail, now).run();
   } catch (error) {
-    await cleanupUploadedAsset();
+    // Once ready registration commits, route-local rollback no longer owns the
+    // provider object. Unattached assets are reclaimed through shared GC.
     if (String(error).includes("UNIQUE")) {
       throw new HTTPException(409, { message: "This reference file is already attached" });
     }

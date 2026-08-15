@@ -399,4 +399,89 @@ describe("FabuBlox import recovery ownership", () => {
     errorLog.mockRestore();
     database.close();
   });
+
+  it("blocks pending Import B finalization when its shared state asset is quarantined", async () => {
+    const database = legacyDatabase();
+    const sha256 = "f".repeat(64);
+    seedSharedImportState(database, {
+      importAStatus: "pending",
+      importBStatus: "pending",
+      assetStatus: "ready",
+      assetSha256: sha256,
+      assetByteSize: 17,
+    });
+    database.exec(`
+      INSERT INTO samples
+        (id, code, title, inherited_state_hash, created_at, updated_at)
+      VALUES (
+        'public-sample', 'PUBLIC', 'Public state consumer', 'shared-state',
+        '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'
+      );
+    `);
+    finishRecoveryMigrations(database);
+    const { env, head } = recoveryEnv(database, new Map());
+
+    const recovered = await reapStaleFabubloxImports(env, NOW);
+    expect(recovered).toEqual({
+      staleImportsFailed: 1,
+      staleImportAssetsReleased: 1,
+      staleImportObjectsQueued: 0,
+      staleImportRecoveryFailures: 0,
+    });
+    expect(head).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(database.prepare(`
+      SELECT import_id, status, sha256 FROM assets WHERE id = 'shared-asset'
+    `).get()).toEqual({
+      import_id: null,
+      status: "failed",
+      sha256: null,
+    });
+    expect(database.prepare(`
+      SELECT reason FROM blob_integrity_quarantine
+      WHERE object_key = 'imports/a/shared.png'
+    `).get()).toEqual({ reason: "missing" });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM fabublox_import_asset_dependencies
+      WHERE import_id = 'import-b' AND asset_id = 'shared-asset'
+    `).get()).toEqual({ count: 2 });
+
+    database.exec(`
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES
+        ('b-workbook', 'imports/b/workbook.xlsx', 'workbook.xlsx',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          4, 'ready', '${"a".repeat(64)}', '2026-08-20T00:10:00.000Z'),
+        ('b-manifest', 'imports/b/manifest.json', 'manifest.json',
+          'application/json', 4, 'ready', '${"b".repeat(64)}',
+          '2026-08-20T00:10:00.000Z');
+    `);
+
+    expect(() => database.prepare(`
+      UPDATE imports
+      SET status = 'ready',
+          workbook_asset_key = 'imports/b/workbook.xlsx',
+          manifest_asset_key = 'imports/b/manifest.json',
+          finalization_id = 'finalization-b',
+          completed_at = '2026-08-20T00:30:00.000Z',
+          lease_expires_at = NULL
+      WHERE id = 'import-b'
+    `).run()).toThrow(/import assets are not publishable/);
+    expect(database.prepare(`
+      SELECT status, finalization_id, workbook_asset_key, manifest_asset_key
+      FROM imports WHERE id = 'import-b'
+    `).get()).toEqual({
+      status: "pending",
+      finalization_id: null,
+      workbook_asset_key: null,
+      manifest_asset_key: null,
+    });
+    expect((await worker.fetch(new Request(
+      "https://app.test/api/templates/template-b",
+    ), env, executionContext)).status).toBe(404);
+    database.close();
+  });
+
 });

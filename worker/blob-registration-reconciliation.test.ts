@@ -3,6 +3,11 @@ import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
 import worker from "./index";
+import {
+  REFERENCE_FIXTURE_IDS,
+  referenceTestDatabase,
+  seedReferenceGraph,
+} from "./reference-test-support";
 import type { Env } from "./types";
 
 class FaultD1Statement {
@@ -360,4 +365,136 @@ describe("uncertain blob registration reconciliation", () => {
     expect(new Uint8Array(await live.arrayBuffer())).toEqual(bytes);
     database.close();
   });
+
+  it("keeps a committed metrology reference asset after its INSERT response is lost", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71, 61, 62, 63, 64]);
+    const database = referenceTestDatabase();
+    seedReferenceGraph(database);
+    const stored = new Map<string, Uint8Array>();
+    const deleted: string[] = [];
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(database, "assets") as unknown as D1Database,
+      ASSETS: {
+        put: vi.fn(async (key: string, value: unknown) => {
+          if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer");
+          stored.set(key, new Uint8Array(value.slice(0)));
+        }),
+        delete: vi.fn(async (key: string) => {
+          deleted.push(key);
+          stored.delete(key);
+        }),
+        head: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "image/png") : null;
+        }),
+        get: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "image/png") : null;
+        }),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      `https://app.test/api/metrology-templates/${REFERENCE_FIXTURE_IDS.metrologyRevision}/references`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "image/png",
+          "x-filename": "response-loss.png",
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(201);
+    const body = await response.json() as {
+      reference: { id: string; assetKey: string };
+    };
+    const row = database.prepare(`
+      SELECT mtr.id, a.id AS asset_id, a.r2_key, a.status
+      FROM metrology_template_references mtr
+      JOIN assets a ON a.id = mtr.asset_id
+      WHERE mtr.id = ?
+    `).get(body.reference.id) as {
+      id: string;
+      asset_id: string;
+      r2_key: string;
+      status: string;
+    };
+    expect(row).toEqual({
+      id: body.reference.id,
+      asset_id: row.asset_id,
+      r2_key: body.reference.assetKey,
+      status: "ready",
+    });
+    expect(deleted).not.toContain(row.r2_key);
+    expect(stored.get(row.r2_key)).toEqual(bytes);
+    const live = await worker.fetch(new Request(
+      `https://app.test/api/assets/${row.r2_key}`,
+    ), env, executionContext);
+    expect(live.status).toBe(200);
+    expect(new Uint8Array(await live.arrayBuffer())).toEqual(bytes);
+    database.close();
+  });
+
+  it("keeps a committed Project upload after its INSERT response is lost", async () => {
+    const bytes = Uint8Array.from([80, 68, 70, 71, 72, 73]);
+    const database = referenceTestDatabase();
+    const stored = new Map<string, Uint8Array>();
+    const deleted: string[] = [];
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(database, "assets") as unknown as D1Database,
+      ASSETS: {
+        put: vi.fn(async (key: string, value: unknown) => {
+          if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer");
+          stored.set(key, new Uint8Array(value.slice(0)));
+        }),
+        delete: vi.fn(async (key: string) => {
+          deleted.push(key);
+          stored.delete(key);
+        }),
+        head: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "application/pdf") : null;
+        }),
+        get: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "application/pdf") : null;
+        }),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/project-assets",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/pdf",
+          "x-project-filename-uri": encodeURIComponent("response-loss.pdf"),
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(201);
+    const body = await response.json() as {
+      id: string;
+      key: string;
+      deduplicated: boolean;
+    };
+    expect(body.deduplicated).toBe(false);
+    expect(deleted).not.toContain(body.key);
+    expect(stored.get(body.key)).toEqual(bytes);
+    expect(database.prepare(`
+      SELECT id, r2_key, status FROM assets WHERE id = ?
+    `).get(body.id)).toEqual({
+      id: body.id,
+      r2_key: body.key,
+      status: "ready",
+    });
+    database.close();
+  });
+
 });

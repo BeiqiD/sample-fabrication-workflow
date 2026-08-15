@@ -6,6 +6,7 @@ import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
+import { reconcileR2RegistrationFailure } from "./blob-lifecycle/registration";
 import { buildBlobExportPlan } from "./export-data";
 import { contentLengthWithin } from "./request-guards";
 import type { Env } from "./types";
@@ -74,9 +75,10 @@ function returnReusableProjectAsset(
   filename: string,
   contentType: string,
   byteSize: number,
+  deduplicated = true,
 ) {
   requireMatchingProjectAssetMetadata(row, filename, contentType, byteSize);
-  return { id: row.id, key: row.r2_key, deduplicated: true as const };
+  return { id: row.id, key: row.r2_key, deduplicated };
 }
 
 // Project owns the canonical complete export. The core Worker mounts the
@@ -159,16 +161,31 @@ routes.post("/project-assets", async (c) => {
       ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
       return c.json({ id, key, deduplicated: false }, 201);
     } catch (error) {
-      await c.env.ASSETS.delete(key);
-      const winner = await reusableProjectAsset(c.env, sha256);
-      if (winner) {
-        return c.json(returnReusableProjectAsset(
-          winner,
+      let resolution;
+      try {
+        resolution = await reconcileR2RegistrationFailure(c.env, {
+          id,
+          objectKey: key,
+          sha256,
+          findWinner: () => reusableProjectAsset(c.env, sha256),
+        });
+      } catch (verificationError) {
+        await c.env.ASSETS.delete(key);
+        throw verificationError;
+      }
+      if (resolution) {
+        const payload = returnReusableProjectAsset(
+          resolution.asset,
           filename,
           contentType,
           buffer.byteLength,
-        ));
+          resolution.deduplicated,
+        );
+        return resolution.deduplicated
+          ? c.json(payload)
+          : c.json(payload, 201);
       }
+      await c.env.ASSETS.delete(key);
       if (attempt === 1) throw error;
     }
   }

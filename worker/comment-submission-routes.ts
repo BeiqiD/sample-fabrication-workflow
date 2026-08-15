@@ -28,7 +28,7 @@ import {
 } from "./blob-lifecycle/reuse";
 import {
   reconcileCommittedManagedObject,
-  reconcileCommittedR2Asset,
+  reconcileR2RegistrationFailure,
 } from "./blob-lifecycle/registration";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
@@ -574,28 +574,21 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
             };
             break;
           } catch (error) {
-            const committed = await reconcileCommittedR2Asset(c.env.DB, {
-              id: assetId,
-              objectKey: key,
-              sha256,
-            });
-            if (committed) {
-              asset = committed;
-              deduplicated = false;
-              break;
-            }
-
-            let winner;
+            let resolution;
             try {
-              winner = await reusableCommentR2Asset(c.env, sha256);
+              resolution = await reconcileR2RegistrationFailure(c.env, {
+                id: assetId,
+                objectKey: key,
+                sha256,
+                findWinner: () => reusableCommentR2Asset(c.env, sha256),
+              });
             } catch (verificationError) {
               await c.env.ASSETS.delete(key);
               throw verificationError;
             }
-            if (winner) {
-              await c.env.ASSETS.delete(key);
-              asset = winner;
-              deduplicated = true;
+            if (resolution) {
+              asset = resolution.asset;
+              deduplicated = resolution.deduplicated;
               break;
             }
             if (attempt === 1) {

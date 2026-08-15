@@ -82,7 +82,7 @@ retention semantics.
 
 ## Ordered migration set
 
-The implementation relies on six ordered migration positions around the
+The implementation relies on eight ordered migration positions around the
 existing source-lifecycle work:
 
 ```text
@@ -92,6 +92,8 @@ existing source-lifecycle work:
 0017_blob_lifecycle_review_fixes.sql
 0024_blob_integrity_quarantine.sql
 0025_fabublox_publication_boundaries.sql
+0026_fabublox_recovery_ownership.sql
+0027_fabublox_dependency_publication.sql
 ```
 
 Wrangler discovers migration files in deterministic order. The managed-object
@@ -213,6 +215,28 @@ legacy interrupted data and that subsequent recovery:
    remains a ready standalone canonical winner with its SHA reservation;
 6. marks and queues only assets that have no remaining edge in
    `blob_retention_edges`.
+
+### `0026_fabublox_recovery_ownership.sql`
+
+This migration separates physical retention from public availability. It
+installs public-consumer and unresolved-import projections, provider-aware legacy
+asset recovery, and operation-safe ownership transfer. Recovery may preserve a
+locator for a pending successor without making that locator live.
+
+### `0027_fabublox_dependency_publication.sql`
+
+This migration installs the complete `fabublox_import_asset_dependencies`
+surface and makes it authoritative for both successor recovery and finalization.
+The graph covers direct import assets, workbook/manifest provenance, template
+source, initial and expected state images, and metrology references. The
+`pending -> ready` trigger rejects any required asset that is failed, missing a
+hash, quarantined, terminal in GC, or owned by an unpublished import. Final
+workbook and manifest keys are validated from `NEW` because a trigger query over
+`imports` still observes the old pending row.
+
+The same migration rewires `fabublox_recovery_import_asset_edges` to derive from
+this graph, preventing recovery and publication from evolving separate notions
+of import dependency.
 
 ## Authoritative schema surfaces
 
