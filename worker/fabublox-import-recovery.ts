@@ -58,7 +58,8 @@ export async function queueFabubloxImportCleanup(
     // Claim the exact unfinished operation. This also resumes legacy failed
     // rows that predate durable recovery identity. Every later statement is
     // gated by the persisted recovery ID, so a competing finalization cannot
-    // be torn down after it wins.
+    // be torn down after it wins. Only import-owned direct provenance is
+    // released here; durable occurrences owned by other sources remain intact.
     db.prepare(`
       UPDATE imports
       SET status = 'failed',
@@ -91,22 +92,11 @@ export async function queueFabubloxImportCleanup(
             AND recovery_operation_id = ?
         )
     `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
-    // Detach state-image occurrences whose asset metadata belongs to this
-    // failed import.
-    db.prepare(`
-      DELETE FROM state_representation_assets
-      WHERE asset_id IN (
-        SELECT a.id
-        FROM assets a
-        JOIN imports i ON i.id = a.import_id
-        WHERE i.id = ? AND i.status = 'failed'
-          AND i.recovery_operation_id = ?
-      )
-    `).bind(input.importId, recoveryOperationId),
-    // Older import code could attach an already-ready standalone winner to a
-    // newly created state. Remove those relationships only when the state is
-    // exclusive to this partial template. Shared templates, independent Run
-    // states, and explicit verification history continue to retain the edge.
+    // A state-image occurrence belongs to the state, not to the import that
+    // originally registered the asset row. Remove it only when the state is
+    // exclusive to this partial template. Other templates, independent Run
+    // step/initial-state history, Sample inherited state, and explicit
+    // verification history retain the relationship regardless of asset origin.
     db.prepare(`
       DELETE FROM state_representation_assets
       WHERE state_hash IN (
@@ -161,6 +151,16 @@ export async function queueFabubloxImportCleanup(
       )
       AND NOT EXISTS (
         SELECT 1
+        FROM runs r
+        WHERE r.initial_state_hash = state_representation_assets.state_hash
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM samples s
+        WHERE s.inherited_state_hash = state_representation_assets.state_hash
+      )
+      AND NOT EXISTS (
+        SELECT 1
         FROM state_verifications sv
         WHERE sv.expected_state_hash = state_representation_assets.state_hash
       )
@@ -199,37 +199,10 @@ export async function queueFabubloxImportCleanup(
           AND i.recovery_operation_id = ?
       )
     `).bind(input.importId, recoveryOperationId),
-    // Direct event keys are retention edges. Legacy interrupted imports may
-    // have written them before publication guards existed, so detach both the
-    // primary asset and thumbnail occurrence before queueing provider GC.
-    db.prepare(`
-      UPDATE events
-      SET asset_key = NULL
-      WHERE asset_key IN (
-        SELECT a.r2_key
-        FROM assets a
-        JOIN imports i ON i.id = a.import_id
-        WHERE i.id = ? AND i.status = 'failed'
-          AND i.recovery_operation_id = ?
-      )
-    `).bind(input.importId, recoveryOperationId),
-    db.prepare(`
-      UPDATE events
-      SET metadata_json = json_remove(metadata_json, '$.thumbnailKey')
-      WHERE json_valid(metadata_json)
-        AND typeof(json_extract(metadata_json, '$.thumbnailKey')) = 'text'
-        AND CAST(json_extract(metadata_json, '$.thumbnailKey') AS TEXT) IN (
-          SELECT a.r2_key
-          FROM assets a
-          JOIN imports i ON i.id = a.import_id
-          WHERE i.id = ? AND i.status = 'failed'
-            AND i.recovery_operation_id = ?
-        )
-    `).bind(input.importId, recoveryOperationId),
     // Template revisions are stable identities and cannot be physically
     // deleted. Remove their cascade-owned step rows, then quarantine the
-    // revision in place and release every direct blob locator. The owning
-    // failed import remains linked as durable publication/audit state.
+    // revision in place and release only its direct source locator. Event and
+    // other occurrence keys are independent durable edges and are not altered.
     db.prepare(`
       DELETE FROM template_steps
       WHERE template_version_id = (
@@ -252,6 +225,28 @@ export async function queueFabubloxImportCleanup(
           AND recovery_operation_id = ?
       )
     `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
+    // The asset row may have originated in this import and later become the
+    // canonical winner for another source. Once import-owned provenance and
+    // exclusive state edges are gone, the shared retention view is the sole
+    // authority: any still-reachable asset is re-homed as standalone before
+    // the failed import can release it. Keep its readiness and content hash.
+    db.prepare(`
+      UPDATE assets
+      SET import_id = NULL
+      WHERE import_id = ? AND status IN ('pending', 'ready')
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM blob_retention_edges bre
+          WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
+            AND bre.object_key = assets.r2_key
+        )
+    `).bind(input.importId, input.importId, recoveryOperationId),
+    // Only assets that are unreachable under the shared authoritative surface
+    // may release their hash and transition to failed.
     db.prepare(`
       UPDATE assets
       SET status = 'failed', sha256 = NULL
@@ -261,10 +256,15 @@ export async function queueFabubloxImportCleanup(
           WHERE i.id = ? AND i.status = 'failed'
             AND i.recovery_operation_id = ?
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_retention_edges bre
+          WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
+            AND bre.object_key = assets.r2_key
+        )
     `).bind(input.importId, input.importId, recoveryOperationId),
-    // Queue every failed provider object. Deletion still rechecks current
-    // retention before claiming, but a stale edge can no longer make the
-    // cleanup task disappear permanently.
+    // Queue only unreachable failed provider objects. Deletion rechecks the
+    // same retention view before claiming, preserving the invariant that one
+    // source becoming terminal cannot release another source's durable edge.
     db.prepare(`
       INSERT INTO blob_gc_ledger (
         store_kind, provider, object_key, blob_record_id, state, operation_id,
@@ -279,6 +279,11 @@ export async function queueFabubloxImportCleanup(
           SELECT 1 FROM imports i
           WHERE i.id = ? AND i.status = 'failed'
             AND i.recovery_operation_id = ?
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_retention_edges bre
+          WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
+            AND bre.object_key = a.r2_key
         )
       ON CONFLICT(store_kind, provider, object_key) DO UPDATE SET
         blob_record_id = excluded.blob_record_id,
@@ -297,17 +302,17 @@ export async function queueFabubloxImportCleanup(
       recoveryOperationId,
     ),
   ]);
-  const relationshipResultIndexes = [2, 3, 4, 5, 6, 7];
+  const relationshipResultIndexes = [2, 3, 4];
   return {
     importsFailed: Number(results[0].meta.changes ?? 0),
     relationshipsRemoved: relationshipResultIndexes.reduce(
       (total, index) => total + Number(results[index].meta.changes ?? 0),
       0,
     ),
-    templateStepsRemoved: Number(results[8].meta.changes ?? 0),
-    templatesQuarantined: Number(results[9].meta.changes ?? 0),
-    assetsReleased: Number(results[10].meta.changes ?? 0),
-    objectsQueued: Number(results[11].meta.changes ?? 0),
+    templateStepsRemoved: Number(results[5].meta.changes ?? 0),
+    templatesQuarantined: Number(results[6].meta.changes ?? 0),
+    assetsReleased: Number(results[8].meta.changes ?? 0),
+    objectsQueued: Number(results[9].meta.changes ?? 0),
   };
 }
 
