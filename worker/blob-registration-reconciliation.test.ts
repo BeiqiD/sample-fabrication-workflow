@@ -404,6 +404,96 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
+
+  it("returns 503 when R2 metadata staging fails twice before provider write", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71, 111, 112, 113]);
+    const database = referenceTestDatabase();
+    const put = vi.fn();
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "assets",
+        false,
+        "promotion",
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {
+        put,
+        delete: vi.fn(),
+        head: vi.fn(async () => null),
+        get: vi.fn(async () => null),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/assets",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "image/png",
+          "x-filename": "staging-failure.png",
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+
+    expect(response.status).toBe(503);
+    expect(put).not.toHaveBeenCalled();
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM assets",
+    ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("returns 503 when managed metadata staging fails twice before provider write", async () => {
+    const bytes = Uint8Array.from([121, 122, 123, 124, 125]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const fetchMock = vi.fn(async () => {
+      throw new Error("managed provider must not be called before staging");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "managed_storage_objects",
+        false,
+        "promotion",
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {} as R2Bucket,
+      MANAGED_STORAGE_PROVIDER: "switchdrive",
+      SWITCHDRIVE_WEBDAV_URL:
+        "https://drive.switch.ch/remote.php/dav/files/test-user/",
+      SWITCHDRIVE_USERNAME: "test-user",
+      SWITCHDRIVE_APP_PASSWORD: "test-password",
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/octet-stream",
+          "x-upload-size": String(bytes.byteLength),
+          "x-content-sha256": sha256,
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+
+    expect(response.status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM managed_storage_objects",
+    ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
   it("keeps a committed managed Comment attachment and does not delete its own provider key after response loss", async () => {
     const bytes = Uint8Array.from([41, 42, 43, 44, 45]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));

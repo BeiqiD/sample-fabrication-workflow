@@ -64,6 +64,15 @@ The complete source identity and soft-delete contract is in
 reference model are specified in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md).
 
+
+Recovery may discover that two stable occurrences in the same context refer to
+provider-verified identical bytes. It never deletes either row. The legacy
+occurrence becomes an immutable soft-supersession tombstone linked to the
+surviving occurrence and recovery operation. This explicit supersession, unlike
+ordinary soft deletion, transfers only the redundant byte-retention edge; both
+occurrence identities and all audit metadata remain in export and reference
+history.
+
 ## Reference identity and resolution
 
 The v1 reference type set is closed and versioned:

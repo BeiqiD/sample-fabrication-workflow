@@ -209,11 +209,13 @@ export async function registerR2Asset(
 
       const winner = await findR2Winner(input.findWinner);
       if (winner) return { asset: winner, deduplicated: true };
-      if (attempt === 1) throw error;
+      if (attempt === 1) throw authorityUnavailable(error);
     }
   }
   if (!candidate) {
-    throw insertError ?? new Error("R2 registration metadata could not be staged");
+    throw authorityUnavailable(
+      insertError ?? new Error("R2 registration metadata could not be staged"),
+    );
   }
   if (candidate.status === "ready") {
     const { status: _status, ...asset } = candidate;
@@ -437,11 +439,14 @@ export async function registerManagedObject(
       if (candidate) break;
       const winner = await findManagedWinner(input.findWinner);
       if (winner) return { object: winner, deduplicated: true };
-      if (attempt === 1) throw error;
+      if (attempt === 1) throw authorityUnavailable(error);
     }
   }
   if (!candidate) {
-    throw insertError ?? new Error("Managed registration metadata could not be staged");
+    throw authorityUnavailable(
+      insertError
+        ?? new Error("Managed registration metadata could not be staged"),
+    );
   }
   if (candidate.status === "ready" || candidate.status === "orphaned") {
     const { status: _status, ...object } = candidate;

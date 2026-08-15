@@ -5900,6 +5900,7 @@ app.post("/metrology-templates/:id/references/:referenceId/restore", async (c) =
     `UPDATE metrology_template_references
      SET deleted_at = NULL, deleted_by = NULL
      WHERE id = ? AND template_version_id = ? AND deleted_at IS NOT NULL
+       AND superseded_by_occurrence_id IS NULL
        AND EXISTS (
          SELECT 1 FROM template_versions
          WHERE id = ? AND template_kind = 'metrology'

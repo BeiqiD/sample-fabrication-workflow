@@ -443,6 +443,29 @@ or bytes that were intentionally permanently removed.
 Blob GC is not source permanent deletion. GC removes unreachable provider bytes
 while preserving database and audit history.
 
+## Recovery supersession of duplicate stable occurrences
+
+Canonical blob recovery MUST NOT physically merge or delete stable occurrence
+rows. When a legacy occurrence and an independently existing occurrence resolve
+to the same provider-verified SHA-256 and byte size:
+
+- the existing canonical occurrence is the surviving live occurrence;
+- the legacy occurrence keeps its ID, context, ordering, author/display
+  metadata, and creation timestamp;
+- the legacy row is soft-deleted if necessary and records the successor
+  occurrence, recovery operation, actor, and supersession time;
+- a superseded occurrence is immutable and cannot be restored as a second live
+  duplicate;
+- physical-delete guards remain unconditional;
+- only the superseded occurrence's byte-retention edge transfers to the healthy
+  successor; ordinary soft-deleted occurrences continue to retain bytes;
+- export and reference history keep both occurrence rows, while GC may collect
+  only the superseded physical locator after every other retention edge is
+  absent.
+
+Supersession is a narrowly validated repair operation, not a general deduplication
+or permanent-delete capability.
+
 ## Explicit first-implementation boundaries
 
 These are documented deferrals, not implied features.

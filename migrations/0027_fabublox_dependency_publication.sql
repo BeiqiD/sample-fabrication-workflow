@@ -110,12 +110,43 @@ WHERE dependency.asset_id IS NOT NULL
   AND i.finalization_id IS NULL
   AND (i.status = 'pending' OR i.recovery_operation_id IS NULL);
 
+-- The template revision is the immutable root of one import dependency graph.
+-- It may be staged exactly once while the import remains pending. Finalization,
+-- failure handling, and recovery may not retarget the import to a different
+-- revision in the same statement or in a later statement.
+CREATE TRIGGER imports_guard_template_identity_staging
+BEFORE UPDATE OF template_version_id ON imports
+WHEN NEW.template_version_id IS NOT OLD.template_version_id
+BEGIN
+  SELECT RAISE(
+    ABORT,
+    'import template identity can only be staged once while pending'
+  )
+  WHERE NOT (
+    OLD.status = 'pending'
+    AND NEW.status = 'pending'
+    AND OLD.template_version_id IS NULL
+    AND NEW.template_version_id IS NOT NULL
+    AND OLD.finalization_id IS NULL
+    AND NEW.finalization_id IS NULL
+    AND OLD.recovery_operation_id IS NULL
+    AND NEW.recovery_operation_id IS NULL
+  );
+END;
+
 DROP TRIGGER imports_require_publishable_assets;
 
 CREATE TRIGGER imports_require_publishable_assets
 BEFORE UPDATE OF status ON imports
 WHEN OLD.status = 'pending' AND NEW.status = 'ready'
 BEGIN
+  -- Finalization is a state transition over the already-staged graph. A single
+  -- UPDATE may not validate OLD dependencies while publishing a different NEW
+  -- template root.
+  SELECT RAISE(ABORT, 'import assets are not publishable')
+  WHERE OLD.template_version_id IS NULL
+    OR NEW.template_version_id IS NOT OLD.template_version_id;
+
   -- Publication must resolve the staged template identity before validating
   -- any asset edge. imports.template_version_id is intentionally nullable and
   -- has no foreign key in the legacy schema.

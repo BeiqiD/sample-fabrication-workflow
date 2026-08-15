@@ -283,10 +283,11 @@ export async function queueFabubloxImportCleanup(
     ),
 
     // A recovered legacy locator can contain bytes already represented by a
-    // healthy canonical asset. Rebind every durable occurrence to that winner
-    // after the claim and metadata repair, then release only the old physical
-    // locator. Each statement is claim-gated and publication triggers verify
-    // that the canonical row is still healthy at commit time.
+    // healthy canonical asset. Rebind ordinary edges in place. Stable
+    // execution-image and metrology-reference occurrences are preserved; when
+    // an equivalent canonical occurrence already exists, the legacy row is
+    // soft-superseded through an audited successor link instead of deleted.
+    // Every statement is claim-gated and canonical health is revalidated.
     db.prepare(`
       WITH rebinds AS (
         SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
@@ -340,21 +341,42 @@ export async function queueFabubloxImportCleanup(
     db.prepare(`
       WITH rebinds AS (
         SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
-               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT)
+                 AS canonical_id
         FROM json_each(?) entry
         WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      ),
+      conflicts AS (
+        SELECT legacy_occurrence.id AS legacy_occurrence_id,
+               canonical_occurrence.id AS canonical_occurrence_id
+        FROM run_step_assets legacy_occurrence
+        JOIN rebinds ON rebinds.legacy_id = legacy_occurrence.asset_id
+        JOIN run_step_assets canonical_occurrence
+          ON canonical_occurrence.run_step_id =
+             legacy_occurrence.run_step_id
+         AND canonical_occurrence.role IS legacy_occurrence.role
+         AND canonical_occurrence.asset_id = rebinds.canonical_id
+         AND canonical_occurrence.id <> legacy_occurrence.id
+        JOIN assets legacy ON legacy.id = legacy_occurrence.asset_id
+        WHERE legacy.import_id = ?
       )
-      UPDATE OR IGNORE run_step_assets
-      SET asset_id = (
-        SELECT canonical_id FROM rebinds
-        WHERE legacy_id = run_step_assets.asset_id
-      )
-      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
-        AND EXISTS (
-          SELECT 1 FROM assets legacy
-          WHERE legacy.id = run_step_assets.asset_id
-            AND legacy.import_id = ?
-        )
+      UPDATE run_step_assets
+      SET deleted_at = COALESCE(deleted_at, ?),
+          deleted_by = COALESCE(
+            deleted_by,
+            'system:fabublox-import-recovery'
+          ),
+          last_mutation_id = ?,
+          superseded_by_occurrence_id = (
+            SELECT canonical_occurrence_id
+            FROM conflicts
+            WHERE legacy_occurrence_id = run_step_assets.id
+          ),
+          superseded_at = ?,
+          superseded_by = 'system:fabublox-import-recovery',
+          supersession_operation_id = ?
+      WHERE id IN (SELECT legacy_occurrence_id FROM conflicts)
+        AND superseded_by_occurrence_id IS NULL
         AND EXISTS (
           SELECT 1 FROM imports i
           WHERE i.id = ? AND i.status = 'failed'
@@ -363,17 +385,40 @@ export async function queueFabubloxImportCleanup(
     `).bind(
       inspectionPayload,
       input.importId,
+      timestamp,
+      recoveryOperationId,
+      timestamp,
+      recoveryOperationId,
       input.importId,
       recoveryOperationId,
     ),
     db.prepare(`
       WITH rebinds AS (
-        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT)
+                 AS canonical_id
         FROM json_each(?) entry
         WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
       )
-      DELETE FROM run_step_assets
+      UPDATE run_step_assets
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = run_step_assets.asset_id
+      )
       WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND superseded_by_occurrence_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM run_step_assets canonical_occurrence
+          WHERE canonical_occurrence.id <> run_step_assets.id
+            AND canonical_occurrence.run_step_id =
+                run_step_assets.run_step_id
+            AND canonical_occurrence.role IS run_step_assets.role
+            AND canonical_occurrence.asset_id = (
+              SELECT canonical_id FROM rebinds
+              WHERE legacy_id = run_step_assets.asset_id
+            )
+        )
         AND EXISTS (
           SELECT 1 FROM assets legacy
           WHERE legacy.id = run_step_assets.asset_id
@@ -451,21 +496,41 @@ export async function queueFabubloxImportCleanup(
     db.prepare(`
       WITH rebinds AS (
         SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
-               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT)
+                 AS canonical_id
         FROM json_each(?) entry
         WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      ),
+      conflicts AS (
+        SELECT legacy_occurrence.id AS legacy_occurrence_id,
+               canonical_occurrence.id AS canonical_occurrence_id
+        FROM metrology_template_references legacy_occurrence
+        JOIN rebinds ON rebinds.legacy_id = legacy_occurrence.asset_id
+        JOIN metrology_template_references canonical_occurrence
+          ON canonical_occurrence.template_version_id =
+             legacy_occurrence.template_version_id
+         AND canonical_occurrence.asset_id = rebinds.canonical_id
+         AND canonical_occurrence.id <> legacy_occurrence.id
+        JOIN assets legacy ON legacy.id = legacy_occurrence.asset_id
+        WHERE legacy.import_id = ?
       )
-      UPDATE OR IGNORE metrology_template_references
-      SET asset_id = (
-        SELECT canonical_id FROM rebinds
-        WHERE legacy_id = metrology_template_references.asset_id
-      )
-      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
-        AND EXISTS (
-          SELECT 1 FROM assets legacy
-          WHERE legacy.id = metrology_template_references.asset_id
-            AND legacy.import_id = ?
-        )
+      UPDATE metrology_template_references
+      SET deleted_at = COALESCE(deleted_at, ?),
+          deleted_by = COALESCE(
+            deleted_by,
+            'system:fabublox-import-recovery'
+          ),
+          superseded_by_occurrence_id = (
+            SELECT canonical_occurrence_id
+            FROM conflicts
+            WHERE legacy_occurrence_id =
+                  metrology_template_references.id
+          ),
+          superseded_at = ?,
+          superseded_by = 'system:fabublox-import-recovery',
+          supersession_operation_id = ?
+      WHERE id IN (SELECT legacy_occurrence_id FROM conflicts)
+        AND superseded_by_occurrence_id IS NULL
         AND EXISTS (
           SELECT 1 FROM imports i
           WHERE i.id = ? AND i.status = 'failed'
@@ -474,17 +539,40 @@ export async function queueFabubloxImportCleanup(
     `).bind(
       inspectionPayload,
       input.importId,
+      timestamp,
+      timestamp,
+      recoveryOperationId,
       input.importId,
       recoveryOperationId,
     ),
     db.prepare(`
       WITH rebinds AS (
-        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT)
+                 AS canonical_id
         FROM json_each(?) entry
         WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
       )
-      DELETE FROM metrology_template_references
+      UPDATE metrology_template_references
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = metrology_template_references.asset_id
+      )
       WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND superseded_by_occurrence_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM metrology_template_references canonical_occurrence
+          WHERE canonical_occurrence.id <>
+                metrology_template_references.id
+            AND canonical_occurrence.template_version_id =
+                metrology_template_references.template_version_id
+            AND canonical_occurrence.asset_id = (
+              SELECT canonical_id FROM rebinds
+              WHERE legacy_id =
+                    metrology_template_references.asset_id
+            )
+        )
         AND EXISTS (
           SELECT 1 FROM assets legacy
           WHERE legacy.id = metrology_template_references.asset_id

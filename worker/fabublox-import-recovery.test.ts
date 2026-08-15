@@ -770,7 +770,7 @@ describe("FabuBlox import recovery ownership", () => {
     database.close();
   });
 
-  it("rebinds a quarantined locator and removes only redundant canonical occurrences", async () => {
+  it("soft-supersedes redundant stable occurrences without deleting audit identity", async () => {
     const database = legacyDatabase();
     const bytes = Uint8Array.from([137, 80, 78, 71, 41, 42, 43, 44]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
@@ -804,18 +804,20 @@ describe("FabuBlox import recovery ownership", () => {
       VALUES ('shared-state', 'canonical-winner', 1);
 
       INSERT INTO metrology_template_references (
-        id, template_version_id, asset_id, display_name, position, created_at
+        id, template_version_id, asset_id, display_name, position, actor_email,
+        created_at
       ) VALUES (
         'reference-legacy', 'template-b', 'shared-asset', 'legacy.png', 0,
-        '2026-07-01T00:02:00.000Z'
+        'legacy-reference@example.com', '2026-07-01T00:02:00.000Z'
       );
 
       INSERT INTO metrology_template_references (
-        id, template_version_id, asset_id, display_name, position, created_at,
-        deleted_at, deleted_by
+        id, template_version_id, asset_id, display_name, position, actor_email,
+        created_at, deleted_at, deleted_by
       ) VALUES (
         'reference-canonical', 'template-b', 'canonical-winner',
-        'canonical.png', 1, '2026-07-01T00:03:00.000Z',
+        'canonical.png', 1, 'canonical-reference@example.com',
+        '2026-07-01T00:03:00.000Z',
         '2026-07-02T00:00:00.000Z', 'legacy-cleanup@example.com'
       );
 
@@ -844,18 +846,19 @@ describe("FabuBlox import recovery ownership", () => {
       );
 
       INSERT INTO run_step_assets (
-        id, run_step_id, asset_id, role, position, created_at
+        id, run_step_id, asset_id, role, position, actor_email, created_at
       ) VALUES (
         'run-asset-legacy', 'recovery-step', 'shared-asset', 'execution', 0,
-        '2026-07-01T00:00:00.000Z'
+        'legacy-run@example.com', '2026-07-01T00:00:00.000Z'
       );
 
       INSERT INTO run_step_assets (
-        id, run_step_id, asset_id, role, position, created_at,
+        id, run_step_id, asset_id, role, position, actor_email, created_at,
         deleted_at, deleted_by
       ) VALUES (
         'run-asset-canonical', 'recovery-step', 'canonical-winner',
-        'execution', 1, '2026-07-01T00:01:00.000Z',
+        'execution', 1, 'canonical-run@example.com',
+        '2026-07-01T00:01:00.000Z',
         '2026-07-02T00:00:00.000Z', 'legacy-cleanup@example.com'
       );
 
@@ -889,23 +892,111 @@ describe("FabuBlox import recovery ownership", () => {
       WHERE state_hash = 'shared-state'
     `).all()).toEqual([{ asset_id: "canonical-winner" }]);
     expect(database.prepare(`
-      SELECT id, asset_id, deleted_at
+      SELECT id, asset_id, position, actor_email, created_at,
+             deleted_at, deleted_by, superseded_by_occurrence_id,
+             superseded_at, superseded_by,
+             supersession_operation_id IS NOT NULL AS has_operation
       FROM run_step_assets
       WHERE run_step_id = 'recovery-step'
-    `).all()).toEqual([{
-      id: "run-asset-canonical",
-      asset_id: "canonical-winner",
-      deleted_at: null,
-    }]);
+      ORDER BY id
+    `).all()).toEqual([
+      {
+        id: "run-asset-canonical",
+        asset_id: "canonical-winner",
+        position: 1,
+        actor_email: "canonical-run@example.com",
+        created_at: "2026-07-01T00:01:00.000Z",
+        deleted_at: null,
+        deleted_by: null,
+        superseded_by_occurrence_id: null,
+        superseded_at: null,
+        superseded_by: null,
+        has_operation: 0,
+      },
+      {
+        id: "run-asset-legacy",
+        asset_id: "shared-asset",
+        position: 0,
+        actor_email: "legacy-run@example.com",
+        created_at: "2026-07-01T00:00:00.000Z",
+        deleted_at: "2026-08-20T00:00:00.000Z",
+        deleted_by: "system:fabublox-import-recovery",
+        superseded_by_occurrence_id: "run-asset-canonical",
+        superseded_at: "2026-08-20T00:00:00.000Z",
+        superseded_by: "system:fabublox-import-recovery",
+        has_operation: 1,
+      },
+    ]);
     expect(database.prepare(`
-      SELECT id, asset_id, deleted_at
+      SELECT id, asset_id, display_name, position, actor_email, created_at,
+             deleted_at, deleted_by, superseded_by_occurrence_id,
+             superseded_at, superseded_by,
+             supersession_operation_id IS NOT NULL AS has_operation
       FROM metrology_template_references
       WHERE template_version_id = 'template-b'
-    `).all()).toEqual([{
-      id: "reference-canonical",
-      asset_id: "canonical-winner",
-      deleted_at: null,
-    }]);
+      ORDER BY id
+    `).all()).toEqual([
+      {
+        id: "reference-canonical",
+        asset_id: "canonical-winner",
+        display_name: "canonical.png",
+        position: 1,
+        actor_email: "canonical-reference@example.com",
+        created_at: "2026-07-01T00:03:00.000Z",
+        deleted_at: null,
+        deleted_by: null,
+        superseded_by_occurrence_id: null,
+        superseded_at: null,
+        superseded_by: null,
+        has_operation: 0,
+      },
+      {
+        id: "reference-legacy",
+        asset_id: "shared-asset",
+        display_name: "legacy.png",
+        position: 0,
+        actor_email: "legacy-reference@example.com",
+        created_at: "2026-07-01T00:02:00.000Z",
+        deleted_at: "2026-08-20T00:00:00.000Z",
+        deleted_by: "system:fabublox-import-recovery",
+        superseded_by_occurrence_id: "reference-canonical",
+        superseded_at: "2026-08-20T00:00:00.000Z",
+        superseded_by: "system:fabublox-import-recovery",
+        has_operation: 1,
+      },
+    ]);
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM blob_retention_edges
+      WHERE store_kind = 'r2' AND provider = 'r2'
+        AND object_key = 'imports/a/shared.png'
+    `).get()).toEqual({ count: 0 });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM fabublox_import_asset_dependencies
+      WHERE import_id = 'import-b' AND asset_id = 'shared-asset'
+    `).get()).toEqual({ count: 0 });
+    expect(() => database.prepare(`
+      DELETE FROM run_step_assets WHERE id = 'run-asset-legacy'
+    `).run()).toThrow(/physical deletion disabled for run_step_assets/);
+    expect(() => database.prepare(`
+      DELETE FROM metrology_template_references
+      WHERE id = 'reference-legacy'
+    `).run()).toThrow(
+      /physical deletion disabled for metrology_template_references/,
+    );
+    expect(() => database.prepare(`
+      UPDATE run_step_assets
+      SET deleted_at = NULL, deleted_by = NULL
+      WHERE id = 'run-asset-legacy'
+    `).run()).toThrow(/superseded run step asset occurrence is immutable/);
+    expect(() => database.prepare(`
+      UPDATE metrology_template_references
+      SET deleted_at = NULL, deleted_by = NULL
+      WHERE id = 'reference-legacy'
+    `).run()).toThrow(
+      /superseded metrology reference occurrence is immutable/,
+    );
     expect(database.prepare(`
       SELECT workbook_asset_key, manifest_asset_key
       FROM imports WHERE id = 'import-b'
@@ -994,6 +1085,83 @@ describe("FabuBlox import recovery ownership", () => {
         WHERE id = ?
       `).run(finalizationId, id)).toThrow(/import assets are not publishable/);
     }
+    database.close();
+  });
+
+
+  it("forbids changing the staged template root during finalization", () => {
+    const database = legacyDatabase();
+    finishRecoveryMigrations(database);
+    database.exec(`
+      INSERT INTO recipe_families (id, name, template_type, created_at)
+      VALUES (
+        'root-swap-family', 'Root swap family', 'process',
+        '2026-08-20T00:00:00.000Z'
+      );
+
+      INSERT INTO template_versions (
+        id, recipe_family_id, name, template_type, version, manifest_hash,
+        source_asset_key, content_json, created_at, template_kind
+      ) VALUES
+        (
+          'root-swap-safe', 'root-swap-family', 'Safe root', 'process', 1,
+          'safe-manifest', NULL, '{}', '2026-08-20T00:00:00.000Z',
+          'process'
+        ),
+        (
+          'root-swap-broken', 'root-swap-family', 'Broken root', 'process', 2,
+          'broken-manifest', 'publication/unresolved-source.xlsx', '{}',
+          '2026-08-20T00:00:00.000Z', 'process'
+        );
+
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES
+        (
+          'root-swap-workbook', 'publication/root-swap-workbook.xlsx',
+          'workbook.xlsx', 'application/octet-stream', 4, 'ready',
+          '${"e".repeat(64)}', '2026-08-20T00:00:00.000Z'
+        ),
+        (
+          'root-swap-manifest', 'publication/root-swap-manifest.json',
+          'manifest.json', 'application/json', 4, 'ready',
+          '${"f".repeat(64)}', '2026-08-20T00:00:00.000Z'
+        );
+
+      INSERT INTO imports (
+        id, status, source_filename, source_sha256, sheet_name, template_type,
+        recipe_family_id, template_version_id, created_at, operation_id,
+        lease_expires_at
+      ) VALUES (
+        'root-swap-import', 'pending', 'root-swap.xlsx',
+        '${"1".repeat(64)}', 'Sheet1', 'process', 'root-swap-family',
+        'root-swap-safe', '2026-08-20T00:00:00.000Z',
+        'root-swap-operation', '2026-08-21T00:00:00.000Z'
+      );
+    `);
+
+    expect(() => database.prepare(`
+      UPDATE imports
+      SET template_version_id = 'root-swap-broken',
+          status = 'ready',
+          workbook_asset_key = 'publication/root-swap-workbook.xlsx',
+          manifest_asset_key = 'publication/root-swap-manifest.json',
+          finalization_id = 'root-swap-finalization',
+          completed_at = '2026-08-20T00:30:00.000Z',
+          lease_expires_at = NULL
+      WHERE id = 'root-swap-import'
+    `).run()).toThrow(
+      /import template identity can only be staged once while pending|import assets are not publishable/,
+    );
+    expect(database.prepare(`
+      SELECT status, template_version_id, finalization_id
+      FROM imports WHERE id = 'root-swap-import'
+    `).get()).toEqual({
+      status: "pending",
+      template_version_id: "root-swap-safe",
+      finalization_id: null,
+    });
     database.close();
   });
 
