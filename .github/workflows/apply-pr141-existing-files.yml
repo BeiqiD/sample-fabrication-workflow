@@ -27,7 +27,9 @@ jobs:
           cache: npm
 
       - name: Apply shared registration patch
-        run: python .github/apply-pr141-registration.py
+        run: |
+          python .github/apply-pr141-registration.py
+          python .github/apply-pr141-registration-fix.py
 
       - name: Install dependencies
         run: npm ci
@@ -49,6 +51,7 @@ jobs:
             .github/apply-pr141-existing-files.py \
             .github/apply-pr141-gc-test.py \
             .github/apply-pr141-registration.py \
+            .github/apply-pr141-registration-fix.py \
             .github/workflows/apply-pr141-existing-files.yml
           git add -A
           git diff --cached --check
