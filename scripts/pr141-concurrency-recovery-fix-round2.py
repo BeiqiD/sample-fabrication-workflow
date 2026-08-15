@@ -22,6 +22,17 @@ def replace_between(path: str, start: str, end: str, replacement: str) -> None:
     target.write_text(text[:start_index] + replacement + text[end_index:])
 
 
+def replace_exact_count(path: str, old: str, new: str, expected: int) -> None:
+    target = Path(path)
+    text = target.read_text()
+    count = text.count(old)
+    if count != expected:
+        raise SystemExit(
+            f"{path}: expected {expected} matches, found {count}: {old[:120]!r}"
+        )
+    target.write_text(text.replace(old, new, expected))
+
+
 migration = "migrations/0028_blob_registration_and_recovery_reconciliation.sql"
 replace_between(
     migration,
@@ -124,15 +135,11 @@ END;
 """,
 )
 
-replace_once(
+replace_exact_count(
     migration,
     "WHEN NEW.import_id IS NULL\n  AND NEW.status = 'ready'\n  AND NEW.sha256 IS NOT NULL",
     "WHEN NEW.import_id IS NULL\n  AND NEW.status IN ('pending', 'ready')\n  AND NEW.sha256 IS NOT NULL",
-)
-replace_once(
-    migration,
-    "WHEN NEW.import_id IS NULL\n  AND NEW.status = 'ready'\n  AND NEW.sha256 IS NOT NULL",
-    "WHEN NEW.import_id IS NULL\n  AND NEW.status IN ('pending', 'ready')\n  AND NEW.sha256 IS NOT NULL",
+    2,
 )
 
 replace_once(
