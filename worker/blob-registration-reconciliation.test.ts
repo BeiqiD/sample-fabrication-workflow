@@ -75,6 +75,7 @@ class FaultD1Database {
     private readonly failPrimaryAssetRead = false,
     private readonly responseLossAt: "insert" | "promotion" = "promotion",
     private readonly failBeforeInsert = false,
+    private readonly failPromotionBeforeCommit = false,
   ) {}
 
   private insertionPattern() {
@@ -112,6 +113,11 @@ class FaultD1Database {
   }
 
   beforeMutation(query: string) {
+    if (this.failPromotionBeforeCommit && this.promotionPattern().test(query)) {
+      throw new Error(
+        `injected persistent ${this.insertTarget} promotion failure`,
+      );
+    }
     if (this.failBeforeInsert && this.insertionPattern().test(query)) {
       throw new Error(`injected uncommitted ${this.insertTarget} INSERT failure`);
     }
@@ -731,4 +737,171 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
+
+  it("returns 503 and preserves a tracked R2 candidate when both promotions fail before commit", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71, 111, 112, 113]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    const database = referenceTestDatabase();
+    const stored = new Map<string, Uint8Array>();
+    const remove = vi.fn(async (key: string) => {
+      stored.delete(key);
+    });
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "assets",
+        false,
+        "promotion",
+        false,
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {
+        put: vi.fn(async (key: string, value: unknown) => {
+          if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer");
+          stored.set(key, new Uint8Array(value.slice(0)));
+        }),
+        delete: remove,
+        head: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "image/png") : null;
+        }),
+        get: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "image/png") : null;
+        }),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/assets",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "image/png",
+          "x-filename": "persistent-promotion.png",
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(503);
+    expect(remove).not.toHaveBeenCalled();
+
+    const row = database.prepare(`
+      SELECT id, r2_key, status, sha256
+      FROM assets
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `).get() as {
+      id: string;
+      r2_key: string;
+      status: string;
+      sha256: string;
+    };
+    expect(row.status).toBe("pending");
+    expect(row.sha256).toBe(sha256);
+    expect(stored.get(row.r2_key)).toEqual(bytes);
+    database.close();
+  });
+
+  it("returns 503 and preserves managed bytes when both promotions fail before commit", async () => {
+    const bytes = Uint8Array.from([121, 122, 123, 124, 125]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const stored = new Map<string, Uint8Array>();
+    const deletedUrls: string[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+      if (method === "MKCOL") return new Response(null, { status: 201 });
+      if (method === "PUT") {
+        const body = await new Response(init?.body as BodyInit).arrayBuffer();
+        stored.set(url, new Uint8Array(body));
+        return new Response(null, { status: 201 });
+      }
+      if (method === "HEAD") {
+        const value = stored.get(url);
+        return value
+          ? new Response(null, {
+              status: 200,
+              headers: {
+                "content-length": String(value.byteLength),
+                "content-type": "application/octet-stream",
+                etag: '"persistent-managed-promotion"',
+              },
+            })
+          : new Response(null, { status: 404 });
+      }
+      if (method === "DELETE") {
+        deletedUrls.push(url);
+        stored.delete(url);
+        return new Response(null, { status: 204 });
+      }
+      throw new Error(`Unexpected SWITCHdrive method ${method}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "managed_storage_objects",
+        false,
+        "promotion",
+        false,
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {} as R2Bucket,
+      MANAGED_STORAGE_PROVIDER: "switchdrive",
+      SWITCHDRIVE_WEBDAV_URL:
+        "https://drive.switch.ch/remote.php/dav/files/test-user/",
+      SWITCHDRIVE_USERNAME: "test-user",
+      SWITCHDRIVE_APP_PASSWORD: "test-password",
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/octet-stream",
+          "x-upload-size": String(bytes.byteLength),
+          "x-content-sha256": sha256,
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(503);
+    expect(deletedUrls).toEqual([]);
+
+    const row = database.prepare(`
+      SELECT id, object_key, status, sha256
+      FROM managed_storage_objects
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `).get() as {
+      id: string;
+      object_key: string;
+      status: string;
+      sha256: string;
+    };
+    expect(row.status).toBe("failed");
+    expect(row.sha256).toBe(sha256);
+    expect(database.prepare(`
+      SELECT status, storage_object_id
+      FROM comment_submission_items
+      WHERE id = 'item-upload'
+    `).get()).toEqual({
+      status: "failed",
+      storage_object_id: null,
+    });
+    const objectUrl = [
+      "https://drive.switch.ch/remote.php/dav/files/test-user",
+      "sample-fabrication-workflow",
+      ...row.object_key.split("/").map(encodeURIComponent),
+    ].join("/");
+    expect(stored.get(objectUrl)).toEqual(bytes);
+    database.close();
+  });
 });

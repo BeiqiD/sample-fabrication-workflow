@@ -395,3 +395,171 @@ BEGIN
 
   SELECT RAISE(ABORT, 'project attachment intrinsic metadata is immutable');
 END;
+-- A recovery rebind can collide with an occurrence that already points to the
+-- healthy canonical asset. Physical deletion remains forbidden except for that
+-- exact redundant legacy occurrence after a durable failed-import claim. If
+-- the legacy occurrence was visible, keep the canonical occurrence visible.
+
+DROP TRIGGER run_step_assets_block_physical_delete;
+
+CREATE TRIGGER run_step_assets_block_physical_delete
+BEFORE DELETE ON run_step_assets
+WHEN NOT EXISTS (
+  SELECT 1
+  FROM assets legacy
+  JOIN imports failed_owner ON failed_owner.id = legacy.import_id
+  JOIN assets canonical
+    ON canonical.id <> legacy.id
+   AND canonical.sha256 = legacy.sha256
+   AND canonical.byte_size = legacy.byte_size
+  LEFT JOIN imports canonical_owner ON canonical_owner.id = canonical.import_id
+  JOIN run_step_assets canonical_occurrence
+    ON canonical_occurrence.run_step_id = OLD.run_step_id
+   AND canonical_occurrence.asset_id = canonical.id
+   AND canonical_occurrence.role IS OLD.role
+   AND canonical_occurrence.id <> OLD.id
+  WHERE legacy.id = OLD.asset_id
+    AND failed_owner.status = 'failed'
+    AND failed_owner.recovery_operation_id IS NOT NULL
+    AND legacy.sha256 IS NOT NULL
+    AND canonical.status = 'ready'
+    AND (
+      canonical.import_id IS NULL
+      OR canonical_owner.status = 'ready'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM blob_integrity_quarantine biq
+      WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+        AND biq.object_key = canonical.r2_key
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM blob_gc_ledger bg
+      WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+        AND bg.object_key = canonical.r2_key
+        AND bg.state IN ('deleting', 'deleted')
+    )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'run step asset occurrences cannot be physically deleted');
+END;
+
+CREATE TRIGGER run_step_assets_restore_recovery_duplicate_after_delete
+AFTER DELETE ON run_step_assets
+WHEN OLD.deleted_at IS NULL
+BEGIN
+  UPDATE run_step_assets
+  SET deleted_at = NULL, deleted_by = NULL
+  WHERE run_step_id = OLD.run_step_id
+    AND role IS OLD.role
+    AND asset_id IN (
+      SELECT canonical.id
+      FROM assets legacy
+      JOIN imports failed_owner ON failed_owner.id = legacy.import_id
+      JOIN assets canonical
+        ON canonical.id <> legacy.id
+       AND canonical.sha256 = legacy.sha256
+       AND canonical.byte_size = legacy.byte_size
+      LEFT JOIN imports canonical_owner ON canonical_owner.id = canonical.import_id
+      WHERE legacy.id = OLD.asset_id
+        AND failed_owner.status = 'failed'
+        AND failed_owner.recovery_operation_id IS NOT NULL
+        AND legacy.sha256 IS NOT NULL
+        AND canonical.status = 'ready'
+        AND (
+          canonical.import_id IS NULL
+          OR canonical_owner.status = 'ready'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_integrity_quarantine biq
+          WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+            AND biq.object_key = canonical.r2_key
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_gc_ledger bg
+          WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+            AND bg.object_key = canonical.r2_key
+            AND bg.state IN ('deleting', 'deleted')
+        )
+    );
+END;
+
+DROP TRIGGER metrology_template_references_block_physical_delete;
+
+CREATE TRIGGER metrology_template_references_block_physical_delete
+BEFORE DELETE ON metrology_template_references
+WHEN NOT EXISTS (
+  SELECT 1
+  FROM assets legacy
+  JOIN imports failed_owner ON failed_owner.id = legacy.import_id
+  JOIN assets canonical
+    ON canonical.id <> legacy.id
+   AND canonical.sha256 = legacy.sha256
+   AND canonical.byte_size = legacy.byte_size
+  LEFT JOIN imports canonical_owner ON canonical_owner.id = canonical.import_id
+  JOIN metrology_template_references canonical_occurrence
+    ON canonical_occurrence.template_version_id = OLD.template_version_id
+   AND canonical_occurrence.asset_id = canonical.id
+   AND canonical_occurrence.id <> OLD.id
+  WHERE legacy.id = OLD.asset_id
+    AND failed_owner.status = 'failed'
+    AND failed_owner.recovery_operation_id IS NOT NULL
+    AND legacy.sha256 IS NOT NULL
+    AND canonical.status = 'ready'
+    AND (
+      canonical.import_id IS NULL
+      OR canonical_owner.status = 'ready'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM blob_integrity_quarantine biq
+      WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+        AND biq.object_key = canonical.r2_key
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM blob_gc_ledger bg
+      WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+        AND bg.object_key = canonical.r2_key
+        AND bg.state IN ('deleting', 'deleted')
+    )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'metrology template references cannot be physically deleted');
+END;
+
+CREATE TRIGGER metrology_template_references_restore_recovery_duplicate_after_delete
+AFTER DELETE ON metrology_template_references
+WHEN OLD.deleted_at IS NULL
+BEGIN
+  UPDATE metrology_template_references
+  SET deleted_at = NULL, deleted_by = NULL
+  WHERE template_version_id = OLD.template_version_id
+    AND asset_id IN (
+      SELECT canonical.id
+      FROM assets legacy
+      JOIN imports failed_owner ON failed_owner.id = legacy.import_id
+      JOIN assets canonical
+        ON canonical.id <> legacy.id
+       AND canonical.sha256 = legacy.sha256
+       AND canonical.byte_size = legacy.byte_size
+      LEFT JOIN imports canonical_owner ON canonical_owner.id = canonical.import_id
+      WHERE legacy.id = OLD.asset_id
+        AND failed_owner.status = 'failed'
+        AND failed_owner.recovery_operation_id IS NOT NULL
+        AND legacy.sha256 IS NOT NULL
+        AND canonical.status = 'ready'
+        AND (
+          canonical.import_id IS NULL
+          OR canonical_owner.status = 'ready'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_integrity_quarantine biq
+          WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+            AND biq.object_key = canonical.r2_key
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_gc_ledger bg
+          WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+            AND bg.object_key = canonical.r2_key
+            AND bg.state IN ('deleting', 'deleted')
+        )
+    );
+END;

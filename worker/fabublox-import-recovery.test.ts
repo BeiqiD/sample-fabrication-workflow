@@ -265,7 +265,7 @@ describe("FabuBlox import recovery ownership", () => {
     database.close();
   });
 
-  it("reconstructs SHA and byte size from provider bytes before restoring a legacy failed asset used by ready B", async () => {
+  it("reconstructs SHA only when provider bytes preserve the retained expected size", async () => {
     const database = legacyDatabase();
     const bytes = Uint8Array.from([137, 80, 78, 71, 11, 12, 13]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
@@ -274,7 +274,7 @@ describe("FabuBlox import recovery ownership", () => {
       importBStatus: "ready",
       assetStatus: "failed",
       assetSha256: null,
-      assetByteSize: 999,
+      assetByteSize: bytes.byteLength,
     });
     finishRecoveryMigrations(database);
     const stored = new Map([["imports/a/shared.png", bytes]]);
@@ -651,4 +651,414 @@ describe("FabuBlox import recovery ownership", () => {
     database.close();
   });
 
+
+  it("quarantines reconstructed bytes that violate the retained expected size", async () => {
+    const database = legacyDatabase();
+    const bytes = Uint8Array.from([137, 80, 78, 71, 21, 22, 23]);
+    seedSharedImportState(database, {
+      importAStatus: "failed",
+      importBStatus: "ready",
+      assetStatus: "failed",
+      assetSha256: null,
+      assetByteSize: 999,
+    });
+    finishRecoveryMigrations(database);
+    const stored = new Map([["imports/a/shared.png", bytes]]);
+    const { env, get, head } = recoveryEnv(database, stored);
+
+    const result = await reapStaleFabubloxImports(env, NOW);
+    expect(result).toEqual({
+      staleImportsFailed: 1,
+      staleImportAssetsReleased: 1,
+      staleImportObjectsQueued: 0,
+      staleImportRecoveryFailures: 0,
+    });
+    expect(get).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(head).not.toHaveBeenCalled();
+    expect(database.prepare(`
+      SELECT import_id, status, sha256, byte_size
+      FROM assets WHERE id = 'shared-asset'
+    `).get()).toEqual({
+      import_id: null,
+      status: "failed",
+      sha256: null,
+      byte_size: 999,
+    });
+    expect(database.prepare(`
+      SELECT reason, expected_byte_size, observed_byte_size
+      FROM blob_integrity_quarantine
+      WHERE object_key = 'imports/a/shared.png'
+    `).get()).toEqual({
+      reason: "size_mismatch",
+      expected_byte_size: 999,
+      observed_byte_size: bytes.byteLength,
+    });
+
+    const callsBeforeLive = get.mock.calls.length;
+    expect((await worker.fetch(new Request(
+      "https://app.test/api/assets/imports/a/shared.png",
+    ), env, executionContext)).status).toBe(404);
+    expect(get).toHaveBeenCalledTimes(callsBeforeLive);
+    database.close();
+  });
+
+  it("rebinds ready consumers to a healthy canonical winner when the legacy locator is missing", async () => {
+    const database = legacyDatabase();
+    const bytes = Uint8Array.from([137, 80, 78, 71, 31, 32, 33, 34]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    seedSharedImportState(database, {
+      importAStatus: "failed",
+      importBStatus: "ready",
+      assetStatus: "failed",
+      assetSha256: sha256,
+      assetByteSize: bytes.byteLength,
+    });
+    database.exec(`
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES (
+        'canonical-winner', 'ready/canonical-shared.png', 'canonical.png',
+        'image/png', ${bytes.byteLength}, 'ready', '${sha256}',
+        '2026-06-01T00:00:00.000Z'
+      );
+    `);
+    finishRecoveryMigrations(database);
+    const stored = new Map([["ready/canonical-shared.png", bytes]]);
+    const { env, head } = recoveryEnv(database, stored);
+
+    const result = await reapStaleFabubloxImports(env, NOW);
+    expect(result).toEqual({
+      staleImportsFailed: 1,
+      staleImportAssetsReleased: 1,
+      staleImportObjectsQueued: 1,
+      staleImportRecoveryFailures: 0,
+    });
+    expect(head).toHaveBeenCalledWith("ready/canonical-shared.png");
+    expect(head).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(database.prepare(`
+      SELECT asset_id FROM state_representation_assets
+      WHERE state_hash = 'shared-state'
+    `).all()).toEqual([{ asset_id: "canonical-winner" }]);
+    expect(database.prepare(`
+      SELECT reason FROM blob_integrity_quarantine
+      WHERE object_key = 'imports/a/shared.png'
+    `).get()).toEqual({ reason: "missing" });
+    expect(database.prepare(`
+      SELECT import_id, status, sha256 FROM assets WHERE id = 'shared-asset'
+    `).get()).toEqual({
+      import_id: "import-a",
+      status: "failed",
+      sha256: null,
+    });
+    expect(database.prepare(`
+      SELECT state FROM blob_gc_ledger
+      WHERE object_key = 'imports/a/shared.png'
+    `).get()).toEqual({ state: "orphaned" });
+
+    expect((await worker.fetch(new Request(
+      "https://app.test/api/templates/template-b",
+    ), env, executionContext)).status).toBe(200);
+    const live = await worker.fetch(new Request(
+      "https://app.test/api/assets/ready/canonical-shared.png",
+    ), env, executionContext);
+    expect(live.status).toBe(200);
+    expect(new Uint8Array(await live.arrayBuffer())).toEqual(bytes);
+    expect((await worker.fetch(new Request(
+      "https://app.test/api/assets/imports/a/shared.png",
+    ), env, executionContext)).status).toBe(404);
+    database.close();
+  });
+
+  it("rebinds a quarantined locator and removes only redundant canonical occurrences", async () => {
+    const database = legacyDatabase();
+    const bytes = Uint8Array.from([137, 80, 78, 71, 41, 42, 43, 44]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    seedSharedImportState(database, {
+      importAStatus: "failed",
+      importBStatus: "pending",
+      assetStatus: "failed",
+      assetSha256: sha256,
+      assetByteSize: bytes.byteLength,
+    });
+    database.exec(`
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES (
+        'canonical-winner', 'ready/canonical-shared.png', 'canonical.png',
+        'image/png', ${bytes.byteLength}, 'ready', '${sha256}',
+        '2026-06-01T00:00:00.000Z'
+      );
+
+      UPDATE template_versions
+      SET source_asset_key = 'imports/a/shared.png'
+      WHERE id = 'template-b';
+
+      UPDATE imports
+      SET workbook_asset_key = 'imports/a/shared.png',
+          manifest_asset_key = 'imports/a/shared.png'
+      WHERE id = 'import-b';
+
+      INSERT INTO state_representation_assets (state_hash, asset_id, position)
+      VALUES ('shared-state', 'canonical-winner', 1);
+
+      INSERT INTO metrology_template_references (
+        id, template_version_id, asset_id, display_name, position, created_at
+      ) VALUES (
+        'reference-legacy', 'template-b', 'shared-asset', 'legacy.png', 0,
+        '2026-07-01T00:02:00.000Z'
+      );
+
+      INSERT INTO metrology_template_references (
+        id, template_version_id, asset_id, display_name, position, created_at,
+        deleted_at, deleted_by
+      ) VALUES (
+        'reference-canonical', 'template-b', 'canonical-winner',
+        'canonical.png', 1, '2026-07-01T00:03:00.000Z',
+        '2026-07-02T00:00:00.000Z', 'legacy-cleanup@example.com'
+      );
+
+      INSERT INTO samples (
+        id, code, title, status, created_at, updated_at
+      ) VALUES (
+        'recovery-sample', 'RECOVERY', 'Recovery sample', 'stored',
+        '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO runs (
+        id, sample_id, recipe_family_id, template_version_id, sequence_no,
+        run_group_id, template_name_snapshot, template_type_snapshot,
+        template_version_snapshot, status, created_at
+      ) VALUES (
+        'recovery-run', 'recovery-sample', 'family-b', 'template-b', 1,
+        'recovery-group', 'Template B', 'process', 1, 'complete',
+        '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO run_steps (
+        id, run_id, position, title, status, created_at, updated_at
+      ) VALUES (
+        'recovery-step', 'recovery-run', 1000, 'Recovery step', 'done',
+        '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO run_step_assets (
+        id, run_step_id, asset_id, role, position, created_at
+      ) VALUES (
+        'run-asset-legacy', 'recovery-step', 'shared-asset', 'execution', 0,
+        '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO run_step_assets (
+        id, run_step_id, asset_id, role, position, created_at,
+        deleted_at, deleted_by
+      ) VALUES (
+        'run-asset-canonical', 'recovery-step', 'canonical-winner',
+        'execution', 1, '2026-07-01T00:01:00.000Z',
+        '2026-07-02T00:00:00.000Z', 'legacy-cleanup@example.com'
+      );
+
+      INSERT INTO blob_integrity_quarantine (
+        store_kind, provider, object_key, blob_record_id, reason,
+        expected_byte_size, observed_byte_size, operation_id,
+        detected_at, last_checked_at
+      ) VALUES (
+        'r2', 'r2', 'imports/a/shared.png', 'shared-asset', 'missing',
+        ${bytes.byteLength}, NULL, 'legacy-quarantine',
+        '2026-07-02T00:00:00.000Z', '2026-07-02T00:00:00.000Z'
+      );
+    `);
+    finishRecoveryMigrations(database);
+    const stored = new Map([["ready/canonical-shared.png", bytes]]);
+    const { env, head, get } = recoveryEnv(database, stored);
+
+    const result = await reapStaleFabubloxImports(env, NOW);
+    expect(result).toEqual({
+      staleImportsFailed: 1,
+      staleImportAssetsReleased: 1,
+      staleImportObjectsQueued: 1,
+      staleImportRecoveryFailures: 0,
+    });
+    expect(head).toHaveBeenCalledWith("ready/canonical-shared.png");
+    expect(head).not.toHaveBeenCalledWith("imports/a/shared.png");
+    expect(get).not.toHaveBeenCalled();
+
+    expect(database.prepare(`
+      SELECT asset_id FROM state_representation_assets
+      WHERE state_hash = 'shared-state'
+    `).all()).toEqual([{ asset_id: "canonical-winner" }]);
+    expect(database.prepare(`
+      SELECT id, asset_id, deleted_at
+      FROM run_step_assets
+      WHERE run_step_id = 'recovery-step'
+    `).all()).toEqual([{
+      id: "run-asset-canonical",
+      asset_id: "canonical-winner",
+      deleted_at: null,
+    }]);
+    expect(database.prepare(`
+      SELECT id, asset_id, deleted_at
+      FROM metrology_template_references
+      WHERE template_version_id = 'template-b'
+    `).all()).toEqual([{
+      id: "reference-canonical",
+      asset_id: "canonical-winner",
+      deleted_at: null,
+    }]);
+    expect(database.prepare(`
+      SELECT workbook_asset_key, manifest_asset_key
+      FROM imports WHERE id = 'import-b'
+    `).get()).toEqual({
+      workbook_asset_key: "ready/canonical-shared.png",
+      manifest_asset_key: "ready/canonical-shared.png",
+    });
+    expect(database.prepare(`
+      SELECT source_asset_key FROM template_versions WHERE id = 'template-b'
+    `).get()).toEqual({
+      source_asset_key: "ready/canonical-shared.png",
+    });
+
+    database.prepare(`
+      UPDATE imports
+      SET status = 'ready',
+          finalization_id = 'finalization-b-recovered',
+          completed_at = '2026-08-20T00:30:00.000Z',
+          lease_expires_at = NULL
+      WHERE id = 'import-b'
+    `).run();
+    expect(database.prepare(`
+      SELECT status, finalization_id FROM imports WHERE id = 'import-b'
+    `).get()).toEqual({
+      status: "ready",
+      finalization_id: "finalization-b-recovered",
+    });
+    expect((await worker.fetch(new Request(
+      "https://app.test/api/templates/template-b",
+    ), env, executionContext)).status).toBe(200);
+
+    const retry = await reapStaleFabubloxImports(
+      env,
+      new Date("2026-08-20T01:00:00.000Z"),
+    );
+    expect(retry).toEqual({
+      staleImportsFailed: 0,
+      staleImportAssetsReleased: 0,
+      staleImportObjectsQueued: 0,
+      staleImportRecoveryFailures: 0,
+    });
+    database.close();
+  });
+
+  it("rejects publication when the staged template identity is null or unresolved", () => {
+    const database = legacyDatabase();
+    finishRecoveryMigrations(database);
+    database.exec(`
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES
+        ('publication-workbook', 'publication/workbook.xlsx', 'workbook.xlsx',
+         'application/octet-stream', 4, 'ready', '${"7".repeat(64)}',
+         '2026-08-20T00:00:00.000Z'),
+        ('publication-manifest', 'publication/manifest.json', 'manifest.json',
+         'application/json', 4, 'ready', '${"8".repeat(64)}',
+         '2026-08-20T00:00:00.000Z');
+
+      INSERT INTO imports (
+        id, status, source_filename, source_sha256, sheet_name, template_type,
+        template_version_id, created_at, operation_id, lease_expires_at
+      ) VALUES
+        ('publication-null-template', 'pending', 'null.xlsx',
+         '${"9".repeat(64)}', 'Sheet1', 'process', NULL,
+         '2026-08-20T00:00:00.000Z', 'operation-null-template',
+         '2026-08-21T00:00:00.000Z'),
+        ('publication-missing-template', 'pending', 'missing.xlsx',
+         '${"a".repeat(64)}', 'Sheet1', 'process', 'missing-template',
+         '2026-08-20T00:00:00.000Z', 'operation-missing-template',
+         '2026-08-21T00:00:00.000Z');
+    `);
+
+    for (const [id, finalizationId] of [
+      ["publication-null-template", "finalization-null-template"],
+      ["publication-missing-template", "finalization-missing-template"],
+    ]) {
+      expect(() => database.prepare(`
+        UPDATE imports
+        SET status = 'ready',
+            workbook_asset_key = 'publication/workbook.xlsx',
+            manifest_asset_key = 'publication/manifest.json',
+            finalization_id = ?,
+            completed_at = '2026-08-20T00:30:00.000Z',
+            lease_expires_at = NULL
+        WHERE id = ?
+      `).run(finalizationId, id)).toThrow(/import assets are not publishable/);
+    }
+    database.close();
+  });
+
+  it("retains a missing template source identity in the dependency graph and blocks publication", () => {
+    const database = legacyDatabase();
+    finishRecoveryMigrations(database);
+    database.exec(`
+      INSERT INTO recipe_families (id, name, template_type, created_at)
+      VALUES (
+        'publication-family', 'Publication family', 'process',
+        '2026-08-20T00:00:00.000Z'
+      );
+
+      INSERT INTO template_versions (
+        id, recipe_family_id, name, template_type, version, manifest_hash,
+        source_asset_key, content_json, created_at, template_kind
+      ) VALUES (
+        'publication-template', 'publication-family', 'Publication template',
+        'process', 1, 'publication-manifest',
+        'publication/missing-source.xlsx', '{}',
+        '2026-08-20T00:00:00.000Z', 'process'
+      );
+
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES
+        ('source-workbook', 'publication/source-workbook.xlsx', 'workbook.xlsx',
+         'application/octet-stream', 4, 'ready', '${"b".repeat(64)}',
+         '2026-08-20T00:00:00.000Z'),
+        ('source-manifest', 'publication/source-manifest.json', 'manifest.json',
+         'application/json', 4, 'ready', '${"c".repeat(64)}',
+         '2026-08-20T00:00:00.000Z');
+
+      INSERT INTO imports (
+        id, status, source_filename, source_sha256, sheet_name, template_type,
+        recipe_family_id, template_version_id, created_at, operation_id,
+        lease_expires_at
+      ) VALUES (
+        'publication-missing-source', 'pending', 'source.xlsx',
+        '${"d".repeat(64)}', 'Sheet1', 'process', 'publication-family',
+        'publication-template', '2026-08-20T00:00:00.000Z',
+        'operation-missing-source', '2026-08-21T00:00:00.000Z'
+      );
+    `);
+
+    expect(database.prepare(`
+      SELECT dependency_type, asset_id
+      FROM fabublox_import_asset_dependencies
+      WHERE import_id = 'publication-missing-source'
+        AND dependency_type = 'template_source'
+    `).get()).toEqual({
+      dependency_type: "template_source",
+      asset_id: null,
+    });
+    expect(() => database.prepare(`
+      UPDATE imports
+      SET status = 'ready',
+          workbook_asset_key = 'publication/source-workbook.xlsx',
+          manifest_asset_key = 'publication/source-manifest.json',
+          finalization_id = 'finalization-missing-source',
+          completed_at = '2026-08-20T00:30:00.000Z',
+          lease_expires_at = NULL
+      WHERE id = 'publication-missing-source'
+    `).run()).toThrow(/import assets are not publishable/);
+    database.close();
+  });
 });

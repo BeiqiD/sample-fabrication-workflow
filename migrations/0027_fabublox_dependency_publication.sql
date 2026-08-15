@@ -52,10 +52,9 @@ SELECT
   tv.id
 FROM imports i
 JOIN template_versions tv ON tv.id = i.template_version_id
-JOIN assets a ON a.r2_key = tv.source_asset_key
+LEFT JOIN assets a ON a.r2_key = tv.source_asset_key
 WHERE i.template_version_id IS NOT NULL
-  AND tv.source_asset_key IS NOT NULL
-  AND tv.source_asset_key <> '';
+  AND NULLIF(TRIM(tv.source_asset_key), '') IS NOT NULL;
 
 CREATE VIEW fabublox_import_asset_dependencies_provenance AS
 SELECT
@@ -106,7 +105,8 @@ SELECT DISTINCT
   i.created_at AS import_created_at
 FROM fabublox_import_asset_dependencies dependency
 JOIN imports i ON i.id = dependency.import_id
-WHERE i.status IN ('pending', 'failed')
+WHERE dependency.asset_id IS NOT NULL
+  AND i.status IN ('pending', 'failed')
   AND i.finalization_id IS NULL
   AND (i.status = 'pending' OR i.recovery_operation_id IS NULL);
 
@@ -116,6 +116,16 @@ CREATE TRIGGER imports_require_publishable_assets
 BEFORE UPDATE OF status ON imports
 WHEN OLD.status = 'pending' AND NEW.status = 'ready'
 BEGIN
+  -- Publication must resolve the staged template identity before validating
+  -- any asset edge. imports.template_version_id is intentionally nullable and
+  -- has no foreign key in the legacy schema.
+  SELECT RAISE(ABORT, 'import assets are not publishable')
+  WHERE NEW.template_version_id IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM template_versions tv
+      WHERE tv.id = NEW.template_version_id
+    );
+
   -- The final UPDATE supplies workbook/manifest keys through NEW, so validate
   -- them explicitly; a view over imports still observes the OLD pending row.
   SELECT RAISE(ABORT, 'import assets are not publishable')
@@ -194,10 +204,11 @@ BEGIN
   WHERE EXISTS (
     SELECT 1
     FROM fabublox_import_asset_dependencies dependency
-    JOIN assets a ON a.id = dependency.asset_id
+    LEFT JOIN assets a ON a.id = dependency.asset_id
     WHERE dependency.import_id = NEW.id
       AND (
-        a.sha256 IS NULL
+        a.id IS NULL
+        OR a.sha256 IS NULL
         OR NOT (
           (a.import_id = NEW.id AND a.status IN ('pending', 'ready'))
           OR (

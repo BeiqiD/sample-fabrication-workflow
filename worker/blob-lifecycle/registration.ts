@@ -347,11 +347,15 @@ export async function registerR2Asset(
       }
     }
     if (attempt === 1) {
-      throw promotionError
-        ?? new Error("R2 registration could not be promoted to ready");
+      throw authorityUnavailable(
+        promotionError
+          ?? new Error("R2 registration could not be promoted to ready"),
+      );
     }
   }
-  throw promotionError ?? new Error("R2 registration could not be reconciled");
+  throw authorityUnavailable(
+    promotionError ?? new Error("R2 registration could not be reconciled"),
+  );
 }
 
 export interface RegisterManagedObjectInput {
@@ -535,9 +539,13 @@ export async function registerManagedObject(
       return { object: winner, deduplicated: true };
     }
     if (attempt === 1) {
-      throw promotionError
-        ?? new Error("Managed registration could not be promoted to ready");
+      throw authorityUnavailable(
+        promotionError
+          ?? new Error("Managed registration could not be promoted to ready"),
+      );
     }
   }
-  throw promotionError ?? new Error("Managed registration could not be reconciled");
+  throw authorityUnavailable(
+    promotionError ?? new Error("Managed registration could not be reconciled"),
+  );
 }

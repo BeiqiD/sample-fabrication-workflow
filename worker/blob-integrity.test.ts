@@ -112,14 +112,31 @@ describe("provider-verified blob reuse", () => {
 
   it("keeps a pending asset staged while its FabuBlox import is pending", async () => {
     const database = referenceTestDatabase();
+    database.exec(`
+      INSERT INTO recipe_families (id, name, template_type, created_at)
+      VALUES (
+        'family-pending-reuse', 'Pending reuse', 'process',
+        '2026-08-15T16:00:00.000Z'
+      );
+
+      INSERT INTO template_versions (
+        id, recipe_family_id, name, template_type, version,
+        manifest_hash, content_json, created_at, template_kind
+      ) VALUES (
+        'template-pending-reuse', 'family-pending-reuse',
+        'Pending reuse', 'process', 1, 'manifest-pending-reuse', '{}',
+        '2026-08-15T16:00:00.000Z', 'process'
+      );
+    `);
     database.prepare(`
       INSERT INTO imports (
         id, status, source_filename, source_sha256, sheet_name,
-        template_type, warning_count, workbook_asset_key,
-        manifest_asset_key, created_at
+        template_type, recipe_family_id, template_version_id,
+        warning_count, workbook_asset_key, manifest_asset_key, created_at
       ) VALUES (
         'import-pending-reuse', 'pending', 'pending.xlsx', ?, 'Process',
-        'process', 0, 'imports/pending/source.xlsx',
+        'process', 'family-pending-reuse', 'template-pending-reuse',
+        0, 'imports/pending/source.xlsx',
         'imports/pending/source.xlsx', ?
       )
     `).run(SHA, NOW);

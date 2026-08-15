@@ -53,6 +53,8 @@ function unavailable(
   row: RecoveryAssetRow,
   reason: "missing" | "size_mismatch" | null,
   observedByteSize: number | null,
+  canonical: ReusableR2Asset | null = null,
+  expectedByteSize = Number(row.byte_size),
 ): FabubloxRecoveryAssetInspection {
   return {
     id: row.id,
@@ -61,10 +63,10 @@ function unavailable(
     sha256: null,
     byteSize: Number(row.byte_size),
     quarantineReason: reason,
-    expectedByteSize: Number(row.byte_size),
+    expectedByteSize,
     observedByteSize,
-    canonicalAssetId: null,
-    canonicalObjectKey: null,
+    canonicalAssetId: canonical?.id ?? null,
+    canonicalObjectKey: canonical?.r2_key ?? null,
   };
 }
 
@@ -141,27 +143,30 @@ export async function inspectFabubloxRecoveryAssets(
 
   const inspections: FabubloxRecoveryAssetInspection[] = [];
   for (const row of rows.results) {
+    const expectedByteSize = Number(row.byte_size);
+    const trustedCanonical = row.sha256 === null
+      ? null
+      : await canonicalWinner(
+          env,
+          row.r2_key,
+          row.sha256,
+          expectedByteSize,
+        );
+
     if (row.quarantine_reason) {
-      inspections.push({
-        id: row.id,
-        objectKey: row.r2_key,
-        available: false,
-        sha256: null,
-        byteSize: Number(row.byte_size),
-        quarantineReason: row.quarantine_reason,
-        expectedByteSize: Number(
-          row.quarantine_expected_byte_size ?? row.byte_size,
-        ),
-        observedByteSize: row.quarantine_observed_byte_size === null
+      inspections.push(unavailable(
+        row,
+        row.quarantine_reason,
+        row.quarantine_observed_byte_size === null
           ? null
           : Number(row.quarantine_observed_byte_size),
-        canonicalAssetId: null,
-        canonicalObjectKey: null,
-      });
+        trustedCanonical,
+        Number(row.quarantine_expected_byte_size ?? row.byte_size),
+      ));
       continue;
     }
     if (row.gc_state === "deleting" || row.gc_state === "deleted") {
-      inspections.push(unavailable(row, null, null));
+      inspections.push(unavailable(row, null, null, trustedCanonical));
       continue;
     }
 
@@ -175,17 +180,25 @@ export async function inspectFabubloxRecoveryAssets(
         continue;
       }
       const bytes = await new Response(read.body).arrayBuffer();
+      if (bytes.byteLength !== expectedByteSize) {
+        inspections.push(unavailable(
+          row,
+          "size_mismatch",
+          bytes.byteLength,
+        ));
+        continue;
+      }
       const sha256 = await sha256Hex(bytes);
       const canonical = await canonicalWinner(
         env,
         row.r2_key,
         sha256,
-        bytes.byteLength,
+        expectedByteSize,
       );
       inspections.push(availableInspection(
         row,
         sha256,
-        bytes.byteLength,
+        expectedByteSize,
         canonical,
       ));
       continue;
@@ -196,7 +209,7 @@ export async function inspectFabubloxRecoveryAssets(
       throw new FabubloxRecoveryProviderUnavailableError(row.r2_key, stat.message);
     }
     if (stat.outcome === "missing") {
-      inspections.push(unavailable(row, "missing", null));
+      inspections.push(unavailable(row, "missing", null, trustedCanonical));
       continue;
     }
     if (stat.byteSize === null) {
@@ -205,21 +218,20 @@ export async function inspectFabubloxRecoveryAssets(
         "R2 did not return a stable byte size",
       );
     }
-    if (stat.byteSize !== Number(row.byte_size)) {
-      inspections.push(unavailable(row, "size_mismatch", stat.byteSize));
+    if (stat.byteSize !== expectedByteSize) {
+      inspections.push(unavailable(
+        row,
+        "size_mismatch",
+        stat.byteSize,
+        trustedCanonical,
+      ));
       continue;
     }
-    const canonical = await canonicalWinner(
-      env,
-      row.r2_key,
-      row.sha256,
-      Number(row.byte_size),
-    );
     inspections.push(availableInspection(
       row,
       row.sha256,
-      Number(row.byte_size),
-      canonical,
+      expectedByteSize,
+      trustedCanonical,
     ));
   }
   return inspections;
