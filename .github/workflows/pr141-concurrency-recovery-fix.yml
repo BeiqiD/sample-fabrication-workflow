@@ -30,11 +30,18 @@ jobs:
           git merge-base --is-ancestor a5aebfab945425447ff4f52b4c52a5dbaa60fc8b HEAD
           test -f scripts/pr141-concurrency-recovery-fix.py
           python scripts/pr141-concurrency-recovery-fix.py
-          if test -f scripts/pr141-concurrency-recovery-fix-round2.py; then
-            python scripts/pr141-concurrency-recovery-fix-round2.py
-          fi
+          for script in \
+            scripts/pr141-concurrency-recovery-fix-round2.py \
+            scripts/pr141-concurrency-recovery-fix-round3.py
+          do
+            if test -f "$script"; then
+              python "$script"
+            fi
+          done
           rm scripts/pr141-concurrency-recovery-fix.py
-          rm -f scripts/pr141-concurrency-recovery-fix-round2.py
+          rm -f \
+            scripts/pr141-concurrency-recovery-fix-round2.py \
+            scripts/pr141-concurrency-recovery-fix-round3.py
           rm .github/workflows/pr141-concurrency-recovery-fix.yml
           git diff --check
       - name: Install dependencies
