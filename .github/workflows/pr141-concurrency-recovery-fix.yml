@@ -27,10 +27,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "1d2e6ceca027fb4f659e96c802a2aad3125f3f75"
-          test "$(git rev-parse HEAD~2)" = "a5aebfab945425447ff4f52b4c52a5dbaa60fc8b"
+          git merge-base --is-ancestor a5aebfab945425447ff4f52b4c52a5dbaa60fc8b HEAD
+          test -f scripts/pr141-concurrency-recovery-fix.py
           python scripts/pr141-concurrency-recovery-fix.py
+          if test -f scripts/pr141-concurrency-recovery-fix-round2.py; then
+            python scripts/pr141-concurrency-recovery-fix-round2.py
+          fi
           rm scripts/pr141-concurrency-recovery-fix.py
+          rm -f scripts/pr141-concurrency-recovery-fix-round2.py
           rm .github/workflows/pr141-concurrency-recovery-fix.yml
           git diff --check
       - name: Install dependencies
