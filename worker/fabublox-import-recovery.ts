@@ -1,3 +1,4 @@
+import { inspectFabubloxRecoveryAssets } from "./fabublox-recovery-assets";
 import type { Env } from "./types";
 
 export const FABUBLOX_IMPORT_LEASE_MS = 24 * 60 * 60 * 1_000;
@@ -37,6 +38,17 @@ export async function readFabubloxImportState(
   `).bind(importId).first<FabubloxImportState>();
 }
 
+function emptyCleanupResult() {
+  return {
+    importsFailed: 0,
+    relationshipsRemoved: 0,
+    templateStepsRemoved: 0,
+    templatesQuarantined: 0,
+    assetsReleased: 0,
+    objectsQueued: 0,
+  };
+}
+
 export async function queueFabubloxImportCleanup(
   env: Env,
   input: {
@@ -54,6 +66,27 @@ export async function queueFabubloxImportCleanup(
     ? input.error.message
     : String(input.error)).slice(0, 1_000);
   const db = primaryD1(env.DB);
+
+  // Provider verification happens before the durable recovery claim. A
+  // transient R2 failure therefore leaves the import retryable instead of
+  // committing half of the cleanup. Every asset is checked because a later
+  // statement may transfer private ownership or make the locator public.
+  const current = await readFabubloxImportState(db, input.importId);
+  if (!current
+    || current.operation_id !== input.operationId
+    || current.finalization_id !== null
+    || !["pending", "failed"].includes(current.status)
+    || (current.recovery_operation_id !== null
+      && current.recovery_operation_id !== recoveryOperationId)) {
+    return emptyCleanupResult();
+  }
+  const inspections = await inspectFabubloxRecoveryAssets(
+    env,
+    db,
+    input.importId,
+  );
+  const inspectionPayload = JSON.stringify(inspections);
+
   const results = await db.batch([
     // Claim the exact unfinished operation. This also resumes legacy failed
     // rows that predate durable recovery identity. Every later statement is
@@ -213,69 +246,262 @@ export async function queueFabubloxImportCleanup(
           AND recovery_operation_id = ?
       )
     `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
-    // A prior interrupted cleanup may already have marked a now-reachable
-    // locator orphaned. Release only the unclaimed ledger state before
-    // re-homing; deleting/deleted claims remain terminal and cannot be revived.
-    db.prepare(`
-      DELETE FROM blob_gc_ledger
-      WHERE store_kind = 'r2' AND provider = 'r2' AND state = 'orphaned'
-        AND object_key IN (
-          SELECT a.r2_key
-          FROM assets a
-          WHERE a.import_id = ? AND a.status IN ('pending', 'ready')
-            AND EXISTS (
-              SELECT 1 FROM imports i
-              WHERE i.id = ? AND i.status = 'failed'
-                AND i.recovery_operation_id = ?
-            )
-            AND EXISTS (
-              SELECT 1 FROM blob_retention_edges bre
-              WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
-                AND bre.object_key = a.r2_key
-            )
-        )
-    `).bind(input.importId, input.importId, recoveryOperationId),
-    // The asset row may have originated in this import and later become the
-    // canonical winner for another source. Once import-owned provenance and
-    // exclusive state edges are gone, the shared retention view is the sole
-    // authority: any still-reachable asset becomes a ready standalone winner
-    // before the failed import can release it. This also publishes a legacy
-    // pending asset that already has an independent durable occurrence.
+    // Restore provider-backed metadata before any availability transition.
+    // Legacy failed rows may have lost both SHA and the authoritative byte
+    // count; R2 bytes inspected before the claim are the repair source.
     db.prepare(`
       UPDATE assets
-      SET import_id = NULL, status = 'ready'
-      WHERE import_id = ? AND status IN ('pending', 'ready')
+      SET sha256 = (
+            SELECT json_extract(entry.value, '$.sha256')
+            FROM json_each(?) entry
+            WHERE json_extract(entry.value, '$.id') = assets.id
+          ),
+          byte_size = CAST((
+            SELECT json_extract(entry.value, '$.byteSize')
+            FROM json_each(?) entry
+            WHERE json_extract(entry.value, '$.id') = assets.id
+          ) AS INTEGER)
+      WHERE import_id = ?
         AND EXISTS (
           SELECT 1 FROM imports i
           WHERE i.id = ? AND i.status = 'failed'
             AND i.recovery_operation_id = ?
         )
         AND EXISTS (
-          SELECT 1 FROM blob_retention_edges bre
-          WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
-            AND bre.object_key = assets.r2_key
+          SELECT 1 FROM json_each(?) entry
+          WHERE json_extract(entry.value, '$.id') = assets.id
+            AND json_extract(entry.value, '$.available') = 1
         )
-    `).bind(input.importId, input.importId, recoveryOperationId),
-    // Only assets that are unreachable under the shared authoritative surface
-    // may release their hash and transition to failed.
+    `).bind(
+      inspectionPayload,
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+      inspectionPayload,
+    ),
+    // Missing and size-mismatched provider objects stay auditable/exportable
+    // but can never be promoted merely because metadata relationships survive.
+    db.prepare(`
+      INSERT INTO blob_integrity_quarantine (
+        store_kind, provider, object_key, blob_record_id, reason,
+        expected_byte_size, observed_byte_size, operation_id,
+        detected_at, last_checked_at
+      )
+      SELECT 'r2', 'r2', a.r2_key, a.id,
+             json_extract(entry.value, '$.quarantineReason'),
+             CAST(json_extract(entry.value, '$.expectedByteSize') AS INTEGER),
+             CAST(json_extract(entry.value, '$.observedByteSize') AS INTEGER),
+             ?, ?, ?
+      FROM json_each(?) entry
+      JOIN assets a ON a.id = json_extract(entry.value, '$.id')
+      WHERE a.import_id = ?
+        AND json_extract(entry.value, '$.quarantineReason') IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+      ON CONFLICT(store_kind, provider, object_key) DO UPDATE SET
+        blob_record_id = COALESCE(blob_integrity_quarantine.blob_record_id, excluded.blob_record_id),
+        last_checked_at = excluded.last_checked_at
+    `).bind(
+      recoveryOperationId,
+      timestamp,
+      timestamp,
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    // Only an independently public consumer may make the asset a standalone
+    // ready winner. Generic blob retention is deliberately not sufficient.
     db.prepare(`
       UPDATE assets
-      SET status = 'failed', sha256 = NULL
-      WHERE import_id = ? AND status IN ('pending', 'ready')
+      SET import_id = NULL, status = 'ready'
+      WHERE import_id = ?
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM json_each(?) entry
+          WHERE json_extract(entry.value, '$.id') = assets.id
+            AND json_extract(entry.value, '$.available') = 1
+        )
+        AND EXISTS (
+          SELECT 1 FROM fabublox_recovery_public_asset_edges public_edge
+          WHERE public_edge.asset_id = assets.id
+        )
+    `).bind(
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+      inspectionPayload,
+    ),
+    // A public relationship whose provider object is missing remains a failed,
+    // quarantined standalone record. It stays in export and blocks live reads.
+    db.prepare(`
+      UPDATE assets
+      SET import_id = NULL, status = 'failed', sha256 = NULL
+      WHERE import_id = ?
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM json_each(?) entry
+          WHERE json_extract(entry.value, '$.id') = assets.id
+            AND json_extract(entry.value, '$.available') = 0
+        )
+        AND EXISTS (
+          SELECT 1 FROM fabublox_recovery_public_asset_edges public_edge
+          WHERE public_edge.asset_id = assets.id
+        )
+    `).bind(
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+      inspectionPayload,
+    ),
+    // Private FabuBlox consumers inherit ownership instead of causing early
+    // publication. Pending imports have priority, followed by an unresolved
+    // legacy failed import. A provider-unavailable inherited asset remains
+    // failed, and the SQL finalization guard prevents that owner from becoming
+    // ready until the asset is repaired.
+    db.prepare(`
+      WITH ranked_successors AS (
+        SELECT edge.asset_id, edge.import_id, edge.import_status,
+               ROW_NUMBER() OVER (
+                 PARTITION BY edge.asset_id
+                 ORDER BY CASE edge.import_status WHEN 'pending' THEN 0 ELSE 1 END,
+                          edge.import_created_at, edge.import_id
+               ) AS successor_rank
+        FROM fabublox_recovery_import_asset_edges edge
+        WHERE edge.import_id <> ?
+      ),
+      selected_successors AS (
+        SELECT asset_id, import_id, import_status
+        FROM ranked_successors
+        WHERE successor_rank = 1
+      ),
+      preflight AS (
+        SELECT json_extract(entry.value, '$.id') AS asset_id,
+               json_extract(entry.value, '$.available') AS available
+        FROM json_each(?) entry
+      )
+      UPDATE assets
+      SET import_id = (
+            SELECT successor.import_id
+            FROM selected_successors successor
+            WHERE successor.asset_id = assets.id
+          ),
+          status = CASE
+            WHEN COALESCE((
+              SELECT preflight.available FROM preflight
+              WHERE preflight.asset_id = assets.id
+            ), 0) = 1
+              AND (
+                SELECT successor.import_status
+                FROM selected_successors successor
+                WHERE successor.asset_id = assets.id
+              ) = 'pending'
+            THEN 'pending'
+            ELSE 'failed'
+          END,
+          sha256 = CASE
+            WHEN COALESCE((
+              SELECT preflight.available FROM preflight
+              WHERE preflight.asset_id = assets.id
+            ), 0) = 1
+              AND (
+                SELECT successor.import_status
+                FROM selected_successors successor
+                WHERE successor.asset_id = assets.id
+              ) = 'pending'
+            THEN sha256
+            ELSE NULL
+          END
+      WHERE import_id = ?
         AND EXISTS (
           SELECT 1 FROM imports i
           WHERE i.id = ? AND i.status = 'failed'
             AND i.recovery_operation_id = ?
         )
         AND NOT EXISTS (
-          SELECT 1 FROM blob_retention_edges bre
-          WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
-            AND bre.object_key = assets.r2_key
+          SELECT 1 FROM fabublox_recovery_public_asset_edges public_edge
+          WHERE public_edge.asset_id = assets.id
         )
-    `).bind(input.importId, input.importId, recoveryOperationId),
-    // Queue only unreachable failed provider objects. Deletion rechecks the
-    // same retention view before claiming, preserving the invariant that one
-    // source becoming terminal cannot release another source's durable edge.
+        AND EXISTS (
+          SELECT 1 FROM selected_successors successor
+          WHERE successor.asset_id = assets.id
+        )
+    `).bind(
+      input.importId,
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    // Assets with neither a public consumer nor a viable unresolved import
+    // owner are released by this failed import. Physical GC still consults the
+    // broader retention view, so a historical edge can defer deletion without
+    // accidentally making the asset public.
+    db.prepare(`
+      UPDATE assets
+      SET status = 'failed', sha256 = NULL
+      WHERE import_id = ?
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM fabublox_recovery_public_asset_edges public_edge
+          WHERE public_edge.asset_id = assets.id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM fabublox_recovery_import_asset_edges private_edge
+          WHERE private_edge.asset_id = assets.id
+            AND private_edge.import_id <> ?
+        )
+    `).bind(
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+      input.importId,
+    ),
+    // A prior interrupted cleanup may already have marked a retained locator
+    // orphaned. Release only the unclaimed state; deleting/deleted claims remain
+    // terminal and are never revived.
+    db.prepare(`
+      DELETE FROM blob_gc_ledger
+      WHERE store_kind = 'r2' AND provider = 'r2' AND state = 'orphaned'
+        AND object_key IN (
+          SELECT a.r2_key
+          FROM assets a
+          JOIN json_each(?) entry
+            ON json_extract(entry.value, '$.id') = a.id
+          WHERE EXISTS (
+            SELECT 1 FROM blob_retention_edges bre
+            WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
+              AND bre.object_key = a.r2_key
+          )
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      recoveryOperationId,
+    ),
+    // Queue only failed-import assets that have no remaining physical edge.
+    // Deletion rechecks the same retention view before claiming.
     db.prepare(`
       INSERT INTO blob_gc_ledger (
         store_kind, provider, object_key, blob_record_id, state, operation_id,
@@ -313,6 +539,8 @@ export async function queueFabubloxImportCleanup(
       recoveryOperationId,
     ),
   ]);
+
+  if (!Number(results[0].meta.changes ?? 0)) return emptyCleanupResult();
   const relationshipResultIndexes = [2, 3, 4];
   return {
     importsFailed: Number(results[0].meta.changes ?? 0),
@@ -322,8 +550,10 @@ export async function queueFabubloxImportCleanup(
     ),
     templateStepsRemoved: Number(results[5].meta.changes ?? 0),
     templatesQuarantined: Number(results[6].meta.changes ?? 0),
-    assetsReleased: Number(results[9].meta.changes ?? 0),
-    objectsQueued: Number(results[10].meta.changes ?? 0),
+    assetsReleased:
+      Number(results[10].meta.changes ?? 0)
+      + Number(results[12].meta.changes ?? 0),
+    objectsQueued: Number(results[14].meta.changes ?? 0),
   };
 }
 
