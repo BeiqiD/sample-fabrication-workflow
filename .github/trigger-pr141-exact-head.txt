@@ -1,1 +1,0 @@
-Exact-head verification trigger for PR #141 dependency publication and registration reconciliation.
