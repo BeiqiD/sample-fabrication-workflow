@@ -34,3 +34,74 @@ replace_once(
     "manaed_storage_objects",
     "managed_storage_objects",
 )
+
+replace_once(
+    "worker/comment-submission-routes.ts",
+    '''  if (!c.req.raw.body || !item.filename || !item.mime_type || !item.byte_size) {
+    throw new HTTPException(400, { message: "The upload body is missing" });
+  }
+  const declaredSize = Number(c.req.header("x-upload-size"));
+''',
+    '''  if (!c.req.raw.body || !item.filename || !item.mime_type || !item.byte_size) {
+    throw new HTTPException(400, { message: "The upload body is missing" });
+  }
+  const uploadByteSize: number = item.byte_size;
+  const declaredSize = Number(c.req.header("x-upload-size"));
+''',
+)
+
+replace_once(
+    "worker/comment-submission-routes.ts",
+    '''    let storageObject = await reusableCommentManagedObject(
+      c.env,
+      storage.provider,
+      sha256,
+      item.byte_size,
+    );
+''',
+    '''    let storageObject = await reusableCommentManagedObject(
+      c.env,
+      storage.provider,
+      sha256,
+      uploadByteSize,
+    );
+''',
+)
+
+replace_once(
+    "worker/comment-submission-routes.ts",
+    '''        const registration = await registerManagedObject(c.env, storage, {
+          id: storageObjectId,
+          objectKey: key,
+          originalName: item.filename,
+          mimeType: contentType,
+          byteSize: item.byte_size,
+          sha256,
+''',
+    '''        const registration = await registerManagedObject(c.env, storage, {
+          id: storageObjectId,
+          objectKey: key,
+          originalName: item.filename,
+          mimeType: contentType,
+          byteSize: uploadByteSize,
+          sha256,
+''',
+)
+
+replace_once(
+    "worker/comment-submission-routes.ts",
+    '''          findWinner: () => reusableCommentManagedObject(
+            c.env,
+            storage.provider,
+            sha256,
+            item.byte_size,
+          ),
+''',
+    '''          findWinner: () => reusableCommentManagedObject(
+            c.env,
+            storage.provider,
+            sha256,
+            uploadByteSize,
+          ),
+''',
+)
