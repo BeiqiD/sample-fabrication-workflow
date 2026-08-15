@@ -594,3 +594,9 @@ For an asset whose owning import becomes terminal:
 - a missing or size-mismatched provider object is quarantined and never promoted solely because a retention edge exists.
 
 R2 verification occurs before the durable recovery claim. A transient provider failure therefore leaves `recovery_operation_id` unset and the whole operation retryable. A legacy `failed` asset whose SHA was cleared is read from R2, re-hashed, and assigned the provider byte size before any transition to `pending` or `ready`.
+
+## Uncertain registration outcomes
+
+An uploaded provider object and its stable database identity form one registration attempt. If the INSERT response is uncertain, the writer must first read the exact `(id, provider, object_key, sha256)` record from primary D1. An exact committed record is the writer's own successful result and its provider object must not be deleted. Only after that reconciliation returns no record may the writer select a different content-addressed winner and delete the redundant upload.
+
+This rule applies uniformly to ordinary R2 assets, Comment images, and managed Comment attachments. A content-hash lookup alone cannot distinguish the writer's own committed row from a competing winner.

@@ -420,3 +420,7 @@ Recovery now separates three signals:
 3. `fabublox_recovery_import_asset_edges` identifies the next unresolved private owner.
 
 A provider outage increments `staleImportRecoveryFailures` without claiming the import. Definite absence or size mismatch writes `blob_integrity_quarantine`; live delivery remains blocked while export retains the warning and historical metadata. A pending successor that inherits an unavailable asset cannot finalize because `imports_require_publishable_assets` rejects the transition to `ready`.
+
+## Registration response-loss diagnostics
+
+A response-loss retry that finds its exact stable record returns the original non-deduplicated success and leaves the provider key intact. A retry that finds a different verified winner may delete only the newly uploaded redundant key. Fault-injection coverage exists for ordinary R2 assets, Comment images, and SWITCHdrive Comment attachments.

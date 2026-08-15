@@ -573,3 +573,7 @@ lifecycle.
 `0026_fabublox_recovery_ownership.sql` deliberately leaves the generic GC view unchanged and adds recovery-only projections for publication and private ownership succession. Recovery performs provider preflight before claiming the import, then atomically cleans failed-import provenance, repairs legacy metadata, transfers private ownership when necessary, and queues only genuinely unowned locators.
 
 Ordinary `/assets` registration uses the same exact-outcome principle: after an uncertain INSERT response it first reconciles its stable `id` and R2 key on the primary database. It deletes the uploaded key only after proving that a different canonical winner committed.
+
+## Shared registration reconciliation
+
+`worker/blob-lifecycle/registration.ts` owns primary-authoritative exact-record reconciliation for both R2 and managed objects. Ordinary assets and both Comment upload paths use it before calling the provider-verified reusable-winner lookup. This keeps the uncertain-outcome ordering identical across storage backends and prevents a committed upload from deleting its own locator.

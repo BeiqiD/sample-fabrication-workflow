@@ -1,4 +1,5 @@
 import { inspectFabubloxRecoveryAssets } from "./fabublox-recovery-assets";
+import { primaryD1 } from "./d1-primary";
 import type { Env } from "./types";
 
 export const FABUBLOX_IMPORT_LEASE_MS = 24 * 60 * 60 * 1_000;
@@ -14,16 +15,6 @@ export interface FabubloxImportState {
 
 export function fabubloxImportLeaseExpiresAt(now = new Date()) {
   return new Date(now.getTime() + FABUBLOX_IMPORT_LEASE_MS).toISOString();
-}
-
-// A recovery read must reach the primary database. The fallback keeps the
-// local SQLite/D1 test adapters small while production uses D1 Sessions.
-export function primaryD1(db: D1Database): D1Database {
-  const candidate = db as D1Database & {
-    withSession?: (constraint?: "first-primary") => unknown;
-  };
-  if (typeof candidate.withSession !== "function") return db;
-  return candidate.withSession("first-primary") as unknown as D1Database;
 }
 
 export async function readFabubloxImportState(

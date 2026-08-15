@@ -26,6 +26,10 @@ import {
   findReusableManagedObject,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
+import {
+  reconcileCommittedManagedObject,
+  reconcileCommittedR2Asset,
+} from "./blob-lifecycle/registration";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
 
@@ -570,6 +574,17 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
             };
             break;
           } catch (error) {
+            const committed = await reconcileCommittedR2Asset(c.env.DB, {
+              id: assetId,
+              objectKey: key,
+              sha256,
+            });
+            if (committed) {
+              asset = committed;
+              deduplicated = false;
+              break;
+            }
+
             let winner;
             try {
               winner = await reusableCommentR2Asset(c.env, sha256);
@@ -660,6 +675,19 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
           };
           break;
         } catch (error) {
+          const committed = await reconcileCommittedManagedObject(c.env.DB, {
+            id: storageObjectId,
+            provider: storage.provider,
+            objectKey: key,
+            sha256,
+            byteSize: item.byte_size,
+          });
+          if (committed) {
+            storageObject = committed;
+            deduplicated = false;
+            break;
+          }
+
           let winner;
           try {
             winner = await reusableCommentManagedObject(

@@ -354,7 +354,7 @@ describe("uncertain blob registration reconciliation", () => {
     expect(stored.get(objectUrl)).toEqual(bytes);
 
     const live = await worker.fetch(new Request(
-      "https://app.test/api/attachments/item-upload/download",
+      "https://app.test/api/exports/attachments/item-upload",
     ), env, executionContext);
     expect(live.status).toBe(200);
     expect(new Uint8Array(await live.arrayBuffer())).toEqual(bytes);
