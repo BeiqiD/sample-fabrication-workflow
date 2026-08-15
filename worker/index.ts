@@ -4737,19 +4737,18 @@ app.post("/assets", async (c) => {
       ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
       return c.json({ id, key, deduplicated: false }, 201);
     } catch (error) {
-      let resolution;
-      try {
-        resolution = await reconcileR2RegistrationFailure(c.env, {
-          id,
-          objectKey: key,
-          sha256,
-          findWinner: () => reusableR2Asset(c.env, sha256),
+      const resolution = await reconcileR2RegistrationFailure(c.env, {
+        id,
+        objectKey: key,
+        sha256,
+        findWinner: () => reusableR2Asset(c.env, sha256),
+      });
+      if (resolution.outcome === "authority-unavailable") {
+        throw new HTTPException(503, {
+          message: "Asset registration outcome could not be verified. Retry later.",
         });
-      } catch (verificationError) {
-        await c.env.ASSETS.delete(key);
-        throw verificationError;
       }
-      if (resolution) {
+      if (resolution.outcome === "resolved") {
         const payload = {
           id: resolution.asset.id,
           key: resolution.asset.r2_key,
@@ -4760,6 +4759,7 @@ app.post("/assets", async (c) => {
           : c.json(payload, 201);
       }
       await c.env.ASSETS.delete(key);
+      if (resolution.error) throw resolution.error;
       if (attempt === 1) throw error;
     }
   }
@@ -5834,21 +5834,24 @@ app.post("/metrology-templates/:id/references", async (c) => {
         };
         break;
       } catch (error) {
-        let resolution;
-        try {
-          resolution = await reconcileR2RegistrationFailure(c.env, {
-            id: assetId,
-            objectKey: key,
-            sha256,
-            findWinner: () => reusableR2Asset(c.env, sha256),
+        const resolution = await reconcileR2RegistrationFailure(c.env, {
+          id: assetId,
+          objectKey: key,
+          sha256,
+          findWinner: () => reusableR2Asset(c.env, sha256),
+        });
+        if (resolution.outcome === "authority-unavailable") {
+          throw new HTTPException(503, {
+            message: "Asset registration outcome could not be verified. Retry later.",
           });
-        } catch (verificationError) {
-          await c.env.ASSETS.delete(key);
-          throw verificationError;
         }
-        if (resolution) {
+        if (resolution.outcome === "resolved") {
           asset = resolution.asset;
           break;
+        }
+        if (resolution.error) {
+          await c.env.ASSETS.delete(key);
+          throw resolution.error;
         }
         if (attempt === 1) {
           await c.env.ASSETS.delete(key);

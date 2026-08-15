@@ -26,19 +26,29 @@ export async function reconcileCommittedR2Asset(
   `).bind(input.id, input.objectKey, input.sha256).first<ReusableR2Asset>();
 }
 
-export interface R2RegistrationReconciliation {
-  asset: ReusableR2Asset;
-  deduplicated: boolean;
-}
+export type R2RegistrationReconciliation =
+  | {
+      outcome: "resolved";
+      asset: ReusableR2Asset;
+      deduplicated: boolean;
+    }
+  | {
+      outcome: "confirmed-uncommitted";
+      error?: unknown;
+    }
+  | {
+      outcome: "authority-unavailable";
+      error: unknown;
+    };
 
 /**
  * Resolve an uncertain ready-R2 INSERT without guessing from the content hash.
  *
- * The exact stable identity is authoritative. Only when primary D1 confirms
- * that this attempt did not commit may a different verified winner make the
- * uploaded locator redundant. The helper deletes a candidate only when the
- * winner is physically different; unresolved candidates remain caller-owned so
- * fixed-key retry loops can retry the INSERT before cleanup.
+ * The exact stable identity is authoritative. A primary-D1 failure is distinct
+ * from a confirmed absence: callers must preserve the uploaded locator and
+ * return a retryable error while authority is unavailable. Only after primary
+ * D1 confirms that the exact attempt did not commit may cleanup or winner
+ * reconciliation make the candidate redundant.
  */
 export async function reconcileR2RegistrationFailure(
   env: Env,
@@ -48,14 +58,28 @@ export async function reconcileR2RegistrationFailure(
     sha256: string;
     findWinner: () => Promise<ReusableR2Asset | null>;
   },
-): Promise<R2RegistrationReconciliation | null> {
-  const committed = await reconcileCommittedR2Asset(env.DB, input);
+): Promise<R2RegistrationReconciliation> {
+  let committed: ReusableR2Asset | null;
+  try {
+    committed = await reconcileCommittedR2Asset(env.DB, input);
+  } catch (error) {
+    return { outcome: "authority-unavailable", error };
+  }
   if (committed) {
-    return { asset: committed, deduplicated: false };
+    return {
+      outcome: "resolved",
+      asset: committed,
+      deduplicated: false,
+    };
   }
 
-  const winner = await input.findWinner();
-  if (!winner) return null;
+  let winner: ReusableR2Asset | null;
+  try {
+    winner = await input.findWinner();
+  } catch (error) {
+    return { outcome: "confirmed-uncommitted", error };
+  }
+  if (!winner) return { outcome: "confirmed-uncommitted" };
 
   const sameAttempt = winner.id === input.id
     && winner.r2_key === input.objectKey;
@@ -63,6 +87,7 @@ export async function reconcileR2RegistrationFailure(
     await env.ASSETS.delete(input.objectKey);
   }
   return {
+    outcome: "resolved",
     asset: winner,
     deduplicated: !sameAttempt,
   };

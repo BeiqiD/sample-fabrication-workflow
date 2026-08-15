@@ -161,19 +161,18 @@ routes.post("/project-assets", async (c) => {
       ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
       return c.json({ id, key, deduplicated: false }, 201);
     } catch (error) {
-      let resolution;
-      try {
-        resolution = await reconcileR2RegistrationFailure(c.env, {
-          id,
-          objectKey: key,
-          sha256,
-          findWinner: () => reusableProjectAsset(c.env, sha256),
+      const resolution = await reconcileR2RegistrationFailure(c.env, {
+        id,
+        objectKey: key,
+        sha256,
+        findWinner: () => reusableProjectAsset(c.env, sha256),
+      });
+      if (resolution.outcome === "authority-unavailable") {
+        throw new HTTPException(503, {
+          message: "Asset registration outcome could not be verified. Retry later.",
         });
-      } catch (verificationError) {
-        await c.env.ASSETS.delete(key);
-        throw verificationError;
       }
-      if (resolution) {
+      if (resolution.outcome === "resolved") {
         const payload = returnReusableProjectAsset(
           resolution.asset,
           filename,
@@ -186,6 +185,7 @@ routes.post("/project-assets", async (c) => {
           : c.json(payload, 201);
       }
       await c.env.ASSETS.delete(key);
+      if (resolution.error) throw resolution.error;
       if (attempt === 1) throw error;
     }
   }

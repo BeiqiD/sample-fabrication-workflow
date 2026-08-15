@@ -574,27 +574,30 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
             };
             break;
           } catch (error) {
-            let resolution;
-            try {
-              resolution = await reconcileR2RegistrationFailure(c.env, {
-                id: assetId,
-                objectKey: key,
-                sha256,
-                findWinner: () => reusableCommentR2Asset(c.env, sha256),
-              });
-            } catch (verificationError) {
-              await c.env.ASSETS.delete(key);
-              throw verificationError;
-            }
-            if (resolution) {
-              asset = resolution.asset;
-              deduplicated = resolution.deduplicated;
-              break;
-            }
-            if (attempt === 1) {
-              await c.env.ASSETS.delete(key);
-              throw error;
-            }
+            const resolution = await reconcileR2RegistrationFailure(c.env, {
+            id: assetId,
+            objectKey: key,
+            sha256,
+            findWinner: () => reusableCommentR2Asset(c.env, sha256),
+          });
+          if (resolution.outcome === "authority-unavailable") {
+            throw new HTTPException(503, {
+              message: "Asset registration outcome could not be verified. Retry later.",
+            });
+          }
+          if (resolution.outcome === "resolved") {
+            asset = resolution.asset;
+            deduplicated = resolution.deduplicated;
+            break;
+          }
+          if (resolution.error) {
+            await c.env.ASSETS.delete(key);
+            throw resolution.error;
+          }
+          if (attempt === 1) {
+            await c.env.ASSETS.delete(key);
+            throw error;
+          }
           }
         }
       }

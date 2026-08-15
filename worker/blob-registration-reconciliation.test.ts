@@ -71,9 +71,19 @@ class FaultD1Database {
   constructor(
     readonly database: DatabaseSync,
     private readonly insertTarget: "assets" | "managed_storage_objects",
+    private readonly failPrimaryAssetRead = false,
   ) {}
 
   prepare(query: string) {
+    const normalized = query.replace(/\s+/g, " ");
+    if (
+      this.failPrimaryAssetRead
+      && normalized.includes(
+        "WHERE a.id = ? AND a.r2_key = ? AND a.sha256 = ?",
+      )
+    ) {
+      throw new Error("injected persistent primary asset reconciliation failure");
+    }
     return new FaultD1Statement(this, query);
   }
 
@@ -251,6 +261,70 @@ describe("uncertain blob registration reconciliation", () => {
     ), env, executionContext);
     expect(live.status).toBe(200);
     expect(new Uint8Array(await live.arrayBuffer())).toEqual(bytes);
+    database.close();
+  });
+
+  it("keeps a committed ordinary R2 asset when primary reconciliation is persistently unavailable", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71, 91, 92, 93]);
+    const database = referenceTestDatabase();
+    const stored = new Map<string, Uint8Array>();
+    const deleted: string[] = [];
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "assets",
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {
+        put: vi.fn(async (key: string, value: unknown) => {
+          if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer");
+          stored.set(key, new Uint8Array(value.slice(0)));
+        }),
+        delete: vi.fn(async (key: string) => {
+          deleted.push(key);
+          stored.delete(key);
+        }),
+        head: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "image/png") : null;
+        }),
+        get: vi.fn(async (key: string) => {
+          const value = stored.get(key);
+          return value ? r2Object(value, "image/png") : null;
+        }),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/assets",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "image/png",
+          "x-filename": "primary-unavailable.png",
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(503);
+
+    const row = database.prepare(`
+      SELECT id, r2_key, status, sha256
+      FROM assets
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get() as {
+      id: string;
+      r2_key: string;
+      status: string;
+      sha256: string;
+    };
+    expect(row.status).toBe("ready");
+    expect(row.sha256).toBe(await sha256Hex(bytesBuffer(bytes)));
+    expect(deleted).not.toContain(row.r2_key);
+    expect(stored.get(row.r2_key)).toEqual(bytes);
     database.close();
   });
 
