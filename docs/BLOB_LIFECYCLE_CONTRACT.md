@@ -614,3 +614,15 @@ Sample, Run, or other durable source still retains the historical occurrence.
 An uploaded provider object and its stable database identity form one registration attempt. If the INSERT response is uncertain, the writer must first read the exact `(id, provider, object_key, sha256)` record from primary D1. An exact committed record is the writer's own successful result and its provider object must not be deleted. Only after that reconciliation returns no record may the writer select a different content-addressed winner and delete the redundant upload.
 
 This rule applies uniformly to ordinary R2 assets, Project uploads, metrology references, Comment images, and managed Comment attachments. A content-hash lookup alone cannot distinguish the writer's own committed row from a competing winner.
+
+## Provider-write registration boundary
+
+Provider bytes must never exist without a database identity that ordinary GC can enumerate. Every new R2 or managed registration therefore follows this order:
+
+1. create a non-public metadata candidate with a unique provider locator;
+2. write the provider object only after the candidate is confirmed on primary D1;
+3. promote exactly one same-content candidate to `ready`;
+4. leave losing or uncertain candidates as tracked non-public rows for GC;
+5. never delete a locator merely because another database ID won when both attempts could share that locator.
+
+Comment uploads use a unique locator per registration attempt, including same-item retries. This prevents different-SHA same-size requests from overwriting one another before database coordination. A primary-authority failure returns retryable `503` and preserves the tracked candidate. Legacy FabuBlox recovery may rebind durable occurrences to a verified canonical same-SHA/same-size winner only after a persistent recovery claim; the superseded locator then follows normal GC.

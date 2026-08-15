@@ -251,7 +251,16 @@ export async function queueFabubloxImportCleanup(
             SELECT json_extract(entry.value, '$.byteSize')
             FROM json_each(?) entry
             WHERE json_extract(entry.value, '$.id') = assets.id
-          ) AS INTEGER)
+          ) AS INTEGER),
+          status = CASE
+            WHEN EXISTS (
+              SELECT 1 FROM json_each(?) entry
+              WHERE json_extract(entry.value, '$.id') = assets.id
+                AND json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+            )
+            THEN 'failed'
+            ELSE status
+          END
       WHERE import_id = ?
         AND EXISTS (
           SELECT 1 FROM imports i
@@ -266,6 +275,430 @@ export async function queueFabubloxImportCleanup(
     `).bind(
       inspectionPayload,
       inspectionPayload,
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+      inspectionPayload,
+    ),
+
+    // A recovered legacy locator can contain bytes already represented by a
+    // healthy canonical asset. Rebind every durable occurrence to that winner
+    // after the claim and metadata repair, then release only the old physical
+    // locator. Each statement is claim-gated and publication triggers verify
+    // that the canonical row is still healthy at commit time.
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      INSERT OR IGNORE INTO state_representation_assets (
+        state_hash, asset_id, position
+      )
+      SELECT sra.state_hash, rebinds.canonical_id, sra.position
+      FROM state_representation_assets sra
+      JOIN rebinds ON rebinds.legacy_id = sra.asset_id
+      JOIN assets legacy ON legacy.id = rebinds.legacy_id
+      WHERE legacy.import_id = ?
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      DELETE FROM state_representation_assets
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = state_representation_assets.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      UPDATE OR IGNORE run_step_assets
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = run_step_assets.asset_id
+      )
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = run_step_assets.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      DELETE FROM run_step_assets
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = run_step_assets.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      UPDATE run_step_comments
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = run_step_comments.asset_id
+      )
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = run_step_comments.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      UPDATE state_verifications
+      SET evidence_asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = state_verifications.evidence_asset_id
+      )
+      WHERE evidence_asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = state_verifications.evidence_asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      UPDATE OR IGNORE metrology_template_references
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = metrology_template_references.asset_id
+      )
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = metrology_template_references.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      DELETE FROM metrology_template_references
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = metrology_template_references.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      UPDATE comment_submission_items
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = comment_submission_items.asset_id
+      )
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = comment_submission_items.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.id') AS TEXT) AS legacy_id,
+               CAST(json_extract(entry.value, '$.canonicalAssetId') AS TEXT) AS canonical_id
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+      )
+      UPDATE project_content_attachments
+      SET asset_id = (
+        SELECT canonical_id FROM rebinds
+        WHERE legacy_id = project_content_attachments.asset_id
+      )
+      WHERE asset_id IN (SELECT legacy_id FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.id = project_content_attachments.asset_id
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.objectKey') AS TEXT) AS legacy_key,
+               CAST(json_extract(entry.value, '$.canonicalObjectKey') AS TEXT) AS canonical_key
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalObjectKey') IS NOT NULL
+      )
+      UPDATE events
+      SET asset_key = (
+        SELECT canonical_key FROM rebinds
+        WHERE legacy_key = events.asset_key
+      )
+      WHERE asset_key IN (SELECT legacy_key FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.r2_key = events.asset_key
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.objectKey') AS TEXT) AS legacy_key,
+               CAST(json_extract(entry.value, '$.canonicalObjectKey') AS TEXT) AS canonical_key
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalObjectKey') IS NOT NULL
+      )
+      UPDATE events
+      SET metadata_json = json_set(
+        metadata_json,
+        '$.thumbnailKey',
+        (
+          SELECT canonical_key FROM rebinds
+          WHERE legacy_key = CAST(json_extract(events.metadata_json, '$.thumbnailKey') AS TEXT)
+        )
+      )
+      WHERE json_valid(metadata_json)
+        AND CAST(json_extract(metadata_json, '$.thumbnailKey') AS TEXT)
+          IN (SELECT legacy_key FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM assets legacy
+          WHERE legacy.r2_key = CAST(json_extract(events.metadata_json, '$.thumbnailKey') AS TEXT)
+            AND legacy.import_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.objectKey') AS TEXT) AS legacy_key,
+               CAST(json_extract(entry.value, '$.canonicalObjectKey') AS TEXT) AS canonical_key
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalObjectKey') IS NOT NULL
+      )
+      UPDATE imports
+      SET workbook_asset_key = CASE
+            WHEN workbook_asset_key IN (SELECT legacy_key FROM rebinds)
+            THEN (
+              SELECT canonical_key FROM rebinds
+              WHERE legacy_key = imports.workbook_asset_key
+            )
+            ELSE workbook_asset_key
+          END,
+          manifest_asset_key = CASE
+            WHEN manifest_asset_key IN (SELECT legacy_key FROM rebinds)
+            THEN (
+              SELECT canonical_key FROM rebinds
+              WHERE legacy_key = imports.manifest_asset_key
+            )
+            ELSE manifest_asset_key
+          END
+      WHERE (
+          workbook_asset_key IN (SELECT legacy_key FROM rebinds)
+          OR manifest_asset_key IN (SELECT legacy_key FROM rebinds)
+        )
+        AND EXISTS (
+          SELECT 1 FROM imports failed
+          WHERE failed.id = ? AND failed.status = 'failed'
+            AND failed.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      WITH rebinds AS (
+        SELECT CAST(json_extract(entry.value, '$.objectKey') AS TEXT) AS legacy_key,
+               CAST(json_extract(entry.value, '$.canonicalObjectKey') AS TEXT) AS canonical_key
+        FROM json_each(?) entry
+        WHERE json_extract(entry.value, '$.canonicalObjectKey') IS NOT NULL
+      )
+      UPDATE template_versions
+      SET source_asset_key = (
+        SELECT canonical_key FROM rebinds
+        WHERE legacy_key = template_versions.source_asset_key
+      )
+      WHERE source_asset_key IN (SELECT legacy_key FROM rebinds)
+        AND EXISTS (
+          SELECT 1 FROM imports failed
+          WHERE failed.id = ? AND failed.status = 'failed'
+            AND failed.recovery_operation_id = ?
+        )
+    `).bind(
+      inspectionPayload,
+      input.importId,
+      recoveryOperationId,
+    ),
+    db.prepare(`
+      UPDATE assets
+      SET status = 'failed', sha256 = NULL
+      WHERE import_id = ?
+        AND EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = ? AND i.status = 'failed'
+            AND i.recovery_operation_id = ?
+        )
+        AND EXISTS (
+          SELECT 1 FROM json_each(?) entry
+          WHERE json_extract(entry.value, '$.id') = assets.id
+            AND json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+        )
+    `).bind(
       input.importId,
       input.importId,
       recoveryOperationId,
@@ -321,6 +754,11 @@ export async function queueFabubloxImportCleanup(
           WHERE json_extract(entry.value, '$.id') = assets.id
             AND json_extract(entry.value, '$.available') = 1
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) entry
+          WHERE json_extract(entry.value, '$.id') = assets.id
+            AND json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+        )
         AND EXISTS (
           SELECT 1 FROM fabublox_recovery_public_asset_edges public_edge
           WHERE public_edge.asset_id = assets.id
@@ -329,6 +767,7 @@ export async function queueFabubloxImportCleanup(
       input.importId,
       input.importId,
       recoveryOperationId,
+      inspectionPayload,
       inspectionPayload,
     ),
     // A public relationship whose provider object is missing remains a failed,
@@ -380,7 +819,8 @@ export async function queueFabubloxImportCleanup(
       ),
       preflight AS (
         SELECT json_extract(entry.value, '$.id') AS asset_id,
-               json_extract(entry.value, '$.available') AS available
+               json_extract(entry.value, '$.available') AS available,
+               json_extract(entry.value, '$.canonicalAssetId') AS canonical_asset_id
         FROM json_each(?) entry
       )
       UPDATE assets
@@ -429,6 +869,11 @@ export async function queueFabubloxImportCleanup(
           SELECT 1 FROM selected_successors successor
           WHERE successor.asset_id = assets.id
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM preflight
+          WHERE preflight.asset_id = assets.id
+            AND preflight.canonical_asset_id IS NOT NULL
+        )
     `).bind(
       input.importId,
       inspectionPayload,
@@ -458,11 +903,17 @@ export async function queueFabubloxImportCleanup(
           WHERE private_edge.asset_id = assets.id
             AND private_edge.import_id <> ?
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) entry
+          WHERE json_extract(entry.value, '$.id') = assets.id
+            AND json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
+        )
     `).bind(
       input.importId,
       input.importId,
       recoveryOperationId,
       input.importId,
+      inspectionPayload,
     ),
     // A prior interrupted cleanup may already have marked a retained locator
     // orphaned. Release only the unclaimed state; deleting/deleted claims remain
@@ -542,9 +993,10 @@ export async function queueFabubloxImportCleanup(
     templateStepsRemoved: Number(results[5].meta.changes ?? 0),
     templatesQuarantined: Number(results[6].meta.changes ?? 0),
     assetsReleased:
-      Number(results[10].meta.changes ?? 0)
-      + Number(results[12].meta.changes ?? 0),
-    objectsQueued: Number(results[14].meta.changes ?? 0),
+      Number(results[22].meta.changes ?? 0)
+      + Number(results[25].meta.changes ?? 0)
+      + Number(results[27].meta.changes ?? 0),
+    objectsQueued: Number(results[29].meta.changes ?? 0),
   };
 }
 

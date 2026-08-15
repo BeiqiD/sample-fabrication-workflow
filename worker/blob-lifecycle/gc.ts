@@ -71,7 +71,10 @@ async function listUnreachableLocators(env: Env, now: Date) {
       `SELECT 'r2' AS store_kind, 'r2' AS provider, a.r2_key AS object_key,
               a.id AS blob_record_id
        FROM assets a
-       WHERE a.status = 'ready' AND a.created_at <= ?
+       WHERE (
+         a.status = 'ready'
+         OR (a.status IN ('pending', 'failed') AND a.import_id IS NULL)
+       ) AND a.created_at <= ?
          AND NOT EXISTS (
            SELECT 1 FROM blob_retention_edges bre
            WHERE bre.store_kind = 'r2' AND bre.provider = 'r2' AND bre.object_key = a.r2_key
@@ -90,7 +93,7 @@ async function listUnreachableLocators(env: Env, now: Date) {
       `SELECT 'managed' AS store_kind, mso.provider, mso.object_key,
               mso.id AS blob_record_id
        FROM managed_storage_objects mso
-       WHERE mso.status IN ('ready', 'orphaned') AND mso.created_at <= ?
+       WHERE mso.status IN ('ready', 'orphaned', 'failed') AND mso.created_at <= ?
          AND NOT EXISTS (
            SELECT 1 FROM blob_retention_edges bre
            WHERE bre.store_kind = 'managed' AND bre.provider = mso.provider

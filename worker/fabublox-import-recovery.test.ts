@@ -484,4 +484,171 @@ describe("FabuBlox import recovery ownership", () => {
     database.close();
   });
 
+  it("rebinds every durable legacy occurrence to an existing canonical winner and queues only the old locator", async () => {
+    const database = legacyDatabase();
+    const bytes = Uint8Array.from([137, 80, 78, 71, 71, 72, 73, 74]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    seedSharedImportState(database, {
+      importAStatus: "failed",
+      importBStatus: "pending",
+      assetStatus: "ready",
+      assetSha256: null,
+      assetByteSize: bytes.byteLength,
+    });
+    // This fixture represents a relationship written before 0024 introduced
+    // the provider-availability insert guard.
+    database.exec("DROP TRIGGER project_content_attachments_guard_integrity_insert;");
+    database.exec(`
+      UPDATE template_versions
+      SET source_asset_key = 'imports/a/shared.png'
+      WHERE id = 'template-b';
+
+      UPDATE imports
+      SET workbook_asset_key = 'imports/a/shared.png',
+          manifest_asset_key = 'imports/a/shared.png'
+      WHERE id = 'import-b';
+
+      INSERT INTO metrology_template_references (
+        id, template_version_id, asset_id, display_name, position, created_at
+      ) VALUES (
+        'reference-b', 'template-b', 'shared-asset', 'shared.png', 0,
+        '2026-07-01T00:02:00.000Z'
+      );
+
+      INSERT INTO assets (
+        id, r2_key, original_name, mime_type, byte_size, status, sha256,
+        created_at
+      ) VALUES (
+        'canonical-winner', 'ready/canonical-shared.png', 'canonical.png',
+        'image/png', ${bytes.byteLength}, 'ready', '${sha256}',
+        '2026-06-01T00:00:00.000Z'
+      );
+
+      INSERT INTO samples (id, code, title, created_at, updated_at)
+      VALUES (
+        'recovery-sample', 'RECOVERY', 'Recovery sample',
+        '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO events (
+        id, sample_id, kind, asset_key, metadata_json, created_at
+      ) VALUES (
+        'recovery-event', 'recovery-sample', 'image',
+        'imports/a/shared.png',
+        '{"thumbnailKey":"imports/a/shared.png"}',
+        '2026-07-01T00:03:00.000Z'
+      );
+
+      INSERT INTO projects (
+        id, title, revision, next_created_sequence, last_mutation_id,
+        created_by, updated_by, created_at, updated_at
+      ) VALUES (
+        'recovery-project', 'Recovery project', 1, 1, 'project-create',
+        'recovery@example.com', 'recovery@example.com',
+        '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO project_contents (
+        id, project_id, content_type, markdown_source, attachment_caption,
+        attachment_source_url, format_version, revision, last_mutation_id,
+        created_by, updated_by, created_at, updated_at
+      ) VALUES (
+        'recovery-content', 'recovery-project', 'attachment', NULL, NULL,
+        NULL, 1, 1, 'content-create', 'recovery@example.com',
+        'recovery@example.com', '2026-07-01T00:00:00.000Z',
+        '2026-07-01T00:00:00.000Z'
+      );
+
+      INSERT INTO project_content_attachments (
+        project_content_id, asset_id, storage_object_id, original_name,
+        mime_type, byte_size, created_by, created_at, creation_operation_id
+      ) VALUES (
+        'recovery-content', 'shared-asset', NULL, 'shared.png', 'image/png',
+        ${bytes.byteLength}, 'recovery@example.com',
+        '2026-07-01T00:00:00.000Z', 'attachment-create'
+      );
+    `);
+    finishRecoveryMigrations(database);
+
+    const stored = new Map<string, Uint8Array>([
+      ["imports/a/shared.png", bytes],
+      ["ready/canonical-shared.png", bytes],
+    ]);
+    const { env, get } = recoveryEnv(database, stored);
+
+    const result = await reapStaleFabubloxImports(env, NOW);
+    expect(result).toEqual({
+      staleImportsFailed: 1,
+      staleImportAssetsReleased: 1,
+      staleImportObjectsQueued: 1,
+      staleImportRecoveryFailures: 0,
+    });
+    expect(get).toHaveBeenCalledWith("imports/a/shared.png");
+
+    expect(database.prepare(`
+      SELECT asset_id FROM state_representation_assets
+      WHERE state_hash = 'shared-state'
+    `).all()).toEqual([{ asset_id: "canonical-winner" }]);
+    expect(database.prepare(`
+      SELECT asset_id FROM metrology_template_references
+      WHERE id = 'reference-b'
+    `).get()).toEqual({ asset_id: "canonical-winner" });
+    expect(database.prepare(`
+      SELECT asset_id FROM project_content_attachments
+      WHERE project_content_id = 'recovery-content'
+    `).get()).toEqual({ asset_id: "canonical-winner" });
+    expect(database.prepare(`
+      SELECT asset_key,
+             json_extract(metadata_json, '$.thumbnailKey') AS thumbnail_key
+      FROM events WHERE id = 'recovery-event'
+    `).get()).toEqual({
+      asset_key: "ready/canonical-shared.png",
+      thumbnail_key: "ready/canonical-shared.png",
+    });
+    expect(database.prepare(`
+      SELECT workbook_asset_key, manifest_asset_key
+      FROM imports WHERE id = 'import-b'
+    `).get()).toEqual({
+      workbook_asset_key: "ready/canonical-shared.png",
+      manifest_asset_key: "ready/canonical-shared.png",
+    });
+    expect(database.prepare(`
+      SELECT source_asset_key FROM template_versions WHERE id = 'template-b'
+    `).get()).toEqual({
+      source_asset_key: "ready/canonical-shared.png",
+    });
+    expect(database.prepare(`
+      SELECT import_id, status, sha256
+      FROM assets WHERE id = 'shared-asset'
+    `).get()).toEqual({
+      import_id: "import-a",
+      status: "failed",
+      sha256: null,
+    });
+    expect(database.prepare(`
+      SELECT state, blob_record_id
+      FROM blob_gc_ledger
+      WHERE store_kind = 'r2' AND provider = 'r2'
+        AND object_key = 'imports/a/shared.png'
+    `).get()).toEqual({
+      state: "orphaned",
+      blob_record_id: "shared-asset",
+    });
+    expect(database.prepare(`
+      SELECT status, sha256 FROM assets WHERE id = 'canonical-winner'
+    `).get()).toEqual({ status: "ready", sha256 });
+
+    const retry = await reapStaleFabubloxImports(
+      env,
+      new Date("2026-08-20T01:00:00.000Z"),
+    );
+    expect(retry).toEqual({
+      staleImportsFailed: 0,
+      staleImportAssetsReleased: 0,
+      staleImportObjectsQueued: 0,
+      staleImportRecoveryFailures: 0,
+    });
+    database.close();
+  });
+
 });

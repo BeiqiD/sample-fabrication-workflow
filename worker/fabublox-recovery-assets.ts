@@ -1,4 +1,9 @@
 import { sha256Hex } from "../shared/content-addressing";
+import {
+  BlobReuseProviderUnavailableError,
+  findReusableR2Asset,
+  type ReusableR2Asset,
+} from "./blob-lifecycle/reuse";
 import { getBlob, statBlob } from "./blob-lifecycle/storage";
 import type { BlobLocator } from "./blob-lifecycle/types";
 import type { Env } from "./types";
@@ -24,6 +29,8 @@ export interface FabubloxRecoveryAssetInspection {
   quarantineReason: "missing" | "size_mismatch" | null;
   expectedByteSize: number;
   observedByteSize: number | null;
+  canonicalAssetId: string | null;
+  canonicalObjectKey: string | null;
 }
 
 export class FabubloxRecoveryProviderUnavailableError extends Error {
@@ -56,35 +63,58 @@ function unavailable(
     quarantineReason: reason,
     expectedByteSize: Number(row.byte_size),
     observedByteSize,
+    canonicalAssetId: null,
+    canonicalObjectKey: null,
   };
 }
 
-async function rejectConflictingRecoveredHash(
-  db: D1Database,
-  assetId: string,
+async function canonicalWinner(
+  env: Env,
+  objectKey: string,
   sha256: string,
-) {
-  const conflict = await db.prepare(`
-    SELECT a.id
-    FROM assets a
-    WHERE a.id <> ? AND a.sha256 = ? AND a.status IN ('pending', 'ready')
-      AND NOT EXISTS (
-        SELECT 1 FROM blob_gc_ledger bg
-        WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-          AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM blob_integrity_quarantine biq
-        WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
-          AND biq.object_key = a.r2_key
-      )
-    LIMIT 1
-  `).bind(assetId, sha256).first<{ id: string }>();
-  if (conflict) {
-    throw new Error(
-      `Recovered bytes conflict with live canonical asset ${conflict.id}; recovery requires explicit relationship reconciliation`,
-    );
+  byteSize: number,
+): Promise<ReusableR2Asset | null> {
+  try {
+    const winner = await findReusableR2Asset(env, sha256);
+    if (!winner) return null;
+    if (Number(winner.byte_size) !== byteSize) {
+      throw new Error(
+        `Canonical asset ${winner.id} has byte-size metadata inconsistent with recovered SHA-256`,
+      );
+    }
+    return winner;
+  } catch (error) {
+    if (error instanceof BlobReuseProviderUnavailableError
+      && error.message.includes("matching bytes are still owned by a pending FabuBlox import")) {
+      // A pending import is a private successor, not a public canonical winner.
+      // The recovery ownership graph will handle that case after the claim.
+      return null;
+    }
+    if (error instanceof BlobReuseProviderUnavailableError) {
+      throw new FabubloxRecoveryProviderUnavailableError(objectKey, error.message);
+    }
+    throw error;
   }
+}
+
+function availableInspection(
+  row: RecoveryAssetRow,
+  sha256: string,
+  byteSize: number,
+  canonical: ReusableR2Asset | null,
+): FabubloxRecoveryAssetInspection {
+  return {
+    id: row.id,
+    objectKey: row.r2_key,
+    available: true,
+    sha256,
+    byteSize,
+    quarantineReason: null,
+    expectedByteSize: Number(row.byte_size),
+    observedByteSize: byteSize,
+    canonicalAssetId: canonical?.id ?? null,
+    canonicalObjectKey: canonical?.r2_key ?? null,
+  };
 }
 
 export async function inspectFabubloxRecoveryAssets(
@@ -125,6 +155,8 @@ export async function inspectFabubloxRecoveryAssets(
         observedByteSize: row.quarantine_observed_byte_size === null
           ? null
           : Number(row.quarantine_observed_byte_size),
+        canonicalAssetId: null,
+        canonicalObjectKey: null,
       });
       continue;
     }
@@ -144,17 +176,18 @@ export async function inspectFabubloxRecoveryAssets(
       }
       const bytes = await new Response(read.body).arrayBuffer();
       const sha256 = await sha256Hex(bytes);
-      await rejectConflictingRecoveredHash(db, row.id, sha256);
-      inspections.push({
-        id: row.id,
-        objectKey: row.r2_key,
-        available: true,
+      const canonical = await canonicalWinner(
+        env,
+        row.r2_key,
         sha256,
-        byteSize: bytes.byteLength,
-        quarantineReason: null,
-        expectedByteSize: Number(row.byte_size),
-        observedByteSize: bytes.byteLength,
-      });
+        bytes.byteLength,
+      );
+      inspections.push(availableInspection(
+        row,
+        sha256,
+        bytes.byteLength,
+        canonical,
+      ));
       continue;
     }
 
@@ -176,16 +209,18 @@ export async function inspectFabubloxRecoveryAssets(
       inspections.push(unavailable(row, "size_mismatch", stat.byteSize));
       continue;
     }
-    inspections.push({
-      id: row.id,
-      objectKey: row.r2_key,
-      available: true,
-      sha256: row.sha256,
-      byteSize: Number(row.byte_size),
-      quarantineReason: null,
-      expectedByteSize: Number(row.byte_size),
-      observedByteSize: stat.byteSize,
-    });
+    const canonical = await canonicalWinner(
+      env,
+      row.r2_key,
+      row.sha256,
+      Number(row.byte_size),
+    );
+    inspections.push(availableInspection(
+      row,
+      row.sha256,
+      Number(row.byte_size),
+      canonical,
+    ));
   }
   return inspections;
 }

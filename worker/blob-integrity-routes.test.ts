@@ -1048,7 +1048,7 @@ describe("FabuBlox storage winner recovery", () => {
 });
 
 describe("ordinary asset registration reconciliation", () => {
-  it("keeps its own committed upload when the D1 INSERT response is lost", async () => {
+  it("keeps its own committed upload when the ready-promotion response is lost", async () => {
     const database = referenceTestDatabase();
     const bytes = Uint8Array.from([137, 80, 78, 71, 21, 22, 23, 24]);
     const stored = new Map<string, Uint8Array>();
@@ -1061,9 +1061,9 @@ describe("ordinary asset registration reconciliation", () => {
       undefined,
       (query) => {
         if (!lostResponseInjected
-          && query.includes("INSERT INTO assets (id, r2_key")) {
+          && /UPDATE\s+assets\s+SET\s+status\s*=\s*'ready'/i.test(query)) {
           lostResponseInjected = true;
-          throw new Error("injected committed asset INSERT response loss");
+          throw new Error("injected committed asset ready-promotion response loss");
         }
       },
     );

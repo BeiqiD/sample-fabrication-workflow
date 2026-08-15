@@ -119,8 +119,9 @@ BEGIN
   -- The final UPDATE supplies workbook/manifest keys through NEW, so validate
   -- them explicitly; a view over imports still observes the OLD pending row.
   SELECT RAISE(ABORT, 'import assets are not publishable')
-  WHERE NEW.workbook_asset_key IS NOT NULL
-    AND NOT EXISTS (
+  WHERE NEW.workbook_asset_key IS NULL
+    OR NULLIF(TRIM(NEW.workbook_asset_key), '') IS NULL
+    OR NOT EXISTS (
       SELECT 1
       FROM assets a
       WHERE a.r2_key = NEW.workbook_asset_key
@@ -152,8 +153,9 @@ BEGIN
     );
 
   SELECT RAISE(ABORT, 'import assets are not publishable')
-  WHERE NEW.manifest_asset_key IS NOT NULL
-    AND NOT EXISTS (
+  WHERE NEW.manifest_asset_key IS NULL
+    OR NULLIF(TRIM(NEW.manifest_asset_key), '') IS NULL
+    OR NOT EXISTS (
       SELECT 1
       FROM assets a
       WHERE a.r2_key = NEW.manifest_asset_key

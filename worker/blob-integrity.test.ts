@@ -115,10 +115,12 @@ describe("provider-verified blob reuse", () => {
     database.prepare(`
       INSERT INTO imports (
         id, status, source_filename, source_sha256, sheet_name,
-        template_type, warning_count, created_at
+        template_type, warning_count, workbook_asset_key,
+        manifest_asset_key, created_at
       ) VALUES (
         'import-pending-reuse', 'pending', 'pending.xlsx', ?, 'Process',
-        'process', 0, ?
+        'process', 0, 'imports/pending/source.xlsx',
+        'imports/pending/source.xlsx', ?
       )
     `).run(SHA, NOW);
     database.prepare(`

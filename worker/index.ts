@@ -30,7 +30,10 @@ import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
-import { reconcileR2RegistrationFailure } from "./blob-lifecycle/registration";
+import {
+  BlobRegistrationAuthorityUnavailableError,
+  registerR2Asset,
+} from "./blob-lifecycle/registration";
 import {
   ASSET_OWNING_IMPORT_NOT_READY_SQL_ERROR,
   publishedAssetSql,
@@ -4720,50 +4723,34 @@ app.post("/assets", async (c) => {
   const buffer = await c.req.arrayBuffer();
   if (buffer.byteLength > 10 * 1024 * 1024) throw new HTTPException(413, { message: "Asset uploads are limited to 10 MB" });
   const sha256 = await digestSha256(buffer);
-  const existing = await reusableR2Asset(c.env, sha256);
-  if (existing) {
-    return c.json({ id: existing.id, key: existing.r2_key, deduplicated: true });
-  }
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
-    try {
-      await c.env.DB.prepare(
-        `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-         VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-      ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
-      return c.json({ id, key, deduplicated: false }, 201);
-    } catch (error) {
-      const resolution = await reconcileR2RegistrationFailure(c.env, {
-        id,
-        objectKey: key,
-        sha256,
-        findWinner: () => reusableR2Asset(c.env, sha256),
-      });
-      if (resolution.outcome === "authority-unavailable") {
+  const id = crypto.randomUUID();
+  const key = `${new Date().toISOString().slice(0, 10)}/${id}-${safeObjectName(filename)}`;
+  const registration = await registerR2Asset(c.env, {
+      id,
+      objectKey: key,
+      originalName: filename,
+      mimeType: contentType,
+      byteSize: buffer.byteLength,
+      sha256,
+      actorEmail: c.get("userEmail"),
+      bytes: buffer,
+      findWinner: () => reusableR2Asset(c.env, sha256),
+    }).catch((error: unknown) => {
+      if (error instanceof BlobRegistrationAuthorityUnavailableError) {
         throw new HTTPException(503, {
-          message: "Asset registration outcome could not be verified. Retry later.",
+          message: error.publicMessage,
         });
       }
-      if (resolution.outcome === "resolved") {
-        const payload = {
-          id: resolution.asset.id,
-          key: resolution.asset.r2_key,
-          deduplicated: resolution.deduplicated,
-        };
-        return resolution.deduplicated
-          ? c.json(payload)
-          : c.json(payload, 201);
-      }
-      await c.env.ASSETS.delete(key);
-      if (resolution.error) throw resolution.error;
-      if (attempt === 1) throw error;
-    }
-  }
-  throw new HTTPException(409, { message: "Asset registration could not be reconciled" });
+      throw error;
+    });
+  const payload = {
+    id: registration.asset.id,
+    key: registration.asset.r2_key,
+    deduplicated: registration.deduplicated,
+  };
+  return registration.deduplicated
+    ? c.json(payload)
+    : c.json(payload, 201);
 });
 
 app.get("/exports/r2/:key{.+}", async (c) => {
@@ -5812,55 +5799,27 @@ app.post("/metrology-templates/:id/references", async (c) => {
 
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
-  let asset = await reusableR2Asset(c.env, sha256);
-  if (!asset) {
-    const assetId = crypto.randomUUID();
-    const key = `metrology/${templateId}/${crypto.randomUUID()}-${safeObjectName(filename)}`;
-    await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType: mimeType } });
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        await c.env.DB.prepare(
-          `INSERT INTO assets
-           (id, r2_key, original_name, mime_type, byte_size, status, sha256, actor_email, created_at)
-           VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-        ).bind(assetId, key, filename, mimeType, buffer.byteLength, sha256, userEmail, now).run();
-        asset = {
-          id: assetId,
-          r2_key: key,
-          original_name: filename,
-          mime_type: mimeType,
-          byte_size: buffer.byteLength,
-          sha256,
-        };
-        break;
-      } catch (error) {
-        const resolution = await reconcileR2RegistrationFailure(c.env, {
-          id: assetId,
-          objectKey: key,
-          sha256,
-          findWinner: () => reusableR2Asset(c.env, sha256),
+  const assetId = crypto.randomUUID();
+  const key = `metrology/${templateId}/${assetId}-${safeObjectName(filename)}`;
+  const registration = await registerR2Asset(c.env, {
+      id: assetId,
+      objectKey: key,
+      originalName: filename,
+      mimeType,
+      byteSize: buffer.byteLength,
+      sha256,
+      actorEmail: userEmail,
+      bytes: buffer,
+      findWinner: () => reusableR2Asset(c.env, sha256),
+    }).catch((error: unknown) => {
+      if (error instanceof BlobRegistrationAuthorityUnavailableError) {
+        throw new HTTPException(503, {
+          message: error.publicMessage,
         });
-        if (resolution.outcome === "authority-unavailable") {
-          throw new HTTPException(503, {
-            message: "Asset registration outcome could not be verified. Retry later.",
-          });
-        }
-        if (resolution.outcome === "resolved") {
-          asset = resolution.asset;
-          break;
-        }
-        if (resolution.error) {
-          await c.env.ASSETS.delete(key);
-          throw resolution.error;
-        }
-        if (attempt === 1) {
-          await c.env.ASSETS.delete(key);
-          throw error;
-        }
       }
-    }
-  }
-  if (!asset) throw new HTTPException(409, { message: "Reference-file registration could not be reconciled" });
+      throw error;
+    });
+  const asset = registration.asset;
 
   if (existingReference) {
     const displayName = existingReference.deleted_at ? filename : existingReference.display_name;

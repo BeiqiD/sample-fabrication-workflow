@@ -27,8 +27,10 @@ import {
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
 import {
-  reconcileCommittedManagedObject,
-  reconcileR2RegistrationFailure,
+  BlobRegistrationAuthorityUnavailableError,
+  ManagedRegistrationByteSizeMismatchError,
+  registerManagedObject,
+  registerR2Asset,
 } from "./blob-lifecycle/registration";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
@@ -303,12 +305,13 @@ async function managedKeyForSubmission(
   submission: SubmissionRow,
   submissionId: string,
   itemId: string,
+  registrationId: string,
   filename: string,
 ) {
   if (submission.sample_id) {
     const sample = await env.DB.prepare("SELECT id, code FROM samples WHERE id = ? AND deleted_at IS NULL")
       .bind(submission.sample_id).first<{ id: string; code: string }>();
-    return managedObjectKey(submissionId, itemId, filename, sample ?? undefined);
+    return managedObjectKey(submissionId, `${itemId}-${registrationId}`, filename, sample ?? undefined);
   }
   const samples = await env.DB.prepare(
     `SELECT DISTINCT s.id, s.code
@@ -320,7 +323,7 @@ async function managedKeyForSubmission(
   ).bind(submissionId).all<{ id: string; code: string }>();
   return managedObjectKey(
     submissionId,
-    itemId,
+    `${itemId}-${registrationId}`,
     filename,
     samples.results.length === 1 ? samples.results[0] : undefined,
   );
@@ -512,6 +515,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
   if (!c.req.raw.body || !item.filename || !item.mime_type || !item.byte_size) {
     throw new HTTPException(400, { message: "The upload body is missing" });
   }
+  const uploadByteSize: number = item.byte_size;
   const declaredSize = Number(c.req.header("x-upload-size"));
   const contentType = c.req.header("content-type") || "application/octet-stream";
   if (declaredSize !== item.byte_size || contentType !== item.mime_type) {
@@ -555,53 +559,31 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
       let asset = await reusableCommentR2Asset(c.env, sha256);
       let deduplicated = Boolean(asset);
       if (!asset) {
-        const key = `comments/${submissionId}/${itemId}-${item.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
         const assetId = crypto.randomUUID();
-        await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          try {
-            await c.env.DB.prepare(
-              `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-               VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-            ).bind(assetId, key, item.filename, contentType, item.byte_size, c.get("userEmail"), now, sha256).run();
-            asset = {
-              id: assetId,
-              r2_key: key,
-              original_name: item.filename,
-              mime_type: contentType,
-              byte_size: item.byte_size,
-              sha256,
-            };
-            break;
-          } catch (error) {
-            const resolution = await reconcileR2RegistrationFailure(c.env, {
+        const key = `comments/${submissionId}/${itemId}/${assetId}-${item.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+        try {
+          const registration = await registerR2Asset(c.env, {
             id: assetId,
             objectKey: key,
+            originalName: item.filename,
+            mimeType: contentType,
+            byteSize: item.byte_size,
             sha256,
+            actorEmail: c.get("userEmail"),
+            bytes: buffer,
             findWinner: () => reusableCommentR2Asset(c.env, sha256),
           });
-          if (resolution.outcome === "authority-unavailable") {
+          asset = registration.asset;
+          deduplicated = registration.deduplicated;
+        } catch (error) {
+          if (error instanceof BlobRegistrationAuthorityUnavailableError) {
             throw new HTTPException(503, {
-              message: "Asset registration outcome could not be verified. Retry later.",
+              message: error.publicMessage,
             });
           }
-          if (resolution.outcome === "resolved") {
-            asset = resolution.asset;
-            deduplicated = resolution.deduplicated;
-            break;
-          }
-          if (resolution.error) {
-            await c.env.ASSETS.delete(key);
-            throw resolution.error;
-          }
-          if (attempt === 1) {
-            await c.env.ASSETS.delete(key);
-            throw error;
-          }
-          }
+          throw error;
         }
       }
-      if (!asset) throw new HTTPException(409, { message: "Comment image registration could not be reconciled" });
       await c.env.DB.prepare(
         `UPDATE comment_submission_items
          SET status = CASE
@@ -635,81 +617,52 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
       c.env,
       storage.provider,
       sha256,
-      item.byte_size,
+      uploadByteSize,
     );
     let deduplicated = Boolean(storageObject);
     if (!storageObject) {
       const storageObjectId = crypto.randomUUID();
-      const key = await managedKeyForSubmission(c.env, submission, submissionId, itemId, item.filename);
-      const stored = await storage.put({
-        key,
-        body: c.req.raw.body,
-        contentType,
-        filename: item.filename,
-        sha256,
-        byteSize: item.byte_size,
-      });
-      if (stored.byteSize !== item.byte_size) {
-        await storage.delete(key);
-        throw new HTTPException(400, { message: "Attachment size changed during upload" });
-      }
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-          await c.env.DB.prepare(
-            `INSERT INTO managed_storage_objects
-             (id, provider, object_key, original_name, mime_type, byte_size, sha256, status, actor_email, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'ready', ?, ?)`,
-          ).bind(storageObjectId, storage.provider, key, item.filename, contentType, item.byte_size, sha256, c.get("userEmail"), now).run();
-          storageObject = {
-            id: storageObjectId,
-            provider: storage.provider,
-            object_key: key,
-            original_name: item.filename,
-            mime_type: contentType,
-            byte_size: item.byte_size,
+      const key = await managedKeyForSubmission(
+        c.env,
+        submission,
+        submissionId,
+        itemId,
+        storageObjectId,
+        item.filename,
+      );
+      try {
+        const registration = await registerManagedObject(c.env, storage, {
+          id: storageObjectId,
+          objectKey: key,
+          originalName: item.filename,
+          mimeType: contentType,
+          byteSize: uploadByteSize,
+          sha256,
+          actorEmail: c.get("userEmail"),
+          body: c.req.raw.body!,
+          findWinner: () => reusableCommentManagedObject(
+            c.env,
+            storage.provider,
             sha256,
-          };
-          break;
-        } catch (error) {
-          const committed = await reconcileCommittedManagedObject(c.env.DB, {
-            id: storageObjectId,
-            provider: storage.provider,
-            objectKey: key,
-            sha256,
-            byteSize: item.byte_size,
+            uploadByteSize,
+          ),
+        });
+        storageObject = registration.object;
+        deduplicated = registration.deduplicated;
+      } catch (error) {
+        if (error instanceof ManagedRegistrationByteSizeMismatchError) {
+          throw new HTTPException(400, {
+            message: "Attachment size changed during upload",
           });
-          if (committed) {
-            storageObject = committed;
-            deduplicated = false;
-            break;
-          }
-
-          let winner;
-          try {
-            winner = await reusableCommentManagedObject(
-              c.env,
-              storage.provider,
-              sha256,
-              item.byte_size,
-            );
-          } catch (verificationError) {
-            await storage.delete(key);
-            throw verificationError;
-          }
-          if (winner) {
-            await storage.delete(key);
-            storageObject = winner;
-            deduplicated = true;
-            break;
-          }
-          if (attempt === 1) {
-            await storage.delete(key);
-            throw error;
-          }
         }
+        if (error instanceof BlobRegistrationAuthorityUnavailableError) {
+          throw new HTTPException(503, {
+            message: error.publicMessage,
+          });
+        }
+        throw error;
       }
     }
-    if (!storageObject) throw new HTTPException(409, { message: "Managed attachment registration could not be reconciled" });
     await c.env.DB.prepare(
       `UPDATE comment_submission_items
        SET status = CASE

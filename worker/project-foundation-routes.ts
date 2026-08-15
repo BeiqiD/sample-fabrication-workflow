@@ -6,7 +6,10 @@ import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
 } from "./blob-lifecycle/reuse";
-import { reconcileR2RegistrationFailure } from "./blob-lifecycle/registration";
+import {
+  BlobRegistrationAuthorityUnavailableError,
+  registerR2Asset,
+} from "./blob-lifecycle/registration";
 import { buildBlobExportPlan } from "./export-data";
 import { contentLengthWithin } from "./request-guards";
 import type { Env } from "./types";
@@ -139,57 +142,36 @@ routes.post("/project-assets", async (c) => {
   }
 
   const sha256 = await sha256Hex(buffer);
-  const existing = await reusableProjectAsset(c.env, sha256);
-  if (existing) {
-    return c.json(returnReusableProjectAsset(
-      existing,
-      filename,
-      contentType,
-      buffer.byteLength,
-    ));
-  }
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const key = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}-${projectAssetKeyFilename(filename)}`;
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
-    try {
-      await c.env.DB.prepare(
-        `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-         VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-      ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
-      return c.json({ id, key, deduplicated: false }, 201);
-    } catch (error) {
-      const resolution = await reconcileR2RegistrationFailure(c.env, {
-        id,
-        objectKey: key,
-        sha256,
-        findWinner: () => reusableProjectAsset(c.env, sha256),
-      });
-      if (resolution.outcome === "authority-unavailable") {
+  const id = crypto.randomUUID();
+  const key = `${new Date().toISOString().slice(0, 10)}/${id}-${projectAssetKeyFilename(filename)}`;
+  const registration = await registerR2Asset(c.env, {
+      id,
+      objectKey: key,
+      originalName: filename,
+      mimeType: contentType,
+      byteSize: buffer.byteLength,
+      sha256,
+      actorEmail: c.get("userEmail"),
+      bytes: buffer,
+      findWinner: () => reusableProjectAsset(c.env, sha256),
+    }).catch((error: unknown) => {
+      if (error instanceof BlobRegistrationAuthorityUnavailableError) {
         throw new HTTPException(503, {
-          message: "Asset registration outcome could not be verified. Retry later.",
+          message: error.publicMessage,
         });
       }
-      if (resolution.outcome === "resolved") {
-        const payload = returnReusableProjectAsset(
-          resolution.asset,
-          filename,
-          contentType,
-          buffer.byteLength,
-          resolution.deduplicated,
-        );
-        return resolution.deduplicated
-          ? c.json(payload)
-          : c.json(payload, 201);
-      }
-      await c.env.ASSETS.delete(key);
-      if (resolution.error) throw resolution.error;
-      if (attempt === 1) throw error;
-    }
-  }
-  throw new HTTPException(409, { message: "Project attachment registration could not be reconciled" });
+      throw error;
+    });
+  const payload = returnReusableProjectAsset(
+    registration.asset,
+    filename,
+    contentType,
+    buffer.byteLength,
+    registration.deduplicated,
+  );
+  return registration.deduplicated
+    ? c.json(payload)
+    : c.json(payload, 201);
 });
 
 routes.get("/exports/all", async (c) => {

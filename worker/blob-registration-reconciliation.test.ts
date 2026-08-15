@@ -38,6 +38,7 @@ class FaultD1Statement {
   }
 
   async run() {
+    this.owner.beforeMutation(this.query);
     const result = this.statement().run(...this.bindings);
     const response = {
       success: true,
@@ -72,14 +73,33 @@ class FaultD1Database {
     readonly database: DatabaseSync,
     private readonly insertTarget: "assets" | "managed_storage_objects",
     private readonly failPrimaryAssetRead = false,
+    private readonly responseLossAt: "insert" | "promotion" = "promotion",
+    private readonly failBeforeInsert = false,
   ) {}
+
+  private insertionPattern() {
+    return this.insertTarget === "assets"
+      ? /INSERT\s+INTO\s+assets\s*\(/i
+      : /INSERT\s+INTO\s+managed_storage_objects\s*\(/i;
+  }
+
+  private promotionPattern() {
+    return this.insertTarget === "assets"
+      ? /UPDATE\s+assets\s+SET\s+status\s*=\s*'ready'/i
+      : /UPDATE\s+managed_storage_objects\s+SET\s+status\s*=\s*'ready'/i;
+  }
 
   prepare(query: string) {
     const normalized = query.replace(/\s+/g, " ");
     if (
       this.failPrimaryAssetRead
-      && normalized.includes(
-        "WHERE a.id = ? AND a.r2_key = ? AND a.sha256 = ?",
+      && (
+        normalized.includes(
+          "WHERE a.id = ? AND a.r2_key = ? AND a.sha256 = ?",
+        )
+        || normalized.includes(
+          "WHERE mso.id = ? AND mso.provider = ? AND mso.object_key = ?",
+        )
       )
     ) {
       throw new Error("injected persistent primary asset reconciliation failure");
@@ -91,14 +111,22 @@ class FaultD1Database {
     return this;
   }
 
+  beforeMutation(query: string) {
+    if (this.failBeforeInsert && this.insertionPattern().test(query)) {
+      throw new Error(`injected uncommitted ${this.insertTarget} INSERT failure`);
+    }
+  }
+
   afterMutation(query: string) {
     if (this.injected) return;
-    const pattern = this.insertTarget === "assets"
-      ? /INSERT\s+INTO\s+assets\s*\(/i
-      : /INSERT\s+INTO\s+managed_storage_objects\s*\(/i;
+    const pattern = this.responseLossAt === "insert"
+      ? this.insertionPattern()
+      : this.promotionPattern();
     if (!pattern.test(query)) return;
     this.injected = true;
-    throw new Error(`injected committed ${this.insertTarget} response loss`);
+    throw new Error(
+      `injected committed ${this.insertTarget} ${this.responseLossAt} response loss`,
+    );
   }
 
   async batch(statements: FaultD1Statement[]) {
@@ -188,7 +216,7 @@ afterEach(() => {
 });
 
 describe("uncertain blob registration reconciliation", () => {
-  it("keeps a committed Comment image and does not delete its own R2 key after response loss", async () => {
+  it("keeps a committed Comment image after its ready-promotion response is lost", async () => {
     const bytes = Uint8Array.from([137, 80, 78, 71, 31, 32, 33]);
     const database = databaseWithUpload("comment_image", bytes.byteLength);
     const stored = new Map<string, Uint8Array>();
@@ -328,6 +356,48 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
+
+  it("does not write provider bytes when metadata staging is uncommitted and primary authority is unavailable", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71, 101, 102, 103]);
+    const database = referenceTestDatabase();
+    const put = vi.fn();
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "assets",
+        true,
+        "promotion",
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {
+        put,
+        delete: vi.fn(),
+        head: vi.fn(async () => null),
+        get: vi.fn(async () => null),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/assets",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "image/png",
+          "x-filename": "uncommitted-primary-unavailable.png",
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(503);
+    expect(put).not.toHaveBeenCalled();
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM assets",
+    ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
   it("keeps a committed managed Comment attachment and does not delete its own provider key after response loss", async () => {
     const bytes = Uint8Array.from([41, 42, 43, 44, 45]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
@@ -440,7 +510,97 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
-  it("keeps a committed metrology reference asset after its INSERT response is lost", async () => {
+
+  it("returns 503 and preserves committed managed bytes when primary reconciliation is unavailable", async () => {
+    const bytes = Uint8Array.from([81, 82, 83, 84, 85]);
+    const sha256 = await sha256Hex(bytesBuffer(bytes));
+    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const stored = new Map<string, Uint8Array>();
+    const deletedUrls: string[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+      if (method === "MKCOL") return new Response(null, { status: 201 });
+      if (method === "PUT") {
+        const body = await new Response(init?.body as BodyInit).arrayBuffer();
+        stored.set(url, new Uint8Array(body));
+        return new Response(null, { status: 201 });
+      }
+      if (method === "HEAD") {
+        const value = stored.get(url);
+        return value
+          ? new Response(null, {
+              status: 200,
+              headers: {
+                "content-length": String(value.byteLength),
+                "content-type": "application/octet-stream",
+                etag: '"managed-authority-test"',
+              },
+            })
+          : new Response(null, { status: 404 });
+      }
+      if (method === "DELETE") {
+        deletedUrls.push(url);
+        stored.delete(url);
+        return new Response(null, { status: 204 });
+      }
+      throw new Error(`Unexpected SWITCHdrive method ${method}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "managed_storage_objects",
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {} as R2Bucket,
+      MANAGED_STORAGE_PROVIDER: "switchdrive",
+      SWITCHDRIVE_WEBDAV_URL:
+        "https://drive.switch.ch/remote.php/dav/files/test-user/",
+      SWITCHDRIVE_USERNAME: "test-user",
+      SWITCHDRIVE_APP_PASSWORD: "test-password",
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/octet-stream",
+          "x-upload-size": String(bytes.byteLength),
+          "x-content-sha256": sha256,
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(503);
+    expect(deletedUrls).toEqual([]);
+
+    const row = database.prepare(`
+      SELECT id, object_key, status, sha256
+      FROM managed_storage_objects
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `).get() as {
+      id: string;
+      object_key: string;
+      status: string;
+      sha256: string;
+    };
+    expect(row.status).toBe("ready");
+    expect(row.sha256).toBe(sha256);
+    const objectUrl = [
+      "https://drive.switch.ch/remote.php/dav/files/test-user",
+      "sample-fabrication-workflow",
+      ...row.object_key.split("/").map(encodeURIComponent),
+    ].join("/");
+    expect(stored.get(objectUrl)).toEqual(bytes);
+    database.close();
+  });
+
+  it("keeps a committed metrology reference asset after its ready-promotion response is lost", async () => {
     const bytes = Uint8Array.from([137, 80, 78, 71, 61, 62, 63, 64]);
     const database = referenceTestDatabase();
     seedReferenceGraph(database);
@@ -512,7 +672,7 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
-  it("keeps a committed Project upload after its INSERT response is lost", async () => {
+  it("keeps a committed Project upload after its ready-promotion response is lost", async () => {
     const bytes = Uint8Array.from([80, 68, 70, 71, 72, 73]);
     const database = referenceTestDatabase();
     const stored = new Map<string, Uint8Array>();

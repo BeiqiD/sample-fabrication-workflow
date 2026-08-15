@@ -100,9 +100,10 @@ export function managedObjectKey(
   sample?: { id: string; code: string },
 ) {
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-180) || "attachment";
+  const safeLocator = itemId.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-220) || crypto.randomUUID();
   const safeCode = sample?.code.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100) || "sample";
   const prefix = sample
     ? `samples/${safeCode}--${sample.id}/comment-attachments`
     : "shared-comment-attachments";
-  return `${prefix}/${submissionId}/${itemId}-${safeName}`;
+  return `${prefix}/${submissionId}/${safeLocator}-${safeName}`;
 }

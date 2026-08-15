@@ -641,4 +641,63 @@ describe("blob lifecycle migration safety", () => {
     `).get()).toEqual({ count: 6 });
     database.close();
   });
+  it("rejects FabuBlox publication when workbook or manifest identity is absent", () => {
+    const database = new DatabaseSync(":memory:");
+    applyMigrations(database, () => true);
+    database.exec(`
+      INSERT INTO recipe_families (id, name, template_type, created_at)
+      VALUES
+        ('null-family', 'Null provenance', 'process', '2026-07-01T00:00:00.000Z'),
+        ('empty-family', 'Empty provenance', 'process', '2026-07-01T00:00:00.000Z');
+
+      INSERT INTO template_versions (
+        id, recipe_family_id, name, template_type, version, manifest_hash,
+        content_json, created_at, template_kind
+      ) VALUES
+        ('null-template', 'null-family', 'Null template', 'process', 1,
+         'null-manifest', '{}', '2026-07-01T00:00:00.000Z', 'process'),
+        ('empty-template', 'empty-family', 'Empty template', 'process', 1,
+         'empty-manifest', '{}', '2026-07-01T00:00:00.000Z', 'process');
+
+      INSERT INTO imports (
+        id, status, source_filename, source_sha256, sheet_name, template_type,
+        recipe_family_id, template_version_id, workbook_asset_key,
+        manifest_asset_key, actor_email, created_at, operation_id,
+        lease_expires_at, finalization_id
+      ) VALUES
+        ('null-import', 'pending', 'null.zip', '${"1".repeat(64)}',
+         'manifest', 'process', 'null-family', 'null-template', NULL, NULL,
+         'test@example.com', '2026-07-01T00:00:00.000Z', 'null-operation',
+         '2026-09-01T00:00:00.000Z', NULL),
+        ('empty-import', 'pending', 'empty.zip', '${"2".repeat(64)}',
+         'manifest', 'process', 'empty-family', 'empty-template', '', '   ',
+         'test@example.com', '2026-07-01T00:00:00.000Z', 'empty-operation',
+         '2026-09-01T00:00:00.000Z', NULL);
+    `);
+
+    expect(() => database.exec(`
+      UPDATE imports
+      SET status = 'ready', finalization_id = 'null-finalization',
+          completed_at = '2026-08-20T00:00:00.000Z',
+          lease_expires_at = NULL
+      WHERE id = 'null-import';
+    `)).toThrow(/import assets are not publishable/);
+    expect(() => database.exec(`
+      UPDATE imports
+      SET status = 'ready', finalization_id = 'empty-finalization',
+          completed_at = '2026-08-20T00:00:00.000Z',
+          lease_expires_at = NULL
+      WHERE id = 'empty-import';
+    `)).toThrow(/import assets are not publishable/);
+    expect(database.prepare(`
+      SELECT id, status FROM imports
+      WHERE id IN ('null-import', 'empty-import')
+      ORDER BY id
+    `).all()).toEqual([
+      { id: "empty-import", status: "pending" },
+      { id: "null-import", status: "pending" },
+    ]);
+    database.close();
+  });
+
 });

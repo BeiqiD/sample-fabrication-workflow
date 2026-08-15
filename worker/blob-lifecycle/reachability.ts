@@ -34,7 +34,9 @@ function orphanInsertSql(storeKind: BlobLocator["storeKind"]) {
     : `managed_storage_objects b`;
   const provider = storeKind === "r2" ? `'r2'` : `b.provider`;
   const key = storeKind === "r2" ? `b.r2_key` : `b.object_key`;
-  const status = storeKind === "r2" ? `b.status = 'ready'` : `b.status IN ('ready', 'orphaned')`;
+  const status = storeKind === "r2"
+    ? `(b.status = 'ready' OR (b.status IN ('pending', 'failed') AND b.import_id IS NULL))`
+    : `b.status IN ('ready', 'orphaned', 'failed')`;
   return `INSERT INTO blob_gc_ledger (
       store_kind, provider, object_key, blob_record_id, state, operation_id,
       orphaned_at, deletion_started_at, deleted_at, attempt_count, last_error, updated_at
