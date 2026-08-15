@@ -171,6 +171,17 @@ END;
   );
 
   SELECT RAISE(ABORT, 'blob locator is unavailable')
+  WHERE NEW.asset_id IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM assets a
+      LEFT JOIN imports i ON i.id = a.import_id
+      WHERE a.id = NEW.asset_id
+        AND a.status = 'ready'
+        AND (a.import_id IS NULL OR i.status = 'ready')
+    );
+
+  SELECT RAISE(ABORT, 'blob locator is unavailable')
   WHERE (
     NEW.asset_id IS NOT NULL
     AND EXISTS (
@@ -186,7 +197,7 @@ END;
     NEW.storage_object_id IS NOT NULL
     AND EXISTS (
       SELECT 1
-      FROM managed_storage_objects mso
+      FROM manaed_storage_objects mso
       JOIN blob_gc_ledger bg
         ON bg.store_kind = 'managed'
        AND bg.provider = mso.provider
