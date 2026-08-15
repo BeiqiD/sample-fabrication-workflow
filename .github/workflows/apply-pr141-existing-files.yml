@@ -29,7 +29,8 @@ jobs:
       - name: Apply exact review patch
         run: |
           python .github/apply-pr141-existing-files.py
-          git checkout -- .github/apply-pr141-existing-files.py .github/workflows/apply-pr141-existing-files.yml
+          python .github/apply-pr141-gc-test.py
+          git checkout -- .github/apply-pr141-existing-files.py .github/apply-pr141-gc-test.py .github/workflows/apply-pr141-existing-files.yml
 
       - name: Install dependencies
         run: npm ci
