@@ -94,8 +94,8 @@ export async function queueFabubloxImportCleanup(
     `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
     // A state-image occurrence belongs to the state, not to the import that
     // originally registered the asset row. Remove it only when the state is
-    // exclusive to this partial template. Other templates, independent Run
-    // step/initial-state history, Sample inherited state, and explicit
+    // exclusive to this partial template. Other templates, every surviving
+    // Run step or Run initial state, Sample inherited state, and explicit
     // verification history retain the relationship regardless of asset origin.
     db.prepare(`
       DELETE FROM state_representation_assets
@@ -137,17 +137,7 @@ export async function queueFabubloxImportCleanup(
       AND NOT EXISTS (
         SELECT 1
         FROM run_steps rs
-        LEFT JOIN template_steps linked_step ON linked_step.id = rs.template_step_id
         WHERE rs.expected_state_hash = state_representation_assets.state_hash
-          AND (
-            rs.template_step_id IS NULL
-            OR linked_step.template_version_id IS NULL
-            OR linked_step.template_version_id <> (
-              SELECT template_version_id FROM imports
-              WHERE id = ? AND status = 'failed'
-                AND recovery_operation_id = ?
-            )
-          )
       )
       AND NOT EXISTS (
         SELECT 1
@@ -165,8 +155,6 @@ export async function queueFabubloxImportCleanup(
         WHERE sv.expected_state_hash = state_representation_assets.state_hash
       )
     `).bind(
-      input.importId,
-      recoveryOperationId,
       input.importId,
       recoveryOperationId,
       input.importId,
