@@ -2,8 +2,8 @@
 
 Status: implemented by the blob-lifecycle safety slice; remote activation requires the exact merged integration head to pass the v3 deployment gate
 
-Last reviewed: 2026-08-14 after provider-verified storage integrity and
-Project Markdown lifecycle wiring
+Last reviewed: 2026-08-15 after FabuBlox publication-boundary and
+through-0024 recovery hardening
 
 This document records how the normative
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) is implemented in the
@@ -47,8 +47,12 @@ The slice includes:
     legacy managed-object duplicate states;
 11. provider `HEAD`/`stat` verification before content-addressed reuse, with
     terminal integrity quarantine for definite absence or size mismatch;
-12. leased FabuBlox staging, primary-authoritative finalization recovery, and a
-    persistent GC queue for stale or failed import objects.
+12. leased FabuBlox staging, primary-authoritative finalization recovery,
+    owning-import publication guards across template, step, event, and asset
+    relationships, and a persistent GC queue for stale or failed import objects;
+13. through-0024 recovery for partial pending or failed imports, including Run
+    step-FK detachment, direct-key provenance cleanup, and release of exclusive
+    state edges that reused an already-ready standalone asset winner.
 
 The slice does not include:
 
@@ -77,7 +81,7 @@ retention semantics.
 
 ## Ordered migration set
 
-The implementation relies on five ordered migration positions around the
+The implementation relies on six ordered migration positions around the
 existing source-lifecycle work:
 
 ```text
@@ -86,6 +90,7 @@ existing source-lifecycle work:
 0016_blob_lifecycle_control.sql
 0017_blob_lifecycle_review_fixes.sql
 0024_blob_integrity_quarantine.sql
+0025_fabublox_publication_boundaries.sql
 ```
 
 Wrangler discovers migration files in deterministic order. The managed-object
@@ -165,10 +170,41 @@ FabuBlox assets remain `pending` while their owning import lease is active. The
 import request and finalization each have an immutable identity. A finalization
 error is followed by a primary D1 read before any cleanup decision: a committed
 matching finalization is returned as success, an unknown outcome leaves provider
-bytes untouched, and only an authoritatively pending matching operation can be
-moved to failed recovery. Failed/stale assets release their hash and enter
+bytes untouched, and only an authoritatively unfinished matching operation can
+be moved to failed recovery. Failed/stale assets release their hash and enter
 `blob_gc_ledger`; provider deletion is then retried by the ordinary operation-ID
 GC state machine rather than performed destructively in the request catch path.
+
+### `0025_fabublox_publication_boundaries.sql`
+
+This migration makes owning-import readiness an authoritative SQL boundary, not
+only an HTTP/service convention. It rejects new INSERT or relationship-changing
+UPDATE operations that would expose an unfinished import through:
+
+- `runs.template_version_id` and `run_plan_revisions.template_version_id`;
+- `run_steps.template_step_id` and
+  `run_step_plan_links.template_step_id`;
+- Recipe proposals, recipe-revision reference targets, and metrology template
+  references;
+- normalized asset relationships;
+- `events.asset_key` and `events.metadata_json.thumbnailKey` when the direct key
+  resolves to staged or failed asset metadata.
+
+Provider-only historical event keys remain compatible when no asset metadata row
+exists. A through-0024 fixture proves that the migration can be applied over
+legacy interrupted data and that subsequent recovery:
+
+1. claims either a stale pending import or a failed partial import without a
+   recovery identity;
+2. clears import/template/event direct-key provenance;
+3. deletes `run_step_plan_links` and nulls the nullable Run-step FK before
+   removing partial template steps;
+4. removes state-image relationships owned by failed assets;
+5. removes a reused standalone winner only when the state is exclusive to the
+   failed partial template, preserving shared templates, independent Run states,
+   and explicit verification history;
+6. releases failed asset hashes and persists every failed provider object in
+   `blob_gc_ledger`.
 
 ## Authoritative schema surfaces
 
@@ -225,9 +261,9 @@ provider key.
 
 - `assets.status` remains upload/registration readiness. FabuBlox registers
   new hash reservations as `pending`; an atomic import-status trigger promotes
-  them to `ready` only when the owning import commits `ready`. Ordinary delivery
-  and content-addressed reuse therefore reject staged bytes with a retryable
-  response until the import is complete.
+  them to `ready` only when the owning import commits `ready`. Ordinary delivery,
+  relationship creation, and content-addressed reuse therefore reject staged
+  bytes until both the asset and its owning import are ready.
 - `managed_storage_objects.status` remains a compatibility projection during
   this slice.
 - `blob_gc_ledger` is authoritative for cross-provider GC state.
@@ -341,8 +377,9 @@ authoritative boundaries:
 5. ordinary/live media delivery must exclude quarantined locators, while
    authenticated complete-export delivery remains readable for warning capture;
 6. source/occurrence and blob metadata must still be writable and ready;
-7. the relationship write succeeds;
-8. an unclaimed `orphaned` row is released atomically.
+7. an asset relationship additionally requires any owning import to be ready;
+8. the relationship write succeeds;
+9. an unclaimed `orphaned` row is released atomically.
 
 A definite missing or size-mismatched candidate is quarantined and skipped. The
 upload then registers the same bytes at a fresh locator. Content-addressed winner
@@ -353,7 +390,9 @@ server error.
 
 The checked-in cron calls the same GC service daily. Work is bounded to avoid
 unbounded D1 bindings, Worker duration, and provider pressure. A large backlog
-may require multiple runs.
+may require multiple runs. The FabuBlox reaper processes both expired pending
+leases and through-0024 failed partial imports that never received a durable
+recovery identity.
 
 ### Complete export
 
@@ -435,6 +474,8 @@ The suites cover:
 - malformed historical event metadata;
 - Sample-record thumbnails;
 - legacy managed orphan/ready duplicates;
+- through-0024 pending/failed FabuBlox data, missing publication guards, Run-step
+  FK recovery, event/direct provenance cleanup, and reused-winner release;
 - export warnings and integrity mismatches;
 - total permanent-delete blocker planning;
 - physical-delete rejection without cascade;
@@ -481,9 +522,10 @@ The following are outside this implementation and are tracked operationally in
 
 The blob-lifecycle slice completed in PR #123, and PR #124 corrected its
 D1/workerd migration compatibility. The storage-integrity maintenance slice now
-extends that foundation with provider-verified reuse and terminal quarantine.
-Feature-branch success still does not authorize a remote operation: the exact
-merged integration head must pass the full deployment gate.
+extends that foundation with provider-verified reuse, terminal quarantine, and
+owning-import publication/recovery boundaries. Feature-branch success still does
+not authorize a remote operation: the exact merged integration head must pass
+the full deployment gate.
 
 Reference identity, navigation, deterministic search, and the reusable Project
 discovery surface were subsequently completed through PR #130. This
