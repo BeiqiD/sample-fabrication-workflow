@@ -70,6 +70,56 @@ BEGIN
   SELECT RAISE(ABORT, 'template version is not published');
 END;
 
+CREATE TRIGGER run_steps_guard_unpublished_template_step_insert
+BEFORE INSERT ON run_steps
+WHEN NEW.template_step_id IS NOT NULL AND EXISTS (
+  SELECT 1
+  FROM template_steps ts
+  JOIN imports i ON i.template_version_id = ts.template_version_id
+  WHERE ts.id = NEW.template_step_id AND i.status <> 'ready'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'template version is not published');
+END;
+
+CREATE TRIGGER run_steps_guard_unpublished_template_step_update
+BEFORE UPDATE OF template_step_id ON run_steps
+WHEN NEW.template_step_id IS NOT NULL
+  AND NEW.template_step_id IS NOT OLD.template_step_id
+  AND EXISTS (
+    SELECT 1
+    FROM template_steps ts
+    JOIN imports i ON i.template_version_id = ts.template_version_id
+    WHERE ts.id = NEW.template_step_id AND i.status <> 'ready'
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'template version is not published');
+END;
+
+CREATE TRIGGER run_step_plan_links_guard_unpublished_template_step_insert
+BEFORE INSERT ON run_step_plan_links
+WHEN EXISTS (
+  SELECT 1
+  FROM template_steps ts
+  JOIN imports i ON i.template_version_id = ts.template_version_id
+  WHERE ts.id = NEW.template_step_id AND i.status <> 'ready'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'template version is not published');
+END;
+
+CREATE TRIGGER run_step_plan_links_guard_unpublished_template_step_update
+BEFORE UPDATE OF template_step_id ON run_step_plan_links
+WHEN NEW.template_step_id IS NOT OLD.template_step_id AND EXISTS (
+  SELECT 1
+  FROM template_steps ts
+  JOIN imports i ON i.template_version_id = ts.template_version_id
+  WHERE ts.id = NEW.template_step_id AND i.status <> 'ready'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'template version is not published');
+END;
+
 CREATE TRIGGER recipe_change_proposals_guard_unpublished_template_insert
 BEFORE INSERT ON recipe_change_proposals
 WHEN EXISTS (
@@ -98,6 +148,83 @@ WHEN NEW.target_type = 'recipe_revision' AND EXISTS (
 )
 BEGIN
   SELECT RAISE(ABORT, 'template version is not published');
+END;
+
+-- Direct timeline keys are legacy asset relationships. Preserve compatibility
+-- with provider-only keys, but reject a key that resolves to staged or failed
+-- asset metadata, including a ready asset whose owning import is not ready.
+CREATE TRIGGER events_guard_asset_publication_insert
+BEFORE INSERT ON events
+WHEN NEW.asset_key IS NOT NULL AND NEW.asset_key <> '' AND EXISTS (
+  SELECT 1
+  FROM assets a
+  LEFT JOIN imports i ON i.id = a.import_id
+  WHERE a.r2_key = NEW.asset_key AND (
+    a.status <> 'ready'
+    OR (a.import_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'ready'))
+  )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'asset owning import is not ready');
+END;
+
+CREATE TRIGGER events_guard_asset_publication_update
+BEFORE UPDATE OF asset_key ON events
+WHEN NEW.asset_key IS NOT OLD.asset_key
+  AND NEW.asset_key IS NOT NULL AND NEW.asset_key <> '' AND EXISTS (
+    SELECT 1
+    FROM assets a
+    LEFT JOIN imports i ON i.id = a.import_id
+    WHERE a.r2_key = NEW.asset_key AND (
+      a.status <> 'ready'
+      OR (a.import_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'ready'))
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'asset owning import is not ready');
+END;
+
+CREATE TRIGGER events_guard_thumbnail_publication_insert
+BEFORE INSERT ON events
+WHEN json_valid(NEW.metadata_json)
+  AND typeof(json_extract(NEW.metadata_json, '$.thumbnailKey')) = 'text'
+  AND NULLIF(TRIM(CAST(json_extract(NEW.metadata_json, '$.thumbnailKey') AS TEXT)), '') IS NOT NULL
+  AND EXISTS (
+    SELECT 1
+    FROM assets a
+    LEFT JOIN imports i ON i.id = a.import_id
+    WHERE a.r2_key = CAST(json_extract(NEW.metadata_json, '$.thumbnailKey') AS TEXT)
+      AND (
+        a.status <> 'ready'
+        OR (a.import_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'ready'))
+      )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'asset owning import is not ready');
+END;
+
+CREATE TRIGGER events_guard_thumbnail_publication_update
+BEFORE UPDATE OF metadata_json ON events
+WHEN CAST(CASE WHEN json_valid(NEW.metadata_json)
+               THEN json_extract(NEW.metadata_json, '$.thumbnailKey') END AS TEXT)
+     IS NOT
+     CAST(CASE WHEN json_valid(OLD.metadata_json)
+               THEN json_extract(OLD.metadata_json, '$.thumbnailKey') END AS TEXT)
+  AND json_valid(NEW.metadata_json)
+  AND typeof(json_extract(NEW.metadata_json, '$.thumbnailKey')) = 'text'
+  AND NULLIF(TRIM(CAST(json_extract(NEW.metadata_json, '$.thumbnailKey') AS TEXT)), '') IS NOT NULL
+  AND EXISTS (
+    SELECT 1
+    FROM assets a
+    LEFT JOIN imports i ON i.id = a.import_id
+    WHERE a.r2_key = CAST(json_extract(NEW.metadata_json, '$.thumbnailKey') AS TEXT)
+      AND (
+        a.status <> 'ready'
+        OR (a.import_id IS NOT NULL AND (i.id IS NULL OR i.status <> 'ready'))
+      )
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'asset owning import is not ready');
 END;
 
 -- Every R2 relationship must bind a ready asset whose owning import is also
