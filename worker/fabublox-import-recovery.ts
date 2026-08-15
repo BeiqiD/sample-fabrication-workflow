@@ -225,14 +225,37 @@ export async function queueFabubloxImportCleanup(
           AND recovery_operation_id = ?
       )
     `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
+    // A prior interrupted cleanup may already have marked a now-reachable
+    // locator orphaned. Release only the unclaimed ledger state before
+    // re-homing; deleting/deleted claims remain terminal and cannot be revived.
+    db.prepare(`
+      DELETE FROM blob_gc_ledger
+      WHERE store_kind = 'r2' AND provider = 'r2' AND state = 'orphaned'
+        AND object_key IN (
+          SELECT a.r2_key
+          FROM assets a
+          WHERE a.import_id = ? AND a.status IN ('pending', 'ready')
+            AND EXISTS (
+              SELECT 1 FROM imports i
+              WHERE i.id = ? AND i.status = 'failed'
+                AND i.recovery_operation_id = ?
+            )
+            AND EXISTS (
+              SELECT 1 FROM blob_retention_edges bre
+              WHERE bre.store_kind = 'r2' AND bre.provider = 'r2'
+                AND bre.object_key = a.r2_key
+            )
+        )
+    `).bind(input.importId, input.importId, recoveryOperationId),
     // The asset row may have originated in this import and later become the
     // canonical winner for another source. Once import-owned provenance and
     // exclusive state edges are gone, the shared retention view is the sole
-    // authority: any still-reachable asset is re-homed as standalone before
-    // the failed import can release it. Keep its readiness and content hash.
+    // authority: any still-reachable asset becomes a ready standalone winner
+    // before the failed import can release it. This also publishes a legacy
+    // pending asset that already has an independent durable occurrence.
     db.prepare(`
       UPDATE assets
-      SET import_id = NULL
+      SET import_id = NULL, status = 'ready'
       WHERE import_id = ? AND status IN ('pending', 'ready')
         AND EXISTS (
           SELECT 1 FROM imports i
@@ -311,8 +334,8 @@ export async function queueFabubloxImportCleanup(
     ),
     templateStepsRemoved: Number(results[5].meta.changes ?? 0),
     templatesQuarantined: Number(results[6].meta.changes ?? 0),
-    assetsReleased: Number(results[8].meta.changes ?? 0),
-    objectsQueued: Number(results[9].meta.changes ?? 0),
+    assetsReleased: Number(results[9].meta.changes ?? 0),
+    objectsQueued: Number(results[10].meta.changes ?? 0),
   };
 }
 
