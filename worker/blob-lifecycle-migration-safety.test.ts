@@ -445,7 +445,7 @@ describe("blob lifecycle migration safety", () => {
           'sample-state.png', 'image/png', 12, 'ready', '${"c".repeat(64)}',
           '2026-07-01T00:00:00.000Z'),
         ('event-asset-a', 'failed-import-a', 'imports/a/event.png',
-          'event.png', 'image/png', 13, 'ready', '${"d".repeat(64)}',
+          'event.png', 'image/png', 13, 'pending', '${"d".repeat(64)}',
           '2026-07-01T00:00:00.000Z');
 
       INSERT INTO state_representation_assets (state_hash, asset_id, position)
@@ -483,6 +483,16 @@ describe("blob lifecycle migration safety", () => {
         ('durable-event-thumbnail', 'event-sample', 'image', NULL,
           '{"thumbnailKey":"imports/a/event.png"}',
           '2026-07-01T04:00:00.000Z');
+
+      INSERT INTO blob_gc_ledger (
+        store_kind, provider, object_key, blob_record_id, state, operation_id,
+        orphaned_at, deletion_started_at, deleted_at,
+        attempt_count, last_error, updated_at
+      ) VALUES (
+        'r2', 'r2', 'imports/a/event.png', 'event-asset-a', 'orphaned',
+        'stale-recovery-operation', '2026-07-02T00:00:00.000Z',
+        NULL, NULL, 0, NULL, '2026-07-02T00:00:00.000Z'
+      );
     `);
 
     expect(() => database.exec(readFileSync(
