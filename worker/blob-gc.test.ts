@@ -94,7 +94,43 @@ function envFor(
   return {
     AUTH_MODE: "disabled",
     DB: new SqliteD1Database(database, options.beforeBatch, options.beforeExecute),
-    ASSETS: { delete: assetDelete, put: options.assetPut ?? vi.fn(async () => undefined) },
+    ASSETS: {
+      delete: assetDelete,
+      put: options.assetPut ?? vi.fn(async () => undefined),
+      head: async (key: string) => {
+        const row = database.prepare(`
+          SELECT byte_size FROM assets WHERE r2_key = ?
+        `).get(key) as { byte_size: number } | undefined;
+        if (!row) return null;
+        return {
+          size: Number(row.byte_size),
+          httpEtag: '"blob-gc-test"',
+          writeHttpMetadata(headers: Headers) {
+            headers.set("content-type", "application/octet-stream");
+          },
+        };
+      },
+      get: async (key: string) => {
+        const row = database.prepare(`
+          SELECT byte_size FROM assets WHERE r2_key = ?
+        `).get(key) as { byte_size: number } | undefined;
+        if (!row) return null;
+        const bytes = new Uint8Array(Number(row.byte_size));
+        return {
+          body: new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(bytes);
+              controller.close();
+            },
+          }),
+          size: bytes.byteLength,
+          httpEtag: '"blob-gc-test"',
+          writeHttpMetadata(headers: Headers) {
+            headers.set("content-type", "application/octet-stream");
+          },
+        };
+      },
+    },
     MANAGED_STORAGE_PROVIDER: "switchdrive",
     SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/test-user/",
     SWITCHDRIVE_USERNAME: "test-user",

@@ -567,3 +567,9 @@ Project sequence; those are governed exclusively by
 Every future Project attachment must extend the existing retention, export,
 edge-guard, blocker, and test surfaces rather than introducing a parallel blob
 lifecycle.
+
+## 0026 recovery ownership projection
+
+`0026_fabublox_recovery_ownership.sql` deliberately leaves the generic GC view unchanged and adds recovery-only projections for publication and private ownership succession. Recovery performs provider preflight before claiming the import, then atomically cleans failed-import provenance, repairs legacy metadata, transfers private ownership when necessary, and queues only genuinely unowned locators.
+
+Ordinary `/assets` registration uses the same exact-outcome principle: after an uncertain INSERT response it first reconciles its stable `id` and R2 key on the primary database. It deletes the uploaded key only after proving that a different canonical winner committed.

@@ -410,3 +410,13 @@ product phase order.
 Every future Project attachment occurrence must add an ordinary branch to
 `blob_retention_edges`, guarded edge-creation tests, export occurrence mapping,
 and permanent-delete blockers before deployment.
+
+## FabuBlox recovery diagnostics
+
+Recovery now separates three signals:
+
+1. `blob_retention_edges` prevents physical deletion;
+2. `fabublox_recovery_public_asset_edges` permits public standalone ownership;
+3. `fabublox_recovery_import_asset_edges` identifies the next unresolved private owner.
+
+A provider outage increments `staleImportRecoveryFailures` without claiming the import. Definite absence or size mismatch writes `blob_integrity_quarantine`; live delivery remains blocked while export retains the warning and historical metadata. A pending successor that inherits an unavailable asset cannot finalize because `imports_require_publishable_assets` rejects the transition to `ready`.

@@ -19,6 +19,34 @@ function applyMigrations(
   }
 }
 
+function migrationRecoveryEnv(database: DatabaseSync) {
+  const head = async (key: string) => {
+    const row = database.prepare(`
+      SELECT byte_size FROM assets WHERE r2_key = ?
+    `).get(key) as { byte_size: number } | undefined;
+    if (!row) return null;
+    return {
+      size: Number(row.byte_size),
+      httpEtag: '"migration-recovery"',
+      writeHttpMetadata(headers: Headers) {
+        headers.set("content-type", "application/octet-stream");
+      },
+    };
+  };
+  return {
+    AUTH_MODE: "disabled",
+    DB: new SqliteD1Database(database) as unknown as D1Database,
+    ASSETS: {
+      head,
+      get: async () => null,
+      delete: async () => undefined,
+      put: async () => undefined,
+      list: async () => ({ objects: [], truncated: false }),
+    } as unknown as R2Bucket,
+  } satisfies Env;
+}
+
+
 describe("blob lifecycle migration safety", () => {
   it("applies thumbnail retention over malformed legacy event metadata", () => {
     const database = new DatabaseSync(":memory:");
@@ -200,10 +228,10 @@ describe("blob lifecycle migration safety", () => {
           '2026-07-01T03:00:00.000Z');
     `);
 
-    expect(() => database.exec(readFileSync(
-      new URL("0025_fabublox_publication_boundaries.sql", migrationDirectory),
-      "utf8",
-    ))).not.toThrow();
+    expect(() => applyMigrations(
+      database,
+      (name) => name > "0024_blob_integrity_quarantine.sql",
+    )).not.toThrow();
 
     expect(() => database.exec(`
       INSERT INTO run_steps
@@ -256,7 +284,7 @@ describe("blob lifecycle migration safety", () => {
       WHERE id = 'clean-event-thumbnail';
     `)).toThrow(/asset owning import is not ready/);
 
-    const env = { DB: new SqliteD1Database(database) } as unknown as Env;
+    const env = migrationRecoveryEnv(database);
     const recovery = await reapStaleFabubloxImports(
       env,
       new Date("2026-08-20T00:00:00.000Z"),
@@ -514,12 +542,12 @@ describe("blob lifecycle migration safety", () => {
       );
     `);
 
-    expect(() => database.exec(readFileSync(
-      new URL("0025_fabublox_publication_boundaries.sql", migrationDirectory),
-      "utf8",
-    ))).not.toThrow();
+    expect(() => applyMigrations(
+      database,
+      (name) => name > "0024_blob_integrity_quarantine.sql",
+    )).not.toThrow();
 
-    const env = { DB: new SqliteD1Database(database) } as unknown as Env;
+    const env = migrationRecoveryEnv(database);
     const recovery = await reapStaleFabubloxImports(
       env,
       new Date("2026-08-20T00:00:00.000Z"),

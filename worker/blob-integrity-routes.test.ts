@@ -78,7 +78,13 @@ class HookedD1Statement {
       return { success: true, results: statement.all(...this.bindings), meta: { changes: 0 } };
     }
     const result = statement.run(...this.bindings);
-    return { success: true, results: [], meta: { changes: Number(result.changes) } };
+    const response = {
+      success: true,
+      results: [],
+      meta: { changes: Number(result.changes) },
+    };
+    this.owner.afterExecute?.(this.sql, this.bindings, response);
+    return response;
   }
 }
 
@@ -88,6 +94,11 @@ class HookedD1Database {
     readonly beforeExecute?: (query: string, bindings: unknown[]) => void,
     readonly beforeBatch?: (statements: HookedD1Statement[]) => Promise<void> | void,
     readonly afterBatch?: (statements: HookedD1Statement[]) => Promise<void> | void,
+    readonly afterExecute?: (
+      query: string,
+      bindings: unknown[],
+      response: { success: boolean; results: unknown[]; meta: { changes: number } },
+    ) => void,
   ) {}
 
   prepare(sql: string) {
@@ -1034,4 +1045,93 @@ describe("FabuBlox storage winner recovery", () => {
     database.close();
   });
 
+});
+
+describe("ordinary asset registration reconciliation", () => {
+  it("keeps its own committed upload when the D1 INSERT response is lost", async () => {
+    const database = referenceTestDatabase();
+    const bytes = Uint8Array.from([137, 80, 78, 71, 21, 22, 23, 24]);
+    const stored = new Map<string, Uint8Array>();
+    const deletedKeys: string[] = [];
+    let lostResponseInjected = false;
+    const d1 = new HookedD1Database(
+      database,
+      undefined,
+      undefined,
+      undefined,
+      (query) => {
+        if (!lostResponseInjected
+          && query.includes("INSERT INTO assets (id, r2_key")) {
+          lostResponseInjected = true;
+          throw new Error("injected committed asset INSERT response loss");
+        }
+      },
+    );
+    const put = vi.fn(async (key: string, value: unknown) => {
+      if (!(value instanceof ArrayBuffer)) {
+        throw new Error("Expected an ArrayBuffer upload");
+      }
+      stored.set(key, new Uint8Array(value.slice(0)));
+    });
+    const remove = vi.fn(async (key: string) => {
+      deletedKeys.push(key);
+      stored.delete(key);
+    });
+    const head = vi.fn(async (key: string) => {
+      const value = stored.get(key);
+      return value ? r2Object(value, "image/png") : null;
+    });
+    const get = vi.fn(async (key: string) => {
+      const value = stored.get(key);
+      return value ? r2Object(value, "image/png") : null;
+    });
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: d1 as unknown as D1Database,
+      ASSETS: {
+        put,
+        delete: remove,
+        head,
+        get,
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/assets",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "image/png",
+          "x-filename": "committed.png",
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+    expect(response.status).toBe(201);
+    const registered = await response.json() as {
+      id: string;
+      key: string;
+      deduplicated: boolean;
+    };
+    expect(registered.deduplicated).toBe(false);
+    expect(lostResponseInjected).toBe(true);
+    expect(deletedKeys).not.toContain(registered.key);
+    expect(stored.get(registered.key)).toEqual(bytes);
+    expect(database.prepare(`
+      SELECT id, r2_key, status
+      FROM assets WHERE id = ?
+    `).get(registered.id)).toEqual({
+      id: registered.id,
+      r2_key: registered.key,
+      status: "ready",
+    });
+
+    const live = await worker.fetch(new Request(
+      `https://app.test/api/assets/${registered.key}`,
+    ), env, executionContext);
+    expect(live.status).toBe(200);
+    expect(new Uint8Array(await live.arrayBuffer())).toEqual(bytes);
+    database.close();
+  });
 });

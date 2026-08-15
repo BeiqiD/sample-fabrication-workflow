@@ -580,3 +580,17 @@ Map-first Project sequence and Reading behavior are governed exclusively by
 [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 This normative storage contract applies unchanged regardless of product order.
+
+## Recovery publication and ownership boundary
+
+`blob_retention_edges` answers only whether a physical locator must be retained. It is not an authorization or publication surface. FabuBlox recovery uses the dedicated `fabublox_recovery_public_asset_edges` and `fabublox_recovery_import_asset_edges` projections installed by `0026_fabublox_recovery_ownership.sql`.
+
+For an asset whose owning import becomes terminal:
+
+- an independently public consumer permits provider-verified re-homing as a standalone `ready` asset;
+- an unresolved pending import inherits ownership and the asset remains `pending` and non-public;
+- an unresolved failed import may inherit terminal ownership so its later recovery remains responsible for cleanup;
+- no viable consumer releases the asset to `failed` and operation-ID GC;
+- a missing or size-mismatched provider object is quarantined and never promoted solely because a retention edge exists.
+
+R2 verification occurs before the durable recovery claim. A transient provider failure therefore leaves `recovery_operation_id` unset and the whole operation retryable. A legacy `failed` asset whose SHA was cleared is read from R2, re-hashed, and assigned the provider byte size before any transition to `pending` or `ready`.

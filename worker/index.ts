@@ -4736,6 +4736,34 @@ app.post("/assets", async (c) => {
       ).bind(id, key, filename, contentType, buffer.byteLength, c.get("userEmail"), now, sha256).run();
       return c.json({ id, key, deduplicated: false }, 201);
     } catch (error) {
+      // The INSERT may have committed even when D1 lost the response. Reconcile
+      // the exact stable ID/key on the primary before treating another row as a
+      // deduplication winner or deleting the uploaded provider object.
+      const committed = await primaryD1(c.env.DB).prepare(`
+        SELECT a.id, a.r2_key
+        FROM assets a
+        WHERE a.id = ? AND a.r2_key = ? AND a.sha256 = ?
+          AND a.status = 'ready' AND a.import_id IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM blob_integrity_quarantine biq
+            WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+              AND biq.object_key = a.r2_key
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM blob_gc_ledger bg
+            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+              AND bg.object_key = a.r2_key
+              AND bg.state IN ('deleting', 'deleted')
+          )
+      `).bind(id, key, sha256).first<{ id: string; r2_key: string }>();
+      if (committed) {
+        return c.json({
+          id: committed.id,
+          key: committed.r2_key,
+          deduplicated: false,
+        }, 201);
+      }
+
       let winner;
       try {
         winner = await reusableR2Asset(c.env, sha256);
