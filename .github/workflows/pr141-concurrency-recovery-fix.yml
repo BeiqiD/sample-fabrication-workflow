@@ -32,7 +32,8 @@ jobs:
           python scripts/pr141-concurrency-recovery-fix.py
           for script in \
             scripts/pr141-concurrency-recovery-fix-round2.py \
-            scripts/pr141-concurrency-recovery-fix-round3.py
+            scripts/pr141-concurrency-recovery-fix-round3.py \
+            scripts/pr141-concurrency-recovery-fix-round4.py
           do
             if test -f "$script"; then
               python "$script"
@@ -41,7 +42,8 @@ jobs:
           rm scripts/pr141-concurrency-recovery-fix.py
           rm -f \
             scripts/pr141-concurrency-recovery-fix-round2.py \
-            scripts/pr141-concurrency-recovery-fix-round3.py
+            scripts/pr141-concurrency-recovery-fix-round3.py \
+            scripts/pr141-concurrency-recovery-fix-round4.py
           rm .github/workflows/pr141-concurrency-recovery-fix.yml
           git diff --check
       - name: Install dependencies
