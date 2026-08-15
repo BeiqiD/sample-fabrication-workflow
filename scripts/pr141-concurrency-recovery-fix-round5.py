@@ -28,3 +28,9 @@ replace_once(
   );
 ''',
 )
+
+replace_once(
+    "migrations/0028_blob_registration_and_recovery_reconciliation.sql",
+    "manaed_storage_objects",
+    "managed_storage_objects",
+)
