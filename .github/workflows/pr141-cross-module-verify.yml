@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "18a1aea89be483c196fb1d0291587a435ed00f9c"
+          test "$(git rev-parse HEAD^)" = "4d15d759e8076bd3155397c357e99929e2f04b1c"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Download the already-verified product tree
@@ -65,23 +65,23 @@ jobs:
             .github/workflows/pr141-cross-module-verify.yml
 
           git diff --check
-          test "$(git diff --name-only | sort)" = "$(cat <<'EOF'
-.github/pr141-cross-module-fixes-v2.py
-.github/pr141-cross-module-fixes-v3.py
-.github/pr141-cross-module-fixes-v4.py
-.github/pr141-cross-module-fixes-v5.py
-.github/pr141-cross-module-fixes-v6.py
-.github/pr141-cross-module-fixes.py
-.github/workflows/pr141-cross-module-verify.yml
-docs/BLOB_LIFECYCLE_CONTRACT.md
-migrations/0029_supersession_timeline_projection.sql
-worker/blob-registration-reconciliation.test.ts
-worker/comment-submission-routes.ts
-worker/reference-routes.ts
-worker/references/adapters.ts
-worker/supersession-cross-module.test.ts
-EOF
-)"
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            '.github/pr141-cross-module-fixes-v2.py' \
+            '.github/pr141-cross-module-fixes-v3.py' \
+            '.github/pr141-cross-module-fixes-v4.py' \
+            '.github/pr141-cross-module-fixes-v5.py' \
+            '.github/pr141-cross-module-fixes-v6.py' \
+            '.github/pr141-cross-module-fixes.py' \
+            '.github/workflows/pr141-cross-module-verify.yml' \
+            'docs/BLOB_LIFECYCLE_CONTRACT.md' \
+            'migrations/0029_supersession_timeline_projection.sql' \
+            'worker/blob-registration-reconciliation.test.ts' \
+            'worker/comment-submission-routes.ts' \
+            'worker/reference-routes.ts' \
+            'worker/references/adapters.ts' \
+            'worker/supersession-cross-module.test.ts')"
+          test "$actual" = "$expected"
 
       - name: Commit and push verified product tree
         shell: bash
