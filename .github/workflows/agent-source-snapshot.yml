@@ -6,7 +6,7 @@ on:
       - agent/comment-markdown-rendering
     paths:
       - .github/workflows/agent-source-snapshot.yml
-      - .agent/comment-rich-text.patch.gz.b64
+      - .agent/comment-rich-text.patch.part.*
 
 permissions:
   contents: write
@@ -25,14 +25,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Apply the reviewed source patch
+      - name: Reassemble and apply the reviewed source patch
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode .agent/comment-rich-text.patch.gz.b64 | gzip --decompress > /tmp/comment-rich-text.patch
+          cat .agent/comment-rich-text.patch.part.* > /tmp/comment-rich-text.patch.gz.b64
+          echo "2505177e079c1f9bcd9553ef7659bec8f0d6a3597099428372d1af4f312e5225  /tmp/comment-rich-text.patch.gz.b64" | sha256sum --check
+          base64 --decode /tmp/comment-rich-text.patch.gz.b64 | gzip --decompress > /tmp/comment-rich-text.patch
+          echo "bb443506b260e8792bc1bb91610d0e858bebe063106b4a8c56eb0fca117ddd2c  /tmp/comment-rich-text.patch" | sha256sum --check
           git apply --check /tmp/comment-rich-text.patch
           git apply /tmp/comment-rich-text.patch
-          rm -f .agent/comment-rich-text.patch.gz.b64
+          rm -f .agent/comment-rich-text.patch.gz.b64 .agent/comment-rich-text.patch.part.*
           rmdir .agent 2>/dev/null || true
           rm -f .github/workflows/agent-source-snapshot.yml
           git diff --check
