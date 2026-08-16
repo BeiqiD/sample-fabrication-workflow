@@ -199,7 +199,11 @@ export function ProjectPage() {
   const [loadError, setLoadError] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [navigationFocusItemId, setNavigationFocusItemId] = useState<string | null>(null);
-  const [stableLinkCopyState, setStableLinkCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [stableLinkCopyState, setStableLinkCopyState] = useState<{
+    projectId: string;
+    itemId: string;
+    status: "copied" | "error";
+  } | null>(null);
   const [geometry, setGeometry] = useState<Record<string, ProjectMapGeometry>>({});
   const [undoStack, setUndoStack] = useState<ProjectSessionHistoryCommand[]>([]);
   const [redoStack, setRedoStack] = useState<ProjectSessionHistoryCommand[]>([]);
@@ -254,6 +258,7 @@ export function ProjectPage() {
   const projectDeletionNavigationRequestedRef = useRef(false);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
   const appliedFocusRef = useRef<string | null>(null);
+  const stableLinkCopyGenerationRef = useRef(0);
 
   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
     pendingReferenceRef.current = next;
@@ -566,6 +571,7 @@ export function ProjectPage() {
       referenceInsertionGenerationRef.current += 1;
       referenceRemovalGenerationRef.current += 1;
       ownedContentGenerationRef.current += 1;
+      stableLinkCopyGenerationRef.current += 1;
       navigationSaveRequestedRef.current = false;
       referenceNavigationRequestedRef.current = false;
       saveAgainRef.current = false;
@@ -1742,24 +1748,41 @@ export function ProjectPage() {
   }, [descriptors, focusRequest, location.search, projectId, selectProjectItem, snapshot]);
 
   useEffect(() => {
-    setStableLinkCopyState("idle");
-  }, [selectedItemId]);
+    stableLinkCopyGenerationRef.current += 1;
+    setStableLinkCopyState(null);
+  }, [projectId, selectedItemId]);
 
   const copySelectedItemLink = useCallback(async () => {
     if (!selected) return;
-    setStableLinkCopyState("idle");
+    const requestProjectId = projectId;
+    const itemId = selected.itemId;
+    const generation = stableLinkCopyGenerationRef.current + 1;
+    stableLinkCopyGenerationRef.current = generation;
+    setStableLinkCopyState(null);
+    const requestIsCurrent = () => (
+      pageActiveRef.current
+      && stableLinkCopyGenerationRef.current === generation
+      && projectIdRef.current === requestProjectId
+    );
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
       await navigator.clipboard.writeText(projectItemFocusAbsoluteUrl(
         window.location.origin,
         location.pathname,
-        selected.itemId,
+        itemId,
       ));
-      setStableLinkCopyState("copied");
+      if (!requestIsCurrent()) return;
+      setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "copied" });
     } catch {
-      setStableLinkCopyState("error");
+      if (!requestIsCurrent()) return;
+      setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "error" });
     }
-  }, [location.pathname, selected]);
+  }, [location.pathname, projectId, selected]);
+
+  const selectedStableLinkCopyStatus = stableLinkCopyState?.projectId === projectId
+    && stableLinkCopyState.itemId === selectedItemId
+    ? stableLinkCopyState.status
+    : "idle";
 
   const removeSelectedReference = useCallback(() => {
     if (!snapshot || !selectedItem || selectedItem.itemType !== "reference"
@@ -2141,9 +2164,9 @@ export function ProjectPage() {
             <dt>Size</dt><dd>{Math.round(selected.geometry.width)} × {Math.round(selected.geometry.height)}</dd>
           </dl>
           <button type="button" className="button wide" onClick={() => void copySelectedItemLink()}>
-            {stableLinkCopyState === "copied" ? "Stable link copied" : "Copy stable link"}
+            {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
           </button>
-          {stableLinkCopyState === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
+          {selectedStableLinkCopyStatus === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
           {selected.openReferenceUrl && <Link className="button wide" to={selected.openReferenceUrl}>Open reference</Link>}
           {selected.fileUrl && <a className="button wide" href={selected.fileUrl}>Open attachment</a>}
           {selected.kind === "markdown" && <button
