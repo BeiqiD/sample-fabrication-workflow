@@ -3,6 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1748,7 +1749,7 @@ export function ProjectPage() {
     setNavigationFocusItemId(target.itemId);
   }, [descriptors, focusRequest, location.search, projectId, selectProjectItem, snapshot]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     stableLinkCopyGenerationRef.current += 1;
     setStableLinkCopyState(null);
   }, [projectId, selectedItemId]);
