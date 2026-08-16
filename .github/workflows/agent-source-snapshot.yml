@@ -45,6 +45,16 @@ jobs:
           echo "bb443506b260e8792bc1bb91610d0e858bebe063106b4a8c56eb0fca117ddd2c  /tmp/comment-rich-text.patch" | sha256sum --check
           git apply --check /tmp/comment-rich-text.patch
           git apply /tmp/comment-rich-text.patch
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/lib/rich-text.ts")
+          source = path.read_text()
+          before = "function linkAttributes(link: SafeRichTextUrl, title: string | null) {"
+          after = "function linkAttributes(link: SafeRichTextUrl, title: string | null | undefined) {"
+          if before not in source:
+              raise SystemExit("expected rich-text helper signature was not found")
+          path.write_text(source.replace(before, after, 1))
+          PY
           rm -f .agent/comment-rich-text.patch.gz.b64 .agent/comment-rich-text.patch.part.*
           rmdir .agent 2>/dev/null || true
           rm -f .github/workflows/agent-source-snapshot.yml
