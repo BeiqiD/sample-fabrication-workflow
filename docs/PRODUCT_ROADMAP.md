@@ -7,8 +7,8 @@ Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
 reference placement in PR #134, Project-owned content in PR #135, edges in PR
 #136, Reading in PR #138, Project stability in PRs #139/#140, storage integrity
 and recovery in PR #141, Phase 3D rich content/export plus the shared
-Project/Comment renderer in PRs #143/#144, and Phase 4A1 canonical Project
-occurrence focus in PR #145
+Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
+occurrence focus in PR #145, and Phase 4A2 Inspector completeness in PR #146
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -179,10 +179,11 @@ integrity/recovery track in PR #141 are also complete. Phase 3D Markdown/TeX,
 mixed-media presentation, save/conflict behavior, and human-readable export are
 complete in PR #143, with the shared safe renderer extended to Comment read
 surfaces in PR #144. Phase 4A1 canonical Project occurrence focus is complete in
-PR #145. Phase 4A2 Inspector hierarchy, provenance, and type-specific detail is
-now the active bounded slice. Storage, lifecycle, Reference, and rich-content foundations
-return to correctness maintenance rather than continuing as independent feature
-tracks.
+PR #145, and Phase 4A2 Inspector hierarchy, provenance, type-specific detail, and
+exact source navigation are complete in PR #146. Phase 4A3 authoritative child-
+reference insertion is now the active bounded slice. Storage, lifecycle, Reference,
+and rich-content foundations return to correctness maintenance rather than continuing
+as independent feature tracks.
 
 ## Active implementation roadmap
 
@@ -429,7 +430,7 @@ feature freeze.
 
 #### Phase 4A — Inspector and navigation completeness
 
-**Status:** active; Phase 4A1 is complete in PR #145 and Phase 4A2 hierarchy/provenance is active.
+**Status:** active; Phase 4A1 is complete in PR #145, Phase 4A2 is complete in PR #146, and Phase 4A3 child-reference insertion is active.
 
 **Scope:**
 
@@ -660,17 +661,15 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete **Phase 4A2** Inspector hierarchy, provenance, type-specific details,
-   and exact source navigation.
-2. Complete **Phase 4A3** authoritative child-reference insertion through the
+1. Complete **Phase 4A3** authoritative child-reference insertion through the
    existing Reference and Project placement path.
-3. Complete **Phase 4B** the selected v1 Canvas productivity operations.
-4. Complete **Phase 4C** representative-scale performance work and make explicit
+2. Complete **Phase 4B** the selected v1 Canvas productivity operations.
+3. Complete **Phase 4C** representative-scale performance work and make explicit
    include/defer decisions for remaining optional interaction candidates.
-5. Declare the **v1 feature freeze** once the interaction-shaping feature set is
+4. Declare the **v1 feature freeze** once the interaction-shaping feature set is
    stable.
-6. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-7. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+5. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+6. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

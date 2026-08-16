@@ -1,8 +1,8 @@
 # Project Inspector and navigation implementation plan
 
-Status: Phase 4A active; Phase 4A1 is complete and Phase 4A2 is the current bounded implementation slice
+Status: Phase 4A active; Phase 4A1 and Phase 4A2 are complete, and Phase 4A3 is the current bounded implementation slice
 
-Last reviewed: 2026-08-16 after Phase 4A1 completion in PR #145
+Last reviewed: 2026-08-16 after Phase 4A2 completion in PR #146
 
 ## Goal
 
@@ -36,9 +36,9 @@ Exit: a copied occurrence link reopens the same active Project occurrence and fo
 
 ## Phase 4A2 — hierarchy, provenance, and type-specific inspection
 
-Status: active.
+Status: complete in PR #146.
 
-Deliver:
+Delivered:
 
 - Project-local occurrence context, including creation sequence and local relationship summary;
 - source hierarchy and provenance assembled from authoritative Reference resolution/context data;
@@ -49,7 +49,7 @@ Deliver:
 
 This slice must not cache editable source snapshots in Project rows.
 
-Current bounded implementation:
+Delivered implementation:
 
 - derive one read-only Inspector projection directly from the authoritative `ProjectSnapshot`;
 - show occurrence identity, creation sequence, revision, working placement geometry, and Project-local incoming/outgoing relationships;
@@ -61,7 +61,11 @@ Current bounded implementation:
 
 This implementation does not add persistence fields, source mutation, child-reference insertion, or editable source snapshots.
 
+Exit: the Inspector exposes authoritative Project-local context, source hierarchy, provenance, type-specific details, and exact source navigation without creating a second source model.
+
 ## Phase 4A3 — authoritative child-reference insertion
+
+Status: current bounded implementation slice.
 
 Deliver after the Inspector hierarchy is stable:
 

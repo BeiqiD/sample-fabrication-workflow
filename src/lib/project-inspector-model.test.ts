@@ -185,6 +185,7 @@ describe("Project Inspector authoritative projection", () => {
 
   it("describes Project-owned Markdown without inventing source provenance", () => {
     const snapshot = projectTestSnapshot();
+    snapshot.contents[0].markdownSource = "A😀B";
     const descriptor = projectMapNodes(snapshot)
       .find((candidate) => candidate.itemId === "item-note")!;
     const projection = projectInspectorProjection(snapshot, descriptor)!;
@@ -193,6 +194,7 @@ describe("Project Inspector authoritative projection", () => {
     expect(fieldValue(projection.identityFields, "Ownership")).toBe("Project-owned");
     expect(fieldValue(projection.identityFields, "Content identity")).toBe("content-note");
     expect(fieldValue(projection.detailFields, "Content type")).toBe("Markdown");
+    expect(fieldValue(projection.detailFields, "Characters")).toBe("3");
     expect(projection.contexts).toEqual([]);
     expect(projection.primaryAction).toBeNull();
   });

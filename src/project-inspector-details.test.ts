@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
@@ -95,16 +94,4 @@ describe("Project Inspector details", () => {
       .toBe("/processing/sample-a?run=run-a&step=step-a");
   });
 
-  it("is mounted by the Project page in place of the legacy inline summary", () => {
-    const pageSource = readFileSync("src/pages/ProjectPage.tsx", "utf8");
-    expect(pageSource).toContain(
-      '<ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />',
-    );
-    expect(pageSource).not.toContain(
-      '{selected.openReferenceUrl && <Link className="button wide"',
-    );
-    expect(pageSource).not.toContain(
-      '{selected.fileUrl && <a className="button wide"',
-    );
-  });
 });

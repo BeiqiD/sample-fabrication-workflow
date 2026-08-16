@@ -1,3 +1,4 @@
+import { projectCodePointLength } from "../../shared/project-api";
 import type {
   ProjectItemRecord,
   ProjectReferenceRecord,
@@ -271,7 +272,7 @@ function projectOwnedProjection(
       { label: "Content type", value: "Markdown" },
       { label: "Format version", value: String(content.formatVersion) },
       { label: "Content revision", value: String(content.revision) },
-      { label: "Characters", value: String(source.length) },
+      { label: "Characters", value: String(projectCodePointLength(source)) },
       { label: "Lines", value: String(source === "" ? 0 : source.split(/\r?\n/).length) },
       { label: "Content updated", value: content.updatedAt },
     );
