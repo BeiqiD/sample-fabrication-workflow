@@ -22,38 +22,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "b97350b7f4c54b54eb9496170bd039150c6ec119"
+          test "$(git rev-parse HEAD^)" = "b83df622e99611796e174f363b67853118bb291f"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Apply cross-module architecture patch
         shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('.github/pr141-cross-module-fixes.py')
-          text = path.read_text()
-          needle = (
-              '    updated, count = re.subn(pattern, replacement, text, '
-              'count=1, flags=re.S)\n'
-          )
-          replacement = (
-              '    pattern = pattern.replace("\\\\\\\\", "\\\\")\n'
-              + needle
-          )
-          if text.count(needle) != 1:
-              raise SystemExit('Could not normalize patch regex helper')
-          path.write_text(text.replace(needle, replacement, 1))
-          PY
           set +e
-          output="$(python3 .github/pr141-cross-module-fixes.py 2>&1)"
+          output="$(python3 .github/pr141-cross-module-fixes-v2.py 2>&1)"
           status=$?
           set -e
           printf '%s\n' "$output"
           if [ "$status" -ne 0 ]; then
             message="$(printf '%s' "$output" | tail -c 4000 | tr '\n' ' ')"
-            echo "::error file=.github/pr141-cross-module-fixes.py::$message"
+            echo "::error file=.github/pr141-cross-module-fixes-v2.py::$message"
             exit "$status"
           fi
           git diff --check
