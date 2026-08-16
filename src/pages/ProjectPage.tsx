@@ -35,6 +35,7 @@ import type {
 } from "../../shared/project-types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
+import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
 import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
 import {
   ProjectApiError,
@@ -2154,21 +2155,11 @@ export function ProjectPage() {
             <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
           </>}
         </div> : selected ? <div className="project-inspector-content">
-          <span className="meta-badge">{selected.kind}</span>
-          <h2>{selected.title}</h2>
-          {selected.subtitle && <p className="card-meta">{selected.subtitle}</p>}
-          {selected.excerpt && <p className="project-inspector-excerpt">{selected.excerpt}</p>}
-          <dl>
-            <dt>Occurrence</dt><dd>{selected.itemId}</dd>
-            <dt>Position</dt><dd>{Math.round(selected.geometry.x)}, {Math.round(selected.geometry.y)}</dd>
-            <dt>Size</dt><dd>{Math.round(selected.geometry.width)} × {Math.round(selected.geometry.height)}</dd>
-          </dl>
+          <ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />
           <button type="button" className="button wide" onClick={() => void copySelectedItemLink()}>
             {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
           </button>
           {selectedStableLinkCopyStatus === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
-          {selected.openReferenceUrl && <Link className="button wide" to={selected.openReferenceUrl}>Open reference</Link>}
-          {selected.fileUrl && <a className="button wide" href={selected.fileUrl}>Open attachment</a>}
           {selected.kind === "markdown" && <button
             type="button"
             className="button wide"
