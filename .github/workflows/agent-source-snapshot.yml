@@ -29,7 +29,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .agent/comment-rich-text.patch.part.* > /tmp/comment-rich-text.patch.gz.b64
+          cat \
+            .agent/comment-rich-text.patch.part.00 \
+            .agent/comment-rich-text.patch.part.010 \
+            .agent/comment-rich-text.patch.part.011 \
+            .agent/comment-rich-text.patch.part.012 \
+            .agent/comment-rich-text.patch.part.013 \
+            .agent/comment-rich-text.patch.part.02 \
+            .agent/comment-rich-text.patch.part.03 \
+            .agent/comment-rich-text.patch.part.04 \
+            .agent/comment-rich-text.patch.part.05 \
+            > /tmp/comment-rich-text.patch.gz.b64
           echo "2505177e079c1f9bcd9553ef7659bec8f0d6a3597099428372d1af4f312e5225  /tmp/comment-rich-text.patch.gz.b64" | sha256sum --check
           base64 --decode /tmp/comment-rich-text.patch.gz.b64 | gzip --decompress > /tmp/comment-rich-text.patch
           echo "bb443506b260e8792bc1bb91610d0e858bebe063106b4a8c56eb0fca117ddd2c  /tmp/comment-rich-text.patch" | sha256sum --check
