@@ -25,7 +25,7 @@ These rules favor a durable and honest record of each physical sample. Groups wi
 - Insert metrology records between fabrication steps or run them independently without changing process progress, sample status, or current structure.
 - Run one process across one or several samples, with per-sample status, comments, parameter overrides, deviations, and additional steps.
 - Track current structure, verified states, process lifecycle, sample notes, and a chronological timeline.
-- Add compressed inline comment images, unchanged original-file attachments, and URL-only attachment links.
+- Write Sample-note and process-Comment text with safe GFM/TeX rendering while keeping compressed images, unchanged original-file attachments, and URL-only links in the existing separate attachment flow.
 - Export versioned ZIP archives containing complete table snapshots, available physical blobs, final per-blob outcomes, and non-fatal integrity warnings.
 - Resolve stable Sample, Run, Step, Comment, attachment-occurrence, metrology-reference, and Recipe-revision identities through one authenticated read-only batch boundary.
 - Open every current reference target through one opaque, refresh-safe canonical URL, with lifecycle-aware read-only behavior when an ordinary source route is unavailable.
@@ -48,6 +48,8 @@ The application deploys as one Cloudflare Worker project.
 | Cloudflare Access | User authentication; the Worker validates the Access JWT again before serving protected API routes |
 
 Original-file storage is deliberately provider-neutral at the application boundary. Comment and run logic call `ManagedStorage`; provider-specific authentication and requests remain inside the adapter.
+
+User-authored Project Markdown and displayed Sample-note and process-Comment bodies share one client-side safe rich-text renderer. Project Reading uses document spacing and allows ordinary Markdown images; Comment surfaces use compact spacing, preserve single line breaks, demote Markdown image syntax to safe links, and continue to display uploaded images/files through the existing attachment model. Source strings remain authoritative in D1; generated HTML and MathML are never persisted.
 
 Blob reachability is derived from stable source and occurrence relationships. Soft deletion preserves those identities and their bytes. Cancel, scheduled cleanup, complete export, and future permanent-delete planning share the same retention definition; physical cleanup uses a provider-neutral D1 ledger and operation IDs.
 
