@@ -1,0 +1,28 @@
+name: Apply Phase 4A2 Project Inspector patch
+
+on:
+  push:
+    branches:
+      - codex/phase-4a2-project-inspector
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/phase-4a2-project-inspector
+      - name: Apply bounded existing-file patch
+        run: node scripts/apply-phase-4a2-project-inspector.mjs
+      - name: Commit patched integration files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/ProjectPage.tsx docs/PRODUCT_ROADMAP.md
+          git diff --cached --check
+          git commit -m "Integrate authoritative Project Inspector details"
+          git push origin HEAD:codex/phase-4a2-project-inspector
