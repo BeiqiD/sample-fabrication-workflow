@@ -96,10 +96,7 @@ describe("Project Inspector details", () => {
   });
 
   it("is mounted by the Project page in place of the legacy inline summary", () => {
-    const pageSource = readFileSync(
-      new URL("./pages/ProjectPage.tsx", import.meta.url),
-      "utf8",
-    );
+    const pageSource = readFileSync("src/pages/ProjectPage.tsx", "utf8");
     expect(pageSource).toContain(
       '<ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />',
     );
