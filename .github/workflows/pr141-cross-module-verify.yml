@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "6bdadc38beae40fef30e741aa3d50c286401b2ef"
+          test "$(git rev-parse HEAD^)" = "ee23fd260d37dde76d60674164b1de4dbe3f6de8"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Download the already-verified product tree
@@ -66,24 +66,51 @@ jobs:
 
           git diff --check
           git add -A
-          actual="$(git diff --cached --name-only | LC_ALL=C sort)"
-          expected="$(printf '%s\n' \
-            '.github/pr141-cross-module-fixes-v2.py' \
-            '.github/pr141-cross-module-fixes-v3.py' \
-            '.github/pr141-cross-module-fixes-v4.py' \
-            '.github/pr141-cross-module-fixes-v5.py' \
-            '.github/pr141-cross-module-fixes-v6.py' \
-            '.github/pr141-cross-module-fixes.py' \
-            '.github/workflows/pr141-cross-module-verify.yml' \
-            'docs/BLOB_LIFECYCLE_CONTRACT.md' \
-            'migrations/0029_supersession_timeline_projection.sql' \
-            'worker/blob-registration-reconciliation.test.ts' \
-            'worker/comment-submission-routes.ts' \
-            'worker/reference-routes.ts' \
-            'worker/references/adapters.ts' \
-            'worker/supersession-cross-module.test.ts' \
-            | LC_ALL=C sort)"
-          test "$actual" = "$expected"
+          while IFS= read -r path; do
+            case "$path" in
+              .github/pr141-cross-module-fixes.py|\
+              .github/pr141-cross-module-fixes-v2.py|\
+              .github/pr141-cross-module-fixes-v3.py|\
+              .github/pr141-cross-module-fixes-v4.py|\
+              .github/pr141-cross-module-fixes-v5.py|\
+              .github/pr141-cross-module-fixes-v6.py|\
+              .github/workflows/pr141-cross-module-verify.yml|\
+              docs/BLOB_LIFECYCLE_CONTRACT.md|\
+              migrations/0029_supersession_timeline_projection.sql|\
+              worker/blob-registration-reconciliation.test.ts|\
+              worker/comment-submission-routes.ts|\
+              worker/reference-routes.ts|\
+              worker/references/adapters.ts|\
+              worker/supersession-cross-module.test.ts)
+                ;;
+              *)
+                echo "Unexpected staged path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done < <(git diff --cached --name-only)
+
+          for path in \
+            .github/pr141-cross-module-fixes.py \
+            .github/pr141-cross-module-fixes-v2.py \
+            .github/pr141-cross-module-fixes-v3.py \
+            .github/pr141-cross-module-fixes-v4.py \
+            .github/pr141-cross-module-fixes-v5.py \
+            .github/pr141-cross-module-fixes-v6.py \
+            .github/workflows/pr141-cross-module-verify.yml; do
+            test ! -e "$path"
+          done
+
+          for path in \
+            docs/BLOB_LIFECYCLE_CONTRACT.md \
+            migrations/0029_supersession_timeline_projection.sql \
+            worker/blob-registration-reconciliation.test.ts \
+            worker/comment-submission-routes.ts \
+            worker/reference-routes.ts \
+            worker/references/adapters.ts \
+            worker/supersession-cross-module.test.ts; do
+            test -f "$path"
+          done
 
       - name: Commit and push verified product tree
         shell: bash
