@@ -3,7 +3,7 @@
 
 Status: Phase 3C complete in squash-merged PR #138; Project stability fixes land before Phase 3D
 
-Last reviewed: 2026-08-14 after the exact-head review and squash merge of PR #138
+Last reviewed: 2026-08-14 after the PR #141 storage-integrity and Markdown lifecycle review fixes
 
 ## Goal
 
@@ -26,7 +26,7 @@ Desktop keeps Map as the default creation/organization surface and adds one expl
 
 Responsive breakpoint changes obey the same lock. While an operation is unresolved or placement state is not saved, the current desktop/mobile projection is frozen even if `matchMedia` changes. Once the lock clears, the page immediately reconciles to the current media query. This keeps Map-only retry, cancel, and reconciliation controls reachable instead of stranding a pending operation in mobile Reading.
 
-Mobile defaults directly to Reading and never initializes React Flow. Mobile does not expose Map placement, reference insertion, attachment upload, edge authoring, occurrence removal, or any other creation/structural mutation.
+Mobile defaults directly to Reading and never initializes React Flow. Mobile does not expose Map placement, reference insertion, attachment upload, edge authoring, reference removal, attachment removal, or any creation operation. It may recoverably move an existing Project-owned Markdown occurrence to Trash through the same guarded item/content lifecycle operation used by desktop Reading and Map Inspector.
 
 ## Reading content behavior
 
@@ -42,9 +42,9 @@ Rich CommonMark/GFM and TeX rendering remains Phase 3D. Phase 3C deliberately re
 
 ## Mutation and navigation safety
 
-Reading reuses the Phase 3B3 owned-content mutation machinery rather than creating new APIs. Existing Markdown and attachment metadata edits therefore retain:
+Reading reuses the Phase 3B3 owned-content mutation machinery and the authoritative Project-item lifecycle route rather than creating new APIs. Existing Markdown and attachment metadata edits, plus recoverable Markdown removal, therefore retain:
 
-- current authoritative expected revisions;
+- current authoritative expected revisions, including both item and content revisions for Markdown removal;
 - stable operation IDs;
 - exact retry only for outcome-uncertain failures;
 - explicit deterministic error/conflict handling;
@@ -67,6 +67,7 @@ Phase 3C adds a permanent `pre-pr/project-reading` gate covering:
 - complete Markdown-source presentation;
 - complete attachment-caption presentation;
 - existing Markdown update through Reading;
+- recoverable Markdown removal from desktop and mobile Reading with item/content revision guards, exact retry, and authoritative reconciliation;
 - existing attachment caption/source URL update through Reading without byte retargeting;
 - references remaining read-only;
 - responsive breakpoint changes preserving the current projection during pending reference placement, pending attachment upload/create, and unsaved geometry;

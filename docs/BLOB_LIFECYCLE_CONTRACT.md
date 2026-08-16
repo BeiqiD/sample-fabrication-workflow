@@ -2,8 +2,8 @@
 
 Status: normative v3 backend contract, implemented by the blob-lifecycle safety slice
 
-Last reviewed: 2026-08-09 after the reference/search and reusable Project
-discovery foundation through PR #130
+Last reviewed: 2026-08-16 during the provider-integrity and recovery
+architecture review in PR #141
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -443,17 +443,48 @@ or bytes that were intentionally permanently removed.
 Blob GC is not source permanent deletion. GC removes unreachable provider bytes
 while preserving database and audit history.
 
+## Recovery supersession of duplicate stable occurrences
+
+Canonical blob recovery MUST NOT physically merge or delete stable occurrence
+rows. When a legacy occurrence and an independently existing occurrence resolve
+to the same provider-verified SHA-256 and byte size:
+
+- the existing canonical occurrence is the surviving live occurrence;
+- the legacy occurrence keeps its ID, context, ordering, author/display
+  metadata, and creation timestamp;
+- the legacy row is soft-deleted if necessary and records the successor
+  occurrence, recovery operation, actor, and supersession time;
+- a superseded occurrence is immutable and cannot be restored as a second live
+  duplicate;
+- physical-delete guards remain unconditional;
+- only the superseded occurrence's byte-retention edge transfers to the healthy
+  successor; ordinary soft-deleted occurrences continue to retain bytes;
+- export and reference history keep both occurrence rows, while GC may collect
+  only the superseded physical locator after every other retention edge is
+  absent.
+
+Supersession is a narrowly validated repair operation, not a general deduplication
+or permanent-delete capability.
+
+## Provider verification and integrity quarantine
+
+Deduplication verifies the selected physical locator before reuse. R2 uses
+provider `HEAD`; managed storage uses the adapter's metadata-only `stat`
+operation. A transient provider, authentication, transport, configuration, or
+primary-authority failure returns retryable `503` and does not change
+quarantine or GC state.
+
+Confirmed absence and byte-size mismatch create a locator-scoped
+`blob_integrity_quarantine` record. Quarantine preserves source, occurrence,
+blob-record, and export history while excluding the locator from ordinary
+delivery and future deduplication. It also releases the content hash so
+provider-verified identical bytes may be registered at a new unique locator.
+Existing historical edges remain visible for audit and export, but new
+relationships cannot bind the quarantined locator.
+
 ## Explicit first-implementation boundaries
 
 These are documented deferrals, not implied features.
-
-### Provider `HEAD`/`stat` before dedup reuse
-
-Deduplication excludes locators in `deleting` or `deleted` ledger state, but it
-does not probe the provider before every reuse. A ready metadata row whose bytes
-drifted missing may be selected and fail later retrieval/export. A later
-storage-integrity slice may add provider stat, quarantine, and replacement
-registration. The source/retention history remains safe in the meantime.
 
 ### Direct-key physical GC
 
@@ -580,3 +611,49 @@ Map-first Project sequence and Reading behavior are governed exclusively by
 [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) and
 [PROJECT_CANVAS_INTERACTION_CONTRACT.md](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 This normative storage contract applies unchanged regardless of product order.
+
+## Recovery publication and ownership boundary
+
+`blob_retention_edges` answers only whether a physical locator must be retained. It is not an authorization or publication surface. FabuBlox recovery uses the dedicated `fabublox_recovery_public_asset_edges` and `fabublox_recovery_import_asset_edges` projections installed by `0026_fabublox_recovery_ownership.sql`.
+
+For an asset whose owning import becomes terminal:
+
+- an independently public consumer permits provider-verified re-homing as a standalone `ready` asset;
+- an unresolved pending import inherits ownership and the asset remains `pending` and non-public;
+- an unresolved failed import may inherit terminal ownership so its later recovery remains responsible for cleanup;
+- no viable consumer releases the asset to `failed` and operation-ID GC;
+- a missing or size-mismatched provider object is quarantined and never promoted solely because a retention edge exists.
+
+R2 verification occurs before the durable recovery claim. A transient provider failure therefore leaves `recovery_operation_id` unset and the whole operation retryable. A legacy `failed` asset whose SHA was cleared is read from R2, re-hashed, and assigned the provider byte size before any transition to `pending` or `ready`.
+
+## Complete import dependency publication
+
+An import may publish only when every asset in its staged dependency graph is
+publishable. The graph includes direct import-owned assets, workbook and manifest
+provenance, template source files, initial-state images, expected-state images,
+and metrology references. Asset ownership is not sufficient: a standalone or
+other-import asset required by the template must itself be ready, unquarantined,
+outside terminal GC, and either standalone or owned by a ready import.
+
+Recovery and finalization consume the same `fabublox_import_asset_dependencies`
+surface. A pending import may retain or inherit a locator without publishing it;
+a known-missing shared state image therefore blocks finalization even when a
+Sample, Run, or other durable source still retains the historical occurrence.
+
+## Uncertain registration outcomes
+
+An uploaded provider object and its stable database identity form one registration attempt. If the INSERT response is uncertain, the writer must first read the exact `(id, provider, object_key, sha256)` record from primary D1. An exact committed record is the writer's own successful result and its provider object must not be deleted. Only after that reconciliation returns no record may the writer select a different content-addressed winner and delete the redundant upload.
+
+This rule applies uniformly to ordinary R2 assets, Project uploads, metrology references, Comment images, and managed Comment attachments. A content-hash lookup alone cannot distinguish the writer's own committed row from a competing winner.
+
+## Provider-write registration boundary
+
+Provider bytes must never exist without a database identity that ordinary GC can enumerate. Every new R2 or managed registration therefore follows this order:
+
+1. create a non-public metadata candidate with a unique provider locator;
+2. write the provider object only after the candidate is confirmed on primary D1;
+3. promote exactly one same-content candidate to `ready`;
+4. leave losing or uncertain candidates as tracked non-public rows for GC;
+5. never delete a locator merely because another database ID won when both attempts could share that locator.
+
+Comment uploads use a unique locator per registration attempt, including same-item retries. This prevents different-SHA same-size requests from overwriting one another before database coordination. A primary-authority failure returns retryable `503` and preserves the tracked candidate. Legacy FabuBlox recovery may rebind durable occurrences to a verified canonical same-SHA/same-size winner only after a persistent recovery claim; the superseded locator then follows normal GC.

@@ -2,11 +2,10 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-13 after the reference/search foundation through PR #130,
+Last reviewed: 2026-08-14 after the reference/search foundation through PR #130,
 Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
-reference placement in PR #134, and Project-owned content in PR #135 were
-completed; Phase 3B4 basic Project-local edges are complete in squash-merged PR #136,
-and Phase 3C Reading projection is complete in squash-merged PR #138
+reference placement in PR #134, Project-owned content in PR #135, edges in PR
+#136, Reading in PR #138, and Project Map stabilization through PR #140
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -143,8 +142,8 @@ The following prerequisites are complete on `v2/backend-foundation`:
 - stable source and occurrence identities;
 - recoverable source deletion and restoration;
 - canonical Comment and attachment-occurrence semantics;
-- shared blob reachability, GC ledger, export integrity, and physical-delete
-  protection;
+- shared blob reachability, GC ledger, export integrity, physical-delete
+  protection, and provider-verified deduplication with integrity quarantine;
 - sparse immutable reference registry;
 - bounded batch resolver over nine existing target types;
 - lifecycle-aware canonical Reference URLs;
@@ -171,8 +170,9 @@ These foundation and discovery-enabling phases are closed. They should receive
 correctness fixes but must not continue expanding into independent product areas.
 Phase 3B3 Project-owned Markdown and generic attachment creation is complete in
 squash-merged PR #135. Phase 3B4 basic Project-local edges are complete in
-squash-merged PR #136. Phase 3C Reading projection is the active implementation
-target.
+squash-merged PR #136. Phase 3C Reading projection is complete in squash-merged
+PR #138. Phase 3D Markdown/TeX, media, and save UX hardening is the active
+implementation target; storage-integrity work remains a parallel quality track.
 
 ## Active implementation roadmap
 
@@ -358,7 +358,8 @@ This milestone is the **Map-first Project workspace alpha**.
 
 ### Phase 3C — Reading projection
 
-**Status:** active implementation.
+**Status:** complete; squash-merged in PR #138, with Markdown removal lifecycle
+wiring completed in the subsequent storage-integrity maintenance slice.
 
 **Goal:** provide a mobile-friendly and linear review/editing projection over the
 same occurrences without creating a second content system.
@@ -367,7 +368,7 @@ same occurrences without creating a second content system.
 
 - render every active occurrence in one linear order;
 - no creation controls in Reading;
-- edit existing Project-owned Markdown;
+- edit and recoverably remove existing Project-owned Markdown;
 - edit attachment caption and optional source URL, but never retarget attachment
   bytes or intrinsic file metadata;
 - references remain read-only;
@@ -384,6 +385,8 @@ real Project use demonstrates the need.
 losing or duplicating Map content.
 
 ### Phase 3D — Markdown/TeX, media, and save UX hardening
+
+**Status:** active implementation.
 
 **Goal:** make owned content comfortable for real research narrative.
 
@@ -497,6 +500,7 @@ Every schema phase preserves:
 - fresh ordered migrations in host SQLite and D1/workerd;
 - focused contract tests and complete test/build gates;
 - complete export integrity;
+- provider-verified content-addressed reuse with fail-closed outage behavior;
 - no physical locator exposure;
 - no unauthorized cross-layer mutation;
 - isolated remote deployment requirements;

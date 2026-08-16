@@ -2,8 +2,8 @@
 
 Status: operational companion to the normative v3 blob lifecycle contract
 
-Last reviewed: 2026-08-09 after the reference/search and reusable Project
-discovery foundation through PR #130
+Last reviewed: 2026-08-15 after provider-verified storage integrity,
+reachability-preserving FabuBlox recovery, and Project Markdown lifecycle wiring
 
 This document records the implementation boundaries, activation sequence,
 monitoring queries, incident rules, and explicit deferrals for the first blob
@@ -41,7 +41,7 @@ operation-ID finalization.
 
 ## Authoritative surfaces
 
-The implementation has three different kinds of truth. They must not be
+The implementation has four different kinds of truth. They must not be
 collapsed into one status flag.
 
 ### Source and occurrence relationships
@@ -55,7 +55,16 @@ relationships.
 
 `assets.status` and the readiness part of `managed_storage_objects.status`
 describe whether metadata registration/upload completed. They do not by
-themselves authorize garbage collection.
+themselves authorize garbage collection. FabuBlox first registers new assets as
+`pending` hash reservations. The owning import's atomic transition to `ready`
+promotes those assets to `ready`; until then, ordinary delivery and
+deduplication are closed and competing uploads receive a retryable service
+response rather than a locator that a later failed import may delete.
+
+A legacy asset may already have an independent durable occurrence before the
+owning import fails. Recovery then clears the import association and promotes
+that retained locator to a standalone `ready` asset. This is a compatibility
+repair for through-0024 data, not a second publication path for new imports.
 
 ### GC work state
 
@@ -71,6 +80,55 @@ deleted    provider deletion or confirmed absence was finalized
 `managed_storage_objects.status` remains a compatibility projection during this
 slice. The ledger is authoritative when the two are interpreted for GC.
 
+### Integrity quarantine
+
+`blob_integrity_quarantine` records a definite provider-level absence or byte-size
+mismatch found while considering a content-addressed reuse candidate. It is not a
+GC state and does not erase historical metadata or existing relationships.
+
+A provider/authentication/transport failure must never create a quarantine row.
+The operation fails with a retryable service response and leaves metadata,
+retention edges, and ledger state unchanged. Ordinary/live media routes exclude
+quarantined locators; authenticated complete-export routes deliberately retain
+read access so size/hash verification can record the failure in the export
+manifest and warnings.
+
+### FabuBlox import lease and recovery
+
+A FabuBlox import owns a persistent operation ID and lease while its asset rows
+remain pending. Final publication records a separate finalization ID and changes
+the import to ready in the same D1 statement that activates those assets.
+
+If the finalization call fails, the Worker first reads the primary D1 state. A
+matching ready/finalization identity is treated as committed success. If the
+primary read itself is unavailable, the result remains unknown and no R2 object
+is deleted. The scheduled stale-import reaper performs the same CAS after lease
+expiry and also resumes through-0024 failed partial imports without a recovery
+identity.
+
+Recovery is retention-first but publication remains dependency-complete:
+
+1. claim the exact unfinished operation;
+2. clear only import workbook/manifest and partial-template source provenance;
+3. detach legacy Run-step FKs and remove partial-template structure;
+4. remove a state-image occurrence only when no other template, Run-step,
+   `runs.initial_state_hash`, `samples.inherited_state_hash`, or verification
+   uses that state;
+5. preserve event primary attachments and thumbnails as independent durable
+   occurrences;
+6. query the shared `blob_retention_edges` surface after those failed-import
+   edges are gone;
+7. re-home every still-reachable asset as standalone `ready`, retaining its SHA
+   reservation and releasing only an unclaimed stale `orphaned` ledger row;
+8. mark failed and enqueue only assets with no remaining durable edge;
+9. before any pending import becomes ready, validate every direct and transitive
+   asset in `fabublox_import_asset_dependencies`, including standalone shared
+   state images and final workbook/manifest keys.
+
+R2 deletion therefore uses the existing retryable orphan/deleting operation-ID
+queue, including retry after provider failure. Import ownership alone is never
+deletion authority.
+
 ## Terminal locator rule
 
 A `deleted` ledger entry is terminal for that physical locator. Operators and
@@ -82,8 +140,10 @@ occurrence/edge write. This prevents old audit history from silently referring
 to different bytes under a recycled key.
 
 An `orphaned` row may be released only through the guarded reachability/edge
-creation path. A `deleting` row may be completed or idempotently reclaimed by
-its operation ID; it must not be manually converted back to live state.
+creation path or the FabuBlox compatibility repair after authoritative external
+reachability is established. A `deleting` row may be completed or idempotently
+reclaimed by its operation ID; it must not be manually converted back to live
+state.
 
 ## Legacy managed-object migration repair
 
@@ -115,8 +175,14 @@ permitted only from the exact merged `v2/backend-foundation` commit.
    - `pre-pr/tests`;
    - `pre-pr/build`.
 2. The migration chain must be tested from 0001 through the latest file,
-   including malformed historical event metadata and the legacy managed-object
-   duplicate scenario.
+   including malformed historical event metadata, the legacy managed-object
+   duplicate scenario, and through-0024 FabuBlox recovery with:
+   - Import A's asset reused by ready Import B;
+   - independent Run initial state;
+   - Sample inherited state;
+   - event primary and thumbnail occurrences;
+   - a retained pending asset and stale unclaimed orphan ledger;
+   - a truly unreachable asset that still converges to GC.
 3. No remote D1 migration or Worker deployment is run from the feature branch.
 
 ### After merge, before remote migration
@@ -196,6 +262,19 @@ WHERE bg.state IN ('deleting', 'deleted')
 GROUP BY bg.store_kind, bg.provider, bg.object_key, bg.state;
 ```
 
+### Integrity quarantine
+
+```sql
+SELECT store_kind, provider, object_key, blob_record_id, reason,
+       expected_byte_size, observed_byte_size, detected_at, last_checked_at
+FROM blob_integrity_quarantine
+ORDER BY detected_at DESC
+LIMIT 100;
+```
+
+Each row requires investigation or restoration at a new locator. Do not delete a
+row merely to make the original locator reusable.
+
 ### Managed compatibility projection mismatches
 
 The expected result is zero rows after a completed cleanup operation.
@@ -229,18 +308,23 @@ ORDER BY status;
 
 ### Reachable metadata but missing bytes
 
-Treat this as an integrity incident, not as deletion authorization.
+Treat this as an integrity incident, not as deletion authorization. A definite
+missing or size-mismatched candidate discovered during deduplication is recorded
+in `blob_integrity_quarantine` and is not returned as a reusable winner.
 
-- Preserve the source, occurrence, blob metadata, and export warning.
+- Preserve the source, occurrence, blob metadata, quarantine row, and export
+  warning.
 - Check provider history, credentials, retention, and external backups.
-- Do not remove the retention edge to make the warning disappear.
-- Restore by registering verified bytes at a new locator unless an explicit
-  integrity-repair procedure is introduced later.
+- Do not remove a retention edge or quarantine row to make the warning disappear.
+- Restore by registering verified bytes at a new locator and explicitly repairing
+  affected relationships through a reviewed procedure.
 
 ### Provider unavailable
 
-- Keep the ledger/source state unchanged except for the recorded retryable
-  cleanup error.
+- Keep the ledger/source state unchanged except for any ordinary retryable cleanup
+  error.
+- Deduplication reuse returns a retryable service error and creates no integrity
+  quarantine row.
 - Verify credentials and provider health.
 - Re-run the normal scheduled/idempotent operation after recovery.
 - Do not mark the object missing solely because authentication or transport
@@ -263,16 +347,16 @@ rate limits, and D1 statement limits.
 
 The following are known boundaries, not hidden implementation promises.
 
-### Provider `HEAD`/`stat` before dedup reuse
+### Quarantine revalidation and relationship repair
 
-The first implementation excludes locators claimed or finalized by the GC
-ledger, but it does not probe the provider before every deduplication reuse. A
-ready metadata row whose bytes drifted missing may therefore be selected and
-will fail later retrieval/export.
+The current implementation deliberately treats definite missing and size-mismatch
+quarantine as terminal for the old physical locator. It does not automatically
+clear quarantine when bytes later reappear at the same key, because that could
+silently bind historical metadata to different bytes.
 
-Current behavior is safe for retention: the database history remains intact and
-export emits a warning. A later storage-integrity slice may add `head/stat`,
-quarantine unavailable metadata, and upload/register a replacement locator.
+A future privileged repair workflow may verify restored content, register a new
+locator, and rebind affected relationships with explicit audit records. Until
+then, restoration uses a fresh locator and reviewed data repair.
 
 ### Direct-key physical garbage collection
 
@@ -316,7 +400,8 @@ final concurrency checks, and tombstones.
 
 Reference identity, deep links, exact focus, deterministic search, and the
 reusable Project discovery surface were completed after this operational
-foundation, through PR #130.
+foundation, through PR #130. Provider-verified reuse and integrity quarantine are
+now part of the same permanent blob-lifecycle gate.
 
 This runbook does not define the remaining product sequence. The active
 Map-first Project roadmap and Reading behavior are governed exclusively by
@@ -328,3 +413,17 @@ product phase order.
 Every future Project attachment occurrence must add an ordinary branch to
 `blob_retention_edges`, guarded edge-creation tests, export occurrence mapping,
 and permanent-delete blockers before deployment.
+
+## FabuBlox recovery diagnostics
+
+Recovery now separates three signals:
+
+1. `blob_retention_edges` prevents physical deletion;
+2. `fabublox_recovery_public_asset_edges` permits public standalone ownership;
+3. `fabublox_recovery_import_asset_edges` identifies the next unresolved private owner.
+
+A provider outage increments `staleImportRecoveryFailures` without claiming the import. Definite absence or size mismatch writes `blob_integrity_quarantine`; live delivery remains blocked while export retains the warning and historical metadata. A pending successor that inherits an unavailable asset cannot finalize because `imports_require_publishable_assets` rejects the transition to `ready`.
+
+## Registration response-loss diagnostics
+
+A response-loss retry that finds its exact stable record returns the original non-deduplicated success and leaves the provider key intact. A retry that finds a different verified winner may delete only the newly uploaded redundant key. Fault-injection coverage exists for ordinary R2 assets, Comment images, and SWITCHdrive Comment attachments.

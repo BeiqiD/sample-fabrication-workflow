@@ -522,7 +522,7 @@ export interface FullExportBlobEntry {
 }
 
 export interface FullExportManifest {
-  schemaVersion: 3;
+  schemaVersion: 5;
   exportedAt: string;
   tables: Record<string, Array<Record<string, unknown>>>;
   blobs: FullExportBlobEntry[];

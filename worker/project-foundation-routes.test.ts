@@ -57,6 +57,7 @@ const PRE_PROJECT_EXPORT_TABLES = [
   "managed_storage_objects",
   "reference_targets",
   "blob_gc_ledger",
+  "blob_integrity_quarantine",
   "blob_retention_edges",
 ] as const;
 

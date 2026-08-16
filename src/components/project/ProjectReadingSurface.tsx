@@ -21,6 +21,7 @@ export interface ProjectReadingSurfaceProps {
   attachmentEditor?: ProjectReadingAttachmentEditorState | null;
   interactionDisabled?: boolean;
   onMarkdownEditRequest?: (itemId: string) => void;
+  onMarkdownDeleteRequest?: (itemId: string) => void;
   onMarkdownChange?: (value: string) => void;
   onMarkdownSave?: () => void;
   onMarkdownCancel?: () => void;
@@ -52,6 +53,7 @@ export function ProjectReadingSurface({
   attachmentEditor = null,
   interactionDisabled = false,
   onMarkdownEditRequest,
+  onMarkdownDeleteRequest,
   onMarkdownChange,
   onMarkdownSave,
   onMarkdownCancel,
@@ -93,12 +95,20 @@ export function ProjectReadingSurface({
           </div>
         </div> : <>
           <div className="project-reading-markdown-source">{node.markdownSource || ""}</div>
-          <button
-            type="button"
-            className="button reading-edit-button"
-            disabled={interactionDisabled || editorBusy}
-            onClick={() => onMarkdownEditRequest?.(node.itemId)}
-          >Edit Markdown</button>
+          <div className="project-owned-content-pending-actions">
+            <button
+              type="button"
+              className="button reading-edit-button"
+              disabled={interactionDisabled || editorBusy}
+              onClick={() => onMarkdownEditRequest?.(node.itemId)}
+            >Edit Markdown</button>
+            <button
+              type="button"
+              className="button reading-edit-button"
+              disabled={interactionDisabled || editorBusy}
+              onClick={() => onMarkdownDeleteRequest?.(node.itemId)}
+            >Move Markdown to trash</button>
+          </div>
         </>)}
 
         {node.kind === "attachment" && <>

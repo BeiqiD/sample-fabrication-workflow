@@ -4,6 +4,7 @@ import type {
   ReferenceTargetType,
   ResolvedReferenceSource,
 } from "../../shared/reference-types";
+import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
 
 export interface ResolvedReferenceRecord {
   source: ResolvedReferenceSource;
@@ -429,7 +430,10 @@ const commentAttachmentAdapter: ReferenceAdapter = async (db, ids) => {
 const executionImageAdapter: ReferenceAdapter = async (db, ids) => {
   const rows = await allRows(db, `
     SELECT rsa.id, rsa.created_at, rsa.deleted_at,
-           a.original_name, a.mime_type,
+           rsa.superseded_by_occurrence_id,
+           original_asset.original_name AS original_name,
+           effective_asset.original_name AS effective_original_name,
+           effective_asset.mime_type,
            s.id AS sample_id, s.code AS sample_code, s.title AS sample_title,
            s.deleted_at AS sample_deleted_at,
            r.id AS run_id, r.template_name_snapshot AS run_template_name,
@@ -438,30 +442,49 @@ const executionImageAdapter: ReferenceAdapter = async (db, ids) => {
            rs.id AS step_id, COALESCE(rs.title, sd.name) AS step_title,
            rs.deleted_at AS step_deleted_at
     FROM run_step_assets rsa
-    LEFT JOIN assets a ON a.id = rsa.asset_id
+    LEFT JOIN run_step_assets successor
+      ON successor.id = rsa.superseded_by_occurrence_id
+    LEFT JOIN assets original_asset ON original_asset.id = rsa.asset_id
+    LEFT JOIN assets effective_asset
+      ON effective_asset.id = COALESCE(successor.asset_id, rsa.asset_id)
     LEFT JOIN run_steps rs ON rs.id = rsa.run_step_id
     LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
     LEFT JOIN runs r ON r.id = rs.run_id
     LEFT JOIN samples s ON s.id = r.sample_id
     WHERE rsa.id IN (SELECT value FROM json_each(?))
       AND rsa.role = 'execution'
+      AND effective_asset.status = 'ready'
+      AND ${publishedAssetSql("effective_asset")}
+      AND (
+        rsa.superseded_by_occurrence_id IS NULL
+        OR (
+          successor.id IS NOT NULL
+          AND successor.superseded_by_occurrence_id IS NULL
+        )
+      )
     ORDER BY rsa.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.id);
     const context = executionContext(row);
     return [id, {
       source: {
-        title: text(row.original_name) ?? "Execution image",
+        title: text(row.original_name)
+          ?? text(row.effective_original_name)
+          ?? "Execution image",
         subtitle: text(row.mime_type),
         excerpt: null,
         kind: "execution",
-        state: "ready",
+        state: row.superseded_by_occurrence_id ? "superseded" : "ready",
         updatedAt: text(row.created_at),
         deletedAt: text(row.deleted_at),
         archivedAt: null,
       },
       contexts: context ? [context] : [],
-      consistent: Boolean(context && text(row.original_name)),
+      consistent: Boolean(
+        context
+        && text(row.original_name)
+        && text(row.effective_original_name)
+      ),
     }];
   }));
 };
@@ -469,27 +492,45 @@ const executionImageAdapter: ReferenceAdapter = async (db, ids) => {
 const metrologyReferenceAdapter: ReferenceAdapter = async (db, ids) => {
   const rows = await allRows(db, `
     SELECT mtr.id, mtr.display_name, mtr.created_at, mtr.deleted_at,
-           a.original_name, a.mime_type,
-           tv.id AS recipe_id, tv.name AS recipe_name, tv.version AS recipe_version,
-           tv.deleted_at AS recipe_deleted_at, tv.archived_at AS recipe_archived_at
+           mtr.superseded_by_occurrence_id,
+           effective_asset.original_name, effective_asset.mime_type,
+           tv.id AS recipe_id, tv.name AS recipe_name,
+           tv.version AS recipe_version,
+           tv.deleted_at AS recipe_deleted_at,
+           tv.archived_at AS recipe_archived_at
     FROM metrology_template_references mtr
-    LEFT JOIN assets a ON a.id = mtr.asset_id
+    LEFT JOIN metrology_template_references successor
+      ON successor.id = mtr.superseded_by_occurrence_id
+    LEFT JOIN assets effective_asset
+      ON effective_asset.id = COALESCE(successor.asset_id, mtr.asset_id)
     LEFT JOIN template_versions tv ON tv.id = mtr.template_version_id
     WHERE mtr.id IN (SELECT value FROM json_each(?))
+      AND effective_asset.status = 'ready'
+      AND ${publishedAssetSql("effective_asset")}
+      AND ${publishedTemplateVersionSql("tv")}
+      AND (
+        mtr.superseded_by_occurrence_id IS NULL
+        OR (
+          successor.id IS NOT NULL
+          AND successor.superseded_by_occurrence_id IS NULL
+        )
+      )
     ORDER BY mtr.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.id);
     const recipe = recipeSegment(row);
     return [id, {
       source: {
-        title: requiredText(row.display_name) || text(row.original_name) || "Metrology reference",
+        title: requiredText(row.display_name)
+          || text(row.original_name)
+          || "Metrology reference",
         subtitle: text(row.original_name) ?? text(row.mime_type),
         excerpt: null,
         kind: "metrology_reference",
-        state: "ready",
+        state: row.superseded_by_occurrence_id ? "superseded" : "ready",
         updatedAt: text(row.created_at),
         deletedAt: text(row.deleted_at),
-        archivedAt: null,
+        archivedAt: text(row.recipe_archived_at),
       },
       contexts: recipe ? [{ segments: [recipe] }] : [],
       consistent: Boolean(recipe && text(row.original_name)),
@@ -502,9 +543,10 @@ const recipeRevisionAdapter: ReferenceAdapter = async (db, ids) => {
     SELECT id AS recipe_id, name AS recipe_name, version AS recipe_version,
            template_kind, template_type, locked_at, archived_at AS recipe_archived_at,
            deleted_at AS recipe_deleted_at, created_at, source_filename
-    FROM template_versions
-    WHERE id IN (SELECT value FROM json_each(?))
-    ORDER BY id`, ids);
+    FROM template_versions tv
+    WHERE tv.id IN (SELECT value FROM json_each(?))
+      AND ${publishedTemplateVersionSql("tv")}
+    ORDER BY tv.id`, ids);
   return new Map(rows.map((row) => {
     const id = requiredText(row.recipe_id);
     const recipe = recipeSegment(row)!;

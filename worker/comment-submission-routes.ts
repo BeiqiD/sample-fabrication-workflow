@@ -21,10 +21,48 @@ import {
   markOrphanCandidate,
   retryUntil,
 } from "./blob-lifecycle/reachability";
+import {
+  BlobReuseProviderUnavailableError,
+  findReusableManagedObject,
+  findReusableR2Asset,
+} from "./blob-lifecycle/reuse";
+import {
+  BlobRegistrationAuthorityUnavailableError,
+  ManagedRegistrationByteSizeMismatchError,
+  registerManagedObject,
+  registerR2Asset,
+} from "./blob-lifecycle/registration";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
+
+async function reusableCommentR2Asset(env: Env, sha256: string) {
+  try {
+    return await findReusableR2Asset(env, sha256);
+  } catch (error) {
+    if (error instanceof BlobReuseProviderUnavailableError) {
+      throw new HTTPException(503, { message: error.message });
+    }
+    throw error;
+  }
+}
+
+async function reusableCommentManagedObject(
+  env: Env,
+  provider: string,
+  sha256: string,
+  byteSize: number,
+) {
+  try {
+    return await findReusableManagedObject(env, provider, sha256, byteSize);
+  } catch (error) {
+    if (error instanceof BlobReuseProviderUnavailableError) {
+      throw new HTTPException(503, { message: error.message });
+    }
+    throw error;
+  }
+}
 
 type SubmissionRow = {
   id: string;
@@ -262,17 +300,38 @@ async function markItemFailed(env: Env, submissionId: string, itemId: string, me
   return Boolean(results[1].meta.changes);
 }
 
+async function markItemFailedBestEffort(
+  env: Env,
+  submissionId: string,
+  itemId: string,
+  message: string,
+) {
+  try {
+    return await markItemFailed(env, submissionId, itemId, message);
+  } catch (recordingError) {
+    console.warn("Could not record Comment upload failure", {
+      submissionId,
+      itemId,
+      error: recordingError instanceof Error
+        ? recordingError.message
+        : String(recordingError),
+    });
+    return false;
+  }
+}
+
 async function managedKeyForSubmission(
   env: Env,
   submission: SubmissionRow,
   submissionId: string,
   itemId: string,
+  registrationId: string,
   filename: string,
 ) {
   if (submission.sample_id) {
     const sample = await env.DB.prepare("SELECT id, code FROM samples WHERE id = ? AND deleted_at IS NULL")
       .bind(submission.sample_id).first<{ id: string; code: string }>();
-    return managedObjectKey(submissionId, itemId, filename, sample ?? undefined);
+    return managedObjectKey(submissionId, `${itemId}-${registrationId}`, filename, sample ?? undefined);
   }
   const samples = await env.DB.prepare(
     `SELECT DISTINCT s.id, s.code
@@ -284,7 +343,7 @@ async function managedKeyForSubmission(
   ).bind(submissionId).all<{ id: string; code: string }>();
   return managedObjectKey(
     submissionId,
-    itemId,
+    `${itemId}-${registrationId}`,
     filename,
     samples.results.length === 1 ? samples.results[0] : undefined,
   );
@@ -476,6 +535,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
   if (!c.req.raw.body || !item.filename || !item.mime_type || !item.byte_size) {
     throw new HTTPException(400, { message: "The upload body is missing" });
   }
+  const uploadByteSize: number = item.byte_size;
   const declaredSize = Number(c.req.header("x-upload-size"));
   const contentType = c.req.header("content-type") || "application/octet-stream";
   if (declaredSize !== item.byte_size || contentType !== item.mime_type) {
@@ -516,42 +576,32 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
       const buffer = await c.req.arrayBuffer();
       if (buffer.byteLength !== item.byte_size) throw new HTTPException(400, { message: "Comment image size changed during upload" });
       const sha256 = await sha256Hex(buffer);
-      const existing = await c.env.DB.prepare(
-        `SELECT id, r2_key FROM assets a
-         WHERE sha256 = ? AND status = 'ready'
-           AND NOT EXISTS (
-             SELECT 1 FROM blob_gc_ledger bg
-             WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-               AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-           )
-         ORDER BY a.created_at DESC LIMIT 1`,
-      ).bind(sha256).first<{ id: string; r2_key: string }>();
-      let assetId = existing?.id;
-      let deduplicated = Boolean(existing);
-      if (!assetId) {
-        const key = `comments/${submissionId}/${itemId}-${item.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        assetId = crypto.randomUUID();
-        await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
+      let asset = await reusableCommentR2Asset(c.env, sha256);
+      let deduplicated = Boolean(asset);
+      if (!asset) {
+        const assetId = crypto.randomUUID();
+        const key = `comments/${submissionId}/${itemId}/${assetId}-${item.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
         try {
-          await c.env.DB.prepare(
-            `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-             VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-          ).bind(assetId, key, item.filename, contentType, item.byte_size, c.get("userEmail"), now, sha256).run();
+          const registration = await registerR2Asset(c.env, {
+            id: assetId,
+            objectKey: key,
+            originalName: item.filename,
+            mimeType: contentType,
+            byteSize: item.byte_size,
+            sha256,
+            actorEmail: c.get("userEmail"),
+            bytes: buffer,
+            findWinner: () => reusableCommentR2Asset(c.env, sha256),
+          });
+          asset = registration.asset;
+          deduplicated = registration.deduplicated;
         } catch (error) {
-          await c.env.ASSETS.delete(key);
-          const winner = await c.env.DB.prepare(
-            `SELECT id FROM assets a
-             WHERE sha256 = ? AND status = 'ready'
-               AND NOT EXISTS (
-                 SELECT 1 FROM blob_gc_ledger bg
-                 WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-                   AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-               )
-             ORDER BY a.created_at DESC LIMIT 1`,
-          ).bind(sha256).first<{ id: string }>();
-          if (!winner) throw error;
-          assetId = winner.id;
-          deduplicated = true;
+          if (error instanceof BlobRegistrationAuthorityUnavailableError) {
+            throw new HTTPException(503, {
+              message: error.publicMessage,
+            });
+          }
+          throw error;
         }
       }
       await c.env.DB.prepare(
@@ -563,7 +613,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
                ) THEN 'cancelled' ELSE 'ready' END,
              asset_id = ?, sha256 = ?, error_message = NULL, updated_at = ?
          WHERE id = ? AND submission_id = ? AND deleted_at IS NULL`,
-      ).bind(assetId, sha256, new Date().toISOString(), itemId, submissionId).run();
+      ).bind(asset.id, sha256, new Date().toISOString(), itemId, submissionId).run();
       const latest = await c.env.DB.prepare(
         "SELECT status FROM comment_submissions WHERE id = ? AND deleted_at IS NULL",
       )
@@ -583,58 +633,54 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     if (!validSha256(sha256)) throw new HTTPException(400, { message: "A SHA-256 content hash is required" });
     const storage = managedStorage(c.env);
     if (!storage) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
-    const existing = await c.env.DB.prepare(
-      `SELECT id FROM managed_storage_objects
-       WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status IN ('ready', 'orphaned')
-         AND NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'managed'
-             AND bg.provider = managed_storage_objects.provider
-             AND bg.object_key = managed_storage_objects.object_key
-             AND bg.state IN ('deleting', 'deleted')
-         )
-       ORDER BY created_at DESC LIMIT 1`,
-    ).bind(storage.provider, sha256, item.byte_size).first<{ id: string }>();
-    let storageObjectId = existing?.id;
-    let deduplicated = Boolean(existing);
-    if (!storageObjectId) {
-      storageObjectId = crypto.randomUUID();
-      const key = await managedKeyForSubmission(c.env, submission, submissionId, itemId, item.filename);
-      const stored = await storage.put({
-        key,
-        body: c.req.raw.body,
-        contentType,
-        filename: item.filename,
-        sha256,
-        byteSize: item.byte_size,
-      });
-      if (stored.byteSize !== item.byte_size) {
-        await storage.delete(key);
-        throw new HTTPException(400, { message: "Attachment size changed during upload" });
-      }
+    let storageObject = await reusableCommentManagedObject(
+      c.env,
+      storage.provider,
+      sha256,
+      uploadByteSize,
+    );
+    let deduplicated = Boolean(storageObject);
+    if (!storageObject) {
+      const storageObjectId = crypto.randomUUID();
+      const key = await managedKeyForSubmission(
+        c.env,
+        submission,
+        submissionId,
+        itemId,
+        storageObjectId,
+        item.filename,
+      );
       try {
-        await c.env.DB.prepare(
-          `INSERT INTO managed_storage_objects
-           (id, provider, object_key, original_name, mime_type, byte_size, sha256, status, actor_email, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'ready', ?, ?)`,
-        ).bind(storageObjectId, storage.provider, key, item.filename, contentType, item.byte_size, sha256, c.get("userEmail"), now).run();
+        const registration = await registerManagedObject(c.env, storage, {
+          id: storageObjectId,
+          objectKey: key,
+          originalName: item.filename,
+          mimeType: contentType,
+          byteSize: uploadByteSize,
+          sha256,
+          actorEmail: c.get("userEmail"),
+          body: c.req.raw.body!,
+          findWinner: () => reusableCommentManagedObject(
+            c.env,
+            storage.provider,
+            sha256,
+            uploadByteSize,
+          ),
+        });
+        storageObject = registration.object;
+        deduplicated = registration.deduplicated;
       } catch (error) {
-        await storage.delete(key);
-        const winner = await c.env.DB.prepare(
-          `SELECT id FROM managed_storage_objects
-           WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status IN ('ready', 'orphaned')
-             AND NOT EXISTS (
-               SELECT 1 FROM blob_gc_ledger bg
-               WHERE bg.store_kind = 'managed'
-                 AND bg.provider = managed_storage_objects.provider
-                 AND bg.object_key = managed_storage_objects.object_key
-                 AND bg.state IN ('deleting', 'deleted')
-             )
-           ORDER BY created_at DESC LIMIT 1`,
-        ).bind(storage.provider, sha256, item.byte_size).first<{ id: string }>();
-        if (!winner) throw error;
-        storageObjectId = winner.id;
-        deduplicated = true;
+        if (error instanceof ManagedRegistrationByteSizeMismatchError) {
+          throw new HTTPException(400, {
+            message: "Attachment size changed during upload",
+          });
+        }
+        if (error instanceof BlobRegistrationAuthorityUnavailableError) {
+          throw new HTTPException(503, {
+            message: error.publicMessage,
+          });
+        }
+        throw error;
       }
     }
     await c.env.DB.prepare(
@@ -646,7 +692,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
              ) THEN 'cancelled' ELSE 'ready' END,
            storage_object_id = ?, sha256 = ?, error_message = NULL, updated_at = ?
        WHERE id = ? AND submission_id = ? AND deleted_at IS NULL`,
-    ).bind(storageObjectId, sha256, new Date().toISOString(), itemId, submissionId).run();
+    ).bind(storageObject.id, sha256, new Date().toISOString(), itemId, submissionId).run();
     const latest = await c.env.DB.prepare(
       "SELECT status FROM comment_submissions WHERE id = ? AND deleted_at IS NULL",
     )
@@ -661,7 +707,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     return c.json({ ok: true, deduplicated });
   } catch (error) {
     const message = error instanceof HTTPException ? error.message : "The file upload failed";
-    await markItemFailed(c.env, submissionId, itemId, message);
+    await markItemFailedBestEffort(c.env, submissionId, itemId, message);
     throw error;
   }
 });
@@ -1385,6 +1431,11 @@ routes.get("/attachments/:itemId/download", async (c) => {
        AND cs.status = 'ready' AND cs.deleted_at IS NULL
      WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'
        AND csi.deleted_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_integrity_quarantine biq
+         WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
+           AND biq.object_key = mso.object_key
+       )
        AND ${readableSubmissionTargetsSql("cs")}`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Attachment not found" });

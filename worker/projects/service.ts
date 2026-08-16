@@ -862,6 +862,18 @@ async function readAttachmentBlobRecord(
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_integrity_quarantine biq
+          WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+            AND biq.object_key = a.r2_key
+        )
+        AND (
+          a.import_id IS NULL
+          OR EXISTS (
+            SELECT 1 FROM imports i
+            WHERE i.id = a.import_id AND i.status = 'ready'
+          )
+        )
       LIMIT 1
     `).bind(input.locator.assetId).first<BlobRecordRow>();
     if (!row) throw new ProjectServiceError("blob_unavailable", "The selected asset is unavailable");
@@ -876,6 +888,11 @@ async function readAttachmentBlobRecord(
         SELECT 1 FROM blob_gc_ledger bg
         WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
           AND bg.object_key = mso.object_key AND bg.state IN ('deleting', 'deleted')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
+          AND biq.object_key = mso.object_key
       )
     LIMIT 1
   `).bind(input.locator.storageObjectId).first<BlobRecordRow>();
@@ -1611,6 +1628,18 @@ export async function readProjectAttachmentMediaSource(
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM blob_integrity_quarantine biq
+          WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
+            AND biq.object_key = a.r2_key
+        )
+        AND (
+          a.import_id IS NULL
+          OR EXISTS (
+            SELECT 1 FROM imports i
+            WHERE i.id = a.import_id AND i.status = 'ready'
+          )
+        )
 
       UNION ALL
 
@@ -1629,6 +1658,11 @@ export async function readProjectAttachmentMediaSource(
           WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
             AND bg.object_key = mso.object_key AND bg.state IN ('deleting', 'deleted')
         )
+      AND NOT EXISTS (
+        SELECT 1 FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
+          AND biq.object_key = mso.object_key
+      )
     ) source
     LIMIT 1
   `).bind(contentId, projectId, contentId, projectId).first<{

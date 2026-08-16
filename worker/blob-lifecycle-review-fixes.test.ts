@@ -101,6 +101,7 @@ function envFor(
     beforeExecute?: (query: string, bindings: unknown[]) => void;
     assetPut?: ReturnType<typeof vi.fn>;
     assetDelete?: ReturnType<typeof vi.fn>;
+    assetHead?: ReturnType<typeof vi.fn>;
   } = {},
 ): Env {
   return {
@@ -109,6 +110,7 @@ function envFor(
     ASSETS: {
       put: options.assetPut ?? vi.fn(async () => undefined),
       delete: options.assetDelete ?? vi.fn(async () => undefined),
+      head: options.assetHead ?? vi.fn(async () => null),
       get: vi.fn(async () => null),
       list: vi.fn(async () => ({ objects: [], truncated: false })),
     },
@@ -233,6 +235,13 @@ describe("blob lifecycle review fixes", () => {
     const env = envFor(database, {
       assetPut,
       assetDelete,
+      assetHead: vi.fn(async (key: string) => key === "metrology/winner.bin" ? {
+        size: 4,
+        httpEtag: '"winner-etag"',
+        writeHttpMetadata(headers: Headers) {
+          headers.set("content-type", "application/octet-stream");
+        },
+      } : null),
       beforeExecute: (query, bindings) => {
         if (insertedWinner || !/^\s*INSERT INTO assets\b/i.test(query)) return;
         insertedWinner = true;
@@ -243,7 +252,7 @@ describe("blob lifecycle review fixes", () => {
            VALUES ('asset-winner', 'metrology/winner.bin', 'winner.bin',
              'application/octet-stream', 4, 'ready', ?,
              '2026-08-08T00:00:00.000Z')`,
-        ).run(String(bindings[5]));
+        ).run(String(bindings[7]));
       },
     });
 
@@ -262,13 +271,21 @@ describe("blob lifecycle review fixes", () => {
 
     expect(response.status).toBe(201);
     expect(assetPut).toHaveBeenCalledTimes(1);
-    expect(assetDelete).toHaveBeenCalledTimes(1);
+    expect(assetDelete).not.toHaveBeenCalled();
     expect(database.prepare(
       `SELECT asset_id FROM metrology_template_references
        WHERE template_version_id = 'template-metrology'`,
     ).get()).toEqual({ asset_id: "asset-winner" });
-    expect(database.prepare("SELECT COUNT(*) AS count FROM assets").get())
-      .toEqual({ count: 1 });
+    expect(database.prepare(`
+      SELECT status, COUNT(*) AS count,
+             SUM(CASE WHEN sha256 IS NULL THEN 1 ELSE 0 END) AS null_sha_count
+      FROM assets
+      GROUP BY status
+      ORDER BY status
+    `).all()).toEqual([
+      { status: "failed", count: 1, null_sha_count: 1 },
+      { status: "ready", count: 1, null_sha_count: 0 },
+    ]);
     database.close();
   });
 

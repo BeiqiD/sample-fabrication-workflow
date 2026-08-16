@@ -130,6 +130,7 @@ Containers, or a second Worker.
 - A `deleted` locator is terminal and must not be silently reused for different bytes. Recovery registers a new locator.
 - Ready R2 content is unique among live locators. Historical metadata for a collected locator remains, and the same content may be registered again at a new live locator after the old locator reaches `deleting` or `deleted`.
 - A legacy pre-blob-lifecycle migration rewires unfinished Comment items away from an orphaned managed object when an already-ready content-identical winner exists. This prevents the old partial uniqueness rule from blocking migration 0016.
+- Canonical recovery never physically merges stable execution-image or metrology-reference occurrences. An exact same-content duplicate is soft-superseded with an immutable successor/operation audit link; only that superseded edge stops retaining the old locator.
 - Provider absence is an integrity condition, not permission to remove source or occurrence rows.
 
 ## Export invariants

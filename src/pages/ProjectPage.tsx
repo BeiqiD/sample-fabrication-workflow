@@ -953,16 +953,29 @@ export function ProjectPage() {
     setRedoStack((current) => current.filter((command) => command.kind === "geometry"
       ? !removed.has(command.command.placementId)
       : !projectSessionHistoryTouchesItem(command, itemId)));
-    setSnapshot((current) => current ? {
-      ...current,
-      project: result.project,
-      items: current.items.filter((item) => item.id !== itemId),
-      placements: current.placements.filter((placement) => placement.projectItemId !== itemId),
-      edges: current.edges.filter((edge) => edge.sourceItemId !== itemId && edge.targetItemId !== itemId),
-    } : current);
+    setSnapshot((current) => {
+      if (!current) return current;
+      const removedContentId = result.content?.id
+        ?? current.items.find((item) => item.id === itemId)?.projectContentId
+        ?? null;
+      return {
+        ...current,
+        project: result.project,
+        contents: removedContentId
+          ? current.contents.filter((content) => content.id !== removedContentId)
+          : current.contents,
+        attachments: removedContentId
+          ? current.attachments.filter((attachment) => attachment.projectContentId !== removedContentId)
+          : current.attachments,
+        items: current.items.filter((item) => item.id !== itemId),
+        placements: current.placements.filter((placement) => placement.projectItemId !== itemId),
+        edges: current.edges.filter((edge) => edge.sourceItemId !== itemId && edge.targetItemId !== itemId),
+      };
+    });
     setSelectedItemId((current) => current === itemId ? null : current);
     setSaveError("");
     setReferenceActionError("");
+    setOwnedContentActionError("");
     clearReferenceRemoval();
 
     const remainsDirty = Object.keys(pendingMutationRef.current).length > 0
@@ -1056,10 +1069,15 @@ export function ProjectPage() {
     updatePendingReferenceRemoval,
   ]);
 
-  const startReferenceRemoval = useCallback((itemId: string, expectedItemRevision: number) => {
+  const startReferenceRemoval = useCallback((
+    itemId: string,
+    expectedItemRevision: number,
+    expectedContentRevision?: number,
+  ) => {
     if (pendingReferenceRemovalRef.current) return;
     const input: ProjectItemLifecycleInput = {
       expectedItemRevision,
+      ...(expectedContentRevision === undefined ? {} : { expectedContentRevision }),
       operationId: createProjectApiId("operation"),
     };
     const generation = referenceRemovalGenerationRef.current + 1;
@@ -1691,6 +1709,20 @@ export function ProjectPage() {
     startReferenceRemoval(selectedItem.id, selectedItem.revision);
   }, [selectedItem, snapshot, startReferenceRemoval]);
 
+  const removeMarkdownItem = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || item.itemType !== "content" || !content || content.contentType !== "markdown") return;
+    setSelectedItemId(item.id);
+    startReferenceRemoval(item.id, item.revision, content.revision);
+  }, [snapshot, startReferenceRemoval]);
+
   if (loading) return <div className="page project-page"><p className="muted">Loading Project…</p></div>;
   if (loadError || !snapshot) return <div className="page project-page">
     <Link className="back-link" to="/projects">← Projects</Link>
@@ -2045,6 +2077,20 @@ export function ProjectPage() {
             disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
             onClick={() => startMarkdownEdit(selected.itemId)}
           >Edit Markdown</button>}
+          {selected.kind === "markdown" && <button
+            type="button"
+            className="button wide"
+            disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            onClick={() => removeMarkdownItem(selected.itemId)}
+          >{pendingReferenceRemoval?.itemId === selected.itemId
+            ? pendingReferenceRemoval.status === "removing"
+              ? "Moving Markdown…"
+              : pendingReferenceRemoval.status === "reconciling"
+                ? "Reconciling removal…"
+                : pendingReferenceRemoval.status === "uncertain"
+                  ? "Removal needs exact retry"
+                  : "Removal needs reconciliation"
+            : "Move Markdown to trash"}</button>}
           {selected.kind === "attachment" && selected.attachmentSourceUrl && <a className="button wide" href={selected.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
           {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
             type="button"
@@ -2100,6 +2146,7 @@ export function ProjectPage() {
         attachmentEditor={attachmentEditor}
         interactionDisabled={readingInteractionDisabled}
         onMarkdownEditRequest={startMarkdownEdit}
+        onMarkdownDeleteRequest={removeMarkdownItem}
         onMarkdownChange={changeMarkdown}
         onMarkdownSave={() => void saveMarkdown()}
         onMarkdownCancel={() => cancelMarkdown(false)}
@@ -2115,6 +2162,7 @@ export function ProjectPage() {
       attachmentEditor={attachmentEditor}
       interactionDisabled={readingInteractionDisabled}
       onMarkdownEditRequest={startMarkdownEdit}
+      onMarkdownDeleteRequest={removeMarkdownItem}
       onMarkdownChange={changeMarkdown}
       onMarkdownSave={() => void saveMarkdown()}
       onMarkdownCancel={() => cancelMarkdown(false)}

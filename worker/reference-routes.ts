@@ -37,6 +37,13 @@ routes.get("/assets/:key{.+}", async (c) => {
     FROM assets a
     WHERE a.r2_key = ?
       AND a.status = 'ready'
+      AND (
+        a.import_id IS NULL
+        OR EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = a.import_id AND i.status = 'ready'
+        )
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM blob_gc_ledger bg
@@ -44,6 +51,13 @@ routes.get("/assets/:key{.+}", async (c) => {
           AND bg.provider = 'r2'
           AND bg.object_key = a.r2_key
           AND bg.state IN ('deleting', 'deleted')
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'r2'
+          AND biq.provider = 'r2'
+          AND biq.object_key = a.r2_key
       )
     LIMIT 1
   `).bind(key).first<MediaSource>();
@@ -129,15 +143,30 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
 
   const source = await c.env.DB.prepare(`
     SELECT a.r2_key, a.original_name, a.mime_type
-    FROM run_step_assets rsa
-    JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
-    JOIN run_steps rs ON rs.id = rsa.run_step_id AND rs.deleted_at IS NULL
+    FROM run_step_assets origin
+    LEFT JOIN run_step_assets successor
+      ON successor.id = origin.superseded_by_occurrence_id
+    JOIN run_step_assets effective_occurrence
+      ON effective_occurrence.id = COALESCE(successor.id, origin.id)
+    JOIN assets a
+      ON a.id = effective_occurrence.asset_id AND a.status = 'ready'
+    JOIN run_steps rs
+      ON rs.id = effective_occurrence.run_step_id AND rs.deleted_at IS NULL
     JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
     JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
-    WHERE rsa.id = ?
+    WHERE origin.id = ?
       AND rs.id = ?
-      AND rsa.role = 'execution'
-      AND rsa.deleted_at IS NULL
+      AND origin.role = 'execution'
+      AND effective_occurrence.role = 'execution'
+      AND effective_occurrence.deleted_at IS NULL
+      AND effective_occurrence.superseded_by_occurrence_id IS NULL
+      AND (
+        a.import_id IS NULL
+        OR EXISTS (
+          SELECT 1 FROM imports i
+          WHERE i.id = a.import_id AND i.status = 'ready'
+        )
+      )
       AND NOT EXISTS (
         SELECT 1
         FROM blob_gc_ledger bg
@@ -145,6 +174,13 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
           AND bg.provider = 'r2'
           AND bg.object_key = a.r2_key
           AND bg.state IN ('deleting', 'deleted')
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM blob_integrity_quarantine biq
+        WHERE biq.store_kind = 'r2'
+          AND biq.provider = 'r2'
+          AND biq.object_key = a.r2_key
       )
   `).bind(id, stepId).first<MediaSource>();
   if (!source) {

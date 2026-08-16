@@ -1,4 +1,5 @@
 import { HTTPException } from "hono/http-exception";
+import { publishedTemplateVersionSql } from "./template-publication";
 
 type PlanContext = {
   run: {
@@ -52,9 +53,12 @@ export async function loadPlanContext(db: D1Database, sampleId: string, runId: s
          AND r.deleted_at IS NULL`,
     ).bind(runId, sampleId).first<PlanContext["run"]>(),
     db.prepare(
-      `SELECT id, recipe_family_id, name, template_type, version, initial_state_hash, content_json FROM template_versions
-       WHERE id = ? AND template_kind = 'process'
-         AND archived_at IS NULL AND deleted_at IS NULL`,
+      `SELECT tv.id, tv.recipe_family_id, tv.name, tv.template_type, tv.version,
+              tv.initial_state_hash, tv.content_json
+       FROM template_versions tv
+       WHERE tv.id = ? AND tv.template_kind = 'process'
+         AND tv.archived_at IS NULL AND tv.deleted_at IS NULL
+         AND ${publishedTemplateVersionSql("tv")}`,
     ).bind(templateVersionId).first<PlanContext["nextTemplate"]>(),
     db.prepare(
       `SELECT rs.id, COALESCE(sd.name, rs.title) AS name, rs.logical_step_key, rs.definition_hash, rs.position,
