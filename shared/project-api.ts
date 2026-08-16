@@ -258,6 +258,14 @@ function isProjectPayloadText(value: unknown): value is string {
   return typeof value === "string" && !value.includes("\u0000");
 }
 
+export function projectCodePointLength(value: string) {
+  let length = 0;
+  for (const _character of value) {
+    length += 1;
+  }
+  return length;
+}
+
 function hasProjectCodePointLengthAtMost(value: string, maximum: number) {
   let length = 0;
   for (const _character of value) {
