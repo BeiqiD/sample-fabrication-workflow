@@ -2,10 +2,11 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-14 after the reference/search foundation through PR #130,
+Last reviewed: 2026-08-16 after the reference/search foundation through PR #130,
 Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
 reference placement in PR #134, Project-owned content in PR #135, edges in PR
-#136, Reading in PR #138, and Project Map stabilization through PR #140
+#136, Reading in PR #138, Project stability in PRs #139/#140, and the
+storage-integrity/recovery hardening completed in PR #141
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -171,8 +172,11 @@ correctness fixes but must not continue expanding into independent product areas
 Phase 3B3 Project-owned Markdown and generic attachment creation is complete in
 squash-merged PR #135. Phase 3B4 basic Project-local edges are complete in
 squash-merged PR #136. Phase 3C Reading projection is complete in squash-merged
-PR #138. Phase 3D Markdown/TeX, media, and save UX hardening is the active
-implementation target; storage-integrity work remains a parallel quality track.
+PR #138. The bounded Project-stability work in PRs #139/#140 and the storage-
+integrity/recovery track in PR #141 are also complete. Phase 3D Markdown/TeX,
+media, save/conflict UX, and human-readable export is now the active product
+implementation target. Storage, lifecycle, and Reference foundations return to
+correctness maintenance rather than continuing as independent feature tracks.
 
 ## Active implementation roadmap
 
@@ -407,28 +411,132 @@ mega-editor or page-layout system.
 
 This milestone is the **Project MVP**.
 
-### Phase 4 — Advanced Canvas and Inspector
+### Phase 4 — complete the v1 functional shape
 
-**Goal:** approach a mature Obsidian-Canvas-like workflow after the normalized
-core is stable.
+**Goal:** finish the interaction-shaping features that would otherwise force major
+page or component restructuring after visual refinement begins.
 
-**Candidate sequence:**
+Phase 4 is deliberately about **functional completeness**, not final visual polish.
+Candidate features do not automatically become release blockers: only capabilities
+that real use shows are necessary for the v1 interaction model must land before the
+feature freeze.
 
-1. deeper Inspector, Project/item canonical destinations, and exact focus;
-2. child-reference insertion through the same authoritative path;
-3. multi-select, copy/paste, keyboard shortcuts, helper lines, and z-order;
-4. groups/frames if real use justifies them;
-5. PDF first-page thumbnail and fuller Inspector/modal preview;
-6. webpage screenshot capture after a security review; no live iframe contract;
-7. large-map performance hardening and contextual zoom;
-8. optional custom Reading-order design after real use demonstrates a need;
-9. optional JSON Canvas import/export after internal semantics are stable.
+#### Phase 4A — Inspector and navigation completeness
 
-**Exit:** the same Project occurrences support mature spatial navigation,
-inspection, and presentation while Reading remains a consistent linear
-projection.
+**Scope:**
 
-This milestone is the **Project v1 product shape**.
+- deeper Inspector with clear source hierarchy and Project-local context;
+- Project/item canonical destinations and exact focus/navigation;
+- child-reference insertion through the existing authoritative reference path;
+- fuller Inspector/modal media preview where it materially improves research use;
+- PDF first-page thumbnail if it proves useful for routine inspection;
+- webpage screenshot capture only after a security review; no live iframe contract.
+
+**Exit:** inspection and navigation no longer require a later structural redesign of
+the Project workspace.
+
+#### Phase 4B — Canvas productivity
+
+**Scope:**
+
+- multi-select;
+- copy/paste;
+- keyboard shortcuts;
+- helper/alignment lines;
+- explicit z-order controls;
+- groups/frames only if real Project use demonstrates a need;
+- preserve the normalized occurrence/placement/edge model and existing save
+  contracts rather than introducing a frontend-owned Canvas document.
+
+**Exit:** common spatial editing workflows are efficient enough for sustained daily
+use without adding general-purpose whiteboard complexity.
+
+#### Phase 4C — performance and final functional gaps
+
+**Scope:**
+
+- large-map performance hardening and contextual zoom;
+- stress-test the existing 200–300 node / 300–500 edge target and the larger
+  500-node / 800-edge envelope;
+- make explicit v1 include/defer decisions for optional groups/frames, richer
+  previews, or custom Reading order based on real use rather than roadmap inertia;
+- fix remaining interaction gaps that would otherwise change the primary page
+  structure after visual refinement begins.
+
+Optional JSON Canvas import/export, semantic search, automatic layout, and similar
+integration features do **not** block v1 feature freeze unless a concrete product
+requirement emerges.
+
+**Exit:** the same Project occurrences support the intended v1 spatial, inspection,
+navigation, and linear-reading workflow at representative scale.
+
+This milestone is the **Project v1 functional shape**.
+
+### V1 feature freeze
+
+After Phase 4, freeze the interaction-shaping v1 feature set before systematic
+frontend refinement begins.
+
+"Feature complete" here means that the capabilities which determine the main page
+structure and interaction model are present and stable: Samples/Processing/Recipes,
+Project Map, Reading, Inspector, Markdown/media, References, edges, and the selected
+v1 Canvas productivity operations. It does **not** mean every future optional
+capability has been implemented.
+
+After the freeze:
+
+- avoid adding features that require major page/component restructuring during the
+  refinement pass;
+- continue correctness, accessibility, performance, and release-blocking fixes;
+- defer optional integrations and speculative capabilities instead of reopening the
+  v1 interaction model.
+
+### Phase 5 — frontend refinement
+
+**Status:** planned after v1 feature freeze.
+
+**Goal:** refine the complete product as one visual and interaction system after its
+functional shape is stable.
+
+Phase 5 is intentionally separate from Phase 3D. Phase 3D still owns **functional
+UX** required for correctness and usability, such as editor loading, Markdown/TeX
+rendering, save/conflict behavior, and media presentation. Phase 5 owns the
+systematic whole-product refinement that would be wasteful while major features are
+still changing.
+
+**Scope:**
+
+- typography and information hierarchy;
+- spacing, density, surfaces, borders, shadows, and panel composition;
+- final button, icon, status, and semantic-color consistency;
+- hover, selected, focused, disabled, loading, empty, error, and conflict states;
+- final Map-node, edge, Inspector, sidebar, dialog, and Reading visual language;
+- desktop/mobile responsive consistency across realistic content sizes;
+- restrained transitions and interaction feedback where they improve comprehension;
+- keyboard/focus/accessibility polish;
+- wording, labels, and microcopy consistency across the whole product;
+- cross-page visual review so old and new UI conventions cannot coexist unnoticed.
+
+**Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
+than a sequence of independently implemented phases.
+
+### Phase 6 — release hardening
+
+**Goal:** validate the refined v1 with realistic use and operational rehearsal before
+treating it as a release candidate.
+
+**Scope:**
+
+- sustained testing with representative real research data and Projects;
+- desktop/mobile and supported-browser regression passes;
+- performance regression and large-Project checks;
+- backup, complete export, human-readable export, and restore rehearsal;
+- migration/deployment/runbook verification;
+- accessibility and security review of the final interaction surface;
+- release-blocking bug fixing without reopening optional feature development.
+
+**Exit:** a release candidate is functionally stable, visually coherent, operationally
+rehearsed, and suitable for longer real-world use.
 
 ## Save, history, and collaboration direction
 
@@ -456,21 +564,24 @@ now so a future collaboration project does not need to replace the data model.
 
 ### Portability and Docker distribution
 
-Portability is a continuous constraint and a later release milestone, not a
-reason to delay Project indefinitely.
+Portability remains a continuous architectural constraint, but a Docker/self-hosted
+distribution is **not a near-term implementation requirement** and is not part of
+the immediate Project v1 sequence.
 
-From Phase 3 onward, each backend PR identifies:
+Current product work should continue to preserve:
 
-- runtime-neutral domain logic;
-- D1-specific query/runtime adapters;
+- runtime-neutral domain logic where practical;
+- explicit D1-specific query/runtime adapters;
 - R2 and managed-storage adapters;
 - Access/authentication adapters;
 - scheduled/background boundaries;
 - export and configuration assumptions.
 
-After Project content and save contracts stabilize, perform a dedicated
-portability audit and build a reference Docker deployment using ordinary SQLite
-and explicit local/object-storage adapters. It is the same product, not a fork.
+This keeps a future self-hosted path open without spending current product cycles on
+deployment parity. After the v1 functional shape, frontend refinement, and release
+hardening are complete, a separately scheduled portability milestone may perform a
+dedicated audit and build a reference Docker deployment using ordinary SQLite and
+explicit local/object-storage adapters. It remains the same product, not a fork.
 
 ### Search performance
 
@@ -533,17 +644,29 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Project reference-workspace alpha | Project identity/save model, Map kernel, authoritative repeated-reference placement, reopen/remove behavior |
 | Map-first Project workspace alpha | Alpha plus Markdown/attachment creation and basic directed/undirected edges |
 | Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
-| Project v1 | MVP plus mature Inspector, advanced Canvas usability, previews, and performance hardening |
-| Portable release | Same Project contracts pass in a documented Docker/self-hosted deployment |
+| Project v1 functional shape | MVP plus mature Inspector/navigation, selected Canvas productivity, previews where justified, and representative-scale performance |
+| V1 feature freeze | Interaction-shaping v1 scope is fixed; optional future capabilities no longer block refinement |
+| Refined release candidate | Frozen v1 plus systematic frontend refinement and release hardening |
+| Portable release | Later milestone: the same Project contracts pass in a documented Docker/self-hosted deployment |
 | Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
 
 ## Immediate next PR order
 
-1. Land the bounded **Project stability fixes** discovered after Phase 3C: local-working-copy interaction safety and Project lifecycle UI.
-2. Harden **Markdown/TeX, mixed media, save/conflict UX, and export** as Phase 3D.
-3. Add advanced **Inspector/Canvas/previews/performance**.
-4. Run the dedicated Docker portability implementation after Project content
-   and save semantics stabilize.
+1. Complete **Phase 3D** in bounded slices: shared Markdown/TeX rendering,
+   mixed-media presentation, save/conflict UX consolidation, and human-readable
+   export.
+2. Complete **Phase 4A** Inspector and navigation completeness.
+3. Complete **Phase 4B** the selected v1 Canvas productivity operations.
+4. Complete **Phase 4C** representative-scale performance work and make explicit
+   include/defer decisions for remaining optional interaction candidates.
+5. Declare the **v1 feature freeze** once the interaction-shaping feature set is
+   stable.
+6. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+7. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+
+Docker/self-hosted distribution is intentionally absent from this immediate order.
+Preserve portability seams now, but schedule implementation only as a later,
+independent milestone.
 
 ## Work that should not happen next
 
@@ -556,5 +679,8 @@ The next phase should not be:
 - permanent-delete endpoints before the later safety review;
 - live webpage iframe preview;
 - real-time collaboration before the single-user save/revision model is stable;
-- a Docker-specific fork that duplicates domain logic;
+- systematic whole-product visual refinement before the v1 interaction shape is
+  feature-frozen; functional UX required by Phase 3D is not deferred;
+- near-term Docker/self-hosted implementation or a Docker-specific fork that
+  distracts from completing and refining the v1 product;
 - LLM features before the deterministic Project workflow is usable.
