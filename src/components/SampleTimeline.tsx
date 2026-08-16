@@ -1,6 +1,7 @@
 import type { SampleEvent } from "../../shared/types";
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import { sampleEventLabel } from "../lib/sampleHistory";
+import { CommentBody } from "./CommentBody";
 
 export function SampleTimeline({
   events,
@@ -29,7 +30,9 @@ export function SampleTimeline({
             {onDeleteRecord && isSampleRecordEvent(event.kind, event.metadata) && <button type="button" onClick={() => onDeleteRecord(event)}>Delete note</button>}
           </div>
         </div>
-        {event.body && <p>{event.body}</p>}
+        {event.body && (event.kind === "comment" || event.kind === "image"
+          ? <CommentBody source={event.body} />
+          : <p>{event.body}</p>)}
         {!compact && event.assetKey && <div className="event-asset">
           <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer">
             <img

@@ -68,7 +68,18 @@ Existing button and Process-workspace geometry is protected unless the task expl
 
 These are intentional profiles. Do not enlarge Dense controls to Comfortable dimensions merely to create a single scale.
 
-### 2.3 Reading rhythm has priority over numerical uniformity
+### 2.3 Shared rich text is a display primitive, not a universal editor
+
+User-authored long text may share one safe Markdown/TeX renderer while retaining context-specific density and editing behavior.
+
+- **Document mode** belongs to Project Reading. It uses full reading spacing, semantic headings, tables, code, TeX, links, and ordinary Markdown images.
+- **Comment mode** belongs to ready Sample notes, process Comments, and Comment/image Timeline events. It preserves single line breaks, uses compact spacing, and renders Markdown headings as local styled copy rather than adding page-outline headings.
+- Comment input remains the existing textarea. Do not add WYSIWYG state, a block model, automatic background save, or a second authoritative representation merely because read-only rendering is richer.
+- Uploaded images, files, and attachment links remain separate from the Comment body. Markdown image syntax is a safe link in Comment mode, not an inline preview or an attachment reference.
+- Raw HTML is literal text. All callers use the shared sanitized output; no component may pass caller-supplied HTML to `dangerouslySetInnerHTML`.
+- Keep the renderer below lazy route/component boundaries. Project Map and comment-free views should not eagerly load Marked/Temml.
+
+### 2.4 Reading rhythm has priority over numerical uniformity
 
 Normal pages should retain visible separation between fields, cards, and sections.
 
@@ -81,7 +92,7 @@ Normal pages should retain visible separation between fields, cards, and section
 
 Do not reduce line-height or vertical spacing simply to shorten a card.
 
-### 2.4 Natural layout is the baseline
+### 2.5 Natural layout is the baseline
 
 Default, read-only, or collapsed states should use their natural content height. Do not introduce a large fixed minimum height merely to hide a transition difference.
 
@@ -379,9 +390,11 @@ Current global load order:
 
 1. `styles.css` — tokens, shared primitives, legacy route layout, Process workspace/grid, responsive rules;
 2. `palette.css` — color-role and semantic-color behavior;
-3. `comment-layout.css` — focused comment compatibility rules;
+3. `comment-layout.css` — focused comment geometry and compatibility rules;
 4. `sample-page-layout.css` — Sample-page View/Edit and Notes media layout;
 5. `processing-form-roles.css` — explicit Processing form typography roles.
+
+`rich-text.css` is loaded with the shared `RichText` component rather than as an application-shell layer. It owns document/comment typography and MathML overflow; host layouts continue to own width, grid placement, truncation, and attachment geometry.
 
 ### 12.2 Component- and route-scoped owners
 
@@ -412,6 +425,7 @@ Unless explicitly targeted, preserve:
 - generous Comfortable-page line-height and section spacing;
 - Sample-details natural View height behavior;
 - Notes & observations mobile image grid;
+- the separation between Comment body rendering and existing image/file/link attachment controls;
 - Process-grid density and column-width logic;
 - run controls and action-menu geometry;
 - Jump-to-current geometry and behavior;

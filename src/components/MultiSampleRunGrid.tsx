@@ -15,6 +15,7 @@ import {
 import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
 import { pendingRunStepActionTargets } from "../lib/runGridActions";
 import { CommentAttachmentList } from "./CommentAttachmentList";
+import { CommentBody } from "./CommentBody";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { DialogCloseIcon } from "./DialogCloseIcon";
@@ -320,7 +321,7 @@ function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, commo
     <div className="comment-card-content">
       <div className="comment-card-copy">
         {incomplete && <strong className={`comment-upload-state status-${comment.status}`}>{comment.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
-        {comment.body && <p>{comment.body}</p>}
+        {comment.body && <CommentBody source={comment.body} />}
         <small>{meta}</small>
       </div>
       {(imageKeys.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : [comment.assetKey!]} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}

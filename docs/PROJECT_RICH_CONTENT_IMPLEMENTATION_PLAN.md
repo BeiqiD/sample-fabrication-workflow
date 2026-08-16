@@ -1,12 +1,12 @@
 # Project rich content implementation plan
 
-Status: Phase 3D.1 implemented in Draft PR #143; final review and exact-head verification are tracked on the PR
+Status: Phase 3D.1 merged in PR #143; the shared renderer and compact Comment projection are implemented in the current follow-up PR
 
-Last reviewed: 2026-08-16 after final rich-content boundary hardening and branch history normalization
+Last reviewed: 2026-08-16 after extracting the renderer into a shared Project/Comment presentation boundary
 
 ## Goal
 
-Phase 3D turns the existing Map/Reading Project workspace into a durable mixed-media research narrative without introducing a second content model or a monolithic page editor. Project-owned Markdown source, attachment metadata, reference occurrences, placement, and edges remain authoritative in their existing normalized records. Rich HTML, MathML, image preview state, editor tabs, and human-readable archives are derived client state only.
+Phase 3D turns the existing Map/Reading Project workspace into a durable mixed-media research narrative without introducing a second content model or a monolithic page editor. Project-owned Markdown source, attachment metadata, reference occurrences, placement, and edges remain authoritative in their existing normalized records. The same safe rendering core now presents ready Sample-note and process-Comment bodies without changing their plain-string storage or separate attachment model. Rich HTML, MathML, image preview state, editor tabs, and human-readable archives are derived client state only.
 
 ## Architectural invariants
 
@@ -15,21 +15,29 @@ Phase 3D turns the existing Map/Reading Project workspace into a durable mixed-m
 3. Reference occurrences stay read-only and source-owned. Phase 3D does not copy referenced source records into Project content.
 4. Attachment bytes continue through the existing canonical Project file route. Image preview, file-card presentation, and export do not expose physical storage locators.
 5. Existing expected revisions, operation IDs, exact retry behavior, conflict states, navigation protection, and the one-editor-at-a-time rule remain the mutation boundary.
-6. This phase adds no schema migration, remote migration, deployment operation, or production-data rewrite.
+6. Displayed Comment/note bodies remain authoritative plain strings. Comment images, files, and links remain separate submission items; no generated HTML, editor AST, or inline attachment reference is introduced.
+7. This phase adds no schema migration, remote migration, deployment operation, or production-data rewrite.
 
 ## Rendering boundary
 
-`src/lib/project-markdown.ts` owns the canonical renderer contract:
+`src/lib/rich-text.ts` owns the canonical renderer contract. `src/lib/project-markdown.ts` is a compatibility adapter for Project-specific URL helpers and document rendering; it does not own a second parser.
 
-- CommonMark/GFM structure is parsed with a dedicated `Marked` instance rather than global mutable configuration;
-- inline `$…$` / `\\(…\\)` and display `$$…$$` / `\\[…\\]` TeX are converted to MathML by Temml;
+The shared safety contract applies to both presentation modes:
+
+- CommonMark/GFM structure is parsed with dedicated `Marked` instances rather than global mutable configuration;
+- inline `$…$` / `\(…\)` and display `$$…$$` / `\[…\]` TeX are converted to MathML by Temml;
 - raw HTML is rendered literally rather than executed;
-- links and images use an explicit protocol allow-list; protocol-relative, script, data, control-character, backslash-normalized, and malformed destinations are rejected after final URL parsing;
+- links and images use explicit protocol allow-lists; protocol-relative, script, data, control-character, backslash-normalized, and malformed destinations are rejected after final URL parsing;
 - external HTTP(S) links receive `noopener noreferrer`;
-- parser or TeX failures fall back to readable escaped source instead of failing the Reading projection;
+- parser or TeX failures fall back to readable escaped source;
 - untrusted TeX uses bounded macro expansion and explicit relative/absolute size caps.
 
-`ProjectMarkdown` is the shared presentation component. The use of `dangerouslySetInnerHTML` is intentionally confined to this component and receives only renderer-generated output under the boundary above. No caller supplies arbitrary HTML.
+The presentation policy is context-specific:
+
+- `document` mode keeps CommonMark paragraph behavior, semantic headings, document spacing, and ordinary Markdown images for Project Reading;
+- `comment` mode preserves single line breaks, compresses spacing, maps Markdown headings to local styled copy instead of page-outline headings, and demotes Markdown images to safe links so uploaded media continues through the established Comment attachment flow.
+
+`RichText` is the shared presentation component. The use of `dangerouslySetInnerHTML` is confined to this component and receives only renderer-generated output under the boundary above. `ProjectMarkdown` is a thin document-mode wrapper. `CommentBody` dynamically imports `RichText`, so comment-free surfaces and the desktop Project Map do not eagerly load Marked and Temml.
 
 ## Projection density
 
@@ -42,9 +50,13 @@ Reading is the complete narrative projection:
 
 Map remains compact in Phase 3D.1. It keeps summary text and its existing authoritative edit state machine; full rich rendering inside every zoomable node is deliberately avoided because it would couple document layout to canvas geometry and inflate the React Flow bundle. The complete Reading module is dynamically imported only when the Reading projection is entered, so the desktop Map path does not eagerly load Marked and Temml.
 
+Displayed Comment bodies use compact rich text inside the existing Sample notes, process-grid Comment cards, and Comment/image Timeline events. Their current image galleries, file cards, metadata, delete actions, and responsive geometry remain owned by those host components rather than by the renderer.
+
 ## Editor boundary
 
 Only the active Reading Markdown block dynamically imports `ProjectMarkdownEditor`. Inactive blocks ship no editor instance and retain no local editor mode. The editor provides source and preview tabs, but saving still calls the existing Project-owned Markdown update path through `ProjectPage`.
+
+Comments deliberately do not reuse that editor. `CommentComposer` remains a plain textarea plus the established image/file/link controls; only published read surfaces use `CommentBody`.
 
 The state meanings remain unchanged:
 
@@ -71,7 +83,8 @@ Attachment failure is non-fatal: the narrative and manifest remain exportable, w
 
 Phase 3D.1 verification covers:
 
-- GFM and TeX rendering;
+- shared document/comment GFM and TeX rendering;
+- comment single-line breaks, local heading semantics, and Markdown-image demotion;
 - raw-HTML and URL-protocol safety;
 - lazy active-editor loading and authoritative save behavior;
 - complete Reading order and responsive projection safety inherited from Phase 3C;
@@ -83,9 +96,10 @@ Phase 3D.1 verification covers:
 
 The following remain outside Phase 3D.1:
 
-- WYSIWYG or block-editor persistence;
+- WYSIWYG, formatting-toolbar, or block-editor persistence for either Project Markdown or Comments;
 - a separate Reading ordering or layout table;
 - rich rendering in every Map node;
+- inline Project-attachment references inside Markdown or Comment bodies;
 - PDF document embedding, video/audio players, or format-specific scientific viewers;
 - automatic background save;
 - checkpoint tables, revision history UI, or three-way merge;
