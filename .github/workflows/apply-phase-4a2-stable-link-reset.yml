@@ -34,14 +34,18 @@ jobs:
               raise SystemExit("unexpected React hook import shape")
           source = source.replace(old_import, new_import, 1)
 
-          old_effect = '''  useEffect(() => {
-            stableLinkCopyGenerationRef.current += 1;
-            setStableLinkCopyState(null);
-          }, [projectId, selectedItemId]);'''
-          new_effect = '''  useLayoutEffect(() => {
-            stableLinkCopyGenerationRef.current += 1;
-            setStableLinkCopyState(null);
-          }, [projectId, selectedItemId]);'''
+          old_effect = (
+              "  useEffect(() => {\n"
+              "    stableLinkCopyGenerationRef.current += 1;\n"
+              "    setStableLinkCopyState(null);\n"
+              "  }, [projectId, selectedItemId]);"
+          )
+          new_effect = (
+              "  useLayoutEffect(() => {\n"
+              "    stableLinkCopyGenerationRef.current += 1;\n"
+              "    setStableLinkCopyState(null);\n"
+              "  }, [projectId, selectedItemId]);"
+          )
           if source.count(old_effect) != 1:
               raise SystemExit("unexpected stable-link reset effect shape")
           source = source.replace(old_effect, new_effect, 1)
