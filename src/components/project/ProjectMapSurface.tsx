@@ -79,6 +79,7 @@ export interface ProjectMapSurfaceProps {
   pendingAttachment?: ProjectPendingAttachmentPlacement | null;
   markdownEditor?: ProjectMapMarkdownEditorState | null;
   selectedItemId: string | null;
+  focusedItemId?: string | null;
   selectedEdgeId?: string | null;
   geometryInteractionDisabled?: boolean;
   edgeInteractionDisabled?: boolean;
@@ -455,6 +456,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   pendingAttachment = null,
   markdownEditor = null,
   selectedItemId,
+  focusedItemId = null,
   selectedEdgeId = null,
   geometryInteractionDisabled = false,
   edgeInteractionDisabled = false,
@@ -473,6 +475,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const interactionStarts = useMemo(() => new Map<string, ProjectMapGeometry>(), []);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const flowInstanceRef = useRef<ReactFlowInstance<ProjectFlowNode> | null>(null);
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<ProjectFlowNode> | null>(null);
+  const lastFocusedItemIdRef = useRef<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     left: number;
     top: number;
@@ -561,6 +565,28 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       return flowPointFromClient(rect.left + rect.width / 2, rect.top + rect.height / 2);
     },
   }), [flowPointFromClient]);
+
+  useEffect(() => {
+    if (!focusedItemId) {
+      lastFocusedItemIdRef.current = null;
+      return;
+    }
+    if (!flowInstance || lastFocusedItemIdRef.current === focusedItemId) return;
+    const timer = window.setTimeout(() => {
+      const node = flowInstance.getNode(focusedItemId);
+      if (!node || node.data.pendingReference || node.data.pendingAttachment) return;
+      const geometry = nodeGeometry(node);
+      const currentZoom = flowInstance.getZoom();
+      const focusZoom = currentZoom < 0.85 ? 0.85 : Math.min(currentZoom, 1.25);
+      lastFocusedItemIdRef.current = focusedItemId;
+      void flowInstance.setCenter(
+        geometry.x + geometry.width / 2,
+        geometry.y + geometry.height / 2,
+        { zoom: focusZoom, duration: 0 },
+      );
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [flowInstance, flowNodes, focusedItemId]);
 
   const onNodesChange = useCallback((changes: NodeChange<ProjectFlowNode>[]) => {
     const effectiveChanges = geometryInteractionDisabled
@@ -703,7 +729,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       nodes={flowNodes}
       edges={projectedEdges}
       nodeTypes={PROJECT_NODE_TYPES}
-      onInit={(instance) => { flowInstanceRef.current = instance; }}
+      onInit={(instance) => {
+        flowInstanceRef.current = instance;
+        setFlowInstance(instance);
+      }}
       onNodesChange={onNodesChange}
       onEdgesChange={handleEdgesChange}
       onNodeClick={handleElementClick}
