@@ -22,14 +22,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "65a65254b4f89a87315af6c32e6962ebdf5e4547"
+          test "$(git rev-parse HEAD^)" = "bf0e98a91691f1d5ab9de03678dcd91d35045426"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Apply cross-module architecture patch
         shell: bash
         run: |
-          set -euo pipefail
-          python3 .github/pr141-cross-module-fixes.py
+          set +e
+          output="$(python3 .github/pr141-cross-module-fixes.py 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            message="$(printf '%s' "$output" | tail -c 4000 | tr '\n' ' ')"
+            echo "::error file=.github/pr141-cross-module-fixes.py::$message"
+            exit "$status"
+          fi
           git diff --check
           git status --short
 
