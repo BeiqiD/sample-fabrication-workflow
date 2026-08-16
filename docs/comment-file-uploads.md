@@ -3,6 +3,20 @@
 All Sample notes and process-Step Comments use the same two-stage submission
 model.
 
+## Body rendering boundary
+
+A Comment body remains one authoritative plain string entered through the existing textarea. Displayed Sample-note and process-Step Comment bodies are rendered client-side with the shared safe GFM/TeX renderer; generated HTML and MathML are never persisted or accepted from a caller.
+
+The renderer does not turn Comments into a document editor:
+
+- the composer has no WYSIWYG state, block model, formatting toolbar, or preview-owned save path;
+- images, unchanged files, and external links continue through the existing submission items and attachment controls;
+- Markdown image syntax is rendered as a safe link rather than an inline image, so it cannot bypass attachment identity, upload integrity, lifecycle, or export rules;
+- raw HTML is shown literally, unsafe URL schemes are rejected, and TeX expansion/size are bounded;
+- Project Reading may use the same renderer core with document spacing and ordinary Markdown images, but that presentation policy does not change Comment storage.
+
+The Comment renderer is lazy-loaded from published read surfaces. Uploading and failed recovery cards remain plain submission-state UI and do not load the renderer merely to show a local draft. The same status boundary applies when a non-ready process-Step Comment is projected into the Sample page's Notes & observations list: its body remains literal plain text until the submission becomes `ready`.
+
 ## Storage boundaries
 
 - Processed inline Comment images use the existing private `ASSETS` R2 binding.
@@ -66,10 +80,11 @@ user-supplied URLs.
 
 ## Deployment
 
-Apply `migrations/0005_comment_submissions.sql`. No additional R2 bucket is
-required. Until all SWITCHdrive secrets are configured and the WebDAV
-credential check succeeds, users can submit text, compressed Comment images,
-and attachment links, but cannot upload original files.
+Apply `migrations/0005_comment_submissions.sql`. The rich-text presentation
+follow-up adds no migration, API field, or additional R2 bucket. Until all
+SWITCHdrive secrets are configured and the WebDAV credential check succeeds,
+users can submit text, compressed Comment images, and attachment links, but
+cannot upload original files.
 
 The v3 integration branch remains blocked from remote migration/deployment
 until the blob lifecycle gate in

@@ -28,17 +28,20 @@ describe("Phase 3C/3D Reading contract", () => {
     expect(page).not.toContain('import { ProjectReadingSurface } from');
   });
 
-  it("renders complete Markdown/GFM and TeX from canonical source without persisting generated HTML", () => {
+  it("renders complete Markdown/GFM and TeX through the shared safe renderer", () => {
     const reading = read("src/components/project/ProjectReadingSurface.tsx");
-    const renderer = read("src/lib/project-markdown.ts");
+    const renderer = read("src/lib/rich-text.ts");
+    const compatibility = read("src/lib/project-markdown.ts");
     const component = read("src/components/project/ProjectMarkdown.tsx");
+    const sharedComponent = read("src/components/RichText.tsx");
     expect(reading).toContain("<ProjectMarkdown source={node.markdownSource || \"\"}");
     expect(renderer).toContain("new Marked");
     expect(renderer).toContain("Temml.renderToString");
     expect(renderer).toContain("maxSize: [20, 200]");
-    expect(renderer).toContain("renderer.html = ({ text }) => escapeProjectMarkdownHtml(text)");
-    expect(renderer).toContain("projectMarkdownSafeHref");
-    expect(component).toContain("dangerouslySetInnerHTML");
+    expect(renderer).toContain("renderer.html = ({ text }) => escapeRichTextHtml(text)");
+    expect(compatibility).toContain('renderRichText(source, "document")');
+    expect(component).toContain('<RichText');
+    expect(sharedComponent).toContain("dangerouslySetInnerHTML");
     expect(component).not.toContain("projectApi");
   });
 

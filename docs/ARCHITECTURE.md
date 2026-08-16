@@ -61,6 +61,14 @@ Containers, or a second Worker.
 - Step state, notes, optional attachment event, sample timestamp, and run rollup are one D1 batch.
 - Every user-originated record stores the validated Access email.
 
+## Presentation invariants
+
+- User-authored Project Markdown and displayed Sample-note and process-Comment bodies remain authoritative plain strings. The browser derives sanitized HTML and MathML; neither representation is stored in D1 or returned as an authoritative API field.
+- `src/lib/rich-text.ts` owns one URL, raw-HTML, and bounded-TeX safety contract with two presentation policies: document mode for Project Reading and compact mode for Comments.
+- Comment creation remains an ordinary textarea plus the existing image, file, and link controls. There is no WYSIWYG state, editor AST, generated-HTML column, inline attachment reference, or Comment-specific content schema.
+- Markdown image syntax is not an inline media channel in Comments. It becomes a safe link, while uploaded images and files retain their existing occurrence, lifecycle, retry, export, and deletion boundaries.
+- Comment rendering is lazy below route/component boundaries so Marked and Temml do not become part of the application shell or the desktop Project Map path merely because the shared renderer exists.
+
 ## Reference resolution invariants
 
 - The v1 public target-type set is closed and shared by schema validation, resolver adapters, API validation, and permanent-delete blocker mapping.

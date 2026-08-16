@@ -38,7 +38,7 @@ describe("Phase 3D rich Reading projection", () => {
     })]} /></MemoryRouter>);
 
     expect(screen.getByRole("heading", { name: "Research note" })).toBeTruthy();
-    expect(document.querySelector(".project-markdown-math-inline math")).not.toBeNull();
+    expect(document.querySelector(".rich-text-math-inline math")).not.toBeNull();
     expect(document.querySelector(".project-reading-markdown-source")?.textContent)
       .not.toContain("# Research note");
   });

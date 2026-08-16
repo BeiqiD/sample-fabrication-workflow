@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { SAMPLE_STATUSES, SAMPLE_STATUS_LABELS, type SampleDetail, type SampleEvent, type SampleRun, type SampleStatus } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
 import { CommentAttachmentList } from "../components/CommentAttachmentList";
+import { CommentBody } from "../components/CommentBody";
 import { CommentComposer, CommentSubmissionRecovery } from "../components/CommentComposer";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DiagramGallery } from "../components/MultiSampleRunGrid";
@@ -338,7 +339,7 @@ export function SamplePage() {
           </div>
           <div className="sample-note-content">
             {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
-            <p>{note.body}</p>
+            {note.status === "ready" ? <CommentBody source={note.body} /> : <p>{note.body}</p>}
             {note.images.some((image) => image.assetKey) && <div className="sample-note-images"><DiagramGallery
               keys={note.images.flatMap((image) => image.assetKey ? [image.assetKey] : [])}
               label={`${note.label} photo`}
