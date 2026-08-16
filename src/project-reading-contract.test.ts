@@ -1,10 +1,9 @@
-
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const read = (path: string) => fs.readFileSync(path, "utf8");
 
-describe("Phase 3C Reading contract", () => {
+describe("Phase 3C/3D Reading contract", () => {
   it("projects the same occurrences in immutable creation order without a second persistence model", () => {
     const model = read("src/lib/project-map-model.ts");
     const reading = read("src/components/project/ProjectReadingSurface.tsx");
@@ -25,15 +24,44 @@ describe("Phase 3C Reading contract", () => {
     expect(reading).not.toContain("Remove from Project");
     expect(page).toContain('desktopView === "map" ? <>');
     expect(page).toContain("<ProjectReadingSurface");
+    expect(page).toContain('lazy(() => import("../components/project/ProjectReadingSurface")');
+    expect(page).not.toContain('import { ProjectReadingSurface } from');
   });
 
-  it("renders full owned content while leaving rich Markdown/TeX rendering to Phase 3D", () => {
+  it("renders complete Markdown/GFM and TeX from canonical source without persisting generated HTML", () => {
     const reading = read("src/components/project/ProjectReadingSurface.tsx");
-    const plan = read("docs/PROJECT_READING_IMPLEMENTATION_PLAN.md");
-    expect(reading).toContain('className="project-reading-markdown-source"');
-    expect(reading).toContain("node.markdownSource || \"\"");
-    expect(reading).toContain("node.attachmentCaption");
-    expect(plan).toContain("Rich CommonMark/GFM and TeX rendering remains Phase 3D");
+    const renderer = read("src/lib/project-markdown.ts");
+    const component = read("src/components/project/ProjectMarkdown.tsx");
+    expect(reading).toContain("<ProjectMarkdown source={node.markdownSource || \"\"}");
+    expect(renderer).toContain("new Marked");
+    expect(renderer).toContain("Temml.renderToString");
+    expect(renderer).toContain("maxSize: [20, 200]");
+    expect(renderer).toContain("renderer.html = ({ text }) => escapeProjectMarkdownHtml(text)");
+    expect(renderer).toContain("projectMarkdownSafeHref");
+    expect(component).toContain("dangerouslySetInnerHTML");
+    expect(component).not.toContain("projectApi");
+  });
+
+  it("loads the editor only for the active Markdown block and retains exact retry semantics", () => {
+    const reading = read("src/components/project/ProjectReadingSurface.tsx");
+    const editor = read("src/components/project/ProjectMarkdownEditor.tsx");
+    expect(reading).toContain('lazy(() => import("./ProjectMarkdownEditor"))');
+    expect(reading).toContain("<Suspense");
+    expect(editor).toContain("Retry exact save");
+    expect(editor).toContain('editor.status !== "saving" && editor.status !== "uncertain"');
+    expect(editor).not.toContain("projectApi");
+  });
+
+  it("builds human-readable export from the current Reading descriptors without a server export model", () => {
+    const reading = read("src/components/project/ProjectReadingSurface.tsx");
+    const exportModule = read("src/lib/project-readable-export.ts");
+    expect(reading).toContain("buildProjectReadableArchive(nodes");
+    expect(exportModule).toContain('zip.file("reading.md"');
+    expect(exportModule).toContain('zip.file("manifest.json"');
+    expect(exportModule).toContain("relativeAttachmentPath");
+    expect(exportModule).toContain("markdownRelativePath");
+    expect(exportModule).toContain("credentials: \"same-origin\"");
+    expect(exportModule).not.toContain("projectApi");
   });
 
   it("keeps responsive projection changes behind the same unresolved-operation guard", () => {
@@ -45,7 +73,7 @@ describe("Phase 3C Reading contract", () => {
     expect(pkg.scripts["test:project-reading-mounted"]).toContain("src/project-responsive-projection-safety.mount.test.tsx");
   });
 
-  it("keeps the Map double-click regression fix folded into the Phase 3C branch", () => {
+  it("keeps the Map double-click regression fix folded into the Reading branch", () => {
     const map = read("src/components/project/ProjectMapSurface.tsx");
     const surfaceTest = read("src/project-map-surface.mount.test.tsx");
     expect(map).toContain("zoomOnDoubleClick={false}");

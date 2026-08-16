@@ -56,7 +56,7 @@ describe("Phase 3B2 source contract", () => {
     const page = read("./pages/ProjectPage.tsx");
     const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
     const searchSurface = page.indexOf("<ReferenceSearchSurface", desktopBranch);
-    const readingBranch = page.indexOf(": <ProjectReadingSurface", searchSurface);
+    const readingBranch = page.indexOf("<ProjectReadingSurface", searchSurface);
     expect(desktopBranch).toBeGreaterThan(-1);
     expect(searchSurface).toBeGreaterThan(desktopBranch);
     expect(readingBranch).toBeGreaterThan(searchSurface);

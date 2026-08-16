@@ -34,8 +34,8 @@
     "test:project-owned-content-mounted": "vitest run --config vitest.mounted.config.ts src/project-owned-content.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",
     "test:project-edges": "vitest run src/lib/project-edges.test.ts src/lib/project-edge-history.test.ts src/lib/project-edge-client.test.ts src/project-edges-contract.test.ts src/lib/project-client.test.ts worker/project-routes.test.ts",
     "test:project-edges-mounted": "vitest run --config vitest.mounted.config.ts src/project-edges.mount.test.tsx src/project-edge-surface.mount.test.tsx",
-    "test:project-reading": "vitest run src/project-reading-contract.test.ts src/lib/project-map-model.test.ts src/project-owned-content-contract.test.ts src/project-reference-placement-contract.test.ts",
-    "test:project-reading-mounted": "vitest run --config vitest.mounted.config.ts src/project-reading.mount.test.tsx src/project-responsive-projection-safety.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",
+    "test:project-reading": "vitest run src/project-reading-contract.test.ts src/lib/project-map-model.test.ts src/project-owned-content-contract.test.ts src/project-reference-placement-contract.test.ts src/lib/project-markdown.test.ts src/lib/project-readable-export.test.ts",
+    "test:project-reading-mounted": "vitest run --config vitest.mounted.config.ts src/project-reading.mount.test.tsx src/project-rich-content.mount.test.tsx src/project-responsive-projection-safety.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",
     "verify:d1-migrations": "node scripts/verify-d1-migrations.mjs",
     "verify:reference-worker": "node scripts/verify-reference-worker.mjs",
     "verify:reference-search-worker": "node scripts/verify-reference-search-worker.mjs",
@@ -56,9 +56,11 @@
     "hono": "^4.12.31",
     "jose": "^6.2.3",
     "jszip": "^3.10.1",
+    "marked": "18.0.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
+    "temml": "0.13.3",
     "utif": "^3.1.0"
   },
   "devDependencies": {

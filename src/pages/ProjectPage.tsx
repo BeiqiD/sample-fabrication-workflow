@@ -34,7 +34,6 @@ import type {
 } from "../../shared/project-types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
-import { ProjectReadingSurface } from "../components/project/ProjectReadingSurface";
 import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
 import {
   ProjectApiError,
@@ -80,6 +79,8 @@ import "../project.css";
 
 const DesktopProjectMap = lazy(() => import("../components/project/ProjectMapSurface")
   .then((module) => ({ default: module.ProjectMapSurface })));
+const ProjectReadingSurface = lazy(() => import("../components/project/ProjectReadingSurface")
+  .then((module) => ({ default: module.ProjectReadingSurface })));
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "conflict";
 type ReferenceRemovalStatus = "removing" | "uncertain" | "reconciling" | "conflict";
@@ -2140,8 +2141,10 @@ export function ProjectPage() {
           {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
         </div> : <p className="muted">Select a Map item or edge to inspect it.</p>}
       </aside>
-      </> : <ProjectReadingSurface
-        nodes={readingNodes}
+      </> : <Suspense fallback={<div className="card"><p className="muted">Loading Reading…</p></div>}>
+        <ProjectReadingSurface
+          nodes={readingNodes}
+        projectTitle={snapshot.project.title}
         markdownEditor={markdownEditor}
         attachmentEditor={attachmentEditor}
         interactionDisabled={readingInteractionDisabled}
@@ -2154,9 +2157,12 @@ export function ProjectPage() {
         onAttachmentChange={updateAttachmentDraft}
         onAttachmentSave={() => void saveAttachmentMetadata()}
         onAttachmentCancel={() => cancelAttachmentEdit(false)}
-      />}
-    </div> : <ProjectReadingSurface
-      nodes={readingNodes}
+        />
+      </Suspense>}
+    </div> : <Suspense fallback={<div className="card"><p className="muted">Loading Reading…</p></div>}>
+      <ProjectReadingSurface
+        nodes={readingNodes}
+      projectTitle={snapshot.project.title}
       mobile
       markdownEditor={markdownEditor}
       attachmentEditor={attachmentEditor}
@@ -2170,7 +2176,8 @@ export function ProjectPage() {
       onAttachmentChange={updateAttachmentDraft}
       onAttachmentSave={() => void saveAttachmentMetadata()}
       onAttachmentCancel={() => cancelAttachmentEdit(false)}
-    />}
+      />
+    </Suspense>}
 
     {confirmingProjectDeletion && <ConfirmDeleteDialog
       eyebrow="Project lifecycle"

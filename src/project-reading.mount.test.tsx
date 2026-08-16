@@ -1,4 +1,3 @@
-
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
@@ -133,10 +132,12 @@ describe("mounted Phase 3C Reading projection", () => {
     expect(screen.queryByTestId("project-flow-canvas")).toBeNull();
     expect(screen.queryByText("Add references")).toBeNull();
     expect(screen.queryByText("Add attachment")).toBeNull();
-    expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Design note\n\nPreserve the occurrence identity.");
+    expect(screen.getByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
+    expect(screen.getByText("Preserve the occurrence identity.")).toBeTruthy();
+    expect(document.querySelector(".project-reading-markdown-source")?.textContent).not.toContain("# Design note");
     expect(screen.getByText(snapshot.contents.find((content) => content.id === "content-attachment")!.attachmentCaption!)).toBeTruthy();
     expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent))
-      .toEqual(["Design note", "Sample A", "result.pdf"]);
+      .toEqual(["Sample A", "result.pdf"]);
   });
 
   it("edits existing Markdown through Reading with the authoritative content update", async () => {
@@ -154,7 +155,7 @@ describe("mounted Phase 3C Reading projection", () => {
     await screen.findByText("Map fixture");
     fireEvent.click(screen.getByRole("button", { name: "Reading" }));
     fireEvent.click(await screen.findByRole("button", { name: "Edit Markdown" }));
-    fireEvent.change(screen.getByLabelText("Reading Markdown editor"), { target: { value: "# Updated reading note\n\nFull body" } });
+    fireEvent.change(await screen.findByLabelText("Reading Markdown editor"), { target: { value: "# Updated reading note\n\nFull body" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Markdown" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -162,7 +163,11 @@ describe("mounted Phase 3C Reading projection", () => {
     expect(request[0]).toBe("/api/projects/project-a/contents/content-note/markdown");
     const body = JSON.parse(String(request[1]?.body));
     expect(body).toMatchObject({ markdownSource: "# Updated reading note\n\nFull body", expectedRevision: 1 });
-    await waitFor(() => expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Updated reading note\n\nFull body"));
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Updated reading note" })).toBeTruthy();
+      expect(screen.getByText("Full body")).toBeTruthy();
+      expect(document.querySelector(".project-reading-markdown-source")?.textContent).not.toContain("# Updated reading note");
+    });
   });
 
   it("edits attachment caption and source URL without exposing byte replacement", async () => {
@@ -239,5 +244,4 @@ describe("mounted Phase 3C Reading projection", () => {
       expect(screen.queryByRole("button", { name: "Move Markdown to trash" })).toBeNull();
     });
   });
-
 });
