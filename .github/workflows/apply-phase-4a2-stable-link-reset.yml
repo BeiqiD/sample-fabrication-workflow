@@ -1,0 +1,60 @@
+name: Apply Phase 4A2 stable-link reset fix
+
+on:
+  push:
+    branches:
+      - codex/phase-4a2-project-inspector
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/phase-4a2-project-inspector
+
+      - name: Apply focused patch and remove temporary workflow
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path("src/pages/ProjectPage.tsx")
+          source = source_path.read_text(encoding="utf-8")
+
+          old_import = "  useEffect,\n  useMemo,"
+          new_import = "  useEffect,\n  useLayoutEffect,\n  useMemo,"
+          if source.count(old_import) != 1:
+              raise SystemExit("unexpected React hook import shape")
+          source = source.replace(old_import, new_import, 1)
+
+          old_effect = '''  useEffect(() => {
+            stableLinkCopyGenerationRef.current += 1;
+            setStableLinkCopyState(null);
+          }, [projectId, selectedItemId]);'''
+          new_effect = '''  useLayoutEffect(() => {
+            stableLinkCopyGenerationRef.current += 1;
+            setStableLinkCopyState(null);
+          }, [projectId, selectedItemId]);'''
+          if source.count(old_effect) != 1:
+              raise SystemExit("unexpected stable-link reset effect shape")
+          source = source.replace(old_effect, new_effect, 1)
+          source_path.write_text(source, encoding="utf-8")
+
+          Path(".github/workflows/apply-phase-4a2-stable-link-reset.yml").unlink()
+          PY
+
+      - name: Commit focused fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/ProjectPage.tsx .github/workflows/apply-phase-4a2-stable-link-reset.yml
+          git commit -m "Fix stable-link selection reset race"
+          git push origin HEAD:codex/phase-4a2-project-inspector
