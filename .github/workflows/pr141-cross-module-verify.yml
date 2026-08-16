@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "26ba2746fee379bbf7d0d67104a12731b46266b7"
+          test "$(git rev-parse HEAD^)" = "6bdadc38beae40fef30e741aa3d50c286401b2ef"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Download the already-verified product tree
@@ -66,7 +66,7 @@ jobs:
 
           git diff --check
           git add -A
-          actual="$(git diff --cached --name-only | sort)"
+          actual="$(git diff --cached --name-only | LC_ALL=C sort)"
           expected="$(printf '%s\n' \
             '.github/pr141-cross-module-fixes-v2.py' \
             '.github/pr141-cross-module-fixes-v3.py' \
@@ -81,7 +81,8 @@ jobs:
             'worker/comment-submission-routes.ts' \
             'worker/reference-routes.ts' \
             'worker/references/adapters.ts' \
-            'worker/supersession-cross-module.test.ts')"
+            'worker/supersession-cross-module.test.ts' \
+            | LC_ALL=C sort)"
           test "$actual" = "$expected"
 
       - name: Commit and push verified product tree
