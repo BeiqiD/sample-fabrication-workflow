@@ -348,6 +348,7 @@ function emptyDescriptor(
     attachmentCaption: null,
     attachmentSourceUrl: null,
     mimeType: null,
+    attachmentByteSize: null,
     fileUrl: null,
     openReferenceUrl: null,
   };

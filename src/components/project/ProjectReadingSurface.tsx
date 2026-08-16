@@ -1,9 +1,15 @@
-
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../EmptyState";
 import type { ProjectNodeDescriptor } from "../../lib/project-map-model";
-import { projectAttachmentCanPreviewImage, type ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
+import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
+import { projectMarkdownStartsWithHeading } from "../../lib/project-markdown";
+import { buildProjectReadableArchive } from "../../lib/project-readable-export";
+import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
+import { ProjectMarkdown } from "./ProjectMarkdown";
+import "./project-rich-content.css";
+
+const LazyProjectMarkdownEditor = lazy(() => import("./ProjectMarkdownEditor"));
 
 export type ProjectReadingAttachmentEditorState = {
   itemId: string;
@@ -17,6 +23,7 @@ export type ProjectReadingAttachmentEditorState = {
 export interface ProjectReadingSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   mobile?: boolean;
+  projectTitle?: string;
   markdownEditor?: ProjectMapMarkdownEditorState | null;
   attachmentEditor?: ProjectReadingAttachmentEditorState | null;
   interactionDisabled?: boolean;
@@ -31,24 +38,46 @@ export interface ProjectReadingSurfaceProps {
   onAttachmentCancel?: () => void;
 }
 
-function ReadingAttachmentPreview({ fileUrl, mimeType, alt }: {
-  fileUrl: string | null;
-  mimeType: string | null;
-  alt: string;
-}) {
-  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
-  if (!fileUrl || !projectAttachmentCanPreviewImage(mimeType) || failedPreviewUrl === fileUrl) return null;
-  return <img
-    className="project-reading-image"
-    src={fileUrl}
-    alt={alt}
-    onError={() => setFailedPreviewUrl(fileUrl)}
-  />;
+type ExportState = {
+  status: "idle" | "exporting" | "complete" | "error";
+  message: string | null;
+};
+
+function archiveBlobBuffer(archive: Uint8Array): ArrayBuffer {
+  if (archive.buffer instanceof ArrayBuffer
+    && archive.byteOffset === 0
+    && archive.byteLength === archive.buffer.byteLength) {
+    return archive.buffer;
+  }
+  const copy = new Uint8Array(archive.byteLength);
+  copy.set(archive);
+  return copy.buffer;
+}
+
+function downloadArchive(archive: Uint8Array, filename: string) {
+  const url = URL.createObjectURL(new Blob([archiveBlobBuffer(archive)], { type: "application/zip" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function exportFilename(projectTitle: string) {
+  const slug = projectTitle.normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60) || "project";
+  return `${slug}-reading-${new Date().toISOString().slice(0, 10)}.zip`;
 }
 
 export function ProjectReadingSurface({
   nodes,
   mobile = false,
+  projectTitle = "Project Reading",
   markdownEditor = null,
   attachmentEditor = null,
   interactionDisabled = false,
@@ -63,38 +92,65 @@ export function ProjectReadingSurface({
   onAttachmentCancel,
 }: ProjectReadingSurfaceProps) {
   const editorBusy = markdownEditor !== null || attachmentEditor !== null;
+  const [exportState, setExportState] = useState<ExportState>({ status: "idle", message: null });
+
+  const exportReading = async () => {
+    setExportState({ status: "exporting", message: null });
+    try {
+      const result = await buildProjectReadableArchive(nodes, { projectTitle });
+      downloadArchive(result.archive, exportFilename(projectTitle));
+      setExportState({
+        status: "complete",
+        message: result.manifest.warnings.length
+          ? `Exported with ${result.manifest.warnings.length} attachment warning${result.manifest.warnings.length === 1 ? "" : "s"}. See WARNINGS.md in the archive.`
+          : "Readable ZIP exported.",
+      });
+    } catch (error) {
+      setExportState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Readable export failed.",
+      });
+    }
+  };
+
   return <section className={`project-reading-surface${mobile ? " mobile" : " desktop"}`} aria-label="Project Reading">
     <div className="project-reading-heading">
-      <p className="card-label">Reading</p>
-      <p className="card-meta">Items follow immutable creation order. Reading never changes Map positions, edges, or occurrence order.</p>
+      <div>
+        <p className="card-label">Reading</p>
+        <p className="card-meta">Items follow immutable creation order. Reading never changes Map positions, edges, or occurrence order.</p>
+      </div>
+      <div className="project-reading-export-actions">
+        <button
+          type="button"
+          className="button compact-button"
+          disabled={!nodes.length || interactionDisabled || editorBusy || exportState.status === "exporting"}
+          onClick={exportReading}
+        >{exportState.status === "exporting" ? "Exporting…" : "Export readable ZIP"}</button>
+      </div>
+      {exportState.message && <p className={`project-reading-export-message ${exportState.status === "error" ? "error" : exportState.message.includes("warning") ? "warning" : ""}`} role="status">
+        {exportState.message}
+      </p>}
     </div>
     {nodes.length ? nodes.map((node) => {
       const editingMarkdown = markdownEditor?.itemId === node.itemId;
       const editingAttachment = attachmentEditor?.itemId === node.itemId;
+      const showGeneratedTitle = node.kind !== "markdown" || !projectMarkdownStartsWithHeading(node.markdownSource);
       return <article className="card project-reading-item" key={node.itemId} data-project-item-id={node.itemId}>
         <header><span className="meta-badge">{node.kind}</span><small>#{node.createdSequence}</small></header>
-        <h2>{node.title}</h2>
-        {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
+        {showGeneratedTitle && <h2>{node.title}</h2>}
+        {node.subtitle && node.kind !== "markdown" && <p className="card-meta">{node.subtitle}</p>}
 
-        {node.kind === "markdown" && (editingMarkdown ? <div className="project-reading-editor">
-          <textarea
-            aria-label="Reading Markdown editor"
-            value={markdownEditor.value}
-            disabled={markdownEditor.status !== "editing"}
-            onChange={(event) => onMarkdownChange?.(event.currentTarget.value)}
+        {node.kind === "markdown" && (editingMarkdown ? <Suspense fallback={<div className="project-rich-editor-loading">Loading editor…</div>}>
+          <LazyProjectMarkdownEditor
+            key={markdownEditor.itemId}
+            editor={markdownEditor}
+            ariaLabel="Reading Markdown editor"
+            onChange={(value) => onMarkdownChange?.(value)}
+            onSave={() => onMarkdownSave?.()}
+            onCancel={() => onMarkdownCancel?.()}
           />
-          {markdownEditor.message && <p className="error-banner">{markdownEditor.message}</p>}
-          <div className="project-owned-content-pending-actions">
-            {(markdownEditor.status === "editing" || markdownEditor.status === "saving" || markdownEditor.status === "uncertain") && <button
-              type="button"
-              className="button primary compact-button"
-              disabled={markdownEditor.status === "saving" || !markdownEditor.value.trim()}
-              onClick={onMarkdownSave}
-            >{markdownEditor.status === "saving" ? "Saving…" : markdownEditor.status === "uncertain" ? "Retry exact save" : "Save Markdown"}</button>}
-            {markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={onMarkdownCancel}>Cancel</button>}
-          </div>
-        </div> : <>
-          <div className="project-reading-markdown-source">{node.markdownSource || ""}</div>
+        </Suspense> : <>
+          <ProjectMarkdown source={node.markdownSource || ""} className="project-reading-markdown-source" />
           <div className="project-owned-content-pending-actions">
             <button
               type="button"
@@ -112,12 +168,6 @@ export function ProjectReadingSurface({
         </>)}
 
         {node.kind === "attachment" && <>
-          <ReadingAttachmentPreview
-            fileUrl={node.fileUrl}
-            mimeType={node.mimeType}
-            alt={node.attachmentCaption || node.title}
-          />
-          {node.attachmentCaption && <p className="project-reading-caption">{node.attachmentCaption}</p>}
           {editingAttachment ? <div className="project-attachment-meta-form project-reading-editor">
             <label>Caption
               <textarea
@@ -147,14 +197,21 @@ export function ProjectReadingSurface({
               >{attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}</button>}
               {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={onAttachmentCancel}>Cancel</button>}
             </div>
-          </div> : <button
-            type="button"
-            className="button reading-edit-button"
-            disabled={interactionDisabled || editorBusy}
-            onClick={() => onAttachmentEditRequest?.(node.itemId)}
-          >Edit attachment metadata</button>}
-          {node.attachmentSourceUrl && <a className="button wide" href={node.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
-          {node.fileUrl && <a className="button wide" href={node.fileUrl}>Open attachment</a>}
+          </div> : <>
+            <ProjectAttachmentPresentation
+              title={node.title}
+              fileUrl={node.fileUrl}
+              mimeType={node.mimeType}
+              caption={node.attachmentCaption}
+              sourceUrl={node.attachmentSourceUrl}
+            />
+            <button
+              type="button"
+              className="button reading-edit-button"
+              disabled={interactionDisabled || editorBusy}
+              onClick={() => onAttachmentEditRequest?.(node.itemId)}
+            >Edit attachment metadata</button>
+          </>}
         </>}
 
         {node.kind === "reference" && <>

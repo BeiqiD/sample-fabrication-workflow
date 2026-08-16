@@ -68,8 +68,10 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(map).toContain('className="project-node-image"');
     expect(map).toContain("onError={() => setFailedPreviewUrl(previewUrl)}");
     const reading = read("./components/project/ProjectReadingSurface.tsx");
-    expect(reading).toContain("<ReadingAttachmentPreview");
-    expect(reading).toContain("onError={() => setFailedPreviewUrl(fileUrl)}");
+    const presentation = read("./components/project/ProjectAttachmentPresentation.tsx");
+    expect(reading).toContain("<ProjectAttachmentPresentation");
+    expect(presentation).toContain("projectAttachmentCanPreviewImage(mimeType)");
+    expect(presentation).toContain("onError={() => setFailedPreviewUrl(imagePreviewUrl)}");
     expect(model).toContain("attachmentCaption");
     expect(page).toContain("<ReferenceSearchSurface");
     expect(page).not.toContain("sourceAttachmentId");

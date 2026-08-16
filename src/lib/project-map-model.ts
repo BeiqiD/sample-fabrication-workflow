@@ -24,6 +24,7 @@ export interface ProjectNodeDescriptor {
   attachmentCaption: string | null;
   attachmentSourceUrl: string | null;
   mimeType: string | null;
+  attachmentByteSize: number | null;
   fileUrl: string | null;
   openReferenceUrl: string | null;
 }
@@ -80,6 +81,7 @@ function contentNode(
       attachmentCaption: content.attachmentCaption,
       attachmentSourceUrl: content.attachmentSourceUrl,
       mimeType: attachment?.mimeType ?? null,
+      attachmentByteSize: attachment?.byteSize ?? null,
       fileUrl: attachment?.fileUrl ?? null,
       openReferenceUrl: null,
     };
@@ -99,6 +101,7 @@ function contentNode(
     attachmentCaption: null,
     attachmentSourceUrl: null,
     mimeType: null,
+    attachmentByteSize: null,
     fileUrl: null,
     openReferenceUrl: null,
   };
@@ -126,6 +129,7 @@ function referenceNode(
     attachmentCaption: null,
     attachmentSourceUrl: null,
     mimeType: null,
+    attachmentByteSize: null,
     fileUrl: null,
     openReferenceUrl: resolution?.destination.referenceUrl ?? null,
   };

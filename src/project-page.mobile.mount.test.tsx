@@ -48,11 +48,15 @@ describe("mounted mobile Project occurrence projection", () => {
     renderProjectPage();
 
     expect(await screen.findByRole("heading", { name: "Topological laser" })).toBeTruthy();
-    expect(screen.getByText("Reading")).toBeTruthy();
+    expect(await screen.findByText("Reading")).toBeTruthy();
     expect(screen.queryByTestId("project-flow-canvas")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
     expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent))
-      .toEqual(["Design note", "Sample A"]);
-    expect(document.querySelector(".project-reading-markdown-source")?.textContent).toBe("# Design note\n\nPreserve the occurrence identity.");
+      .toEqual(["Sample A"]);
+    expect(document.querySelector(".project-reading-markdown-source")?.textContent)
+      .toContain("Preserve the occurrence identity.");
+    expect(document.querySelector(".project-reading-markdown-source")?.textContent)
+      .not.toContain("# Design note");
     expect(screen.getByRole("button", { name: "Edit Markdown" })).toBeTruthy();
     expect(screen.queryByText("Add references")).toBeNull();
     expect(screen.queryByText("Add attachment")).toBeNull();
