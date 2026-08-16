@@ -57,6 +57,7 @@ class FaultD1Statement {
         meta: { changes: 0 },
       };
     }
+    this.owner.beforeMutation(this.query);
     const result = this.statement().run(...this.bindings);
     return {
       success: true,
@@ -76,6 +77,7 @@ class FaultD1Database {
     private readonly responseLossAt: "insert" | "promotion" = "promotion",
     private readonly failBeforeInsert = false,
     private readonly failPromotionBeforeCommit = false,
+    private readonly failCommentFailureRecording = false,
   ) {}
 
   private insertionPattern() {
@@ -113,6 +115,15 @@ class FaultD1Database {
   }
 
   beforeMutation(query: string) {
+    const normalized = query.replace(/\s+/g, " ");
+    if (
+      this.failCommentFailureRecording
+      && normalized.includes(
+        "UPDATE comment_submission_items SET status = 'failed'",
+      )
+    ) {
+      throw new Error("injected persistent Comment failure-accounting outage");
+    }
     if (this.failPromotionBeforeCommit && this.promotionPattern().test(query)) {
       throw new Error(
         `injected persistent ${this.insertTarget} promotion failure`,
@@ -219,6 +230,7 @@ function r2Object(bytes: Uint8Array, contentType: string) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("uncertain blob registration reconciliation", () => {
@@ -444,6 +456,65 @@ describe("uncertain blob registration reconciliation", () => {
     expect(database.prepare(
       "SELECT COUNT(*) AS count FROM assets",
     ).get()).toEqual({ count: 0 });
+    database.close();
+  });
+
+  it("preserves the original 503 when Comment failure accounting is unavailable", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71, 116, 117, 118]);
+    const database = databaseWithUpload("comment_image", bytes.byteLength);
+    const put = vi.fn();
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(
+        database,
+        "assets",
+        false,
+        "promotion",
+        true,
+        false,
+        true,
+      ) as unknown as D1Database,
+      ASSETS: {
+        put,
+        delete: vi.fn(),
+        head: vi.fn(async () => null),
+        get: vi.fn(async () => null),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "image/png",
+          "x-upload-size": String(bytes.byteLength),
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+
+    expect(response.status).toBe(503);
+    expect(put).not.toHaveBeenCalled();
+    expect(warning).toHaveBeenCalledWith(
+      "Could not record Comment upload failure",
+      expect.objectContaining({
+        submissionId: "submission-upload",
+        itemId: "item-upload",
+      }),
+    );
+    expect(database.prepare(
+      "SELECT COUNT(*) AS count FROM assets",
+    ).get()).toEqual({ count: 0 });
+    expect(database.prepare(`
+      SELECT status, error_message
+      FROM comment_submission_items WHERE id = 'item-upload'
+    `).get()).toEqual({
+      status: "uploading",
+      error_message: null,
+    });
     database.close();
   });
 

@@ -300,6 +300,26 @@ async function markItemFailed(env: Env, submissionId: string, itemId: string, me
   return Boolean(results[1].meta.changes);
 }
 
+async function markItemFailedBestEffort(
+  env: Env,
+  submissionId: string,
+  itemId: string,
+  message: string,
+) {
+  try {
+    return await markItemFailed(env, submissionId, itemId, message);
+  } catch (recordingError) {
+    console.warn("Could not record Comment upload failure", {
+      submissionId,
+      itemId,
+      error: recordingError instanceof Error
+        ? recordingError.message
+        : String(recordingError),
+    });
+    return false;
+  }
+}
+
 async function managedKeyForSubmission(
   env: Env,
   submission: SubmissionRow,
@@ -687,7 +707,7 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     return c.json({ ok: true, deduplicated });
   } catch (error) {
     const message = error instanceof HTTPException ? error.message : "The file upload failed";
-    await markItemFailed(c.env, submissionId, itemId, message);
+    await markItemFailedBestEffort(c.env, submissionId, itemId, message);
     throw error;
   }
 });

@@ -2,8 +2,8 @@
 
 Status: normative v3 backend contract, implemented by the blob-lifecycle safety slice
 
-Last reviewed: 2026-08-09 after the reference/search and reusable Project
-discovery foundation through PR #130
+Last reviewed: 2026-08-16 during the provider-integrity and recovery
+architecture review in PR #141
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -466,17 +466,25 @@ to the same provider-verified SHA-256 and byte size:
 Supersession is a narrowly validated repair operation, not a general deduplication
 or permanent-delete capability.
 
+## Provider verification and integrity quarantine
+
+Deduplication verifies the selected physical locator before reuse. R2 uses
+provider `HEAD`; managed storage uses the adapter's metadata-only `stat`
+operation. A transient provider, authentication, transport, configuration, or
+primary-authority failure returns retryable `503` and does not change
+quarantine or GC state.
+
+Confirmed absence and byte-size mismatch create a locator-scoped
+`blob_integrity_quarantine` record. Quarantine preserves source, occurrence,
+blob-record, and export history while excluding the locator from ordinary
+delivery and future deduplication. It also releases the content hash so
+provider-verified identical bytes may be registered at a new unique locator.
+Existing historical edges remain visible for audit and export, but new
+relationships cannot bind the quarantined locator.
+
 ## Explicit first-implementation boundaries
 
 These are documented deferrals, not implied features.
-
-### Provider `HEAD`/`stat` before dedup reuse
-
-Deduplication excludes locators in `deleting` or `deleted` ledger state, but it
-does not probe the provider before every reuse. A ready metadata row whose bytes
-drifted missing may be selected and fail later retrieval/export. A later
-storage-integrity slice may add provider stat, quarantine, and replacement
-registration. The source/retention history remains safe in the meantime.
 
 ### Direct-key physical GC
 
