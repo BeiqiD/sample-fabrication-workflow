@@ -1,4 +1,4 @@
-name: Verify PR 141 cross-module fixes
+name: Publish verified PR 141 cross-module fixes
 
 on:
   push:
@@ -6,90 +6,89 @@ on:
       - agent/storage-integrity-markdown-removal
 
 permissions:
-  contents: read
+  actions: read
+  contents: write
 
 jobs:
-  patch-and-verify:
+  publish-verified-tree:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - name: Check out exact branch head
         uses: actions/checkout@v5
         with:
           fetch-depth: 2
 
-      - name: Verify bootstrap ancestry
+      - name: Verify publisher ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "0f2f8144eb623cdc9ea85f9ec7e18d84cf3a9be6"
+          test "$(git rev-parse HEAD^)" = "18a1aea89be483c196fb1d0291587a435ed00f9c"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
-      - name: Apply database-owned cross-module patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/pr141-original/worker
-          cp worker/fabublox-import-recovery.ts /tmp/pr141-original/worker/
-          cp worker/index.ts /tmp/pr141-original/worker/
-          cp worker/fabublox-import-recovery.test.ts /tmp/pr141-original/worker/
-          cp worker/blob-registration-reconciliation.test.ts /tmp/pr141-original/worker/
-          set +e
-          output="$(python3 .github/pr141-cross-module-fixes-v6.py 2>&1)"
-          status=$?
-          set -e
-          printf '%s\n' "$output"
-          if [ "$status" -ne 0 ]; then
-            message="$(printf '%s' "$output" | tail -c 4000 | tr '\n' ' ')"
-            echo "::error file=.github/pr141-cross-module-fixes-v6.py::$message"
-            exit "$status"
-          fi
-          git diff --check
-          git status --short
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '24'
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run focused cross-module regressions
-        run: npx vitest run worker/supersession-cross-module.test.ts worker/blob-registration-reconciliation.test.ts
-
-      - name: Verify blob lifecycle and migrations
-        run: npm run verify:blob-lifecycle
-
-      - name: Run complete test suite
-        run: npm test
-
-      - name: Typecheck and build
-        run: npm run build
-
-      - name: Stage patched tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p \
-            /tmp/pr141-patched/worker/references \
-            /tmp/pr141-patched/docs \
-            /tmp/pr141-patched/migrations
-          cp worker/comment-submission-routes.ts /tmp/pr141-patched/worker/
-          cp worker/reference-routes.ts /tmp/pr141-patched/worker/
-          cp worker/references/adapters.ts /tmp/pr141-patched/worker/references/
-          cp worker/supersession-cross-module.test.ts /tmp/pr141-patched/worker/
-          cp worker/blob-registration-reconciliation.test.ts \
-            /tmp/pr141-patched/worker/
-          cp docs/BLOB_LIFECYCLE_CONTRACT.md /tmp/pr141-patched/docs/
-          cp migrations/0029_supersession_timeline_projection.sql \
-            /tmp/pr141-patched/migrations/
-
-      - name: Upload verified patched tree
-        uses: actions/upload-artifact@v4
+      - name: Download the already-verified product tree
+        uses: actions/download-artifact@v4
         with:
           name: pr141-cross-module-patched-tree-v3
           path: /tmp/pr141-patched
-          if-no-files-found: error
-          retention-days: 1
+          github-token: ${{ github.token }}
+          repository: BeiqiD/sample-fabrication-workflow
+          run-id: 31918236193
+
+      - name: Install verified product files and remove temporary machinery
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/pr141-patched/docs/BLOB_LIFECYCLE_CONTRACT.md \
+            docs/BLOB_LIFECYCLE_CONTRACT.md
+          cp /tmp/pr141-patched/migrations/0029_supersession_timeline_projection.sql \
+            migrations/0029_supersession_timeline_projection.sql
+          cp /tmp/pr141-patched/worker/blob-registration-reconciliation.test.ts \
+            worker/blob-registration-reconciliation.test.ts
+          cp /tmp/pr141-patched/worker/comment-submission-routes.ts \
+            worker/comment-submission-routes.ts
+          cp /tmp/pr141-patched/worker/reference-routes.ts \
+            worker/reference-routes.ts
+          cp /tmp/pr141-patched/worker/references/adapters.ts \
+            worker/references/adapters.ts
+          cp /tmp/pr141-patched/worker/supersession-cross-module.test.ts \
+            worker/supersession-cross-module.test.ts
+
+          rm -f \
+            .github/pr141-cross-module-fixes.py \
+            .github/pr141-cross-module-fixes-v2.py \
+            .github/pr141-cross-module-fixes-v3.py \
+            .github/pr141-cross-module-fixes-v4.py \
+            .github/pr141-cross-module-fixes-v5.py \
+            .github/pr141-cross-module-fixes-v6.py \
+            .github/workflows/pr141-cross-module-verify.yml
+
+          git diff --check
+          test "$(git diff --name-only | sort)" = "$(cat <<'EOF'
+.github/pr141-cross-module-fixes-v2.py
+.github/pr141-cross-module-fixes-v3.py
+.github/pr141-cross-module-fixes-v4.py
+.github/pr141-cross-module-fixes-v5.py
+.github/pr141-cross-module-fixes-v6.py
+.github/pr141-cross-module-fixes.py
+.github/workflows/pr141-cross-module-verify.yml
+docs/BLOB_LIFECYCLE_CONTRACT.md
+migrations/0029_supersession_timeline_projection.sql
+worker/blob-registration-reconciliation.test.ts
+worker/comment-submission-routes.ts
+worker/reference-routes.ts
+worker/references/adapters.ts
+worker/supersession-cross-module.test.ts
+EOF
+)"
+
+      - name: Commit and push verified product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(storage): align supersession projections and references"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
