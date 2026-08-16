@@ -9,9 +9,16 @@ import { projectTestSnapshot } from "./project-test-fixture";
 vi.mock("./components/project/ProjectMapSurface", async () => {
   const React = await import("react");
   return {
-    ProjectMapSurface: React.forwardRef((_props, ref: React.ForwardedRef<{ getViewportCenter: () => { x: number; y: number } }>) => {
+    ProjectMapSurface: React.forwardRef((props: {
+      selectedItemId?: string | null;
+      focusedItemId?: string | null;
+    }, ref: React.ForwardedRef<{ getViewportCenter: () => { x: number; y: number } }>) => {
       React.useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 400, y: 300 }) }));
-      return <div data-testid="project-flow-canvas">Map fixture</div>;
+      return <div
+        data-testid="project-flow-canvas"
+        data-selected-item-id={props.selectedItemId ?? ""}
+        data-focused-item-id={props.focusedItemId ?? ""}
+      >Map fixture</div>;
     }),
   };
 });
@@ -98,25 +105,32 @@ function jsonResponse(payload: unknown, status = 200) {
   }));
 }
 
-function renderProjectPage() {
+function renderProjectPage(initialEntry = "/projects/project-a") {
   const router = createMemoryRouter([{
     path: "/projects/:projectId",
     element: <ProjectPage />,
-  }], { initialEntries: ["/projects/project-a"] });
+  }], { initialEntries: [initialEntry] });
   return render(<RouterProvider router={router} />);
 }
 
 describe("mounted Phase 3C Reading projection", () => {
   const fetchMock = vi.fn<typeof fetch>();
+  const clipboardWriteText = vi.fn<(value: string) => Promise<void>>();
 
   beforeEach(() => {
     vi.stubGlobal("matchMedia", desktopMatchMedia());
     vi.stubGlobal("fetch", fetchMock);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: clipboardWriteText },
+    });
+    clipboardWriteText.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     cleanup();
     fetchMock.mockReset();
+    clipboardWriteText.mockReset();
     vi.unstubAllGlobals();
   });
 
@@ -201,6 +215,58 @@ describe("mounted Phase 3C Reading projection", () => {
     expect(body).not.toHaveProperty("assetId");
     expect(body).not.toHaveProperty("storageObjectId");
     expect(await screen.findByText("Updated caption")).toBeTruthy();
+  });
+
+  it("opens, copies, and projects one exact canonical occurrence focus", async () => {
+    const snapshot = snapshotWithAttachment();
+    fetchMock.mockResolvedValueOnce(await jsonResponse(snapshot));
+    renderProjectPage("/projects/project-a?focus=item-note");
+
+    const map = await screen.findByTestId("project-flow-canvas");
+    await waitFor(() => {
+      expect(map.getAttribute("data-selected-item-id")).toBe("item-note");
+      expect(map.getAttribute("data-focused-item-id")).toBe("item-note");
+    });
+    expect(screen.getByRole("heading", { level: 2, name: "Design note" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy stable link" }));
+    await waitFor(() => expect(clipboardWriteText).toHaveBeenCalledWith(
+      `${window.location.origin}/projects/project-a?focus=item-note`,
+    ));
+    expect(await screen.findByRole("button", { name: "Stable link copied" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reading" }));
+    const focusedReadingItem = await waitFor(() => {
+      const candidate = document.querySelector<HTMLElement>('[data-project-item-id="item-note"]');
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    expect(focusedReadingItem.classList.contains("focused")).toBe(true);
+    expect(focusedReadingItem.getAttribute("aria-current")).toBe("location");
+  });
+
+  it("fails malformed and unavailable occurrence focus links visibly", async () => {
+    const snapshot = snapshotWithAttachment();
+    fetchMock.mockResolvedValueOnce(await jsonResponse(snapshot));
+    renderProjectPage("/projects/project-a?focus=item-note&focus=item-reference");
+    expect(await screen.findByText("The Project occurrence focus link is malformed and was not applied.")).toBeTruthy();
+    cleanup();
+
+    fetchMock.mockResolvedValueOnce(await jsonResponse(snapshot));
+    renderProjectPage("/projects/project-a?focus=item-missing");
+    expect(await screen.findByText("The linked Project occurrence is no longer available in this active Project.")).toBeTruthy();
+  });
+
+  it("does not claim that a stable link was copied when clipboard access fails", async () => {
+    const snapshot = snapshotWithAttachment();
+    fetchMock.mockResolvedValueOnce(await jsonResponse(snapshot));
+    clipboardWriteText.mockRejectedValueOnce(new Error("denied"));
+    renderProjectPage("/projects/project-a?focus=item-note");
+
+    await screen.findByRole("button", { name: "Copy stable link" });
+    fireEvent.click(screen.getByRole("button", { name: "Copy stable link" }));
+    expect(await screen.findByText("Clipboard access was unavailable; the link was not copied.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Stable link copied" })).toBeNull();
   });
 
   it("moves existing Markdown to trash with item and content revision guards", async () => {

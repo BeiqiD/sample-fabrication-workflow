@@ -11,6 +11,7 @@ import {
   Link,
   useBeforeUnload,
   useBlocker,
+  useLocation,
   useNavigate,
   useParams,
   type BlockerFunction,
@@ -75,6 +76,10 @@ import {
   defaultReferenceSearchUiState,
   type ReferenceSearchUiState,
 } from "../lib/reference-search-ui";
+import {
+  projectItemFocusAbsoluteUrl,
+  projectItemFocusRequest,
+} from "../lib/project-item-navigation";
 import "../project.css";
 
 const DesktopProjectMap = lazy(() => import("../components/project/ProjectMapSurface")
@@ -183,13 +188,22 @@ function projectDeletionOutcomeIsUncertain(caught: unknown) {
 
 export function ProjectPage() {
   const { projectId = "" } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const focusRequest = useMemo(() => projectItemFocusRequest(location.search), [location.search]);
+  const focusedItemId = focusRequest.status === "valid" ? focusRequest.itemId : null;
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [navigationFocusItemId, setNavigationFocusItemId] = useState<string | null>(null);
+  const [stableLinkCopyState, setStableLinkCopyState] = useState<{
+    projectId: string;
+    itemId: string;
+    status: "copied" | "error";
+  } | null>(null);
   const [geometry, setGeometry] = useState<Record<string, ProjectMapGeometry>>({});
   const [undoStack, setUndoStack] = useState<ProjectSessionHistoryCommand[]>([]);
   const [redoStack, setRedoStack] = useState<ProjectSessionHistoryCommand[]>([]);
@@ -243,6 +257,8 @@ export function ProjectPage() {
   const projectDeleteRequestRef = useRef<ProjectDeletionRequest | null>(null);
   const projectDeletionNavigationRequestedRef = useRef(false);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
+  const appliedFocusRef = useRef<string | null>(null);
+  const stableLinkCopyGenerationRef = useRef(0);
 
   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
     pendingReferenceRef.current = next;
@@ -396,6 +412,7 @@ export function ProjectPage() {
     baselineRef.current = baseline;
     geometryRef.current = nextGeometry;
     pendingMutationRef.current = {};
+    appliedFocusRef.current = null;
     clearReferenceInsertion();
     clearReferenceRemoval();
     clearOwnedContentState();
@@ -403,6 +420,7 @@ export function ProjectPage() {
     setSnapshot(next);
     setGeometry(nextGeometry);
     setSelectedItemId(null);
+    setNavigationFocusItemId(null);
     setUndoStack([]);
     setRedoStack([]);
     setSaveError("");
@@ -553,6 +571,7 @@ export function ProjectPage() {
       referenceInsertionGenerationRef.current += 1;
       referenceRemovalGenerationRef.current += 1;
       ownedContentGenerationRef.current += 1;
+      stableLinkCopyGenerationRef.current += 1;
       navigationSaveRequestedRef.current = false;
       referenceNavigationRequestedRef.current = false;
       saveAgainRef.current = false;
@@ -974,6 +993,7 @@ export function ProjectPage() {
       };
     });
     setSelectedItemId((current) => current === itemId ? null : current);
+    setNavigationFocusItemId((current) => current === itemId ? null : current);
     setSaveError("");
     setReferenceActionError("");
     setOwnedContentActionError("");
@@ -1677,11 +1697,15 @@ export function ProjectPage() {
     if (edgeController.unsafeRef.current && itemId !== null) return;
     if (itemId !== null) edgeController.selectEdge(null);
     setSelectedItemId(itemId);
+    setNavigationFocusItemId((current) => current === itemId ? current : null);
   }, [edgeController.selectEdge, edgeController.unsafeRef]);
 
   const selectProjectEdge = useCallback((edgeId: string | null) => {
     if (markdownEditorRef.current || attachmentEditorRef.current) return;
-    if (edgeId !== null) setSelectedItemId(null);
+    if (edgeId !== null) {
+      setSelectedItemId(null);
+      setNavigationFocusItemId(null);
+    }
     edgeController.selectEdge(edgeId);
   }, [edgeController.selectEdge]);
 
@@ -1701,6 +1725,64 @@ export function ProjectPage() {
   const selectedEdgeTarget = edgeController.selectedEdge
     ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.targetItemId) ?? null
     : null;
+  const focusedItem = focusedItemId
+    ? descriptors.find((node) => node.itemId === focusedItemId) ?? null
+    : null;
+
+  useEffect(() => {
+    if (!snapshot || focusRequest.status !== "valid") {
+      appliedFocusRef.current = null;
+      setNavigationFocusItemId(null);
+      return;
+    }
+    const focusKey = `${projectId}\u0000${location.search}`;
+    if (appliedFocusRef.current === focusKey) return;
+    appliedFocusRef.current = focusKey;
+    const target = descriptors.find((node) => node.itemId === focusRequest.itemId) ?? null;
+    if (!target) {
+      setNavigationFocusItemId(null);
+      return;
+    }
+    selectProjectItem(target.itemId);
+    setNavigationFocusItemId(target.itemId);
+  }, [descriptors, focusRequest, location.search, projectId, selectProjectItem, snapshot]);
+
+  useEffect(() => {
+    stableLinkCopyGenerationRef.current += 1;
+    setStableLinkCopyState(null);
+  }, [projectId, selectedItemId]);
+
+  const copySelectedItemLink = useCallback(async () => {
+    if (!selected) return;
+    const requestProjectId = projectId;
+    const itemId = selected.itemId;
+    const generation = stableLinkCopyGenerationRef.current + 1;
+    stableLinkCopyGenerationRef.current = generation;
+    setStableLinkCopyState(null);
+    const requestIsCurrent = () => (
+      pageActiveRef.current
+      && stableLinkCopyGenerationRef.current === generation
+      && projectIdRef.current === requestProjectId
+    );
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      await navigator.clipboard.writeText(projectItemFocusAbsoluteUrl(
+        window.location.origin,
+        location.pathname,
+        itemId,
+      ));
+      if (!requestIsCurrent()) return;
+      setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "copied" });
+    } catch {
+      if (!requestIsCurrent()) return;
+      setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "error" });
+    }
+  }, [location.pathname, projectId, selected]);
+
+  const selectedStableLinkCopyStatus = stableLinkCopyState?.projectId === projectId
+    && stableLinkCopyState.itemId === selectedItemId
+    ? stableLinkCopyState.status
+    : "idle";
 
   const removeSelectedReference = useCallback(() => {
     if (!snapshot || !selectedItem || selectedItem.itemType !== "reference"
@@ -1849,6 +1931,16 @@ export function ProjectPage() {
         >Move to trash</button>
       </div>
     </header>
+
+    {focusRequest.status === "invalid" && <div className="project-save-banner warning" role="status">
+      <p>The Project occurrence focus link is malformed and was not applied.</p>
+      <Link className="button compact-button" to={location.pathname}>Open Project overview</Link>
+    </div>}
+
+    {focusRequest.status === "valid" && !focusedItem && <div className="project-save-banner warning" role="status">
+      <p>The linked Project occurrence is no longer available in this active Project.</p>
+      <Link className="button compact-button" to={location.pathname}>Open Project overview</Link>
+    </div>}
 
     {saveError && <div className={`project-save-banner ${saveState}`}>
       <p>{saveError}</p>
@@ -2000,6 +2092,7 @@ export function ProjectPage() {
             pendingAttachment={pendingAttachment}
             markdownEditor={markdownEditor}
             selectedItemId={selectedItemId}
+            focusedItemId={navigationFocusItemId}
             selectedEdgeId={edgeController.selectedEdgeId}
             geometryInteractionDisabled={geometryInteractionDisabled}
             edgeInteractionDisabled={edgeController.interactionDisabled}
@@ -2070,6 +2163,10 @@ export function ProjectPage() {
             <dt>Position</dt><dd>{Math.round(selected.geometry.x)}, {Math.round(selected.geometry.y)}</dd>
             <dt>Size</dt><dd>{Math.round(selected.geometry.width)} × {Math.round(selected.geometry.height)}</dd>
           </dl>
+          <button type="button" className="button wide" onClick={() => void copySelectedItemLink()}>
+            {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
+          </button>
+          {selectedStableLinkCopyStatus === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
           {selected.openReferenceUrl && <Link className="button wide" to={selected.openReferenceUrl}>Open reference</Link>}
           {selected.fileUrl && <a className="button wide" href={selected.fileUrl}>Open attachment</a>}
           {selected.kind === "markdown" && <button
@@ -2145,6 +2242,7 @@ export function ProjectPage() {
         <ProjectReadingSurface
           nodes={readingNodes}
         projectTitle={snapshot.project.title}
+        focusedItemId={navigationFocusItemId}
         markdownEditor={markdownEditor}
         attachmentEditor={attachmentEditor}
         interactionDisabled={readingInteractionDisabled}
@@ -2163,6 +2261,7 @@ export function ProjectPage() {
       <ProjectReadingSurface
         nodes={readingNodes}
       projectTitle={snapshot.project.title}
+      focusedItemId={navigationFocusItemId}
       mobile
       markdownEditor={markdownEditor}
       attachmentEditor={attachmentEditor}

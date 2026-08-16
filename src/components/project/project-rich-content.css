@@ -8,6 +8,7 @@
 .project-reading-export-message { grid-column: 1 / -1; margin: 0; font-size: 11px; }
 .project-reading-export-message.error { color: var(--danger); }
 .project-reading-export-message.warning { color: var(--warning-text); }
+.project-reading-item.focused { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
 .project-rich-editor { display: grid; gap: 10px; }
 .project-rich-editor-tabs { display: inline-flex; width: fit-content; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-warm); }

@@ -1,8 +1,8 @@
 # Project rich content implementation plan
 
-Status: Phase 3D.1 merged in PR #143; the shared renderer and compact Comment projection are implemented in the current follow-up PR
+Status: complete in PR #143, with shared Project/Comment presentation reuse completed in PR #144
 
-Last reviewed: 2026-08-16 after extracting the renderer into a shared Project/Comment presentation boundary
+Last reviewed: 2026-08-16 after PR #144
 
 ## Goal
 
@@ -66,7 +66,7 @@ The state meanings remain unchanged:
 - `conflict`: cancel/reopen is required to load the authoritative revision;
 - `error`: local draft remains available until cancellation or a new edit attempt.
 
-A future Phase 3D slice may reuse this component inside Map and add bounded conflict comparison or coarse checkpoints. Those features do not require a content schema change.
+A later post-MVP slice may reuse this component inside Map and add bounded conflict comparison or coarse checkpoints if real use justifies them. Those features do not require a content schema change.
 
 ## Human-readable export
 

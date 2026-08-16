@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../EmptyState";
 import type { ProjectNodeDescriptor } from "../../lib/project-map-model";
@@ -24,6 +24,7 @@ export interface ProjectReadingSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   mobile?: boolean;
   projectTitle?: string;
+  focusedItemId?: string | null;
   markdownEditor?: ProjectMapMarkdownEditorState | null;
   attachmentEditor?: ProjectReadingAttachmentEditorState | null;
   interactionDisabled?: boolean;
@@ -78,6 +79,7 @@ export function ProjectReadingSurface({
   nodes,
   mobile = false,
   projectTitle = "Project Reading",
+  focusedItemId = null,
   markdownEditor = null,
   attachmentEditor = null,
   interactionDisabled = false,
@@ -93,6 +95,23 @@ export function ProjectReadingSurface({
 }: ProjectReadingSurfaceProps) {
   const editorBusy = markdownEditor !== null || attachmentEditor !== null;
   const [exportState, setExportState] = useState<ExportState>({ status: "idle", message: null });
+  const itemElementsRef = useRef(new Map<string, HTMLElement>());
+  const lastFocusedItemIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!focusedItemId) {
+      lastFocusedItemIdRef.current = null;
+      return;
+    }
+    if (lastFocusedItemIdRef.current === focusedItemId) return;
+    const target = itemElementsRef.current.get(focusedItemId);
+    if (!target) {
+      lastFocusedItemIdRef.current = null;
+      return;
+    }
+    lastFocusedItemIdRef.current = focusedItemId;
+    target.scrollIntoView?.({ block: "center" });
+  }, [focusedItemId, nodes]);
 
   const exportReading = async () => {
     setExportState({ status: "exporting", message: null });
@@ -134,8 +153,19 @@ export function ProjectReadingSurface({
     {nodes.length ? nodes.map((node) => {
       const editingMarkdown = markdownEditor?.itemId === node.itemId;
       const editingAttachment = attachmentEditor?.itemId === node.itemId;
+      const focused = focusedItemId === node.itemId;
       const showGeneratedTitle = node.kind !== "markdown" || !projectMarkdownStartsWithHeading(node.markdownSource);
-      return <article className="card project-reading-item" key={node.itemId} data-project-item-id={node.itemId}>
+      return <article
+        ref={(element) => {
+          if (element) itemElementsRef.current.set(node.itemId, element);
+          else itemElementsRef.current.delete(node.itemId);
+        }}
+        className={`card project-reading-item${focused ? " focused" : ""}`}
+        key={node.itemId}
+        data-project-item-id={node.itemId}
+        aria-current={focused ? "location" : undefined}
+        tabIndex={focused ? -1 : undefined}
+      >
         <header><span className="meta-badge">{node.kind}</span><small>#{node.createdSequence}</small></header>
         {showGeneratedTitle && <h2>{node.title}</h2>}
         {node.subtitle && node.kind !== "markdown" && <p className="card-meta">{node.subtitle}</p>}
