@@ -23,208 +23,188 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
+          import json
+          import re
           from pathlib import Path
 
-          def replace_once(path_name: str, old: str, new: str) -> None:
-              path = Path(path_name)
-              source = path.read_text(encoding="utf-8")
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(
-                      f"expected exactly one replacement in {path_name}, found {count}: {old[:80]!r}"
-                  )
-              path.write_text(source.replace(old, new, 1), encoding="utf-8")
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
 
-          replace_once(
-              "shared/project-api.ts",
-              """function hasProjectCodePointLengthAtMost(value: string, maximum: number) {
-            let length = 0;
-            for (const _character of value) {
-              length += 1;
-              if (length > maximum) return false;
-            }
-            return true;
-          }""",
-              """export function projectCodePointLength(value: string) {
+          def write(path: str, content: str) -> None:
+              Path(path).write_text(content, encoding="utf-8")
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              source = read(path)
+              if source.count(old) != 1:
+                  raise SystemExit(f"unexpected replacement count in {path}: {old!r}")
+              write(path, source.replace(old, new, 1))
+
+          api_path = "shared/project-api.ts"
+          api = read(api_path)
+          if "export function projectCodePointLength" not in api:
+              marker = "\nfunction hasProjectCodePointLengthAtMost(value: string, maximum: number) {"
+              if api.count(marker) != 1:
+                  raise SystemExit("project API length guard marker not found")
+              helper = """
+          export function projectCodePointLength(value: string) {
             let length = 0;
             for (const _character of value) {
               length += 1;
             }
             return length;
           }
+          """
+              api = api.replace(marker, helper + marker, 1)
+              write(api_path, api)
 
-          function hasProjectCodePointLengthAtMost(value: string, maximum: number) {
-            let length = 0;
-            for (const _character of value) {
-              length += 1;
-              if (length > maximum) return false;
-            }
-            return true;
-          }""",
+          model_path = "src/lib/project-inspector-model.ts"
+          model = read(model_path)
+          value_import = 'import { projectCodePointLength } from "../../shared/project-api";\n'
+          if value_import not in model:
+              import_marker = 'import type {\n  ProjectItemRecord,'
+              if model.count(import_marker) != 1:
+                  raise SystemExit("Inspector model project API import marker not found")
+              model = model.replace(import_marker, value_import + import_marker, 1)
+          if model.count("String(source.length)") != 1:
+              raise SystemExit("Inspector UTF-16 character count not found")
+          model = model.replace(
+              "String(source.length)",
+              "String(projectCodePointLength(source))",
+              1,
           )
+          write(model_path, model)
 
-          replace_once(
-              "src/lib/project-inspector-model.ts",
-              """import type {
-            ProjectItemRecord,
-            ProjectReferenceRecord,
-            ProjectSnapshot,
-          } from \"../../shared/project-api\";""",
-              """import {
-            projectCodePointLength,
-            type ProjectItemRecord,
-            type ProjectReferenceRecord,
-            type ProjectSnapshot,
-          } from \"../../shared/project-api\";""",
-          )
-          replace_once(
-              "src/lib/project-inspector-model.ts",
-              '{ label: "Characters", value: String(source.length) },',
-              '{ label: "Characters", value: String(projectCodePointLength(source)) },',
-          )
-
-          replace_once(
-              "src/lib/project-inspector-model.test.ts",
-              """  it(\"describes Project-owned Markdown without inventing source provenance\", () => {
-            const snapshot = projectTestSnapshot();
-            const descriptor = projectMapNodes(snapshot)""",
-              """  it(\"describes Project-owned Markdown without inventing source provenance\", () => {
-            const snapshot = projectTestSnapshot();
-            snapshot.contents[0].markdownSource = \"A😀B\";
-            const descriptor = projectMapNodes(snapshot)""",
-          )
-          replace_once(
-              "src/lib/project-inspector-model.test.ts",
-              """    expect(fieldValue(projection.detailFields, \"Content type\")).toBe(\"Markdown\");
-            expect(projection.contexts).toEqual([]);""",
-              """    expect(fieldValue(projection.detailFields, \"Content type\")).toBe(\"Markdown\");
-            expect(fieldValue(projection.detailFields, \"Characters\")).toBe(\"3\");
-            expect(projection.contexts).toEqual([]);""",
-          )
-
-          replace_once(
-              "package.json",
-              '    "test:project-reading": "vitest run src/lib/project-item-navigation.test.ts src/project-reading-contract.test.ts src/lib/project-map-model.test.ts src/project-owned-content-contract.test.ts src/project-reference-placement-contract.test.ts src/lib/project-markdown.test.ts src/lib/project-readable-export.test.ts",',
-              '    "test:project-reading": "vitest run src/lib/project-item-navigation.test.ts src/lib/project-inspector-model.test.ts src/project-inspector-details.test.ts src/project-reading-contract.test.ts src/lib/project-map-model.test.ts src/project-owned-content-contract.test.ts src/project-reference-placement-contract.test.ts src/lib/project-markdown.test.ts src/lib/project-readable-export.test.ts",',
-          )
-          replace_once(
-              "package.json",
-              '    "test:project-reading-mounted": "vitest run --config vitest.mounted.config.ts src/project-reading.mount.test.tsx src/project-stable-link-copy.mount.test.tsx src/project-rich-content.mount.test.tsx src/project-responsive-projection-safety.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",',
-              '    "test:project-reading-mounted": "vitest run --config vitest.mounted.config.ts src/project-inspector-page.mount.test.tsx src/project-reading.mount.test.tsx src/project-stable-link-copy.mount.test.tsx src/project-rich-content.mount.test.tsx src/project-responsive-projection-safety.mount.test.tsx src/project-page.mobile.mount.test.tsx src/project-map-surface.mount.test.tsx",',
-          )
-
-          replace_once(
-              "src/project-inspector-details.test.ts",
-              'import { readFileSync } from "node:fs";\n',
-              "",
-          )
-          details_path = Path("src/project-inspector-details.test.ts")
-          details = details_path.read_text(encoding="utf-8")
-          start_marker = '\n  it("is mounted by the Project page in place of the legacy inline summary", () => {'
-          start = details.find(start_marker)
+          test_path = "src/lib/project-inspector-model.test.ts"
+          test = read(test_path)
+          test_name = 'it("describes Project-owned Markdown without inventing source provenance", () => {'
+          start = test.find(test_name)
           if start < 0:
-              raise SystemExit("Project Inspector source-matching test was not found")
+              raise SystemExit("Markdown Inspector test not found")
+          snapshot_line = "    const snapshot = projectTestSnapshot();"
+          snapshot_at = test.find(snapshot_line, start)
+          if snapshot_at < 0:
+              raise SystemExit("Markdown Inspector snapshot fixture not found")
+          insertion_at = snapshot_at + len(snapshot_line)
+          emoji_line = '\n    snapshot.contents[0].markdownSource = "A😀B";'
+          if emoji_line not in test[start:]:
+              test = test[:insertion_at] + emoji_line + test[insertion_at:]
+          content_assert = '    expect(fieldValue(projection.detailFields, "Content type")).toBe("Markdown");'
+          content_at = test.find(content_assert, start)
+          if content_at < 0:
+              raise SystemExit("Markdown content-type assertion not found")
+          character_assert = '\n    expect(fieldValue(projection.detailFields, "Characters")).toBe("3");'
+          if character_assert not in test[start:]:
+              insertion_at = content_at + len(content_assert)
+              test = test[:insertion_at] + character_assert + test[insertion_at:]
+          write(test_path, test)
+
+          package_path = "package.json"
+          package = json.loads(read(package_path))
+          reading = package["scripts"]["test:project-reading"].split()
+          for path in [
+              "src/lib/project-inspector-model.test.ts",
+              "src/project-inspector-details.test.ts",
+          ]:
+              if path not in reading:
+                  reading.append(path)
+          package["scripts"]["test:project-reading"] = " ".join(reading)
+
+          mounted = package["scripts"]["test:project-reading-mounted"].split()
+          mount_path = "src/project-inspector-page.mount.test.tsx"
+          if mount_path not in mounted:
+              mounted.append(mount_path)
+          package["scripts"]["test:project-reading-mounted"] = " ".join(mounted)
+          write(package_path, json.dumps(package, indent=2, ensure_ascii=False) + "\n")
+
+          details_path = "src/project-inspector-details.test.ts"
+          details = read(details_path).replace('import { readFileSync } from "node:fs";\n', "")
+          source_test = '\n  it("is mounted by the Project page in place of the legacy inline summary", () => {'
+          start = details.find(source_test)
+          if start < 0:
+              raise SystemExit("source-matching pseudo-integration test not found")
           end = details.find("\n  });", start)
           if end < 0:
-              raise SystemExit("Project Inspector source-matching test end was not found")
-          end += len("\n  });")
-          details_path.write_text(details[:start] + details[end:], encoding="utf-8")
+              raise SystemExit("source-matching pseudo-integration test end not found")
+          details = details[:start] + details[end + len("\n  });"):]
+          write(details_path, details)
 
-          replace_once(
-              "docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md",
+          plan_path = "docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md"
+          plan = read(plan_path)
+          plan = plan.replace(
               "Status: Phase 4A active; Phase 4A1 is complete and Phase 4A2 is the current bounded implementation slice",
               "Status: Phase 4A active; Phase 4A1 and Phase 4A2 are complete, and Phase 4A3 is the current bounded implementation slice",
           )
-          replace_once(
-              "docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md",
+          plan = plan.replace(
               "Last reviewed: 2026-08-16 after Phase 4A1 completion in PR #145",
               "Last reviewed: 2026-08-16 after Phase 4A2 completion in PR #146",
           )
-          replace_once(
-              "docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md",
-              """## Phase 4A2 — hierarchy, provenance, and type-specific inspection
-
-          Status: active.
-
-          Deliver:""",
-              """## Phase 4A2 — hierarchy, provenance, and type-specific inspection
-
-          Status: complete in PR #146.
-
-          Delivered:""",
+          plan = plan.replace(
+              "## Phase 4A2 — hierarchy, provenance, and type-specific inspection\n\nStatus: active.\n\nDeliver:",
+              "## Phase 4A2 — hierarchy, provenance, and type-specific inspection\n\nStatus: complete in PR #146.\n\nDelivered:",
           )
-          replace_once(
-              "docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md",
-              "Current bounded implementation:",
-              "Delivered implementation:",
+          plan = plan.replace("Current bounded implementation:", "Delivered implementation:")
+          plan = plan.replace(
+              "This implementation does not add persistence fields, source mutation, child-reference insertion, or editable source snapshots.\n\n## Phase 4A3 — authoritative child-reference insertion\n\nDeliver after the Inspector hierarchy is stable:",
+              "This implementation does not add persistence fields, source mutation, child-reference insertion, or editable source snapshots.\n\nExit: the Inspector exposes authoritative Project-local context, source hierarchy, provenance, type-specific details, and exact source navigation without creating a second source model.\n\n## Phase 4A3 — authoritative child-reference insertion\n\nStatus: current bounded implementation slice.\n\nDeliver after the Inspector hierarchy is stable:",
           )
-          replace_once(
-              "docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md",
-              """This implementation does not add persistence fields, source mutation, child-reference insertion, or editable source snapshots.
+          required_plan_phrases = [
+              "Phase 4A1 and Phase 4A2 are complete",
+              "Status: complete in PR #146.",
+              "Status: current bounded implementation slice.",
+          ]
+          if not all(phrase in plan for phrase in required_plan_phrases):
+              raise SystemExit("implementation plan status update incomplete")
+          write(plan_path, plan)
 
-          ## Phase 4A3 — authoritative child-reference insertion
-
-          Deliver after the Inspector hierarchy is stable:""",
-              """This implementation does not add persistence fields, source mutation, child-reference insertion, or editable source snapshots.
-
-          Exit: the Inspector exposes authoritative Project-local context, source hierarchy, provenance, type-specific details, and exact source navigation without creating a second source model.
-
-          ## Phase 4A3 — authoritative child-reference insertion
-
-          Status: current bounded implementation slice.
-
-          Deliver after the Inspector hierarchy is stable:""",
+          roadmap_path = "docs/PRODUCT_ROADMAP.md"
+          roadmap = read(roadmap_path)
+          roadmap = roadmap.replace(
+              "Project/Comment renderer in PRs #143/#144, and Phase 4A1 canonical Project\noccurrence focus in PR #145",
+              "Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project\noccurrence focus in PR #145, and Phase 4A2 Inspector completeness in PR #146",
           )
-
-          replace_once(
-              "docs/PRODUCT_ROADMAP.md",
-              """Project/Comment renderer in PRs #143/#144, and Phase 4A1 canonical Project
-          occurrence focus in PR #145""",
-              """Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
-          occurrence focus in PR #145, and Phase 4A2 Inspector completeness in PR #146""",
+          roadmap = roadmap.replace(
+              "surfaces in PR #144. Phase 4A1 canonical Project occurrence focus is complete in\nPR #145. Phase 4A2 Inspector hierarchy, provenance, and type-specific detail is\nnow the active bounded slice. Storage, lifecycle, Reference, and rich-content foundations\nreturn to correctness maintenance rather than continuing as independent feature\ntracks.",
+              "surfaces in PR #144. Phase 4A1 canonical Project occurrence focus is complete in\nPR #145, and Phase 4A2 Inspector hierarchy, provenance, type-specific detail, and\nexact source navigation are complete in PR #146. Phase 4A3 authoritative child-\nreference insertion is now the active bounded slice. Storage, lifecycle, Reference,\nand rich-content foundations return to correctness maintenance rather than continuing\nas independent feature tracks.",
           )
-          replace_once(
-              "docs/PRODUCT_ROADMAP.md",
-              """surfaces in PR #144. Phase 4A1 canonical Project occurrence focus is complete in
-          PR #145. Phase 4A2 Inspector hierarchy, provenance, and type-specific detail is
-          now the active bounded slice. Storage, lifecycle, Reference, and rich-content foundations
-          return to correctness maintenance rather than continuing as independent feature
-          tracks.""",
-              """surfaces in PR #144. Phase 4A1 canonical Project occurrence focus is complete in
-          PR #145, and Phase 4A2 Inspector hierarchy, provenance, type-specific detail, and
-          exact source navigation are complete in PR #146. Phase 4A3 authoritative child-
-          reference insertion is now the active bounded slice. Storage, lifecycle, Reference,
-          and rich-content foundations return to correctness maintenance rather than continuing
-          as independent feature tracks.""",
-          )
-          replace_once(
-              "docs/PRODUCT_ROADMAP.md",
+          roadmap = roadmap.replace(
               "**Status:** active; Phase 4A1 is complete in PR #145 and Phase 4A2 hierarchy/provenance is active.",
               "**Status:** active; Phase 4A1 is complete in PR #145, Phase 4A2 is complete in PR #146, and Phase 4A3 child-reference insertion is active.",
           )
-          replace_once(
-              "docs/PRODUCT_ROADMAP.md",
-              """1. Complete **Phase 4A2** Inspector hierarchy, provenance, type-specific details,
-             and exact source navigation.
-          2. Complete **Phase 4A3** authoritative child-reference insertion through the
-             existing Reference and Project placement path.
-          3. Complete **Phase 4B** the selected v1 Canvas productivity operations.
-          4. Complete **Phase 4C** representative-scale performance work and make explicit
-             include/defer decisions for remaining optional interaction candidates.
-          5. Declare the **v1 feature freeze** once the interaction-shaping feature set is
-             stable.
-          6. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-          7. Run **Phase 6 release hardening** and real-use/operational rehearsal.""",
-              """1. Complete **Phase 4A3** authoritative child-reference insertion through the
-             existing Reference and Project placement path.
-          2. Complete **Phase 4B** the selected v1 Canvas productivity operations.
-          3. Complete **Phase 4C** representative-scale performance work and make explicit
-             include/defer decisions for remaining optional interaction candidates.
-          4. Declare the **v1 feature freeze** once the interaction-shaping feature set is
-             stable.
-          5. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-          6. Run **Phase 6 release hardening** and real-use/operational rehearsal.""",
+          immediate_pattern = re.compile(
+              r"1\. Complete \*\*Phase 4A2\*\* Inspector hierarchy, provenance, type-specific details,\n"
+              r"   and exact source navigation\.\n"
+              r"2\. Complete \*\*Phase 4A3\*\* authoritative child-reference insertion through the\n"
+              r"   existing Reference and Project placement path\.\n"
+              r"3\. Complete \*\*Phase 4B\*\* the selected v1 Canvas productivity operations\.\n"
+              r"4\. Complete \*\*Phase 4C\*\* representative-scale performance work and make explicit\n"
+              r"   include/defer decisions for remaining optional interaction candidates\.\n"
+              r"5\. Declare the \*\*v1 feature freeze\*\* once the interaction-shaping feature set is\n"
+              r"   stable\.\n"
+              r"6\. Run \*\*Phase 5 frontend refinement\*\* as a dedicated whole-product pass\.\n"
+              r"7\. Run \*\*Phase 6 release hardening\*\* and real-use/operational rehearsal\."
           )
+          immediate = (
+              "1. Complete **Phase 4A3** authoritative child-reference insertion through the\n"
+              "   existing Reference and Project placement path.\n"
+              "2. Complete **Phase 4B** the selected v1 Canvas productivity operations.\n"
+              "3. Complete **Phase 4C** representative-scale performance work and make explicit\n"
+              "   include/defer decisions for remaining optional interaction candidates.\n"
+              "4. Declare the **v1 feature freeze** once the interaction-shaping feature set is\n"
+              "   stable.\n"
+              "5. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.\n"
+              "6. Run **Phase 6 release hardening** and real-use/operational rehearsal."
+          )
+          roadmap, substitutions = immediate_pattern.subn(immediate, roadmap, count=1)
+          if substitutions != 1:
+              raise SystemExit("roadmap immediate order was not updated")
+          required_roadmap_phrases = [
+              "Phase 4A2 Inspector completeness in PR #146",
+              "Phase 4A3 authoritative child-\nreference insertion is now the active bounded slice",
+              "Phase 4A2 is complete in PR #146",
+          ]
+          if not all(phrase in roadmap for phrase in required_roadmap_phrases):
+              raise SystemExit("roadmap status update incomplete")
+          write(roadmap_path, roadmap)
           PY
 
           cat > src/project-inspector-page.mount.test.tsx <<'EOF'
@@ -341,6 +321,6 @@ jobs:
           rm .github/workflows/apply-pr146-review-fixes.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add shared/project-api.ts src/lib/project-inspector-model.ts src/lib/project-inspector-model.test.ts src/project-inspector-details.test.ts src/project-inspector-page.mount.test.tsx package.json docs/PROJECT_INSPECTOR_NAVIGATION_IMPLEMENTATION_PLAN.md docs/PRODUCT_ROADMAP.md .github/workflows/apply-pr146-review-fixes.yml
+          git add -A
           git commit -m "Address Phase 4A2 review findings"
           git push origin HEAD:codex/phase-4a2-project-inspector
