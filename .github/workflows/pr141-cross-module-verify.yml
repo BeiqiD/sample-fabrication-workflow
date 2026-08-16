@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "4d15d759e8076bd3155397c357e99929e2f04b1c"
+          test "$(git rev-parse HEAD^)" = "26ba2746fee379bbf7d0d67104a12731b46266b7"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Download the already-verified product tree
@@ -65,7 +65,8 @@ jobs:
             .github/workflows/pr141-cross-module-verify.yml
 
           git diff --check
-          actual="$(git diff --name-only | sort)"
+          git add -A
+          actual="$(git diff --cached --name-only | sort)"
           expected="$(printf '%s\n' \
             '.github/pr141-cross-module-fixes-v2.py' \
             '.github/pr141-cross-module-fixes-v3.py' \
@@ -89,6 +90,5 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
           git commit -m "fix(storage): align supersession projections and references"
           git push origin "HEAD:${GITHUB_REF_NAME}"
