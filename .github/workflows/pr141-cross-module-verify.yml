@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "7fdef8dbd828112120bdfec014a4c36510d01b1e"
+          test "$(git rev-parse HEAD^)" = "0f2f8144eb623cdc9ea85f9ec7e18d84cf3a9be6"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/pr141-cross-module-verify.yml"
 
       - name: Apply database-owned cross-module patch
@@ -35,13 +35,13 @@ jobs:
           cp worker/fabublox-import-recovery.test.ts /tmp/pr141-original/worker/
           cp worker/blob-registration-reconciliation.test.ts /tmp/pr141-original/worker/
           set +e
-          output="$(python3 .github/pr141-cross-module-fixes-v5.py 2>&1)"
+          output="$(python3 .github/pr141-cross-module-fixes-v6.py 2>&1)"
           status=$?
           set -e
           printf '%s\n' "$output"
           if [ "$status" -ne 0 ]; then
             message="$(printf '%s' "$output" | tail -c 4000 | tr '\n' ' ')"
-            echo "::error file=.github/pr141-cross-module-fixes-v5.py::$message"
+            echo "::error file=.github/pr141-cross-module-fixes-v6.py::$message"
             exit "$status"
           fi
           git diff --check
@@ -57,7 +57,7 @@ jobs:
         run: npm ci
 
       - name: Run focused cross-module regressions
-        run: npx vitest run worker/supersession-cross-module.test.ts
+        run: npx vitest run worker/supersession-cross-module.test.ts worker/blob-registration-reconciliation.test.ts
 
       - name: Verify blob lifecycle and migrations
         run: npm run verify:blob-lifecycle
@@ -80,6 +80,8 @@ jobs:
           cp worker/reference-routes.ts /tmp/pr141-patched/worker/
           cp worker/references/adapters.ts /tmp/pr141-patched/worker/references/
           cp worker/supersession-cross-module.test.ts /tmp/pr141-patched/worker/
+          cp worker/blob-registration-reconciliation.test.ts \
+            /tmp/pr141-patched/worker/
           cp docs/BLOB_LIFECYCLE_CONTRACT.md /tmp/pr141-patched/docs/
           cp migrations/0029_supersession_timeline_projection.sql \
             /tmp/pr141-patched/migrations/
@@ -87,7 +89,7 @@ jobs:
       - name: Upload verified patched tree
         uses: actions/upload-artifact@v4
         with:
-          name: pr141-cross-module-patched-tree-v2
+          name: pr141-cross-module-patched-tree-v3
           path: /tmp/pr141-patched
           if-no-files-found: error
           retention-days: 1
