@@ -20,6 +20,7 @@ import type {
   UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
+import type { CopyAttachmentProjectItemInput } from "../../shared/project-copy-paste-api";
 
 export class ProjectApiError extends Error {
   readonly status: number;
@@ -89,6 +90,13 @@ export const projectApi = {
     input: CreateAttachmentProjectItemInput,
   ) => projectRequest<ProjectItemMutationResponse>(
     `/projects/${encodeURIComponent(projectId)}/items/attachment`,
+    jsonRequest("POST", input),
+  ),
+  copyAttachmentItem: (
+    projectId: string,
+    input: CopyAttachmentProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/attachment/copy`,
     jsonRequest("POST", input),
   ),
   uploadAttachmentAsset: (file: File) => projectRequest<{ id: string; key: string; deduplicated: boolean }>(

@@ -6,6 +6,8 @@ export interface ProjectItemSelection {
 export type ProjectCanvasKeyboardShortcut =
   | "select-all"
   | "clear-selection"
+  | "copy"
+  | "paste"
   | "undo"
   | "redo"
   | "save";
@@ -54,6 +56,8 @@ export function projectCanvasKeyboardShortcutFromEvent(event: Pick<
 
   if (!commandModifier) return key === "escape" ? "clear-selection" : null;
   if (key === "a" && !event.shiftKey) return "select-all";
+  if (key === "c" && !event.shiftKey) return "copy";
+  if (key === "v" && !event.shiftKey) return "paste";
   if (key === "s" && !event.shiftKey) return "save";
   if (key === "z") return event.shiftKey ? "redo" : "undo";
   if (key === "y" && !event.shiftKey) return "redo";

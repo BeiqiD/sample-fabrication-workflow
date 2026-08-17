@@ -16,9 +16,11 @@ import {
   isUpdateProjectMarkdownInput,
   isUpdateProjectPlacementInput,
 } from "../shared/project-api";
+import { isCopyAttachmentProjectItemInput } from "../shared/project-copy-paste-api";
 import { getBlob } from "./blob-lifecycle/storage";
 import { safeMediaResponseHeaders } from "./media-response";
 import { routes as projectFoundationRoutes } from "./project-foundation-routes";
+import { copyAttachmentProjectItem } from "./projects/attachment-copy";
 import {
   createAttachmentProjectItem,
   createMarkdownProjectItem,
@@ -181,6 +183,22 @@ routes.post("/projects/:projectId/items/reference", async (c) => {
     "Invalid Project reference insertion request",
   );
   const result = await projectCall(() => createReferenceProjectItem(
+    c.env.DB,
+    projectId,
+    input,
+    c.get("userEmail"),
+  ));
+  return c.json(result, result.replayed ? 200 : 201);
+});
+
+routes.post("/projects/:projectId/items/attachment/copy", async (c) => {
+  const projectId = requireRouteId(c.req.param("projectId"), "Project");
+  const input = await requireJson(
+    c,
+    isCopyAttachmentProjectItemInput,
+    "Invalid Project attachment copy request",
+  );
+  const result = await projectCall(() => copyAttachmentProjectItem(
     c.env.DB,
     projectId,
     input,
