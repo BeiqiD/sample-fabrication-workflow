@@ -2,7 +2,7 @@
 
 Status: Phase 4B2 implemented in Draft PR #149; pending independent review
 
-Last reviewed: 2026-08-17 after completing ProjectPage interaction, partial-paste recovery, mounted verification, and canonical roadmap synchronization for PR #149
+Last reviewed: 2026-08-17 after closing the uncertain-abandon late-commit race, completing selection locking, and hardening verification status publication for PR #149
 
 ## Goal
 
@@ -89,7 +89,7 @@ Before the first network write, the client allocates and freezes:
 
 Item creation is sequential in source creation order. Edges are created only after all item steps have acknowledged a response. The backend remains unchanged at the aggregate boundary: each item or edge mutation is independently authoritative, and no bulk endpoint claims atomic behavior that D1 does not provide.
 
-## Retry and reconciliation
+## Retry, abandonment, and reconciliation
 
 A journal step becomes `acknowledged` only after its response is received. If a request committed but its response was lost, that step stays pending and is retried with exactly the same IDs, payload, expected revision, and operation ID, allowing the existing service replay contract to resolve it.
 
@@ -103,13 +103,29 @@ On any rejected write:
 
 A partial paste is not rolled back across already acknowledged independent API calls and must never be presented as an atomic success.
 
-The mounted interaction keeps the same journal while paused. `Retry exact paste` resumes it without reallocating identities. `Reload and abandon remaining paste` first reloads authoritative Project state, preserves anything that already committed, and then discards only the remaining journal steps. If all writes acknowledge but the final authoritative reload fails, the page enters a separate reconciliation-error state and offers an exact authoritative-reload retry rather than treating the paste as complete.
+Failure certainty controls abandonment:
+
+- a network failure, malformed/lost success response, HTTP `408`, `425`, `429`, or `5xx` is **outcome-uncertain**;
+- another received HTTP `4xx` is a **deterministic rejection**.
+
+`Reload and abandon remaining paste` may immediately reload after a deterministic rejection because the failed request is known not to have committed. It must not do that after an outcome-uncertain failure. Instead, it first replays **only the failed pending step** using the exact frozen destination IDs, payload, expected revision, and operation ID. It does not execute later pending items or edges.
+
+The uncertain step is considered settled only when that exact replay either:
+
+- acknowledges the same destination mutation or exact server replay; or
+- receives a deterministic rejection that the original exact request could no longer commit past.
+
+Only after settlement may the client perform the authoritative GET, retain any destination rows that actually committed, abandon the later unattempted steps, and clear the journal. If exact replay remains outcome-uncertain, the same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active. A GET alone can never clear an uncertain journal because it could race an earlier request that commits after the read.
+
+If the post-settlement authoritative reload fails, the journal remains as reconciliation state. The abandoned later steps are not restarted; retry repeats the authoritative reload. If all writes acknowledge but the final authoritative reload fails, the page enters a separate reconciliation-error state and offers an authoritative-reload retry rather than treating the paste as complete.
 
 ## Interaction boundary
 
 Desktop Map keyboard integration uses `Ctrl/Command+C` and `Ctrl/Command+V` only outside inputs, textareas, selects, contenteditable regions, textbox-like roles, and IME composition. Mobile remains Reading-first.
 
 Copy is accepted only from committed selectable Project occurrences while the Project is in a saved, operation-safe state. Paste immediately moves into an unsafe session state so geometry edits, selection changes, projection switches, conflicting Project operations, and navigation cannot race the frozen journal.
+
+During every unsafe paste state, the Map and Inspector selection surfaces are inert and capture-block pointer, mouse, touch, click, context-menu, and keyboard selection events. This includes clearing the item selection and selecting or clearing an edge. Programmatic projection of acknowledged destination items is still allowed, so the visible selection accurately follows committed partial results.
 
 Each acknowledged item or edge response is projected into the local snapshot as it arrives, so an honestly partial result is visible rather than hidden. After all journal writes complete, the client reloads the authoritative Project snapshot and selects the destination item occurrences that are actually active in that snapshot.
 
@@ -135,4 +151,10 @@ The permanent `pre-pr/project-canvas-productivity` and Project-persistence gates
 - fresh destination identity and ordered Project-revision use through the mounted page;
 - acknowledged-result projection and final destination selection;
 - response-loss pause, exact request replay without repeating acknowledged earlier steps, authoritative reload, and blocked-navigation continuation;
+- deterministic-rejection abandonment without an unnecessary replay;
+- uncertain-abandon exact replay of only the failed step before any GET, including an original request that commits after the user starts abandonment;
+- later pending edge/item exclusion during abandon settlement;
+- item-clear and edge-selection locking throughout the unsafe paste state;
 - Worker route, client route, production build, Project worker smoke, Map bundle boundary, and existing mounted Canvas regressions.
+
+The verification workflow treats commit-status publication as reporting, not as a prerequisite for later tests. Status writes retry transient server failures and remain `continue-on-error`, while the actual contract, full-test, and build steps retain their ordinary failure semantics.
