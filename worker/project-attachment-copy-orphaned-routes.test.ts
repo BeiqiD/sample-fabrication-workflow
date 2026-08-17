@@ -99,6 +99,16 @@ describe("Project attachment copy from orphaned managed storage", () => {
     );
     expect(source.status).toBe(201);
     expect(database.prepare(`
+      SELECT storage_object_id
+      FROM project_content_attachments
+      WHERE project_content_id = 'content-source'
+    `).get()).toEqual({ storage_object_id: STORAGE_ID });
+    expect(database.prepare(`
+      SELECT revision, next_created_sequence
+      FROM projects
+      WHERE id = ?
+    `).get(PROJECT_ID)).toEqual({ revision: 2, next_created_sequence: 2 });
+    expect(database.prepare(`
       SELECT status, orphaned_at
       FROM managed_storage_objects
       WHERE id = ?
