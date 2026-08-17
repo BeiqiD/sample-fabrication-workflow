@@ -27,7 +27,8 @@ describe("Phase 3B4 edge contract", () => {
     expect(plan).toContain("No first-version self-loop, obstacle avoidance, draggable control point, relation ontology");
     expect(roadmap).toContain("**Status:** complete; squash-merged in PR #136.");
     for (const document of [plan, roadmap, canvas]) expect(document).not.toContain("Draft PR #136");
-    expect(canvas).toContain("Phase 3C is the active implementation slice");
+    expect(canvas).toContain("Phase 4B Canvas productivity is");
+    expect(canvas).toContain("Phase 4B1 — multi-selection and grouped geometry");
     expect(canvas).toContain("**Geometry undo/redo**");
     expect(canvas).toContain("**Edge undo/redo**");
     expect(canvas).toContain("[PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md)");

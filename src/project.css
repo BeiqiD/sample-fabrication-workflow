@@ -36,6 +36,7 @@
 .project-workspace-header h1 { margin: 0; overflow-wrap: anywhere; font-size: clamp(28px, 4vw, 42px); }
 .project-save-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
 .project-save-state { min-width: 72px; color: var(--muted); font-size: 11px; font-weight: 720; text-align: right; }
+.project-selection-count { padding: 4px 7px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: 10px; font-weight: 720; white-space: nowrap; }
 .project-save-state.unsaved { color: var(--warning-text); }
 .project-save-state.saving { color: var(--info); }
 .project-save-state.error,
@@ -81,6 +82,7 @@
 .project-inspector > .muted { font-size: 12px; }
 .project-inspector-content { display: grid; gap: 12px; margin-top: 16px; }
 .project-inspector-content h2 { margin: 0; overflow-wrap: anywhere; }
+.project-multi-selection-inspector > .muted { margin: 0; font-size: 12px; line-height: 1.5; }
 .project-inspector-excerpt { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 13px; }
 .project-inspector dl { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 7px 9px; margin: 4px 0; }
 .project-inspector dt { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }

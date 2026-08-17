@@ -1,10 +1,9 @@
 # Project Canvas interaction contract
 
-Status: canonical product and architecture contract; Phase 3C Reading is complete in squash-merged PR #138, with stability fixes landing before Phase 3D
+Status: canonical product and architecture contract; Phase 4B Canvas productivity is active, with Phase 4B1 complete in PR #148
 
-Last reviewed: 2026-08-14 after Phase 3A persistence in PRs #131/#132, the Map
-kernel in PR #133, reference placement in PR #134, Project-owned content in PR #135,
-basic edges in PR #136, and Reading projection in squash-merged PR #138
+Last reviewed: 2026-08-17 after Phase 4A completion in PR #147 and Phase 4B1
+multi-selection, grouped geometry history, and keyboard productivity in PR #148
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
@@ -29,6 +28,8 @@ The Phase 3B4 edge mutation, retry, history, and verification boundary is in
 [PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md).
 The Phase 3C projection/editing boundary is in
 [PROJECT_READING_IMPLEMENTATION_PLAN.md](./PROJECT_READING_IMPLEMENTATION_PLAN.md).
+The active Phase 4B slice boundaries are in
+[PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -254,6 +255,31 @@ references found through the sidebar.
 
 Interactive controls and editor regions must not initiate node dragging.
 
+Phase 4B multi-selection uses only Project item occurrence IDs:
+
+- Shift drag creates a partial-intersection selection box;
+- Shift, Control, or Command click adds to or removes from the current selection;
+- the most recently selected occurrence is the primary selection for Inspector and
+  resize presentation, but that primary role is transient UI state;
+- dragging any selected node or using an arrow key moves all selected committed
+  occurrences together;
+- one grouped movement becomes one client-session geometry history command;
+- Inspector detail, resize, edit, and removal remain single-item operations;
+- pending placement ghosts and unsaved draft nodes do not become ordinary bulk
+  selection targets;
+- `ProjectPage` owns the accepted occurrence IDs. If an editor lock or unsafe edge
+  operation rejects a React Flow selection proposal, the Map restores the current
+  authoritative selection immediately instead of retaining a visual-only selection.
+
+`Ctrl/Command+A` selects all committed Map occurrences, `Escape` clears selection,
+`Ctrl/Command+Z` undoes, `Ctrl/Command+Shift+Z` or `Ctrl/Command+Y` redoes, and
+`Ctrl/Command+S` flushes placement saves. These shortcuts are inactive in inputs,
+textareas, selects, contenteditable regions, textbox roles, and IME composition.
+Outside those editable regions, the Save chord is still consumed when Save is
+disabled by saved/saving/conflict or another active operation, so it becomes a
+safe Project no-op rather than opening the browser Save Page dialog. Selection is
+never persisted or exported.
+
 A Project-local occurrence removal is a mutation boundary. It starts only from a
 safely saved placement state, retains one exact lifecycle request and operation
 ID until the outcome is known, and freezes Map geometry interaction while the
@@ -425,9 +451,10 @@ Save always flushes pending deltas. UI shows `Saved`, `Saving`, `Unsaved`, and
 
 Undo/redo is client-session history, but persistence depends on command type:
 
-- **Geometry undo/redo** applies the inverse placement geometry locally. The
-  restored current geometry then follows the ordinary bounded autosave / explicit
-  Save path and persists as a new placement revision.
+- **Geometry undo/redo** applies one or several inverse placement geometries
+  locally. A grouped drag or keyboard movement is one history command, while the
+  restored current geometries still follow the ordinary bounded autosave / explicit
+  Save path and persist as independent placement revisions.
 - **Edge undo/redo** immediately dispatches the authoritative inverse edge
   mutation (`update`, `delete`, or `restore`) with the current authoritative edge
   revision and a new operation ID. The history stack advances only after that
@@ -522,22 +549,26 @@ The migration and service must not:
 
 ## Implementation sequence
 
-Phase 3A1/3A2 and Phase 3B1/3B2/3B3 are complete through PR #135, and Phase 3B4
-is complete in squash-merged PR #136. Phase 3C is the active implementation slice,
-with the remaining sequence:
+Phase 3 and Phase 4A are complete through PR #147. Phase 4B Canvas productivity is
+active with this bounded sequence:
 
-1. **Phase 3C — Reading projection**: no creation, complete insertion-order
-   rendering, and editing of existing owned content.
-2. **Phase 3D — Editor and media hardening**: Markdown/TeX editor, attachment
-   previews, save/conflict UX, and accessible Reading presentation.
-3. **Phase 4 — Advanced Canvas**: Inspector depth, groups, copy/paste,
-   multi-select hardening, PDF preview, screenshot capture, advanced performance,
-   and optional order/layout tooling.
+1. **Phase 4B1 — multi-selection and grouped geometry**: complete in PR #148,
+   including bounded keyboard shortcuts and the permanent productivity gate.
+2. **Phase 4B2 — authoritative copy/paste**: duplicate Project-owned content only
+   through correct fresh identities, preserve Reference source identity, and define
+   exact multi-object retry behavior.
+3. **Phase 4B3 — alignment assistance and z-order**: helper lines and explicit
+   layering over ordinary placement commands without persistent guide objects.
+4. **Phase 4C — representative-scale performance and final include/defer
+   decisions** before v1 feature freeze.
+
+Groups/frames remain an explicit include/defer decision after the ordinary
+productivity operations have been exercised in real Projects.
 
 ## Deferred questions
 
-The following do not block Phase 3B2 or later work provided the frozen contracts
-above are kept:
+The following do not block the remaining Phase 4B work provided the frozen
+contracts above are kept:
 
 - whether later versions need manual or edge-informed Reading order;
 - group/frame nodes;

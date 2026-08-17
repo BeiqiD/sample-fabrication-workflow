@@ -24,7 +24,7 @@ export type ProjectEdgeHistoryCommand =
   };
 
 export type ProjectSessionHistoryCommand =
-  | { kind: "geometry"; command: ProjectGeometryCommand }
+  | { kind: "geometry"; commands: ProjectGeometryCommand[] }
   | ProjectEdgeHistoryCommand;
 
 export function projectEdgeHistoryTouchesItem(command: ProjectEdgeHistoryCommand, itemId: string) {

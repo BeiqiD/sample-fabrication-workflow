@@ -2,15 +2,16 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-16 after the reference/search foundation through PR #130,
+Last reviewed: 2026-08-17 after the reference/search foundation through PR #130,
 Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
 reference placement in PR #134, Project-owned content in PR #135, edges in PR
 #136, Reading in PR #138, Project stability in PRs #139/#140, storage integrity
 and recovery in PR #141, Phase 3D rich content/export plus the shared
 Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
 occurrence focus in PR #145, Phase 4A2 Inspector completeness in PR #146,
-and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B Canvas
-productivity is now the active bounded product slice
+and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
+multi-selection and grouped geometry are complete in PR #148, with Phase 4B2
+copy/paste now the next bounded product slice
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -451,6 +452,11 @@ the Project workspace.
 
 #### Phase 4B — Canvas productivity
 
+**Status:** active; Phase 4B1 multi-selection, grouped geometry history, and bounded Canvas keyboard shortcuts are complete in PR #148. Phase 4B2 authoritative copy/paste is next.
+
+The detailed slice boundaries and persistence constraints are recorded in
+[Project Canvas productivity implementation plan](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md).
+
 **Scope:**
 
 - multi-select;
@@ -666,7 +672,8 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete **Phase 4B** the selected v1 Canvas productivity operations.
+1. Complete the remaining **Phase 4B** Canvas productivity slices, beginning with
+   authoritative copy/paste after PR #148's multi-selection foundation.
 2. Complete **Phase 4C** representative-scale performance work and make explicit
    include/defer decisions for remaining optional interaction candidates.
 3. Declare the **v1 feature freeze** once the interaction-shaping feature set is
