@@ -64,6 +64,10 @@ jobs:
               '''    : deletingProject\n      ? "Finishing the Project trash operation before leaving this Project…"\n      : edgeController.pending\n''',
               '''    : deletingProject\n      ? "Finishing the Project trash operation before leaving this Project…"\n      : copyPaste.paste\n        ? copyPaste.paste.status === "pasting"\n          ? "Finishing the authoritative Project paste before leaving…"\n          : copyPaste.paste.status === "paused"\n            ? `The Project paste is paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. Retry the exact paste or reload authoritative state and abandon the remaining steps before leaving.`\n            : copyPaste.paste.status === "reconcile-error"\n              ? "All paste writes were acknowledged, but authoritative reload still needs to succeed before leaving."\n              : "Reconciling the Project paste against authoritative state before leaving…"\n      : edgeController.pending\n''',
               ': copyPaste.paste\n        ? copyPaste.paste.status === "pasting"')
+          replace_once(page,
+              '  }, [attachmentEditor, blocker, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);\n',
+              '  }, [attachmentEditor, blocker, copyPaste.unsafe, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);\n',
+              'blocker, copyPaste.unsafe, edgeController.unsafe')
 
           test = 'src/project-canvas-productivity.mount.test.tsx'
           old_render = '''function renderProjectPage() {\n  const router = createMemoryRouter([{\n    path: "/projects/:projectId",\n    element: <ProjectPage />,\n  }], { initialEntries: ["/projects/project-a"] });\n  return render(<RouterProvider router={router} />);\n}\n'''
@@ -71,7 +75,7 @@ jobs:
           replace_once(test, old_render, new_render, 'function createProjectItemResponse(')
 
           page_text = Path(page).read_text()
-          for marker in ['useProjectCanvasCopyPaste', 'const copyPaste = useProjectCanvasCopyPaste({', 'copyPaste.copySelection(snapshot, selectedItemIds)', 'copyPaste.pasteClipboard(snapshot)', 'Retry exact paste', 'Reload and abandon remaining paste', 'copyPaste.unsafeRef.current === null', 'workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe']:
+          for marker in ['useProjectCanvasCopyPaste', 'const copyPaste = useProjectCanvasCopyPaste({', 'copyPaste.copySelection(snapshot, selectedItemIds)', 'copyPaste.pasteClipboard(snapshot)', 'Retry exact paste', 'Reload and abandon remaining paste', 'copyPaste.unsafeRef.current === null', 'workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe', 'blocker, copyPaste.unsafe, edgeController.unsafe']:
               if marker not in page_text:
                   raise SystemExit(f"ProjectPage integration marker missing: {marker}")
           test_text = Path(test).read_text()
