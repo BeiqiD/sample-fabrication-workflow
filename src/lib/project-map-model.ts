@@ -35,6 +35,23 @@ export interface ProjectGeometryCommand {
   after: ProjectMapGeometry;
 }
 
+export function normalizeProjectGeometryCommands(
+  commands: readonly ProjectGeometryCommand[],
+): ProjectGeometryCommand[] {
+  const byPlacement = new Map<string, ProjectGeometryCommand>();
+  for (const command of commands) {
+    const existing = byPlacement.get(command.placementId);
+    byPlacement.set(command.placementId, existing ? {
+      placementId: command.placementId,
+      before: existing.before,
+      after: command.after,
+    } : command);
+  }
+  return [...byPlacement.values()].filter((command) => (
+    !projectGeometryEquals(command.before, command.after)
+  ));
+}
+
 function geometryFromPlacement(placement: ProjectPlacementRecord): ProjectMapGeometry {
   return {
     x: placement.x,
@@ -184,15 +201,24 @@ export function projectDirtyPlacements(
   });
 }
 
+export function applyProjectGeometryCommands(
+  current: Record<string, ProjectMapGeometry>,
+  commands: readonly ProjectGeometryCommand[],
+  direction: "undo" | "redo",
+) {
+  const next = { ...current };
+  for (const command of commands) {
+    next[command.placementId] = direction === "undo" ? command.before : command.after;
+  }
+  return next;
+}
+
 export function applyProjectGeometryCommand(
   current: Record<string, ProjectMapGeometry>,
   command: ProjectGeometryCommand,
   direction: "undo" | "redo",
 ) {
-  return {
-    ...current,
-    [command.placementId]: direction === "undo" ? command.before : command.after,
-  };
+  return applyProjectGeometryCommands(current, [command], direction);
 }
 
 export function formatByteSize(value: number) {

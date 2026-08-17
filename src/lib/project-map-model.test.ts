@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot } from "../../shared/project-api";
 import {
   applyProjectGeometryCommand,
+  applyProjectGeometryCommands,
+  normalizeProjectGeometryCommands,
   projectDirtyPlacements,
   projectMapNodes,
   projectReadingNodes,
@@ -149,6 +151,41 @@ describe("Project Map projection", () => {
       "item-markdown",
       "item-reference",
     ]);
+  });
+
+  it("normalizes one grouped geometry action and applies every placement atomically in history", () => {
+    const noteBefore = { x: 20, y: 40, width: 250, height: 180, zIndex: 0 };
+    const referenceBefore = { x: 300, y: 80, width: 240, height: 150, zIndex: 1 };
+    const commands = normalizeProjectGeometryCommands([{
+      placementId: "placement-markdown",
+      before: noteBefore,
+      after: { ...noteBefore, x: 30 },
+    }, {
+      placementId: "placement-reference",
+      before: referenceBefore,
+      after: { ...referenceBefore, x: 310 },
+    }, {
+      placementId: "placement-markdown",
+      before: { ...noteBefore, x: 30 },
+      after: { ...noteBefore, x: 40 },
+    }]);
+
+    expect(commands).toEqual([{
+      placementId: "placement-markdown",
+      before: noteBefore,
+      after: { ...noteBefore, x: 40 },
+    }, {
+      placementId: "placement-reference",
+      before: referenceBefore,
+      after: { ...referenceBefore, x: 310 },
+    }]);
+    const redone = applyProjectGeometryCommands({}, commands, "redo");
+    expect(redone["placement-markdown"].x).toBe(40);
+    expect(redone["placement-reference"].x).toBe(310);
+    expect(applyProjectGeometryCommands(redone, commands, "undo")).toMatchObject({
+      "placement-markdown": noteBefore,
+      "placement-reference": referenceBefore,
+    });
   });
 
   it("tracks normalized placement deltas and applies one semantic undo or redo command", () => {
