@@ -13,10 +13,10 @@ import {
   REFERENCE_TARGET_TYPES,
   isReferenceTarget,
   isReferenceTargetType,
-  type ReferenceResolution,
   type ReferenceTarget,
   type ReferenceTargetType,
 } from "../../shared/reference-types";
+import { referenceResolutionIsEligible } from "./eligibility";
 import { referenceTargetKey, resolveReferences } from "./resolver";
 import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
 
@@ -737,19 +737,6 @@ function compareCandidates(left: ReferenceSearchCandidate, right: ReferenceSearc
   return left.target.id.localeCompare(right.target.id);
 }
 
-function hasActiveContext(resolution: ReferenceResolution) {
-  return resolution.contexts.some((context) => (
-    context.segments.every((segment) => segment.deletedAt === null)
-  ));
-}
-
-function remainsSearchable(resolution: ReferenceResolution) {
-  return resolution.resolution === "resolved"
-    && resolution.source !== null
-    && resolution.source.deletedAt === null
-    && hasActiveContext(resolution);
-}
-
 export async function searchReferences(
   db: D1Database,
   rawInput: unknown,
@@ -779,7 +766,7 @@ export async function searchReferences(
   const results: ReferenceSearchResult[] = [];
   for (const candidate of resolutionPool) {
     const resolution = resolutionByTarget.get(referenceTargetKey(candidate.target));
-    if (!resolution || !remainsSearchable(resolution)) continue;
+    if (!resolution || !referenceResolutionIsEligible(resolution)) continue;
     results.push({
       target: candidate.target,
       match: {

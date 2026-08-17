@@ -1,8 +1,8 @@
 # Project Inspector and navigation implementation plan
 
-Status: Phase 4A active; Phase 4A1 and Phase 4A2 are complete, and Phase 4A3 is the current bounded implementation slice
+Status: Phase 4A complete through PR #147; Phase 4B Canvas productivity is next
 
-Last reviewed: 2026-08-16 after Phase 4A2 completion in PR #146
+Last reviewed: 2026-08-17 after Phase 4A3 completion in PR #147
 
 ## Goal
 
@@ -65,9 +65,9 @@ Exit: the Inspector exposes authoritative Project-local context, source hierarch
 
 ## Phase 4A3 — authoritative child-reference insertion
 
-Status: current bounded implementation slice.
+Status: complete in PR #147.
 
-Deliver after the Inspector hierarchy is stable:
+Delivered:
 
 - child/reference candidates derived through the existing referenceability rules;
 - insertion actions that return a stable `ReferenceTarget` and use the existing Project placement transaction;
@@ -76,6 +76,23 @@ Deliver after the Inspector hierarchy is stable:
 - uncertain outcomes retain exact retry/reconciliation semantics;
 - no Inspector-only write path or source mutation shortcut.
 
+Delivered implementation:
+
+- add one read-only, body-addressed Reference child endpoint so opaque source IDs never become route segments;
+- enumerate only direct source children and preserve canonical Comment identity for submitted comments;
+- resolve every candidate through the existing nine-type resolver and apply the same active-context eligibility rule used by Reference search;
+- offer explicit, on-demand direct-child browsing inside the selected Reference Inspector without caching child metadata in Project rows;
+- feed a selected child into the existing center-placement mutation, pending ghost, exact retry, reconciliation, and repeated-occurrence paths;
+- re-resolve and recheck the same eligibility rule immediately before durable Project insertion;
+- keep leaf references, Project-owned content, source mutation, recursive trees, and Inspector-specific persistence outside this slice.
+
+Exit: the Inspector can enumerate authoritative direct children and place a selected
+child through the existing Project occurrence transaction without introducing a
+second identity, persistence, or retry model.
+
 ## Deferred candidates
 
-PDF first-page thumbnails and captured webpage screenshots remain optional and require separate utility/security justification. Live webpage iframes remain outside the product contract. Phase 4B Canvas productivity and systematic Phase 5 visual refinement do not enter Phase 4A patches.
+PDF first-page thumbnails and captured webpage screenshots remain optional and
+require separate utility/security justification. Live webpage iframes remain outside
+the product contract. Phase 4B Canvas productivity and systematic Phase 5 visual
+refinement remain separate follow-on tracks.

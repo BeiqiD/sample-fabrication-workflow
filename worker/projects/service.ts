@@ -29,6 +29,7 @@ import {
   PROJECT_SCHEMA_VERSION,
 } from "../../shared/project-types";
 import type { BlobLocator } from "../blob-lifecycle/types";
+import { referenceResolutionIsEligible } from "../references/eligibility";
 import {
   referenceRegistrationStatements,
 } from "../references/registry";
@@ -754,10 +755,10 @@ export async function createReferenceProjectItem(
   }
   await requireActiveProject(db, projectId);
   const [resolution] = await resolveReferences(db, [input.target]);
-  if (!resolution || resolution.resolution !== "resolved") {
+  if (!resolution || !referenceResolutionIsEligible(resolution)) {
     throw new ProjectServiceError(
       "reference_unavailable",
-      "The selected reference is no longer consistently resolvable",
+      "The reference target is not currently eligible for Project insertion",
     );
   }
 

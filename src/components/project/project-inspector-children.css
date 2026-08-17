@@ -1,0 +1,67 @@
+.project-inspector-children > .muted,
+.project-inspector-children-message p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.project-inspector-children-message {
+  display: grid;
+  gap: 7px;
+}
+
+.project-inspector-children-message .button {
+  justify-self: start;
+}
+
+.project-inspector-child-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-inspector-child-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-warm);
+}
+
+.project-inspector-child-list li > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.project-inspector-child-list span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.project-inspector-child-list strong,
+.project-inspector-child-list small,
+.project-inspector-child-list p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.project-inspector-child-list strong {
+  font-size: 11px;
+}
+
+.project-inspector-child-list small,
+.project-inspector-child-list p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}

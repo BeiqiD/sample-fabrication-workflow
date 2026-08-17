@@ -79,6 +79,14 @@ async function postReferences(miniflare, targets, headers = {}) {
   });
 }
 
+async function postReferenceChildren(miniflare, parent, headers = {}) {
+  return miniflare.dispatchFetch("https://app.test/api/references/children", {
+    method: "POST",
+    headers: { "content-type": "application/json", ...headers },
+    body: JSON.stringify({ parent }),
+  });
+}
+
 let miniflare;
 try {
   run(process.execPath, [
@@ -240,6 +248,26 @@ try {
   assert.equal(new Set(opaqueUrls).size, opaqueTargets.length, "distinct stable IDs must not collide");
   assert(opaqueUrls.every((url) => /^\/references\/sample\/r1_[A-Za-z0-9_-]*$/.test(url)));
 
+  const childResponse = await postReferenceChildren(
+    miniflare,
+    { type: "run_step", id: "reference-step-a" },
+  );
+  const childPayload = await childResponse.json();
+  assert.equal(childResponse.status, 200, JSON.stringify(childPayload));
+  assert.equal(childPayload.parentEligible, true);
+  assert.deepEqual(childPayload.children.map((child) => child.target), [
+    { type: "comment", id: "reference-comment" },
+    { type: "execution_image", id: "reference-execution-image" },
+  ]);
+  assert.equal(childPayload.truncated, false);
+
+  const childCrossOrigin = await postReferenceChildren(
+    miniflare,
+    { type: "sample", id: "reference-sample-a" },
+    { origin: "https://other.test" },
+  );
+  assert.equal(childCrossOrigin.status, 403);
+
   const serialized = JSON.stringify(mixedPayload);
   assert(!serialized.includes("reference/private/"));
   assert(!serialized.includes("r2_key"));
@@ -260,7 +288,7 @@ try {
     result.destination.openSourceUrl === `/samples/${result.target.id}`
   )));
 
-  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, typed source focus, stable execution-image media, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
+  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, authoritative direct children, typed source focus, stable execution-image media, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);

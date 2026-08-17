@@ -1,4 +1,8 @@
 import type {
+  ListReferenceChildrenInput,
+  ListReferenceChildrenResponse,
+} from "../../shared/reference-children";
+import type {
   SearchReferencesInput,
   SearchReferencesResponse,
 } from "../../shared/reference-search";
@@ -46,4 +50,20 @@ export async function searchReferences(
     signal,
   });
   return parseReferenceResponse<SearchReferencesResponse>(response, "Reference search");
+}
+
+export async function listReferenceChildren(
+  input: ListReferenceChildrenInput,
+  signal?: AbortSignal,
+): Promise<ListReferenceChildrenResponse> {
+  const response = await fetch("/api/references/children", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+    signal,
+  });
+  return parseReferenceResponse<ListReferenceChildrenResponse>(
+    response,
+    "Reference child listing",
+  );
 }

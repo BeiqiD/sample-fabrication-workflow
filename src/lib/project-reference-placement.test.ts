@@ -5,6 +5,7 @@ import {
   PROJECT_REFERENCE_NODE_HEIGHT,
   PROJECT_REFERENCE_NODE_WIDTH,
   isProjectReferenceDragPayload,
+  projectReferenceDragPayloadFromResolution,
   projectReferenceDragPayloadFromResult,
   projectReferenceGeometryAtPoint,
   readProjectReferenceDragPayload,
@@ -76,6 +77,12 @@ describe("Project reference placement client contract", () => {
     expect(JSON.stringify(payload)).not.toContain("contexts");
     expect(JSON.stringify(payload)).not.toContain("registry");
     expect(JSON.stringify(payload)).not.toContain("r2");
+  });
+
+  it("builds the same bounded placement payload from an authoritative child resolution", () => {
+    const searchResult = result();
+    expect(projectReferenceDragPayloadFromResolution(searchResult.resolution))
+      .toEqual(projectReferenceDragPayloadFromResult(searchResult));
   });
 
   it("round-trips the versioned custom drag payload and rejects malformed input", () => {

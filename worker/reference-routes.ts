@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { decodeReferenceRouteId } from "../shared/reference-destinations";
+import type { ListReferenceChildrenResponse } from "../shared/reference-children";
 import type { SearchReferencesResponse } from "../shared/reference-search";
 import {
   isReferenceTarget,
@@ -9,6 +10,10 @@ import {
   type ResolveReferencesResponse,
 } from "../shared/reference-types";
 import { safeMediaResponseHeaders } from "./media-response";
+import {
+  ReferenceChildrenInputError,
+  listReferenceChildren,
+} from "./references/children";
 import {
   ReferenceResolutionInputError,
   resolveReferences,
@@ -106,6 +111,28 @@ routes.post("/references/resolve", async (c) => {
     return c.json(response);
   } catch (error) {
     if (error instanceof ReferenceResolutionInputError) {
+      throw new HTTPException(400, { message: error.message });
+    }
+    throw error;
+  }
+});
+
+routes.post("/references/children", async (c) => {
+  let input: unknown;
+  try {
+    input = await c.req.json<unknown>();
+  } catch {
+    throw new HTTPException(400, { message: "A valid JSON request body is required" });
+  }
+
+  try {
+    const response: ListReferenceChildrenResponse = await listReferenceChildren(
+      c.env.DB,
+      input,
+    );
+    return c.json(response);
+  } catch (error) {
+    if (error instanceof ReferenceChildrenInputError) {
       throw new HTTPException(400, { message: error.message });
     }
     throw error;
