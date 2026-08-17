@@ -299,7 +299,7 @@ describe("mounted authoritative child-reference insertion", () => {
     expect(fetchMock.mock.calls.some(([path]) => (
       String(path) === "/api/references/children"
     ))).toBe(false);
-    fireEvent.click(screen.getByRole("button", {
+    fireEvent.click(await screen.findByRole("button", {
       name: "Browse direct child references",
     }));
     const place = await screen.findByRole("button", {
@@ -378,7 +378,7 @@ describe("mounted authoritative child-reference insertion", () => {
 
     renderProjectPage();
     await screen.findByTestId("project-flow-canvas");
-    fireEvent.click(screen.getByRole("button", {
+    fireEvent.click(await screen.findByRole("button", {
       name: "Browse direct child references",
     }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([request, init]) => (

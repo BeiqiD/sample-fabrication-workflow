@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from "react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
@@ -94,6 +95,82 @@ describe("real Project Map surface keyboard behavior", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("keeps Shift-click multi-selection controlled by the parent selection model", async () => {
+    const onSelectionChange = vi.fn();
+    const descriptors = projectMapNodes(projectTestSnapshot());
+    function Harness() {
+      const [selection, setSelection] = useState({
+        itemIds: ["item-note"],
+        primaryItemId: "item-note" as string | null,
+      });
+      return <ProjectMapSurface
+        nodes={descriptors}
+        selectedItemId={selection.primaryItemId}
+        selectedItemIds={selection.itemIds}
+        onSelect={() => undefined}
+        onSelectionChange={(next) => {
+          onSelectionChange(next);
+          setSelection(next);
+        }}
+        onGeometryCommit={() => undefined}
+      />;
+    }
+
+    const { container } = render(<div style={{ width: 800, height: 600 }}><Harness /></div>);
+    const referenceNode = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-reference"]');
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    fireEvent.keyDown(document, { key: "Shift", code: "ShiftLeft" });
+    fireEvent.click(referenceNode, { shiftKey: true });
+    fireEvent.keyUp(document, { key: "Shift", code: "ShiftLeft" });
+
+    await waitFor(() => expect(onSelectionChange).toHaveBeenCalled());
+    expect(onSelectionChange.mock.calls.at(-1)?.[0]).toEqual({
+      itemIds: ["item-note", "item-reference"],
+      primaryItemId: "item-reference",
+    });
+    await waitFor(() => {
+      expect(container.querySelector('.react-flow__node[data-id="item-note"]')?.classList.contains("selected")).toBe(true);
+      expect(referenceNode.classList.contains("selected")).toBe(true);
+    });
+  });
+
+  it("commits one grouped geometry history payload when arrow keys move multiple selected nodes", async () => {
+    const onGeometryBatchCommit = vi.fn();
+    const descriptors = projectMapNodes(projectTestSnapshot());
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={descriptors}
+        selectedItemId="item-note"
+        selectedItemIds={["item-reference", "item-note"]}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+        onGeometryBatchCommit={onGeometryBatchCommit}
+      />
+    </div>);
+
+    const node = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    node.focus();
+    fireEvent.keyDown(node, { key: "ArrowRight", code: "ArrowRight" });
+
+    await waitFor(() => expect(onGeometryBatchCommit).toHaveBeenCalledTimes(1));
+    const commands = onGeometryBatchCommit.mock.calls[0][0];
+    expect(commands.map((command: { placementId: string }) => command.placementId).sort()).toEqual([
+      "placement-note",
+      "placement-reference",
+    ]);
+    for (const command of commands) {
+      expect(command.after.x).toBeGreaterThan(command.before.x);
+      expect(command.after.y).toBe(command.before.y);
+    }
   });
 
   it("commits a geometry command when React Flow moves a selected node with an arrow key", async () => {

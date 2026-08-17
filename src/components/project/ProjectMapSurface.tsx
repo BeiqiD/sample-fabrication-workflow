@@ -16,6 +16,7 @@ import {
   NodeResizer,
   Position,
   ReactFlow,
+  SelectionMode,
   applyNodeChanges,
   type Connection,
   type Edge,
@@ -43,10 +44,15 @@ import {
   type ProjectReferenceDragPayload,
 } from "../../lib/project-reference-placement";
 import {
+  normalizeProjectGeometryCommands,
   projectGeometryEquals,
   type ProjectGeometryCommand,
   type ProjectNodeDescriptor,
 } from "../../lib/project-map-model";
+import {
+  normalizeProjectItemSelection,
+  type ProjectItemSelection,
+} from "../../lib/project-canvas-productivity";
 import "./project-map-surface.css";
 
 type ProjectFlowNodeData = {
@@ -56,6 +62,7 @@ type ProjectFlowNodeData = {
   markdownEditor: ProjectMapMarkdownEditorState | null;
   geometryInteractionDisabled: boolean;
   edgeInteractionDisabled: boolean;
+  primarySelected: boolean;
   onResizeStart: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
   onResizeEnd: (descriptor: ProjectNodeDescriptor, params: ResizeParams) => void;
   onMarkdownEditRequest: (itemId: string) => void;
@@ -79,11 +86,13 @@ export interface ProjectMapSurfaceProps {
   pendingAttachment?: ProjectPendingAttachmentPlacement | null;
   markdownEditor?: ProjectMapMarkdownEditorState | null;
   selectedItemId: string | null;
+  selectedItemIds?: readonly string[];
   focusedItemId?: string | null;
   selectedEdgeId?: string | null;
   geometryInteractionDisabled?: boolean;
   edgeInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => void;
+  onSelectionChange?: (selection: ProjectItemSelection) => void;
   onEdgeSelect?: (edgeId: string | null) => void;
   onEdgeConnect?: (connection: {
     sourceItemId: string;
@@ -92,6 +101,7 @@ export interface ProjectMapSurfaceProps {
     targetHandle: ProjectEdgeHandle;
   }) => void;
   onGeometryCommit: (command: ProjectGeometryCommand) => void;
+  onGeometryBatchCommit?: (commands: ProjectGeometryCommand[]) => void;
   onReferenceDrop?: (
     payload: ProjectReferenceDragPayload,
     point: { x: number; y: number },
@@ -198,7 +208,7 @@ function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
     <Handle type="source" id="bottom" position={Position.Bottom} className="project-edge-handle nodrag nopan" isConnectable={!edgeInteractionDisabled && !editing} />
     <Handle type="source" id="left" position={Position.Left} className="project-edge-handle nodrag nopan" isConnectable={!edgeInteractionDisabled && !editing} />
     <NodeResizer
-      isVisible={selected && !geometryInteractionDisabled && !editing}
+      isVisible={selected && data.primarySelected && !geometryInteractionDisabled && !editing}
       minWidth={180}
       minHeight={110}
       maxWidth={1_200}
@@ -359,6 +369,7 @@ function buildFlowNode(
   descriptor: ProjectNodeDescriptor,
   geometryInteractionDisabled: boolean,
   edgeInteractionDisabled: boolean,
+  primarySelected: boolean,
   markdownEditor: ProjectMapMarkdownEditorState | null,
   callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
 ): ProjectFlowNode {
@@ -381,6 +392,7 @@ function buildFlowNode(
       markdownEditor,
       geometryInteractionDisabled,
       edgeInteractionDisabled,
+      primarySelected,
       ...callbacks,
     },
     draggable: !geometryInteractionDisabled && !editing,
@@ -404,9 +416,9 @@ function buildPendingReferenceFlowNode(
     pendingReference.geometry,
   );
   return {
-    ...buildFlowNode(descriptor, true, true, null, callbacks),
+    ...buildFlowNode(descriptor, true, true, false, null, callbacks),
     data: {
-      ...buildFlowNode(descriptor, true, true, null, callbacks).data,
+      ...buildFlowNode(descriptor, true, true, false, null, callbacks).data,
       pendingReference,
     },
     selectable: false,
@@ -426,9 +438,9 @@ function buildPendingAttachmentFlowNode(
     pendingAttachment.geometry,
   );
   return {
-    ...buildFlowNode(descriptor, true, true, null, callbacks),
+    ...buildFlowNode(descriptor, true, true, false, null, callbacks),
     data: {
-      ...buildFlowNode(descriptor, true, true, null, callbacks).data,
+      ...buildFlowNode(descriptor, true, true, false, null, callbacks).data,
       pendingAttachment,
     },
     selectable: false,
@@ -443,7 +455,7 @@ function buildMarkdownDraftFlowNode(
   if (!editor.isNew || !editor.geometry) return null;
   const descriptor = emptyDescriptor(editor.itemId, editor.itemId, "markdown", "New Markdown", editor.geometry);
   return {
-    ...buildFlowNode(descriptor, true, true, editor, callbacks),
+    ...buildFlowNode(descriptor, true, true, true, editor, callbacks),
     selectable: true,
   };
 }
@@ -456,14 +468,17 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   pendingAttachment = null,
   markdownEditor = null,
   selectedItemId,
+  selectedItemIds: controlledSelectedItemIds,
   focusedItemId = null,
   selectedEdgeId = null,
   geometryInteractionDisabled = false,
   edgeInteractionDisabled = false,
   onSelect,
+  onSelectionChange,
   onEdgeSelect = NOOP_EDGE_SELECT,
   onEdgeConnect,
   onGeometryCommit,
+  onGeometryBatchCommit,
   onReferenceDrop,
   onMarkdownCreateRequest,
   onMarkdownEditRequest = NOOP_MARKDOWN_EDIT,
@@ -472,7 +487,13 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   onMarkdownCancel = NOOP_ACTION,
   onAttachmentRequest,
 }, ref) {
+  const selectedItemIds = useMemo<readonly string[]>(() => (
+    controlledSelectedItemIds ?? (selectedItemId ? [selectedItemId] : [])
+  ), [controlledSelectedItemIds, selectedItemId]);
   const interactionStarts = useMemo(() => new Map<string, ProjectMapGeometry>(), []);
+  const dragStarts = useMemo(() => new Map<string, ProjectMapGeometry>(), []);
+  const recentDragCommitsRef = useRef(new Set<string>());
+  const recentDragCommitTimerRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const flowInstanceRef = useRef<ReactFlowInstance<ProjectFlowNode> | null>(null);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<ProjectFlowNode> | null>(null);
@@ -510,6 +531,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       descriptor,
       geometryInteractionDisabled,
       edgeInteractionDisabled,
+      descriptor.itemId === selectedItemId,
       markdownEditor?.itemId === descriptor.itemId ? markdownEditor : null,
       callbacks,
     ));
@@ -518,7 +540,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     if (pendingReference) active.push(buildPendingReferenceFlowNode(pendingReference, callbacks));
     if (pendingAttachment) active.push(buildPendingAttachmentFlowNode(pendingAttachment, callbacks));
     return active;
-  }, [callbacks, descriptors, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
+  }, [callbacks, descriptors, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference, selectedItemId]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
   const selectedItemIdRef = useRef(selectedItemId);
@@ -541,16 +563,17 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   // selection here: doing so can re-select a node while an edge click is clearing it.
   useEffect(() => {
     setFlowNodes(() => {
+      const selected = new Set(selectedItemIds);
       const next = projectedNodes.map((projected) => ({
         ...projected,
         selected: !projected.data.pendingReference
           && !projected.data.pendingAttachment
-          && projected.id === selectedItemId,
+          && selected.has(projected.id),
       }));
       flowNodesRef.current = next;
       return next;
     });
-  }, [projectedNodes, selectedItemId]);
+  }, [projectedNodes, selectedItemIds]);
 
   const flowPointFromClient = useCallback((clientX: number, clientY: number) => {
     const instance = flowInstanceRef.current;
@@ -588,6 +611,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     return () => window.clearTimeout(timer);
   }, [flowInstance, flowNodes, focusedItemId]);
 
+  const emitGeometryCommands = useCallback((commands: readonly ProjectGeometryCommand[]) => {
+    const normalized = normalizeProjectGeometryCommands(commands);
+    if (normalized.length === 0) return;
+    if (normalized.length === 1 || !onGeometryBatchCommit) {
+      for (const command of normalized) onGeometryCommit(command);
+      return;
+    }
+    onGeometryBatchCommit(normalized);
+  }, [onGeometryBatchCommit, onGeometryCommit]);
+
   const onNodesChange = useCallback((changes: NodeChange<ProjectFlowNode>[]) => {
     const effectiveChanges = geometryInteractionDisabled
       ? changes.filter((change) => change.type !== "position")
@@ -597,38 +630,44 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     flowNodesRef.current = next;
     setFlowNodes(next);
 
-    // Selection has one user-event bridge: React Flow NodeChange/EdgeChange.
-    // Click and aggregate selection callbacks must not write the same state again.
-    const selectedChange = [...effectiveChanges].reverse().find(
-      (change) => change.type === "select" && change.selected,
-    );
-    if (selectedChange?.type === "select") {
-      const selectedNode = next.find((candidate) => candidate.id === selectedChange.id);
-      if (selectedNode && !selectedNode.data.pendingReference && !selectedNode.data.pendingAttachment) {
-        onSelect(selectedNode.id);
-        setContextMenu(null);
-      }
-    } else {
-      const selectedItemId = selectedItemIdRef.current;
-      if (selectedItemId !== null && effectiveChanges.some((change) => (
-        change.type === "select" && !change.selected && change.id === selectedItemId
-      ))) onSelect(null);
+    const selectionChanges = effectiveChanges.filter((change) => change.type === "select");
+    if (selectionChanges.length > 0) {
+      const selectedItemIds = next.filter((candidate) => (
+        candidate.selected
+        && !candidate.data.pendingReference
+        && !candidate.data.pendingAttachment
+      )).map((candidate) => candidate.id);
+      const selectedChange = [...selectionChanges].reverse().find((change) => (
+        change.type === "select" && change.selected && selectedItemIds.includes(change.id)
+      ));
+      const currentPrimary = selectedItemIdRef.current;
+      const preferredPrimary = selectedChange?.type === "select"
+        ? selectedChange.id
+        : currentPrimary && selectedItemIds.includes(currentPrimary)
+          ? currentPrimary
+          : null;
+      const selection = normalizeProjectItemSelection(selectedItemIds, preferredPrimary);
+      if (onSelectionChange) onSelectionChange(selection);
+      else onSelect(selection.primaryItemId);
+      setContextMenu(null);
     }
 
     if (geometryInteractionDisabled) return;
+    const commands: ProjectGeometryCommand[] = [];
     for (const change of effectiveChanges) {
       if (change.type !== "position" || change.dragging || !change.position) continue;
       const beforeNode = current.find((candidate) => candidate.id === change.id);
       const afterNode = next.find((candidate) => candidate.id === change.id);
       if (!beforeNode || !afterNode || afterNode.data.pendingReference || afterNode.data.pendingAttachment || afterNode.data.markdownEditor) continue;
       const placementId = afterNode.data.descriptor.placementId;
-      if (interactionStarts.has(placementId)) continue;
+      if (interactionStarts.has(placementId) || dragStarts.has(placementId)
+        || recentDragCommitsRef.current.has(placementId)) continue;
       const before = nodeGeometry(beforeNode);
       const after = nodeGeometry(afterNode);
-      if (projectGeometryEquals(before, after)) continue;
-      onGeometryCommit({ placementId, before, after });
+      if (!projectGeometryEquals(before, after)) commands.push({ placementId, before, after });
     }
-  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit, onSelect]);
+    emitGeometryCommands(commands);
+  }, [dragStarts, emitGeometryCommands, geometryInteractionDisabled, interactionStarts, onSelect, onSelectionChange]);
 
   const handleElementClick = useCallback(() => {
     setContextMenu(null);
@@ -660,17 +699,44 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       targetHandle: connection.targetHandle,
     });
   }, [edgeInteractionDisabled, onEdgeConnect]);
-  const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
+  const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
     if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
-    interactionStarts.set(node.data.descriptor.placementId, nodeGeometry(node));
-  }, [geometryInteractionDisabled, interactionStarts]);
-  const handleNodeDragStop = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node) => {
-    if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
-    const placementId = node.data.descriptor.placementId;
-    const before = interactionStarts.get(placementId) ?? node.data.descriptor.geometry;
-    interactionStarts.delete(placementId);
-    onGeometryCommit({ placementId, before, after: nodeGeometry(node) });
-  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
+    dragStarts.clear();
+    const movingNodes = selectedNodes.length > 0 ? selectedNodes : [node];
+    for (const movingNode of movingNodes) {
+      if (movingNode.data.pendingReference || movingNode.data.pendingAttachment || movingNode.data.markdownEditor) continue;
+      dragStarts.set(movingNode.data.descriptor.placementId, nodeGeometry(movingNode));
+    }
+  }, [dragStarts, geometryInteractionDisabled]);
+  const handleNodeDragStop = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
+    if (geometryInteractionDisabled || dragStarts.size === 0) return;
+    const latestNodes = new Map((selectedNodes.length > 0 ? selectedNodes : [node]).map((candidate) => [
+      candidate.data.descriptor.placementId,
+      candidate,
+    ]));
+    const commands: ProjectGeometryCommand[] = [];
+    for (const [placementId, before] of dragStarts) {
+      const latest = latestNodes.get(placementId)
+        ?? flowNodesRef.current.find((candidate) => candidate.data.descriptor.placementId === placementId);
+      if (!latest || latest.data.pendingReference || latest.data.pendingAttachment || latest.data.markdownEditor) continue;
+      commands.push({ placementId, before, after: nodeGeometry(latest) });
+    }
+    dragStarts.clear();
+    const normalized = normalizeProjectGeometryCommands(commands);
+    recentDragCommitsRef.current = new Set(normalized.map((command) => command.placementId));
+    if (recentDragCommitTimerRef.current !== null) window.clearTimeout(recentDragCommitTimerRef.current);
+    recentDragCommitTimerRef.current = window.setTimeout(() => {
+      recentDragCommitsRef.current.clear();
+      recentDragCommitTimerRef.current = null;
+    }, 0);
+    emitGeometryCommands(normalized);
+  }, [dragStarts, emitGeometryCommands, geometryInteractionDisabled]);
+
+  useEffect(() => () => {
+    if (recentDragCommitTimerRef.current !== null) {
+      window.clearTimeout(recentDragCommitTimerRef.current);
+    }
+  }, []);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (geometryInteractionDisabled) return;
@@ -746,6 +812,9 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       edgesReconnectable={false}
       connectionMode={ConnectionMode.Loose}
       elementsSelectable
+      selectionKeyCode="Shift"
+      multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+      selectionMode={SelectionMode.Partial}
       fitView
       fitViewOptions={PROJECT_FIT_VIEW_OPTIONS}
       minZoom={0.1}

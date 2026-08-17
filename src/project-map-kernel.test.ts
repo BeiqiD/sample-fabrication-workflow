@@ -20,7 +20,9 @@ describe("Project Map kernel boundaries", () => {
     expect(surfaceSource).toContain("onNodeDragStop");
     expect(surfaceSource).toContain("onResizeEnd");
     expect(surfaceSource).toContain('change.type !== "position" || change.dragging || !change.position');
-    expect(surfaceSource).toContain("onGeometryCommit({ placementId, before, after });");
+    expect(surfaceSource).toContain("onGeometryCommit({ placementId: descriptor.placementId, before, after });");
+    expect(surfaceSource).toContain("emitGeometryCommands(commands);");
+    expect(surfaceSource).toContain("onGeometryBatchCommit");
     expect(surfaceSource).toContain("const PROJECT_NODE_TYPES");
   });
 

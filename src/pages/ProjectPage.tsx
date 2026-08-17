@@ -46,7 +46,8 @@ import {
   projectApi,
 } from "../lib/project-client";
 import {
-  applyProjectGeometryCommand,
+  applyProjectGeometryCommands,
+  normalizeProjectGeometryCommands,
   projectDirtyPlacements,
   projectGeometryEquals,
   projectMapNodes,
@@ -54,6 +55,12 @@ import {
   projectReadingNodes,
   type ProjectGeometryCommand,
 } from "../lib/project-map-model";
+import {
+  normalizeProjectItemSelection,
+  projectCanvasKeyboardShortcutFromEvent,
+  projectCanvasKeyboardTargetIsEditable,
+  type ProjectItemSelection,
+} from "../lib/project-canvas-productivity";
 import {
   projectReferenceDragPayloadFromResolution,
   projectReferenceDragPayloadFromResult,
@@ -202,7 +209,8 @@ export function ProjectPage() {
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const selectedItemId = selectedItemIds.at(-1) ?? null;
   const [navigationFocusItemId, setNavigationFocusItemId] = useState<string | null>(null);
   const [stableLinkCopyState, setStableLinkCopyState] = useState<{
     projectId: string;
@@ -424,7 +432,7 @@ export function ProjectPage() {
     edgeController.resetForAuthoritativeReload();
     setSnapshot(next);
     setGeometry(nextGeometry);
-    setSelectedItemId(null);
+    setSelectedItemIds([]);
     setNavigationFocusItemId(null);
     setUndoStack([]);
     setRedoStack([]);
@@ -734,18 +742,23 @@ export function ProjectPage() {
     }
   }, [attachmentEditor, blocker, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
 
-  const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
+  const commitGeometryBatch = useCallback((commands: readonly ProjectGeometryCommand[]) => {
     if (pendingReferenceRemovalRef.current
       || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current
       || pendingAttachmentRef.current
       || attachmentEditorRef.current
-      || edgeController.unsafeRef.current
-      || projectGeometryEquals(command.before, command.after)) return;
-    const next = { ...geometryRef.current, [command.placementId]: command.after };
+      || edgeController.unsafeRef.current) return;
+    const normalized = normalizeProjectGeometryCommands(commands);
+    if (normalized.length === 0) return;
+    const next = { ...geometryRef.current };
+    for (const command of normalized) next[command.placementId] = command.after;
     geometryRef.current = next;
     setGeometry(next);
-    setUndoStack((current) => [...current, { kind: "geometry" as const, command }].slice(-100));
+    setUndoStack((current) => [...current, {
+      kind: "geometry" as const,
+      commands: normalized,
+    }].slice(-100));
     setRedoStack([]);
     if (saveStateRef.current !== "conflict") {
       setSaveError("");
@@ -754,6 +767,10 @@ export function ProjectPage() {
     }
   }, [scheduleAutosave, updateSaveState]);
 
+  const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
+    commitGeometryBatch([command]);
+  }, [commitGeometryBatch]);
+
   const undo = useCallback(() => {
     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
@@ -761,7 +778,7 @@ export function ProjectPage() {
     const command = undoStack.at(-1);
     if (!command) return;
     if (command.kind === "geometry") {
-      const next = applyProjectGeometryCommand(geometryRef.current, command.command, "undo");
+      const next = applyProjectGeometryCommands(geometryRef.current, command.commands, "undo");
       geometryRef.current = next;
       setGeometry(next);
       setUndoStack((current) => current.slice(0, -1));
@@ -787,7 +804,7 @@ export function ProjectPage() {
     const command = redoStack.at(-1);
     if (!command) return;
     if (command.kind === "geometry") {
-      const next = applyProjectGeometryCommand(geometryRef.current, command.command, "redo");
+      const next = applyProjectGeometryCommands(geometryRef.current, command.commands, "redo");
       geometryRef.current = next;
       setGeometry(next);
       setRedoStack((current) => current.slice(0, -1));
@@ -844,7 +861,7 @@ export function ProjectPage() {
         references,
       };
     });
-    setSelectedItemId(result.item.id);
+    setSelectedItemIds([result.item.id]);
   }, []);
 
   const performReferenceInsertion = useCallback(async (
@@ -980,12 +997,21 @@ export function ProjectPage() {
     );
     for (const placementId of removed) delete pendingMutationRef.current[placementId];
     setGeometry(geometryRef.current);
-    setUndoStack((current) => current.filter((command) => command.kind === "geometry"
-      ? !removed.has(command.command.placementId)
-      : !projectSessionHistoryTouchesItem(command, itemId)));
-    setRedoStack((current) => current.filter((command) => command.kind === "geometry"
-      ? !removed.has(command.command.placementId)
-      : !projectSessionHistoryTouchesItem(command, itemId)));
+    const removeHistoryForItem = (current: ProjectSessionHistoryCommand[]) => current.reduce<
+      ProjectSessionHistoryCommand[]
+    >((next, command) => {
+      if (command.kind !== "geometry") {
+        if (!projectSessionHistoryTouchesItem(command, itemId)) next.push(command);
+        return next;
+      }
+      const commands = command.commands.filter((geometryCommand) => (
+        !removed.has(geometryCommand.placementId)
+      ));
+      if (commands.length > 0) next.push({ ...command, commands });
+      return next;
+    }, []);
+    setUndoStack(removeHistoryForItem);
+    setRedoStack(removeHistoryForItem);
     setSnapshot((current) => {
       if (!current) return current;
       const removedContentId = result.content?.id
@@ -1005,7 +1031,9 @@ export function ProjectPage() {
         edges: current.edges.filter((edge) => edge.sourceItemId !== itemId && edge.targetItemId !== itemId),
       };
     });
-    setSelectedItemId((current) => current === itemId ? null : current);
+    setSelectedItemIds((current) => normalizeProjectItemSelection(
+      current.filter((candidate) => candidate !== itemId),
+    ).itemIds);
     setNavigationFocusItemId((current) => current === itemId ? null : current);
     setSaveError("");
     setReferenceActionError("");
@@ -1285,7 +1313,7 @@ export function ProjectPage() {
       items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
       placements: [...current.placements.filter((placement) => placement.id !== result.placement.id), result.placement],
     } : current);
-    setSelectedItemId(result.item.id);
+    setSelectedItemIds([result.item.id]);
   }, []);
 
   const startMarkdownCreate = useCallback((point: { x: number; y: number }) => {
@@ -1314,7 +1342,7 @@ export function ProjectPage() {
       status: "editing",
       message: null,
     });
-    setSelectedItemId(itemId);
+    setSelectedItemIds([itemId]);
   }, [desktop, snapshot, updateMarkdownEditor]);
 
   const startMarkdownEdit = useCallback((itemId: string) => {
@@ -1341,7 +1369,7 @@ export function ProjectPage() {
       status: "editing",
       message: null,
     });
-    setSelectedItemId(itemId);
+    setSelectedItemIds([itemId]);
   }, [snapshot, updateMarkdownEditor]);
 
   const changeMarkdown = useCallback((value: string) => {
@@ -1357,7 +1385,7 @@ export function ProjectPage() {
     markdownUpdateInputRef.current = null;
     ownedContentGenerationRef.current += 1;
     updateMarkdownEditor(null);
-    if (current.isNew) setSelectedItemId(null);
+    if (current.isNew) setSelectedItemIds([]);
     setOwnedContentActionError("");
     continueReferenceNavigation(leave);
   }, [continueReferenceNavigation, updateMarkdownEditor]);
@@ -1594,7 +1622,7 @@ export function ProjectPage() {
       status: "editing",
       message: null,
     });
-    setSelectedItemId(itemId);
+    setSelectedItemIds([itemId]);
     setOwnedContentActionError("");
   }, [snapshot, updateAttachmentEditor]);
 
@@ -1704,19 +1732,40 @@ export function ProjectPage() {
     void flushSave();
   }, [blocker.state, flushSave]);
 
-  const selectProjectItem = useCallback((itemId: string | null) => {
-    const lockedItemId = markdownEditorRef.current?.itemId ?? attachmentEditorRef.current?.itemId ?? null;
-    if (lockedItemId && itemId !== lockedItemId) return;
-    if (edgeController.unsafeRef.current && itemId !== null) return;
-    if (itemId !== null) edgeController.selectEdge(null);
-    setSelectedItemId(itemId);
-    setNavigationFocusItemId((current) => current === itemId ? current : null);
+  const selectProjectItems = useCallback((selection: ProjectItemSelection) => {
+    const normalized = normalizeProjectItemSelection(
+      selection.itemIds,
+      selection.primaryItemId,
+    );
+    const lockedItemId = markdownEditorRef.current?.itemId
+      ?? attachmentEditorRef.current?.itemId
+      ?? null;
+    if (lockedItemId && (
+      normalized.itemIds.length !== 1
+      || normalized.primaryItemId !== lockedItemId
+    )) return;
+    if (edgeController.unsafeRef.current && normalized.itemIds.length > 0) return;
+    if (normalized.itemIds.length > 0) edgeController.selectEdge(null);
+    setSelectedItemIds(normalized.itemIds);
+    setNavigationFocusItemId((current) => (
+      normalized.itemIds.length === 1
+      && normalized.primaryItemId === current
+        ? current
+        : null
+    ));
   }, [edgeController.selectEdge, edgeController.unsafeRef]);
+
+  const selectProjectItem = useCallback((itemId: string | null) => {
+    selectProjectItems({
+      itemIds: itemId ? [itemId] : [],
+      primaryItemId: itemId,
+    });
+  }, [selectProjectItems]);
 
   const selectProjectEdge = useCallback((edgeId: string | null) => {
     if (markdownEditorRef.current || attachmentEditorRef.current) return;
     if (edgeId !== null) {
-      setSelectedItemId(null);
+      setSelectedItemIds([]);
       setNavigationFocusItemId(null);
     }
     edgeController.selectEdge(edgeId);
@@ -1730,8 +1779,14 @@ export function ProjectPage() {
     ...node,
     geometry: geometry[node.placementId] ?? node.geometry,
   })) : [], [geometry, snapshot]);
-  const selected = descriptors.find((node) => node.itemId === selectedItemId) ?? null;
-  const selectedItem = snapshot?.items.find((item) => item.id === selectedItemId) ?? null;
+  const selectedDescriptors = selectedItemIds.flatMap((itemId) => {
+    const descriptor = descriptors.find((node) => node.itemId === itemId);
+    return descriptor ? [descriptor] : [];
+  });
+  const selected = selectedDescriptors.length === 1 ? selectedDescriptors[0] : null;
+  const selectedItem = selected
+    ? snapshot?.items.find((item) => item.id === selected.itemId) ?? null
+    : null;
   const selectedReferenceTarget = selectedItem?.referenceTargetId
     ? snapshot?.references.find((reference) => (
       reference.registryId === selectedItem.referenceTargetId
@@ -1820,9 +1875,87 @@ export function ProjectPage() {
       ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
       : null;
     if (!item || item.itemType !== "content" || !content || content.contentType !== "markdown") return;
-    setSelectedItemId(item.id);
+    setSelectedItemIds([item.id]);
     startReferenceRemoval(item.id, item.revision, content.revision);
   }, [snapshot, startReferenceRemoval]);
+
+  useEffect(() => {
+    if (!desktop || desktopView !== "map") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)) return;
+      const shortcut = projectCanvasKeyboardShortcutFromEvent(event);
+      if (!shortcut) return;
+      const operationBlocked = Boolean(
+        pendingReferenceRef.current
+        || pendingReferenceRemovalRef.current
+        || markdownEditorRef.current
+        || pendingAttachmentRef.current
+        || attachmentEditorRef.current
+        || projectDeleteRequestRef.current
+        || edgeController.unsafeRef.current
+      );
+      if (operationBlocked) return;
+
+      if (shortcut === "select-all") {
+        if (descriptors.length === 0) return;
+        event.preventDefault();
+        const primaryItemId = selectedItemId
+          && descriptors.some((descriptor) => descriptor.itemId === selectedItemId)
+          ? selectedItemId
+          : descriptors.at(-1)?.itemId ?? null;
+        selectProjectItems({
+          itemIds: descriptors.map((descriptor) => descriptor.itemId),
+          primaryItemId,
+        });
+        return;
+      }
+      if (shortcut === "clear-selection") {
+        if (selectedItemIds.length === 0 && !edgeController.selectedEdgeId) return;
+        event.preventDefault();
+        selectProjectItems({ itemIds: [], primaryItemId: null });
+        edgeController.selectEdge(null);
+        return;
+      }
+      if (shortcut === "undo") {
+        if (saveStateRef.current === "saving" || undoStack.length === 0) return;
+        event.preventDefault();
+        undo();
+        return;
+      }
+      if (shortcut === "redo") {
+        if (saveStateRef.current === "saving" || redoStack.length === 0) return;
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if (shortcut === "save") {
+        const state = saveStateRef.current;
+        if (state !== "unsaved" && state !== "error") return;
+        event.preventDefault();
+        if (autosaveTimerRef.current !== null) {
+          window.clearTimeout(autosaveTimerRef.current);
+          autosaveTimerRef.current = null;
+        }
+        void flushSaveRef.current();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [
+    desktop,
+    desktopView,
+    descriptors,
+    edgeController.selectEdge,
+    edgeController.selectedEdgeId,
+    edgeController.unsafeRef,
+    redo,
+    redoStack.length,
+    selectProjectItems,
+    selectedItemId,
+    selectedItemIds.length,
+    undo,
+    undoStack.length,
+  ]);
 
   if (loading) return <div className="page project-page"><p className="muted">Loading Project…</p></div>;
   if (loadError || !snapshot) return <div className="page project-page">
@@ -1927,11 +2060,15 @@ export function ProjectPage() {
         </div>
         {desktopView === "map" && <div className="project-save-toolbar">
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-          <button type="button" className="button compact-button" disabled={undoDisabled} onClick={undo}>Undo</button>
-          <button type="button" className="button compact-button" disabled={redoDisabled} onClick={redo}>Redo</button>
+          {selectedItemIds.length > 1 && <span className="project-selection-count" role="status">
+            {selectedItemIds.length} selected
+          </span>}
+          <button type="button" className="button compact-button" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>Undo</button>
+          <button type="button" className="button compact-button" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>Redo</button>
           <button
             type="button"
             className="button primary compact-button"
+            aria-keyshortcuts="Control+S Meta+S"
             disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled}
             onClick={() => {
               if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
@@ -2110,14 +2247,17 @@ export function ProjectPage() {
             pendingAttachment={pendingAttachment}
             markdownEditor={markdownEditor}
             selectedItemId={selectedItemId}
+            selectedItemIds={selectedItemIds}
             focusedItemId={navigationFocusItemId}
             selectedEdgeId={edgeController.selectedEdgeId}
             geometryInteractionDisabled={geometryInteractionDisabled}
             edgeInteractionDisabled={edgeController.interactionDisabled}
             onSelect={selectProjectItem}
+            onSelectionChange={selectProjectItems}
             onEdgeSelect={selectProjectEdge}
             onEdgeConnect={edgeController.connect}
             onGeometryCommit={commitGeometry}
+            onGeometryBatchCommit={commitGeometryBatch}
             onReferenceDrop={startReferencePlacement}
             onMarkdownCreateRequest={startMarkdownCreate}
             onMarkdownEditRequest={startMarkdownEdit}
@@ -2171,6 +2311,17 @@ export function ProjectPage() {
             <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.startEdit}>Edit edge</button>
             <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
           </>}
+        </div> : selectedDescriptors.length > 1 ? <div className="project-inspector-content project-multi-selection-inspector">
+          <span className="meta-badge">multi-selection</span>
+          <h2>{selectedDescriptors.length} items selected</h2>
+          <p className="muted">Drag any selected node or use the arrow keys to move the selection as one local history command. Resize, edit, inspect, and remove remain single-item actions.</p>
+          <dl>
+            <dt>References</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "reference").length}</dd>
+            <dt>Markdown</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "markdown").length}</dd>
+            <dt>Attachments</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "attachment").length}</dd>
+            <dt>Primary</dt><dd>{selectedDescriptors.find((descriptor) => descriptor.itemId === selectedItemId)?.title ?? "None"}</dd>
+          </dl>
+          <button type="button" className="button wide" onClick={() => selectProjectItems({ itemIds: [], primaryItemId: null })}>Clear selection</button>
         </div> : selected ? <div className="project-inspector-content">
           <ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />
           {selectedReferenceTarget && <ProjectInspectorChildren
