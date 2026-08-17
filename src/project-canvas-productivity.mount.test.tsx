@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/project-map-model";
@@ -72,8 +72,25 @@ function renderProjectPage() {
   const router = createMemoryRouter([{
     path: "/projects/:projectId",
     element: <ProjectPage />,
+  }, {
+    path: "/projects",
+    element: <p>Projects destination</p>,
   }], { initialEntries: ["/projects/project-a"] });
-  return render(<RouterProvider router={router} />);
+  return { router, ...render(<RouterProvider router={router} />) };
+}
+
+const actor = "user@example.com";
+const createdAt = "2026-08-11T08:00:00.000Z";
+
+function createProjectItemResponse(snapshot: ReturnType<typeof projectTestSnapshot>, path: string, body: Record<string, any>) {
+  const project = { ...snapshot.project, revision: snapshot.project.revision + 1, nextCreatedSequence: snapshot.project.nextCreatedSequence + 1, updatedAt: createdAt };
+  const placement = { id: body.placementId, projectItemId: body.itemId, ...body.geometry, revision: 1, createdBy: actor, updatedBy: actor, createdAt, updatedAt: createdAt };
+  const reference = path.endsWith("/items/reference");
+  const content = reference ? null : { id: body.contentId, projectId: snapshot.project.id, contentType: "markdown" as const, markdownSource: body.markdownSource, attachmentCaption: null, attachmentSourceUrl: null, formatVersion: 1, revision: 1, createdBy: actor, updatedBy: actor, createdAt, updatedAt: createdAt, deletedAt: null, deletedBy: null };
+  const item = { id: body.itemId, projectId: snapshot.project.id, itemType: reference ? "reference" as const : "content" as const, projectContentId: reference ? null : body.contentId, referenceTargetId: reference ? "registry-sample" : null, createdSequence: snapshot.project.nextCreatedSequence, revision: 1, createdBy: actor, updatedBy: actor, createdAt, updatedAt: createdAt, deletedAt: null, deletedBy: null };
+  const result = { project, item, content, attachment: null, placement, replayed: false };
+  const next = { ...snapshot, project, contents: content ? [...snapshot.contents, content] : snapshot.contents, items: [...snapshot.items, item], placements: [...snapshot.placements, placement] };
+  return { result, next };
 }
 
 function dispatchSaveShortcut() {
@@ -218,5 +235,95 @@ describe("mounted Phase 4B Canvas productivity", () => {
     const conflictEvent = dispatchSaveShortcut();
     expect(conflictEvent.defaultPrevented).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("copies the authoritative selection and pastes fresh Markdown and Reference occurrences", async () => {
+    let authoritative = projectTestSnapshot();
+    const writes: Array<{ path: string; body: Record<string, any> }> = [];
+    fetchMock.mockImplementation((request, init) => {
+      const path = String(request);
+      if (!init?.method || init.method === "GET") return jsonResponse(authoritative);
+      if (init.method !== "POST") throw new Error(`Unexpected ${init.method} ${path}`);
+      const body = JSON.parse(String(init.body)) as Record<string, any>;
+      writes.push({ path, body });
+      const created = createProjectItemResponse(authoritative, path, body);
+      authoritative = created.next;
+      return jsonResponse(created.result, 201);
+    });
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    fireEvent.keyDown(document, { key: "c", code: "KeyC", ctrlKey: true });
+    expect(screen.getByText("2 copied")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "v", code: "KeyV", ctrlKey: true });
+
+    await waitFor(() => expect(writes).toHaveLength(2));
+    expect(writes.map(({ path }) => path)).toEqual([
+      "/api/projects/project-a/items/markdown",
+      "/api/projects/project-a/items/reference",
+    ]);
+    expect(writes[0].body.expectedProjectRevision).toBe(2);
+    expect(writes[1].body.expectedProjectRevision).toBe(3);
+    expect(writes[0].body.itemId).not.toBe("item-note");
+    expect(writes[1].body.itemId).not.toBe("item-reference");
+    await screen.findByText("Pasted 2 Project items.");
+    expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
+  });
+
+  it("retains a paused journal, retries a lost response exactly, and protects navigation", async () => {
+    let authoritative = projectTestSnapshot();
+    let lostReferenceBody: Record<string, any> | null = null;
+    let referenceAttempts = 0;
+    let markdownAttempts = 0;
+    fetchMock.mockImplementation((request, init) => {
+      const path = String(request);
+      if (!init?.method || init.method === "GET") return jsonResponse(authoritative);
+      if (init.method !== "POST") throw new Error(`Unexpected ${init.method} ${path}`);
+      const body = JSON.parse(String(init.body)) as Record<string, any>;
+      if (path.endsWith("/items/markdown")) {
+        markdownAttempts += 1;
+        const created = createProjectItemResponse(authoritative, path, body);
+        authoritative = created.next;
+        return jsonResponse(created.result, 201);
+      }
+      if (path.endsWith("/items/reference")) {
+        referenceAttempts += 1;
+        if (referenceAttempts === 1) {
+          lostReferenceBody = structuredClone(body);
+          const created = createProjectItemResponse(authoritative, path, body);
+          authoritative = created.next;
+          return Promise.reject(new TypeError("simulated response loss"));
+        }
+        expect(body).toEqual(lostReferenceBody);
+        const existing = authoritative.items.find((item) => item.id === body.itemId)!;
+        const placement = authoritative.placements.find((candidate) => candidate.id === body.placementId)!;
+        return jsonResponse({
+          project: authoritative.project,
+          item: existing,
+          content: null,
+          attachment: null,
+          placement,
+          replayed: true,
+        });
+      }
+      throw new Error(`Unexpected POST ${path}`);
+    });
+    const { router } = renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    fireEvent.keyDown(document, { key: "c", code: "KeyC", ctrlKey: true });
+    fireEvent.keyDown(document, { key: "v", code: "KeyV", ctrlKey: true });
+    await screen.findByText(/Paste paused after 1\/2 acknowledged writes/);
+    expect(markdownAttempts).toBe(1);
+    expect(referenceAttempts).toBe(1);
+
+    void router.navigate("/projects");
+    const dialog = await screen.findByRole("alertdialog", { name: "Unsaved Project changes" });
+    expect(within(dialog).getByText(/Project paste is paused after 1\/2 acknowledged writes/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Retry exact paste" }));
+
+    await screen.findByText("Projects destination");
+    expect(markdownAttempts).toBe(1);
+    expect(referenceAttempts).toBe(2);
   });
 });

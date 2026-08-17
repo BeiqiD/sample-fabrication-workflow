@@ -17,7 +17,6 @@ import {
   createProjectCanvasPasteJournal,
   executeProjectCanvasPasteJournal,
   projectCanvasPasteDestinationItemIds,
-  projectCanvasPasteHasAcknowledgedWrites,
   type ProjectCanvasClipboard,
   type ProjectCanvasPasteFailure,
   type ProjectCanvasPasteJournal,
@@ -58,7 +57,7 @@ export interface UseProjectCanvasCopyPasteOptions {
   onAuthoritativeSnapshot: (
     snapshot: ProjectSnapshot,
     destinationItemIds: readonly string[],
-  ) => void;
+  ) => number;
 }
 
 export interface ProjectCanvasCopyPasteController {
@@ -129,6 +128,7 @@ export function useProjectCanvasCopyPaste({
     mode: "complete" | "abandon",
   ) => {
     if (!sessionIsActive(generation, requestProjectId, journal.journalId)) return;
+    const failedStep = pasteStateRef.current?.failedStep ?? null;
     updatePaste({
       status: "reconciling",
       journal,
@@ -141,13 +141,12 @@ export function useProjectCanvasCopyPaste({
       const authoritative = await projectApi.read(requestProjectId);
       if (!sessionIsActive(generation, requestProjectId, journal.journalId)) return;
       const destinationItemIds = projectCanvasPasteDestinationItemIds(journal);
-      onAuthoritativeSnapshot(authoritative, destinationItemIds);
-      const acknowledged = projectCanvasPasteHasAcknowledgedWrites(journal);
+      const retainedItemCount = onAuthoritativeSnapshot(authoritative, destinationItemIds);
       updatePaste(null);
       setNotice(mode === "complete"
         ? `Pasted ${journal.itemSteps.length} Project item${journal.itemSteps.length === 1 ? "" : "s"}.`
-        : acknowledged
-          ? "Authoritative Project state was loaded. Already committed pasted items remain; the unacknowledged paste steps were abandoned."
+        : retainedItemCount > 0
+          ? `Authoritative Project state was loaded. ${retainedItemCount} pasted item${retainedItemCount === 1 ? "" : "s"} already committed to the Project remain; the unacknowledged paste steps were abandoned.`
           : "Authoritative Project state was loaded and the uncommitted paste was abandoned.");
     } catch (error) {
       if (!sessionIsActive(generation, requestProjectId, journal.journalId)) return;
@@ -162,7 +161,7 @@ export function useProjectCanvasCopyPaste({
         updatePaste({
           status: "paused",
           journal,
-          failedStep: pasteStateRef.current?.failedStep ?? null,
+          failedStep,
           message: `Authoritative reload failed; the exact paste journal is still retained: ${pasteErrorMessage(error)}`,
         });
       }

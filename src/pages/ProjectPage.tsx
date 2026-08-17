@@ -61,6 +61,7 @@ import {
   projectCanvasKeyboardTargetIsEditable,
   type ProjectItemSelection,
 } from "../lib/project-canvas-productivity";
+import { useProjectCanvasCopyPaste } from "../lib/use-project-canvas-copy-paste";
 import {
   projectReferenceDragPayloadFromResolution,
   projectReferenceDragPayloadFromResult,
@@ -272,6 +273,10 @@ export function ProjectPage() {
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
   const appliedFocusRef = useRef<string | null>(null);
   const stableLinkCopyGenerationRef = useRef(0);
+  const installPasteSnapshotRef = useRef<(
+    snapshot: ProjectSnapshot,
+    destinationItemIds: readonly string[],
+  ) => number>(() => 0);
 
   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
     pendingReferenceRef.current = next;
@@ -339,6 +344,66 @@ export function ProjectPage() {
     setRedoStack([]);
   }, []);
 
+  const mergePasteItemAcknowledgement = useCallback((result: ProjectItemMutationResponse) => {
+    baselineRef.current = {
+      ...baselineRef.current,
+      [result.placement.id]: result.placement,
+    };
+    const nextGeometry = {
+      ...geometryRef.current,
+      [result.placement.id]: {
+        x: result.placement.x,
+        y: result.placement.y,
+        width: result.placement.width,
+        height: result.placement.height,
+        zIndex: result.placement.zIndex,
+      },
+    };
+    geometryRef.current = nextGeometry;
+    setGeometry(nextGeometry);
+    setSnapshot((current) => current ? {
+      ...current,
+      project: result.project,
+      contents: result.content
+        ? [...current.contents.filter((content) => content.id !== result.content?.id), result.content]
+        : current.contents,
+      attachments: result.attachment
+        ? [...current.attachments.filter((attachment) => (
+          attachment.projectContentId !== result.attachment?.projectContentId
+        )), result.attachment]
+        : current.attachments,
+      items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
+      placements: [
+        ...current.placements.filter((placement) => placement.id !== result.placement.id),
+        result.placement,
+      ],
+    } : current);
+    setSelectedItemIds((current) => (
+      current.includes(result.item.id) ? current : [...current, result.item.id]
+    ));
+  }, []);
+
+  const mergePasteEdgeAcknowledgement = useCallback((
+    result: Awaited<ReturnType<typeof projectApi.createEdge>>,
+  ) => {
+    setSnapshot((current) => current ? {
+      ...current,
+      edges: [...current.edges.filter((edge) => edge.id !== result.value.id), result.value],
+    } : current);
+  }, []);
+
+  const handlePasteAuthoritativeSnapshot = useCallback((
+    next: ProjectSnapshot,
+    destinationItemIds: readonly string[],
+  ) => installPasteSnapshotRef.current(next, destinationItemIds), []);
+
+  const copyPaste = useProjectCanvasCopyPaste({
+    projectId,
+    onItemAcknowledged: mergePasteItemAcknowledgement,
+    onEdgeAcknowledged: mergePasteEdgeAcknowledgement,
+    onAuthoritativeSnapshot: handlePasteAuthoritativeSnapshot,
+  });
+
   const edgeController = useProjectEdgeController({
     projectId,
     snapshot,
@@ -350,7 +415,8 @@ export function ProjectPage() {
       || pendingReferenceRemoval !== null
       || markdownEditor !== null
       || pendingAttachment !== null
-      || attachmentEditor !== null,
+      || attachmentEditor !== null
+      || copyPaste.unsafe,
     onHistory: recordEdgeHistory,
   });
 
@@ -360,6 +426,7 @@ export function ProjectPage() {
     || markdownEditor !== null
     || pendingAttachment !== null
     || attachmentEditor !== null
+    || copyPaste.unsafe
     || deletingProject
     || projectDeleteUncertain
     || edgeController.unsafe;
@@ -371,6 +438,7 @@ export function ProjectPage() {
       || pendingAttachmentRef.current !== null
       || attachmentEditorRef.current !== null
       || projectDeleteRequestRef.current !== null
+      || copyPaste.unsafeRef.current !== null
       || edgeController.unsafeRef.current
   ));
 
@@ -382,6 +450,7 @@ export function ProjectPage() {
       || markdownEditor !== null
       || pendingAttachment !== null
       || attachmentEditor !== null
+      || copyPaste.unsafe
       || deletingProject
       || projectDeleteUncertain
       || edgeController.unsafe)
@@ -390,7 +459,7 @@ export function ProjectPage() {
       || currentLocation.search !== nextLocation.search
       || currentLocation.hash !== nextLocation.hash
     )
-  ), [attachmentEditor, deletingProject, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, projectDeleteUncertain, saveState]);
+  ), [attachmentEditor, copyPaste.unsafe, deletingProject, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, projectDeleteUncertain, saveState]);
   const blocker = useBlocker(shouldBlockNavigation);
 
   useBeforeUnload(useCallback((event) => {
@@ -401,6 +470,7 @@ export function ProjectPage() {
       && pendingAttachmentRef.current === null
       && attachmentEditorRef.current === null
       && projectDeleteRequestRef.current === null
+      && copyPaste.unsafeRef.current === null
       && !edgeController.unsafeRef.current) return;
     event.preventDefault();
     event.returnValue = "";
@@ -440,6 +510,16 @@ export function ProjectPage() {
     setReferenceActionError("");
     updateSaveState("saved");
   }, [clearOwnedContentState, clearReferenceInsertion, clearReferenceRemoval, edgeController.resetForAuthoritativeReload, updateSaveState]);
+
+  installPasteSnapshotRef.current = (next, destinationItemIds) => {
+    installSnapshot(next);
+    const available = new Set(next.items
+      .filter((item) => item.deletedAt === null)
+      .map((item) => item.id));
+    const selected = destinationItemIds.filter((itemId) => available.has(itemId));
+    setSelectedItemIds(selected);
+    return selected.length;
+  };
 
   const loadProject = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
@@ -527,6 +607,7 @@ export function ProjectPage() {
       || markdownEditorRef.current
       || pendingAttachmentRef.current
       || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current) return;
     projectDeleteRequestRef.current = null;
     projectDeletionNavigationRequestedRef.current = false;
@@ -563,6 +644,7 @@ export function ProjectPage() {
         || markdownEditorRef.current
         || pendingAttachmentRef.current
         || attachmentEditorRef.current
+        || copyPaste.unsafeRef.current
         || edgeController.unsafeRef.current) return;
       request = {
         projectId,
@@ -710,6 +792,7 @@ export function ProjectPage() {
     }
     if (pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current) {
       referenceNavigationRequestedRef.current = true;
     }
@@ -730,6 +813,7 @@ export function ProjectPage() {
       || markdownEditor !== null
       || pendingAttachment !== null
       || attachmentEditor !== null
+      || copyPaste.unsafe
       || edgeController.unsafe) return;
     if (saveState === "error" || saveState === "conflict") return;
     if (saveState !== "saved") return;
@@ -740,7 +824,7 @@ export function ProjectPage() {
     } else {
       blocker.reset();
     }
-  }, [attachmentEditor, blocker, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
+  }, [attachmentEditor, blocker, copyPaste.unsafe, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
 
   const commitGeometryBatch = useCallback((commands: readonly ProjectGeometryCommand[]) => {
     if (pendingReferenceRemovalRef.current
@@ -748,6 +832,7 @@ export function ProjectPage() {
       || markdownEditorRef.current
       || pendingAttachmentRef.current
       || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current) return;
     const normalized = normalizeProjectGeometryCommands(commands);
     if (normalized.length === 0) return;
@@ -774,6 +859,7 @@ export function ProjectPage() {
   const undo = useCallback(() => {
     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current) return;
     const command = undoStack.at(-1);
     if (!command) return;
@@ -800,6 +886,7 @@ export function ProjectPage() {
   const redo = useCallback(() => {
     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current) return;
     const command = redoStack.at(-1);
     if (!command) return;
@@ -1744,7 +1831,7 @@ export function ProjectPage() {
       normalized.itemIds.length !== 1
       || normalized.primaryItemId !== lockedItemId
     )) return false;
-    if (edgeController.unsafeRef.current && normalized.itemIds.length > 0) return false;
+    if ((edgeController.unsafeRef.current || copyPaste.unsafeRef.current) && normalized.itemIds.length > 0) return false;
     if (normalized.itemIds.length > 0) edgeController.selectEdge(null);
     setSelectedItemIds(normalized.itemIds);
     setNavigationFocusItemId((current) => (
@@ -1894,8 +1981,25 @@ export function ProjectPage() {
         || pendingAttachmentRef.current
         || attachmentEditorRef.current
         || projectDeleteRequestRef.current
+        || copyPaste.unsafeRef.current
         || edgeController.unsafeRef.current
       );
+
+      if (shortcut === "copy") {
+        if (operationBlocked || saveStateRef.current !== "saved" || !snapshot || selectedItemIds.length === 0) return;
+        event.preventDefault();
+        copyPaste.copySelection(snapshot, selectedItemIds);
+        return;
+      }
+      if (shortcut === "paste") {
+        if (operationBlocked || saveStateRef.current !== "saved" || !snapshot) return;
+        if (!copyPaste.pasteClipboard(snapshot)) return;
+        event.preventDefault();
+        setSelectedItemIds([]);
+        setNavigationFocusItemId(null);
+        edgeController.selectEdge(null);
+        return;
+      }
       if (operationBlocked) return;
 
       if (shortcut === "select-all") {
@@ -1946,6 +2050,8 @@ export function ProjectPage() {
     desktop,
     desktopView,
     descriptors,
+    copyPaste.copySelection,
+    copyPaste.pasteClipboard,
     edgeController.selectEdge,
     edgeController.selectedEdgeId,
     edgeController.unsafeRef,
@@ -1953,7 +2059,8 @@ export function ProjectPage() {
     redoStack.length,
     selectProjectItems,
     selectedItemId,
-    selectedItemIds.length,
+    selectedItemIds,
+    snapshot,
     undo,
     undoStack.length,
   ]);
@@ -1965,7 +2072,7 @@ export function ProjectPage() {
   </div>;
 
   const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
-  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe;
+  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe;
   const referencePlacementDisabled = Boolean(pendingReference || pendingReferenceRemoval || workspaceOperationBusy || saveState === "conflict");
   const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null || workspaceOperationBusy;
   const geometryInteractionDisabled = pendingReferenceRemoval !== null
@@ -1986,12 +2093,21 @@ export function ProjectPage() {
     || pendingReference !== null
     || pendingReferenceRemoval !== null
     || pendingAttachment !== null
+    || copyPaste.unsafe
     || edgeController.unsafe;
 
   const navigationBlockMessage = projectDeleteUncertain
     ? "The Project trash operation outcome is uncertain. Retry the exact move before leaving this Project."
     : deletingProject
       ? "Finishing the Project trash operation before leaving this Project…"
+      : copyPaste.paste
+        ? copyPaste.paste.status === "pasting"
+          ? "Finishing the authoritative Project paste before leaving…"
+          : copyPaste.paste.status === "paused"
+            ? `The Project paste is paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. Retry the exact paste or reload authoritative state and abandon the remaining steps before leaving.`
+            : copyPaste.paste.status === "reconcile-error"
+              ? "All paste writes were acknowledged, but authoritative reload still needs to succeed before leaving."
+              : "Reconciling the Project paste against authoritative state before leaving…"
       : edgeController.pending
     ? edgeController.pending.status === "saving"
       ? "Finishing the Project edge operation before leaving…"
@@ -2063,6 +2179,9 @@ export function ProjectPage() {
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
           {selectedItemIds.length > 1 && <span className="project-selection-count" role="status">
             {selectedItemIds.length} selected
+          </span>}
+          {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count" role="status">
+            {copyPaste.clipboard.itemCount} copied
           </span>}
           <button type="button" className="button compact-button" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>Undo</button>
           <button type="button" className="button compact-button" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>Redo</button>
@@ -2136,6 +2255,29 @@ export function ProjectPage() {
       <p>{ownedContentActionError}</p>
     </div>}
 
+    {copyPaste.clipboard?.status === "error" && <div className="project-save-banner error">
+      <p>{copyPaste.clipboard.message}</p>
+    </div>}
+
+    {copyPaste.notice && !copyPaste.paste && <div className="project-save-banner warning" role="status">
+      <p>{copyPaste.notice}</p>
+    </div>}
+
+    {copyPaste.paste && <div className={`project-save-banner ${copyPaste.paste.status === "paused" || copyPaste.paste.status === "reconcile-error" ? "error" : "warning"}`} role="status">
+      <p>{copyPaste.paste.status === "pasting"
+        ? "Pasting the copied Project selection through authoritative item and edge writes…"
+        : copyPaste.paste.status === "paused"
+          ? `Paste paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. ${copyPaste.paste.message || "Retry the exact frozen journal or reconcile authoritative state."}`
+          : copyPaste.paste.message || "Reconciling the Project paste against authoritative state…"}</p>
+      {copyPaste.paste.status === "paused" && <div className="project-navigation-actions">
+        <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>
+        <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>
+      </div>}
+      {copyPaste.paste.status === "reconcile-error" && <div className="project-navigation-actions">
+        <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>
+      </div>}
+    </div>}
+
     {edgeController.actionError && <div className="project-save-banner error">
       <p>{edgeController.actionError}</p>
       <div className="project-navigation-actions">
@@ -2149,6 +2291,9 @@ export function ProjectPage() {
       <p>{navigationBlockMessage}</p>
       <div className="project-navigation-actions">
         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
+        {copyPaste.paste?.status === "paused" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>}
+        {copyPaste.paste?.status === "paused" && <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>}
+        {copyPaste.paste?.status === "reconcile-error" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>}
         {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
         {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss edge operation and leave</button>}
         {(edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict") && <button type="button" className="button primary compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
