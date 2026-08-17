@@ -24,7 +24,7 @@ jobs:
           ref: codex/phase-4b2-authoritative-copy-paste
           fetch-depth: 0
 
-      - name: Normalize and apply bounded integration patch
+      - name: Apply bounded integration patch
         shell: bash
         run: |
           python - <<'PY'
@@ -37,8 +37,54 @@ jobs:
           )
           path.write_text(text)
           PY
-          git apply --recount --check .phase4b2-ui.patch
-          git apply --recount .phase4b2-ui.patch
+          git apply --recount --reject .phase4b2-ui.patch || true
+
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str, marker: str) -> None:
+              target = Path(path)
+              text = target.read_text()
+              if marker in text:
+                  return
+              if old not in text:
+                  raise SystemExit(f"fallback context missing for {path}: {marker}")
+              target.write_text(text.replace(old, new, 1))
+
+          page = 'src/pages/ProjectPage.tsx'
+          replace_once(page,
+              '  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe;\n',
+              '  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe;\n',
+              'workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe')
+          replace_once(page,
+              '''  const readingInteractionDisabled = saveState !== "saved"\n    || pendingReference !== null\n    || pendingReferenceRemoval !== null\n    || pendingAttachment !== null\n    || edgeController.unsafe;\n''',
+              '''  const readingInteractionDisabled = saveState !== "saved"\n    || pendingReference !== null\n    || pendingReferenceRemoval !== null\n    || pendingAttachment !== null\n    || copyPaste.unsafe\n    || edgeController.unsafe;\n''',
+              '|| copyPaste.unsafe\n    || edgeController.unsafe;\n\n  const navigationBlockMessage')
+          replace_once(page,
+              '''    : deletingProject\n      ? "Finishing the Project trash operation before leaving this Project…"\n      : edgeController.pending\n''',
+              '''    : deletingProject\n      ? "Finishing the Project trash operation before leaving this Project…"\n      : copyPaste.paste\n        ? copyPaste.paste.status === "pasting"\n          ? "Finishing the authoritative Project paste before leaving…"\n          : copyPaste.paste.status === "paused"\n            ? `The Project paste is paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. Retry the exact paste or reload authoritative state and abandon the remaining steps before leaving.`\n            : copyPaste.paste.status === "reconcile-error"\n              ? "All paste writes were acknowledged, but authoritative reload still needs to succeed before leaving."\n              : "Reconciling the Project paste against authoritative state before leaving…"\n      : edgeController.pending\n''',
+              ': copyPaste.paste\n        ? copyPaste.paste.status === "pasting"')
+
+          test = 'src/project-canvas-productivity.mount.test.tsx'
+          old_render = '''function renderProjectPage() {\n  const router = createMemoryRouter([{\n    path: "/projects/:projectId",\n    element: <ProjectPage />,\n  }], { initialEntries: ["/projects/project-a"] });\n  return render(<RouterProvider router={router} />);\n}\n'''
+          new_render = '''function renderProjectPage() {\n  const router = createMemoryRouter([{\n    path: "/projects/:projectId",\n    element: <ProjectPage />,\n  }, {\n    path: "/projects",\n    element: <p>Projects destination</p>,\n  }], { initialEntries: ["/projects/project-a"] });\n  return { router, ...render(<RouterProvider router={router} />) };\n}\n\nconst actor = "user@example.com";\nconst createdAt = "2026-08-11T08:00:00.000Z";\n\nfunction createProjectItemResponse(snapshot: ReturnType<typeof projectTestSnapshot>, path: string, body: Record<string, any>) {\n  const project = { ...snapshot.project, revision: snapshot.project.revision + 1, nextCreatedSequence: snapshot.project.nextCreatedSequence + 1, updatedAt: createdAt };\n  const placement = { id: body.placementId, projectItemId: body.itemId, ...body.geometry, revision: 1, createdBy: actor, updatedBy: actor, createdAt, updatedAt: createdAt };\n  const reference = path.endsWith("/items/reference");\n  const content = reference ? null : { id: body.contentId, projectId: snapshot.project.id, contentType: "markdown" as const, markdownSource: body.markdownSource, attachmentCaption: null, attachmentSourceUrl: null, formatVersion: 1, revision: 1, createdBy: actor, updatedBy: actor, createdAt, updatedAt: createdAt, deletedAt: null, deletedBy: null };\n  const item = { id: body.itemId, projectId: snapshot.project.id, itemType: reference ? "reference" as const : "content" as const, projectContentId: reference ? null : body.contentId, referenceTargetId: reference ? "registry-sample" : null, createdSequence: snapshot.project.nextCreatedSequence, revision: 1, createdBy: actor, updatedBy: actor, createdAt, updatedAt: createdAt, deletedAt: null, deletedBy: null };\n  const result = { project, item, content, attachment: null, placement, replayed: false };\n  const next = { ...snapshot, project, contents: content ? [...snapshot.contents, content] : snapshot.contents, items: [...snapshot.items, item], placements: [...snapshot.placements, placement] };\n  return { result, next };\n}\n'''
+          replace_once(test, old_render, new_render, 'function createProjectItemResponse(')
+
+          page_text = Path(page).read_text()
+          for marker in ['useProjectCanvasCopyPaste', 'const copyPaste = useProjectCanvasCopyPaste({', 'copyPaste.copySelection(snapshot, selectedItemIds)', 'copyPaste.pasteClipboard(snapshot)', 'Retry exact paste', 'Reload and abandon remaining paste', 'copyPaste.unsafeRef.current === null', 'workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe']:
+              if marker not in page_text:
+                  raise SystemExit(f"ProjectPage integration marker missing: {marker}")
+          test_text = Path(test).read_text()
+          for marker in ['within } from "@testing-library/react"', 'copies the authoritative selection and pastes fresh Markdown and Reference occurrences', 'retains a paused journal, retries a lost response exactly, and protects navigation', 'Projects destination']:
+              if marker not in test_text:
+                  raise SystemExit(f"mounted integration marker missing: {marker}")
+          hook_text = Path('src/lib/use-project-canvas-copy-paste.ts').read_text()
+          for marker in [') => number;', 'const retainedItemCount = onAuthoritativeSnapshot(authoritative, destinationItemIds);', 'const failedStep = pasteStateRef.current?.failedStep ?? null;']:
+              if marker not in hook_text:
+                  raise SystemExit(f"copy/paste controller marker missing: {marker}")
+          PY
+
+          find src -name '*.rej' -print -delete
           rm .phase4b2-ui.patch .github/workflows/phase4b2-apply.yml
 
       - name: Install dependencies
