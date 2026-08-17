@@ -1,0 +1,63 @@
+name: Apply Phase 4B2 integration
+
+on:
+  push:
+    branches:
+      - codex/phase-4b2-authoritative-copy-paste
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phase4b2-integration-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[phase4b2-applied]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/phase-4b2-authoritative-copy-paste
+          fetch-depth: 0
+
+      - name: Normalize and apply bounded integration patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.phase4b2-ui.patch')
+          text = path.read_text()
+          text = text.replace(
+              "       || attachmentEditor !== null,\n+      || copyPaste.unsafe,\n",
+              "-      || attachmentEditor !== null,\n+      || attachmentEditor !== null\n+      || copyPaste.unsafe,\n",
+          )
+          path.write_text(text)
+          PY
+          git apply --recount --check .phase4b2-ui.patch
+          git apply --recount .phase4b2-ui.patch
+          rm .phase4b2-ui.patch .github/workflows/phase4b2-apply.yml
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Canvas productivity
+        run: npm run verify:project-canvas-productivity
+
+      - name: Verify Project persistence
+        run: npm run verify:project-persistence
+
+      - name: Verify patch hygiene
+        run: git diff --check
+
+      - name: Publish verified integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(project): complete Canvas copy paste UX [phase4b2-applied]"
+          git push origin HEAD:codex/phase-4b2-authoritative-copy-paste
