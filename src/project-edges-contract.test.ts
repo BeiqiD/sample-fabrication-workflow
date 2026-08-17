@@ -48,6 +48,8 @@ describe("Phase 3B4 edge contract", () => {
     expect(pkg.scripts["verify:project-edges"]).toContain("verify-project-map-bundle.mjs");
     expect(pkg.scripts["verify:v3-deployment"]).toContain("verify:project-edges");
     expect(workflow).toContain("Run Project edges contract");
-    expect(workflow).toContain('context: "pre-pr/project-edges"');
+    expect(workflow).toContain("STATUS_CONTEXT: pre-pr/project-edges");
+    expect(workflow).toContain("scripts/publish-commit-status.mjs");
+    expect(workflow).toContain("continue-on-error: true");
   });
 });
