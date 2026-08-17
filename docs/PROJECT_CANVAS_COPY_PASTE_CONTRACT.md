@@ -1,14 +1,14 @@
 # Project Canvas authoritative copy/paste contract
 
-Status: Phase 4B2 implementation contract; active in Draft PR #149
+Status: Phase 4B2 implemented in Draft PR #149; pending independent review
 
-Last reviewed: 2026-08-17 after the first implementation and the attachment-source concurrency review of PR #149
+Last reviewed: 2026-08-17 after completing the ProjectPage interaction, partial-paste recovery, and mounted verification of PR #149
 
 ## Goal
 
 Copy/paste duplicates a bounded selection without turning the Canvas into a frontend-owned document. The clipboard freezes one transient projection of authoritative Project records, while paste is an ordered journal of ordinary item and edge mutations.
 
-This contract defines the Phase 4B2 identity, authorization, geometry, retry, and partial-result boundaries. `PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md` records the wider Phase 4B sequence and the remaining UI work before PR #149 can become Ready.
+This contract defines the Phase 4B2 identity, authorization, geometry, retry, partial-result, and interaction boundaries. `PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md` records the wider Phase 4B sequence.
 
 ## Identity semantics
 
@@ -103,13 +103,17 @@ On any rejected write:
 
 A partial paste is not rolled back across already acknowledged independent API calls and must never be presented as an atomic success.
 
+The mounted interaction keeps the same journal while paused. `Retry exact paste` resumes it without reallocating identities. `Reload and abandon remaining paste` first reloads authoritative Project state, preserves anything that already committed, and then discards only the remaining journal steps. If all writes acknowledge but the final authoritative reload fails, the page enters a separate reconciliation-error state and offers an exact authoritative-reload retry rather than treating the paste as complete.
+
 ## Interaction boundary
 
 Desktop Map keyboard integration uses `Ctrl/Command+C` and `Ctrl/Command+V` only outside inputs, textareas, selects, contenteditable regions, textbox-like roles, and IME composition. Mobile remains Reading-first.
 
-After a complete paste, the newly created item occurrences become the transient selection. A paused paste must expose its progress, preserve the exact journal, and offer exact retry or authoritative reconciliation. Navigation protection must treat unresolved paste state like other uncertain Project mutations.
+Copy is accepted only from committed selectable Project occurrences while the Project is in a saved, operation-safe state. Paste immediately moves into an unsafe session state so geometry edits, selection changes, projection switches, conflicting Project operations, and navigation cannot race the frozen journal.
 
-The current Draft PR has implemented the identity planner, ordered journal, attachment-copy API, transactional source authorization, and focused unit/route coverage. `ProjectPage` shortcut wiring, local result projection, mounted partial-paste recovery UX, and final reconciliation tests remain required before the phase is complete.
+Each acknowledged item or edge response is projected into the local snapshot as it arrives, so an honestly partial result is visible rather than hidden. After all journal writes complete, the client reloads the authoritative Project snapshot and selects the destination item occurrences that are actually active in that snapshot.
+
+While a paste is unresolved, navigation and `beforeunload` protection remain active. If navigation was already requested when a paused paste is recovered successfully, the blocker automatically proceeds only after the paste has completed and authoritative reconciliation has cleared the unsafe state.
 
 ## Verification boundary
 
@@ -125,6 +129,10 @@ The permanent `pre-pr/project-canvas-productivity` and Project-persistence gates
 - an interleaved source removal between preliminary read and D1 batch, with zero partial destination rows and no consumed Project sequence;
 - same-Project and active-source enforcement;
 - asset binding and exact replay after source removal;
-- managed-storage `ready` and `orphaned` copy;
+- managed-storage `ready` and genuine pre-copy `orphaned` coverage;
 - managed-storage GC/quarantine rejection for new copies while exact destination replay remains valid;
-- Worker route, client route, production build, and existing mounted Canvas regressions.
+- mounted `Ctrl/Command+C` and `Ctrl/Command+V` complete-paste behavior;
+- fresh destination identity and ordered Project-revision use through the mounted page;
+- acknowledged-result projection and final destination selection;
+- response-loss pause, exact request replay without repeating acknowledged earlier steps, authoritative reload, and blocked-navigation continuation;
+- Worker route, client route, production build, Project worker smoke, Map bundle boundary, and existing mounted Canvas regressions.
