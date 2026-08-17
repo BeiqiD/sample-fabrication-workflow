@@ -10,8 +10,8 @@ and recovery in PR #141, Phase 3D rich content/export plus the shared
 Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
 occurrence focus in PR #145, Phase 4A2 Inspector completeness in PR #146,
 and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
-multi-selection and grouped geometry are complete in PR #148, with Phase 4B2
-copy/paste now the next bounded product slice
+multi-selection and grouped geometry are complete in PR #148, and Phase 4B2
+authoritative copy/paste is under active implementation in Draft PR #149
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -186,10 +186,14 @@ PR #145, Phase 4A2 Inspector hierarchy, provenance, type-specific detail, and
 exact source navigation are complete in PR #146, and Phase 4A3 authoritative child-
 reference insertion is complete in PR #147. It adds authoritative direct-child
 discovery inside the Inspector while reusing the existing Project placement
-transaction and retry/reconciliation state machine. Phase 4B Canvas productivity
-is now the active bounded product slice. Storage, lifecycle, Reference, and rich-
-content foundations return to correctness maintenance rather than continuing as
-independent feature tracks.
+transaction and retry/reconciliation state machine. Phase 4B1 Canvas
+multi-selection and grouped geometry are complete in PR #148. Phase 4B2
+copy/paste is now active in Draft PR #149: its identity, ordered-journal,
+attachment-authorization, and retry foundation is implemented, while complete
+`ProjectPage` shortcut wiring, result projection, and partial-paste recovery UX
+remain in progress. Storage, lifecycle, Reference, and rich-content foundations
+return to correctness maintenance rather than continuing as independent feature
+tracks.
 
 ## Active implementation roadmap
 
@@ -452,10 +456,11 @@ the Project workspace.
 
 #### Phase 4B — Canvas productivity
 
-**Status:** active; Phase 4B1 multi-selection, grouped geometry history, and bounded Canvas keyboard shortcuts are complete in PR #148. Phase 4B2 authoritative copy/paste is next.
+**Status:** active. Phase 4B1 multi-selection, grouped geometry history, and bounded Canvas keyboard shortcuts are complete in PR #148. Phase 4B2 authoritative copy/paste is under active implementation in Draft PR #149: the typed clipboard, fresh-identity planner, ordered retry journal, and transactionally authorized attachment-copy backend are implemented; complete desktop shortcut wiring, acknowledged-result projection, and partial-paste recovery UX remain before the slice is complete.
 
 The detailed slice boundaries and persistence constraints are recorded in
-[Project Canvas productivity implementation plan](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md).
+[Project Canvas productivity implementation plan](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md), with the frozen Phase 4B2 authorization and retry model in
+[Project Canvas authoritative copy/paste contract](./PROJECT_CANVAS_COPY_PASTE_CONTRACT.md).
 
 **Scope:**
 
@@ -672,14 +677,14 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete the remaining **Phase 4B** Canvas productivity slices, beginning with
-   authoritative copy/paste after PR #148's multi-selection foundation.
-2. Complete **Phase 4C** representative-scale performance work and make explicit
+1. Complete the active **Phase 4B2** work in Draft PR #149: connect desktop copy/paste shortcuts, project acknowledged results into the current Project snapshot and selection, and finish paused-partial-paste exact-retry and reconciliation UX.
+2. Complete the remaining **Phase 4B3** alignment-assistance and explicit z-order slice after copy/paste semantics are complete.
+3. Complete **Phase 4C** representative-scale performance work and make explicit
    include/defer decisions for remaining optional interaction candidates.
-3. Declare the **v1 feature freeze** once the interaction-shaping feature set is
+4. Declare the **v1 feature freeze** once the interaction-shaping feature set is
    stable.
-4. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-5. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+5. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+6. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,
