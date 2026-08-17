@@ -1,0 +1,534 @@
+diff --git a/src/lib/use-project-canvas-copy-paste.ts b/src/lib/use-project-canvas-copy-paste.ts
+index ac8d3e6..0000000 100644
+--- a/src/lib/use-project-canvas-copy-paste.ts
++++ b/src/lib/use-project-canvas-copy-paste.ts
+@@ -17,7 +17,6 @@ import {
+   createProjectCanvasPasteJournal,
+   executeProjectCanvasPasteJournal,
+   projectCanvasPasteDestinationItemIds,
+-  projectCanvasPasteHasAcknowledgedWrites,
+   type ProjectCanvasClipboard,
+   type ProjectCanvasPasteFailure,
+   type ProjectCanvasPasteJournal,
+@@ -57,7 +56,7 @@ export interface UseProjectCanvasCopyPasteOptions {
+   onAuthoritativeSnapshot: (
+     snapshot: ProjectSnapshot,
+     destinationItemIds: readonly string[],
+-  ) => void;
++  ) => number;
+ }
+@@ -120,6 +119,7 @@ export function useProjectCanvasCopyPaste({
+   ) => {
+     if (!sessionIsActive(generation, requestProjectId, journal.journalId)) return;
++    const failedStep = pasteStateRef.current?.failedStep ?? null;
+     updatePaste({
+       status: "reconciling",
+       journal,
+@@ -133,13 +133,13 @@ export function useProjectCanvasCopyPaste({
+       const authoritative = await projectApi.read(requestProjectId);
+       if (!sessionIsActive(generation, requestProjectId, journal.journalId)) return;
+       const destinationItemIds = projectCanvasPasteDestinationItemIds(journal);
+-      onAuthoritativeSnapshot(authoritative, destinationItemIds);
+-      const acknowledged = projectCanvasPasteHasAcknowledgedWrites(journal);
++      const retainedItemCount = onAuthoritativeSnapshot(authoritative, destinationItemIds);
+       updatePaste(null);
+       setNotice(mode === "complete"
+         ? `Pasted ${journal.itemSteps.length} Project item${journal.itemSteps.length === 1 ? "" : "s"}.`
+-        : acknowledged
+-          ? "Authoritative Project state was loaded. Already committed pasted items remain; the unacknowledged paste steps were abandoned."
++        : retainedItemCount > 0
++          ? `Authoritative Project state was loaded. ${retainedItemCount} pasted item${retainedItemCount === 1 ? "" : "s"} already committed to the Project remain; the unacknowledged paste steps were abandoned.`
+           : "Authoritative Project state was loaded and the uncommitted paste was abandoned.");
+@@ -157,7 +157,7 @@ export function useProjectCanvasCopyPaste({
+         updatePaste({
+           status: "paused",
+           journal,
+-          failedStep: pasteStateRef.current?.failedStep ?? null,
++          failedStep,
+           message: `Authoritative reload failed; the exact paste journal is still retained: ${pasteErrorMessage(error)}`,
+         });
+       }
+diff --git a/src/pages/ProjectPage.tsx b/src/pages/ProjectPage.tsx
+--- a/src/pages/ProjectPage.tsx
++++ b/src/pages/ProjectPage.tsx
+@@ -52,6 +52,7 @@ import {
+   projectCanvasKeyboardTargetIsEditable,
+   type ProjectItemSelection,
+ } from "../lib/project-canvas-productivity";
++import { useProjectCanvasCopyPaste } from "../lib/use-project-canvas-copy-paste";
+ import {
+   projectReferenceDragPayloadFromResolution,
+   projectReferenceDragPayloadFromResult,
+@@ -281,6 +282,10 @@ export function ProjectPage() {
+   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
+   const appliedFocusRef = useRef<string | null>(null);
+   const stableLinkCopyGenerationRef = useRef(0);
++  const installPasteSnapshotRef = useRef<(
++    snapshot: ProjectSnapshot,
++    destinationItemIds: readonly string[],
++  ) => number>(() => 0);
+ 
+   const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
+     pendingReferenceRef.current = next;
+@@ -345,6 +350,64 @@ export function ProjectPage() {
+     setRedoStack([]);
+   }, []);
+ 
++  const mergePasteItemAcknowledgement = useCallback((result: ProjectItemMutationResponse) => {
++    baselineRef.current = {
++      ...baselineRef.current,
++      [result.placement.id]: result.placement,
++    };
++    const nextGeometry = {
++      ...geometryRef.current,
++      [result.placement.id]: {
++        x: result.placement.x,
++        y: result.placement.y,
++        width: result.placement.width,
++        height: result.placement.height,
++        zIndex: result.placement.zIndex,
++      },
++    };
++    geometryRef.current = nextGeometry;
++    setGeometry(nextGeometry);
++    setSnapshot((current) => current ? {
++      ...current,
++      project: result.project,
++      contents: result.content
++        ? [...current.contents.filter((content) => content.id !== result.content?.id), result.content]
++        : current.contents,
++      attachments: result.attachment
++        ? [...current.attachments.filter((attachment) => (
++          attachment.projectContentId !== result.attachment?.projectContentId
++        )), result.attachment]
++        : current.attachments,
++      items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
++      placements: [
++        ...current.placements.filter((placement) => placement.id !== result.placement.id),
++        result.placement,
++      ],
++    } : current);
++    setSelectedItemIds((current) => (
++      current.includes(result.item.id) ? current : [...current, result.item.id]
++    ));
++  }, []);
++
++  const mergePasteEdgeAcknowledgement = useCallback((
++    result: Awaited<ReturnType<typeof projectApi.createEdge>>,
++  ) => {
++    setSnapshot((current) => current ? {
++      ...current,
++      edges: [...current.edges.filter((edge) => edge.id !== result.value.id), result.value],
++    } : current);
++  }, []);
++
++  const handlePasteAuthoritativeSnapshot = useCallback((
++    next: ProjectSnapshot,
++    destinationItemIds: readonly string[],
++  ) => installPasteSnapshotRef.current(next, destinationItemIds), []);
++
++  const copyPaste = useProjectCanvasCopyPaste({
++    projectId,
++    onItemAcknowledged: mergePasteItemAcknowledgement,
++    onEdgeAcknowledged: mergePasteEdgeAcknowledgement,
++    onAuthoritativeSnapshot: handlePasteAuthoritativeSnapshot,
++  });
++
+   const edgeController = useProjectEdgeController({
+     projectId,
+     snapshot,
+@@ -355,6 +418,7 @@ export function ProjectPage() {
+       || markdownEditor !== null
+       || pendingAttachment !== null
+       || attachmentEditor !== null,
++      || copyPaste.unsafe,
+     onHistory: recordEdgeHistory,
+   });
+@@ -366,6 +430,7 @@ export function ProjectPage() {
+     || pendingAttachment !== null
+     || attachmentEditor !== null
++    || copyPaste.unsafe
+     || deletingProject
+     || projectDeleteUncertain
+     || edgeController.unsafe;
+@@ -378,6 +443,7 @@ export function ProjectPage() {
+       || pendingAttachmentRef.current !== null
+       || attachmentEditorRef.current !== null
+       || projectDeleteRequestRef.current !== null
++      || copyPaste.unsafeRef.current !== null
+       || edgeController.unsafeRef.current
+   ));
+@@ -391,6 +457,7 @@ export function ProjectPage() {
+       || pendingAttachment !== null
+       || attachmentEditor !== null
++      || copyPaste.unsafe
+       || deletingProject
+       || projectDeleteUncertain
+       || edgeController.unsafe)
+@@ -401,7 +468,7 @@ export function ProjectPage() {
+       || currentLocation.search !== nextLocation.search
+       || currentLocation.hash !== nextLocation.hash
+     )
+-  ), [attachmentEditor, deletingProject, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, projectDeleteUncertain, saveState]);
++  ), [attachmentEditor, copyPaste.unsafe, deletingProject, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, projectDeleteUncertain, saveState]);
+   const blocker = useBlocker(shouldBlockNavigation);
+ 
+   useBeforeUnload(useCallback((event) => {
+@@ -413,6 +480,7 @@ export function ProjectPage() {
+       && pendingAttachmentRef.current === null
+       && attachmentEditorRef.current === null
+       && projectDeleteRequestRef.current === null
++      && copyPaste.unsafeRef.current === null
+       && !edgeController.unsafeRef.current) return;
+@@ -450,6 +518,17 @@ export function ProjectPage() {
+     updateSaveState("saved");
+   }, [clearOwnedContentState, clearReferenceInsertion, clearReferenceRemoval, edgeController.resetForAuthoritativeReload, updateSaveState]);
+ 
++  installPasteSnapshotRef.current = (next, destinationItemIds) => {
++    installSnapshot(next);
++    const available = new Set(next.items
++      .filter((item) => item.deletedAt === null)
++      .map((item) => item.id));
++    const selected = destinationItemIds.filter((itemId) => available.has(itemId));
++    setSelectedItemIds(selected);
++    return selected.length;
++  };
++
+   const loadProject = useCallback(async (signal?: AbortSignal) => {
+@@ -521,6 +600,7 @@ export function ProjectPage() {
+       || markdownEditorRef.current
+       || pendingAttachmentRef.current
+       || attachmentEditorRef.current
++      || copyPaste.unsafeRef.current
+       || edgeController.unsafeRef.current) return;
+@@ -546,6 +626,7 @@ export function ProjectPage() {
+         || markdownEditorRef.current
+         || pendingAttachmentRef.current
+         || attachmentEditorRef.current
++        || copyPaste.unsafeRef.current
+         || edgeController.unsafeRef.current) return;
+@@ -670,6 +751,7 @@ export function ProjectPage() {
+     if (pendingReferenceRef.current || pendingReferenceRemovalRef.current
+       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
++      || copyPaste.unsafeRef.current
+       || edgeController.unsafeRef.current) {
+       referenceNavigationRequestedRef.current = true;
+@@ -691,11 +773,12 @@ export function ProjectPage() {
+       || markdownEditor !== null
+       || pendingAttachment !== null
+       || attachmentEditor !== null
++      || copyPaste.unsafe
+       || edgeController.unsafe) return;
+@@ -711,6 +794,7 @@ export function ProjectPage() {
+     if (pendingReferenceRemovalRef.current
+       || pendingReferenceRef.current?.status === "reconciling"
+       || markdownEditorRef.current
+       || pendingAttachmentRef.current
+       || attachmentEditorRef.current
++      || copyPaste.unsafeRef.current
+       || edgeController.unsafeRef.current) return;
+@@ -739,6 +823,7 @@ export function ProjectPage() {
+   const undo = useCallback(() => {
+     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
+       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
++      || copyPaste.unsafeRef.current
+       || edgeController.unsafeRef.current) return;
+@@ -762,6 +847,7 @@ export function ProjectPage() {
+   const redo = useCallback(() => {
+     if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
+       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
++      || copyPaste.unsafeRef.current
+       || edgeController.unsafeRef.current) return;
+@@ -1851,7 +1937,7 @@ export function ProjectPage() {
+       normalized.itemIds.length !== 1
+       || normalized.primaryItemId !== lockedItemId
+     )) return false;
+-    if (edgeController.unsafeRef.current && normalized.itemIds.length > 0) return false;
++    if ((edgeController.unsafeRef.current || copyPaste.unsafeRef.current) && normalized.itemIds.length > 0) return false;
+     if (normalized.itemIds.length > 0) edgeController.selectEdge(null);
+@@ -1958,6 +2044,7 @@ export function ProjectPage() {
+         || attachmentEditorRef.current
+         || projectDeleteRequestRef.current
++        || copyPaste.unsafeRef.current
+         || edgeController.unsafeRef.current
+       );
++
++      if (shortcut === "copy") {
++        if (operationBlocked || saveStateRef.current !== "saved" || !snapshot || selectedItemIds.length === 0) return;
++        event.preventDefault();
++        copyPaste.copySelection(snapshot, selectedItemIds);
++        return;
++      }
++      if (shortcut === "paste") {
++        if (operationBlocked || saveStateRef.current !== "saved" || !snapshot) return;
++        if (!copyPaste.pasteClipboard(snapshot)) return;
++        event.preventDefault();
++        setSelectedItemIds([]);
++        setNavigationFocusItemId(null);
++        edgeController.selectEdge(null);
++        return;
++      }
+       if (operationBlocked) return;
+@@ -2013,11 +2112,15 @@ export function ProjectPage() {
+     desktop,
+     desktopView,
+     descriptors,
++    copyPaste.copySelection,
++    copyPaste.pasteClipboard,
+     edgeController.selectEdge,
+     edgeController.selectedEdgeId,
+     edgeController.unsafeRef,
+@@ -2027,7 +2130,8 @@ export function ProjectPage() {
+     selectProjectItems,
+     selectedItemId,
+-    selectedItemIds.length,
++    selectedItemIds,
++    snapshot,
+     undo,
+     undoStack.length,
+   ]);
+@@ -2040,7 +2144,7 @@ export function ProjectPage() {
+ 
+   const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
+-  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe;
++  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe;
+@@ -2063,10 +2167,22 @@ export function ProjectPage() {
+     || pendingReference !== null
+     || pendingReferenceRemoval !== null
+     || pendingAttachment !== null
++    || copyPaste.unsafe
+     || edgeController.unsafe;
+ 
+   const navigationBlockMessage = projectDeleteUncertain
+     ? "The Project trash operation outcome is uncertain. Retry the exact move before leaving this Project."
+     : deletingProject
+       ? "Finishing the Project trash operation before leaving this Project…"
++      : copyPaste.paste
++        ? copyPaste.paste.status === "pasting"
++          ? "Finishing the authoritative Project paste before leaving…"
++          : copyPaste.paste.status === "paused"
++            ? `The Project paste is paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. Retry the exact paste or reload authoritative state and abandon the remaining steps before leaving.`
++            : copyPaste.paste.status === "reconcile-error"
++              ? "All paste writes were acknowledged, but authoritative reload still needs to succeed before leaving."
++              : "Reconciling the Project paste against authoritative state before leaving…"
+       : edgeController.pending
+@@ -2130,6 +2246,9 @@ export function ProjectPage() {
+           {selectedItemIds.length > 1 && <span className="project-selection-count" role="status">
+             {selectedItemIds.length} selected
+           </span>}
++          {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count" role="status">
++            {copyPaste.clipboard.itemCount} copied
++          </span>}
+           <button type="button" className="button compact-button" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>Undo</button>
+@@ -2190,6 +2309,31 @@ export function ProjectPage() {
+       <p>{ownedContentActionError}</p>
+     </div>}
+ 
++    {copyPaste.clipboard?.status === "error" && <div className="project-save-banner error">
++      <p>{copyPaste.clipboard.message}</p>
++    </div>}
++
++    {copyPaste.notice && !copyPaste.paste && <div className="project-save-banner warning" role="status">
++      <p>{copyPaste.notice}</p>
++    </div>}
++
++    {copyPaste.paste && <div className={`project-save-banner ${copyPaste.paste.status === "paused" || copyPaste.paste.status === "reconcile-error" ? "error" : "warning"}`} role="status">
++      <p>{copyPaste.paste.status === "pasting"
++        ? "Pasting the copied Project selection through authoritative item and edge writes…"
++        : copyPaste.paste.status === "paused"
++          ? `Paste paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. ${copyPaste.paste.message || "Retry the exact frozen journal or reconcile authoritative state."}`
++          : copyPaste.paste.message || "Reconciling the Project paste against authoritative state…"}</p>
++      {copyPaste.paste.status === "paused" && <div className="project-navigation-actions">
++        <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>
++        <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>
++      </div>}
++      {copyPaste.paste.status === "reconcile-error" && <div className="project-navigation-actions">
++        <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>
++      </div>}
++    </div>}
++
+     {edgeController.actionError && <div className="project-save-banner error">
+@@ -2204,6 +2348,9 @@ export function ProjectPage() {
+       <div className="project-navigation-actions">
+         <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
++        {copyPaste.paste?.status === "paused" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>}
++        {copyPaste.paste?.status === "paused" && <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>}
++        {copyPaste.paste?.status === "reconcile-error" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>}
+         {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
+diff --git a/src/project-canvas-productivity.mount.test.tsx b/src/project-canvas-productivity.mount.test.tsx
+--- a/src/project-canvas-productivity.mount.test.tsx
++++ b/src/project-canvas-productivity.mount.test.tsx
+@@ -1,5 +1,5 @@
+ // @vitest-environment jsdom
+-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
++import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+ import { createMemoryRouter, RouterProvider } from "react-router-dom";
+@@ -67,10 +67,14 @@ function renderProjectPage() {
+   const router = createMemoryRouter([{
+     path: "/projects/:projectId",
+     element: <ProjectPage />,
++  }, {
++    path: "/projects",
++    element: <p>Projects destination</p>,
+   }], { initialEntries: ["/projects/project-a"] });
+-  return render(<RouterProvider router={router} />);
++  return { router, ...render(<RouterProvider router={router} />) };
+ }
++
++const actor = "user@example.com";
++const createdAt = "2026-08-11T08:00:00.000Z";
++
++function createProjectItemResponse(snapshot: ReturnType<typeof projectTestSnapshot>, path: string, body: Record<string, any>) {
++  const project = {
++    ...snapshot.project,
++    revision: snapshot.project.revision + 1,
++    nextCreatedSequence: snapshot.project.nextCreatedSequence + 1,
++    updatedAt: createdAt,
++  };
++  const placement = {
++    id: body.placementId,
++    projectItemId: body.itemId,
++    ...body.geometry,
++    revision: 1,
++    createdBy: actor,
++    updatedBy: actor,
++    createdAt,
++    updatedAt: createdAt,
++  };
++  const reference = path.endsWith("/items/reference");
++  const content = reference ? null : {
++    id: body.contentId,
++    projectId: snapshot.project.id,
++    contentType: "markdown" as const,
++    markdownSource: body.markdownSource,
++    attachmentCaption: null,
++    attachmentSourceUrl: null,
++    formatVersion: 1,
++    revision: 1,
++    createdBy: actor,
++    updatedBy: actor,
++    createdAt,
++    updatedAt: createdAt,
++    deletedAt: null,
++    deletedBy: null,
++  };
++  const item = {
++    id: body.itemId,
++    projectId: snapshot.project.id,
++    itemType: reference ? "reference" as const : "content" as const,
++    projectContentId: reference ? null : body.contentId,
++    referenceTargetId: reference ? "registry-sample" : null,
++    createdSequence: snapshot.project.nextCreatedSequence,
++    revision: 1,
++    createdBy: actor,
++    updatedBy: actor,
++    createdAt,
++    updatedAt: createdAt,
++    deletedAt: null,
++    deletedBy: null,
++  };
++  const result = { project, item, content, attachment: null, placement, replayed: false };
++  const next = {
++    ...snapshot,
++    project,
++    contents: content ? [...snapshot.contents, content] : snapshot.contents,
++    items: [...snapshot.items, item],
++    placements: [...snapshot.placements, placement],
++  };
++  return { result, next };
++}
+@@ -226,4 +281,114 @@ describe("mounted Phase 4B Canvas productivity", () => {
+     expect(conflictEvent.defaultPrevented).toBe(true);
+     expect(fetchMock).toHaveBeenCalledTimes(2);
+   });
++
++  it("copies the authoritative selection and pastes fresh Markdown and Reference occurrences", async () => {
++    let authoritative = projectTestSnapshot();
++    const writes: Array<{ path: string; body: Record<string, any> }> = [];
++    fetchMock.mockImplementation((request, init) => {
++      const path = String(request);
++      if (!init?.method || init.method === "GET") return jsonResponse(authoritative);
++      if (init.method !== "POST") throw new Error(`Unexpected ${init.method} ${path}`);
++      const body = JSON.parse(String(init.body)) as Record<string, any>;
++      writes.push({ path, body });
++      const created = createProjectItemResponse(authoritative, path, body);
++      authoritative = created.next;
++      return jsonResponse(created.result, 201);
++    });
++    renderProjectPage();
++
++    fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
++    fireEvent.keyDown(document, { key: "c", code: "KeyC", ctrlKey: true });
++    expect(screen.getByText("2 copied")).toBeTruthy();
++    fireEvent.keyDown(document, { key: "v", code: "KeyV", ctrlKey: true });
++
++    await waitFor(() => expect(writes).toHaveLength(2));
++    expect(writes.map(({ path }) => path)).toEqual([
++      "/api/projects/project-a/items/markdown",
++      "/api/projects/project-a/items/reference",
++    ]);
++    expect(writes[0].body.expectedProjectRevision).toBe(2);
++    expect(writes[1].body.expectedProjectRevision).toBe(3);
++    expect(writes[0].body.itemId).not.toBe("item-note");
++    expect(writes[1].body.itemId).not.toBe("item-reference");
++    await screen.findByText("Pasted 2 Project items.");
++    expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
++  });
++
++  it("retains a paused journal, retries a lost response exactly, and protects navigation", async () => {
++    let authoritative = projectTestSnapshot();
++    let lostReferenceBody: Record<string, any> | null = null;
++    let referenceAttempts = 0;
++    let markdownAttempts = 0;
++    fetchMock.mockImplementation((request, init) => {
++      const path = String(request);
++      if (!init?.method || init.method === "GET") return jsonResponse(authoritative);
++      if (init.method !== "POST") throw new Error(`Unexpected ${init.method} ${path}`);
++      const body = JSON.parse(String(init.body)) as Record<string, any>;
++      if (path.endsWith("/items/markdown")) {
++        markdownAttempts += 1;
++        const created = createProjectItemResponse(authoritative, path, body);
++        authoritative = created.next;
++        return jsonResponse(created.result, 201);
++      }
++      if (path.endsWith("/items/reference")) {
++        referenceAttempts += 1;
++        if (referenceAttempts === 1) {
++          lostReferenceBody = structuredClone(body);
++          const created = createProjectItemResponse(authoritative, path, body);
++          authoritative = created.next;
++          return Promise.reject(new TypeError("simulated response loss"));
++        }
++        expect(body).toEqual(lostReferenceBody);
++        const existing = authoritative.items.find((item) => item.id === body.itemId)!;
++        const placement = authoritative.placements.find((candidate) => candidate.id === body.placementId)!;
++        return jsonResponse({
++          project: authoritative.project,
++          item: existing,
++          content: null,
++          attachment: null,
++          placement,
++          replayed: true,
++        });
++      }
++      throw new Error(`Unexpected POST ${path}`);
++    });
++    const { router } = renderProjectPage();
++
++    fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
++    fireEvent.keyDown(document, { key: "c", code: "KeyC", ctrlKey: true });
++    fireEvent.keyDown(document, { key: "v", code: "KeyV", ctrlKey: true });
++    await screen.findByText(/Paste paused after 1\/2 acknowledged writes/);
++    expect(markdownAttempts).toBe(1);
++    expect(referenceAttempts).toBe(1);
++
++    void router.navigate("/projects");
++    const dialog = await screen.findByRole("alertdialog", { name: "Unsaved Project changes" });
++    expect(within(dialog).getByText(/Project paste is paused after 1\/2 acknowledged writes/)).toBeTruthy();
++    fireEvent.click(within(dialog).getByRole("button", { name: "Retry exact paste" }));
++
++    await screen.findByText("Projects destination");
++    expect(markdownAttempts).toBe(1);
++    expect(referenceAttempts).toBe(2);
++  });
+ });
