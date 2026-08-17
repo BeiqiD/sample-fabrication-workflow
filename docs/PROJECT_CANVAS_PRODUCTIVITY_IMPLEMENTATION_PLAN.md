@@ -1,12 +1,14 @@
 # Project Canvas productivity implementation plan
 
-Status: Phase 4B active; Phase 4B1 is complete in PR #148 and Phase 4B2 copy/paste is next
+Status: Phase 4B active; Phase 4B1 is complete in PR #148 and Phase 4B2 is under active implementation in Draft PR #149
 
-Last reviewed: 2026-08-17 after Phase 4B1 completion in PR #148
+Last reviewed: 2026-08-17 after the first Phase 4B2 implementation and concurrency review of PR #149
 
 ## Goal
 
 Phase 4B makes routine spatial editing efficient without replacing the normalized Project model with a frontend-owned Canvas document. Productivity state remains either transient interaction state or compact commands over existing Project item, placement, and edge identities.
+
+The authoritative Phase 4B2 identity, attachment-authorization, ordered-journal, and retry contract is recorded in [Project Canvas authoritative copy/paste contract](./PROJECT_CANVAS_COPY_PASTE_CONTRACT.md).
 
 ## Architectural invariants
 
@@ -15,12 +17,15 @@ Phase 4B makes routine spatial editing efficient without replacing the normalize
 3. Every selected item remains an independent Project occurrence with its existing placement row. Group movement never creates a group row or shared geometry document.
 4. One grouped drag or keyboard movement is one client-session history command containing several placement commands. Explicit Save and autosave still use the existing per-placement revision and exact-retry protocol.
 5. A grouped operation must not introduce a bulk backend endpoint merely to mirror a transient UI gesture.
-6. Pending reference/attachment ghosts and an unsaved Markdown draft are not ordinary multi-select candidates.
+6. Pending reference/attachment ghosts and an unsaved Markdown draft are not ordinary multi-select or copy candidates.
 7. Editing, resizing, inspecting authoritative details, and recoverable removal remain single-item operations unless a later slice defines a separate safe contract.
 8. Keyboard shortcuts never capture ordinary typing, contenteditable regions, IME composition, or native form-control behavior.
 9. Mobile remains Reading-first and does not gain bulk Canvas editing through this phase.
 10. `ProjectPage` remains authoritative for accepted item selection. React Flow may propose a transient selection, but a rejected proposal must be projected back to the current authoritative occurrence IDs in the same event turn rather than remaining visually selected.
 11. Outside editable controls, the desktop Map consumes `Ctrl/Command+S` even when Save is currently a no-op because the Project is saved, saving, conflicted, or blocked by another operation. A disabled Project command must not fall through to the browser's Save Page action.
+12. Copy/paste clipboard and paste-journal state remain client-session state. They are not persisted or exported, and they never become an alternate Canvas document.
+13. Project-owned attachment copy accepts a source Project content identity rather than a physical locator. Source occurrence activity and blob availability are rechecked inside the same authoritative write batch that creates the destination binding.
+14. A multi-object paste is an ordered set of independently authoritative item and edge writes. The client must not describe it as atomic unless a real aggregate transaction is introduced.
 
 ## Phase 4B1 — multi-selection and grouped geometry
 
@@ -43,21 +48,42 @@ Exit: users can select several committed Map occurrences, move them together, un
 
 ## Phase 4B2 — authoritative copy/paste
 
-Status: next bounded slice.
+Status: active in Draft PR #149; the identity/retry/backend foundation is implemented, while the complete `ProjectPage` interaction and recovery surface remains in progress.
 
-Required design questions before implementation:
+The following design decisions are now frozen rather than open questions:
 
-- distinguish copying Project-owned Markdown/attachments from creating another occurrence of an existing Reference target;
-- allocate fresh item, content, attachment, placement, edge, and operation identities where ownership requires duplication;
-- decide whether internal edges with both endpoints selected are copied while boundary edges remain excluded;
-- preserve relative geometry and deterministic paste offset without storing clipboard state in Project persistence;
-- define exact retry/reconciliation for a multi-object paste without pretending several independent authoritative writes are one atomic transaction unless a real server transaction is added.
+- Reference copy creates a fresh Project occurrence and placement while preserving the canonical `ReferenceTarget`;
+- Project-owned Markdown and attachment copy allocate fresh content, item, placement, and operation identities;
+- attachment copy is same-Project in this slice and resolves the physical asset or managed-storage binding only on the Worker;
+- only edges whose two endpoints are selected are copied; boundary edges are excluded;
+- relative geometry is preserved with a deterministic bounded paste offset and common z-order translation;
+- every destination identity, payload, expected Project revision, and edge endpoint mapping is frozen before the first write;
+- item writes run sequentially and edges run only after all item writes acknowledge success;
+- a response-loss retry reuses the exact frozen request, while a deterministic conflict pauses the journal for explicit reconciliation rather than silently rebasing partial results.
 
-Copy/paste must not clone source records, reuse unique Project-owned content identity incorrectly, or bypass attachment/blob ownership.
+Implemented in the current Draft PR:
+
+- typed clipboard projection for Reference, Markdown, attachment, geometry, and internal edges;
+- fresh identity allocation and deterministic paste-journal construction;
+- ordered pause/resume execution with exact request replay;
+- a dedicated attachment-copy API that accepts only the source Project content identity;
+- source occurrence and blob authorization inside the destination creation batch, including rollback when source removal interleaves after the initial read;
+- asset and managed-storage coverage, including ready/orphaned acceptance, GC/quarantine rejection, and exact replay after the destination already exists;
+- permanent Canvas-productivity and Project-persistence test coverage for the new contract.
+
+Remaining before Phase 4B2 can be marked complete or the PR can become Ready:
+
+- connect `Ctrl/Command+C` and `Ctrl/Command+V` to the desktop `ProjectPage` outside editable and IME regions;
+- project acknowledged item and edge results into the local authoritative snapshot and select the new occurrences;
+- expose clear progress, paused-partial-paste, exact-retry, conflict, and authoritative-reload behavior;
+- add mounted tests for complete paste, lost-response retry, deterministic partial failure, selection projection, and navigation blocking;
+- complete final documentation and exact-head review after the interaction path lands.
+
+Exit: a user can copy one or several committed Map occurrences, paste correct new Project occurrences and internal edges, safely resume an uncertain partial paste with the same identities, and clearly reconcile conflicts without a bulk persistence model or locator exposure.
 
 ## Phase 4B3 — alignment assistance and explicit z-order
 
-Planned after copy/paste semantics are stable:
+Planned after Phase 4B2 copy/paste interaction and recovery semantics are complete:
 
 - local alignment/helper lines during drag without per-frame network writes;
 - explicit bring forward/back/front/back controls over existing bounded integer `zIndex` values;
@@ -81,4 +107,8 @@ The permanent Canvas productivity gate covers:
 - grouped Undo/Redo;
 - explicit keyboard save decomposing into the existing per-placement PATCH protocol;
 - saved, saving, conflicted, and operation-blocked Save chords being consumed as safe no-ops rather than invoking browser Save Page;
-- production build and Map bundle boundary.
+- clipboard classification, fresh identity allocation, internal-edge filtering, and bounded relative geometry;
+- ordered paste-journal pause/resume and lost-response exact replay;
+- transactional attachment-source authorization under an interleaved source removal;
+- ready/orphaned managed-storage copy, GC/quarantine rejection, and exact replay;
+- production build, Worker smoke, and Map bundle boundary.
