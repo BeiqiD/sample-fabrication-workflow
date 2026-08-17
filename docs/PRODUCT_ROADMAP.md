@@ -11,7 +11,7 @@ Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
 occurrence focus in PR #145, Phase 4A2 Inspector completeness in PR #146,
 and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
 multi-selection and grouped geometry are complete in PR #148, and Phase 4B2
-authoritative copy/paste is under active implementation in Draft PR #149
+authoritative copy/paste is implemented in Draft PR #149 pending independent review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -456,7 +456,7 @@ the Project workspace.
 
 #### Phase 4B — Canvas productivity
 
-**Status:** active. Phase 4B1 multi-selection, grouped geometry history, and bounded Canvas keyboard shortcuts are complete in PR #148. Phase 4B2 authoritative copy/paste is under active implementation in Draft PR #149: the typed clipboard, fresh-identity planner, ordered retry journal, and transactionally authorized attachment-copy backend are implemented; complete desktop shortcut wiring, acknowledged-result projection, and partial-paste recovery UX remain before the slice is complete.
+**Status:** active. Phase 4B1 multi-selection, grouped geometry history, and bounded Canvas keyboard shortcuts are complete in PR #148. Phase 4B2 authoritative copy/paste is implemented in Draft PR #149 pending independent review, including desktop copy/paste shortcuts, fresh ownership identities, ordered exact-retry journaling, transactional attachment authorization, acknowledged-result projection, authoritative reconciliation, and paused-partial-paste recovery/navigation protection. Phase 4B3 alignment assistance and explicit z-order are the next bounded slice after #149 review/merge.
 
 The detailed slice boundaries and persistence constraints are recorded in
 [Project Canvas productivity implementation plan](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md), with the frozen Phase 4B2 authorization and retry model in
@@ -677,8 +677,8 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete the active **Phase 4B2** work in Draft PR #149: connect desktop copy/paste shortcuts, project acknowledged results into the current Project snapshot and selection, and finish paused-partial-paste exact-retry and reconciliation UX.
-2. Complete the remaining **Phase 4B3** alignment-assistance and explicit z-order slice after copy/paste semantics are complete.
+1. Complete independent review and merge of the implemented **Phase 4B2** authoritative copy/paste slice in Draft PR #149.
+2. Implement the remaining **Phase 4B3** alignment-assistance and explicit z-order slice after #149 is accepted.
 3. Complete **Phase 4C** representative-scale performance work and make explicit
    include/defer decisions for remaining optional interaction candidates.
 4. Declare the **v1 feature freeze** once the interaction-shaping feature set is
