@@ -247,6 +247,62 @@ describe("Project persistence service", () => {
     database.close();
   });
 
+  it("rechecks active Reference eligibility before every durable insertion", async () => {
+    const { database, db } = fixture(true);
+    await seedProject(db);
+    database.exec(`
+      UPDATE samples
+      SET deleted_at = '2026-08-17T00:00:00.000Z'
+      WHERE id = '${REFERENCE_FIXTURE_IDS.sampleA}'
+    `);
+
+    await expect(createReferenceProjectItem(db, "project-a", {
+      itemId: "item-deleted-sample",
+      placementId: "placement-deleted-sample",
+      target: { type: "sample", id: REFERENCE_FIXTURE_IDS.sampleA },
+      geometry,
+      expectedProjectRevision: 1,
+      operationId: "insert-deleted-sample",
+    }, ACTOR, NOW, "registry-deleted-sample")).rejects.toMatchObject({
+      code: "reference_unavailable",
+    });
+
+    await expect(createReferenceProjectItem(db, "project-a", {
+      itemId: "item-deleted-context",
+      placementId: "placement-deleted-context",
+      target: { type: "run", id: REFERENCE_FIXTURE_IDS.runA },
+      geometry,
+      expectedProjectRevision: 1,
+      operationId: "insert-deleted-context",
+    }, ACTOR, NOW, "registry-deleted-context")).rejects.toMatchObject({
+      code: "reference_unavailable",
+    });
+
+    expect(database.prepare("SELECT revision, next_created_sequence FROM projects WHERE id = 'project-a'").get())
+      .toEqual({ revision: 1, next_created_sequence: 1 });
+    expect(database.prepare("SELECT COUNT(*) AS count FROM reference_targets").get())
+      .toEqual({ count: 0 });
+
+    database.exec(`
+      UPDATE samples SET deleted_at = NULL
+      WHERE id = '${REFERENCE_FIXTURE_IDS.sampleA}';
+      UPDATE template_versions
+      SET archived_at = '2026-08-17T00:01:00.000Z'
+      WHERE id = '${REFERENCE_FIXTURE_IDS.recipeRevision}'
+    `);
+    const archived = await createReferenceProjectItem(db, "project-a", {
+      itemId: "item-archived-recipe",
+      placementId: "placement-archived-recipe",
+      target: { type: "recipe_revision", id: REFERENCE_FIXTURE_IDS.recipeRevision },
+      geometry,
+      expectedProjectRevision: 1,
+      operationId: "insert-archived-recipe",
+    }, ACTOR, NOW, "registry-archived-recipe");
+    expect(archived.item.itemType).toBe("reference");
+    expect(archived.project.revision).toBe(2);
+    database.close();
+  });
+
   it("binds authoritative attachment metadata and rolls back orphan claims on conflict", async () => {
     const { database, db } = fixture();
     await seedProject(db);

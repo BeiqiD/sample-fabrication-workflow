@@ -2,6 +2,7 @@ import { referenceUrlForTarget } from "../../shared/reference-destinations";
 import type { ReferenceSearchResult } from "../../shared/reference-search";
 import {
   isReferenceTarget,
+  type ReferenceResolution,
   type ReferenceTarget,
 } from "../../shared/reference-types";
 import type {
@@ -59,28 +60,41 @@ function safeReferenceUrl(value: string | null | undefined) {
   return value;
 }
 
+export function projectReferencePreviewFromResolution(
+  resolution: ReferenceResolution,
+): ProjectReferencePreview {
+  const source = resolution.source;
+  return {
+    title: boundedText(source?.title || resolution.target.id, MAX_PREVIEW_TITLE)
+      || resolution.target.id,
+    subtitle: boundedText(source?.subtitle, MAX_PREVIEW_SUBTITLE),
+    excerpt: boundedText(source?.excerpt, MAX_PREVIEW_EXCERPT),
+    referenceUrl: safeReferenceUrl(resolution.destination.referenceUrl)
+      || referenceUrlForTarget(resolution.target),
+    openSourceUrl: safeReferenceUrl(resolution.destination.openSourceUrl),
+  };
+}
+
 export function projectReferencePreviewFromResult(
   result: ReferenceSearchResult,
 ): ProjectReferencePreview {
-  const source = result.resolution.source;
+  return projectReferencePreviewFromResolution(result.resolution);
+}
+
+export function projectReferenceDragPayloadFromResolution(
+  resolution: ReferenceResolution,
+): ProjectReferenceDragPayload {
   return {
-    title: boundedText(source?.title || result.target.id, MAX_PREVIEW_TITLE) || result.target.id,
-    subtitle: boundedText(source?.subtitle, MAX_PREVIEW_SUBTITLE),
-    excerpt: boundedText(source?.excerpt, MAX_PREVIEW_EXCERPT),
-    referenceUrl: safeReferenceUrl(result.resolution.destination.referenceUrl)
-      || referenceUrlForTarget(result.target),
-    openSourceUrl: safeReferenceUrl(result.resolution.destination.openSourceUrl),
+    version: PROJECT_REFERENCE_DRAG_VERSION,
+    target: resolution.target,
+    preview: projectReferencePreviewFromResolution(resolution),
   };
 }
 
 export function projectReferenceDragPayloadFromResult(
   result: ReferenceSearchResult,
 ): ProjectReferenceDragPayload {
-  return {
-    version: PROJECT_REFERENCE_DRAG_VERSION,
-    target: result.target,
-    preview: projectReferencePreviewFromResult(result),
-  };
+  return projectReferenceDragPayloadFromResolution(result.resolution);
 }
 
 function isNullableBoundedText(value: unknown, maximum: number): value is string | null {

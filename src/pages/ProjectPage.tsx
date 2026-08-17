@@ -18,6 +18,7 @@ import {
   type BlockerFunction,
 } from "react-router-dom";
 import type { ReferenceSearchResult } from "../../shared/reference-search";
+import type { ReferenceResolution } from "../../shared/reference-types";
 import type {
   CreateAttachmentProjectItemInput,
   CreateMarkdownProjectItemInput,
@@ -36,6 +37,7 @@ import type {
 } from "../../shared/project-types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
+import { ProjectInspectorChildren } from "../components/project/ProjectInspectorChildren";
 import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
 import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
 import {
@@ -53,6 +55,7 @@ import {
   type ProjectGeometryCommand,
 } from "../lib/project-map-model";
 import {
+  projectReferenceDragPayloadFromResolution,
   projectReferenceDragPayloadFromResult,
   projectReferenceGeometryAtPoint,
   projectReferenceRecordFromPreview,
@@ -910,14 +913,22 @@ export function ProjectPage() {
     void performReferenceInsertion(generation, input, payload);
   }, [performReferenceInsertion, snapshot]);
 
-  const placeReferenceAtCenter = useCallback((result: ReferenceSearchResult) => {
+  const placeReferencePayloadAtCenter = useCallback((payload: ProjectReferenceDragPayload) => {
     const point = mapSurfaceRef.current?.getViewportCenter();
     if (!point) {
       setReferenceActionError("The Map viewport is not ready for placement yet");
       return;
     }
-    startReferencePlacement(projectReferenceDragPayloadFromResult(result), point);
+    startReferencePlacement(payload, point);
   }, [startReferencePlacement]);
+
+  const placeReferenceAtCenter = useCallback((result: ReferenceSearchResult) => {
+    placeReferencePayloadAtCenter(projectReferenceDragPayloadFromResult(result));
+  }, [placeReferencePayloadAtCenter]);
+
+  const placeInspectorChildAtCenter = useCallback((resolution: ReferenceResolution) => {
+    placeReferencePayloadAtCenter(projectReferenceDragPayloadFromResolution(resolution));
+  }, [placeReferencePayloadAtCenter]);
 
   const retryReferencePlacement = useCallback(() => {
     const input = pendingReferenceInputRef.current;
@@ -1721,6 +1732,11 @@ export function ProjectPage() {
   })) : [], [geometry, snapshot]);
   const selected = descriptors.find((node) => node.itemId === selectedItemId) ?? null;
   const selectedItem = snapshot?.items.find((item) => item.id === selectedItemId) ?? null;
+  const selectedReferenceTarget = selectedItem?.referenceTargetId
+    ? snapshot?.references.find((reference) => (
+      reference.registryId === selectedItem.referenceTargetId
+    ))?.resolution.target ?? null
+    : null;
   const selectedEdgeSource = edgeController.selectedEdge
     ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.sourceItemId) ?? null
     : null;
@@ -2157,6 +2173,12 @@ export function ProjectPage() {
           </>}
         </div> : selected ? <div className="project-inspector-content">
           <ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />
+          {selectedReferenceTarget && <ProjectInspectorChildren
+            key={`${selectedReferenceTarget.type}\u0000${selectedReferenceTarget.id}`}
+            parent={selectedReferenceTarget}
+            placementDisabled={referencePlacementDisabled || !desktop || desktopView !== "map"}
+            onPlaceAtCenter={placeInspectorChildAtCenter}
+          />}
           <button type="button" className="button wide" onClick={() => void copySelectedItemLink()}>
             {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
           </button>
