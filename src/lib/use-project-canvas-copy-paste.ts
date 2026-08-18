@@ -108,6 +108,11 @@ export function projectCanvasPasteFailureCertainty(
     : "deterministic";
 }
 
+export function projectCanvasPasteReplayIsAuthoritativelySettled(error: unknown) {
+  return error instanceof ProjectApiError
+    && error.mutationDisposition === "authoritative-rejection";
+}
+
 function acknowledgeFailedStep(
   journal: ProjectCanvasPasteJournal,
   failure: ProjectCanvasPasteFailure,
@@ -370,8 +375,7 @@ export function useProjectCanvasCopyPaste({
       await installAuthoritative(generation, requestProjectId, settledJournal, "abandon");
     } catch (error) {
       if (!sessionIsActive(generation, requestProjectId, current.journal.journalId)) return;
-      const certainty = projectCanvasPasteFailureCertainty(error);
-      if (certainty === "deterministic") {
+      if (projectCanvasPasteReplayIsAuthoritativelySettled(error)) {
         await installAuthoritative(generation, requestProjectId, current.journal, "abandon");
         return;
       }
@@ -380,7 +384,7 @@ export function useProjectCanvasCopyPaste({
         journal: current.journal,
         failedStep: failure,
         failureCertainty: "uncertain",
-        message: `The exact replay is still outcome-uncertain. The journal and navigation protection remain active; retry before abandoning: ${pasteErrorMessage(error)}`,
+        message: `The exact replay did not prove an authoritative mutation settlement. The journal and navigation protection remain active; retry before abandoning: ${pasteErrorMessage(error)}`,
       });
     }
   }, [createSessionClients, installAuthoritative, sessionIsActive, updatePaste]);

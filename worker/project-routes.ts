@@ -51,6 +51,15 @@ type InputGuard<T> = (value: unknown) => value is T;
 
 export const routes = new Hono<AppBindings>();
 
+routes.onError((error, c) => {
+  if (error instanceof HTTPException && (error.status === 404 || error.status === 409)) {
+    c.header("x-project-mutation-disposition", "authoritative-rejection");
+    return c.json({ error: error.message }, error.status);
+  }
+  if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
+  throw error;
+});
+
 // Project owns complete export and persistence under one aggregate. The core
 // Worker mounts this aggregate directly beside Comment and Reference routes.
 routes.route("/", projectFoundationRoutes);

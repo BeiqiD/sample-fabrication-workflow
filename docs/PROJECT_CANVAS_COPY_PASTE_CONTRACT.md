@@ -2,7 +2,7 @@
 
 Status: Phase 4B2 implemented in Draft PR #149; pending independent review
 
-Last reviewed: 2026-08-17 after closing the uncertain-abandon late-commit race, completing selection locking, and hardening verification status publication for PR #149
+Last reviewed: 2026-08-18 after requiring authoritative proof for uncertain replay settlement and bounding verification status publication for PR #149
 
 ## Goal
 
@@ -103,19 +103,18 @@ On any rejected write:
 
 A partial paste is not rolled back across already acknowledged independent API calls and must never be presented as an atomic success.
 
-Failure certainty controls abandonment:
+Failure certainty controls abandonment. For the **request that just failed**, a network failure, malformed/lost success response, HTTP `408`, `425`, `429`, or `5xx` is outcome-uncertain; another received HTTP `4xx` is a deterministic rejection for that request.
 
-- a network failure, malformed/lost success response, HTTP `408`, `425`, `429`, or `5xx` is **outcome-uncertain**;
-- another received HTTP `4xx` is a **deterministic rejection**.
-
-`Reload and abandon remaining paste` may immediately reload after a deterministic rejection because the failed request is known not to have committed. It must not do that after an outcome-uncertain failure. Instead, it first replays **only the failed pending step** using the exact frozen destination IDs, payload, expected revision, and operation ID. It does not execute later pending items or edges.
+That initial classification is deliberately **not** reused to settle an earlier outcome-uncertain write. `Reload and abandon remaining paste` first replays **only the failed pending step** using the exact frozen destination IDs, payload, expected revision, and operation ID. It does not execute later pending items or edges.
 
 The uncertain step is considered settled only when that exact replay either:
 
 - acknowledges the same destination mutation or exact server replay; or
-- receives a deterministic rejection that the original exact request could no longer commit past.
+- returns the machine-readable `x-project-mutation-disposition: authoritative-rejection`, which is emitted by the Project route only after the request reaches the authoritative Project mutation/service error boundary.
 
-Only after settlement may the client perform the authoritative GET, retain any destination rows that actually committed, abandon the later unattempted steps, and clear the journal. If exact replay remains outcome-uncertain, the same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active. A GET alone can never clear an uncertain journal because it could race an earlier request that commits after the read.
+An unmarked replay `401`, `403`, `404`, other `4xx`, transport failure, timeout, or `5xx` does **not** settle the earlier uncertain request. In particular, authentication and same-origin middleware run before Project routes and therefore cannot manufacture the authoritative-rejection disposition. The same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active until a later exact replay proves settlement.
+
+Only after settlement may the client perform the authoritative GET, retain any destination rows that actually committed, abandon the later unattempted steps, and clear the journal. A GET alone can never clear an uncertain journal because it could race an earlier request that commits after the read.
 
 If the post-settlement authoritative reload fails, the journal remains as reconciliation state. The abandoned later steps are not restarted; retry repeats the authoritative reload. If all writes acknowledge but the final authoritative reload fails, the page enters a separate reconciliation-error state and offers an authoritative-reload retry rather than treating the paste as complete.
 

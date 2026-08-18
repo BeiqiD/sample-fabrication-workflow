@@ -175,6 +175,7 @@ describe("Project persistence routes", () => {
       },
     );
     expect(staleMove.status).toBe(409);
+    expect(staleMove.headers.get("x-project-mutation-disposition")).toBe("authoritative-rejection");
     expect(await staleMove.json()).toMatchObject({ error: "Placement revision conflict" });
     database.close();
   });

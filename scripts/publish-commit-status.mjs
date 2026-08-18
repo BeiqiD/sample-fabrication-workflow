@@ -57,26 +57,49 @@ const body = {
 const [owner, repo] = repository.split("/");
 const url = `https://api.github.com/repos/${owner}/${repo}/statuses/${sha}`;
 const transientStatuses = new Set([408, 425, 429, 500, 502, 503, 504]);
+const requestTimeoutMs = 8_000;
+
+class PermanentStatusPublicationError extends Error {}
+
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 for (let attempt = 1; attempt <= 4; attempt += 1) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      "user-agent": "sample-fabrication-workflow-status-reporter",
-      "x-github-api-version": "2022-11-28",
-    },
-    body: JSON.stringify(body),
-  });
-  if (response.ok) process.exit(0);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        "user-agent": "sample-fabrication-workflow-status-reporter",
+        "x-github-api-version": "2022-11-28",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+    if (response.ok) process.exit(0);
 
-  const responseBody = await response.text();
-  if (!transientStatuses.has(response.status) || attempt === 4) {
-    throw new Error(
-      `GitHub commit-status publication failed (${response.status}): ${responseBody.slice(0, 500)}`,
-    );
+    const responseBody = await response.text();
+    if (!transientStatuses.has(response.status)) {
+      throw new PermanentStatusPublicationError(
+        `GitHub commit-status publication failed (${response.status}): ${responseBody.slice(0, 500)}`,
+      );
+    }
+    if (attempt === 4) {
+      throw new Error(
+        `GitHub commit-status publication remained transiently unavailable (${response.status}): ${responseBody.slice(0, 500)}`,
+      );
+    }
+  } catch (error) {
+    if (error instanceof PermanentStatusPublicationError) throw error;
+    if (attempt === 4) {
+      throw new Error(
+        `GitHub commit-status publication failed after ${attempt} attempts: ${errorMessage(error)}`,
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
   }
   await new Promise((resolve) => setTimeout(resolve, attempt * 1_000));
 }

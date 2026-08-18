@@ -273,6 +273,83 @@ describe("mounted uncertain Project Canvas paste abandonment", () => {
     expect(screen.getByText("Selected item count: 2")).toBeTruthy();
   });
 
+  it("keeps uncertain abandonment blocked across unmarked 403/404 replays until authoritative settlement", async () => {
+    let authoritative = pasteSnapshot();
+    let getAttempts = 0;
+    let referenceAttempts = 0;
+    let edgeAttempts = 0;
+
+    fetchMock.mockImplementation((request, init) => {
+      const path = String(request);
+      if (!init?.method || init.method === "GET") {
+        getAttempts += 1;
+        return jsonResponse(authoritative);
+      }
+      if (init.method !== "POST") throw new Error(`Unexpected ${init.method} ${path}`);
+      const body = JSON.parse(String(init.body)) as Record<string, any>;
+      if (path.endsWith("/items/markdown")) {
+        const created = createProjectItemResponse(authoritative, path, body);
+        authoritative = created.next;
+        return jsonResponse(created.result, 201);
+      }
+      if (path.endsWith("/items/reference")) {
+        referenceAttempts += 1;
+        if (referenceAttempts === 1) {
+          return Promise.reject(new TypeError("simulated response loss before middleware failures"));
+        }
+        if (referenceAttempts === 2) {
+          return jsonResponse({ error: "Authentication required" }, 403);
+        }
+        if (referenceAttempts === 3) {
+          return jsonResponse({ error: "Project route temporarily unavailable" }, 404);
+        }
+        return Promise.resolve(new Response(JSON.stringify({
+          error: "Project revision conflict",
+        }), {
+          status: 409,
+          headers: {
+            "content-type": "application/json",
+            "x-project-mutation-disposition": "authoritative-rejection",
+          },
+        }));
+      }
+      if (path.endsWith("/edges")) {
+        edgeAttempts += 1;
+        throw new Error("The later edge step must remain unattempted while abandonment is settling");
+      }
+      throw new Error(`Unexpected POST ${path}`);
+    });
+
+    renderProjectPage();
+    await screen.findByTestId("project-flow-canvas");
+    copyAndPasteSelection();
+
+    await screen.findByText(/Paste paused after 1\/3 acknowledged writes/);
+    expect(getAttempts).toBe(1);
+    expect(referenceAttempts).toBe(1);
+    expect(edgeAttempts).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reload and abandon remaining paste" }));
+    await waitFor(() => expect(referenceAttempts).toBe(2));
+    await screen.findByText(/exact replay did not prove an authoritative mutation settlement/i);
+    expect(getAttempts).toBe(1);
+    expect(edgeAttempts).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reload and abandon remaining paste" }));
+    await waitFor(() => expect(referenceAttempts).toBe(3));
+    await screen.findByText(/exact replay did not prove an authoritative mutation settlement/i);
+    expect(getAttempts).toBe(1);
+    expect(edgeAttempts).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reload and abandon remaining paste" }));
+    await screen.findByText(
+      "Authoritative Project state was loaded. 1 pasted item already committed to the Project remains; the later unattempted paste steps were abandoned.",
+    );
+    expect(getAttempts).toBe(2);
+    expect(referenceAttempts).toBe(4);
+    expect(edgeAttempts).toBe(0);
+  });
+
   it("does not replay a deterministically rejected write before authoritative abandon reload", async () => {
     let authoritative = pasteSnapshot();
     let getAttempts = 0;
