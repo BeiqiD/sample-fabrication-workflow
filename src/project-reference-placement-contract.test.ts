@@ -13,12 +13,12 @@ describe("Phase 3B2 source contract", () => {
     expect(surface).not.toContain("/projects/");
   });
 
-  it("converts browser drop and viewport-center coordinates through the live React Flow instance", () => {
+  it("converts browser drop and viewport-center coordinates through the live React Flow instance and keeps pending placement full-detail", () => {
     const map = read("./components/project/ProjectMapSurface.tsx");
     expect(map).toContain("instance.screenToFlowPosition");
     expect(map).toContain("getViewportCenter()");
     expect(map).toContain("readProjectReferenceDragPayload(event.dataTransfer)");
-    expect(map).toContain("buildFlowNode(descriptor, true, true, false, null, callbacks)");
+    expect(map).toContain('buildFlowNode(descriptor, true, true, false, "full", null, callbacks)');
     expect(map).toContain("edgeInteractionDisabled: boolean");
     expect(map).toContain("selectable: false");
     expect(map).toContain("pendingReference");
