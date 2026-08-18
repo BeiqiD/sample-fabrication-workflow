@@ -55,7 +55,10 @@ jobs:
               init: MouseEventInit,
             ) => {
               const view = document.defaultView!;
-              target.dispatchEvent(new view.MouseEvent(type, {
+              const MouseEventConstructor = (
+                view as unknown as typeof globalThis
+              ).MouseEvent;
+              target.dispatchEvent(new MouseEventConstructor(type, {
                 ...init,
                 view,
                 bubbles: true,
