@@ -141,11 +141,29 @@ jobs:
         run: node scripts/publish-commit-status.mjs
 
       - name: Commit verified fix and remove temporary applicator
+        id: fix_commit
+        shell: bash
         run: |
-          rm scripts/apply-pr149-review-fix.py scripts/normalize-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log pr149-unit.log
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "fix(project): require authoritative paste replay settlement"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          set -o pipefail
+          (
+            rm scripts/apply-pr149-review-fix.py scripts/normalize-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log pr149-unit.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git diff --cached --check
+            git commit -m "fix(project): require authoritative paste replay settlement"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          ) 2>&1 | tee /tmp/pr149-commit.log
+
+      - name: Record applicator commit status
+        if: ${{ always() && steps.fix_commit.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_commit.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/commit
+          STATUS_SUCCESS_DESCRIPTION: PR149 verified fix pushed
+          STATUS_FAILURE_DESCRIPTION: PR149 verified fix push failed
+          STATUS_LOG_FILE: /tmp/pr149-commit.log
+          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
+        run: node scripts/publish-commit-status.mjs
