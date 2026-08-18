@@ -1,9 +1,8 @@
 # Project Canvas interaction contract
 
-Status: canonical product and architecture contract; Phase 4B Canvas productivity is active, with Phase 4B1 complete in PR #148
+Status: canonical product and architecture contract; Phase 4C is implemented in Draft PR #151
 
-Last reviewed: 2026-08-17 after Phase 4A completion in PR #147 and Phase 4B1
-multi-selection, grouped geometry history, and keyboard productivity in PR #148
+Last reviewed: 2026-08-18 after representative-scale Map performance hardening and v1 functional-gap decisions
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
@@ -28,8 +27,10 @@ The Phase 3B4 edge mutation, retry, history, and verification boundary is in
 [PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md).
 The Phase 3C projection/editing boundary is in
 [PROJECT_READING_IMPLEMENTATION_PLAN.md](./PROJECT_READING_IMPLEMENTATION_PLAN.md).
-The active Phase 4B slice boundaries are in
+The completed Phase 4B slice boundaries are in
 [PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md).
+The Phase 4C scale, contextual-zoom, and final v1 decision boundary is in
+[PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md](./PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
 
@@ -305,8 +306,16 @@ Reference nodes use size-dependent information density:
 Attachment nodes use the same dimensions for display range. Images use
 `object-fit: contain`; file bytes are never transformed by node resize.
 
-Canvas viewport zoom and node resize remain different concepts. Contextual zoom
-may replace rich node content with lightweight summaries at low zoom.
+Canvas viewport zoom and node resize remain different concepts. At the Phase 4C
+representative target and larger envelope, three presentation-only contextual-zoom
+bands use hysteresis: full detail mounts existing previews, excerpts, and edge
+labels; compact keeps identity and context; overview keeps type and title. Ordinary
+maps remain full-detail at every viewport zoom so their established labels, handles,
+and actions never disappear merely because `fitView` selected a small scale. React
+Flow connection handles remain mounted as geometry anchors, but are visually hidden
+and non-connectable outside full detail on target/envelope maps unless the occurrence
+is primary-selected. The primary selected occurrence retains a bounded action
+surface. These bands never change persisted geometry or content.
 
 ### Geometry boundary
 
@@ -383,10 +392,10 @@ The initial release has no manual Reading reorder, `position_key`,
 `reading_role`, topological sort, or cycle-resolution UX. Visual arrows express
 Map relationships only and never affect Reading order.
 
-A later phase may introduce explicit custom ordering or an edge-informed linear
-projection after real Project use demonstrates the need. That later decision may
-add a dedicated ordering model and migration; Phase 3A should not reserve
-speculative columns or tables now.
+Phase 4C explicitly defers custom Reading ordering for v1. Immutable insertion
+sequence remains predictable and avoids a second ordering model. Reopening this
+decision after feature freeze requires a demonstrated use case and a separate
+ordering contract rather than speculative columns or edge-derived ordering.
 
 ## Markdown and mixed media
 

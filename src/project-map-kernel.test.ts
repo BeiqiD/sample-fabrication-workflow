@@ -5,6 +5,7 @@ const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
 const mainSource = readFileSync(new URL("./main.tsx", import.meta.url), "utf8");
 const pageSource = readFileSync(new URL("./pages/ProjectPage.tsx", import.meta.url), "utf8");
 const surfaceSource = readFileSync(new URL("./components/project/ProjectMapSurface.tsx", import.meta.url), "utf8");
+const performanceSource = readFileSync(new URL("./lib/project-map-performance.ts", import.meta.url), "utf8");
 
 describe("Project Map kernel boundaries", () => {
   it("keeps React Flow behind the desktop-only lazy surface", () => {
@@ -35,6 +36,18 @@ describe("Project Map kernel boundaries", () => {
     expect(pageSource).toContain("projectCanvasZOrderCommands");
     expect(pageSource).toContain("commitGeometryBatch(projectCanvasAlignmentCommands");
     expect(pageSource).toContain("commitGeometryBatch(projectCanvasZOrderCommands");
+  });
+
+  it("keeps Phase 4C performance adaptive rather than changing persistence", () => {
+    expect(surfaceSource).toContain("memo(function ProjectItemNode");
+    expect(surfaceSource).toContain("onMove={handleViewportMove}");
+    expect(surfaceSource).toContain("onlyRenderVisibleElements={performancePolicy.onlyRenderVisibleElements}");
+    expect(surfaceSource).toContain('detailLevel === "full"');
+    expect(surfaceSource).toContain("contextual-hidden");
+    expect(surfaceSource).not.toContain("projectApi");
+    expect(performanceSource).toContain("PROJECT_MAP_TARGET_NODE_COUNT = 200");
+    expect(performanceSource).toContain("PROJECT_MAP_ENVELOPE_NODE_COUNT = 500");
+    expect(performanceSource).toContain("PROJECT_MAP_ENVELOPE_EDGE_COUNT = 800");
   });
 
   it("protects dirty Project placement state across SPA and hard navigation", () => {

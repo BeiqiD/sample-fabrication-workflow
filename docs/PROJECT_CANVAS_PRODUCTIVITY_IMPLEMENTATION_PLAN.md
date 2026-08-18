@@ -1,8 +1,8 @@
 # Project Canvas productivity implementation plan
 
-Status: Phase 4B active; Phase 4B1 and Phase 4B2 are complete in PRs #148/#149, and Phase 4B3 is implemented in Draft PR #150 pending independent review
+Status: Phase 4B complete in PRs #148–#150
 
-Last reviewed: 2026-08-18 after implementing bounded alignment assistance and explicit z-order over existing placement commands
+Last reviewed: 2026-08-18 after the Phase 4C performance handoff
 
 ## Goal
 
@@ -88,7 +88,7 @@ Exit: complete. A user can copy one or several committed Map occurrences, paste 
 
 ## Phase 4B3 — alignment assistance and explicit z-order
 
-Status: implemented in Draft PR #150; pending independent review and exact-head verification.
+Status: complete in PR #150.
 
 Delivered:
 
@@ -106,7 +106,7 @@ Delivered:
 - controls remain desktop Map/Inspector actions and are unavailable while existing unsafe workspace operations block geometry;
 - no automatic layout, persistent guide objects, bulk Canvas endpoint, group/frame model, or alternate serialized Canvas document.
 
-Exit: implemented. A user can visually compare alignment while dragging, explicitly align a committed selection, and change item layering without leaving the normalized placement model. Phase 4C performance and final include/defer decisions are next.
+Exit: complete. A user can visually compare alignment while dragging, explicitly align a committed selection, and change item layering without leaving the normalized placement model. Phase 4C performance and final include/defer decisions are defined in [Project Map performance and v1 functional-shape plan](./PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md).
 
 ## Include/defer decision
 

@@ -394,6 +394,16 @@ describe("real Project Map surface keyboard behavior", () => {
       />
     </div>);
 
+    const canvas = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    const zoomIn = container.querySelector<HTMLButtonElement>(".react-flow__controls-zoomin");
+    expect(zoomIn).toBeTruthy();
+    for (let index = 0; index < 8; index += 1) fireEvent.click(zoomIn!);
+    await waitFor(() => expect(canvas.dataset.projectMapDetail).toBe("full"));
+
     const image = await waitFor(() => {
       const candidate = container.querySelector<HTMLImageElement>("img.project-node-image");
       expect(candidate).toBeTruthy();

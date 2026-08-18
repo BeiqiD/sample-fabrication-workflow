@@ -11,9 +11,9 @@ Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
 occurrence focus in PR #145, Phase 4A2 Inspector completeness in PR #146,
 and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
 multi-selection and grouped geometry are complete in PR #148, Phase 4B2
-authoritative copy/paste is complete in PR #149, and Phase 4B3 alignment
-assistance and explicit z-order are implemented in Draft PR #150 pending
-independent review
+authoritative copy/paste is complete in PR #149, Phase 4B3 alignment assistance
+and explicit z-order are complete in PR #150, and Phase 4C representative-scale
+Map performance is implemented in Draft PR #151 pending independent review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -189,10 +189,10 @@ exact source navigation are complete in PR #146, and Phase 4A3 authoritative chi
 reference insertion is complete in PR #147. It adds authoritative direct-child
 discovery inside the Inspector while reusing the existing Project placement
 transaction and retry/reconciliation state machine. Phase 4B1 Canvas
-multi-selection and grouped geometry are complete in PR #148. Phase 4B2 authoritative copy/paste is complete in PR #149. Phase 4B3
-alignment assistance and explicit z-order are implemented in Draft PR #150
-pending independent review; the slice reuses existing placement history and save
-contracts without new persistence. Storage, lifecycle, Reference, and rich-content foundations
+multi-selection and grouped geometry are complete in PR #148. Phase 4B2 authoritative copy/paste is complete in PR #149. Phase 4B3 alignment assistance and explicit z-order are complete in PR #150.
+Phase 4C representative-scale Map performance, contextual zoom, and final v1
+include/defer decisions are implemented in Draft PR #151 pending independent
+review. Storage, lifecycle, Reference, and rich-content foundations
 return to correctness maintenance rather than continuing as independent feature
 tracks.
 
@@ -457,7 +457,7 @@ the Project workspace.
 
 #### Phase 4B — Canvas productivity
 
-**Status:** active. Phase 4B1 multi-selection, grouped geometry history, and bounded Canvas keyboard shortcuts are complete in PR #148. Phase 4B2 authoritative copy/paste is complete in PR #149. Phase 4B3 alignment assistance and explicit z-order are implemented in Draft PR #150 pending independent review, including transient zoom-normalized drag guides, six grouped alignment commands, four bounded layer-order controls, deterministic z-index fallback at exhausted or duplicate slots, and reuse of the existing grouped geometry history and per-placement save path. Phase 4C performance and final functional-gap decisions are next after #150 review/merge.
+**Status:** complete in PRs #148–#150. Phase 4B1 delivered multi-selection and grouped geometry, Phase 4B2 delivered authoritative copy/paste, and Phase 4B3 delivered transient alignment assistance plus explicit z-order without changing the normalized persistence model.
 
 The detailed slice boundaries and persistence constraints are recorded in
 [Project Canvas productivity implementation plan](./PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md), with the frozen Phase 4B2 authorization and retry model in
@@ -479,22 +479,26 @@ use without adding general-purpose whiteboard complexity.
 
 #### Phase 4C — performance and final functional gaps
 
-**Scope:**
+**Status:** implemented in Draft PR #151; pending independent review and exact-head verification.
 
-- large-map performance hardening and contextual zoom;
-- stress-test the existing 200–300 node / 300–500 edge target and the larger
-  500-node / 800-edge envelope;
-- make explicit v1 include/defer decisions for optional groups/frames, richer
-  previews, or custom Reading order based on real use rather than roadmap inertia;
-- fix remaining interaction gaps that would otherwise change the primary page
-  structure after visual refinement begins.
+**Delivered:**
 
-Optional JSON Canvas import/export, semantic search, automatic layout, and similar
-integration features do **not** block v1 feature freeze unless a concrete product
-requirement emerges.
+- contextual `overview`, `compact`, and `full` node/edge presentation with zoom
+  hysteresis and no persistence effect;
+- memoized node rendering and selection projection that preserves untouched node
+  object identity;
+- target/envelope-only visible-element rendering for 200–300 node / 300–500 edge
+  Projects and the 500-node / 800-edge envelope;
+- mounted representative-scale contracts plus a permanent
+  `pre-pr/project-map-performance` gate;
+- explicit v1 decisions to defer groups/frames, richer non-image previewers, custom
+  Reading order, JSON Canvas integration, semantic search, and automatic layout.
 
-**Exit:** the same Project occurrences support the intended v1 spatial, inspection,
-navigation, and linear-reading workflow at representative scale.
+The detailed performance and decision boundary is recorded in
+[Project Map performance and v1 functional-shape plan](./PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md).
+
+**Exit:** implemented. The same Project occurrences support the intended v1 spatial,
+inspection, navigation, and linear-reading workflow at representative scale.
 
 This milestone is the **Project v1 functional shape**.
 
@@ -678,14 +682,11 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of the implemented **Phase 4B3**
-   alignment-assistance and explicit z-order slice in PR #150.
-2. Complete **Phase 4C** representative-scale performance work and make explicit
-   include/defer decisions for remaining optional interaction candidates.
-3. Declare the **v1 feature freeze** once the interaction-shaping feature set is
-   stable.
-4. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-5. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+1. Complete independent review and merge of the implemented **Phase 4C**
+   performance and v1 functional-shape slice in Draft PR #151.
+2. Declare the **v1 feature freeze** once that exact head is accepted.
+3. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+4. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

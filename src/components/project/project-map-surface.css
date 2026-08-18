@@ -277,6 +277,34 @@
   border-width: 2px;
 }
 
+.project-edge-handle.contextual-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .project-edge-pending {
   stroke-dasharray: 6 5;
+}
+
+
+/* Phase 4C contextual zoom: low-detail bands intentionally remove expensive
+   decoration and mount no rich media; this is performance behavior, not the
+   Phase 5 visual-refinement pass. */
+.project-flow-canvas[data-project-map-detail="overview"] .project-map-node,
+.project-flow-canvas[data-project-map-detail="compact"] .project-map-node {
+  box-shadow: none;
+}
+
+.project-flow-canvas[data-project-map-detail="overview"] .project-map-node {
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.project-flow-canvas[data-project-map-detail="overview"] .project-map-node h2 {
+  font-size: 14px;
+}
+
+.project-flow-canvas[data-project-map-detail="overview"] .project-node-open-reference,
+.project-flow-canvas[data-project-map-detail="compact"] .project-node-open-reference {
+  transition: none;
 }
