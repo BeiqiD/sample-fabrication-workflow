@@ -20,14 +20,23 @@ import type {
   UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
+import type { CopyAttachmentProjectItemInput } from "../../shared/project-copy-paste-api";
+
+export type ProjectMutationDisposition = "authoritative-rejection";
 
 export class ProjectApiError extends Error {
   readonly status: number;
+  readonly mutationDisposition: ProjectMutationDisposition | null;
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    mutationDisposition: ProjectMutationDisposition | null = null,
+  ) {
     super(message);
     this.name = "ProjectApiError";
     this.status = status;
+    this.mutationDisposition = mutationDisposition;
   }
 }
 
@@ -37,9 +46,14 @@ async function projectRequest<T>(path: string, init?: RequestInit): Promise<T> {
     const payload = await response.json().catch(() => ({ error: response.statusText })) as {
       error?: string;
     };
+    const mutationDisposition = response.headers.get("x-project-mutation-disposition")
+      === "authoritative-rejection"
+      ? "authoritative-rejection"
+      : null;
     throw new ProjectApiError(
       payload.error || `Project request failed (${response.status})`,
       response.status,
+      mutationDisposition,
     );
   }
   return response.json() as Promise<T>;
@@ -89,6 +103,13 @@ export const projectApi = {
     input: CreateAttachmentProjectItemInput,
   ) => projectRequest<ProjectItemMutationResponse>(
     `/projects/${encodeURIComponent(projectId)}/items/attachment`,
+    jsonRequest("POST", input),
+  ),
+  copyAttachmentItem: (
+    projectId: string,
+    input: CopyAttachmentProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/attachment/copy`,
     jsonRequest("POST", input),
   ),
   uploadAttachmentAsset: (file: File) => projectRequest<{ id: string; key: string; deduplicated: boolean }>(

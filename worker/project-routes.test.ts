@@ -163,7 +163,7 @@ describe("Project persistence routes", () => {
     expect(JSON.stringify(snapshotBody)).not.toContain("last_mutation_id");
     expect(JSON.stringify(snapshotBody)).not.toContain("object_key");
 
-    const staleMove = await jsonRequest(
+    const futureMove = await jsonRequest(
       app,
       env,
       "/projects/project-route/placements/placement-route",
@@ -171,11 +171,12 @@ describe("Project persistence routes", () => {
       {
         geometry: { ...geometry, x: 100 },
         expectedRevision: 99,
-        operationId: "stale-move-route",
+        operationId: "future-move-route",
       },
     );
-    expect(staleMove.status).toBe(409);
-    expect(await staleMove.json()).toMatchObject({ error: "Placement revision conflict" });
+    expect(futureMove.status).toBe(409);
+    expect(futureMove.headers.get("x-project-mutation-disposition")).toBeNull();
+    expect(await futureMove.json()).toMatchObject({ error: "Placement revision conflict" });
     database.close();
   });
 

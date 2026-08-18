@@ -33,19 +33,14 @@ jobs:
 
       - name: Record dependency status
         if: ${{ always() && steps.install.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.install.outcome }}
-        with:
-          script: |
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: process.env.STAGE_OUTCOME === "success" ? "success" : "failure",
-              context: "pre-pr/install",
-              description: process.env.STAGE_OUTCOME === "success" ? "npm ci passed" : "npm ci failed",
-            });
+          STATUS_CONTEXT: pre-pr/install
+          STATUS_SUCCESS_DESCRIPTION: npm ci passed
+          STATUS_FAILURE_DESCRIPTION: npm ci failed
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run blob lifecycle contract
         id: blob_lifecycle
@@ -56,25 +51,15 @@ jobs:
 
       - name: Record blob lifecycle status
         if: ${{ always() && steps.blob_lifecycle.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.blob_lifecycle.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("blob-lifecycle.log") ? fs.readFileSync("blob-lifecycle.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/blob-lifecycle",
-              description: outcome === "success" ? "blob lifecycle contract passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/blob-lifecycle
+          STATUS_SUCCESS_DESCRIPTION: blob lifecycle contract passed
+          STATUS_FAILURE_DESCRIPTION: blob lifecycle contract failed
+          STATUS_LOG_FILE: blob-lifecycle.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run reference foundation contract
         id: reference_foundation
@@ -87,25 +72,15 @@ jobs:
 
       - name: Record reference foundation status
         if: ${{ always() && steps.reference_foundation.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.reference_foundation.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("reference-foundation.log") ? fs.readFileSync("reference-foundation.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/reference-foundation",
-              description: outcome === "success" ? "reference foundation passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/reference-foundation
+          STATUS_SUCCESS_DESCRIPTION: reference foundation passed
+          STATUS_FAILURE_DESCRIPTION: reference foundation failed
+          STATUS_LOG_FILE: reference-foundation.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project foundation contract
         id: project_foundation
@@ -116,25 +91,15 @@ jobs:
 
       - name: Record Project foundation status
         if: ${{ always() && steps.project_foundation.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_foundation.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-foundation.log") ? fs.readFileSync("project-foundation.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-foundation",
-              description: outcome === "success" ? "Project foundation passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-foundation
+          STATUS_SUCCESS_DESCRIPTION: Project foundation passed
+          STATUS_FAILURE_DESCRIPTION: Project foundation failed
+          STATUS_LOG_FILE: project-foundation.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project persistence contract
         id: project_persistence
@@ -145,25 +110,15 @@ jobs:
 
       - name: Record Project persistence status
         if: ${{ always() && steps.project_persistence.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_persistence.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-persistence.log") ? fs.readFileSync("project-persistence.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-persistence",
-              description: outcome === "success" ? "Project persistence passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-persistence
+          STATUS_SUCCESS_DESCRIPTION: Project persistence passed
+          STATUS_FAILURE_DESCRIPTION: Project persistence failed
+          STATUS_LOG_FILE: project-persistence.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project Map contract
         id: project_map
@@ -174,25 +129,15 @@ jobs:
 
       - name: Record Project Map status
         if: ${{ always() && steps.project_map.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_map.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-map.log") ? fs.readFileSync("project-map.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-map",
-              description: outcome === "success" ? "Project Map contract passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-map
+          STATUS_SUCCESS_DESCRIPTION: Project Map contract passed
+          STATUS_FAILURE_DESCRIPTION: Project Map contract failed
+          STATUS_LOG_FILE: project-map.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project Canvas productivity contract
         id: project_canvas_productivity
@@ -203,25 +148,15 @@ jobs:
 
       - name: Record Project Canvas productivity status
         if: ${{ always() && steps.project_canvas_productivity.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_canvas_productivity.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-canvas-productivity.log") ? fs.readFileSync("project-canvas-productivity.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-canvas-productivity",
-              description: outcome === "success" ? "Project Canvas productivity passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-canvas-productivity
+          STATUS_SUCCESS_DESCRIPTION: Project Canvas productivity passed
+          STATUS_FAILURE_DESCRIPTION: Project Canvas productivity failed
+          STATUS_LOG_FILE: project-canvas-productivity.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project reference placement contract
         id: project_reference_placement
@@ -232,25 +167,15 @@ jobs:
 
       - name: Record Project reference placement status
         if: ${{ always() && steps.project_reference_placement.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_reference_placement.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-reference-placement.log") ? fs.readFileSync("project-reference-placement.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-reference-placement",
-              description: outcome === "success" ? "Project reference placement passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-reference-placement
+          STATUS_SUCCESS_DESCRIPTION: Project reference placement passed
+          STATUS_FAILURE_DESCRIPTION: Project reference placement failed
+          STATUS_LOG_FILE: project-reference-placement.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project owned content contract
         id: project_owned_content
@@ -261,25 +186,15 @@ jobs:
 
       - name: Record Project owned content status
         if: ${{ always() && steps.project_owned_content.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_owned_content.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-owned-content.log") ? fs.readFileSync("project-owned-content.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-owned-content",
-              description: outcome === "success" ? "Project owned content passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-owned-content
+          STATUS_SUCCESS_DESCRIPTION: Project owned content passed
+          STATUS_FAILURE_DESCRIPTION: Project owned content failed
+          STATUS_LOG_FILE: project-owned-content.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project edges contract
         id: project_edges
@@ -290,25 +205,15 @@ jobs:
 
       - name: Record Project edges status
         if: ${{ always() && steps.project_edges.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_edges.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-edges.log") ? fs.readFileSync("project-edges.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-edges",
-              description: outcome === "success" ? "Project edges passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-edges
+          STATUS_SUCCESS_DESCRIPTION: Project edges passed
+          STATUS_FAILURE_DESCRIPTION: Project edges failed
+          STATUS_LOG_FILE: project-edges.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run Project Reading contract
         id: project_reading
@@ -319,25 +224,15 @@ jobs:
 
       - name: Record Project Reading status
         if: ${{ always() && steps.project_reading.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.project_reading.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("project-reading.log") ? fs.readFileSync("project-reading.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /FAIL|AssertionError|error TS|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: "pre-pr/project-reading",
-              description: outcome === "success" ? "Project Reading passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/project-reading
+          STATUS_SUCCESS_DESCRIPTION: Project Reading passed
+          STATUS_FAILURE_DESCRIPTION: Project Reading failed
+          STATUS_LOG_FILE: project-reading.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run tests
         id: tests
@@ -348,27 +243,16 @@ jobs:
 
       - name: Record test status
         if: ${{ always() && steps.tests.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.tests.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("test.log") ? fs.readFileSync("test.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const location = lines.find((line) => /(?:^|\s)src\/[^\s]+\.test\.ts:\d+:\d+/.test(line));
-            const detail = location || lines.find((line) => /FAIL|AssertionError|Error:|×|✗/.test(line)) || lines.at(-1) || "failure";
-            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: outcome === "success" ? "pre-pr/tests" : `pre-pr/tests/${slug}`,
-              description: outcome === "success" ? "npm test passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/tests
+          STATUS_SUCCESS_DESCRIPTION: npm test passed
+          STATUS_FAILURE_DESCRIPTION: npm test failed
+          STATUS_LOG_FILE: test.log
+          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
+        run: node scripts/publish-commit-status.mjs
 
       - name: Run production build
         id: build
@@ -379,23 +263,13 @@ jobs:
 
       - name: Record build status
         if: ${{ always() && steps.build.outcome != 'skipped' }}
-        uses: actions/github-script@v7
+        continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STAGE_OUTCOME: ${{ steps.build.outcome }}
-        with:
-          script: |
-            const fs = require("fs");
-            const outcome = process.env.STAGE_OUTCOME;
-            const log = fs.existsSync("build.log") ? fs.readFileSync("build.log", "utf8") : "";
-            const stripAnsi = (value) => value.replace(/\u001B\[[0-9;]*m/g, "");
-            const lines = log.split(/\r?\n/).map((line) => stripAnsi(line).trim()).filter(Boolean);
-            const detail = lines.find((line) => /error TS|error:|Error:|failed/i.test(line)) || lines.at(-1) || "failure";
-            const slug = detail.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "failure";
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: outcome === "success" ? "success" : "failure",
-              context: outcome === "success" ? "pre-pr/build" : `pre-pr/build/${slug}`,
-              description: outcome === "success" ? "npm run build passed" : detail.slice(0, 140),
-            });
+          STATUS_CONTEXT: pre-pr/build
+          STATUS_SUCCESS_DESCRIPTION: npm run build passed
+          STATUS_FAILURE_DESCRIPTION: npm run build failed
+          STATUS_LOG_FILE: build.log
+          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
+        run: node scripts/publish-commit-status.mjs
