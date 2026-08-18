@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { MAX_PROJECT_MAP_Z_INDEX_ABS } from "../../shared/project-types";
+import {
+  MAX_PROJECT_MAP_COORDINATE_ABS,
+  MAX_PROJECT_MAP_NODE_SIZE,
+  MAX_PROJECT_MAP_Z_INDEX_ABS,
+} from "../../shared/project-types";
 import {
   normalizeProjectItemSelection,
   projectCanvasAlignmentCommands,
@@ -149,6 +153,59 @@ describe("Project Canvas productivity contracts", () => {
       height: 80,
       zIndex: 1,
     }]);
+  });
+
+  it("keeps exact alignment inside the persisted coordinate domain", () => {
+    const boundaryEntries: ProjectCanvasGeometryEntry[] = [{
+      itemId: "item-wide",
+      placementId: "placement-wide",
+      geometry: {
+        x: MAX_PROJECT_MAP_COORDINATE_ABS,
+        y: MAX_PROJECT_MAP_COORDINATE_ABS,
+        width: MAX_PROJECT_MAP_NODE_SIZE,
+        height: MAX_PROJECT_MAP_NODE_SIZE,
+        zIndex: 0,
+      },
+    }, {
+      itemId: "item-small",
+      placementId: "placement-small",
+      geometry: {
+        x: MAX_PROJECT_MAP_COORDINATE_ABS - 50,
+        y: MAX_PROJECT_MAP_COORDINATE_ABS - 50,
+        width: 100,
+        height: 100,
+        zIndex: 1,
+      },
+    }];
+
+    for (const alignment of ["right", "center-x", "bottom", "center-y"] as const) {
+      const commands = projectCanvasAlignmentCommands(
+        boundaryEntries,
+        boundaryEntries.map((entry) => entry.itemId),
+        alignment,
+      );
+      const after = new Map(boundaryEntries.map((entry) => [
+        entry.placementId,
+        entry.geometry,
+      ]));
+      for (const command of commands) after.set(command.placementId, command.after);
+      const geometries = [...after.values()];
+
+      expect(geometries.every((geometry) => (
+        Math.abs(geometry.x) <= MAX_PROJECT_MAP_COORDINATE_ABS
+        && Math.abs(geometry.y) <= MAX_PROJECT_MAP_COORDINATE_ABS
+      ))).toBe(true);
+
+      if (alignment === "right") {
+        expect(new Set(geometries.map((geometry) => geometry.x + geometry.width)).size).toBe(1);
+      } else if (alignment === "center-x") {
+        expect(new Set(geometries.map((geometry) => geometry.x + geometry.width / 2)).size).toBe(1);
+      } else if (alignment === "bottom") {
+        expect(new Set(geometries.map((geometry) => geometry.y + geometry.height)).size).toBe(1);
+      } else {
+        expect(new Set(geometries.map((geometry) => geometry.y + geometry.height / 2)).size).toBe(1);
+      }
+    }
   });
 
   it("moves one selected layer forward by swapping only the affected z-order slots", () => {

@@ -678,14 +678,14 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of the implemented **Phase 4B2** authoritative copy/paste slice in PR #149.
-2. Implement the remaining **Phase 4B3** alignment-assistance and explicit z-order slice after #149 is accepted.
-3. Complete **Phase 4C** representative-scale performance work and make explicit
+1. Complete independent review and merge of the implemented **Phase 4B3**
+   alignment-assistance and explicit z-order slice in PR #150.
+2. Complete **Phase 4C** representative-scale performance work and make explicit
    include/defer decisions for remaining optional interaction candidates.
-4. Declare the **v1 feature freeze** once the interaction-shaping feature set is
+3. Declare the **v1 feature freeze** once the interaction-shaping feature set is
    stable.
-5. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-6. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+4. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+5. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

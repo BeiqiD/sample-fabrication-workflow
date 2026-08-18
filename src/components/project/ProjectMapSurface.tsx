@@ -879,6 +879,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       edgesReconnectable={false}
       connectionMode={ConnectionMode.Loose}
       elementsSelectable
+      elevateNodesOnSelect={false}
       selectionKeyCode="Shift"
       multiSelectionKeyCode={["Shift", "Meta", "Control"]}
       selectionMode={SelectionMode.Partial}

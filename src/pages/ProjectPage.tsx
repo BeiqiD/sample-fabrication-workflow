@@ -1987,7 +1987,9 @@ export function ProjectPage() {
     startReferenceRemoval(item.id, item.revision, content.revision);
   }, [snapshot, startReferenceRemoval]);
 
-  useEffect(() => {
+  // Install Canvas shortcuts in the same commit as the desktop Map. This
+  // avoids a one-frame listener gap when the lazy Map surface resolves.
+  useLayoutEffect(() => {
     if (!desktop || desktopView !== "map") return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)) return;

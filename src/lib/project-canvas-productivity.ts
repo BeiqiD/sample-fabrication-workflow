@@ -168,6 +168,14 @@ function selectedGeometryEntries(
   return entries.filter((entry) => selected.has(entry.itemId));
 }
 
+function clampProjectCanvasAlignmentTarget(
+  value: number,
+  minimum: number,
+  maximum: number,
+) {
+  return Math.max(minimum, Math.min(maximum, value));
+}
+
 export function projectCanvasAlignmentCommands(
   entries: readonly ProjectCanvasGeometryEntry[],
   selectedItemIds: readonly string[],
@@ -176,16 +184,40 @@ export function projectCanvasAlignmentCommands(
   const selected = selectedGeometryEntries(entries, selectedItemIds);
   if (selected.length < 2) return [];
 
+  const widths = selected.map((entry) => entry.geometry.width);
+  const heights = selected.map((entry) => entry.geometry.height);
+  const minimumWidth = Math.min(...widths);
+  const maximumWidth = Math.max(...widths);
+  const minimumHeight = Math.min(...heights);
+  const maximumHeight = Math.max(...heights);
   const left = Math.min(...selected.map((entry) => entry.geometry.x));
-  const right = Math.max(...selected.map((entry) => (
+  const rawRight = Math.max(...selected.map((entry) => (
     entry.geometry.x + entry.geometry.width
   )));
   const top = Math.min(...selected.map((entry) => entry.geometry.y));
-  const bottom = Math.max(...selected.map((entry) => (
+  const rawBottom = Math.max(...selected.map((entry) => (
     entry.geometry.y + entry.geometry.height
   )));
-  const centerX = (left + right) / 2;
-  const centerY = (top + bottom) / 2;
+  const right = clampProjectCanvasAlignmentTarget(
+    rawRight,
+    -MAX_PROJECT_MAP_COORDINATE_ABS + maximumWidth,
+    MAX_PROJECT_MAP_COORDINATE_ABS + minimumWidth,
+  );
+  const bottom = clampProjectCanvasAlignmentTarget(
+    rawBottom,
+    -MAX_PROJECT_MAP_COORDINATE_ABS + maximumHeight,
+    MAX_PROJECT_MAP_COORDINATE_ABS + minimumHeight,
+  );
+  const centerX = clampProjectCanvasAlignmentTarget(
+    (left + rawRight) / 2,
+    -MAX_PROJECT_MAP_COORDINATE_ABS + maximumWidth / 2,
+    MAX_PROJECT_MAP_COORDINATE_ABS + minimumWidth / 2,
+  );
+  const centerY = clampProjectCanvasAlignmentTarget(
+    (top + rawBottom) / 2,
+    -MAX_PROJECT_MAP_COORDINATE_ABS + maximumHeight / 2,
+    MAX_PROJECT_MAP_COORDINATE_ABS + minimumHeight / 2,
+  );
 
   return selected.flatMap((entry) => {
     const before = entry.geometry;

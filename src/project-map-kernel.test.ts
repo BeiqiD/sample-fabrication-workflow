@@ -30,6 +30,7 @@ describe("Project Map kernel boundaries", () => {
     expect(surfaceSource).toContain("projectCanvasAlignmentGuides");
     expect(surfaceSource).toContain("onNodeDrag={handleNodeDrag}");
     expect(surfaceSource).toContain("<ViewportPortal>");
+    expect(surfaceSource).toContain("elevateNodesOnSelect={false}");
     expect(pageSource).toContain("projectCanvasAlignmentCommands");
     expect(pageSource).toContain("projectCanvasZOrderCommands");
     expect(pageSource).toContain("commitGeometryBatch(projectCanvasAlignmentCommands");

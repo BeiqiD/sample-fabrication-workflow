@@ -96,6 +96,8 @@ Delivered:
 - guides are transient visual feedback only: they create no rows, survive no reload, perform no per-frame network writes, and do not introduce hidden snapping;
 - six explicit multi-selection alignment commands align left/right/top/bottom or horizontal/vertical centers from the selected extent;
 - explicit send backward, bring forward, send to back, and bring to front controls operate on the existing bounded integer `zIndex`;
+- alignment targets remain exact while being clamped to the common persisted coordinate interval of every selected placement;
+- React Flow automatic selected-node elevation is disabled so explicit z-order remains visually authoritative while a node is selected;
 - ordinary cases update only selected or crossed placements, while duplicate or exhausted z-order slots use deterministic bounded rank reassignment;
 - alignment and layer changes enter the existing grouped geometry history, Undo/Redo, autosave, conflict, and per-placement PATCH path;
 - controls remain desktop Map/Inspector actions and are unavailable while existing unsafe workspace operations block geometry;
@@ -132,4 +134,6 @@ The permanent Canvas productivity gate covers:
 - persistent destination identity occupancy providing settlement without inspecting human-readable error text;
 - zoom-normalized guide selection and transient React Flow viewport rendering without persistence or snapping;
 - grouped alignment geometry, bounded z-order movement, boundary fallback, Inspector controls, and Undo/Redo projection;
+- boundary-safe right/center/bottom alignment near the persisted coordinate limits;
+- explicit z-order remaining visible while selected;
 - production build, Worker smoke, and Map bundle boundary.
