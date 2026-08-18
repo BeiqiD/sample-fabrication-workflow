@@ -58,12 +58,13 @@ jobs:
               const MouseEventConstructor = (
                 view as unknown as typeof globalThis
               ).MouseEvent;
-              target.dispatchEvent(new MouseEventConstructor(type, {
+              const event = new MouseEventConstructor(type, {
                 ...init,
-                view,
                 bubbles: true,
                 cancelable: true,
-              }));
+              });
+              Object.defineProperty(event, "view", { value: view });
+              target.dispatchEvent(event);
             };
 
           '''
