@@ -2,7 +2,7 @@
 
 Status: Phase 4B active; Phase 4B1 is complete in PR #148 and Phase 4B2 is implemented in Draft PR #149 pending independent review
 
-Last reviewed: 2026-08-17 after completing the Phase 4B2 ProjectPage interaction and recovery path in PR #149
+Last reviewed: 2026-08-18 after making uncertain replay settlement proof directional, row-specific, and independent of human-readable errors
 
 ## Goal
 
@@ -28,6 +28,7 @@ The authoritative Phase 4B2 identity, attachment-authorization, ordered-journal,
 14. A multi-object paste is an ordered set of independently authoritative item and edge writes. The client must not describe it as atomic unless a real aggregate transaction is introduced.
 15. Partial paste state is an unsafe workspace state. Other geometry/content/edge operations, projection switches, and navigation must not race an unresolved frozen journal.
 16. Abandoning the remaining journal is not rollback. Authoritative reload preserves any writes that already committed and discards only the uncommitted remainder.
+17. An uncertain frozen write is terminal only after exact replay succeeds, a requested destination identity is persistently occupied, or the exact authoritative revision guard has strictly advanced to `currentRevision > expectedRevision`. Error text, missing rows, equality, and `currentRevision < expectedRevision` never provide settlement proof.
 
 ## Phase 4B1 — multi-selection and grouped geometry
 
@@ -80,6 +81,7 @@ Delivered in PR #149:
 - authoritative-reload retry when all writes acknowledge but final reconciliation fails;
 - navigation and before-unload protection while paste state remains unresolved;
 - automatic continuation of an already requested navigation only after exact recovery and authoritative reconciliation succeed;
+- proof-based uncertain-write settlement that ignores human-readable error messages, treats only persistent identity occupancy or strict `currentRevision > expectedRevision` as terminal, and leaves future revisions and temporary Project deletion uncertain;
 - permanent Canvas-productivity and Project-persistence test coverage, including mounted complete-paste and response-loss recovery paths.
 
 Exit: implemented. A user can copy one or several committed Map occurrences, paste correct new Project occurrences and internal edges, safely resume an uncertain partial paste with the same identities, and clearly reconcile conflicts without a bulk persistence model or locator exposure. Phase 4B2 remains Draft only for independent review and exact-head verification, not because a planned interaction surface is intentionally missing.
@@ -116,4 +118,8 @@ The permanent Canvas productivity gate covers:
 - ready/orphaned managed-storage copy, GC/quarantine rejection, and exact replay;
 - mounted desktop copy/paste success, ordered revision use, acknowledged-result projection, and destination selection;
 - mounted response-loss pause, exact frozen retry, no duplicate acknowledged earlier writes, authoritative reload, and navigation-blocker continuation;
+- future Project and placement revisions (`current < expected`) remaining unmarked and later succeeding after revision catch-up;
+- stale Project and placement revisions (`current > expected`) receiving authoritative rejection;
+- a temporary Project delete/restore race leaving an unchanged placement revision unmarked and accepting the same frozen request after restore;
+- persistent destination identity occupancy providing settlement without inspecting human-readable error text;
 - production build, Worker smoke, and Map bundle boundary.
