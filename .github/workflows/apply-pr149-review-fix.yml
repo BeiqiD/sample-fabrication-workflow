@@ -1,0 +1,56 @@
+name: Apply PR149 review fix
+
+on:
+  push:
+    branches:
+      - codex/phase-4b2-authoritative-copy-paste
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply bounded review fix
+        run: python scripts/apply-pr149-review-fix.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Canvas productivity unit and route tests
+        run: npm run test:project-canvas-productivity
+
+      - name: Run Canvas mounted recovery tests
+        run: npm run test:project-canvas-productivity-mounted
+
+      - name: Run Project route and CI contract regressions
+        run: npx vitest run worker/project-routes.test.ts src/project-edges-contract.test.ts
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Check patch whitespace
+        run: git diff --check
+
+      - name: Commit verified fix and remove temporary applicator
+        run: |
+          rm scripts/apply-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(project): require authoritative paste replay settlement"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
