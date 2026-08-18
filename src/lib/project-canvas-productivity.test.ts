@@ -240,6 +240,58 @@ describe("Project Canvas productivity contracts", () => {
     }]);
   });
 
+  it("uses current render order to resolve duplicate z-index movement", () => {
+    const duplicateEntries: ProjectCanvasGeometryEntry[] = [{
+      itemId: "item-z",
+      placementId: "placement-z",
+      geometry: { x: 0, y: 0, width: 100, height: 100, zIndex: 0 },
+    }, {
+      itemId: "item-a",
+      placementId: "placement-a",
+      geometry: { x: 120, y: 0, width: 100, height: 100, zIndex: 0 },
+    }];
+
+    const project = (
+      commands: ReturnType<typeof projectCanvasZOrderCommands>,
+    ) => duplicateEntries.map((entry) => (
+      commands.find((command) => command.placementId === entry.placementId)?.after
+        ?? entry.geometry
+    ));
+
+    expect(project(projectCanvasZOrderCommands(
+      duplicateEntries,
+      ["item-z"],
+      "bring-forward",
+    )).map((geometry) => geometry.zIndex)).toEqual([1, 0]);
+
+    expect(project(projectCanvasZOrderCommands(
+      duplicateEntries,
+      ["item-a"],
+      "send-backward",
+    )).map((geometry) => geometry.zIndex)).toEqual([1, 0]);
+
+    const blockEntries: ProjectCanvasGeometryEntry[] = [
+      ...duplicateEntries,
+      {
+        itemId: "item-top",
+        placementId: "placement-top",
+        geometry: { x: 240, y: 0, width: 100, height: 100, zIndex: 1 },
+      },
+    ];
+    const blockCommands = projectCanvasZOrderCommands(
+      blockEntries,
+      ["item-z", "item-a"],
+      "bring-to-front",
+    );
+    const blockZ = new Map(blockEntries.map((entry) => [
+      entry.placementId,
+      blockCommands.find((command) => command.placementId === entry.placementId)?.after.zIndex
+        ?? entry.geometry.zIndex,
+    ]));
+    expect(blockZ.get("placement-z")).toBeLessThan(blockZ.get("placement-a")!);
+    expect(blockZ.get("placement-a")).toBeGreaterThan(blockZ.get("placement-top")!);
+  });
+
   it("falls back to bounded rank reassignment at the z-index limit", () => {
     const bounded: ProjectCanvasGeometryEntry[] = [{
       ...entries[0],

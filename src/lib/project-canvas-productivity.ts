@@ -239,10 +239,14 @@ export function projectCanvasAlignmentCommands(
 function compareCanvasZOrder(
   left: ProjectCanvasGeometryEntry,
   right: ProjectCanvasGeometryEntry,
+  renderOrder: ReadonlyMap<string, number>,
 ) {
+  // React Flow resolves equal z-index values by rendered node order. The
+  // entries arrive in that same order, so UUID-like identities must not
+  // invent a different visual stack.
   return left.geometry.zIndex - right.geometry.zIndex
-    || left.itemId.localeCompare(right.itemId)
-    || left.placementId.localeCompare(right.placementId);
+    || (renderOrder.get(left.placementId) ?? 0)
+      - (renderOrder.get(right.placementId) ?? 0);
 }
 
 function compactCanvasZOrderSlots(
@@ -292,7 +296,13 @@ export function projectCanvasZOrderCommands(
   action: ProjectCanvasZOrderAction,
 ): ProjectGeometryCommand[] {
   const selectedIds = new Set(selectedItemIds);
-  const sorted = [...entries].sort(compareCanvasZOrder);
+  const renderOrder = new Map(entries.map((entry, index) => [
+    entry.placementId,
+    index,
+  ]));
+  const sorted = [...entries].sort((left, right) => (
+    compareCanvasZOrder(left, right, renderOrder)
+  ));
   const selected = sorted.filter((entry) => selectedIds.has(entry.itemId));
   const stationary = sorted.filter((entry) => !selectedIds.has(entry.itemId));
   if (selected.length === 0 || stationary.length === 0) return [];

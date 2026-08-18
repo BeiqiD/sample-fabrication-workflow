@@ -180,6 +180,42 @@ function geometryIndex(snapshot: ProjectSnapshot) {
   }]));
 }
 
+function workingMaximumProjectZIndex(
+  geometry: Readonly<Record<string, ProjectMapGeometry>>,
+) {
+  return Object.values(geometry).reduce(
+    (maximum, placement) => Math.max(maximum, placement.zIndex),
+    0,
+  );
+}
+
+function snapshotWithPlacementProjection(
+  snapshot: ProjectSnapshot,
+  geometry: Readonly<Record<string, ProjectMapGeometry>>,
+): ProjectSnapshot {
+  let changed = false;
+  const placements = snapshot.placements.map((placement) => {
+    const projected = geometry[placement.id];
+    if (!projected || projectGeometryEquals(placement, projected)) return placement;
+    changed = true;
+    return { ...placement, ...projected };
+  });
+  return changed ? { ...snapshot, placements } : snapshot;
+}
+
+function snapshotWithSavedPlacement(
+  snapshot: ProjectSnapshot,
+  placement: ProjectPlacementRecord,
+): ProjectSnapshot {
+  let found = false;
+  const placements = snapshot.placements.map((current) => {
+    if (current.id !== placement.id) return current;
+    found = true;
+    return placement;
+  });
+  return found ? { ...snapshot, placements } : snapshot;
+}
+
 function saveLabel(state: SaveState) {
   if (state === "saving") return "Saving";
   if (state === "unsaved") return "Unsaved";
@@ -752,6 +788,9 @@ export function ProjectPage() {
         const result = await projectApi.updatePlacement(projectId, placementId, mutation);
         if (!saveSessionIsActive(generation)) return;
         baselineRef.current = { ...baselineRef.current, [placementId]: result.value };
+        setSnapshot((current) => current
+          ? snapshotWithSavedPlacement(current, result.value)
+          : current);
         delete pendingMutationRef.current[placementId];
       }
       succeeded = true;
@@ -1000,7 +1039,7 @@ export function ProjectPage() {
     if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current) return;
-    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const geometry = projectReferenceGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!geometry) {
       setReferenceActionError("The requested Map coordinate is outside the supported Project geometry range");
@@ -1412,7 +1451,7 @@ export function ProjectPage() {
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current) return;
-    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const draftGeometry = projectMarkdownGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!draftGeometry) {
       setOwnedContentActionError("The requested Map coordinate is outside the supported Project geometry range");
@@ -1601,7 +1640,7 @@ export function ProjectPage() {
 
   const uploadAndCreateAttachment = useCallback(async (file: File, point: { x: number; y: number }) => {
     if (!snapshot || pendingAttachmentRef.current) return;
-    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const attachmentGeometry = projectAttachmentGeometryAtPoint(
       point,
       Math.min(1_000_000, maxZ + 1),
@@ -2010,12 +2049,17 @@ export function ProjectPage() {
       if (shortcut === "copy") {
         if (operationBlocked || saveStateRef.current !== "saved" || !snapshot || selectedItemIds.length === 0) return;
         event.preventDefault();
-        copyPaste.copySelection(snapshot, selectedItemIds);
+        copyPaste.copySelection(
+          snapshotWithPlacementProjection(snapshot, geometryRef.current),
+          selectedItemIds,
+        );
         return;
       }
       if (shortcut === "paste") {
         if (operationBlocked || saveStateRef.current !== "saved" || !snapshot) return;
-        if (!copyPaste.pasteClipboard(snapshot)) return;
+        if (!copyPaste.pasteClipboard(
+          snapshotWithPlacementProjection(snapshot, geometryRef.current),
+        )) return;
         event.preventDefault();
         setSelectedItemIds([]);
         setNavigationFocusItemId(null);

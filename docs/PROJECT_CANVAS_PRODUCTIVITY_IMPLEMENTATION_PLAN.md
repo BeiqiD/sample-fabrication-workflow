@@ -97,6 +97,9 @@ Delivered:
 - six explicit multi-selection alignment commands align left/right/top/bottom or horizontal/vertical centers from the selected extent;
 - explicit send backward, bring forward, send to back, and bring to front controls operate on the existing bounded integer `zIndex`;
 - alignment targets remain exact while being clamped to the common persisted coordinate interval of every selected placement;
+- successful placement PATCH responses replace the matching snapshot placement in place, preserving render order while making acknowledged geometry available to later creation and copy/paste operations;
+- new Reference, Markdown, and Attachment layering reads the current working placement projection, while saved copy/paste receives the same acknowledged projection;
+- equal `zIndex` values use current rendered-node order as the visual tie-breaker rather than UUID-like identities;
 - React Flow automatic selected-node elevation is disabled so explicit z-order remains visually authoritative while a node is selected;
 - ordinary cases update only selected or crossed placements, while duplicate or exhausted z-order slots use deterministic bounded rank reassignment;
 - alignment and layer changes enter the existing grouped geometry history, Undo/Redo, autosave, conflict, and per-placement PATCH path;
@@ -135,5 +138,8 @@ The permanent Canvas productivity gate covers:
 - zoom-normalized guide selection and transient React Flow viewport rendering without persistence or snapping;
 - grouped alignment geometry, bounded z-order movement, boundary fallback, Inspector controls, and Undo/Redo projection;
 - boundary-safe right/center/bottom alignment near the persisted coordinate limits;
+- save-then-create and save-then-copy/paste composition over acknowledged placement geometry;
+- duplicate-z forward/backward behavior matching current render order;
+- a real mounted drag lifecycle that renders and clears transient guides;
 - explicit z-order remaining visible while selected;
 - production build, Worker smoke, and Map bundle boundary.

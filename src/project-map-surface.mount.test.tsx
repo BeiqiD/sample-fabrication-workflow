@@ -191,6 +191,78 @@ describe("real Project Map surface keyboard behavior", () => {
     });
   });
 
+  it("renders and clears transient alignment guides through a real drag lifecycle", async () => {
+    const descriptors = projectMapNodes(projectTestSnapshot());
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={descriptors}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    const note = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    expect(container.querySelector('[data-testid="project-alignment-guide-horizontal"]')).toBeNull();
+
+    const dispatchMouse = (
+    target: EventTarget,
+    type: "mousedown" | "mousemove" | "mouseup",
+    init: MouseEventInit,
+  ) => {
+    const view = document.defaultView!;
+    const MouseEventConstructor = (
+      view as unknown as typeof globalThis
+    ).MouseEvent;
+    const event = new MouseEventConstructor(type, {
+      ...init,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "view", { value: view });
+    target.dispatchEvent(event);
+  };
+
+    dispatchMouse(note, "mousedown", {
+      button: 0,
+      buttons: 1,
+      clientX: 100,
+      clientY: 100,
+    });
+    dispatchMouse(document.defaultView!, "mousemove", {
+      buttons: 1,
+      clientX: 102,
+      clientY: 102,
+    });
+    dispatchMouse(document.defaultView!, "mousemove", {
+      buttons: 1,
+      clientX: 103,
+      clientY: 103,
+    });
+
+    await waitFor(() => {
+      expect(container.querySelector(
+        '[data-testid="project-alignment-guide-horizontal"]',
+      )).toBeTruthy();
+    });
+
+    dispatchMouse(document.defaultView!, "mouseup", {
+      button: 0,
+      buttons: 0,
+      clientX: 103,
+      clientY: 103,
+    });
+    await waitFor(() => {
+      expect(container.querySelector(
+        '[data-testid="project-alignment-guide-horizontal"]',
+      )).toBeNull();
+    });
+  });
+
   it("commits one grouped geometry history payload when arrow keys move multiple selected nodes", async () => {
     const onGeometryBatchCommit = vi.fn();
     const descriptors = projectMapNodes(projectTestSnapshot());
