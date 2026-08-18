@@ -34,11 +34,10 @@ jobs:
               raise RuntimeError('expected one staged template-string repair target')
           source = source.replace(old, new, 1)
 
-          view_old = '      view: window,'
-          view_new = '      view: document.defaultView,'
-          if source.count(view_old) != 4:
-              raise RuntimeError('expected four mounted MouseEvent view repair targets')
-          path.write_text(source.replace(view_old, view_new))
+          view_line = '      view: window,\n'
+          if source.count(view_line) != 4:
+              raise RuntimeError('expected four mounted MouseEvent view removal targets')
+          path.write_text(source.replace(view_line, ''))
           PY
           node scripts/pr150-review-fixes.mjs
 
