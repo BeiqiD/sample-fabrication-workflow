@@ -48,13 +48,37 @@ import type { Env } from "./types";
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 type AppContext = Context<AppBindings>;
 type InputGuard<T> = (value: unknown) => value is T;
+type SettlementProof = () => Promise<boolean>;
+
+class ProjectMutationHttpException extends HTTPException {
+  constructor(
+    status: 404 | 409,
+    message: string,
+    readonly authoritativeRejection = false,
+  ) {
+    super(status, { message });
+  }
+}
+
+const MONOTONIC_PROJECT_CONFLICT_MESSAGES = new Set([
+  "Project revision conflict",
+  "Content revision conflict",
+  "Placement revision conflict",
+  "Item revision conflict",
+  "Edge revision conflict",
+  "Item or content revision conflict",
+  "Project revision or identity conflict",
+  "A Project identity or operation ID was already used for different content",
+  "A Project identity or operation ID was already used for a different reference",
+  "A Project identity or operation ID was already used for a different attachment",
+  "The edge ID or operation ID is already in use",
+]);
 
 export const routes = new Hono<AppBindings>();
 
 routes.onError((error, c) => {
-  if (error instanceof HTTPException && (error.status === 404 || error.status === 409)) {
+  if (error instanceof ProjectMutationHttpException && error.authoritativeRejection) {
     c.header("x-project-mutation-disposition", "authoritative-rejection");
-    return c.json({ error: error.message }, error.status);
   }
   if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
   throw error;
@@ -91,20 +115,78 @@ function isDatabaseConflict(error: unknown) {
     .test(String(error));
 }
 
-async function projectCall<T>(operation: () => Promise<T>): Promise<T> {
+function serviceConflictHasMonotonicProof(error: ProjectServiceError) {
+  return error.code === "conflict" && MONOTONIC_PROJECT_CONFLICT_MESSAGES.has(error.message);
+}
+
+function projectRevisionSettlementProof(
+  db: D1Database,
+  projectId: string,
+  expectedRevision: number,
+): SettlementProof {
+  return async () => {
+    const row = await db.prepare(`
+      SELECT revision FROM projects WHERE id = ? LIMIT 1
+    `).bind(projectId).first<{ revision: number }>();
+    return Boolean(row && Number(row.revision) !== expectedRevision);
+  };
+}
+
+function edgeEndpointRevisionSettlementProof(
+  db: D1Database,
+  projectId: string,
+  input: {
+    sourceItemId: string;
+    targetItemId: string;
+    expectedSourceItemRevision: number;
+    expectedTargetItemRevision: number;
+  },
+): SettlementProof {
+  return async () => {
+    const result = await db.prepare(`
+      SELECT id, revision
+      FROM project_items
+      WHERE project_id = ? AND id IN (?, ?)
+    `).bind(projectId, input.sourceItemId, input.targetItemId).all<{
+      id: string;
+      revision: number;
+    }>();
+    const revisions = new Map(result.results.map((row) => [row.id, Number(row.revision)]));
+    const sourceRevision = revisions.get(input.sourceItemId);
+    const targetRevision = revisions.get(input.targetItemId);
+    return (sourceRevision !== undefined && sourceRevision !== input.expectedSourceItemRevision)
+      || (targetRevision !== undefined && targetRevision !== input.expectedTargetItemRevision);
+  };
+}
+
+async function projectCall<T>(
+  operation: () => Promise<T>,
+  settlementProof?: SettlementProof,
+): Promise<T> {
   try {
     return await operation();
   } catch (error) {
     if (error instanceof ProjectServiceError) {
       if (error.code === "not_found") {
-        throw new HTTPException(404, { message: error.message });
+        throw new ProjectMutationHttpException(404, error.message);
       }
-      throw new HTTPException(409, { message: error.message });
+      let authoritativeRejection = serviceConflictHasMonotonicProof(error);
+      if (!authoritativeRejection && settlementProof) {
+        try {
+          authoritativeRejection = await settlementProof();
+        } catch {
+          // Settlement metadata is safety-only. Failure to prove monotonic rejection
+          // must leave the caller uncertain rather than weakening the mutation result.
+          authoritativeRejection = false;
+        }
+      }
+      throw new ProjectMutationHttpException(409, error.message, authoritativeRejection);
     }
     if (isDatabaseConflict(error)) {
-      throw new HTTPException(409, {
-        message: "Project state changed before the operation could commit",
-      });
+      throw new ProjectMutationHttpException(
+        409,
+        "Project state changed before the operation could commit",
+      );
     }
     throw error;
   }
@@ -180,7 +262,7 @@ routes.post("/projects/:projectId/items/markdown", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ));
+  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -196,7 +278,7 @@ routes.post("/projects/:projectId/items/reference", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ));
+  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -212,7 +294,7 @@ routes.post("/projects/:projectId/items/attachment/copy", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ));
+  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -228,7 +310,7 @@ routes.post("/projects/:projectId/items/attachment", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ));
+  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -345,7 +427,7 @@ routes.post("/projects/:projectId/edges", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ));
+  ), edgeEndpointRevisionSettlementProof(c.env.DB, projectId, input));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
