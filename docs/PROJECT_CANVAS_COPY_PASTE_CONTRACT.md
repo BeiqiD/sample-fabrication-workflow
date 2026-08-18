@@ -2,7 +2,7 @@
 
 Status: Phase 4B2 implemented in Draft PR #149; pending independent review
 
-Last reviewed: 2026-08-18 after restricting uncertain replay settlement to persistent or monotonic mutation proof
+Last reviewed: 2026-08-18 after making uncertain replay settlement proof directional, row-specific, and independent of human-readable errors
 
 ## Goal
 
@@ -112,11 +112,16 @@ The uncertain step is considered settled only when that exact replay either:
 - acknowledges the same destination mutation or exact server replay; or
 - returns the machine-readable `x-project-mutation-disposition: authoritative-rejection` after the Project route proves that the frozen request can no longer commit.
 
-The disposition is deliberately allowlisted and proof-based rather than inferred from `404`/`409` status alone. It may be emitted when an immutable destination identity is already bound incompatibly, when a directly checked row revision has monotonically diverged, or when the route re-reads the authoritative Project/endpoint revision and proves it no longer matches the frozen expected revision. New or unclassified conflicts default to **unmarked**.
+The disposition is deliberately proof-based rather than inferred from HTTP status, a human-readable error message, or mere revision inequality. It may be emitted only when:
 
-Reversible state does not provide settlement proof. Reference availability, attachment-source activity, blob availability, Project active/deleted state, and similar conditions may later recover without changing the frozen mutation's relevant revision. A replay rejected only because of such a condition must remain unmarked. If an independent monotonic revision mismatch is also observed, that mismatch—not the reversible condition—may provide the settlement proof.
+- one of the frozen destination item, content, placement, or edge identities is already persistently occupied, so the create request can never acquire all of its requested identities; or
+- the route re-reads the exact authoritative Project, placement, or endpoint-item revision that guards the frozen request and observes `currentRevision > expectedRevision`.
 
-An unmarked replay `401`, `403`, `404`, **reversible `409`**, other unclassified `4xx`, transport failure, timeout, or `5xx` does **not** settle the earlier uncertain request. In particular, authentication and same-origin middleware run before Project routes and therefore cannot manufacture the authoritative-rejection disposition. The same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active until a later exact replay proves settlement.
+Revision direction is essential. `currentRevision === expectedRevision` does not prove rejection, while `currentRevision < expectedRevision` represents a future precondition that may become satisfiable after intervening writes. A missing row, a proof-query failure, or a temporarily inaccessible row remains unmarked. Human-readable `ProjectServiceError.message` text never selects a settlement proof.
+
+Reversible state does not provide settlement proof. Reference availability, attachment-source activity, blob availability, and Project active/deleted state may later recover. In particular, a placement UPDATE that returns zero rows only because its Project was temporarily deleted remains uncertain when the placement revision itself has not advanced; after Project restore, the same frozen request may still commit.
+
+An unmarked replay `401`, `403`, `404`, **reversible or future-revision `409`**, other unclassified `4xx`, transport failure, timeout, or `5xx` does **not** settle the earlier uncertain request. In particular, authentication and same-origin middleware run before Project routes and therefore cannot manufacture the authoritative-rejection disposition. The same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active until a later exact replay proves settlement.
 
 Only after settlement may the client perform the authoritative GET, retain any destination rows that actually committed, abandon the later unattempted steps, and clear the journal. A GET alone can never clear an uncertain journal because it could race an earlier request that commits after the read.
 
@@ -157,6 +162,9 @@ The permanent `pre-pr/project-canvas-productivity` and Project-persistence gates
 - deterministic-rejection abandonment without an unnecessary replay;
 - uncertain-abandon exact replay of only the failed step before any GET, including an original request that commits after the user starts abandonment;
 - unmarked reversible Reference and attachment-source `409` responses while the relevant Project revision remains unchanged;
+- explicit `current = 1, expected = 2` future-revision cases that remain unmarked and later commit after revision catch-up;
+- explicit `current = 2, expected = 1` stale-revision cases that receive authoritative rejection;
+- a Project delete/restore placement race that stays unmarked while the placement revision remains unchanged and later accepts the same frozen request;
 - a mounted reversible-`409` race in which the old request commits late, with no GET/journal clear until a later exact replay acknowledges that committed destination;
 - later pending edge/item exclusion during abandon settlement;
 - item-clear and edge-selection locking throughout the unsafe paste state;
