@@ -1,16 +1,16 @@
 name: Apply PR150 review fixes
 
 on:
-  push:
+  pull_request:
     branches:
-      - codex/phase-4b3-canvas-alignment-z-order
+      - v2/backend-foundation
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: "${{ github.actor != 'github-actions[bot]' && github.event.head_commit.message == 'chore: stage PR150 review fixes' }}"
+    if: "${{ github.actor != 'github-actions[bot]' && github.head_ref == 'codex/phase-4b3-canvas-alignment-z-order' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
