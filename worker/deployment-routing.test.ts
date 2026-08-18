@@ -113,7 +113,7 @@ describe("deployment routing", () => {
     const gate = packageConfiguration.scripts?.["verify:v3-deployment"];
 
     expect(gate).toBe(
-      "npm run test:blob-lifecycle && npm run test:storage-integrity && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-canvas-productivity && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:project-edges && npm run verify:project-reading && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
+      "npm run test:blob-lifecycle && npm run test:storage-integrity && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-map-performance && npm run verify:project-canvas-productivity && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:project-edges && npm run verify:project-reading && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
     );
     expect(migrateCommand).toBe(
       "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
