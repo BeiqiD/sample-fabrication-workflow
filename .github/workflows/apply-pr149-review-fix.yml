@@ -61,7 +61,10 @@ jobs:
 
       - name: Run Canvas productivity unit and route tests
         id: fix_unit
-        run: npm run test:project-canvas-productivity
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:project-canvas-productivity 2>&1 | tee pr149-unit.log
 
       - name: Record focused unit status
         if: ${{ always() && steps.fix_unit.outcome != 'skipped' }}
@@ -72,6 +75,8 @@ jobs:
           STATUS_CONTEXT: pre-pr/pr149-fix/unit
           STATUS_SUCCESS_DESCRIPTION: PR149 Canvas unit tests passed
           STATUS_FAILURE_DESCRIPTION: PR149 Canvas unit tests failed
+          STATUS_LOG_FILE: pr149-unit.log
+          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
         run: node scripts/publish-commit-status.mjs
 
       - name: Run Canvas mounted recovery tests
@@ -136,7 +141,7 @@ jobs:
 
       - name: Commit verified fix and remove temporary applicator
         run: |
-          rm scripts/apply-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log
+          rm scripts/apply-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log pr149-unit.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
