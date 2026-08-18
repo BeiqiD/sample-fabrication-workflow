@@ -10,6 +10,24 @@
   background: var(--surface-warm);
 }
 
+.project-alignment-guide {
+  position: absolute;
+  z-index: 1000001;
+  pointer-events: none;
+  background: var(--accent);
+  opacity: .72;
+}
+
+.project-alignment-guide.vertical {
+  width: 1px;
+  transform: translateX(-.5px);
+}
+
+.project-alignment-guide.horizontal {
+  height: 1px;
+  transform: translateY(-.5px);
+}
+
 .project-flow-canvas .react-flow__controls {
   overflow: hidden;
   border: 1px solid var(--line);

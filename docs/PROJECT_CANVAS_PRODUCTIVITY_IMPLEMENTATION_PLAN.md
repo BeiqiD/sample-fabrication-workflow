@@ -1,8 +1,8 @@
 # Project Canvas productivity implementation plan
 
-Status: Phase 4B active; Phase 4B1 is complete in PR #148 and Phase 4B2 is implemented in Draft PR #149 pending independent review
+Status: Phase 4B active; Phase 4B1 and Phase 4B2 are complete in PRs #148/#149, and Phase 4B3 is implemented in Draft PR #150 pending independent review
 
-Last reviewed: 2026-08-18 after making uncertain replay settlement proof directional, row-specific, and independent of human-readable errors
+Last reviewed: 2026-08-18 after implementing bounded alignment assistance and explicit z-order over existing placement commands
 
 ## Goal
 
@@ -51,7 +51,7 @@ Exit: users can select several committed Map occurrences, move them together, un
 
 ## Phase 4B2 — authoritative copy/paste
 
-Status: implemented in Draft PR #149; pending independent review before Ready/merge.
+Status: complete in PR #149.
 
 The following design decisions are frozen:
 
@@ -84,16 +84,29 @@ Delivered in PR #149:
 - proof-based uncertain-write settlement that ignores human-readable error messages, treats only persistent identity occupancy or strict `currentRevision > expectedRevision` as terminal, and leaves future revisions and temporary Project deletion uncertain;
 - permanent Canvas-productivity and Project-persistence test coverage, including mounted complete-paste and response-loss recovery paths.
 
-Exit: implemented. A user can copy one or several committed Map occurrences, paste correct new Project occurrences and internal edges, safely resume an uncertain partial paste with the same identities, and clearly reconcile conflicts without a bulk persistence model or locator exposure. Phase 4B2 remains Draft only for independent review and exact-head verification, not because a planned interaction surface is intentionally missing.
+Exit: complete. A user can copy one or several committed Map occurrences, paste correct new Project occurrences and internal edges, safely resume an uncertain partial paste with the same identities, and clearly reconcile conflicts without a bulk persistence model or locator exposure. Its frozen retry and authorization contract remains the foundation for later Canvas productivity slices.
 
 ## Phase 4B3 — alignment assistance and explicit z-order
 
-Next bounded slice after Phase 4B2 review/merge:
+Status: implemented in Draft PR #150; pending independent review and exact-head verification.
 
-- local alignment/helper lines during drag without per-frame network writes;
-- explicit bring forward/back/front/back controls over existing bounded integer `zIndex` values;
-- grouped alignment commands represented as ordinary grouped placement history;
-- no hidden automatic layout or persistent guide objects.
+Delivered:
+
+- zoom-normalized local helper lines compare the moving selection's edges and centers with stationary node anchors during drag;
+- guides are transient visual feedback only: they create no rows, survive no reload, perform no per-frame network writes, and do not introduce hidden snapping;
+- six explicit multi-selection alignment commands align left/right/top/bottom or horizontal/vertical centers from the selected extent;
+- explicit send backward, bring forward, send to back, and bring to front controls operate on the existing bounded integer `zIndex`;
+- alignment targets remain exact while being clamped to the common persisted coordinate interval of every selected placement;
+- successful placement PATCH responses replace the matching snapshot placement in place, preserving render order while making acknowledged geometry available to later creation and copy/paste operations;
+- new Reference, Markdown, and Attachment layering reads the current working placement projection, while saved copy/paste receives the same acknowledged projection;
+- equal `zIndex` values use current rendered-node order as the visual tie-breaker rather than UUID-like identities;
+- React Flow automatic selected-node elevation is disabled so explicit z-order remains visually authoritative while a node is selected;
+- ordinary cases update only selected or crossed placements, while duplicate or exhausted z-order slots use deterministic bounded rank reassignment;
+- alignment and layer changes enter the existing grouped geometry history, Undo/Redo, autosave, conflict, and per-placement PATCH path;
+- controls remain desktop Map/Inspector actions and are unavailable while existing unsafe workspace operations block geometry;
+- no automatic layout, persistent guide objects, bulk Canvas endpoint, group/frame model, or alternate serialized Canvas document.
+
+Exit: implemented. A user can visually compare alignment while dragging, explicitly align a committed selection, and change item layering without leaving the normalized placement model. Phase 4C performance and final include/defer decisions are next.
 
 ## Include/defer decision
 
@@ -122,4 +135,11 @@ The permanent Canvas productivity gate covers:
 - stale Project and placement revisions (`current > expected`) receiving authoritative rejection;
 - a temporary Project delete/restore race leaving an unchanged placement revision unmarked and accepting the same frozen request after restore;
 - persistent destination identity occupancy providing settlement without inspecting human-readable error text;
+- zoom-normalized guide selection and transient React Flow viewport rendering without persistence or snapping;
+- grouped alignment geometry, bounded z-order movement, boundary fallback, Inspector controls, and Undo/Redo projection;
+- boundary-safe right/center/bottom alignment near the persisted coordinate limits;
+- save-then-create and save-then-copy/paste composition over acknowledged placement geometry;
+- duplicate-z forward/backward behavior matching current render order;
+- a real mounted drag lifecycle that renders and clears transient guides;
+- explicit z-order remaining visible while selected;
 - production build, Worker smoke, and Map bundle boundary.

@@ -57,8 +57,12 @@ import {
 } from "../lib/project-map-model";
 import {
   normalizeProjectItemSelection,
+  projectCanvasAlignmentCommands,
   projectCanvasKeyboardShortcutFromEvent,
   projectCanvasKeyboardTargetIsEditable,
+  projectCanvasZOrderCommands,
+  type ProjectCanvasAlignment,
+  type ProjectCanvasZOrderAction,
   type ProjectItemSelection,
 } from "../lib/project-canvas-productivity";
 import { useProjectCanvasCopyPaste } from "../lib/use-project-canvas-copy-paste";
@@ -174,6 +178,42 @@ function geometryIndex(snapshot: ProjectSnapshot) {
     height: placement.height,
     zIndex: placement.zIndex,
   }]));
+}
+
+function workingMaximumProjectZIndex(
+  geometry: Readonly<Record<string, ProjectMapGeometry>>,
+) {
+  return Object.values(geometry).reduce(
+    (maximum, placement) => Math.max(maximum, placement.zIndex),
+    0,
+  );
+}
+
+function snapshotWithPlacementProjection(
+  snapshot: ProjectSnapshot,
+  geometry: Readonly<Record<string, ProjectMapGeometry>>,
+): ProjectSnapshot {
+  let changed = false;
+  const placements = snapshot.placements.map((placement) => {
+    const projected = geometry[placement.id];
+    if (!projected || projectGeometryEquals(placement, projected)) return placement;
+    changed = true;
+    return { ...placement, ...projected };
+  });
+  return changed ? { ...snapshot, placements } : snapshot;
+}
+
+function snapshotWithSavedPlacement(
+  snapshot: ProjectSnapshot,
+  placement: ProjectPlacementRecord,
+): ProjectSnapshot {
+  let found = false;
+  const placements = snapshot.placements.map((current) => {
+    if (current.id !== placement.id) return current;
+    found = true;
+    return placement;
+  });
+  return found ? { ...snapshot, placements } : snapshot;
 }
 
 function saveLabel(state: SaveState) {
@@ -748,6 +788,9 @@ export function ProjectPage() {
         const result = await projectApi.updatePlacement(projectId, placementId, mutation);
         if (!saveSessionIsActive(generation)) return;
         baselineRef.current = { ...baselineRef.current, [placementId]: result.value };
+        setSnapshot((current) => current
+          ? snapshotWithSavedPlacement(current, result.value)
+          : current);
         delete pendingMutationRef.current[placementId];
       }
       succeeded = true;
@@ -996,7 +1039,7 @@ export function ProjectPage() {
     if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current) return;
-    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const geometry = projectReferenceGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!geometry) {
       setReferenceActionError("The requested Map coordinate is outside the supported Project geometry range");
@@ -1408,7 +1451,7 @@ export function ProjectPage() {
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current) return;
-    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const draftGeometry = projectMarkdownGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
     if (!draftGeometry) {
       setOwnedContentActionError("The requested Map coordinate is outside the supported Project geometry range");
@@ -1597,7 +1640,7 @@ export function ProjectPage() {
 
   const uploadAndCreateAttachment = useCallback(async (file: File, point: { x: number; y: number }) => {
     if (!snapshot || pendingAttachmentRef.current) return;
-    const maxZ = snapshot.placements.reduce((maximum, placement) => Math.max(maximum, placement.zIndex), 0);
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const attachmentGeometry = projectAttachmentGeometryAtPoint(
       point,
       Math.min(1_000_000, maxZ + 1),
@@ -1890,6 +1933,22 @@ export function ProjectPage() {
     ? descriptors.find((node) => node.itemId === focusedItemId) ?? null
     : null;
 
+  const alignSelectedItems = useCallback((alignment: ProjectCanvasAlignment) => {
+    commitGeometryBatch(projectCanvasAlignmentCommands(
+      descriptors,
+      selectedItemIds,
+      alignment,
+    ));
+  }, [commitGeometryBatch, descriptors, selectedItemIds]);
+
+  const changeSelectedZOrder = useCallback((action: ProjectCanvasZOrderAction) => {
+    commitGeometryBatch(projectCanvasZOrderCommands(
+      descriptors,
+      selectedItemIds,
+      action,
+    ));
+  }, [commitGeometryBatch, descriptors, selectedItemIds]);
+
   useEffect(() => {
     if (!snapshot || focusRequest.status !== "valid") {
       appliedFocusRef.current = null;
@@ -1967,7 +2026,9 @@ export function ProjectPage() {
     startReferenceRemoval(item.id, item.revision, content.revision);
   }, [snapshot, startReferenceRemoval]);
 
-  useEffect(() => {
+  // Install Canvas shortcuts in the same commit as the desktop Map. This
+  // avoids a one-frame listener gap when the lazy Map surface resolves.
+  useLayoutEffect(() => {
     if (!desktop || desktopView !== "map") return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)) return;
@@ -1988,12 +2049,17 @@ export function ProjectPage() {
       if (shortcut === "copy") {
         if (operationBlocked || saveStateRef.current !== "saved" || !snapshot || selectedItemIds.length === 0) return;
         event.preventDefault();
-        copyPaste.copySelection(snapshot, selectedItemIds);
+        copyPaste.copySelection(
+          snapshotWithPlacementProjection(snapshot, geometryRef.current),
+          selectedItemIds,
+        );
         return;
       }
       if (shortcut === "paste") {
         if (operationBlocked || saveStateRef.current !== "saved" || !snapshot) return;
-        if (!copyPaste.pasteClipboard(snapshot)) return;
+        if (!copyPaste.pasteClipboard(
+          snapshotWithPlacementProjection(snapshot, geometryRef.current),
+        )) return;
         event.preventDefault();
         setSelectedItemIds([]);
         setNavigationFocusItemId(null);
@@ -2095,6 +2161,35 @@ export function ProjectPage() {
     || pendingAttachment !== null
     || copyPaste.unsafe
     || edgeController.unsafe;
+  const alignmentActionDisabled = (alignment: ProjectCanvasAlignment) => (
+    geometryInteractionDisabled
+    || selectedDescriptors.length < 2
+    || projectCanvasAlignmentCommands(descriptors, selectedItemIds, alignment).length === 0
+  );
+  const zOrderActionDisabled = (action: ProjectCanvasZOrderAction) => (
+    geometryInteractionDisabled
+    || projectCanvasZOrderCommands(descriptors, selectedItemIds, action).length === 0
+  );
+  const alignmentControls = <div className="project-canvas-command-group">
+    <p className="card-label">Align selection</p>
+    <div className="project-canvas-command-grid align" role="group" aria-label="Align selected items">
+      <button type="button" className="button compact-button" aria-label="Align left" disabled={alignmentActionDisabled("left")} onClick={() => alignSelectedItems("left")}>Left</button>
+      <button type="button" className="button compact-button" aria-label="Align horizontal centers" disabled={alignmentActionDisabled("center-x")} onClick={() => alignSelectedItems("center-x")}>Center X</button>
+      <button type="button" className="button compact-button" aria-label="Align right" disabled={alignmentActionDisabled("right")} onClick={() => alignSelectedItems("right")}>Right</button>
+      <button type="button" className="button compact-button" aria-label="Align top" disabled={alignmentActionDisabled("top")} onClick={() => alignSelectedItems("top")}>Top</button>
+      <button type="button" className="button compact-button" aria-label="Align vertical centers" disabled={alignmentActionDisabled("center-y")} onClick={() => alignSelectedItems("center-y")}>Center Y</button>
+      <button type="button" className="button compact-button" aria-label="Align bottom" disabled={alignmentActionDisabled("bottom")} onClick={() => alignSelectedItems("bottom")}>Bottom</button>
+    </div>
+  </div>;
+  const zOrderControls = <div className="project-canvas-command-group">
+    <p className="card-label">Layer order</p>
+    <div className="project-canvas-command-grid order" role="group" aria-label="Change selected item layer order">
+      <button type="button" className="button compact-button" aria-label="Send to back" disabled={zOrderActionDisabled("send-to-back")} onClick={() => changeSelectedZOrder("send-to-back")}>Back</button>
+      <button type="button" className="button compact-button" aria-label="Send backward" disabled={zOrderActionDisabled("send-backward")} onClick={() => changeSelectedZOrder("send-backward")}>Backward</button>
+      <button type="button" className="button compact-button" aria-label="Bring forward" disabled={zOrderActionDisabled("bring-forward")} onClick={() => changeSelectedZOrder("bring-forward")}>Forward</button>
+      <button type="button" className="button compact-button" aria-label="Bring to front" disabled={zOrderActionDisabled("bring-to-front")} onClick={() => changeSelectedZOrder("bring-to-front")}>Front</button>
+    </div>
+  </div>;
 
   const navigationBlockMessage = projectDeleteUncertain
     ? "The Project trash operation outcome is uncertain. Retry the exact move before leaving this Project."
@@ -2467,9 +2562,12 @@ export function ProjectPage() {
             <dt>Attachments</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "attachment").length}</dd>
             <dt>Primary</dt><dd>{selectedDescriptors.find((descriptor) => descriptor.itemId === selectedItemId)?.title ?? "None"}</dd>
           </dl>
+          {alignmentControls}
+          {zOrderControls}
           <button type="button" className="button wide" onClick={() => selectProjectItems({ itemIds: [], primaryItemId: null })}>Clear selection</button>
         </div> : selected ? <div className="project-inspector-content">
           <ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />
+          {zOrderControls}
           {selectedReferenceTarget && <ProjectInspectorChildren
             key={`${selectedReferenceTarget.type}\u0000${selectedReferenceTarget.id}`}
             parent={selectedReferenceTarget}

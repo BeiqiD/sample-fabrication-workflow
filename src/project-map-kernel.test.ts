@@ -26,6 +26,17 @@ describe("Project Map kernel boundaries", () => {
     expect(surfaceSource).toContain("const PROJECT_NODE_TYPES");
   });
 
+  it("keeps Phase 4B3 assistance transient and reuses normalized placement commands", () => {
+    expect(surfaceSource).toContain("projectCanvasAlignmentGuides");
+    expect(surfaceSource).toContain("onNodeDrag={handleNodeDrag}");
+    expect(surfaceSource).toContain("<ViewportPortal>");
+    expect(surfaceSource).toContain("elevateNodesOnSelect={false}");
+    expect(pageSource).toContain("projectCanvasAlignmentCommands");
+    expect(pageSource).toContain("projectCanvasZOrderCommands");
+    expect(pageSource).toContain("commitGeometryBatch(projectCanvasAlignmentCommands");
+    expect(pageSource).toContain("commitGeometryBatch(projectCanvasZOrderCommands");
+  });
+
   it("protects dirty Project placement state across SPA and hard navigation", () => {
     expect(mainSource).toContain("createBrowserRouter");
     expect(mainSource).toContain("<RouterProvider router={router} />");

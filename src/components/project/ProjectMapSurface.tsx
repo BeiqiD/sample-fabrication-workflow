@@ -17,6 +17,7 @@ import {
   Position,
   ReactFlow,
   SelectionMode,
+  ViewportPortal,
   applyNodeChanges,
   type Connection,
   type Edge,
@@ -51,6 +52,9 @@ import {
 } from "../../lib/project-map-model";
 import {
   normalizeProjectItemSelection,
+  PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
+  projectCanvasAlignmentGuides,
+  type ProjectCanvasAlignmentGuides,
   type ProjectItemSelection,
 } from "../../lib/project-canvas-productivity";
 import "./project-map-surface.css";
@@ -278,6 +282,10 @@ const NOOP_MARKDOWN_EDIT = (_itemId: string) => undefined;
 const NOOP_MARKDOWN_CHANGE = (_value: string) => undefined;
 const NOOP_ACTION = () => undefined;
 const NOOP_EDGE_SELECT = (_edgeId: string | null) => undefined;
+const NO_PROJECT_ALIGNMENT_GUIDES: ProjectCanvasAlignmentGuides = {
+  vertical: null,
+  horizontal: null,
+};
 
 function isProjectEdgeHandle(value: string | null | undefined): value is ProjectEdgeHandle {
   return value === "top" || value === "right" || value === "bottom" || value === "left";
@@ -512,10 +520,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<ProjectFlowNode> | null>(null);
   const lastFocusedItemIdRef = useRef<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
-    left: number;
-    top: number;
-    point: { x: number; y: number };
-  } | null>(null);
+  left: number;
+  top: number;
+  point: { x: number; y: number };
+} | null>(null);
+  const [alignmentGuides, setAlignmentGuides] = useState<ProjectCanvasAlignmentGuides>(
+    NO_PROJECT_ALIGNMENT_GUIDES,
+  );
+  const clearAlignmentGuides = useCallback(() => {
+    setAlignmentGuides((current) => (
+      current.vertical === null && current.horizontal === null
+        ? current
+        : NO_PROJECT_ALIGNMENT_GUIDES
+    ));
+  }, []);
 
   const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
     if (geometryInteractionDisabled) return;
@@ -711,6 +729,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     });
   }, [edgeInteractionDisabled, onEdgeConnect]);
   const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
+    clearAlignmentGuides();
     if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
     dragStarts.clear();
     const movingNodes = selectedNodes.length > 0 ? selectedNodes : [node];
@@ -718,8 +737,40 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (movingNode.data.pendingReference || movingNode.data.pendingAttachment || movingNode.data.markdownEditor) continue;
       dragStarts.set(movingNode.data.descriptor.placementId, nodeGeometry(movingNode));
     }
-  }, [dragStarts, geometryInteractionDisabled]);
+  }, [clearAlignmentGuides, dragStarts, geometryInteractionDisabled]);
+  const handleNodeDrag = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
+    if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) {
+      clearAlignmentGuides();
+      return;
+    }
+    const movingNodes = (selectedNodes.length > 0 ? selectedNodes : [node]).filter((candidate) => (
+      !candidate.data.pendingReference
+      && !candidate.data.pendingAttachment
+      && !candidate.data.markdownEditor
+    ));
+    const movingPlacementIds = new Set(movingNodes.map((candidate) => (
+      candidate.data.descriptor.placementId
+    )));
+    const stationaryNodes = flowNodesRef.current.filter((candidate) => (
+      !movingPlacementIds.has(candidate.data.descriptor.placementId)
+      && !candidate.data.pendingReference
+      && !candidate.data.pendingAttachment
+      && !candidate.data.markdownEditor
+    ));
+    const zoom = Math.max(flowInstanceRef.current?.getZoom() ?? 1, 0.1);
+    const next = projectCanvasAlignmentGuides(
+      movingNodes.map(nodeGeometry),
+      stationaryNodes.map(nodeGeometry),
+      8 / zoom,
+    );
+    setAlignmentGuides((current) => (
+      current.vertical === next.vertical && current.horizontal === next.horizontal
+        ? current
+        : next
+    ));
+  }, [clearAlignmentGuides, geometryInteractionDisabled]);
   const handleNodeDragStop = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
+    clearAlignmentGuides();
     if (geometryInteractionDisabled || dragStarts.size === 0) return;
     const latestNodes = new Map((selectedNodes.length > 0 ? selectedNodes : [node]).map((candidate) => [
       candidate.data.descriptor.placementId,
@@ -741,13 +792,17 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       recentDragCommitTimerRef.current = null;
     }, 0);
     emitGeometryCommands(normalized);
-  }, [dragStarts, emitGeometryCommands, geometryInteractionDisabled]);
+  }, [clearAlignmentGuides, dragStarts, emitGeometryCommands, geometryInteractionDisabled]);
 
   useEffect(() => () => {
-    if (recentDragCommitTimerRef.current !== null) {
-      window.clearTimeout(recentDragCommitTimerRef.current);
-    }
-  }, []);
+  if (recentDragCommitTimerRef.current !== null) {
+    window.clearTimeout(recentDragCommitTimerRef.current);
+  }
+}, []);
+
+  useEffect(() => {
+    if (geometryInteractionDisabled) clearAlignmentGuides();
+  }, [clearAlignmentGuides, geometryInteractionDisabled]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (geometryInteractionDisabled) return;
@@ -817,12 +872,14 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onConnect={handleConnect}
       onPaneClick={handlePaneClick}
       onNodeDragStart={handleNodeDragStart}
-      onNodeDragStop={handleNodeDragStop}
+  onNodeDrag={handleNodeDrag}
+  onNodeDragStop={handleNodeDragStop}
       nodesDraggable={!geometryInteractionDisabled}
       nodesConnectable={!edgeInteractionDisabled}
       edgesReconnectable={false}
       connectionMode={ConnectionMode.Loose}
       elementsSelectable
+      elevateNodesOnSelect={false}
       selectionKeyCode="Shift"
       multiSelectionKeyCode={["Shift", "Meta", "Control"]}
       selectionMode={SelectionMode.Partial}
@@ -834,8 +891,30 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       deleteKeyCode={null}
       proOptions={PROJECT_PRO_OPTIONS}
     >
-      <Background gap={22} size={1.2} />
-      <Controls showInteractive={false} />
+  <ViewportPortal>
+    {alignmentGuides.vertical !== null && <div
+      aria-hidden
+      className="project-alignment-guide vertical"
+      data-testid="project-alignment-guide-vertical"
+      style={{
+        left: alignmentGuides.vertical,
+        top: -PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
+        height: PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT * 2,
+      }}
+    />}
+    {alignmentGuides.horizontal !== null && <div
+      aria-hidden
+      className="project-alignment-guide horizontal"
+      data-testid="project-alignment-guide-horizontal"
+      style={{
+        left: -PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
+        top: alignmentGuides.horizontal,
+        width: PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT * 2,
+      }}
+    />}
+  </ViewportPortal>
+  <Background gap={22} size={1.2} />
+  <Controls showInteractive={false} />
     </ReactFlow>
     {contextMenu && <div className="project-map-context-menu" style={{ left: contextMenu.left, top: contextMenu.top }} role="menu">
       <button type="button" role="menuitem" onClick={() => {
