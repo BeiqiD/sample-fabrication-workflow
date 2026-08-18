@@ -27,11 +27,17 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
     return <div data-testid="project-flow-canvas">
       <p>Note x: {note.geometry.x}</p>
       <p>Reference x: {reference.geometry.x}</p>
+      <p>Note z: {note.geometry.zIndex}</p>
+      <p>Reference z: {reference.geometry.zIndex}</p>
       <p>{markdownEditor ? "Markdown editor active" : "Markdown editor inactive"}</p>
       <button type="button" onClick={() => onSelectionChange?.({
         itemIds: [note.itemId, reference.itemId],
         primaryItemId: reference.itemId,
       })}>Select two items</button>
+      <button type="button" onClick={() => onSelectionChange?.({
+        itemIds: [note.itemId],
+        primaryItemId: note.itemId,
+      })}>Select note</button>
       <button type="button" onClick={() => onGeometryBatchCommit?.([{
         placementId: note.placementId,
         before: note.geometry,
@@ -151,6 +157,36 @@ describe("mounted Phase 4B Canvas productivity", () => {
     fireEvent.click(screen.getByRole("button", { name: "Redo" }));
     expect(screen.getByText("Note x: 60")).toBeTruthy();
     expect(screen.getByText("Reference x: 360")).toBeTruthy();
+  });
+
+  it("aligns a multi-selection through one ordinary grouped geometry history command", async () => {
+    fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    fireEvent.click(screen.getByRole("button", { name: "Align left" }));
+    expect(screen.getByText("Note x: 20")).toBeTruthy();
+    expect(screen.getByText("Reference x: 20")).toBeTruthy();
+    expect(screen.getByText("Unsaved")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText("Reference x: 320")).toBeTruthy();
+  });
+
+  it("changes explicit z-order through the existing geometry history and save model", async () => {
+    fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
+    renderProjectPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bring to front" }));
+    expect(screen.getByText("Note z: 2")).toBeTruthy();
+    expect(screen.getByText("Reference z: 1")).toBeTruthy();
+    expect(screen.getByText("Unsaved")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText("Note z: 0")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(screen.getByText("Note z: 2")).toBeTruthy();
   });
 
   it("supports select-all, Escape, and explicit keyboard save without a bulk backend API", async () => {

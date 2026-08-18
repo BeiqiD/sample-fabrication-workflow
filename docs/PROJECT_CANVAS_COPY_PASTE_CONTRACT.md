@@ -1,6 +1,6 @@
 # Project Canvas authoritative copy/paste contract
 
-Status: Phase 4B2 implemented in Draft PR #149; pending independent review
+Status: Phase 4B2 complete in PR #149.
 
 Last reviewed: 2026-08-18 after making uncertain replay settlement proof directional, row-specific, and independent of human-readable errors
 

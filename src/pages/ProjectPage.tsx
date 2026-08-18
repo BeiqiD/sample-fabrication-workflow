@@ -57,8 +57,12 @@ import {
 } from "../lib/project-map-model";
 import {
   normalizeProjectItemSelection,
+  projectCanvasAlignmentCommands,
   projectCanvasKeyboardShortcutFromEvent,
   projectCanvasKeyboardTargetIsEditable,
+  projectCanvasZOrderCommands,
+  type ProjectCanvasAlignment,
+  type ProjectCanvasZOrderAction,
   type ProjectItemSelection,
 } from "../lib/project-canvas-productivity";
 import { useProjectCanvasCopyPaste } from "../lib/use-project-canvas-copy-paste";
@@ -1890,6 +1894,22 @@ export function ProjectPage() {
     ? descriptors.find((node) => node.itemId === focusedItemId) ?? null
     : null;
 
+  const alignSelectedItems = useCallback((alignment: ProjectCanvasAlignment) => {
+    commitGeometryBatch(projectCanvasAlignmentCommands(
+      descriptors,
+      selectedItemIds,
+      alignment,
+    ));
+  }, [commitGeometryBatch, descriptors, selectedItemIds]);
+
+  const changeSelectedZOrder = useCallback((action: ProjectCanvasZOrderAction) => {
+    commitGeometryBatch(projectCanvasZOrderCommands(
+      descriptors,
+      selectedItemIds,
+      action,
+    ));
+  }, [commitGeometryBatch, descriptors, selectedItemIds]);
+
   useEffect(() => {
     if (!snapshot || focusRequest.status !== "valid") {
       appliedFocusRef.current = null;
@@ -2095,6 +2115,35 @@ export function ProjectPage() {
     || pendingAttachment !== null
     || copyPaste.unsafe
     || edgeController.unsafe;
+  const alignmentActionDisabled = (alignment: ProjectCanvasAlignment) => (
+    geometryInteractionDisabled
+    || selectedDescriptors.length < 2
+    || projectCanvasAlignmentCommands(descriptors, selectedItemIds, alignment).length === 0
+  );
+  const zOrderActionDisabled = (action: ProjectCanvasZOrderAction) => (
+    geometryInteractionDisabled
+    || projectCanvasZOrderCommands(descriptors, selectedItemIds, action).length === 0
+  );
+  const alignmentControls = <div className="project-canvas-command-group">
+    <p className="card-label">Align selection</p>
+    <div className="project-canvas-command-grid align" role="group" aria-label="Align selected items">
+      <button type="button" className="button compact-button" aria-label="Align left" disabled={alignmentActionDisabled("left")} onClick={() => alignSelectedItems("left")}>Left</button>
+      <button type="button" className="button compact-button" aria-label="Align horizontal centers" disabled={alignmentActionDisabled("center-x")} onClick={() => alignSelectedItems("center-x")}>Center X</button>
+      <button type="button" className="button compact-button" aria-label="Align right" disabled={alignmentActionDisabled("right")} onClick={() => alignSelectedItems("right")}>Right</button>
+      <button type="button" className="button compact-button" aria-label="Align top" disabled={alignmentActionDisabled("top")} onClick={() => alignSelectedItems("top")}>Top</button>
+      <button type="button" className="button compact-button" aria-label="Align vertical centers" disabled={alignmentActionDisabled("center-y")} onClick={() => alignSelectedItems("center-y")}>Center Y</button>
+      <button type="button" className="button compact-button" aria-label="Align bottom" disabled={alignmentActionDisabled("bottom")} onClick={() => alignSelectedItems("bottom")}>Bottom</button>
+    </div>
+  </div>;
+  const zOrderControls = <div className="project-canvas-command-group">
+    <p className="card-label">Layer order</p>
+    <div className="project-canvas-command-grid order" role="group" aria-label="Change selected item layer order">
+      <button type="button" className="button compact-button" aria-label="Send to back" disabled={zOrderActionDisabled("send-to-back")} onClick={() => changeSelectedZOrder("send-to-back")}>Back</button>
+      <button type="button" className="button compact-button" aria-label="Send backward" disabled={zOrderActionDisabled("send-backward")} onClick={() => changeSelectedZOrder("send-backward")}>Backward</button>
+      <button type="button" className="button compact-button" aria-label="Bring forward" disabled={zOrderActionDisabled("bring-forward")} onClick={() => changeSelectedZOrder("bring-forward")}>Forward</button>
+      <button type="button" className="button compact-button" aria-label="Bring to front" disabled={zOrderActionDisabled("bring-to-front")} onClick={() => changeSelectedZOrder("bring-to-front")}>Front</button>
+    </div>
+  </div>;
 
   const navigationBlockMessage = projectDeleteUncertain
     ? "The Project trash operation outcome is uncertain. Retry the exact move before leaving this Project."
@@ -2467,9 +2516,12 @@ export function ProjectPage() {
             <dt>Attachments</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "attachment").length}</dd>
             <dt>Primary</dt><dd>{selectedDescriptors.find((descriptor) => descriptor.itemId === selectedItemId)?.title ?? "None"}</dd>
           </dl>
+          {alignmentControls}
+          {zOrderControls}
           <button type="button" className="button wide" onClick={() => selectProjectItems({ itemIds: [], primaryItemId: null })}>Clear selection</button>
         </div> : selected ? <div className="project-inspector-content">
           <ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />
+          {zOrderControls}
           {selectedReferenceTarget && <ProjectInspectorChildren
             key={`${selectedReferenceTarget.type}\u0000${selectedReferenceTarget.id}`}
             parent={selectedReferenceTarget}
