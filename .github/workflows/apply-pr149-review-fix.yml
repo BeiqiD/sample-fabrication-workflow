@@ -45,22 +45,94 @@ jobs:
           cache: npm
 
       - name: Install dependencies
+        id: fix_install
         run: npm ci
 
+      - name: Record focused install status
+        if: ${{ always() && steps.fix_install.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_install.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/install
+          STATUS_SUCCESS_DESCRIPTION: PR149 focused install passed
+          STATUS_FAILURE_DESCRIPTION: PR149 focused install failed
+        run: node scripts/publish-commit-status.mjs
+
       - name: Run Canvas productivity unit and route tests
+        id: fix_unit
         run: npm run test:project-canvas-productivity
 
+      - name: Record focused unit status
+        if: ${{ always() && steps.fix_unit.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_unit.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/unit
+          STATUS_SUCCESS_DESCRIPTION: PR149 Canvas unit tests passed
+          STATUS_FAILURE_DESCRIPTION: PR149 Canvas unit tests failed
+        run: node scripts/publish-commit-status.mjs
+
       - name: Run Canvas mounted recovery tests
+        id: fix_mounted
         run: npm run test:project-canvas-productivity-mounted
 
+      - name: Record focused mounted status
+        if: ${{ always() && steps.fix_mounted.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_mounted.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/mounted
+          STATUS_SUCCESS_DESCRIPTION: PR149 mounted recovery tests passed
+          STATUS_FAILURE_DESCRIPTION: PR149 mounted recovery tests failed
+        run: node scripts/publish-commit-status.mjs
+
       - name: Run Project route and CI contract regressions
+        id: fix_routes
         run: npx vitest run worker/project-routes.test.ts src/project-edges-contract.test.ts
 
+      - name: Record focused route status
+        if: ${{ always() && steps.fix_routes.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_routes.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/routes
+          STATUS_SUCCESS_DESCRIPTION: PR149 route and CI regressions passed
+          STATUS_FAILURE_DESCRIPTION: PR149 route and CI regressions failed
+        run: node scripts/publish-commit-status.mjs
+
       - name: Run production build
+        id: fix_build
         run: npm run build
 
+      - name: Record focused build status
+        if: ${{ always() && steps.fix_build.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_build.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/build
+          STATUS_SUCCESS_DESCRIPTION: PR149 production build passed
+          STATUS_FAILURE_DESCRIPTION: PR149 production build failed
+        run: node scripts/publish-commit-status.mjs
+
       - name: Check patch whitespace
+        id: fix_diff
         run: git diff --check
+
+      - name: Record focused diff status
+        if: ${{ always() && steps.fix_diff.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_diff.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/diff
+          STATUS_SUCCESS_DESCRIPTION: PR149 diff check passed
+          STATUS_FAILURE_DESCRIPTION: PR149 diff check failed
+        run: node scripts/publish-commit-status.mjs
 
       - name: Commit verified fix and remove temporary applicator
         run: |
