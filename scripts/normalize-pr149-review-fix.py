@@ -87,4 +87,26 @@ if text.count(old) != 1:
     raise SystemExit(f"copy/paste contract: expected one disposition reference, found {text.count(old)}")
 contract.write_text(text.replace(old, new, 1))
 
-print("Normalized PR #149 authoritative settlement marker to a response header")
+# The status reporter now has a hard per-request timeout, so the runner-pushed
+# functional commit does not need to modify workflow YAML. The connector will
+# clean up the temporary applicator separately.
+workflow = Path(".github/workflows/verify.yml")
+workflow_text = workflow.read_text()
+timeout_block = "        continue-on-error: true\n        timeout-minutes: 1\n        env:\n          GITHUB_TOKEN:"
+original_block = "        continue-on-error: true\n        env:\n          GITHUB_TOKEN:"
+if workflow_text.count(timeout_block) != 13:
+    raise SystemExit(f"verify.yml: expected 13 temporary timeout insertions, found {workflow_text.count(timeout_block)}")
+workflow.write_text(workflow_text.replace(timeout_block, original_block))
+
+replace_once(
+    "src/project-edges-contract.test.ts",
+    '''    expect(workflow).toContain("continue-on-error: true");
+    expect(workflow).toContain("timeout-minutes: 1");
+    expect(statusPublisher).toContain("AbortSignal.timeout(requestTimeoutMs)");
+''',
+    '''    expect(workflow).toContain("continue-on-error: true");
+    expect(statusPublisher).toContain("AbortSignal.timeout(requestTimeoutMs)");
+''',
+)
+
+print("Normalized PR #149 authoritative settlement marker and runner-safe CI diff")
