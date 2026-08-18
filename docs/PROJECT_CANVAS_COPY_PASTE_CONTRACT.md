@@ -2,7 +2,7 @@
 
 Status: Phase 4B2 implemented in Draft PR #149; pending independent review
 
-Last reviewed: 2026-08-18 after requiring authoritative proof for uncertain replay settlement and bounding verification status publication for PR #149
+Last reviewed: 2026-08-18 after restricting uncertain replay settlement to persistent or monotonic mutation proof
 
 ## Goal
 
@@ -110,9 +110,13 @@ That initial classification is deliberately **not** reused to settle an earlier 
 The uncertain step is considered settled only when that exact replay either:
 
 - acknowledges the same destination mutation or exact server replay; or
-- returns the machine-readable `x-project-mutation-disposition: authoritative-rejection`, which is emitted by the Project route only after the request reaches the authoritative Project mutation/service error boundary.
+- returns the machine-readable `x-project-mutation-disposition: authoritative-rejection` after the Project route proves that the frozen request can no longer commit.
 
-An unmarked replay `401`, `403`, `404`, other `4xx`, transport failure, timeout, or `5xx` does **not** settle the earlier uncertain request. In particular, authentication and same-origin middleware run before Project routes and therefore cannot manufacture the authoritative-rejection disposition. The same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active until a later exact replay proves settlement.
+The disposition is deliberately allowlisted and proof-based rather than inferred from `404`/`409` status alone. It may be emitted when an immutable destination identity is already bound incompatibly, when a directly checked row revision has monotonically diverged, or when the route re-reads the authoritative Project/endpoint revision and proves it no longer matches the frozen expected revision. New or unclassified conflicts default to **unmarked**.
+
+Reversible state does not provide settlement proof. Reference availability, attachment-source activity, blob availability, Project active/deleted state, and similar conditions may later recover without changing the frozen mutation's relevant revision. A replay rejected only because of such a condition must remain unmarked. If an independent monotonic revision mismatch is also observed, that mismatch—not the reversible condition—may provide the settlement proof.
+
+An unmarked replay `401`, `403`, `404`, **reversible `409`**, other unclassified `4xx`, transport failure, timeout, or `5xx` does **not** settle the earlier uncertain request. In particular, authentication and same-origin middleware run before Project routes and therefore cannot manufacture the authoritative-rejection disposition. The same journal, failed-step identity, selection lock, navigation blocker, and `beforeunload` protection remain active until a later exact replay proves settlement.
 
 Only after settlement may the client perform the authoritative GET, retain any destination rows that actually committed, abandon the later unattempted steps, and clear the journal. A GET alone can never clear an uncertain journal because it could race an earlier request that commits after the read.
 
@@ -152,6 +156,8 @@ The permanent `pre-pr/project-canvas-productivity` and Project-persistence gates
 - response-loss pause, exact request replay without repeating acknowledged earlier steps, authoritative reload, and blocked-navigation continuation;
 - deterministic-rejection abandonment without an unnecessary replay;
 - uncertain-abandon exact replay of only the failed step before any GET, including an original request that commits after the user starts abandonment;
+- unmarked reversible Reference and attachment-source `409` responses while the relevant Project revision remains unchanged;
+- a mounted reversible-`409` race in which the old request commits late, with no GET/journal clear until a later exact replay acknowledges that committed destination;
 - later pending edge/item exclusion during abandon settlement;
 - item-clear and edge-selection locking throughout the unsafe paste state;
 - Worker route, client route, production build, Project worker smoke, Map bundle boundary, and existing mounted Canvas regressions.
