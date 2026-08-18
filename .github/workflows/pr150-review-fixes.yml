@@ -20,8 +20,21 @@ jobs:
           ref: codex/phase-4b3-canvas-alignment-z-order
           fetch-depth: 0
 
-      - name: Apply review fixes
-        run: node scripts/pr150-review-fixes.mjs
+      - name: Repair staged helper and apply review fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/pr150-review-fixes.mjs')
+          source = path.read_text()
+          old = '      if (init.method !== "POST") throw new Error(`Unexpected ${init.method} ${path}`);'
+          new = '      if (init.method !== "POST") throw new Error("Unexpected " + init.method + " " + path);'
+          if source.count(old) != 1:
+              raise RuntimeError('expected one staged template-string repair target')
+          path.write_text(source.replace(old, new, 1))
+          PY
+          node scripts/pr150-review-fixes.mjs
 
       - name: Check patch
         run: git diff --check
