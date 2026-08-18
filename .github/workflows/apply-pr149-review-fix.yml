@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  statuses: write
 
 jobs:
   apply:
@@ -19,7 +20,23 @@ jobs:
           fetch-depth: 0
 
       - name: Apply bounded review fix
-        run: python scripts/apply-pr149-review-fix.py
+        id: apply_fix
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/apply-pr149-review-fix.py 2>&1 | tee pr149-review-fix.log
+
+      - name: Record applicator status
+        if: ${{ always() && steps.apply_fix.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.apply_fix.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-review-fix-apply
+          STATUS_SUCCESS_DESCRIPTION: PR149 review fix applied
+          STATUS_FAILURE_DESCRIPTION: PR149 review fix applicator failed
+          STATUS_LOG_FILE: pr149-review-fix.log
+        run: node scripts/publish-commit-status.mjs
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -47,7 +64,7 @@ jobs:
 
       - name: Commit verified fix and remove temporary applicator
         run: |
-          rm scripts/apply-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml
+          rm scripts/apply-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
