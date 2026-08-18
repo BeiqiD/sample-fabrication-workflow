@@ -25,6 +25,7 @@ jobs:
         run: |
           set -o pipefail
           python scripts/apply-pr149-review-fix.py 2>&1 | tee pr149-review-fix.log
+          python scripts/normalize-pr149-review-fix.py 2>&1 | tee -a pr149-review-fix.log
 
       - name: Record applicator status
         if: ${{ always() && steps.apply_fix.outcome != 'skipped' }}
@@ -141,7 +142,7 @@ jobs:
 
       - name: Commit verified fix and remove temporary applicator
         run: |
-          rm scripts/apply-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log pr149-unit.log
+          rm scripts/apply-pr149-review-fix.py scripts/normalize-pr149-review-fix.py .github/workflows/apply-pr149-review-fix.yml pr149-review-fix.log pr149-unit.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
