@@ -60,20 +60,6 @@ class ProjectMutationHttpException extends HTTPException {
   }
 }
 
-const MONOTONIC_PROJECT_CONFLICT_MESSAGES = new Set([
-  "Project revision conflict",
-  "Content revision conflict",
-  "Placement revision conflict",
-  "Item revision conflict",
-  "Edge revision conflict",
-  "Item or content revision conflict",
-  "Project revision or identity conflict",
-  "A Project identity or operation ID was already used for different content",
-  "A Project identity or operation ID was already used for a different reference",
-  "A Project identity or operation ID was already used for a different attachment",
-  "The edge ID or operation ID is already in use",
-]);
-
 export const routes = new Hono<AppBindings>();
 
 routes.onError((error, c) => {
@@ -115,8 +101,13 @@ function isDatabaseConflict(error: unknown) {
     .test(String(error));
 }
 
-function serviceConflictHasMonotonicProof(error: ProjectServiceError) {
-  return error.code === "conflict" && MONOTONIC_PROJECT_CONFLICT_MESSAGES.has(error.message);
+function anySettlementProof(...proofs: SettlementProof[]): SettlementProof {
+  return async () => {
+    for (const proof of proofs) {
+      if (await proof()) return true;
+    }
+    return false;
+  };
 }
 
 function projectRevisionSettlementProof(
@@ -128,8 +119,62 @@ function projectRevisionSettlementProof(
     const row = await db.prepare(`
       SELECT revision FROM projects WHERE id = ? LIMIT 1
     `).bind(projectId).first<{ revision: number }>();
-    return Boolean(row && Number(row.revision) !== expectedRevision);
+    return Boolean(row && Number(row.revision) > expectedRevision);
   };
+}
+
+function projectItemIdentitySettlementProof(
+  db: D1Database,
+  input: {
+    itemId: string;
+    placementId: string;
+    contentId?: string;
+  },
+): SettlementProof {
+  return async () => {
+    const row = await db.prepare(`
+      SELECT 1 AS occupied
+      WHERE EXISTS (SELECT 1 FROM project_items WHERE id = ?)
+         OR EXISTS (SELECT 1 FROM project_map_placements WHERE id = ?)
+         OR (? IS NOT NULL AND EXISTS (
+           SELECT 1 FROM project_contents WHERE id = ?
+         ))
+      LIMIT 1
+    `).bind(
+      input.itemId,
+      input.placementId,
+      input.contentId ?? null,
+      input.contentId ?? null,
+    ).first<{ occupied: number }>();
+    return Boolean(row);
+  };
+}
+
+function placementRevisionSettlementProof(
+  db: D1Database,
+  projectId: string,
+  placementId: string,
+  expectedRevision: number,
+): SettlementProof {
+  return async () => {
+    const row = await db.prepare(`
+      SELECT pmp.revision
+      FROM project_map_placements pmp
+      JOIN project_items pi ON pi.id = pmp.project_item_id
+      WHERE pmp.id = ? AND pi.project_id = ?
+      LIMIT 1
+    `).bind(placementId, projectId).first<{ revision: number }>();
+    return Boolean(row && Number(row.revision) > expectedRevision);
+  };
+}
+
+function edgeIdentitySettlementProof(
+  db: D1Database,
+  edgeId: string,
+): SettlementProof {
+  return async () => Boolean(await db.prepare(`
+    SELECT 1 AS occupied FROM project_edges WHERE id = ? LIMIT 1
+  `).bind(edgeId).first<{ occupied: number }>());
 }
 
 function edgeEndpointRevisionSettlementProof(
@@ -154,8 +199,8 @@ function edgeEndpointRevisionSettlementProof(
     const revisions = new Map(result.results.map((row) => [row.id, Number(row.revision)]));
     const sourceRevision = revisions.get(input.sourceItemId);
     const targetRevision = revisions.get(input.targetItemId);
-    return (sourceRevision !== undefined && sourceRevision !== input.expectedSourceItemRevision)
-      || (targetRevision !== undefined && targetRevision !== input.expectedTargetItemRevision);
+    return (sourceRevision !== undefined && sourceRevision > input.expectedSourceItemRevision)
+      || (targetRevision !== undefined && targetRevision > input.expectedTargetItemRevision);
   };
 }
 
@@ -170,13 +215,13 @@ async function projectCall<T>(
       if (error.code === "not_found") {
         throw new ProjectMutationHttpException(404, error.message);
       }
-      let authoritativeRejection = serviceConflictHasMonotonicProof(error);
-      if (!authoritativeRejection && settlementProof) {
+      let authoritativeRejection = false;
+      if (settlementProof) {
         try {
           authoritativeRejection = await settlementProof();
         } catch {
-          // Settlement metadata is safety-only. Failure to prove monotonic rejection
-          // must leave the caller uncertain rather than weakening the mutation result.
+          // Settlement metadata is safety-only. Failure to prove an immutable
+          // identity fence or a strictly advanced revision must remain uncertain.
           authoritativeRejection = false;
         }
       }
@@ -262,7 +307,10 @@ routes.post("/projects/:projectId/items/markdown", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
+  ), anySettlementProof(
+    projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision),
+    projectItemIdentitySettlementProof(c.env.DB, input),
+  ));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -278,7 +326,10 @@ routes.post("/projects/:projectId/items/reference", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
+  ), anySettlementProof(
+    projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision),
+    projectItemIdentitySettlementProof(c.env.DB, input),
+  ));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -294,7 +345,10 @@ routes.post("/projects/:projectId/items/attachment/copy", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
+  ), anySettlementProof(
+    projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision),
+    projectItemIdentitySettlementProof(c.env.DB, input),
+  ));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -310,7 +364,10 @@ routes.post("/projects/:projectId/items/attachment", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ), projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision));
+  ), anySettlementProof(
+    projectRevisionSettlementProof(c.env.DB, projectId, input.expectedProjectRevision),
+    projectItemIdentitySettlementProof(c.env.DB, input),
+  ));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
@@ -416,6 +473,11 @@ routes.patch("/projects/:projectId/placements/:placementId", async (c) => {
     placementId,
     input,
     c.get("userEmail"),
+  ), placementRevisionSettlementProof(
+    c.env.DB,
+    projectId,
+    placementId,
+    input.expectedRevision,
   )));
 });
 
@@ -427,7 +489,10 @@ routes.post("/projects/:projectId/edges", async (c) => {
     projectId,
     input,
     c.get("userEmail"),
-  ), edgeEndpointRevisionSettlementProof(c.env.DB, projectId, input));
+  ), anySettlementProof(
+    edgeEndpointRevisionSettlementProof(c.env.DB, projectId, input),
+    edgeIdentitySettlementProof(c.env.DB, input.edgeId),
+  ));
   return c.json(result, result.replayed ? 200 : 201);
 });
 
