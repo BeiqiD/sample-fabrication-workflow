@@ -1,0 +1,118 @@
+name: Apply Phase 4B3 implementation from PR v3
+
+on:
+  pull_request:
+    branches:
+      - v2/backend-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' && github.head_ref == 'codex/phase-4b3-canvas-alignment-z-order' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/phase-4b3-canvas-alignment-z-order
+          fetch-depth: 0
+
+      - name: Apply bounded Phase 4B3 patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/phase-4b3-apply.yml').read_text().splitlines()
+          start = workflow.index("          python - <<'PY'") + 1
+          end = workflow.index("          PY", start)
+          source = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in workflow[start:end]
+          )
+
+          function_start = source.index('def replace_once(')
+          function_end = source.index('def write_text(', function_start)
+          robust_replace = '''def replace_once(path: str, old: str, new: str) -> None:
+              target = ROOT / path
+              text = target.read_text()
+              count = text.count(old)
+              if count == 1:
+                  target.write_text(text.replace(old, new, 1))
+                  return
+              if count == 0:
+                  text_lines = text.splitlines(keepends=True)
+                  old_lines = old.splitlines()
+                  normalize = lambda line: " ".join(line.strip().split())
+                  expected = [normalize(line) for line in old_lines]
+                  available = [normalize(line) for line in text_lines]
+                  matches = [
+                      index
+                      for index in range(len(available) - len(expected) + 1)
+                      if available[index:index + len(expected)] == expected
+                  ]
+                  if len(matches) == 1:
+                      index = matches[0]
+                      target.write_text(
+                          "".join(text_lines[:index])
+                          + new
+                          + "".join(text_lines[index + len(expected):])
+                      )
+                      return
+              raise RuntimeError(f"{path}: expected one replacement anchor, found {count}")
+
+
+          '''
+          source = source[:function_start] + robust_replace + source[function_end:]
+          guard_start = source.index('for guarded in [')
+          source = source[:guard_start]
+          exec(compile(source, 'phase-4b3-apply.py', 'exec'), {'__name__': '__main__'})
+
+          for path in (
+              'docs/PROJECT_CANVAS_COPY_PASTE_CONTRACT.md',
+              'docs/PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md',
+              'docs/PRODUCT_ROADMAP.md',
+          ):
+              target = Path(path)
+              target.write_text(target.read_text().replace('Draft PR #149', 'PR #149'))
+          PY
+
+      - name: Check patch formatting
+        run: |
+          git diff --check
+          test -f .phase-4b3-bootstrap
+          ! grep -R "Draft PR #149" \
+            docs/PROJECT_CANVAS_COPY_PASTE_CONTRACT.md \
+            docs/PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md \
+            docs/PRODUCT_ROADMAP.md
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Canvas productivity slice
+        run: npm run verify:project-canvas-productivity
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          rm -f \
+            .phase-4b3-bootstrap \
+            .github/workflows/phase-4b3-apply.yml \
+            .github/workflows/phase-4b3-pr-apply.yml \
+            .github/workflows/phase-4b3-pr-apply-v2.yml \
+            .github/workflows/phase-4b3-pr-apply-v3.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(project): complete Phase 4B3 Canvas productivity"
+          git push origin HEAD:codex/phase-4b3-canvas-alignment-z-order
