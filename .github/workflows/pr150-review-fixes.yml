@@ -32,7 +32,13 @@ jobs:
           new = '      if (init.method !== "POST") throw new Error("Unexpected " + init.method + " " + path);'
           if source.count(old) != 1:
               raise RuntimeError('expected one staged template-string repair target')
-          path.write_text(source.replace(old, new, 1))
+          source = source.replace(old, new, 1)
+
+          view_old = '      view: window,'
+          view_new = '      view: document.defaultView,'
+          if source.count(view_old) != 4:
+              raise RuntimeError('expected four mounted MouseEvent view repair targets')
+          path.write_text(source.replace(view_old, view_new))
           PY
           node scripts/pr150-review-fixes.mjs
 
