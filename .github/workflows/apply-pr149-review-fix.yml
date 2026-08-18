@@ -1,0 +1,177 @@
+name: Apply PR149 review fix
+
+on:
+  push:
+    branches:
+      - codex/phase-4b2-authoritative-copy-paste
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  apply:
+    if: ${{ github.event.head_commit.message == 'chore: run PR149 review fix final' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply bounded review fix
+        id: apply_fix
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/apply-pr149-review-fix.py 2>&1 | tee pr149-review-fix.log
+          python scripts/normalize-pr149-review-fix.py 2>&1 | tee -a pr149-review-fix.log
+
+      - name: Record applicator status
+        if: ${{ always() && steps.apply_fix.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.apply_fix.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-review-fix-apply
+          STATUS_SUCCESS_DESCRIPTION: PR149 review fix applied
+          STATUS_FAILURE_DESCRIPTION: PR149 review fix applicator failed
+          STATUS_LOG_FILE: pr149-review-fix.log
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        id: fix_install
+        run: npm ci
+
+      - name: Record focused install status
+        if: ${{ always() && steps.fix_install.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_install.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/install
+          STATUS_SUCCESS_DESCRIPTION: PR149 focused install passed
+          STATUS_FAILURE_DESCRIPTION: PR149 focused install failed
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Run Canvas productivity unit and route tests
+        id: fix_unit
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:project-canvas-productivity 2>&1 | tee pr149-unit.log
+
+      - name: Record focused unit status
+        if: ${{ always() && steps.fix_unit.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_unit.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/unit
+          STATUS_SUCCESS_DESCRIPTION: PR149 Canvas unit tests passed
+          STATUS_FAILURE_DESCRIPTION: PR149 Canvas unit tests failed
+          STATUS_LOG_FILE: pr149-unit.log
+          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Run Canvas mounted recovery tests
+        id: fix_mounted
+        run: npm run test:project-canvas-productivity-mounted
+
+      - name: Record focused mounted status
+        if: ${{ always() && steps.fix_mounted.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_mounted.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/mounted
+          STATUS_SUCCESS_DESCRIPTION: PR149 mounted recovery tests passed
+          STATUS_FAILURE_DESCRIPTION: PR149 mounted recovery tests failed
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Run Project route and CI contract regressions
+        id: fix_routes
+        run: npx vitest run worker/project-routes.test.ts src/project-edges-contract.test.ts
+
+      - name: Record focused route status
+        if: ${{ always() && steps.fix_routes.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_routes.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/routes
+          STATUS_SUCCESS_DESCRIPTION: PR149 route and CI regressions passed
+          STATUS_FAILURE_DESCRIPTION: PR149 route and CI regressions failed
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Run production build
+        id: fix_build
+        run: npm run build
+
+      - name: Record focused build status
+        if: ${{ always() && steps.fix_build.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_build.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/build
+          STATUS_SUCCESS_DESCRIPTION: PR149 production build passed
+          STATUS_FAILURE_DESCRIPTION: PR149 production build failed
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Check patch whitespace
+        id: fix_diff
+        run: git diff --check
+
+      - name: Record focused diff status
+        if: ${{ always() && steps.fix_diff.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_diff.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/diff
+          STATUS_SUCCESS_DESCRIPTION: PR149 diff check passed
+          STATUS_FAILURE_DESCRIPTION: PR149 diff check failed
+        run: node scripts/publish-commit-status.mjs
+
+      - name: Commit verified functional fix
+        id: fix_commit
+        shell: bash
+        run: |
+          set -o pipefail
+          (
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- \
+              src/lib/project-client.ts \
+              src/lib/use-project-canvas-copy-paste.ts \
+              worker/project-routes.ts \
+              worker/project-routes.test.ts \
+              src/project-canvas-paste-abandon.mount.test.tsx \
+              scripts/publish-commit-status.mjs \
+              src/project-edges-contract.test.ts \
+              docs/PROJECT_CANVAS_COPY_PASTE_CONTRACT.md
+            git diff --cached --check
+            git commit -m "fix(project): require authoritative paste replay settlement"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          ) 2>&1 | tee /tmp/pr149-commit.log
+
+      - name: Record applicator commit status
+        if: ${{ always() && steps.fix_commit.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.fix_commit.outcome }}
+          STATUS_CONTEXT: pre-pr/pr149-fix/commit
+          STATUS_SUCCESS_DESCRIPTION: PR149 verified functional fix pushed
+          STATUS_FAILURE_DESCRIPTION: PR149 verified functional fix push failed
+          STATUS_LOG_FILE: /tmp/pr149-commit.log
+          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
+        run: node scripts/publish-commit-status.mjs
