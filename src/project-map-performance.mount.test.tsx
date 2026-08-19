@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from "react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectEdgeRecord } from "../shared/project-api";
@@ -92,6 +93,31 @@ function descriptors(count: number): ProjectNodeDescriptor[] {
   }));
 }
 
+function trackedDescriptors(count: number, excerptReads: number[]): ProjectNodeDescriptor[] {
+  return descriptors(count).map((descriptor, index) => {
+    const excerpt = descriptor.excerpt;
+    return Object.defineProperty({ ...descriptor }, "excerpt", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        excerptReads[index] += 1;
+        return excerpt;
+      },
+    });
+  });
+}
+
+function fitViewFullDescriptors(count: number): ProjectNodeDescriptor[] {
+  return descriptors(count).map((descriptor, index) => ({
+    ...descriptor,
+    geometry: {
+      ...descriptor.geometry,
+      x: (index % 20) * 2,
+      y: Math.floor(index / 20) * 2,
+    },
+  }));
+}
+
 function edges(nodeCount: number, edgeCount: number): ProjectEdgeRecord[] {
   return Array.from({ length: edgeCount }, (_, index) => {
     const source = index % nodeCount;
@@ -151,6 +177,74 @@ describe("Project Map representative-scale contract", () => {
     expect(container.querySelector(".project-node-excerpt")).toBeTruthy();
     expect(container.querySelector(".project-edge-handle")?.classList.contains("contextual-hidden")).toBe(false);
   }, 10_000);
+
+  it("preserves untouched node renders when parent callback identities change during selection", async () => {
+    const excerptReads = Array.from({ length: 50 }, () => 0);
+    const nodes = trackedDescriptors(50, excerptReads);
+    const onSelect = vi.fn((_itemId: string | null) => undefined);
+    const onGeometryCommit = vi.fn();
+
+    function Harness() {
+      const [selection, setSelection] = useState<{
+        itemIds: string[];
+        primaryItemId: string | null;
+      }>({ itemIds: [], primaryItemId: null });
+      return <ProjectMapSurface
+        nodes={nodes}
+        selectedItemId={selection.primaryItemId}
+        selectedItemIds={selection.itemIds}
+        onSelect={onSelect}
+        onSelectionChange={(next) => {
+          setSelection({
+            itemIds: [...next.itemIds],
+            primaryItemId: next.primaryItemId,
+          });
+        }}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownSave={() => undefined}
+        onMarkdownCancel={() => undefined}
+      />;
+    }
+
+    const { container } = render(<div style={{ width: 1200, height: 800 }}><Harness /></div>);
+    await waitFor(() => expect(
+      container.querySelectorAll(".react-flow__node-projectItem"),
+    ).toHaveLength(50));
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    excerptReads.fill(0);
+
+    const selectedNode = container.querySelector<HTMLElement>(
+      '.react-flow__node[data-id="item-0"]',
+    );
+    expect(selectedNode).toBeTruthy();
+    fireEvent.click(selectedNode!);
+    await waitFor(() => expect(selectedNode!.classList.contains("selected")).toBe(true));
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(excerptReads[0]).toBeGreaterThan(0);
+    expect(excerptReads.slice(1).every((count) => count === 0)).toBe(true);
+  }, 20_000);
+
+  it("synchronizes target detail with a full-threshold initial fitView", async () => {
+    const { container } = render(<div style={{ width: 1200, height: 800 }}>
+      <ProjectMapSurface
+        nodes={fitViewFullDescriptors(200)}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+    const canvas = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    expect(canvas.dataset.projectMapScale).toBe("target");
+    await waitFor(() => expect(canvas.dataset.projectMapDetail).toBe("full"));
+    expect(container.querySelector(".project-node-excerpt")).toBeTruthy();
+    expect(container.querySelector(".project-edge-handle")?.classList.contains("contextual-hidden")).toBe(false);
+  }, 20_000);
 
   it("mounts the 250-node and 400-edge target with visible-element rendering", async () => {
     const { container } = render(<div style={{ width: 1200, height: 800 }}>

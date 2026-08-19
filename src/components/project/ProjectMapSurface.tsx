@@ -587,14 +587,49 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onGeometryCommit({ placementId: descriptor.placementId, before, after });
   }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
-  const callbacks = useMemo(() => ({
-    onResizeStart: handleResizeStart,
-    onResizeEnd: handleResizeEnd,
+  // Node data stores these callbacks. Route volatile parent identities through
+  // stable dispatchers so selection-only parent renders cannot rebuild the full
+  // React Flow node projection.
+  const markdownCallbacksRef = useRef({
     onMarkdownEditRequest,
     onMarkdownChange,
     onMarkdownSave,
     onMarkdownCancel,
-  }), [handleResizeEnd, handleResizeStart, onMarkdownCancel, onMarkdownChange, onMarkdownEditRequest, onMarkdownSave]);
+  });
+  markdownCallbacksRef.current = {
+    onMarkdownEditRequest,
+    onMarkdownChange,
+    onMarkdownSave,
+    onMarkdownCancel,
+  };
+  const handleMarkdownEditRequest = useCallback((itemId: string) => {
+    markdownCallbacksRef.current.onMarkdownEditRequest(itemId);
+  }, []);
+  const handleMarkdownChange = useCallback((value: string) => {
+    markdownCallbacksRef.current.onMarkdownChange(value);
+  }, []);
+  const handleMarkdownSave = useCallback(() => {
+    markdownCallbacksRef.current.onMarkdownSave();
+  }, []);
+  const handleMarkdownCancel = useCallback(() => {
+    markdownCallbacksRef.current.onMarkdownCancel();
+  }, []);
+
+  const callbacks = useMemo(() => ({
+    onResizeStart: handleResizeStart,
+    onResizeEnd: handleResizeEnd,
+    onMarkdownEditRequest: handleMarkdownEditRequest,
+    onMarkdownChange: handleMarkdownChange,
+    onMarkdownSave: handleMarkdownSave,
+    onMarkdownCancel: handleMarkdownCancel,
+  }), [
+    handleMarkdownCancel,
+    handleMarkdownChange,
+    handleMarkdownEditRequest,
+    handleMarkdownSave,
+    handleResizeEnd,
+    handleResizeStart,
+  ]);
 
   const projectedNodes = useMemo(() => {
     const active = descriptors.map((descriptor) => buildFlowNode(
@@ -756,7 +791,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (!projectGeometryEquals(before, after)) commands.push({ placementId, before, after });
     }
     emitGeometryCommands(commands);
-  }, [dragStarts, emitGeometryCommands, geometryInteractionDisabled, interactionStarts, onSelect, onSelectionChange, selectedItemIds]);
+  }, [dragStarts, emitGeometryCommands, geometryInteractionDisabled, interactionStarts, onSelect, onSelectionChange]);
 
   const handleElementClick = useCallback(() => {
     setContextMenu(null);
@@ -855,34 +890,35 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [clearAlignmentGuides, dragStarts, emitGeometryCommands, geometryInteractionDisabled]);
 
   useEffect(() => () => {
-  if (recentDragCommitTimerRef.current !== null) {
-    window.clearTimeout(recentDragCommitTimerRef.current);
-  }
-}, []);
+    flowInstanceRef.current = null;
+    if (recentDragCommitTimerRef.current !== null) {
+      window.clearTimeout(recentDragCommitTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (geometryInteractionDisabled) clearAlignmentGuides();
   }, [clearAlignmentGuides, geometryInteractionDisabled]);
 
-  const handleViewportMove = useCallback<OnMove>((_event, viewport) => {
-    setDetailLevel((current) => projectMapDetailLevelForZoom(
-      viewport.zoom,
-      current,
-      performancePolicy.scale,
-    ));
-  }, [performancePolicy.scale]);
-
-  useEffect(() => {
-    if (performanceScaleRef.current === performancePolicy.scale) return;
-    performanceScaleRef.current = performancePolicy.scale;
-    const zoom = flowInstanceRef.current?.getZoom()
-      ?? (performancePolicy.scale === "ordinary" ? 1 : 0.6);
+  const synchronizeDetailLevel = useCallback((zoom: number) => {
     setDetailLevel((current) => projectMapDetailLevelForZoom(
       zoom,
       current,
       performancePolicy.scale,
     ));
   }, [performancePolicy.scale]);
+
+  const handleViewportMove = useCallback<OnMove>((_event, viewport) => {
+    synchronizeDetailLevel(viewport.zoom);
+  }, [synchronizeDetailLevel]);
+
+  useEffect(() => {
+    if (performanceScaleRef.current === performancePolicy.scale) return;
+    performanceScaleRef.current = performancePolicy.scale;
+    const zoom = flowInstanceRef.current?.getZoom()
+      ?? (performancePolicy.scale === "ordinary" ? 1 : 0.6);
+    synchronizeDetailLevel(zoom);
+  }, [performancePolicy.scale, synchronizeDetailLevel]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (geometryInteractionDisabled) return;
@@ -949,6 +985,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onInit={(instance) => {
         flowInstanceRef.current = instance;
         setFlowInstance(instance);
+        void instance.fitView(PROJECT_FIT_VIEW_OPTIONS).then(() => {
+          if (flowInstanceRef.current !== instance || !canvasRef.current) return;
+          synchronizeDetailLevel(instance.getZoom());
+        });
       }}
       onNodesChange={onNodesChange}
       onEdgesChange={handleEdgesChange}
@@ -958,8 +998,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onPaneClick={handlePaneClick}
       onMove={handleViewportMove}
       onNodeDragStart={handleNodeDragStart}
-  onNodeDrag={handleNodeDrag}
-  onNodeDragStop={handleNodeDragStop}
+      onNodeDrag={handleNodeDrag}
+      onNodeDragStop={handleNodeDragStop}
       nodesDraggable={!geometryInteractionDisabled}
       nodesConnectable={!edgeInteractionDisabled}
       edgesReconnectable={false}
@@ -970,38 +1010,36 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       selectionKeyCode="Shift"
       multiSelectionKeyCode={["Shift", "Meta", "Control"]}
       selectionMode={SelectionMode.Partial}
-      fitView
-      fitViewOptions={PROJECT_FIT_VIEW_OPTIONS}
       minZoom={0.1}
       maxZoom={2.5}
       zoomOnDoubleClick={false}
       deleteKeyCode={null}
       proOptions={PROJECT_PRO_OPTIONS}
     >
-  <ViewportPortal>
-    {alignmentGuides.vertical !== null && <div
-      aria-hidden
-      className="project-alignment-guide vertical"
-      data-testid="project-alignment-guide-vertical"
-      style={{
-        left: alignmentGuides.vertical,
-        top: -PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
-        height: PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT * 2,
-      }}
-    />}
-    {alignmentGuides.horizontal !== null && <div
-      aria-hidden
-      className="project-alignment-guide horizontal"
-      data-testid="project-alignment-guide-horizontal"
-      style={{
-        left: -PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
-        top: alignmentGuides.horizontal,
-        width: PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT * 2,
-      }}
-    />}
-  </ViewportPortal>
-  <Background gap={22} size={1.2} />
-  <Controls showInteractive={false} />
+      <ViewportPortal>
+        {alignmentGuides.vertical !== null && <div
+          aria-hidden
+          className="project-alignment-guide vertical"
+          data-testid="project-alignment-guide-vertical"
+          style={{
+            left: alignmentGuides.vertical,
+            top: -PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
+            height: PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT * 2,
+          }}
+        />}
+        {alignmentGuides.horizontal !== null && <div
+          aria-hidden
+          className="project-alignment-guide horizontal"
+          data-testid="project-alignment-guide-horizontal"
+          style={{
+            left: -PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
+            top: alignmentGuides.horizontal,
+            width: PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT * 2,
+          }}
+        />}
+      </ViewportPortal>
+      <Background gap={22} size={1.2} />
+      <Controls showInteractive={false} />
     </ReactFlow>
     {contextMenu && <div className="project-map-context-menu" style={{ left: contextMenu.left, top: contextMenu.top }} role="menu">
       <button type="button" role="menuitem" onClick={() => {
