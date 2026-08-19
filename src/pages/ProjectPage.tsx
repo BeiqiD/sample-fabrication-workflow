@@ -2026,6 +2026,20 @@ export function ProjectPage() {
     startReferenceRemoval(item.id, item.revision, content.revision);
   }, [snapshot, startReferenceRemoval]);
 
+  const removeAttachmentItem = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || item.itemType !== "content" || !content || content.contentType !== "attachment") return;
+    setSelectedItemIds([item.id]);
+    startReferenceRemoval(item.id, item.revision, content.revision);
+  }, [snapshot, startReferenceRemoval]);
+
   // Install Canvas shortcuts in the same commit as the desktop Map. This
   // avoids a one-frame listener gap when the lazy Map surface resolves.
   useLayoutEffect(() => {
@@ -2605,6 +2619,20 @@ export function ProjectPage() {
             disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
             onClick={() => startAttachmentEdit(selected.itemId)}
           >Edit attachment metadata</button>}
+          {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
+            type="button"
+            className="button wide"
+            disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+            onClick={() => removeAttachmentItem(selected.itemId)}
+          >{pendingReferenceRemoval?.itemId === selected.itemId
+            ? pendingReferenceRemoval.status === "removing"
+              ? "Moving attachment…"
+              : pendingReferenceRemoval.status === "reconciling"
+                ? "Reconciling removal…"
+                : pendingReferenceRemoval.status === "uncertain"
+                  ? "Removal needs exact retry"
+                  : "Removal needs reconciliation"
+            : "Move attachment to trash"}</button>}
           {selected.kind === "attachment" && attachmentEditor?.itemId === selected.itemId && <div className="project-attachment-meta-form">
             <label>Caption
               <textarea
@@ -2661,6 +2689,7 @@ export function ProjectPage() {
         onMarkdownSave={() => void saveMarkdown()}
         onMarkdownCancel={() => cancelMarkdown(false)}
         onAttachmentEditRequest={startAttachmentEdit}
+        onAttachmentDeleteRequest={removeAttachmentItem}
         onAttachmentChange={updateAttachmentDraft}
         onAttachmentSave={() => void saveAttachmentMetadata()}
         onAttachmentCancel={() => cancelAttachmentEdit(false)}
@@ -2681,6 +2710,7 @@ export function ProjectPage() {
       onMarkdownSave={() => void saveMarkdown()}
       onMarkdownCancel={() => cancelMarkdown(false)}
       onAttachmentEditRequest={startAttachmentEdit}
+      onAttachmentDeleteRequest={removeAttachmentItem}
       onAttachmentChange={updateAttachmentDraft}
       onAttachmentSave={() => void saveAttachmentMetadata()}
       onAttachmentCancel={() => cancelAttachmentEdit(false)}

@@ -1,6 +1,6 @@
 # Project Map performance and v1 functional-shape plan
 
-Status: Phase 4C implemented in Draft PR #151; pending independent review and exact-head verification
+Status: Phase 4C complete in PR #151
 
 Last reviewed: 2026-08-18 after completing the representative-scale Project Map contract
 

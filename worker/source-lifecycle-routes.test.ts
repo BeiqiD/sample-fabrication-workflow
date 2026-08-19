@@ -1729,4 +1729,98 @@ describe("source lifecycle routes", () => {
     expect((await request(env, "/templates/template-process")).status).toBe(200);
     database.close();
   });
+  it("preserves Run Comment text while the 24-hour attachment retention edge expires", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addRun(database);
+    addReadyManagedAttachment(database, {
+      submissionId: "submission-large-run",
+      itemId: "item-large-run",
+      storageId: "storage-large-run",
+      contextKind: "run_steps",
+      scope: "individual",
+    });
+    database.exec(`
+      INSERT INTO comment_submission_targets
+        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
+      VALUES ('submission-large-run', 'sample-1', 'run-1', 'step-1',
+        '2026-08-07T10:05:00.000Z');
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, body, submission_id, created_at)
+      VALUES ('comment-large-run', 'step-1', 'individual', 'Visible attachment',
+        'submission-large-run', '2026-08-07T10:06:00.000Z');
+      INSERT INTO events
+        (id, sample_id, kind, body, metadata_json, created_at)
+      VALUES ('event-large-run', 'sample-1', 'comment', 'Visible attachment',
+        '{"action":"comment_submission","submissionId":"submission-large-run"}',
+        '2026-08-07T10:06:00.000Z');
+    `);
+    const env = managedStorageEnv(database);
+
+    const deleted = await request(
+      env,
+      "/comment-submissions/submission-large-run/items/item-large-run",
+      { method: "DELETE" },
+    );
+    expect(deleted.status).toBe(200);
+    expect(database.prepare(`
+      SELECT body, deleted_at FROM comment_submissions
+      WHERE id = 'submission-large-run'
+    `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
+    expect(database.prepare(`
+      SELECT body, deleted_at FROM run_step_comments
+      WHERE id = 'comment-large-run'
+    `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
+    expect(database.prepare(`SELECT body FROM events WHERE id = 'event-large-run'`).get())
+      .toEqual({ body: "Visible attachment" });
+    const grace = database.prepare(`
+      SELECT retention_reason, retain_until FROM blob_retention_edges
+      WHERE store_kind = 'managed'
+        AND object_key = 'comments/storage-large-run.dat'
+    `).get() as { retention_reason: string; retain_until: string };
+    expect(grace.retention_reason).toBe("deleted_comment_item_grace");
+    expect(Date.parse(grace.retain_until)).toBeGreaterThan(Date.now());
+
+    const restored = await request(
+      env,
+      "/comment-submissions/submission-large-run/items/item-large-run/restore",
+      { method: "POST" },
+    );
+    expect(restored.status).toBe(200);
+    expect(database.prepare(`
+      SELECT deleted_at FROM comment_submission_items WHERE id = 'item-large-run'
+    `).get()).toEqual({ deleted_at: null });
+    expect(database.prepare(`
+      SELECT retention_reason, retain_until FROM blob_retention_edges
+      WHERE store_kind = 'managed'
+        AND object_key = 'comments/storage-large-run.dat'
+    `).get()).toEqual({ retention_reason: "ready_comment_item", retain_until: null });
+
+    expect((await request(
+      env,
+      "/comment-submissions/submission-large-run/items/item-large-run",
+      { method: "DELETE" },
+    )).status).toBe(200);
+    database.prepare(`
+      UPDATE comment_submission_items
+      SET deleted_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-25 hours'),
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-25 hours')
+      WHERE id = 'item-large-run'
+    `).run();
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count FROM blob_retention_edges
+      WHERE store_kind = 'managed'
+        AND object_key = 'comments/storage-large-run.dat'
+    `).get()).toEqual({ count: 0 });
+
+    expect(database.prepare(`
+      SELECT body, deleted_at FROM comment_submissions
+      WHERE id = 'submission-large-run'
+    `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
+    expect(database.prepare(`
+      SELECT body, deleted_at FROM run_step_comments
+      WHERE id = 'comment-large-run'
+    `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
+    database.close();
+  });
 });

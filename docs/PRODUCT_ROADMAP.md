@@ -13,7 +13,7 @@ and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
 multi-selection and grouped geometry are complete in PR #148, Phase 4B2
 authoritative copy/paste is complete in PR #149, Phase 4B3 alignment assistance
 and explicit z-order are complete in PR #150, and Phase 4C representative-scale
-Map performance is implemented in Draft PR #151 pending independent review
+Map performance is complete in PR #151, and attachment lifecycle Slice A is implemented in Draft PR #152 pending review
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -22,6 +22,8 @@ priorities must not contradict this roadmap.
 
 The Map-first interaction and persistence contract is defined in
 [Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
+The shared attachment ownership and lifecycle boundary is defined in
+[shared attachment backend contract](./ATTACHMENT_BACKEND_CONTRACT.md).
 
 ## North star
 
@@ -191,8 +193,8 @@ discovery inside the Inspector while reusing the existing Project placement
 transaction and retry/reconciliation state machine. Phase 4B1 Canvas
 multi-selection and grouped geometry are complete in PR #148. Phase 4B2 authoritative copy/paste is complete in PR #149. Phase 4B3 alignment assistance and explicit z-order are complete in PR #150.
 Phase 4C representative-scale Map performance, contextual zoom, and final v1
-include/defer decisions are implemented in Draft PR #151 pending independent
-review. Storage, lifecycle, Reference, and rich-content foundations
+include/defer decisions are complete in PR #151. Storage, lifecycle, Reference,
+and rich-content foundations
 return to correctness maintenance rather than continuing as independent feature
 tracks.
 
@@ -479,7 +481,7 @@ use without adding general-purpose whiteboard complexity.
 
 #### Phase 4C — performance and final functional gaps
 
-**Status:** implemented in Draft PR #151; pending independent review and exact-head verification.
+**Status:** complete in PR #151.
 
 **Delivered:**
 
@@ -503,6 +505,8 @@ inspection, navigation, and linear-reading workflow at representative scale.
 This milestone is the **Project v1 functional shape**.
 
 ### V1 feature freeze
+
+**Status:** pending review of the bounded attachment lifecycle Slice A in Draft PR #152.
 
 After Phase 4, freeze the interaction-shaping v1 feature set before systematic
 frontend refinement begins.
@@ -682,10 +686,12 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of the implemented **Phase 4C**
-   performance and v1 functional-shape slice in Draft PR #151.
+1. Complete independent review and merge of **attachment lifecycle Slice A**
+   in Draft PR #152: Project attachment removal plus bounded explicit
+   Run-attachment retention.
 2. Declare the **v1 feature freeze** once that exact head is accepted.
-3. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+3. Run **Phase 5 frontend refinement** as a dedicated whole-product pass,
+   while later internal attachment-ingestion slices remain independently reviewable.
 4. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.

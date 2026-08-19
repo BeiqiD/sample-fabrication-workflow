@@ -1,6 +1,6 @@
 # Project Canvas interaction contract
 
-Status: canonical product and architecture contract; Phase 4C is implemented in Draft PR #151
+Status: canonical product and architecture contract; Phase 4C is complete in PR #151
 
 Last reviewed: 2026-08-18 after representative-scale Map performance hardening and v1 functional-gap decisions
 

@@ -34,6 +34,7 @@ export interface ProjectReadingSurfaceProps {
   onMarkdownSave?: () => void;
   onMarkdownCancel?: () => void;
   onAttachmentEditRequest?: (itemId: string) => void;
+  onAttachmentDeleteRequest?: (itemId: string) => void;
   onAttachmentChange?: (field: "caption" | "sourceUrl", value: string) => void;
   onAttachmentSave?: () => void;
   onAttachmentCancel?: () => void;
@@ -89,6 +90,7 @@ export function ProjectReadingSurface({
   onMarkdownSave,
   onMarkdownCancel,
   onAttachmentEditRequest,
+  onAttachmentDeleteRequest,
   onAttachmentChange,
   onAttachmentSave,
   onAttachmentCancel,
@@ -235,12 +237,20 @@ export function ProjectReadingSurface({
               caption={node.attachmentCaption}
               sourceUrl={node.attachmentSourceUrl}
             />
-            <button
-              type="button"
-              className="button reading-edit-button"
-              disabled={interactionDisabled || editorBusy}
-              onClick={() => onAttachmentEditRequest?.(node.itemId)}
-            >Edit attachment metadata</button>
+            <div className="project-owned-content-pending-actions">
+              <button
+                type="button"
+                className="button reading-edit-button"
+                disabled={interactionDisabled || editorBusy}
+                onClick={() => onAttachmentEditRequest?.(node.itemId)}
+              >Edit attachment metadata</button>
+              {onAttachmentDeleteRequest && <button
+                type="button"
+                className="button reading-edit-button"
+                disabled={interactionDisabled || editorBusy}
+                onClick={() => onAttachmentDeleteRequest(node.itemId)}
+              >Move attachment to trash</button>}
+            </div>
           </>}
         </>}
 

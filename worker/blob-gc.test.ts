@@ -554,4 +554,82 @@ describe("blob garbage collection", () => {
     expect(closedResponse.status).toBe(409);
     database.close();
   });
+  it("collects an expired explicit Run attachment while preserving recent and shared bytes", async () => {
+    const database = migratedDatabase();
+    database.exec(`
+      INSERT INTO recipe_families (id, name, template_type, created_at)
+      VALUES ('run-family', 'Process', 'process', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'));
+      INSERT INTO template_versions
+        (id, recipe_family_id, name, template_type, version, manifest_hash,
+         content_json, created_at)
+      VALUES ('run-template', 'run-family', 'Process', 'process', 1,
+        'run-manifest', '{}', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'));
+      INSERT INTO runs
+        (id, sample_id, recipe_family_id, template_version_id, sequence_no,
+         run_group_id, template_name_snapshot, template_type_snapshot,
+         template_version_snapshot, status, created_at)
+      VALUES ('run-attachments', 'sample-1', 'run-family', 'run-template', 1,
+        'run-attachments-group', 'Process', 'process', 1, 'complete',
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'));
+      INSERT INTO run_steps
+        (id, run_id, position, title, status, created_at, updated_at)
+      VALUES ('run-attachment-step', 'run-attachments', 1000, 'Measure', 'done',
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'),
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'));
+      INSERT INTO state_representations (hash, content_json, created_at)
+      VALUES ('run-shared-state', '{}', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'));
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES
+        ('run-expired-asset', 'blobs/run-expired.bin', 'expired.bin',
+         'application/octet-stream', 4, 'ready', '${"1".repeat(64)}',
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days')),
+        ('run-recent-asset', 'blobs/run-recent.bin', 'recent.bin',
+         'application/octet-stream', 4, 'ready', '${"2".repeat(64)}',
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days')),
+        ('run-shared-asset', 'blobs/run-shared.bin', 'shared.bin',
+         'application/octet-stream', 4, 'ready', '${"3".repeat(64)}',
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'));
+      INSERT INTO run_step_assets
+        (id, run_step_id, asset_id, role, created_at, deleted_at)
+      VALUES
+        ('run-expired-occurrence', 'run-attachment-step', 'run-expired-asset', 'execution',
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'),
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-25 hours')),
+        ('run-recent-occurrence', 'run-attachment-step', 'run-recent-asset', 'execution',
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'),
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-23 hours')),
+        ('run-shared-occurrence', 'run-attachment-step', 'run-shared-asset', 'state_observation',
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-10 days'),
+         strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-25 hours'));
+      INSERT INTO state_representation_assets (state_hash, asset_id, position)
+      VALUES ('run-shared-state', 'run-shared-asset', 0);
+    `);
+    const assetDelete = vi.fn(async () => undefined);
+    const env = envFor(database, assetDelete);
+    const now = new Date();
+
+    const first = await cleanupCommentUploads(env, now);
+    expect(first.orphanCandidatesMarked).toBe(1);
+    expect(database.prepare(`
+      SELECT object_key, state FROM blob_gc_ledger ORDER BY object_key
+    `).all()).toEqual([{ object_key: "blobs/run-expired.bin", state: "orphaned" }]);
+    expect(assetDelete).not.toHaveBeenCalled();
+
+    const second = await cleanupCommentUploads(
+      env,
+      new Date(now.getTime() + 8 * 24 * 60 * 60 * 1_000),
+    );
+    expect(second.imageDeleted).toBe(1);
+    expect(assetDelete).toHaveBeenCalledTimes(1);
+    expect(assetDelete).toHaveBeenCalledWith("blobs/run-expired.bin");
+    expect(database.prepare(`
+      SELECT state FROM blob_gc_ledger WHERE object_key = 'blobs/run-expired.bin'
+    `).get()).toEqual({ state: "deleted" });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count FROM blob_gc_ledger
+      WHERE object_key IN ('blobs/run-recent.bin', 'blobs/run-shared.bin')
+    `).get()).toEqual({ count: 0 });
+    database.close();
+  });
 });

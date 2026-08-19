@@ -1,9 +1,8 @@
 # Blob lifecycle, export integrity, and permanent-delete contract
 
-Status: normative v3 backend contract, implemented by the blob-lifecycle safety slice
+Status: normative v3 backend contract; current through attachment lifecycle Slice A in Draft PR #152
 
-Last reviewed: 2026-08-16 during the provider-integrity and recovery
-architecture review in PR #141
+Last reviewed: 2026-08-19 after explicit Run-attachment retention was bounded in Draft PR #152
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -88,6 +87,8 @@ silently disappear if a source row were physically deleted.
 
 1. Occurrences and sources own meaning; blob records own bytes and deduplication.
 2. Soft deletion or archival never removes a durable retention edge by itself.
+   A reviewed explicit attachment-occurrence removal MAY replace its durable edge
+   with a bounded grace edge; recoverable ancestor Trash MUST NOT do so.
 3. One source becoming terminal never releases bytes still reachable from
    another source, including another unfinished or retryable submission.
 4. Cancel, scheduled cleanup, export planning, integrity checks, and future
@@ -153,20 +154,30 @@ definition.
 
 ### Durable R2 edges
 
-The following relationships retain referenced R2 bytes for as long as the
-relationship exists, including when the occurrence or an ancestor is
-soft-deleted:
+The following relationships retain referenced R2 bytes durably while their
+active occurrence exists. Recoverable ancestor Trash remains durable. A domain may
+replace durability only through an explicit occurrence-level lifecycle listed below.
 
 | Relationship | Retention reason |
 |---|---|
 | `state_representation_assets.asset_id` | Expected or inherited state representation |
-| `run_step_assets.asset_id` | Execution or observation occurrence, including trash |
+| Active `run_step_assets.asset_id` | Execution or observation occurrence, including when the owning Run is in recoverable Trash |
 | `metrology_template_references.asset_id` | Metrology reference occurrence, including trash |
 | `run_step_comments.asset_id` | Legacy Comment image occurrence, including independently deleted image state |
 | `state_verifications.evidence_asset_id` | Verification evidence while the relationship exists |
-| Ready `comment_submission_items.asset_id` under a durable canonical Comment | Canonical Comment attachment/image history |
+| Active ready `comment_submission_items` R2 or managed locator | Canonical Comment attachment/image history, including whole-Comment Trash |
 | `events.asset_key` while non-null | Legacy/timeline image compatibility edge |
 | `events.metadata_json.thumbnailKey` when distinct and valid | Sample-record thumbnail occurrence |
+
+An explicitly deleted, non-superseded `run_step_assets` occurrence contributes
+`deleted_run_step_asset_grace`, and an explicitly deleted ready Comment child
+item contributes `deleted_comment_item_grace`, until `deleted_at + 24 hours`.
+Recovery-superseded Run or metrology occurrence tombstones remain excluded as
+defined by migration 0028; their retention is carried by the canonical survivor. After that deadline
+the edge disappears; another occurrence or source still protects shared bytes, and
+otherwise the ordinary orphan ledger and global deletion grace take over. Soft-
+deleting the owning Run does not set occurrence deletion and therefore keeps the
+attachment durable for Run restore.
 
 A timeline event remains an audit record and MUST NOT become the preferred model
 for new attachment types. The primary event asset and its thumbnail are separate
