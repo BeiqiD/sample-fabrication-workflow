@@ -1,8 +1,8 @@
 # Shared attachment backend and domain-lifecycle contract
 
-Status: active architecture contract; lifecycle Slice A is implemented in Draft PR #152 pending review
+Status: active architecture contract; lifecycle Slice A is complete in PR #152 and shared-ingestion Slice B is active in Draft PR #153
 
-Last reviewed: 2026-08-19 after Phase 4C completed in PR #151 and lifecycle Slice A entered implementation
+Last reviewed: 2026-08-19 after PR #152 merged lifecycle Slice A and shared-ingestion Slice B entered implementation
 
 This document defines the intended boundary between shared file ingestion,
 physical blob storage, attachment occurrences, domain ownership, derivatives,

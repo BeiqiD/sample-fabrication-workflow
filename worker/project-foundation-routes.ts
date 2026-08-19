@@ -1,15 +1,11 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { sha256Hex } from "../shared/content-addressing";
 import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
 import {
-  BlobReuseProviderUnavailableError,
-  findReusableR2Asset,
-} from "./blob-lifecycle/reuse";
-import {
-  BlobRegistrationAuthorityUnavailableError,
-  registerR2Asset,
-} from "./blob-lifecycle/registration";
+  AttachmentIngestionUnavailableError,
+  ingestR2Attachment,
+  safeAttachmentObjectName,
+} from "./attachment-ingestion";
 import { buildBlobExportPlan } from "./export-data";
 import { contentLengthWithin } from "./request-guards";
 import type { Env } from "./types";
@@ -40,11 +36,6 @@ function projectUploadFilename(encoded: string | undefined) {
   return filename;
 }
 
-function projectAssetKeyFilename(filename: string) {
-  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return safe || "attachment";
-}
-
 function requireMatchingProjectAssetMetadata(
   row: ProjectAssetRow,
   filename: string,
@@ -57,20 +48,6 @@ function requireMatchingProjectAssetMetadata(
   throw new HTTPException(409, {
     message: "Identical file bytes already exist with different intrinsic filename or MIME metadata; reuse the canonical file identity instead of silently changing it",
   });
-}
-
-async function reusableProjectAsset(
-  env: Env,
-  sha256: string,
-) {
-  try {
-    return await findReusableR2Asset(env, sha256);
-  } catch (error) {
-    if (error instanceof BlobReuseProviderUnavailableError) {
-      throw new HTTPException(503, { message: error.message });
-    }
-    throw error;
-  }
 }
 
 function returnReusableProjectAsset(
@@ -141,29 +118,20 @@ routes.post("/project-assets", async (c) => {
     throw new HTTPException(413, { message: "Project attachment uploads are limited to 10 MB" });
   }
 
-  const sha256 = await sha256Hex(buffer);
-  const id = crypto.randomUUID();
-  const key = `${new Date().toISOString().slice(0, 10)}/${id}-${projectAssetKeyFilename(filename)}`;
-  const registration = await registerR2Asset(c.env, {
-      id,
-      objectKey: key,
-      originalName: filename,
-      mimeType: contentType,
-      byteSize: buffer.byteLength,
-      sha256,
-      actorEmail: c.get("userEmail"),
-      bytes: buffer,
-      findWinner: () => reusableProjectAsset(c.env, sha256),
-    }).catch((error: unknown) => {
-      if (error instanceof BlobRegistrationAuthorityUnavailableError) {
-        throw new HTTPException(503, {
-          message: error.publicMessage,
-        });
-      }
-      throw error;
-    });
+  const registration = await ingestR2Attachment(c.env, {
+    originalName: filename,
+    mimeType: contentType,
+    actorEmail: c.get("userEmail"),
+    bytes: buffer,
+    objectKey: (id) => `${new Date().toISOString().slice(0, 10)}/${id}-${safeAttachmentObjectName(filename)}`,
+  }).catch((error: unknown) => {
+    if (error instanceof AttachmentIngestionUnavailableError) {
+      throw new HTTPException(503, { message: error.publicMessage });
+    }
+    throw error;
+  });
   const payload = returnReusableProjectAsset(
-    registration.asset,
+    registration.record,
     filename,
     contentType,
     buffer.byteLength,

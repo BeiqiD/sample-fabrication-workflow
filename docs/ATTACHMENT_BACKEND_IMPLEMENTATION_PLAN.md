@@ -1,8 +1,8 @@
 # Shared attachment backend implementation plan
 
-Status: active implementation plan; lifecycle Slice A is implemented in Draft PR #152 pending review
+Status: active implementation plan; lifecycle Slice A is complete in PR #152 and Slice B is active in Draft PR #153
 
-Last reviewed: 2026-08-19 after PR #151 merged and Draft PR #152 began lifecycle Slice A
+Last reviewed: 2026-08-19 after PR #152 merged and Draft PR #153 began shared ingestion Slice B
 
 This plan sequences the consolidation of Project, Comment, and Run attachment
 infrastructure after Phase 4C completed in PR #151. The durable
@@ -17,19 +17,17 @@ polishing several incompatible upload and removal paths.
 
 ## Scheduling boundary
 
-PR #151 is complete. Draft PR #152 is rebased directly onto the accepted Phase 4C
-merge and implements the first bounded lifecycle slice without attempting the
-later ingestion, metadata, derivative, or transport consolidation.
+PR #152 is complete and the v1 interaction feature set is frozen. Draft PR #153
+implements Slice B as post-freeze internal backend consolidation: it must not
+change user-visible attachment ownership, lifecycle, limits, or public route
+semantics.
 
 The intended order is:
 
-1. review and merge lifecycle Slice A in PR #152;
-2. declare the v1 interaction feature freeze over the now-complete attachment
-   removal semantics;
-3. implement later backend slices as independently justified PRs rather than
-   blocking all of Phase 5;
-4. begin attachment-facing Phase 5 refinement over the stable owner and
-   lifecycle contract.
+1. complete and independently review Slice B in PR #153;
+2. keep later metadata/derivative/transport slices independently justified;
+3. begin or continue Phase 5 frontend refinement without reopening v1
+   interaction scope merely because internal attachment infrastructure evolves.
 
 The implementation is not one mega-PR. Storage ingestion, domain lifecycle,
 derivatives, schema refinement, and frontend exposure have different failure
@@ -197,7 +195,7 @@ The caller binds the resulting derivative occurrence according to domain rules.
 
 ### Slice A — lifecycle completeness and executable policy
 
-Status: implemented in Draft PR #152; pending exact-head verification and independent review.
+Status: complete in merged PR #152.
 
 Goal: close the known user and storage gaps before reorganizing upload code.
 
@@ -232,12 +230,18 @@ indefinitely or erase their owning experimental text.
 
 ### Slice B — extract one internal ingestion service
 
-Goal: remove duplicated hashing, validation, registration, and winner-adoption
-logic without changing the public domain APIs.
+Status: active in Draft PR #153.
+
+Goal: remove duplicated hashing, registration, and winner-adoption logic while
+keeping domain-specific request validation in the compatibility adapters.
 
 Scope:
 
-- introduce shared validated filename, MIME, byte-size, and hash helpers;
+- centralize SHA-256 derivation for buffered R2 bytes, safe object-name
+  normalization, provider-verified byte-size checks, and registration error
+  classification;
+- keep domain-specific filename, MIME, size-limit, and request-shape validation
+  in the compatibility adapters where their public contracts intentionally differ;
 - introduce one provider-neutral ingestion result type;
 - move R2 registration and managed registration orchestration behind one
   internal service boundary;

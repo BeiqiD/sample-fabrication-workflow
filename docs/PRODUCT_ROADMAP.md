@@ -13,7 +13,7 @@ and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
 multi-selection and grouped geometry are complete in PR #148, Phase 4B2
 authoritative copy/paste is complete in PR #149, Phase 4B3 alignment assistance
 and explicit z-order are complete in PR #150, and Phase 4C representative-scale
-Map performance is complete in PR #151, and attachment lifecycle Slice A is implemented in Draft PR #152 pending review
+Map performance is complete in PR #151, attachment lifecycle Slice A is complete in PR #152, and shared attachment ingestion Slice B is active in Draft PR #153
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -506,7 +506,7 @@ This milestone is the **Project v1 functional shape**.
 
 ### V1 feature freeze
 
-**Status:** pending review of the bounded attachment lifecycle Slice A in Draft PR #152.
+**Status:** complete after merged PR #152. Slice B is internal post-freeze backend consolidation and does not reopen the interaction feature set.
 
 After Phase 4, freeze the interaction-shaping v1 feature set before systematic
 frontend refinement begins.
@@ -686,12 +686,11 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **attachment lifecycle Slice A**
-   in Draft PR #152: Project attachment removal plus bounded explicit
-   Run-attachment retention.
-2. Declare the **v1 feature freeze** once that exact head is accepted.
-3. Run **Phase 5 frontend refinement** as a dedicated whole-product pass,
-   while later internal attachment-ingestion slices remain independently reviewable.
+1. Complete independent review and merge of **shared attachment ingestion Slice B**
+   in Draft PR #153 without changing public upload or owner-lifecycle semantics.
+2. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
+3. Land later attachment metadata/derivative/transport slices only when independently
+   justified; they do not reopen the v1 interaction feature set.
 4. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.

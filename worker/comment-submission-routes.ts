@@ -13,7 +13,6 @@ import type {
   CreateCommentSubmissionInput,
   RunStepTarget,
 } from "../shared/types";
-import { sha256Hex } from "../shared/content-addressing";
 import { managedObjectKey, managedStorage, managedStorageStatus } from "./managed-storage";
 import {
   listItemBlobLocators,
@@ -22,47 +21,16 @@ import {
   retryUntil,
 } from "./blob-lifecycle/reachability";
 import {
-  BlobReuseProviderUnavailableError,
-  findReusableManagedObject,
-  findReusableR2Asset,
-} from "./blob-lifecycle/reuse";
-import {
-  BlobRegistrationAuthorityUnavailableError,
-  ManagedRegistrationByteSizeMismatchError,
-  registerManagedObject,
-  registerR2Asset,
-} from "./blob-lifecycle/registration";
+  AttachmentIngestionByteSizeMismatchError,
+  AttachmentIngestionUnavailableError,
+  ingestManagedAttachment,
+  ingestR2Attachment,
+  safeAttachmentObjectName,
+} from "./attachment-ingestion";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
-
-async function reusableCommentR2Asset(env: Env, sha256: string) {
-  try {
-    return await findReusableR2Asset(env, sha256);
-  } catch (error) {
-    if (error instanceof BlobReuseProviderUnavailableError) {
-      throw new HTTPException(503, { message: error.message });
-    }
-    throw error;
-  }
-}
-
-async function reusableCommentManagedObject(
-  env: Env,
-  provider: string,
-  sha256: string,
-  byteSize: number,
-) {
-  try {
-    return await findReusableManagedObject(env, provider, sha256, byteSize);
-  } catch (error) {
-    if (error instanceof BlobReuseProviderUnavailableError) {
-      throw new HTTPException(503, { message: error.message });
-    }
-    throw error;
-  }
-}
 
 type SubmissionRow = {
   id: string;
@@ -88,6 +56,16 @@ type ItemRow = {
   storage_object_id: string | null;
   actor_email: string | null;
 };
+
+function rethrowCommentIngestionError(error: unknown): never {
+  if (error instanceof AttachmentIngestionByteSizeMismatchError) {
+    throw new HTTPException(400, { message: "Attachment size changed during upload" });
+  }
+  if (error instanceof AttachmentIngestionUnavailableError) {
+    throw new HTTPException(503, { message: error.publicMessage });
+  }
+  throw error;
+}
 
 function visibleSubmissionTargetsSql(alias: string) {
   return `(
@@ -575,35 +553,16 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
       }
       const buffer = await c.req.arrayBuffer();
       if (buffer.byteLength !== item.byte_size) throw new HTTPException(400, { message: "Comment image size changed during upload" });
-      const sha256 = await sha256Hex(buffer);
-      let asset = await reusableCommentR2Asset(c.env, sha256);
-      let deduplicated = Boolean(asset);
-      if (!asset) {
-        const assetId = crypto.randomUUID();
-        const key = `comments/${submissionId}/${itemId}/${assetId}-${item.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        try {
-          const registration = await registerR2Asset(c.env, {
-            id: assetId,
-            objectKey: key,
-            originalName: item.filename,
-            mimeType: contentType,
-            byteSize: item.byte_size,
-            sha256,
-            actorEmail: c.get("userEmail"),
-            bytes: buffer,
-            findWinner: () => reusableCommentR2Asset(c.env, sha256),
-          });
-          asset = registration.asset;
-          deduplicated = registration.deduplicated;
-        } catch (error) {
-          if (error instanceof BlobRegistrationAuthorityUnavailableError) {
-            throw new HTTPException(503, {
-              message: error.publicMessage,
-            });
-          }
-          throw error;
-        }
-      }
+      const registration = await ingestR2Attachment(c.env, {
+        originalName: item.filename,
+        mimeType: contentType,
+        actorEmail: c.get("userEmail"),
+        bytes: buffer,
+        objectKey: (assetId) => `comments/${submissionId}/${itemId}/${assetId}-${safeAttachmentObjectName(item.filename!)}`,
+      }).catch(rethrowCommentIngestionError);
+      const asset = registration.record;
+      const sha256 = registration.handle.sha256;
+      const deduplicated = registration.deduplicated;
       await c.env.DB.prepare(
         `UPDATE comment_submission_items
          SET status = CASE
@@ -633,56 +592,24 @@ routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c)
     if (!validSha256(sha256)) throw new HTTPException(400, { message: "A SHA-256 content hash is required" });
     const storage = managedStorage(c.env);
     if (!storage) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
-    let storageObject = await reusableCommentManagedObject(
-      c.env,
-      storage.provider,
+    const registration = await ingestManagedAttachment(c.env, storage, {
+      originalName: item.filename,
+      mimeType: contentType,
+      byteSize: uploadByteSize,
       sha256,
-      uploadByteSize,
-    );
-    let deduplicated = Boolean(storageObject);
-    if (!storageObject) {
-      const storageObjectId = crypto.randomUUID();
-      const key = await managedKeyForSubmission(
+      actorEmail: c.get("userEmail"),
+      body: c.req.raw.body!,
+      objectKey: (storageObjectId) => managedKeyForSubmission(
         c.env,
         submission,
         submissionId,
         itemId,
         storageObjectId,
-        item.filename,
-      );
-      try {
-        const registration = await registerManagedObject(c.env, storage, {
-          id: storageObjectId,
-          objectKey: key,
-          originalName: item.filename,
-          mimeType: contentType,
-          byteSize: uploadByteSize,
-          sha256,
-          actorEmail: c.get("userEmail"),
-          body: c.req.raw.body!,
-          findWinner: () => reusableCommentManagedObject(
-            c.env,
-            storage.provider,
-            sha256,
-            uploadByteSize,
-          ),
-        });
-        storageObject = registration.object;
-        deduplicated = registration.deduplicated;
-      } catch (error) {
-        if (error instanceof ManagedRegistrationByteSizeMismatchError) {
-          throw new HTTPException(400, {
-            message: "Attachment size changed during upload",
-          });
-        }
-        if (error instanceof BlobRegistrationAuthorityUnavailableError) {
-          throw new HTTPException(503, {
-            message: error.publicMessage,
-          });
-        }
-        throw error;
-      }
-    }
+        item.filename!,
+      ),
+    }).catch(rethrowCommentIngestionError);
+    const storageObject = registration.record;
+    const deduplicated = registration.deduplicated;
     await c.env.DB.prepare(
       `UPDATE comment_submission_items
        SET status = CASE

@@ -22,6 +22,11 @@ import { routes as projectRoutes } from "./project-routes";
 import { routes as referenceRoutes } from "./reference-routes";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import {
+  AttachmentIngestionUnavailableError,
+  ingestR2Attachment,
+  safeAttachmentObjectName,
+} from "./attachment-ingestion";
+import {
   fabubloxImportLeaseExpiresAt,
   queueFabubloxImportCleanup,
   readFabubloxImportState,
@@ -4722,30 +4727,21 @@ app.post("/assets", async (c) => {
   if (filename.length > 255 || contentType.length > 200) throw new HTTPException(400, { message: "Asset metadata is too long" });
   const buffer = await c.req.arrayBuffer();
   if (buffer.byteLength > 10 * 1024 * 1024) throw new HTTPException(413, { message: "Asset uploads are limited to 10 MB" });
-  const sha256 = await digestSha256(buffer);
-  const id = crypto.randomUUID();
-  const key = `${new Date().toISOString().slice(0, 10)}/${id}-${safeObjectName(filename)}`;
-  const registration = await registerR2Asset(c.env, {
-      id,
-      objectKey: key,
-      originalName: filename,
-      mimeType: contentType,
-      byteSize: buffer.byteLength,
-      sha256,
-      actorEmail: c.get("userEmail"),
-      bytes: buffer,
-      findWinner: () => reusableR2Asset(c.env, sha256),
-    }).catch((error: unknown) => {
-      if (error instanceof BlobRegistrationAuthorityUnavailableError) {
-        throw new HTTPException(503, {
-          message: error.publicMessage,
-        });
-      }
-      throw error;
-    });
+  const registration = await ingestR2Attachment(c.env, {
+    originalName: filename,
+    mimeType: contentType,
+    actorEmail: c.get("userEmail"),
+    bytes: buffer,
+    objectKey: (id) => `${new Date().toISOString().slice(0, 10)}/${id}-${safeAttachmentObjectName(filename)}`,
+  }).catch((error: unknown) => {
+    if (error instanceof AttachmentIngestionUnavailableError) {
+      throw new HTTPException(503, { message: error.publicMessage });
+    }
+    throw error;
+  });
   const payload = {
-    id: registration.asset.id,
-    key: registration.asset.r2_key,
+    id: registration.record.id,
+    key: registration.record.r2_key,
     deduplicated: registration.deduplicated,
   };
   return registration.deduplicated
