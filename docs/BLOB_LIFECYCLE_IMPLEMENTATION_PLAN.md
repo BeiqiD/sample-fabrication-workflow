@@ -1,9 +1,8 @@
 # Blob lifecycle implementation record
 
-Status: implemented by the blob-lifecycle safety slice; remote activation requires the exact merged integration head to pass the v3 deployment gate
+Status: implemented blob-lifecycle foundation; current through attachment lifecycle Slice A in Draft PR #152
 
-Last reviewed: 2026-08-15 after reachability-preserving FabuBlox
-publication and through-0024 recovery hardening
+Last reviewed: 2026-08-19 after adding bounded explicit Run-attachment retention
 
 This document records how the normative
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) is implemented in the
@@ -53,7 +52,15 @@ The slice includes:
 13. through-0024 recovery for partial pending or failed imports, including Run
     step-FK detachment, import/template provenance cleanup, release of only
     exclusive failed-template state edges, and standalone re-homing of any
-    import asset still protected by another durable source.
+    import asset still protected by another durable source;
+14. migration 0030, which keeps active Run-step attachments durable (including
+    whole-Run Trash), preserves migration-0028 supersession transfer, and
+    converts only an explicitly deleted non-superseded occurrence to a 24-hour
+    grace edge before ordinary orphan GC;
+15. migration 0031, which applies the same bounded edge to explicitly deleted
+    ready Comment child items across R2 and managed storage, preserves whole-
+    Comment Trash, and guards ordinary Run-attachment reactivation against stale
+    GC state.
 
 The slice does not include:
 
@@ -94,6 +101,10 @@ existing source-lifecycle work:
 0025_fabublox_publication_boundaries.sql
 0026_fabublox_recovery_ownership.sql
 0027_fabublox_dependency_publication.sql
+0028_blob_registration_and_recovery_reconciliation.sql
+0029_supersession_timeline_projection.sql
+0030_run_attachment_retention.sql
+0031_comment_attachment_retention.sql
 ```
 
 Wrangler discovers migration files in deterministic order. The managed-object

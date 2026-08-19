@@ -103,5 +103,8 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(reading).not.toContain("New Project Markdown");
     expect(reading).toContain("Edit Markdown");
     expect(reading).toContain("Edit attachment metadata");
+    expect(reading).toContain("Move attachment to trash");
+    expect(page).toContain("const removeAttachmentItem");
+    expect(page).toContain("onAttachmentDeleteRequest={removeAttachmentItem}");
   });
 });

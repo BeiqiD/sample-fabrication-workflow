@@ -310,4 +310,47 @@ describe("mounted Phase 3C Reading projection", () => {
       expect(screen.queryByRole("button", { name: "Move Markdown to trash" })).toBeNull();
     });
   });
+  it("moves a standalone attachment to trash with item and content revision guards", async () => {
+    const snapshot = snapshotWithAttachment();
+    const item = snapshot.items.find((candidate) => candidate.projectContentId === "content-attachment")!;
+    const content = snapshot.contents.find((candidate) => candidate.id === "content-attachment")!;
+    const attachment = snapshot.attachments.find((candidate) => candidate.projectContentId === content.id)!;
+    const placement = snapshot.placements.find((candidate) => candidate.projectItemId === item.id)!;
+    const deletedAt = "2026-08-19T09:30:00.000Z";
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshot);
+      if (String(path) === `/api/projects/project-a/items/${item.id}` && init?.method === "DELETE") {
+        return jsonResponse({
+          project: { ...snapshot.project, revision: snapshot.project.revision + 1, updatedAt: deletedAt },
+          item: { ...item, revision: item.revision + 1, deletedAt, deletedBy: "user@example.com", updatedAt: deletedAt },
+          content: { ...content, revision: content.revision + 1, deletedAt, deletedBy: "user@example.com", updatedAt: deletedAt },
+          attachment,
+          placement,
+          replayed: false,
+        });
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method || "GET"} ${String(path)}` }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Reading" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Move attachment to trash" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const request = fetchMock.mock.calls[1];
+    expect(request[0]).toBe(`/api/projects/project-a/items/${item.id}`);
+    expect(request[1]?.method).toBe("DELETE");
+    const body = JSON.parse(String(request[1]?.body));
+    expect(body).toMatchObject({
+      expectedItemRevision: item.revision,
+      expectedContentRevision: content.revision,
+    });
+    expect(body.operationId).toEqual(expect.any(String));
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { level: 2, name: "result.pdf" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Move attachment to trash" })).toBeNull();
+      expect(screen.getByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
+    });
+  });
 });

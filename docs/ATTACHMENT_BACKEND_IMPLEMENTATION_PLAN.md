@@ -1,0 +1,505 @@
+# Shared attachment backend implementation plan
+
+Status: active implementation plan; lifecycle Slice A is implemented in Draft PR #152 pending review
+
+Last reviewed: 2026-08-19 after PR #151 merged and Draft PR #152 began lifecycle Slice A
+
+This plan sequences the consolidation of Project, Comment, and Run attachment
+infrastructure after Phase 4C completed in PR #151. The durable
+ownership and lifecycle boundary is defined in
+[shared attachment backend contract](./ATTACHMENT_BACKEND_CONTRACT.md).
+Physical-byte integrity, reachability, export, and GC continue to follow
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md).
+
+This document is intentionally introduced before implementation so Phase 5
+frontend refinement can depend on stable attachment semantics instead of
+polishing several incompatible upload and removal paths.
+
+## Scheduling boundary
+
+PR #151 is complete. Draft PR #152 is rebased directly onto the accepted Phase 4C
+merge and implements the first bounded lifecycle slice without attempting the
+later ingestion, metadata, derivative, or transport consolidation.
+
+The intended order is:
+
+1. review and merge lifecycle Slice A in PR #152;
+2. declare the v1 interaction feature freeze over the now-complete attachment
+   removal semantics;
+3. implement later backend slices as independently justified PRs rather than
+   blocking all of Phase 5;
+4. begin attachment-facing Phase 5 refinement over the stable owner and
+   lifecycle contract.
+
+The implementation is not one mega-PR. Storage ingestion, domain lifecycle,
+derivatives, schema refinement, and frontend exposure have different failure
+modes and review requirements.
+
+## Current repository state
+
+The repository already shares important low-level blob infrastructure:
+
+- content hashing and content-addressed reuse;
+- provider-verified R2 and managed-storage registration;
+- primary-authoritative reconciliation after uncertain registration;
+- integrity quarantine;
+- one global retention-edge surface and GC ledger;
+- complete export of blob metadata and occurrence relationships.
+
+The remaining duplication is mainly in ingestion and domain integration.
+
+### Project upload path
+
+Project-owned attachments currently use a dedicated `/project-assets` route.
+The route:
+
+- buffers the complete request in the Worker;
+- limits uploads to 10 MB;
+- calculates SHA-256;
+- registers or adopts an R2 asset;
+- returns an asset identity before a separate authoritative Project item/content
+  binding operation.
+
+This path does not reuse the richer Comment upload-session UX and cannot support
+large durable originals without a redesign.
+
+Project persistence already has a generic item-removal backend for Reference,
+Markdown, and attachment occurrences, but the current Project UI does not expose
+a complete attachment removal action. A user can therefore add an incorrect
+file and have no ordinary way to remove the standalone Project item.
+
+### Run and direct-asset path
+
+Run-step execution images and related direct assets use the general asset upload
+and `run_step_assets` occurrence model. The domain already records auditable
+attachment deletion and can clear active Timeline media linkage while preserving
+historical text.
+
+The current retention surface nevertheless treats every `run_step_assets`
+relationship as durable, including a soft-deleted occurrence. A mistakenly
+uploaded large file can therefore disappear from the UI while its bytes remain
+protected indefinitely.
+
+### Comment submission path
+
+Canonical Comments already have the most complete upload state machine:
+
+- submission and item identities allocated before upload;
+- pending, uploading, ready, failed, cancelled, deleted, and restore states;
+- upload progress and cancellation;
+- R2 for bounded images and managed storage for larger generic attachments;
+- retry windows and cleanup;
+- TIFF original/preview dependency handling;
+- item-level deletion separate from canonical Comment deletion.
+
+This path is a useful implementation source, but Comment publication and target
+semantics MUST NOT become the universal attachment domain model.
+
+### Metadata and deduplication coupling
+
+The current physical records retain intrinsic filename and MIME metadata, and
+the Project upload path rejects reuse when identical bytes already exist with a
+different filename or MIME value.
+
+That behavior is too restrictive for a shared attachment backend. One immutable
+blob may legitimately appear as:
+
+```text
+Run occurrence:     AFM_before_cleaning.tif
+Project occurrence: Surface morphology before treatment.tif
+Comment item:       Raw AFM scan
+```
+
+The implementation must separate byte identity from occurrence presentation
+without weakening integrity checks.
+
+### Derivative coupling
+
+TIFF preview logic currently lives inside the Comment submission model. The
+same original used by a Run or Project should be able to reuse one safe preview
+rather than reimplementing conversion in each domain.
+
+## Target architecture
+
+The target keeps domain tables and services authoritative while introducing
+shared internal infrastructure:
+
+```text
+domain UI
+   ↓
+domain mutation service
+   ├── Project binding
+   ├── Comment item binding
+   └── Run-step occurrence binding
+             ↓
+shared attachment ingestion service
+             ↓
+shared blob registration / integrity / provider layer
+             ↓
+R2 or managed storage
+```
+
+A separate shared derivative service reads a verified source blob and produces
+rebuildable preview records. Blob lifecycle consumes all domain and derivative
+retention edges.
+
+## Proposed internal service contracts
+
+### Ingestion request
+
+A frozen ingestion request should contain at least:
+
+```text
+session ID
+operation ID
+actor
+filename metadata
+MIME metadata
+declared byte size
+expected SHA-256 when available
+upload class or policy hint
+```
+
+A domain may provide a policy hint such as `small_image`, `generic_original`, or
+`derived_preview`, but it may not provide a provider object key or choose an
+unvalidated physical locator.
+
+### Ingestion result
+
+The service returns a provider-neutral result equivalent to:
+
+```text
+blob ID
+SHA-256
+verified byte size
+technical media type when detected
+store kind
+registration state
+deduplicated flag
+```
+
+The domain then binds that result through its own authoritative transaction and
+optimistic-concurrency contract.
+
+### Binding failure
+
+A successful upload followed by a failed or abandoned domain binding MUST leave
+an identifiable orphan candidate. It MUST NOT create a provider-only object or
+force the domain to guess whether cleanup is safe.
+
+### Derivative request
+
+A derivative request contains source blob identity, derivative kind, and
+generator version. It does not include Project, Comment, or Run business state.
+The caller binds the resulting derivative occurrence according to domain rules.
+
+## Bounded implementation sequence
+
+### Slice A — lifecycle completeness and executable policy
+
+Status: implemented in Draft PR #152; pending exact-head verification and independent review.
+
+Goal: close the known user and storage gaps before reorganizing upload code.
+
+Scope:
+
+- expose authoritative Project attachment removal through Map, Reading, and the
+  applicable Inspector action surface;
+- reuse the existing Project item-removal state machine rather than adding an
+  attachment-specific deletion API;
+- add mounted coverage proving a Project attachment can be removed and restored
+  without affecting another occurrence of the same blob;
+- revise `run_step_assets` retention so active occurrences remain durable while
+  explicitly deleted, non-superseded occurrences contribute a 24-hour grace
+  edge without reopening FabuBlox supersession tombstones;
+- give explicitly deleted ready Comment child items the same guaranteed
+  24-hour retention edge for R2 and managed-storage bytes without hiding
+  Comment text;
+- keep restore best-effort after edge expiry until GC claim, with orphan
+  reclamation and deleting/deleted/quarantine guards;
+- keep whole-Comment Trash and its active child items durable;
+- keep whole-Run Trash fully recoverable and distinct from explicit attachment
+  removal;
+- preserve Run step and Timeline text after direct attachment deletion;
+- add GC regressions for shared blobs and expired/unexpired grace edges;
+- update the normative blob lifecycle contract in the same PR.
+
+No upload protocol consolidation is required in this first code slice.
+
+Exit: users can undo incorrect Project attachment creation, while deleted direct
+Run attachments and large Run Comment child attachments no longer retain bytes
+indefinitely or erase their owning experimental text.
+
+### Slice B — extract one internal ingestion service
+
+Goal: remove duplicated hashing, validation, registration, and winner-adoption
+logic without changing the public domain APIs.
+
+Scope:
+
+- introduce shared validated filename, MIME, byte-size, and hash helpers;
+- introduce one provider-neutral ingestion result type;
+- move R2 registration and managed registration orchestration behind one
+  internal service boundary;
+- preserve `/assets`, `/project-assets`, and Comment item-content routes as
+  compatibility adapters;
+- preserve existing limits and UI behavior while the extraction is reviewed;
+- ensure every adapter uses the same outcome-uncertain, dedupe, quarantine, and
+  orphan-candidate rules;
+- add cross-adapter contract tests for identical bytes and provider failures.
+
+No schema migration is required merely to share TypeScript services.
+
+Exit: current routes call one ingestion implementation, and future API or
+provider changes no longer require three independent storage paths.
+
+### Slice C — separate blob facts from occurrence presentation
+
+Goal: allow safe cross-domain reuse regardless of contextual filenames or
+captions.
+
+Likely scope:
+
+- define provider-neutral blob identity at the schema/service boundary;
+- treat original/display filename, title, caption, role, and user-facing MIME as
+  occurrence metadata;
+- retain technical byte facts and integrity state on the blob record;
+- remove the Project-specific identical-bytes/different-filename conflict;
+- migrate existing metadata without changing stable occurrence IDs;
+- preserve complete export and restoration of both blob and occurrence facts;
+- update copy/paste and cross-domain copy/reuse tests.
+
+The implementation may retain `assets` and `managed_storage_objects` as
+provider-specific records behind an adapter. A table collapse is optional and
+must be justified independently.
+
+Exit: one verified byte sequence can serve several domain occurrences with
+independent contextual metadata.
+
+### Slice D — shared derivative service
+
+Goal: make useful previews reusable and domain-neutral.
+
+Initial scope:
+
+- ordinary image preview metadata;
+- TIFF original plus one bounded browser-safe preview;
+- source/derivative identity and generator version;
+- derivative failure that leaves the original file usable as a generic card;
+- derivative reachability and rebuildable-GC behavior;
+- Project, Comment, and Run presentation adapters that can reuse the same
+  derivative.
+
+PDF first-page preview remains optional and requires a separate security,
+resource, and bundle/runtime review. Scientific-data parsing remains out of
+scope.
+
+Exit: supported previews are generated once per source/generator contract and
+can be reused across domains.
+
+### Slice E — converged upload-session transport where justified
+
+Goal: unify user-visible progress, cancellation, retry, and large-file behavior
+after the internal service has stabilized.
+
+Possible scope:
+
+- one upload-session API shared by Project, Comment, and Run clients;
+- progress and abort semantics;
+- exact retry of stable session and item identities;
+- small-object R2 and large-original managed-storage routing;
+- bounded direct-provider or resumable upload if deployment requirements demand
+  files larger than the Worker-buffered path can safely support;
+- compatibility period for old routes before removal.
+
+This slice is not required merely to share the backend. It should land only when
+its UX and deployment benefit outweigh API churn.
+
+Exit: domains share the transport where useful without sharing owner lifecycle.
+
+### Slice F — Phase 5 attachment-surface refinement
+
+Goal: refine the now-stable semantics as one visual system.
+
+Scope belongs to Phase 5 and may include:
+
+- consistent file cards, preview affordances, progress, retry, error, and empty
+  states;
+- clear distinction between `Remove attachment`, `Move Comment to trash`,
+  `Move Project to trash`, and `Delete run attachment`;
+- restore-window wording such as 24 hours or 30 days;
+- consistent keyboard, focus, mobile, and confirmation behavior;
+- no misleading generic action that can delete an owner when only a child item
+  was selected.
+
+Exit: the product uses one coherent attachment language while preserving
+separate domain semantics.
+
+## Route compatibility strategy
+
+The initial code slices SHOULD preserve existing routes:
+
+```text
+/assets
+/project-assets
+/comment-submissions/:submissionId/items/:itemId/content
+```
+
+They become adapters rather than independent storage implementations. This
+keeps Project, Run, and Comment state machines reviewable while shared internals
+are extracted.
+
+A later unified route MAY be introduced only after:
+
+- stable ingestion-session identity is specified;
+- large-file provider routing is deployment-safe;
+- domain binding remains a separate authorized operation;
+- old clients can be migrated without weakening exact retry and recovery.
+
+## Data-model direction
+
+The first extraction should avoid speculative schema churn. The minimum useful
+abstraction is a TypeScript/provider-neutral blob handle backed by current
+records.
+
+A later migration is justified when it solves concrete problems:
+
+- filename/MIME conflicts during deduplication;
+- one source blob with several occurrence presentations;
+- shared derivative identity;
+- provider migration or tiered storage;
+- uniform export and purge planning.
+
+Any migration MUST preserve:
+
+- stable Project item/content/placement IDs;
+- stable Comment submission/item and target IDs;
+- stable Run-step attachment occurrence IDs;
+- Reference target identity;
+- Timeline source links and deletion audit metadata;
+- current blob hashes and provider registration history.
+
+## Retention and cleanup implementation
+
+### Project
+
+- active occurrence: durable edge;
+- standalone item or whole Project in Trash: 30-day recovery edge;
+- restore reactivates the same item/content/placement identities;
+- purge releases Project-owned edges, then ordinary global GC decides whether
+  bytes can be deleted.
+
+### Comment
+
+- item removal updates only the item occurrence;
+- canonical Comment body and Timeline text remain active unless the whole
+  Comment is separately trashed;
+- Comment Trash target: 30 days;
+- explicitly deleted ready child items use the implemented 24-hour restore edge;
+- TIFF original/preview dependencies must remain executable during delete and
+  restore.
+
+### Run
+
+- explicit direct-attachment removal records audit metadata and clears active
+  media projection where needed;
+- the deleted occurrence contributes a 24-hour retention edge;
+- whole-Run Trash keeps the complete Run graph and files recoverable;
+- no independent Run-step delete mechanism is introduced;
+- after grace expiry, global reachability decides whether physical bytes are
+  orphaned.
+
+### Shared blobs
+
+A regression MUST cover one physical blob retained simultaneously by Project,
+Comment, Run, and derivative edges. Removing any subset must not collect the
+blob while one effective edge remains.
+
+## Required verification matrix
+
+### Ingestion
+
+- declared size and actual size match/mismatch;
+- expected hash match/mismatch;
+- R2 and managed-storage registration;
+- verified winner reuse;
+- provider outage and primary-authority outage;
+- staging and promotion uncertainty;
+- identical bytes across Project, Comment, and Run adapters;
+- failed domain binding leaves an ordinary orphan candidate;
+- no client-supplied physical locator is accepted.
+
+### Domain lifecycle
+
+- Project attachment remove/restore;
+- Project Trash/restore with attachment bytes intact for 30 days;
+- Comment item deletion leaves body, targets, occurrences, and Timeline text;
+- whole Comment Trash remains distinct from item deletion;
+- direct Run attachment deletion leaves Run and step state intact;
+- Run Timeline active media link is cleared while audit metadata remains;
+- 24-hour Run grace is retained before expiry and released after expiry;
+- whole-Run Trash preserves every attachment;
+- shared blob remains reachable from another domain.
+
+### Derivatives
+
+- one TIFF source produces one reusable preview per generator version;
+- deletion of one occurrence does not remove a derivative still used elsewhere;
+- missing/failed preview falls back to a generic original file card;
+- derivative can be regenerated after collection;
+- parser resource bounds and malformed-input handling.
+
+### Export and recovery
+
+- complete export includes source blobs, derivatives, occurrences, deletion
+  metadata, retention edges, and GC state;
+- missing provider bytes produce warnings rather than database-row loss;
+- restore behavior matches the remaining domain recovery window;
+- migrations work in host SQLite and D1/workerd;
+- no physical-delete guard is weakened without the privileged purge design.
+
+## Activation and rollout
+
+The documentation PR performs no deployment or remote data operation.
+
+Each later implementation slice must record:
+
+- exact base and exact head;
+- changed schema and route surface;
+- fresh migration and existing-database migration results;
+- provider behavior under R2 and configured managed storage;
+- complete export compatibility;
+- exact-head focused and repository-wide CI;
+- whether a remote migration or Worker deployment is required.
+
+Provider routing, grace constants, and scheduled cleanup must be activated only
+after the corresponding migration and exact Worker head are deployed together.
+
+## Explicit defer list
+
+The first implementation sequence does not include:
+
+- a general file-browser page;
+- arbitrary cross-domain move/reparent operations;
+- scientific parsing of HDF5, MAT, ZIP, CAD, Lumerical, or instrument formats;
+- PDF preview without a dedicated security review;
+- public blob URLs or client-controlled provider keys;
+- real-time collaborative uploads;
+- automatic provider migration;
+- Docker/self-hosted implementation;
+- permanent purge of Sample or Run experimental history;
+- a universal owner-delete endpoint.
+
+## Documentation exit criteria
+
+This planning slice is complete when:
+
+1. the shared/backend versus domain/owner boundary is explicit;
+2. Project standalone, Comment child-item, and Run evidence semantics are
+   distinguished;
+3. Comment attachment deletion is guaranteed not to erase Comment or Timeline
+   text;
+4. the Project 30-day and Run explicit-attachment 24-hour targets are recorded;
+5. physical deletion remains global reachability-driven;
+6. implementation is scheduled only after PR #151;
+7. later work is split into bounded, reviewable slices rather than one rewrite.
