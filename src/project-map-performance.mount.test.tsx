@@ -47,17 +47,28 @@ class TestDOMMatrixReadOnly {
   }
 }
 
+function elementStyleDimension(element: HTMLElement, dimension: "width" | "height"): number {
+  const raw = element.style[dimension];
+  const parsed = Number.parseFloat(raw);
+  if (raw.endsWith("%")) {
+    const parent = element.parentElement;
+    return parent ? elementStyleDimension(parent, dimension) * parsed / 100 : parsed || 1;
+  }
+  if (parsed > 0) return parsed;
+  return element.parentElement ? elementStyleDimension(element.parentElement, dimension) : 1;
+}
+
 function installDomMocks() {
   vi.stubGlobal("ResizeObserver", TestResizeObserver);
   vi.stubGlobal("DOMMatrixReadOnly", TestDOMMatrixReadOnly);
   Object.defineProperties(HTMLElement.prototype, {
     offsetHeight: {
       configurable: true,
-      get() { return Number.parseFloat(this.style.height) || 1; },
+      get() { return elementStyleDimension(this, "height"); },
     },
     offsetWidth: {
       configurable: true,
-      get() { return Number.parseFloat(this.style.width) || 1; },
+      get() { return elementStyleDimension(this, "width"); },
     },
   });
   Object.defineProperty(SVGElement.prototype, "getBBox", {
