@@ -210,22 +210,22 @@ describe("real Project Map surface keyboard behavior", () => {
     expect(container.querySelector('[data-testid="project-alignment-guide-horizontal"]')).toBeNull();
 
     const dispatchMouse = (
-    target: EventTarget,
-    type: "mousedown" | "mousemove" | "mouseup",
-    init: MouseEventInit,
-  ) => {
-    const view = document.defaultView!;
-    const MouseEventConstructor = (
-      view as unknown as typeof globalThis
-    ).MouseEvent;
-    const event = new MouseEventConstructor(type, {
-      ...init,
-      bubbles: true,
-      cancelable: true,
-    });
-    Object.defineProperty(event, "view", { value: view });
-    target.dispatchEvent(event);
-  };
+      target: EventTarget,
+      type: "mousedown" | "mousemove" | "mouseup",
+      init: MouseEventInit,
+    ) => {
+      const view = document.defaultView!;
+      const MouseEventConstructor = (
+        view as unknown as typeof globalThis
+      ).MouseEvent;
+      const event = new MouseEventConstructor(type, {
+        ...init,
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(event, "view", { value: view });
+      target.dispatchEvent(event);
+    };
 
     dispatchMouse(note, "mousedown", {
       button: 0,
@@ -326,6 +326,7 @@ describe("real Project Map surface keyboard behavior", () => {
     expect(command.after.width).toBe(command.before.width);
     expect(command.after.height).toBe(command.before.height);
   });
+
   it("falls back to the attachment file card when a previewable image cannot decode", async () => {
     const snapshot = projectTestSnapshot();
     const actor = "user@example.com";
@@ -394,6 +395,16 @@ describe("real Project Map surface keyboard behavior", () => {
       />
     </div>);
 
+    const canvas = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    const zoomIn = container.querySelector<HTMLButtonElement>(".react-flow__controls-zoomin");
+    expect(zoomIn).toBeTruthy();
+    for (let index = 0; index < 8; index += 1) fireEvent.click(zoomIn!);
+    await waitFor(() => expect(canvas.dataset.projectMapDetail).toBe("full"));
+
     const image = await waitFor(() => {
       const candidate = container.querySelector<HTMLImageElement>("img.project-node-image");
       expect(candidate).toBeTruthy();
@@ -406,7 +417,6 @@ describe("real Project Map surface keyboard behavior", () => {
     );
     expect(fallback?.textContent).toContain("Open attachment");
   });
-
 
   it("reserves empty-pane double click for Markdown creation instead of viewport zoom", async () => {
     const onMarkdownCreateRequest = vi.fn();
@@ -428,6 +438,9 @@ describe("real Project Map surface keyboard behavior", () => {
     });
     const viewport = container.querySelector<HTMLElement>(".react-flow__viewport");
     expect(viewport).toBeTruthy();
+    await waitFor(() => {
+      expect(viewport!.style.transform).not.toBe("translate(0px,0px) scale(1)");
+    });
     const beforeTransform = viewport!.style.transform;
 
     fireEvent.doubleClick(pane, { clientX: 400, clientY: 300 });
@@ -439,5 +452,4 @@ describe("real Project Map surface keyboard behavior", () => {
     await new Promise((resolve) => window.setTimeout(resolve, 250));
     expect(viewport!.style.transform).toBe(beforeTransform);
   });
-
 });

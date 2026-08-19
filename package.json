@@ -55,7 +55,10 @@
     "verify:project-owned-content": "npm run test:project-owned-content && npm run test:project-owned-content-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs",
     "verify:project-edges": "npm run test:project-edges && npm run test:project-edges-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs",
     "verify:project-reading": "npm run test:project-reading && npm run test:project-reading-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs",
-    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:storage-integrity && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-canvas-productivity && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:project-edges && npm run verify:project-reading && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy"
+    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:storage-integrity && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-map-performance && npm run verify:project-canvas-productivity && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:project-edges && npm run verify:project-reading && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
+    "test:project-map-performance": "vitest run src/lib/project-map-performance.test.ts src/project-map-kernel.test.ts",
+    "test:project-map-performance-mounted": "vitest run --config vitest.mounted.config.ts src/project-map-performance.mount.test.tsx",
+    "verify:project-map-performance": "npm run test:project-map-performance && npm run test:project-map-performance-mounted && npm run build && node scripts/verify-project-map-bundle.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

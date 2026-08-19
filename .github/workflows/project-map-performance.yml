@@ -1,0 +1,48 @@
+name: Project Map performance
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+      - v2/backend-foundation
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies and run Project Map performance contract
+        id: project_map_performance
+        shell: bash
+        run: |
+          set -o pipefail
+          npm ci 2>&1 | tee project-map-performance.log
+          npm run verify:project-map-performance 2>&1 | tee -a project-map-performance.log
+
+      - name: Record Project Map performance status
+        if: ${{ always() && steps.project_map_performance.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE_OUTCOME: ${{ steps.project_map_performance.outcome }}
+          STATUS_CONTEXT: pre-pr/project-map-performance
+          STATUS_SUCCESS_DESCRIPTION: Project Map performance passed
+          STATUS_FAILURE_DESCRIPTION: Project Map performance failed
+          STATUS_LOG_FILE: project-map-performance.log
+        run: node scripts/publish-commit-status.mjs
