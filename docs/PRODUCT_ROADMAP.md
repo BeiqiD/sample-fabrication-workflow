@@ -13,7 +13,7 @@ and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
 multi-selection and grouped geometry are complete in PR #148, Phase 4B2
 authoritative copy/paste is complete in PR #149, Phase 4B3 alignment assistance
 and explicit z-order are complete in PR #150, and Phase 4C representative-scale
-Map performance is complete in PR #151, attachment lifecycle Slice A is complete in PR #152, and shared attachment ingestion Slice B is active in Draft PR #153
+Map performance is complete in PR #151, attachment lifecycle Slice A is complete in PR #152, shared attachment ingestion Slice B is complete in PR #153, and occurrence-metadata Slice C is active in Draft PR #154
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -686,8 +686,8 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **shared attachment ingestion Slice B**
-   in Draft PR #153 without changing public upload or owner-lifecycle semantics.
+1. Complete independent review and merge of **attachment occurrence metadata Slice C**
+   in Draft PR #154 without changing public upload or owner-lifecycle semantics.
 2. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
 3. Land later attachment metadata/derivative/transport slices only when independently
    justified; they do not reopen the v1 interaction feature set.

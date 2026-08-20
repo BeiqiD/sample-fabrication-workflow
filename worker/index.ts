@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteRunInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteRunInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepAssetPresentationInput, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
 import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, normalizedStepName, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
+import { isCanonicalMimeType } from "../shared/mime-type";
 import { isSampleRecordEvent } from "../shared/sample-records";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
 import { authenticateRequest } from "./auth";
@@ -76,6 +77,47 @@ async function reusableR2Asset(env: Env, sha256: string) {
 
 function safeObjectName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function validRunStepAssetPresentation(
+  value: unknown,
+): value is RunStepAssetPresentationInput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<RunStepAssetPresentationInput>;
+  return typeof candidate.filename === "string"
+    && !candidate.filename.includes("\u0000")
+    && candidate.filename.trim().length >= 1
+    && [...candidate.filename].length <= 255
+    && isCanonicalMimeType(candidate.mimeType)
+    && typeof candidate.byteSize === "number"
+    && Number.isSafeInteger(candidate.byteSize)
+    && candidate.byteSize >= 0;
+}
+
+async function resolveRunStepAssetPresentation(
+  db: D1Database,
+  assetId: string,
+  requested: RunStepAssetPresentationInput | undefined,
+): Promise<RunStepAssetPresentationInput> {
+  const blob = await db.prepare(`
+    SELECT original_name, mime_type, byte_size
+    FROM assets WHERE id = ? AND status = 'ready'
+    LIMIT 1
+  `).bind(assetId).first<{
+    original_name: string;
+    mime_type: string;
+    byte_size: number;
+  }>();
+  if (!blob) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const presentation = requested ?? {
+    filename: blob.original_name,
+    mimeType: blob.mime_type,
+    byteSize: Number(blob.byte_size),
+  };
+  if (presentation.byteSize !== Number(blob.byte_size)) {
+    throw new HTTPException(400, { message: "The uploaded diagram size does not match the selected asset" });
+  }
+  return presentation;
 }
 
 function normalizedSubstrateStepName(name: string) {
@@ -2786,7 +2828,7 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   const { sampleId, runId, stepId } = c.req.param();
   const input = await c.req.json<UpdateRunStepInput>();
   const allowed: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
-  if (!input.status || !allowed.includes(input.status) || typeof input.expectedUpdatedAt !== "string" || typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || typeof input.notes !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid editable step fields and expectedUpdatedAt are required" });
+  if (!input.status || !allowed.includes(input.status) || typeof input.expectedUpdatedAt !== "string" || typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || typeof input.notes !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.assetMetadata !== undefined && (!input.assetKey || !validRunStepAssetPresentation(input.assetMetadata)))) throw new HTTPException(400, { message: "Valid editable step fields and expectedUpdatedAt are required" });
   const title = input.title.trim();
   if (!title) throw new HTTPException(400, { message: "Step title is required" });
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000 || input.notes.length > 10_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
@@ -2799,9 +2841,12 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
        )`,
   ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const assetPresentation = asset
+    ? await resolveRunStepAssetPresentation(c.env.DB, asset.id, input.assetMetadata)
+    : null;
   const runStepAssetId = asset
     ? (await c.env.DB.prepare(
-      "SELECT id FROM run_step_assets WHERE run_step_id = ? AND asset_id = ? AND role = 'execution'",
+      "SELECT id FROM run_step_assets WHERE run_step_id = ? AND asset_id = ? AND role = 'execution' AND superseded_by_occurrence_id IS NULL",
     ).bind(stepId, asset.id).first<{ id: string }>())?.id ?? crypto.randomUUID()
     : null;
   const step = await c.env.DB.prepare(
@@ -2856,25 +2901,57 @@ app.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
     }), userEmail, now, stepId, runId, sampleId, mutationId),
   ];
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
-    `INSERT OR IGNORE INTO run_step_assets (id, run_step_id, asset_id, role, position, actor_email, created_at)
+    `INSERT OR IGNORE INTO run_step_assets (
+       id, run_step_id, asset_id, role, position,
+       filename, mime_type, byte_size, actor_email, created_at
+     )
      SELECT ?, ?, ?, 'execution',
             COALESCE((SELECT MAX(position) FROM run_step_assets WHERE run_step_id = ? AND role = 'execution'), -1) + 1,
-            ?, ?
+            ?, ?, ?, ?, ?
      WHERE EXISTS (
        SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
          AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )`,
-  ).bind(runStepAssetId, stepId, asset.id, stepId, userEmail, now, stepId, runId, sampleId, mutationId));
+  ).bind(
+    runStepAssetId,
+    stepId,
+    asset.id,
+    stepId,
+    assetPresentation!.filename,
+    assetPresentation!.mimeType,
+    assetPresentation!.byteSize,
+    userEmail,
+    now,
+    stepId,
+    runId,
+    sampleId,
+    mutationId,
+  ));
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
-    `UPDATE run_step_assets SET deleted_at = NULL, deleted_by = NULL
+    `UPDATE run_step_assets
+     SET filename = ?, mime_type = ?, byte_size = ?,
+         deleted_at = NULL, deleted_by = NULL, last_mutation_id = ?
      WHERE id = ? AND run_step_id = ? AND asset_id = ? AND role = 'execution'
+       AND superseded_by_occurrence_id IS NULL
        AND EXISTS (
          SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
          WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
            AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        )`,
-  ).bind(runStepAssetId, stepId, asset.id, stepId, runId, sampleId, mutationId));
+  ).bind(
+    assetPresentation!.filename,
+    assetPresentation!.mimeType,
+    assetPresentation!.byteSize,
+    mutationId,
+    runStepAssetId,
+    stepId,
+    asset.id,
+    stepId,
+    runId,
+    sampleId,
+    mutationId,
+  ));
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
      SELECT ?, r.sample_id, 'image', ?, ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
@@ -3105,7 +3182,7 @@ app.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async (c
 app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   const { sampleId, runId } = c.req.param();
   const input = await c.req.json<CreateRunStepInput>();
-  if (typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || (input.afterStepId !== undefined && typeof input.afterStepId !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid ad hoc step fields are required" });
+  if (typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || (input.afterStepId !== undefined && typeof input.afterStepId !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.assetMetadata !== undefined && (!input.assetKey || !validRunStepAssetPresentation(input.assetMetadata)))) throw new HTTPException(400, { message: "Valid ad hoc step fields are required" });
   const title = input.title.trim();
   if (!title) throw new HTTPException(400, { message: "Step title is required" });
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
@@ -3130,6 +3207,9 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const assetPresentation = asset
+    ? await resolveRunStepAssetPresentation(c.env.DB, asset.id, input.assetMetadata)
+    : null;
   const position = insertionPosition(stepRows.results, input.afterStepId);
   if (position === null) throw new HTTPException(404, { message: "Insertion point not found" });
   const stepId = crypto.randomUUID();
@@ -3204,13 +3284,25 @@ app.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   ).bind(stepId, nextStepId, runId, stepId, runId, mutationId));
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT INTO run_step_assets
-     (id, run_step_id, asset_id, role, position, actor_email, created_at)
-     SELECT ?, inserted.id, ?, 'execution', 0, ?, ?
+     (id, run_step_id, asset_id, role, position,
+      filename, mime_type, byte_size, actor_email, created_at)
+     SELECT ?, inserted.id, ?, 'execution', 0, ?, ?, ?, ?, ?
      FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
      WHERE inserted.id = ? AND inserted.run_id = ?
        AND r.last_mutation_id = ? AND r.status = 'active'
        AND r.deleted_at IS NULL`,
-  ).bind(runStepAssetId, asset.id, userEmail, now, stepId, runId, mutationId));
+  ).bind(
+    runStepAssetId,
+    asset.id,
+    assetPresentation!.filename,
+    assetPresentation!.mimeType,
+    assetPresentation!.byteSize,
+    userEmail,
+    now,
+    stepId,
+    runId,
+    mutationId,
+  ));
   statements.push(
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)

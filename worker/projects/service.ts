@@ -89,6 +89,8 @@ type BlobRecordRow = {
   byte_size: number;
 };
 
+type AttachmentPresentation = NonNullable<CreateAttachmentProjectItemInput["presentation"]>;
+
 export type ProjectAttachmentMediaSource = {
   locator: BlobLocator;
   originalName: string;
@@ -354,7 +356,7 @@ function bundleMatchesReferenceCreate(
     && geometryMatches(bundle.placement, input.geometry);
 }
 
-function bundleMatchesAttachmentCreate(
+function bundleMatchesAttachmentCreateBase(
   bundle: ItemBundle,
   input: CreateAttachmentProjectItemInput,
 ) {
@@ -377,6 +379,17 @@ function bundleMatchesAttachmentCreate(
     && bundle.placement?.id === input.placementId
     && bundle.placement.last_mutation_id === input.operationId
     && geometryMatches(bundle.placement, input.geometry);
+}
+
+function bundleMatchesAttachmentCreate(
+  bundle: ItemBundle,
+  input: CreateAttachmentProjectItemInput,
+  presentation: AttachmentPresentation,
+) {
+  return bundleMatchesAttachmentCreateBase(bundle, input)
+    && bundle.attachment?.original_name === presentation.originalName
+    && bundle.attachment.mime_type === presentation.mimeType
+    && Number(bundle.attachment.byte_size) === presentation.byteSize;
 }
 
 async function returnCreateReplayOrConflict(
@@ -901,6 +914,26 @@ async function readAttachmentBlobRecord(
   return row;
 }
 
+async function readAttachmentRegistrationRecord(
+  db: D1Database,
+  input: CreateAttachmentProjectItemInput,
+): Promise<BlobRecordRow | null> {
+  if ("assetId" in input.locator) {
+    return db.prepare(`
+      SELECT id, original_name, mime_type, byte_size
+      FROM assets
+      WHERE id = ?
+      LIMIT 1
+    `).bind(input.locator.assetId).first<BlobRecordRow>();
+  }
+  return db.prepare(`
+    SELECT id, original_name, mime_type, byte_size
+    FROM managed_storage_objects
+    WHERE id = ?
+    LIMIT 1
+  `).bind(input.locator.storageObjectId).first<BlobRecordRow>();
+}
+
 export async function createAttachmentProjectItem(
   db: D1Database,
   projectId: string,
@@ -910,13 +943,36 @@ export async function createAttachmentProjectItem(
 ): Promise<ProjectItemMutationResponse> {
   const existing = await readItemBundle(db, projectId, input.itemId);
   if (existing) {
-    if (bundleMatchesAttachmentCreate(existing, input)) {
-      return itemMutationResponse(db, projectId, input.itemId, true);
+    if (bundleMatchesAttachmentCreateBase(existing, input)) {
+      const registration = input.presentation
+        ? null
+        : await readAttachmentRegistrationRecord(db, input);
+      const replayPresentation: AttachmentPresentation | null = input.presentation ?? (
+        registration
+          ? {
+            originalName: registration.original_name,
+            mimeType: registration.mime_type,
+            byteSize: Number(registration.byte_size),
+          }
+          : null
+      );
+      if (replayPresentation
+        && bundleMatchesAttachmentCreate(existing, input, replayPresentation)) {
+        return itemMutationResponse(db, projectId, input.itemId, true);
+      }
     }
     conflict("A Project identity or operation ID was already used for a different attachment");
   }
   await requireActiveProject(db, projectId);
   const blob = await readAttachmentBlobRecord(db, input);
+  const presentation: AttachmentPresentation = input.presentation ?? {
+    originalName: blob.original_name,
+    mimeType: blob.mime_type,
+    byteSize: Number(blob.byte_size),
+  };
+  if (presentation.byteSize !== Number(blob.byte_size)) {
+    conflict("Project attachment byte size does not match the selected blob");
+  }
   const assetId = "assetId" in input.locator ? input.locator.assetId : null;
   const storageObjectId = "storageObjectId" in input.locator
     ? input.locator.storageObjectId
@@ -958,9 +1014,9 @@ export async function createAttachmentProjectItem(
       input.contentId,
       assetId,
       storageObjectId,
-      blob.original_name,
-      blob.mime_type,
-      blob.byte_size,
+      presentation.originalName,
+      presentation.mimeType,
+      presentation.byteSize,
       actor,
       now,
       input.operationId,
@@ -1019,12 +1075,12 @@ export async function createAttachmentProjectItem(
       db,
       projectId,
       input.itemId,
-      (bundle) => bundleMatchesAttachmentCreate(bundle, input),
+      (bundle) => bundleMatchesAttachmentCreate(bundle, input, presentation),
     );
   }
   } catch (error) {
     const replay = await readItemBundle(db, projectId, input.itemId);
-    if (replay && bundleMatchesAttachmentCreate(replay, input)) {
+    if (replay && bundleMatchesAttachmentCreate(replay, input, presentation)) {
       return itemMutationResponse(db, projectId, input.itemId, true);
     }
     if (constraintConflict(error)) conflict("Project revision, blob, or identity conflict");

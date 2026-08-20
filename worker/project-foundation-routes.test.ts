@@ -63,6 +63,7 @@ const PRE_PROJECT_EXPORT_TABLES = [
 
 describe("Project foundation export route", () => {
   it("owns complete export and snapshots every current table in one batch", async () => {
+    expect(PROJECT_EXPORT_SCHEMA_VERSION).toBe(6);
     const app = new Hono<AppBindings>();
     app.route("/", projectRoutes);
     const { env, batch } = exportEnvironment();

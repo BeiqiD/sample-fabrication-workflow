@@ -163,7 +163,30 @@ describe("supersession cross-module contract", () => {
       UPDATE imports
       SET recovery_operation_id = 'recovery-operation'
       WHERE id = 'failed-import';
+    `);
 
+    expect(() => database.exec(`
+      UPDATE run_step_assets
+      SET filename = 'tampered-during-supersession.png',
+          mime_type = 'image/jpeg',
+          deleted_at = '2026-08-16T00:04:00.000Z',
+          deleted_by = 'system:fabublox-import-recovery',
+          last_mutation_id = 'recovery-operation',
+          superseded_by_occurrence_id = 'execution-canonical',
+          superseded_at = '2026-08-16T00:04:00.000Z',
+          superseded_by = 'system:fabublox-import-recovery',
+          supersession_operation_id = 'recovery-operation'
+      WHERE id = 'execution-legacy';
+    `)).toThrow("invalid run step asset supersession");
+    expect(database.prepare(`
+      SELECT filename, mime_type
+      FROM run_step_assets WHERE id = 'execution-legacy'
+    `).get()).toEqual({
+      filename: "legacy.png",
+      mime_type: "image/png",
+    });
+
+    database.exec(`
       UPDATE run_step_assets
       SET deleted_at = '2026-08-16T00:04:00.000Z',
           deleted_by = 'system:fabublox-import-recovery',
@@ -183,6 +206,20 @@ describe("supersession cross-module contract", () => {
           supersession_operation_id = 'recovery-operation'
       WHERE id = 'metrology-legacy';
     `);
+
+    expect(() => database.prepare(`
+      UPDATE run_step_assets
+      SET filename = 'tampered-after-supersession.png',
+          mime_type = 'image/jpeg'
+      WHERE id = 'execution-legacy'
+    `).run()).toThrow("superseded run step asset occurrence is immutable");
+    expect(database.prepare(`
+      SELECT filename, mime_type
+      FROM run_step_assets WHERE id = 'execution-legacy'
+    `).get()).toEqual({
+      filename: "legacy.png",
+      mime_type: "image/png",
+    });
 
     expect(database.prepare(`
       SELECT asset_key,

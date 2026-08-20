@@ -1,3 +1,5 @@
+import { isCanonicalMimeType } from "../shared/mime-type";
+
 const SAFE_INLINE_RASTER_MIME_TYPES = new Set([
   "image/avif",
   "image/bmp",
@@ -9,7 +11,9 @@ const SAFE_INLINE_RASTER_MIME_TYPES = new Set([
 
 export function normalizedMediaMimeType(value: string | null | undefined) {
   const normalized = (value ?? "").split(";", 1)[0].trim().toLowerCase();
-  return normalized || "application/octet-stream";
+  return isCanonicalMimeType(normalized)
+    ? normalized
+    : "application/octet-stream";
 }
 
 export function isSafeInlineRasterMimeType(value: string | null | undefined) {

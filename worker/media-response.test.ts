@@ -38,8 +38,16 @@ it.each(["image/svg+xml", "image/tiff", "image/x-tiff", "text/html", "applicatio
   },
 );
 
-it("normalizes parameters and empty media types", () => {
+it("normalizes parameters and falls back for invalid header values", () => {
   expect(normalizedMediaMimeType(" Image/PNG ; charset=utf-8 ")).toBe("image/png");
+  expect(normalizedMediaMimeType("image/png\r\nx-test: injected"))
+    .toBe("application/octet-stream");
   expect(normalizedMediaMimeType(null)).toBe("application/octet-stream");
+
+  expect(() => safeMediaResponseHeaders({
+    mimeType: "image/png\r\nx-test: injected",
+    filename: "unsafe.png",
+    cacheControl: "private, no-store",
+  })).not.toThrow();
 });
 });

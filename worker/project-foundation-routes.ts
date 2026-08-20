@@ -36,28 +36,10 @@ function projectUploadFilename(encoded: string | undefined) {
   return filename;
 }
 
-function requireMatchingProjectAssetMetadata(
-  row: ProjectAssetRow,
-  filename: string,
-  contentType: string,
-  byteSize: number,
-) {
-  if (row.original_name === filename
-    && row.mime_type === contentType
-    && Number(row.byte_size) === byteSize) return;
-  throw new HTTPException(409, {
-    message: "Identical file bytes already exist with different intrinsic filename or MIME metadata; reuse the canonical file identity instead of silently changing it",
-  });
-}
-
 function returnReusableProjectAsset(
   row: ProjectAssetRow,
-  filename: string,
-  contentType: string,
-  byteSize: number,
   deduplicated = true,
 ) {
-  requireMatchingProjectAssetMetadata(row, filename, contentType, byteSize);
   return { id: row.id, key: row.r2_key, deduplicated };
 }
 
@@ -132,9 +114,6 @@ routes.post("/project-assets", async (c) => {
   });
   const payload = returnReusableProjectAsset(
     registration.record,
-    filename,
-    contentType,
-    buffer.byteLength,
     registration.deduplicated,
   );
   return registration.deduplicated

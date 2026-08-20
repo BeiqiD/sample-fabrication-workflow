@@ -138,32 +138,41 @@ describe("shared attachment ingestion adapters", () => {
     database.close();
   });
 
-  it("keeps the current Project intrinsic-metadata conflict at the adapter boundary", async () => {
+  it("lets Project reuse identical bytes with different contextual upload metadata", async () => {
     const database = referenceTestDatabase();
     const { env, put } = envFor(database);
     const bytes = Uint8Array.from([137, 80, 78, 71, 5, 6, 7, 8]);
 
-    expect((await request(env, "/assets", {
+    const ordinary = await request(env, "/assets", {
       method: "POST",
       headers: { "content-type": "image/png", "x-filename": "canonical.png" },
       body: bytes,
-    })).status).toBe(201);
+    });
+    expect(ordinary.status).toBe(201);
+    const ordinaryPayload = await ordinary.json() as { id: string; key: string };
 
     const project = await request(env, "/project-assets", {
       method: "POST",
       headers: {
-        "content-type": "image/png",
-        "x-project-filename-uri": encodeURIComponent("renamed.png"),
+        "content-type": "application/octet-stream",
+        "x-project-filename-uri": encodeURIComponent("renamed.bin"),
       },
       body: bytes,
     });
-    expect(project.status).toBe(409);
+    expect(project.status).toBe(200);
     expect(await project.json()).toEqual({
-      error: "Identical file bytes already exist with different intrinsic filename or MIME metadata; reuse the canonical file identity instead of silently changing it",
+      id: ordinaryPayload.id,
+      key: ordinaryPayload.key,
+      deduplicated: true,
     });
     expect(put).toHaveBeenCalledTimes(1);
-    expect(database.prepare("SELECT COUNT(*) AS count FROM assets").get())
-      .toEqual({ count: 1 });
+    expect(database.prepare(`
+      SELECT original_name, mime_type, byte_size FROM assets WHERE id = ?
+    `).get(ordinaryPayload.id)).toEqual({
+      original_name: "canonical.png",
+      mime_type: "image/png",
+      byte_size: bytes.byteLength,
+    });
     database.close();
   });
 
