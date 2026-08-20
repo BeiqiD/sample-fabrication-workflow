@@ -1,8 +1,8 @@
 # Shared attachment backend implementation plan
 
-Status: active implementation plan; lifecycle Slice A is complete in PR #152 and Slice B is active in Draft PR #153
+Status: active implementation plan; Slices A/B are complete in PRs #152/#153 and Slice C is active in Draft PR #154
 
-Last reviewed: 2026-08-19 after PR #152 merged and Draft PR #153 began shared ingestion Slice B
+Last reviewed: 2026-08-19 after PR #153 merged shared ingestion and Draft PR #154 began occurrence metadata Slice C
 
 This plan sequences the consolidation of Project, Comment, and Run attachment
 infrastructure after Phase 4C completed in PR #151. The durable
@@ -17,15 +17,15 @@ polishing several incompatible upload and removal paths.
 
 ## Scheduling boundary
 
-PR #152 is complete and the v1 interaction feature set is frozen. Draft PR #153
-implements Slice B as post-freeze internal backend consolidation: it must not
-change user-visible attachment ownership, lifecycle, limits, or public route
-semantics.
+PRs #152 and #153 are complete and the v1 interaction feature set remains frozen.
+Draft PR #154 implements Slice C as post-freeze internal metadata normalization:
+it must not change user-visible attachment ownership, lifecycle, limits, or the
+shared ingestion protocol.
 
 The intended order is:
 
-1. complete and independently review Slice B in PR #153;
-2. keep later metadata/derivative/transport slices independently justified;
+1. complete and independently review Slice C in PR #154;
+2. keep later derivative/transport slices independently justified;
 3. begin or continue Phase 5 frontend refinement without reopening v1
    interaction scope merely because internal attachment infrastructure evolves.
 
@@ -61,10 +61,11 @@ The route:
 This path does not reuse the richer Comment upload-session UX and cannot support
 large durable originals without a redesign.
 
-Project persistence already has a generic item-removal backend for Reference,
-Markdown, and attachment occurrences, but the current Project UI does not expose
-a complete attachment removal action. A user can therefore add an incorrect
-file and have no ordinary way to remove the standalone Project item.
+Project persistence and the current Project UI now expose the same generic
+item-removal lifecycle for Reference, Markdown, and attachment occurrences.
+Removing an attachment hides the Project occurrence through Trash semantics;
+physical bytes remain governed independently by shared retention/reachability
+and blob GC.
 
 ### Run and direct-asset path
 
@@ -73,10 +74,11 @@ and `run_step_assets` occurrence model. The domain already records auditable
 attachment deletion and can clear active Timeline media linkage while preserving
 historical text.
 
-The current retention surface nevertheless treats every `run_step_assets`
-relationship as durable, including a soft-deleted occurrence. A mistakenly
-uploaded large file can therefore disappear from the UI while its bytes remain
-protected indefinitely.
+Run attachment occurrence rows remain durable audit records, including
+deleted/superseded tombstones, while blob retention is lifecycle-aware. A
+deleted occurrence does not by itself require its bytes to remain forever:
+physical deletion is decided by shared reachability/GC after all live retention
+edges are considered.
 
 ### Comment submission path
 
@@ -95,12 +97,10 @@ semantics MUST NOT become the universal attachment domain model.
 
 ### Metadata and deduplication coupling
 
-The current physical records retain intrinsic filename and MIME metadata, and
-the Project upload path rejects reuse when identical bytes already exist with a
-different filename or MIME value.
-
-That behavior is too restrictive for a shared attachment backend. One immutable
-blob may legitimately appear as:
+Physical records retain first-registration filename/MIME provenance, but
+Project, Run, and Comment attachment occurrences own contextual presentation.
+The Project upload path now deduplicates verified identical bytes independently
+of occurrence filename/MIME, so one immutable blob may legitimately appear as:
 
 ```text
 Run occurrence:     AFM_before_cleaning.tif
@@ -108,8 +108,11 @@ Project occurrence: Surface morphology before treatment.tif
 Comment item:       Raw AFM scan
 ```
 
-The implementation must separate byte identity from occurrence presentation
-without weakening integrity checks.
+Slice C separates byte identity from occurrence presentation without
+weakening integrity checks. Because `run_step_assets` is exported with
+`SELECT *`, adding its occurrence filename/MIME/size columns changes the
+complete persistent export row shape; the complete export contract is therefore
+schema v6 rather than v5.
 
 ### Derivative coupling
 
@@ -230,7 +233,7 @@ indefinitely or erase their owning experimental text.
 
 ### Slice B — extract one internal ingestion service
 
-Status: active in Draft PR #153.
+Status: complete in merged PR #153.
 
 Goal: remove duplicated hashing, registration, and winner-adoption logic while
 keeping domain-specific request validation in the compatibility adapters.
@@ -258,6 +261,8 @@ Exit: current routes call one ingestion implementation, and future API or
 provider changes no longer require three independent storage paths.
 
 ### Slice C — separate blob facts from occurrence presentation
+
+Status: active in Draft PR #154.
 
 Goal: allow safe cross-domain reuse regardless of contextual filenames or
 captions.

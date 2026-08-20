@@ -5,7 +5,7 @@ const ACTOR = "metadata-user@example.com";
 const NOW = "2026-08-09T23:30:00.000Z";
 
 describe("Project attachment metadata guard", () => {
-  it("requires intrinsic attachment metadata to match the authoritative blob record", () => {
+  it("allows contextual filename and MIME while enforcing authoritative blob byte size", () => {
     const database = referenceTestDatabase();
     database.prepare(`
       INSERT INTO projects (
@@ -37,33 +37,32 @@ describe("Project attachment metadata guard", () => {
         project_content_id, asset_id, original_name, mime_type, byte_size,
         created_by, created_at, creation_operation_id
       ) VALUES (
-        'content-metadata', 'asset-metadata', 'renamed.bin',
-        'application/octet-stream', 4, ?, ?, 'bind-wrong-name'
+        'content-metadata', 'asset-metadata', 'wrong-size.bin',
+        'application/x-project-context', 5, ?, ?, 'bind-wrong-size'
       )
-    `).run(ACTOR, NOW)).toThrow(/metadata must match/);
-    expect(() => database.prepare(`
-      INSERT INTO project_content_attachments (
-        project_content_id, asset_id, original_name, mime_type, byte_size,
-        created_by, created_at, creation_operation_id
-      ) VALUES (
-        'content-metadata', 'asset-metadata', 'metadata.bin',
-        'application/octet-stream', 5, ?, ?, 'bind-wrong-size'
-      )
-    `).run(ACTOR, NOW)).toThrow(/metadata must match/);
+    `).run(ACTOR, NOW)).toThrow(/byte size does not match blob/);
 
     database.prepare(`
       INSERT INTO project_content_attachments (
         project_content_id, asset_id, original_name, mime_type, byte_size,
         created_by, created_at, creation_operation_id
       ) VALUES (
-        'content-metadata', 'asset-metadata', 'metadata.bin',
-        'application/octet-stream', 4, ?, ?, 'bind-correct'
+        'content-metadata', 'asset-metadata', 'renamed.bin',
+        'application/x-project-context', 4, ?, ?, 'bind-contextual'
       )
     `).run(ACTOR, NOW);
     expect(database.prepare(`
       SELECT original_name, mime_type, byte_size
       FROM project_content_attachments
       WHERE project_content_id = 'content-metadata'
+    `).get()).toEqual({
+      original_name: "renamed.bin",
+      mime_type: "application/x-project-context",
+      byte_size: 4,
+    });
+    expect(database.prepare(`
+      SELECT original_name, mime_type, byte_size
+      FROM assets WHERE id = 'asset-metadata'
     `).get()).toEqual({
       original_name: "metadata.bin",
       mime_type: "application/octet-stream",

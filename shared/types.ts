@@ -298,6 +298,12 @@ export interface ConfirmRunStepsInput {
   targets: RunStepTarget[];
 }
 
+export interface RunStepAssetPresentationInput {
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+}
+
 export interface UpdateRunStepInput {
   status: StepStatus;
   title: string;
@@ -308,6 +314,7 @@ export interface UpdateRunStepInput {
   notes: string;
   expectedUpdatedAt: string;
   assetKey?: string;
+  assetMetadata?: RunStepAssetPresentationInput;
 }
 
 export interface CreateRunStepInput {
@@ -318,6 +325,7 @@ export interface CreateRunStepInput {
   commentsText: string;
   deviationNote: string;
   assetKey?: string;
+  assetMetadata?: RunStepAssetPresentationInput;
 }
 
 export interface SampleRun {
@@ -522,7 +530,7 @@ export interface FullExportBlobEntry {
 }
 
 export interface FullExportManifest {
-  schemaVersion: 5;
+  schemaVersion: 6;
   exportedAt: string;
   tables: Record<string, Array<Record<string, unknown>>>;
   blobs: FullExportBlobEntry[];

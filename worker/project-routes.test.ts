@@ -180,7 +180,7 @@ describe("Project persistence routes", () => {
     database.close();
   });
 
-  it("accepts generic bytes and only deduplicates when intrinsic metadata also matches", async () => {
+  it("deduplicates generic bytes independently of contextual upload filename and MIME", async () => {
     const { app, env, database, uploaded } = fixture();
     const body = Uint8Array.from([37, 80, 68, 70, 45, 49, 46, 55]);
 
@@ -228,13 +228,29 @@ describe("Project persistence routes", () => {
     });
 
     const renamedDuplicate = await attachmentUploadRequest(app, env, "renamed.pdf", "application/pdf", body);
-    expect(renamedDuplicate.status).toBe(409);
+    expect(renamedDuplicate.status).toBe(200);
     expect(await renamedDuplicate.json()).toMatchObject({
-      error: expect.stringContaining("different intrinsic filename or MIME metadata"),
+      id: repairedBody.id,
+      key: repairedBody.key,
+      deduplicated: true,
     });
 
     const retypedDuplicate = await attachmentUploadRequest(app, env, "实验结果.pdf", "application/octet-stream", body);
-    expect(retypedDuplicate.status).toBe(409);
+    expect(retypedDuplicate.status).toBe(200);
+    expect(await retypedDuplicate.json()).toMatchObject({
+      id: repairedBody.id,
+      key: repairedBody.key,
+      deduplicated: true,
+    });
+    expect(uploaded.size).toBe(1);
+    expect(database.prepare(`
+      SELECT original_name, mime_type, byte_size
+      FROM assets WHERE id = ?
+    `).get(repairedBody.id)).toEqual({
+      original_name: "实验结果.pdf",
+      mime_type: "application/pdf",
+      byte_size: body.byteLength,
+    });
     database.close();
   });
 

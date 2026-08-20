@@ -1672,6 +1672,11 @@ export function ProjectPage() {
         itemId,
         placementId: createProjectApiId("placement"),
         locator: { assetId: asset.id },
+        presentation: {
+          originalName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          byteSize: file.size,
+        },
         caption: null,
         sourceUrl: null,
         geometry: attachmentGeometry,

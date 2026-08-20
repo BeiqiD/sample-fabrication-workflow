@@ -1,8 +1,8 @@
 # Shared attachment backend and domain-lifecycle contract
 
-Status: active architecture contract; lifecycle Slice A is complete in PR #152 and shared-ingestion Slice B is active in Draft PR #153
+Status: active architecture contract; Slices A/B are complete in PRs #152/#153 and occurrence-metadata Slice C is active in Draft PR #154
 
-Last reviewed: 2026-08-19 after PR #152 merged lifecycle Slice A and shared-ingestion Slice B entered implementation
+Last reviewed: 2026-08-19 after PR #153 merged shared ingestion and Draft PR #154 began occurrence-metadata Slice C
 
 This document defines the intended boundary between shared file ingestion,
 physical blob storage, attachment occurrences, domain ownership, derivatives,
@@ -18,11 +18,12 @@ ownership and interaction are defined in
 Concrete post-Phase-4C sequencing is recorded in
 [shared attachment backend implementation plan](./ATTACHMENT_BACKEND_IMPLEMENTATION_PLAN.md).
 
-Slice A in Draft PR #152 now implements the first lifecycle boundary: Project
-attachment removal uses the existing Project item lifecycle, and explicitly
-deleted direct Run-step or Comment-child attachments use bounded grace edges. Later ingestion,
-metadata, derivative, and transport slices remain proposed. Every implementation
-that changes retention behavior MUST update the blob lifecycle contract and its
+Slice A in PR #152 established bounded attachment lifecycle behavior, and Slice B
+in PR #153 consolidated verified ingestion/registration behind shared internal
+services. Slice C in Draft PR #154 separates contextual occurrence presentation
+from physical blob registration provenance without changing retention semantics.
+Later derivative and transport slices remain proposed. Every implementation that
+changes retention behavior MUST update the blob lifecycle contract and its
 executable tests in the same reviewed change.
 
 ## Goal
@@ -56,7 +57,9 @@ weaken these ownership and lifecycle boundaries without a new design review.
 A **blob** is one immutable byte sequence addressed through provider-neutral
 metadata. A blob may currently be represented by `assets` or
 `managed_storage_objects`; this contract does not require an immediate table
-collapse.
+collapse. Existing `original_name` and `mime_type` fields on those provider
+records are registration provenance/compatibility metadata, not authoritative
+user-facing presentation for every occurrence that reuses the bytes.
 
 A **blob locator** identifies physical bytes by store kind, provider, and object
 key. A physical locator is internal infrastructure and MUST NOT become a client-

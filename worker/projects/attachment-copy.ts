@@ -12,6 +12,9 @@ import {
 type AttachmentCopySourceRow = {
   asset_id: string | null;
   storage_object_id: string | null;
+  original_name: string;
+  mime_type: string;
+  byte_size: number;
   source_active: number;
 };
 
@@ -56,6 +59,11 @@ function createInputFromSource(
     locator: hasAsset
       ? { assetId: source.asset_id! }
       : { storageObjectId: source.storage_object_id! },
+    presentation: {
+      originalName: source.original_name,
+      mimeType: source.mime_type,
+      byteSize: Number(source.byte_size),
+    },
     caption: input.caption,
     sourceUrl: input.sourceUrl,
     geometry: input.geometry,
@@ -109,9 +117,9 @@ function sourceAuthorizedBindingStatement(
       SELECT
         pca.asset_id AS asset_id,
         NULL AS storage_object_id,
-        a.original_name AS original_name,
-        a.mime_type AS mime_type,
-        a.byte_size AS byte_size
+        pca.original_name AS original_name,
+        pca.mime_type AS mime_type,
+        pca.byte_size AS byte_size
       FROM project_contents pc
       JOIN projects p ON p.id = pc.project_id
       JOIN project_items source_item
@@ -147,9 +155,9 @@ function sourceAuthorizedBindingStatement(
       SELECT
         NULL AS asset_id,
         pca.storage_object_id AS storage_object_id,
-        mso.original_name AS original_name,
-        mso.mime_type AS mime_type,
-        mso.byte_size AS byte_size
+        pca.original_name AS original_name,
+        pca.mime_type AS mime_type,
+        pca.byte_size AS byte_size
       FROM project_contents pc
       JOIN projects p ON p.id = pc.project_id
       JOIN project_items source_item
@@ -213,6 +221,9 @@ export async function copyAttachmentProjectItem(
     SELECT
       pca.asset_id,
       pca.storage_object_id,
+      pca.original_name,
+      pca.mime_type,
+      pca.byte_size,
       CASE WHEN p.deleted_at IS NULL
         AND pc.deleted_at IS NULL
         AND EXISTS (

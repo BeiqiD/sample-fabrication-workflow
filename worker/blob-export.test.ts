@@ -9,7 +9,7 @@ describe("complete blob export", () => {
   it("packages available bytes once and records missing/unready blobs without aborting", async () => {
     const bytes = new TextEncoder().encode("data");
     const manifest: FullExportManifest = {
-      schemaVersion: 5,
+      schemaVersion: 6,
       exportedAt: "2026-08-08T12:00:00.000Z",
       tables: {
         samples: [{ id: "sample-1", deleted_at: "2026-08-08T10:00:00.000Z" }],
@@ -199,7 +199,7 @@ describe("complete blob export", () => {
       initialOutcome: null,
     };
     const manifest: FullExportManifest = {
-      schemaVersion: 5,
+      schemaVersion: 6,
       exportedAt: "2026-08-08T12:00:00.000Z",
       tables: {},
       blobs: [
@@ -219,7 +219,7 @@ describe("complete blob export", () => {
 
   it("records provider outages without aborting the archive", async () => {
     const manifest: FullExportManifest = {
-      schemaVersion: 5,
+      schemaVersion: 6,
       exportedAt: "2026-08-08T12:00:00.000Z",
       tables: { samples: [{ id: "sample-1" }] },
       blobs: [{

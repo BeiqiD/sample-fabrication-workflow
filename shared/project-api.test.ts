@@ -6,6 +6,7 @@ import {
   isCreateProjectInput,
   isCreateReferenceProjectItemInput,
   isProjectApiId,
+  isProjectAttachmentPresentation,
   isProjectAttachmentSourceUrl,
   isProjectItemLifecycleInput,
   isRenameProjectInput,
@@ -117,6 +118,21 @@ describe("Project persistence API contract", () => {
     })).toBe(false);
     expect(isProjectAttachmentSourceUrl("javascript:alert(1)")).toBe(false);
     expect(isProjectAttachmentSourceUrl("https://example.test/a")).toBe(true);
+    expect(isProjectAttachmentPresentation({
+      originalName: "scan.tif",
+      mimeType: "image/tiff",
+      byteSize: 4,
+    })).toBe(true);
+    expect(isProjectAttachmentPresentation({
+      originalName: "scan.tif",
+      mimeType: "image/png\r\nx-test: injected",
+      byteSize: 4,
+    })).toBe(false);
+    expect(isProjectAttachmentPresentation({
+      originalName: "scan.txt",
+      mimeType: "text/plain; charset=utf-8",
+      byteSize: 4,
+    })).toBe(false);
   });
 
   it("rejects embedded NUL in every persisted Project payload string", () => {

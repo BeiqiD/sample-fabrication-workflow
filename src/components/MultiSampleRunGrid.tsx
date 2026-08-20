@@ -1,6 +1,6 @@
 import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
+import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { compressLayerStackImage } from "../lib/images";
@@ -492,9 +492,15 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
     setSaving(true); setError("");
     try {
       let assetKey: string | undefined;
+      let assetMetadata: RunStepAssetPresentationInput | undefined;
       if (image) {
         const compressed = await compressLayerStackImage(image);
         assetKey = (await api.uploadAsset(compressed, compressed.name)).key;
+        assetMetadata = {
+          filename: compressed.name,
+          mimeType: compressed.type || "application/octet-stream",
+          byteSize: compressed.size,
+        };
       }
       if (editing) {
         await api.updateRunStep(state.column.sample.id, state.column.run.id, state.step.id, {
@@ -507,6 +513,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
           notes: state.step.notes || "",
           expectedUpdatedAt: state.step.updatedAt,
           assetKey,
+          assetMetadata,
         });
       } else {
         await api.createRunStep(state.column.sample.id, state.column.run.id, {
@@ -517,6 +524,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
           commentsText,
           deviationNote,
           assetKey,
+          assetMetadata,
         });
       }
       await onSaved();

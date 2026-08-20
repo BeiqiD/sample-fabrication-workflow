@@ -445,7 +445,7 @@ reaper removes only the failed import's provenance and then checks the same
 
 ### Complete export
 
-The current complete export returns schema v5:
+The current complete export returns schema v6:
 
 ```text
 all table/view snapshots, including integrity quarantine

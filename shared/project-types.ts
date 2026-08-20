@@ -1,5 +1,5 @@
 export const PROJECT_SCHEMA_VERSION = 1 as const;
-export const PROJECT_EXPORT_SCHEMA_VERSION = 5 as const;
+export const PROJECT_EXPORT_SCHEMA_VERSION = 6 as const;
 
 export const PROJECT_CONTENT_TYPES = ["markdown", "attachment"] as const;
 export type ProjectContentType = typeof PROJECT_CONTENT_TYPES[number];
