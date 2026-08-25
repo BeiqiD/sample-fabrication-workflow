@@ -1,8 +1,8 @@
 # Shared attachment backend and domain-lifecycle contract
 
-Status: active architecture contract; Slices A/B are complete in PRs #152/#153 and occurrence-metadata Slice C is active in Draft PR #154
+Status: active architecture contract; Slices A/B/C are complete in PRs #152/#153/#154 and the trusted shared-derivative registry foundation is active in Draft PR #155
 
-Last reviewed: 2026-08-19 after PR #153 merged shared ingestion and Draft PR #154 began occurrence-metadata Slice C
+Last reviewed: 2026-08-24 during independent review of Draft PR #155
 
 This document defines the intended boundary between shared file ingestion,
 physical blob storage, attachment occurrences, domain ownership, derivatives,
@@ -18,13 +18,14 @@ ownership and interaction are defined in
 Concrete post-Phase-4C sequencing is recorded in
 [shared attachment backend implementation plan](./ATTACHMENT_BACKEND_IMPLEMENTATION_PLAN.md).
 
-Slice A in PR #152 established bounded attachment lifecycle behavior, and Slice B
+Slice A in PR #152 established bounded attachment lifecycle behavior, Slice B
 in PR #153 consolidated verified ingestion/registration behind shared internal
-services. Slice C in Draft PR #154 separates contextual occurrence presentation
-from physical blob registration provenance without changing retention semantics.
-Later derivative and transport slices remain proposed. Every implementation that
-changes retention behavior MUST update the blob lifecycle contract and its
-executable tests in the same reviewed change.
+services, and merged Slice C in PR #154 separated contextual occurrence
+presentation from physical blob registration provenance. Draft PR #155 adds the
+source-addressed derivative registry, resolver, retention edge, and export
+contract; a trusted server-side generator remains a separate producer step.
+Every implementation that changes retention behavior MUST update the blob
+lifecycle contract and its executable tests in the same reviewed change.
 
 ## Goal
 
@@ -381,6 +382,15 @@ Derivative generation MUST:
 - permit reuse across Project, Comment, and Run occurrences of the same source
   blob.
 
+A client-uploaded preview is occurrence-owned presentation data, not proof of a
+derivative relationship. MIME, filename, size, reciprocal Comment-item links,
+or a client claim that two files are related MUST NOT register a shared
+derivative. Only a trusted server producer that reads the verified source bytes,
+applies the recorded generator contract, and registers the resulting verified
+asset may write a ready shared derivative. Until that producer exists, Comment
+previews remain non-shared Comment assets and lookup correctly returns no shared
+derivative.
+
 ## Retention policy matrix
 
 The following target policy guides implementation. Exact constants MUST be
@@ -459,6 +469,11 @@ application state supported by the active retention policy:
 - derivative source relationships and generator versions;
 - warnings for missing or unavailable physical bytes.
 
+Complete export schema v7 includes the authoritative `attachment_derivatives`
+rows. Restore must recreate referenced assets before derivative rows and preserve
+the source hash/size, derivative kind, generator version, status, lease, and
+bound derived-asset identity exactly.
+
 A self-hosted implementation may use local files or another object provider, but
 it must preserve the same provider-neutral ingestion, occurrence ownership,
 retention-edge, and GC semantics.
@@ -472,7 +487,8 @@ Shared ingestion and derivative processing MUST preserve:
 - filename, MIME, size, and identifier validation;
 - bounded parser resources;
 - no execution of uploaded scripts or macros;
-- no trust in client-supplied provider keys, asset IDs, or storage locators;
+- no trust in client-supplied provider keys, asset IDs, storage locators, or
+  source/preview derivation claims;
 - fail-closed behavior when primary metadata authority or provider verification
   is unavailable;
 - integrity quarantine for definite absence or byte-size mismatch.

@@ -57,6 +57,23 @@ type ItemRow = {
   actor_email: string | null;
 };
 
+const MAX_COMMENT_UPLOAD_FAILURE_MESSAGE_LENGTH = 1_000;
+const DEFAULT_COMMENT_UPLOAD_FAILURE_MESSAGE = "The upload did not reach the server";
+
+function commentUploadFailureMessage(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new HTTPException(400, { message: "Comment upload failure payload is invalid" });
+  }
+  const error = (input as Record<string, unknown>).error;
+  if (error === undefined) return DEFAULT_COMMENT_UPLOAD_FAILURE_MESSAGE;
+  if (typeof error !== "string"
+    || error.length > MAX_COMMENT_UPLOAD_FAILURE_MESSAGE_LENGTH
+    || error.includes("\u0000")) {
+    throw new HTTPException(400, { message: "Comment upload failure payload is invalid" });
+  }
+  return error.trim() || DEFAULT_COMMENT_UPLOAD_FAILURE_MESSAGE;
+}
+
 function rethrowCommentIngestionError(error: unknown): never {
   if (error instanceof AttachmentIngestionByteSizeMismatchError) {
     throw new HTTPException(400, { message: "Attachment size changed during upload" });
@@ -646,12 +663,13 @@ routes.post("/comment-submissions/:submissionId/items/:itemId/fail", async (c) =
   if (submission.retry_closed_at || ["ready", "cancelled"].includes(submission.status)) {
     throw new HTTPException(409, { message: "This upload no longer accepts retry updates" });
   }
-  const input = await c.req.json<{ error?: string }>().catch((): { error?: string } => ({}));
+  const input = await c.req.json<unknown>().catch(() => null);
+  const failureMessage = commentUploadFailureMessage(input);
   if (!await markItemFailed(
     c.env,
     submissionId,
     itemId,
-    input.error?.trim() || "The upload did not reach the server",
+    failureMessage,
   )) {
     throw new HTTPException(409, { message: "The retry window for this upload is closed" });
   }

@@ -1,8 +1,8 @@
 # Shared attachment backend implementation plan
 
-Status: active implementation plan; Slices A/B are complete in PRs #152/#153 and Slice C is active in Draft PR #154
+Status: active implementation plan; Slices A/B/C are complete in PRs #152/#153/#154 and Slice D registry/resolver foundation is active in Draft PR #155
 
-Last reviewed: 2026-08-19 after PR #153 merged shared ingestion and Draft PR #154 began occurrence metadata Slice C
+Last reviewed: 2026-08-24 during independent review of Draft PR #155
 
 This plan sequences the consolidation of Project, Comment, and Run attachment
 infrastructure after Phase 4C completed in PR #151. The durable
@@ -17,17 +17,19 @@ polishing several incompatible upload and removal paths.
 
 ## Scheduling boundary
 
-PRs #152 and #153 are complete and the v1 interaction feature set remains frozen.
-Draft PR #154 implements Slice C as post-freeze internal metadata normalization:
-it must not change user-visible attachment ownership, lifecycle, limits, or the
-shared ingestion protocol.
+PRs #152, #153, and #154 are complete and the v1 interaction feature set
+remains frozen. Draft PR #155 implements only the domain-neutral derivative
+registry, resolver, retention, and export foundation. It must not treat existing
+client-generated Comment previews as trusted shared derivatives, and it does not
+introduce a server-side image generator or change owner lifecycle.
 
 The intended order is:
 
-1. complete and independently review Slice C in PR #154;
-2. keep later derivative/transport slices independently justified;
-3. begin or continue Phase 5 frontend refinement without reopening v1
-   interaction scope merely because internal attachment infrastructure evolves.
+1. complete and independently review the bounded Slice D foundation in PR #155;
+2. begin or continue Phase 5 frontend refinement without reopening v1
+   interaction scope;
+3. add a trusted server-side derivative producer and later transport convergence
+   only as separately justified follow-up slices.
 
 The implementation is not one mega-PR. Storage ingestion, domain lifecycle,
 derivatives, schema refinement, and frontend exposure have different failure
@@ -116,9 +118,13 @@ schema v6 rather than v5.
 
 ### Derivative coupling
 
-TIFF preview logic currently lives inside the Comment submission model. The
-same original used by a Run or Project should be able to reuse one safe preview
-rather than reimplementing conversion in each domain.
+Draft PR #155 introduces a source-addressed shared registry and read resolver for
+browser-safe derivatives. Existing TIFF/ordinary-image previews uploaded by the
+Comment client remain Comment occurrence assets: their relationship to an
+original is not cryptographically or procedurally proven and therefore is not
+adopted into the trusted registry. A later server producer must read verified
+source bytes, generate the bounded preview, register the resulting asset, and
+only then make it reusable by Comment, Run, or Project.
 
 ## Target architecture
 
@@ -262,12 +268,12 @@ provider changes no longer require three independent storage paths.
 
 ### Slice C — separate blob facts from occurrence presentation
 
-Status: active in Draft PR #154.
+Status: complete in merged PR #154.
 
 Goal: allow safe cross-domain reuse regardless of contextual filenames or
 captions.
 
-Likely scope:
+Delivered scope:
 
 - define provider-neutral blob identity at the schema/service boundary;
 - treat original/display filename, title, caption, role, and user-facing MIME as
@@ -287,24 +293,40 @@ independent contextual metadata.
 
 ### Slice D — shared derivative service
 
-Goal: make useful previews reusable and domain-neutral.
+Status: registry/resolver/export foundation active in Draft PR #155; trusted
+server-side generation and domain producer adapters remain pending.
 
-Initial scope:
+Goal: make useful previews reusable and domain-neutral without trusting client-
+supplied source/preview claims.
 
-- ordinary image preview metadata;
-- TIFF original plus one bounded browser-safe preview;
-- source/derivative identity and generator version;
-- derivative failure that leaves the original file usable as a generic card;
-- derivative reachability and rebuildable-GC behavior;
-- Project, Comment, and Run presentation adapters that can reuse the same
-  derivative.
+Delivered by the bounded PR #155 foundation:
+
+- `attachment_derivatives` identity keyed by source SHA-256, source byte size,
+  derivative kind, and generator version;
+- one healthy ready winner with bounded renewable retention;
+- safe R2 browser-preview asset guards, quarantine/GC filtering, and domain-
+  neutral R2/managed-source resolution;
+- complete-export schema v7 coverage and derivative-row restore round-trip tests;
+- explicit removal and cleanup of SQL/runtime adapters that promoted
+  client-uploaded Comment previews into the trusted registry.
+
+Required follow-up before the slice exit is complete:
+
+- a trusted server producer that reads verified source bytes and generates a
+  bounded browser-safe preview;
+- registration only after source read, generation, ingestion, and integrity
+  checks succeed;
+- Project, Comment, and Run presentation adapters that request or reuse the
+  shared result without owning generator trust;
+- failure/fallback behavior that leaves the original usable as a generic card.
 
 PDF first-page preview remains optional and requires a separate security,
 resource, and bundle/runtime review. Scientific-data parsing remains out of
 scope.
 
-Exit: supported previews are generated once per source/generator contract and
-can be reused across domains.
+Exit: supported previews are generated by a trusted server producer once per
+source/generator contract and can be reused across domains. The registry
+foundation alone does not satisfy this exit.
 
 ### Slice E — converged upload-session transport where justified
 
@@ -452,7 +474,9 @@ blob while one effective edge remains.
 
 ### Derivatives
 
-- one TIFF source produces one reusable preview per generator version;
+- client-uploaded Comment previews never populate the trusted shared registry;
+- one TIFF source produces one reusable preview per generator version after a
+  trusted server producer is introduced;
 - deletion of one occurrence does not remove a derivative still used elsewhere;
 - missing/failed preview falls back to a generic original file card;
 - derivative can be regenerated after collection;
@@ -460,8 +484,10 @@ blob while one effective edge remains.
 
 ### Export and recovery
 
-- complete export includes source blobs, derivatives, occurrences, deletion
-  metadata, retention edges, and GC state;
+- complete export schema v7 includes source blobs, derivative registry rows,
+  occurrences, deletion metadata, retention edges, and GC state;
+- exported derivative rows can be restored after their referenced assets while
+  preserving source identity, generator identity, status, lease, and winner;
 - missing provider bytes produce warnings rather than database-row loss;
 - restore behavior matches the remaining domain recovery window;
 - migrations work in host SQLite and D1/workerd;
