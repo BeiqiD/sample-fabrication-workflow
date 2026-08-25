@@ -53,8 +53,8 @@ Phase 5 work follows these documents in order:
    geometry and protected component-family behavior;
 4. [Color system](./COLOR_SYSTEM.md) for grayscale hierarchy, interaction
    accent, semantic colors, and contrast;
-5. [Responsive layout](./RESPONSIVE_LAYOUT.md) for established page and mobile
-   transformations;
+5. [Responsive layout](./RESPONSIVE_LAYOUT.md) for established global tiers,
+   Project-specific functional boundaries, and page/mobile transformations;
 6. focused Project, Canvas, rich-content, attachment, and blob-lifecycle
    contracts for domain-specific invariants.
 
@@ -101,8 +101,14 @@ practical.
 
 ### Geometry and performance boundary
 
-- preserve the established `1200px` and `720px` breakpoint strategy unless a
-  measured failure survives intrinsic-layout alternatives;
+- preserve the global `1200px` / `720px` viewport-tier baseline for ordinary
+  application surfaces;
+- preserve the Project workspace's existing `min-width: 860px` functional
+  desktop-Map/Reading boundary and its local `1180px` / `560px` layout
+  thresholds during Phase 5A; these are scoped Project contracts rather than
+  additional global viewport tiers;
+- change any global or Project-specific threshold only through a separately
+  measured responsive change with adjacent-boundary verification;
 - preserve Project placement coordinates, node dimensions, edge endpoints,
   z-order, save boundaries, and React Flow/database separation;
 - preserve the representative Project Map target and envelope and its permanent
@@ -149,7 +155,11 @@ Each PR uses the relevant subset of this matrix and records omissions explicitly
 - `390px` common mobile;
 - `360px` narrow mobile;
 - `320px` minimum-width stress case where the surface is intended to support it;
-- `1600–1920px` only for wide Processing and representative large-Project checks.
+- `1600–1920px` only for wide Processing and representative large-Project checks;
+- the adjacent pair around every documented global or component-local threshold
+  touched by the PR. Global responsive work uses `720px` / `721px` and `1200px`
+  / `1201px`; Project shell work also uses `559px` / `560px`, `859px` / `860px`,
+  and `1180px` / `1181px`.
 
 ### Content
 
@@ -167,7 +177,10 @@ Each PR uses the relevant subset of this matrix and records omissions explicitly
 - keyboard navigation and focus restoration;
 - disabled and permission/lifecycle-limited state;
 - loading, empty, retryable error, and terminal error;
-- saving, saved, conflict, and outcome-uncertain states where the surface owns
+- the complete save state owned by the surface: Project uses `saved`, `unsaved`,
+  `saving`, `error`, and `conflict`;
+- operation/navigation blocking separately from save state;
+- outcome-uncertain and reconciling states where the current operation exposes
   them;
 - light and dark themes;
 - mouse, keyboard, and touch-relevant behavior without requiring pixel identity
@@ -189,6 +202,11 @@ The sequence below is ordered by structural leverage and regression isolation.
 A slice may use more than one PR. Completing a slice does not require changing a
 mature component that already satisfies its role.
 
+A numbered sub-slice does not automatically complete its parent slice. Before
+work moves from Phase 5A to Phase 5B, the active plan and roadmap must either
+mark Phase 5A complete after A1 proves that no additional shell slice is needed,
+or schedule and complete any required A2 follow-up.
+
 ### Phase 5A — Project workspace shell and state hierarchy
 
 Goal: make Project entry and workspace chrome establish one clear hierarchy
@@ -199,8 +217,10 @@ Candidate scope:
 - Project directory/list, create/open entry, and first-use state;
 - workspace title, primary/secondary actions, and Map/Reading mode control;
 - Reference sidebar and Inspector panel composition;
-- save, saving, saved, conflict, and operation-blocked status placement and
-  wording;
+- complete Project save-state placement and wording for saved, unsaved, saving,
+  error, and conflict;
+- separate operation/navigation blocked, outcome-uncertain, and reconciling
+  feedback where the current shell or pending-operation surfaces expose it;
 - panel empty, loading, and error states;
 - hover, current, selected, disabled, and focus-visible treatment for shell
   controls;
@@ -211,12 +231,15 @@ Protected boundary:
 - no node, edge, placement, Reference insertion, Reading-order, or persistence
   change;
 - no change to React Flow viewport behavior or Project Map performance;
+- preserve the synchronized `860px` Map/Reading interaction boundary and the
+  current `1180px` / `560px` Project layout thresholds unless a separate measured
+  responsive PR explicitly changes them;
 - no new navigation destination or Project feature;
 - no global button or panel selector rewrite.
 
-Exit: Project entry, mode selection, sidebar, Inspector, and save/conflict chrome
-communicate one coherent hierarchy while all authoritative behavior remains
-unchanged.
+Exit: Project entry, mode selection, sidebar, Inspector, save state, and separate
+operation feedback communicate one coherent hierarchy while all authoritative
+behavior remains unchanged.
 
 ### Phase 5B — Project Map, Reading, and Inspector content language
 
@@ -348,9 +371,14 @@ must not assume that every difference needs normalization.
 - workspace header and Map/Reading mode affordance;
 - Reference sidebar and Inspector container headings, boundaries, and empty
   states;
-- save/saving/saved/conflict/blocked status grouping and concise microcopy;
+- save-state grouping and concise microcopy for Saved, Unsaved, Saving, Error,
+  and Conflict;
+- operation/navigation blocked feedback separately from save state, plus existing
+  uncertain/reconciling feedback where a shared shell or banner hierarchy is
+  touched;
 - shell-control hover, current, disabled, and focus-visible states;
-- responsive shell behavior at the established breakpoints;
+- responsive shell behavior at the established global and Project-specific
+  boundaries;
 - focused tests and a short measured before/after record in the PR description.
 
 #### Out of scope
@@ -360,8 +388,9 @@ must not assume that every difference needs normalization.
 - Markdown renderer changes;
 - source-page restyling;
 - Project API, persistence, operation, retry, or conflict semantics;
+- changing or adding global or Project-specific viewport thresholds;
 - new design tokens unless an existing role cannot express a demonstrated need;
-- new breakpoints, workspace modes, panels, or actions.
+- new workspace modes, panels, or actions.
 
 #### Required acceptance cases
 
@@ -369,17 +398,27 @@ must not assume that every difference needs normalization.
 - long Project name and narrow available header width;
 - sidebar closed/open and Inspector empty/selected states;
 - Map and Reading current-mode indication;
-- saved, saving, conflict, and operation-blocked states;
-- `1440px`, `1024px`, `390px`, and `360px`;
+- save states: saved, unsaved, saving, error, and conflict;
+- separate operation/navigation blocked state;
+- at least one existing outcome-uncertain and reconciling flow when shared
+  feedback or banner hierarchy is changed;
+- representative widths `1440px`, `1024px`, `390px`, and `360px`;
+- Project boundary pairs `559px` / `560px`, `859px` / `860px`, and `1180px` /
+  `1181px`;
+- global `720px` / `721px` and `1200px` / `1201px` when shared global responsive
+  rules are touched;
 - light and dark themes;
 - keyboard focus order, focus-visible treatment, and focus restoration for any
   changed overlay.
 
 #### Exit
 
-The workspace shell establishes location, mode, operation state, and selection
-context clearly, with no change to Project data or Map geometry. Only then should
-Phase 5B begin changing the presentation of Project content itself.
+The workspace shell establishes location, mode, complete save state, separate
+operation state, and selection context clearly, with no change to Project data
+or Map geometry. After A1, Phase 5A may be marked complete only if the review
+shows that no additional Phase 5A implementation slice is required. Otherwise,
+schedule and complete A2 first. Only after Phase 5A is complete should Phase 5B
+begin changing the presentation of Project content itself.
 
 ## Documentation and review discipline
 
