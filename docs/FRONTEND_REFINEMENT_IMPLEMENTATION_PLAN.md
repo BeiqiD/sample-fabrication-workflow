@@ -156,10 +156,10 @@ Each PR uses the relevant subset of this matrix and records omissions explicitly
 - `360px` narrow mobile;
 - `320px` minimum-width stress case where the surface is intended to support it;
 - `1600–1920px` only for wide Processing and representative large-Project checks;
-- the adjacent pair around every documented global or component-local threshold
+- the adjacent widths around every documented global or component-local threshold
   touched by the PR. Global responsive work uses `720px` / `721px` and `1200px`
-  / `1201px`; Project shell work also uses `559px` / `560px`, `859px` / `860px`,
-  and `1180px` / `1181px`.
+  / `1201px`; Project shell work also uses `559px` / `560px` / `561px`, `859px`
+  / `860px`, and `1180px` / `1181px`.
 
 ### Content
 
@@ -403,8 +403,8 @@ must not assume that every difference needs normalization.
 - at least one existing outcome-uncertain and reconciling flow when shared
   feedback or banner hierarchy is changed;
 - representative widths `1440px`, `1024px`, `390px`, and `360px`;
-- Project boundary pairs `559px` / `560px`, `859px` / `860px`, and `1180px` /
-  `1181px`;
+- Project boundary widths `559px` / `560px` / `561px`, `859px` / `860px`, and
+  `1180px` / `1181px`;
 - global `720px` / `721px` and `1200px` / `1201px` when shared global responsive
   rules are touched;
 - light and dark themes;
