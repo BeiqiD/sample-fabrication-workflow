@@ -1,8 +1,11 @@
 # Shared attachment backend implementation plan
 
-Status: active implementation plan; Slices A/B/C are complete in PRs #152/#153/#154 and Slice D registry/resolver foundation is active in Draft PR #155
+Status: active implementation plan; Slices A/B/C are complete in PRs
+#152/#153/#154, the bounded Slice D registry/resolver/export foundation is
+complete in PR #155, and trusted server-side generation remains pending
 
-Last reviewed: 2026-08-24 during independent review of Draft PR #155
+Last reviewed: 2026-08-25 after PR #155 merged and Phase 5 planning opened in
+Draft PR #156
 
 This plan sequences the consolidation of Project, Comment, and Run attachment
 infrastructure after Phase 4C completed in PR #151. The durable
@@ -17,17 +20,18 @@ polishing several incompatible upload and removal paths.
 
 ## Scheduling boundary
 
-PRs #152, #153, and #154 are complete and the v1 interaction feature set
-remains frozen. Draft PR #155 implements only the domain-neutral derivative
-registry, resolver, retention, and export foundation. It must not treat existing
+PRs #152, #153, #154, and #155 are complete and the v1 interaction feature set
+remains frozen. PR #155 implements only the domain-neutral derivative registry,
+resolver, retention, and export foundation. It does not treat existing
 client-generated Comment previews as trusted shared derivatives, and it does not
 introduce a server-side image generator or change owner lifecycle.
 
 The intended order is:
 
-1. complete and independently review the bounded Slice D foundation in PR #155;
-2. begin or continue Phase 5 frontend refinement without reopening v1
-   interaction scope;
+1. complete and independently review the bounded Phase 5 execution plan in Draft
+   PR #156;
+2. begin Phase 5 frontend refinement without reopening v1 interaction scope,
+   with attachment/media surfaces handled as the dedicated Phase 5C slice;
 3. add a trusted server-side derivative producer and later transport convergence
    only as separately justified follow-up slices.
 
@@ -118,7 +122,7 @@ schema v6 rather than v5.
 
 ### Derivative coupling
 
-Draft PR #155 introduces a source-addressed shared registry and read resolver for
+PR #155 introduces a source-addressed shared registry and read resolver for
 browser-safe derivatives. Existing TIFF/ordinary-image previews uploaded by the
 Comment client remain Comment occurrence assets: their relationship to an
 original is not cryptographically or procedurally proven and therefore is not
@@ -293,7 +297,7 @@ independent contextual metadata.
 
 ### Slice D — shared derivative service
 
-Status: registry/resolver/export foundation active in Draft PR #155; trusted
+Status: bounded registry/resolver/export foundation complete in PR #155; trusted
 server-side generation and domain producer adapters remain pending.
 
 Goal: make useful previews reusable and domain-neutral without trusting client-
@@ -351,6 +355,9 @@ Exit: domains share the transport where useful without sharing owner lifecycle.
 ### Slice F — Phase 5 attachment-surface refinement
 
 Goal: refine the now-stable semantics as one visual system.
+
+This work is scheduled as Phase 5C in
+[frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
 
 Scope belongs to Phase 5 and may include:
 
@@ -536,5 +543,7 @@ This planning slice is complete when:
    text;
 4. the Project 30-day and Run explicit-attachment 24-hour targets are recorded;
 5. physical deletion remains global reachability-driven;
-6. implementation is scheduled only after PR #151;
-7. later work is split into bounded, reviewable slices rather than one rewrite.
+6. the bounded PR #155 foundation is recorded as complete while trusted
+   generation remains a separate follow-up;
+7. Phase 5 attachment refinement is scheduled through the dedicated Phase 5C
+   slice rather than folded into a backend rewrite.
