@@ -67,6 +67,8 @@ export const PROJECT_EXPORT_TABLE_QUERIES = {
   recipe_change_proposals: "SELECT * FROM recipe_change_proposals ORDER BY created_at, id",
   imports: "SELECT * FROM imports ORDER BY created_at, id",
   assets: "SELECT * FROM assets ORDER BY created_at, id",
+  attachment_derivatives: `SELECT * FROM attachment_derivatives
+    ORDER BY source_sha256, source_byte_size, derivative_kind, generator_version, id`,
   comment_submissions: "SELECT * FROM comment_submissions ORDER BY created_at, id",
   comment_submission_targets: "SELECT * FROM comment_submission_targets ORDER BY submission_id, run_step_id",
   comment_submission_items: "SELECT * FROM comment_submission_items ORDER BY submission_id, position",

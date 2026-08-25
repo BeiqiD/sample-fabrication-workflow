@@ -51,6 +51,7 @@ const PRE_PROJECT_EXPORT_TABLES = [
   "recipe_change_proposals",
   "imports",
   "assets",
+  "attachment_derivatives",
   "comment_submissions",
   "comment_submission_targets",
   "comment_submission_items",
@@ -63,7 +64,7 @@ const PRE_PROJECT_EXPORT_TABLES = [
 
 describe("Project foundation export route", () => {
   it("owns complete export and snapshots every current table in one batch", async () => {
-    expect(PROJECT_EXPORT_SCHEMA_VERSION).toBe(6);
+    expect(PROJECT_EXPORT_SCHEMA_VERSION).toBe(7);
     const app = new Hono<AppBindings>();
     app.route("/", projectRoutes);
     const { env, batch } = exportEnvironment();
@@ -78,6 +79,9 @@ describe("Project foundation export route", () => {
     expect(response.status).toBe(200);
     expect(body.schemaVersion).toBe(PROJECT_EXPORT_SCHEMA_VERSION);
     expect(Object.keys(body.tables)).toEqual(Object.keys(PROJECT_EXPORT_TABLE_QUERIES));
+    expect(body.tables.attachment_derivatives).toEqual([
+      { table: "attachment_derivatives" },
+    ]);
     expect(body.tables.projects).toEqual([{ table: "projects" }]);
     expect(body.tables.project_contents).toEqual([{ table: "project_contents" }]);
     expect(body.tables.project_content_attachments).toEqual([

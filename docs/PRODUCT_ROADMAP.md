@@ -2,18 +2,9 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-18 after the reference/search foundation through PR #130,
-Phase 3A1/3A2 Project persistence in PRs #131/#132, the Map kernel in PR #133,
-reference placement in PR #134, Project-owned content in PR #135, edges in PR
-#136, Reading in PR #138, Project stability in PRs #139/#140, storage integrity
-and recovery in PR #141, Phase 3D rich content/export plus the shared
-Project/Comment renderer in PRs #143/#144, Phase 4A1 canonical Project
-occurrence focus in PR #145, Phase 4A2 Inspector completeness in PR #146,
-and completed Phase 4A3 child-reference insertion in PR #147; Phase 4B1
-multi-selection and grouped geometry are complete in PR #148, Phase 4B2
-authoritative copy/paste is complete in PR #149, Phase 4B3 alignment assistance
-and explicit z-order are complete in PR #150, and Phase 4C representative-scale
-Map performance is complete in PR #151, attachment lifecycle Slice A is complete in PR #152, shared attachment ingestion Slice B is complete in PR #153, and occurrence-metadata Slice C is active in Draft PR #154
+Last reviewed: 2026-08-24 after attachment occurrence metadata Slice C merged
+in PR #154 and the bounded shared-derivative registry/resolver/export foundation
+entered independent review in Draft PR #155
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -193,10 +184,13 @@ discovery inside the Inspector while reusing the existing Project placement
 transaction and retry/reconciliation state machine. Phase 4B1 Canvas
 multi-selection and grouped geometry are complete in PR #148. Phase 4B2 authoritative copy/paste is complete in PR #149. Phase 4B3 alignment assistance and explicit z-order are complete in PR #150.
 Phase 4C representative-scale Map performance, contextual zoom, and final v1
-include/defer decisions are complete in PR #151. Storage, lifecycle, Reference,
-and rich-content foundations
-return to correctness maintenance rather than continuing as independent feature
-tracks.
+include/defer decisions are complete in PR #151. Attachment lifecycle Slice A,
+shared ingestion Slice B, and occurrence-metadata Slice C are complete in PRs
+#152/#153/#154. Draft PR #155 is a bounded post-freeze correctness foundation
+for a trusted derivative registry, resolver, retention edge, and export schema
+v7; trusted server-side generation remains a separately justified follow-up.
+Storage, lifecycle, Reference, and rich-content foundations return to correctness
+maintenance rather than continuing as independent feature tracks.
 
 ## Active implementation roadmap
 
@@ -506,7 +500,9 @@ This milestone is the **Project v1 functional shape**.
 
 ### V1 feature freeze
 
-**Status:** complete after merged PR #152. Slice B is internal post-freeze backend consolidation and does not reopen the interaction feature set.
+**Status:** complete after merged PR #152. Slices B/C and the bounded Slice D
+foundation are internal post-freeze backend work and do not reopen the
+interaction feature set.
 
 After Phase 4, freeze the interaction-shaping v1 feature set before systematic
 frontend refinement begins.
@@ -686,11 +682,12 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **attachment occurrence metadata Slice C**
-   in Draft PR #154 without changing public upload or owner-lifecycle semantics.
+1. Complete independent review and merge of the bounded **shared derivative
+   registry/resolver/export foundation** in Draft PR #155, including the client-
+   preview trust boundary and complete-export schema v7.
 2. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-3. Land later attachment metadata/derivative/transport slices only when independently
-   justified; they do not reopen the v1 interaction feature set.
+3. Introduce a trusted server-side derivative producer only as a separately
+   reviewed follow-up; keep upload-transport convergence independently justified.
 4. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.

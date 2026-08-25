@@ -9,7 +9,7 @@ describe("complete blob export", () => {
   it("packages available bytes once and records missing/unready blobs without aborting", async () => {
     const bytes = new TextEncoder().encode("data");
     const manifest: FullExportManifest = {
-      schemaVersion: 6,
+      schemaVersion: 7,
       exportedAt: "2026-08-08T12:00:00.000Z",
       tables: {
         samples: [{ id: "sample-1", deleted_at: "2026-08-08T10:00:00.000Z" }],
@@ -19,6 +19,15 @@ describe("complete blob export", () => {
           { id: "asset-missing", r2_key: "missing/data.bin", status: "ready" },
           { id: "asset-failed", r2_key: "failed/data.bin", status: "failed" },
         ],
+        attachment_derivatives: [{
+          id: "derivative-ready",
+          source_sha256: "a".repeat(64),
+          source_byte_size: 4,
+          derivative_kind: "browser_preview",
+          generator_version: "test-generator-v1",
+          derived_asset_id: "asset-ready",
+          status: "ready",
+        }],
       },
       blobs: [
         {
@@ -119,6 +128,7 @@ describe("complete blob export", () => {
     expect(Object.keys(zip.files)).toEqual(expect.arrayContaining([
       "tables/samples.json",
       "tables/assets.json",
+      "tables/attachment_derivatives.json",
       "blobs/r2/ready/data.bin",
       "export-manifest.json",
       "export-warnings.json",
@@ -127,6 +137,9 @@ describe("complete blob export", () => {
     expect(JSON.parse(await zip.file("tables/samples.json")!.async("string"))).toEqual(
       manifest.tables.samples,
     );
+    expect(JSON.parse(
+      await zip.file("tables/attachment_derivatives.json")!.async("string"),
+    )).toEqual(manifest.tables.attachment_derivatives);
     const finalManifest = JSON.parse(await zip.file("export-manifest.json")!.async("string"));
     expect(finalManifest.blobs).toEqual(expect.arrayContaining([
       expect.objectContaining({ locatorId: "ready", outcome: "packaged" }),
@@ -199,7 +212,7 @@ describe("complete blob export", () => {
       initialOutcome: null,
     };
     const manifest: FullExportManifest = {
-      schemaVersion: 6,
+      schemaVersion: 7,
       exportedAt: "2026-08-08T12:00:00.000Z",
       tables: {},
       blobs: [
@@ -219,7 +232,7 @@ describe("complete blob export", () => {
 
   it("records provider outages without aborting the archive", async () => {
     const manifest: FullExportManifest = {
-      schemaVersion: 6,
+      schemaVersion: 7,
       exportedAt: "2026-08-08T12:00:00.000Z",
       tables: { samples: [{ id: "sample-1" }] },
       blobs: [{
