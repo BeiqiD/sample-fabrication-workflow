@@ -179,7 +179,7 @@ A change to a component with documented local thresholds must also check each
 adjacent pair owned by that component. Project shell or directory work therefore
 checks:
 
-- `559px` and `560px`;
+- `559px`, `560px`, and `561px`;
 - `859px` and `860px`;
 - `1180px` and `1181px`.
 
