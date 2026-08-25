@@ -2,9 +2,9 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-24 after attachment occurrence metadata Slice C merged
-in PR #154 and the bounded shared-derivative registry/resolver/export foundation
-entered independent review in Draft PR #155
+Last reviewed: 2026-08-25 after the bounded shared-derivative
+registry/resolver/export foundation merged in PR #155 and Phase 5 execution
+planning opened in Draft PR #156
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -15,6 +15,8 @@ The Map-first interaction and persistence contract is defined in
 [Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 The shared attachment ownership and lifecycle boundary is defined in
 [shared attachment backend contract](./ATTACHMENT_BACKEND_CONTRACT.md).
+The bounded Phase 5 sequence and verification contract are defined in
+[frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
 
 ## North star
 
@@ -186,10 +188,11 @@ multi-selection and grouped geometry are complete in PR #148. Phase 4B2 authorit
 Phase 4C representative-scale Map performance, contextual zoom, and final v1
 include/defer decisions are complete in PR #151. Attachment lifecycle Slice A,
 shared ingestion Slice B, and occurrence-metadata Slice C are complete in PRs
-#152/#153/#154. Draft PR #155 is a bounded post-freeze correctness foundation
-for a trusted derivative registry, resolver, retention edge, and export schema
-v7; trusted server-side generation remains a separately justified follow-up.
-Storage, lifecycle, Reference, and rich-content foundations return to correctness
+#152/#153/#154. The bounded shared-derivative registry/resolver/export foundation
+is complete in PR #155, including the client-preview trust boundary and complete
+export schema v7. Trusted server-side generation remains a separately justified
+follow-up. Phase 5 execution planning is active in Draft PR #156. Storage,
+lifecycle, Reference, and rich-content foundations return to correctness
 maintenance rather than continuing as independent feature tracks.
 
 ## Active implementation roadmap
@@ -523,7 +526,10 @@ After the freeze:
 
 ### Phase 5 — frontend refinement
 
-**Status:** planned after v1 feature freeze.
+**Status:** active planning in Draft PR #156; implementation has not started.
+
+The bounded slice order and review contract are recorded in
+[frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
 
 **Goal:** refine the complete product as one visual and interaction system after its
 functional shape is stable.
@@ -682,13 +688,15 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of the bounded **shared derivative
-   registry/resolver/export foundation** in Draft PR #155, including the client-
-   preview trust boundary and complete-export schema v7.
-2. Run **Phase 5 frontend refinement** as a dedicated whole-product pass.
-3. Introduce a trusted server-side derivative producer only as a separately
+1. Complete independent review and merge of Draft PR #156, which freezes the
+   bounded Phase 5 slice order and verification contract.
+2. Implement **Phase 5A1 — Project workspace shell and state hierarchy** without
+   changing Project persistence, Map content, or source-record surfaces.
+3. Continue the remaining bounded Phase 5 Project-content, attachment/media,
+   source-record, and cross-product integration slices.
+4. Introduce a trusted server-side derivative producer only as a separately
    reviewed follow-up; keep upload-transport convergence independently justified.
-4. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+5. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,
@@ -705,8 +713,8 @@ The next phase should not be:
 - permanent-delete endpoints before the later safety review;
 - live webpage iframe preview;
 - real-time collaboration before the single-user save/revision model is stable;
-- systematic whole-product visual refinement before the v1 interaction shape is
-  feature-frozen; functional UX required by Phase 3D is not deferred;
+- one unbounded whole-product visual mega-PR or global selector-normalization
+  pass;
 - near-term Docker/self-hosted implementation or a Docker-specific fork that
   distracts from completing and refining the v1 product;
 - LLM features before the deterministic Project workflow is usable.
