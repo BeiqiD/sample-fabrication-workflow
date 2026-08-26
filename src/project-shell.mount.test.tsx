@@ -54,7 +54,7 @@ describe("Phase 5A1 Project directory shell", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps Project creation errors local to the open create form", async () => {
+  it("keeps Project creation errors local to one unambiguous open form", async () => {
     fetchMock.mockImplementation((_path, init) => (
       init?.method === "POST"
         ? jsonResponse({ error: "Project creation is temporarily unavailable" }, 503)
@@ -66,6 +66,9 @@ describe("Phase 5A1 Project directory shell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Create first Project" }));
     const form = screen.getByRole("form", { name: "Create Project" });
+    expect(screen.queryByRole("button", { name: "Create first Project" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Close new Project form" }).getAttribute("aria-expanded")).toBe("true");
+
     fireEvent.change(within(form).getByLabelText("Project title"), {
       target: { value: "Topological laser fabrication" },
     });
@@ -79,6 +82,7 @@ describe("Phase 5A1 Project directory shell", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("form", { name: "Create Project" })).toBeNull());
     expect(screen.getByRole("button", { name: "New Project" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("button", { name: "Create first Project" })).toBeTruthy();
   });
 
   it("renders loaded Projects as one labelled directory without empty-state copy", async () => {
