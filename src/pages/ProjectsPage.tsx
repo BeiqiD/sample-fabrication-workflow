@@ -79,7 +79,7 @@ export function ProjectsPage() {
       <div className="header-actions">
         <button
           type="button"
-          className="button primary"
+          className={createOpen ? "button" : "button primary"}
           aria-controls="project-create-form"
           aria-expanded={createOpen}
           disabled={creating}
@@ -140,22 +140,25 @@ export function ProjectsPage() {
           <p>{loadError}</p>
         </div>
         <button type="button" className="button" onClick={() => void loadProjects()}>Retry loading Projects</button>
-      </div> : projects.length > 0 ? <div className="project-directory" aria-label="Active Projects">
+      </div> : projects.length > 0 ? <div className="project-directory">
         <div className="project-directory-head" aria-hidden="true">
           <span>Project</span><span>Revision</span><span>Updated</span>
         </div>
-        {projects.map((project) => <Link
-          key={project.id}
-          className="project-directory-row"
-          to={`/projects/${project.id}`}
-        >
-          <div>
-            <strong>{project.title}</strong>
-            <small>{project.id}</small>
-          </div>
-          <span>v{project.revision}</span>
-          <time dateTime={project.updatedAt}>{new Date(project.updatedAt).toLocaleString()}</time>
-        </Link>)}
+        <div className="project-directory-list" role="list" aria-label="Active Projects">
+          {projects.map((project) => <div key={project.id} role="listitem">
+            <Link
+              className="project-directory-row"
+              to={`/projects/${project.id}`}
+            >
+              <div>
+                <strong>{project.title}</strong>
+                <small>{project.id}</small>
+              </div>
+              <span>v{project.revision}</span>
+              <time dateTime={project.updatedAt}>{new Date(project.updatedAt).toLocaleString()}</time>
+            </Link>
+          </div>)}
+        </div>
       </div> : <div className="project-directory-state empty">
         <div>
           <h3>No Projects yet</h3>
