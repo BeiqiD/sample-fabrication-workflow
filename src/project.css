@@ -95,19 +95,20 @@
   gap: 18px 24px;
   margin-bottom: 18px;
 }
-.project-workspace-header > div:first-child { min-width: 0; flex: 1 1 360px; }
+.project-workspace-header > div:first-child { min-width: 0; flex: 2 1 620px; }
 .project-workspace-header .back-link { margin-bottom: 15px; }
 .project-workspace-header .eyebrow { margin-bottom: 7px; }
 .project-workspace-header h1 { margin: 0; overflow-wrap: anywhere; font-size: clamp(28px, 4vw, 42px); }
 .project-workspace-header-actions {
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
 }
+.project-workspace-header-actions > .button.danger { margin-left: auto; }
 .project-view-toggle {
   display: inline-flex;
   align-items: center;
