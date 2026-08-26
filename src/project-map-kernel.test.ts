@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 const appSource = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
 const mainSource = readFileSync(new URL("./main.tsx", import.meta.url), "utf8");
 const pageSource = readFileSync(new URL("./pages/ProjectPage.tsx", import.meta.url), "utf8");
+const projectsPageSource = readFileSync(new URL("./pages/ProjectsPage.tsx", import.meta.url), "utf8");
+const projectStyles = readFileSync(new URL("./project.css", import.meta.url), "utf8");
 const surfaceSource = readFileSync(new URL("./components/project/ProjectMapSurface.tsx", import.meta.url), "utf8");
 const performanceSource = readFileSync(new URL("./lib/project-map-performance.ts", import.meta.url), "utf8");
 
@@ -58,5 +60,22 @@ describe("Project Map kernel boundaries", () => {
     expect(pageSource).toContain("navigationSaveRequestedRef");
     expect(pageSource).toContain("Retry save and leave");
     expect(pageSource).toContain("Leave without saving");
+  });
+
+  it("keeps Phase 5A1 directory states and shell geometry explicit", () => {
+    expect(projectsPageSource).toContain('type ProjectDirectoryState = "loading" | "ready" | "error"');
+    expect(projectsPageSource).toContain("const [loadError, setLoadError]");
+    expect(projectsPageSource).toContain("const [createError, setCreateError]");
+    expect(projectsPageSource).toContain("Projects could not be loaded");
+    expect(projectsPageSource).toContain("Retry loading Projects");
+    expect(projectsPageSource).not.toContain("<EmptyState");
+    expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*flex-wrap:\s*wrap;/s);
+    expect(projectStyles).toMatch(/\.project-view-toggle\s*\{[^}]*background:\s*var\(--surface-warm\);/s);
+    expect(projectStyles).toMatch(/\.project-save-state\s*\{[^}]*border-radius:\s*999px;/s);
+    expect(projectStyles).toContain("@media (max-width: 1180px) and (min-width: 860px)");
+    expect(projectStyles).toContain("@media (max-width: 859px)");
+    expect(projectStyles).toContain("@media (max-width: 560px)");
+    expect(projectStyles).not.toContain("@media (max-width: 1200px)");
+    expect(projectStyles).not.toContain("@media (max-width: 720px)");
   });
 });
