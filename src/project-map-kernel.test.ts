@@ -69,6 +69,8 @@ describe("Project Map kernel boundaries", () => {
     expect(projectsPageSource).toContain("Projects could not be loaded");
     expect(projectsPageSource).toContain("Retry loading Projects");
     expect(projectsPageSource).not.toContain("<EmptyState");
+    expect(projectStyles.match(/\.projects-page\s*\{/g)).toHaveLength(1);
+    expect(projectStyles).toMatch(/\.projects-page\s*\{[^}]*calc\(100% - 40px\)/s);
     expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*flex-wrap:\s*wrap;/s);
     expect(projectStyles).toMatch(/\.project-view-toggle\s*\{[^}]*background:\s*var\(--surface-warm\);/s);
     expect(projectStyles).toMatch(/\.project-save-state\s*\{[^}]*border-radius:\s*999px;/s);
