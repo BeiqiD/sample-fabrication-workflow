@@ -80,6 +80,11 @@ local layout thresholds:
 | `<= 859px` | Desktop Map loading and editing are disabled; Project uses the Reading-first projection and the narrow Project directory/header/save-banner layout. |
 | `<= 560px` | Project directory rows and create-form actions use the existing single-column phone arrangement. |
 
+During any projection-locking save, edit, pending insertion/removal, paste,
+delete, or edge operation, crossing the `860px` boundary does not immediately
+replace the current projection. The current projection remains stable until the
+operation is resolved, after which the current viewport rule is re-applied.
+
 The `1180px` Project threshold is a local workspace-column adjustment, not the
 global Wide/Medium boundary. The `860px` threshold must remain synchronized
 between `ProjectPage` and `project.css` because it changes available interaction,
@@ -191,8 +196,8 @@ At each applicable width:
 - button text must not wrap inside buttons;
 - no isolated final button may fall onto a new row by accident;
 - narrow-only icon and comment behavior must change only at `720px`;
-- Project Map availability must change only at the synchronized `860px`
-  interaction boundary;
+- once any active projection lock is resolved, Project Map availability must
+  follow the synchronized `860px` interaction boundary;
 - wide Sample priority cards must not stretch internally when Notes grows;
 - medium and narrow Notes must show three entries by default without nested
   scrolling, while wide Notes continues to show every entry inside its fixed
