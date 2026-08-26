@@ -84,7 +84,7 @@ export function ProjectsPage() {
           aria-expanded={createOpen}
           disabled={creating}
           onClick={createOpen ? closeCreateForm : openCreateForm}
-        >New Project</button>
+        >{createOpen ? "Close new Project form" : "New Project"}</button>
       </div>
     </div>
 
@@ -161,7 +161,7 @@ export function ProjectsPage() {
           <h3>No Projects yet</h3>
           <p>Create the first Project to open a Map workspace for references, Markdown, and files.</p>
         </div>
-        <button type="button" className="button primary" onClick={openCreateForm}>Create first Project</button>
+        {!createOpen && <button type="button" className="button primary" onClick={openCreateForm}>Create first Project</button>}
       </div>}
     </section>
   </div>;
