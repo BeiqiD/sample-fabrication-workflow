@@ -98,6 +98,28 @@ describe("real Project Map surface keyboard behavior", () => {
     vi.unstubAllGlobals();
   });
 
+  it("renders the shared occurrence kind vocabulary without changing node identity", async () => {
+    const descriptors = projectMapNodes(projectTestSnapshot());
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={descriptors}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    const labelFor = async (itemId: string) => waitFor(() => {
+      const label = container.querySelector<HTMLElement>(
+        `.react-flow__node[data-id="${itemId}"] .project-map-node > header span`,
+      );
+      expect(label).toBeTruthy();
+      return label!.textContent;
+    });
+    expect(await labelFor("item-note")).toBe("Project Markdown");
+    expect(await labelFor("item-reference")).toBe("Reference");
+  });
+
   it("keeps Shift-click multi-selection controlled by the parent selection model", async () => {
     const onSelectionChange = vi.fn();
     const descriptors = projectMapNodes(projectTestSnapshot());

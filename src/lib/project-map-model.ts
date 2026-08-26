@@ -10,6 +10,16 @@ import type { ProjectMapGeometry } from "../../shared/project-types";
 
 export type ProjectNodeKind = "markdown" | "attachment" | "reference";
 
+const PROJECT_NODE_KIND_LABELS: Record<ProjectNodeKind, string> = {
+  markdown: "Project Markdown",
+  attachment: "Project attachment",
+  reference: "Reference",
+};
+
+export function projectNodeKindLabel(kind: ProjectNodeKind) {
+  return PROJECT_NODE_KIND_LABELS[kind];
+}
+
 export interface ProjectNodeDescriptor {
   itemId: string;
   placementId: string;

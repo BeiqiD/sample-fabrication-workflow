@@ -81,6 +81,7 @@ describe("Project Inspector details", () => {
       createElement(ProjectInspectorDetails, { snapshot, descriptor }),
     ));
 
+    expect(screen.getByText("Reference", { selector: ".meta-badge" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Project occurrence" })).toBeTruthy();
     expect(screen.getByText("1 incoming · 0 outgoing")).toBeTruthy();
     expect(screen.getByLabelText("incoming relationship: supports; Design note")).toBeTruthy();

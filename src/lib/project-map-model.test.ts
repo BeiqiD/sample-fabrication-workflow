@@ -6,6 +6,7 @@ import {
   normalizeProjectGeometryCommands,
   projectDirtyPlacements,
   projectMapNodes,
+  projectNodeKindLabel,
   projectReadingNodes,
 } from "./project-map-model";
 
@@ -144,6 +145,14 @@ describe("Project Map projection", () => {
       title: "First note",
       kind: "markdown",
     }]);
+  });
+
+  it("uses one stable textual kind vocabulary across Project projections", () => {
+    expect([
+      projectNodeKindLabel("markdown"),
+      projectNodeKindLabel("attachment"),
+      projectNodeKindLabel("reference"),
+    ]).toEqual(["Project Markdown", "Project attachment", "Reference"]);
   });
 
   it("orders the mobile occurrence projection by immutable sequence", () => {

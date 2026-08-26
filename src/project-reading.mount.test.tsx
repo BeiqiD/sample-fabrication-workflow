@@ -152,6 +152,9 @@ describe("mounted Phase 3C Reading projection", () => {
     expect(screen.getByText(snapshot.contents.find((content) => content.id === "content-attachment")!.attachmentCaption!)).toBeTruthy();
     expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent))
       .toEqual(["Sample A", "result.pdf"]);
+    expect([...document.querySelectorAll(".project-reading-item > header .meta-badge")]
+      .map((label) => label.textContent))
+      .toEqual(["Project Markdown", "Reference", "Project attachment"]);
   });
 
   it("edits existing Markdown through Reading with the authoritative content update", async () => {
