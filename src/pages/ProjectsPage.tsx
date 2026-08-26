@@ -1,38 +1,61 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ProjectRecord } from "../../shared/project-api";
-import { EmptyState } from "../components/EmptyState";
 import { createProjectApiId, projectApi } from "../lib/project-client";
 import "../project.css";
+
+type ProjectDirectoryState = "loading" | "ready" | "error";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [directoryState, setDirectoryState] = useState<ProjectDirectoryState>("loading");
+  const [loadError, setLoadError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  const loadProjects = useCallback(async (signal?: AbortSignal) => {
+    setDirectoryState("loading");
+    setLoadError("");
+    try {
+      const result = await projectApi.list(signal);
+      if (signal?.aborted) return;
+      setProjects(result.projects);
+      setDirectoryState("ready");
+    } catch (caught) {
+      if (signal?.aborted || (caught instanceof Error && caught.name === "AbortError")) return;
+      setLoadError(caught instanceof Error ? caught.message : "Projects could not be loaded");
+      setDirectoryState("error");
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    projectApi.list(controller.signal).then((result) => {
-      setProjects(result.projects);
-      setError("");
-    }).catch((caught: Error) => {
-      if (caught.name !== "AbortError") setError(caught.message);
-    }).finally(() => {
-      if (!controller.signal.aborted) setLoading(false);
-    });
+    void loadProjects(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [loadProjects]);
+
+  function openCreateForm() {
+    if (creating) return;
+    setCreateError("");
+    setCreateOpen(true);
+  }
+
+  function closeCreateForm() {
+    if (creating) return;
+    setCreateOpen(false);
+    setTitle("");
+    setCreateError("");
+  }
 
   async function createProject(event: FormEvent) {
     event.preventDefault();
     const normalizedTitle = title.trim();
     if (!normalizedTitle || creating) return;
     setCreating(true);
-    setError("");
+    setCreateError("");
     try {
       const result = await projectApi.create({
         id: createProjectApiId("project"),
@@ -41,7 +64,7 @@ export function ProjectsPage() {
       });
       navigate(`/projects/${result.project.id}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The Project could not be created");
+      setCreateError(caught instanceof Error ? caught.message : "The Project could not be created");
       setCreating(false);
     }
   }
@@ -56,53 +79,93 @@ export function ProjectsPage() {
       <div className="header-actions">
         <button
           type="button"
-          className="button primary"
+          className={createOpen ? "button" : "button primary"}
+          aria-controls="project-create-form"
           aria-expanded={createOpen}
-          onClick={() => setCreateOpen((open) => !open)}
-        >New Project</button>
+          disabled={creating}
+          onClick={createOpen ? closeCreateForm : openCreateForm}
+        >{createOpen ? "Close new Project form" : "New Project"}</button>
       </div>
     </div>
 
-    {createOpen && <form className="card project-create-form" onSubmit={createProject}>
+    {createOpen && <form
+      id="project-create-form"
+      className="card project-create-form"
+      aria-labelledby="project-create-title"
+      onSubmit={createProject}
+    >
+      <div className="project-create-form-heading">
+        <div>
+          <p className="card-label">New research workspace</p>
+          <h2 id="project-create-title">Create Project</h2>
+        </div>
+        <p className="card-meta">Give the workspace a durable research-question or campaign title. Content is added after opening its Map.</p>
+      </div>
       <label>
         <span>Project title</span>
         <input
           autoFocus
           value={title}
           maxLength={200}
+          disabled={creating}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="e.g. Topological laser fabrication"
         />
       </label>
       <div className="form-actions">
-        <button type="button" className="button" onClick={() => setCreateOpen(false)}>Cancel</button>
+        <button type="button" className="button" disabled={creating} onClick={closeCreateForm}>Cancel</button>
         <button type="submit" className="button primary" disabled={!title.trim() || creating}>
           {creating ? "Creating…" : "Create Project"}
         </button>
       </div>
+      {createError && <p className="project-create-error" role="alert">{createError}</p>}
     </form>}
 
-    {error && <p className="error-banner">{error}</p>}
-    {loading ? <p className="muted">Loading Projects…</p> : projects.length > 0
-      ? <div className="project-directory">
+    <section className="project-directory-section" aria-labelledby="project-directory-title">
+      <div className="project-directory-section-heading">
+        <div>
+          <p className="card-label">Active workspaces</p>
+          <h2 id="project-directory-title">Your Projects</h2>
+        </div>
+        {directoryState === "ready" && projects.length > 0 && <span className="meta-badge">
+          {projects.length} {projects.length === 1 ? "Project" : "Projects"}
+        </span>}
+      </div>
+
+      {directoryState === "loading" ? <div className="project-directory-state loading" role="status" aria-live="polite">
+        <p>Loading Projects…</p>
+      </div> : directoryState === "error" ? <div className="project-directory-state error" role="alert">
+        <div>
+          <h3>Projects could not be loaded</h3>
+          <p>{loadError}</p>
+        </div>
+        <button type="button" className="button" onClick={() => void loadProjects()}>Retry loading Projects</button>
+      </div> : projects.length > 0 ? <div className="project-directory">
         <div className="project-directory-head" aria-hidden="true">
           <span>Project</span><span>Revision</span><span>Updated</span>
         </div>
-        {projects.map((project) => <Link
-          key={project.id}
-          className="project-directory-row"
-          to={`/projects/${project.id}`}
-        >
-          <div>
-            <strong>{project.title}</strong>
-            <small>{project.id}</small>
-          </div>
-          <span>v{project.revision}</span>
-          <time dateTime={project.updatedAt}>{new Date(project.updatedAt).toLocaleString()}</time>
-        </Link>)}
-      </div>
-      : <EmptyState title="No Projects yet">
-        Create the first Project to open a Map workspace.
-      </EmptyState>}
+        <div className="project-directory-list" role="list" aria-label="Active Projects">
+          {projects.map((project) => <div key={project.id} role="listitem">
+            <Link
+              className="project-directory-row"
+              to={`/projects/${project.id}`}
+            >
+              <div>
+                <strong>{project.title}</strong>
+                <small>{project.id}</small>
+              </div>
+              <span>v{project.revision}</span>
+              <time dateTime={project.updatedAt}>{new Date(project.updatedAt).toLocaleString()}</time>
+            </Link>
+          </div>)}
+        </div>
+      </div> : <div className="project-directory-state empty">
+        <div>
+          <h3>No Projects yet</h3>
+          <p>Create the first Project to open a Map workspace for references, Markdown, and files.</p>
+        </div>
+        {!createOpen && <button type="button" className="button primary" onClick={openCreateForm}>Create first Project</button>}
+      </div>}
+    </section>
   </div>;
 }
