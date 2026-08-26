@@ -72,6 +72,9 @@ describe("Project Map kernel boundaries", () => {
     expect(projectStyles.match(/\.projects-page\s*\{/g)).toHaveLength(1);
     expect(projectStyles).toMatch(/\.projects-page\s*\{[^}]*calc\(100% - 40px\)/s);
     expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*flex-wrap:\s*wrap;/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header\s*>\s*div:first-child\s*\{[^}]*flex:\s*2 1 620px;/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header-actions\s*\{[^}]*flex:\s*1 1 auto;/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header-actions\s*>\s*\.button\.danger\s*\{[^}]*margin-left:\s*auto;/s);
     expect(projectStyles).toMatch(/\.project-view-toggle\s*\{[^}]*background:\s*var\(--surface-warm\);/s);
     expect(projectStyles).toMatch(/\.project-save-state\s*\{[^}]*border-radius:\s*999px;/s);
     expect(projectStyles).toContain("@media (max-width: 1180px) and (min-width: 860px)");
