@@ -117,3 +117,45 @@ export function projectTestSnapshot(): ProjectSnapshot {
     }],
   };
 }
+
+export function projectTestSnapshotWithAttachment(): ProjectSnapshot {
+  const snapshot = projectTestSnapshot();
+  const markdownContent = snapshot.contents.find((content) => content.id === "content-note")!;
+  const markdownItem = snapshot.items.find((item) => item.id === "item-note")!;
+  const markdownPlacement = snapshot.placements.find(
+    (placement) => placement.projectItemId === "item-note",
+  )!;
+  snapshot.project.nextCreatedSequence = 4;
+  snapshot.contents.push({
+    ...markdownContent,
+    id: "content-attachment",
+    contentType: "attachment",
+    markdownSource: null,
+    attachmentCaption: "Evidence",
+    attachmentSourceUrl: null,
+  });
+  snapshot.attachments.push({
+    projectContentId: "content-attachment",
+    originalName: "evidence.pdf",
+    mimeType: "application/pdf",
+    byteSize: 2_048,
+    createdBy: markdownContent.createdBy,
+    createdAt: markdownContent.createdAt,
+    fileUrl: "/api/projects/project-a/contents/content-attachment/file",
+  });
+  snapshot.items.push({
+    ...markdownItem,
+    id: "item-attachment",
+    projectContentId: "content-attachment",
+    createdSequence: 3,
+  });
+  snapshot.placements.push({
+    ...markdownPlacement,
+    id: "placement-attachment",
+    projectItemId: "item-attachment",
+    x: 600,
+    width: 180,
+    zIndex: 2,
+  });
+  return snapshot;
+}

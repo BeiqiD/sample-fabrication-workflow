@@ -467,8 +467,9 @@ accent to describe ordinary Markdown, contrary to the frozen color contract.
 - light and dark themes continue to consume existing tokens;
 - the existing Project Map, Reading, Inspector, owned-content, build, and Map
   performance gates remain green;
-- responsive boundary requalification is omitted because this slice changes no
-  width, layout, geometry, media query, or projection rule.
+- canonical labels and transient status metadata remain legible at the existing
+  180px minimum node width through bounded header wrapping; node geometry,
+  breakpoints, media queries, and projection rules remain unchanged.
 
 #### Exit
 

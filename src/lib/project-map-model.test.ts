@@ -153,6 +153,7 @@ describe("Project Map projection", () => {
       projectNodeKindLabel("attachment"),
       projectNodeKindLabel("reference"),
     ]).toEqual(["Project Markdown", "Project attachment", "Reference"]);
+    expect(projectMapNodes(snapshot()).find((node) => node.kind === "markdown")?.subtitle).toBeNull();
   });
 
   it("orders the mobile occurrence projection by immutable sequence", () => {

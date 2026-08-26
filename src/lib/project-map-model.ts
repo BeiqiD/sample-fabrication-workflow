@@ -119,7 +119,7 @@ function contentNode(
     placementId: placement.id,
     kind: "markdown",
     title: compactMarkdownTitle(content.markdownSource),
-    subtitle: "Project Markdown",
+    subtitle: null,
     excerpt: boundedExcerpt(content.markdownSource),
     geometry: geometryFromPlacement(placement),
     createdSequence: item.createdSequence,

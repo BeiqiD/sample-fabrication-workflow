@@ -430,7 +430,7 @@ function buildFlowNode(
     connectable: !edgeInteractionDisabled && !editing,
     deletable: false,
     focusable: !geometryInteractionDisabled,
-    ariaLabel: `${descriptor.kind}: ${descriptor.title}`,
+    ariaLabel: `${projectNodeKindLabel(descriptor.kind)}: ${descriptor.title}`,
   };
 }
 

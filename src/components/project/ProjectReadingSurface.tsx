@@ -170,7 +170,7 @@ export function ProjectReadingSurface({
       >
         <header><span className="meta-badge">{projectNodeKindLabel(node.kind)}</span><small>#{node.createdSequence}</small></header>
         {showGeneratedTitle && <h2>{node.title}</h2>}
-        {node.subtitle && node.kind !== "markdown" && <p className="card-meta">{node.subtitle}</p>}
+        {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
 
         {node.kind === "markdown" && (editingMarkdown ? <Suspense fallback={<div className="project-rich-editor-loading">Loading editor…</div>}>
           <LazyProjectMarkdownEditor
