@@ -396,7 +396,8 @@ must not assume that every difference needs normalization.
 
 - Project with no items and Project with representative mixed content;
 - long Project name and narrow available header width;
-- sidebar closed/open and Inspector empty/selected states;
+- Reference sidebar present/absent according to the existing Map/Reading
+  projection, and Inspector empty/selected states;
 - Map and Reading current-mode indication;
 - save states: saved, unsaved, saving, error, and conflict;
 - separate operation/navigation blocked state;
