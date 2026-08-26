@@ -2,9 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-25 after the bounded shared-derivative
-registry/resolver/export foundation merged in PR #155 and Phase 5 execution
-planning opened in Draft PR #156
+Last reviewed: 2026-08-26 after PR #157 completed the Phase 5A Project shell
+and state hierarchy and Phase 5B1 opened in Draft PR #158
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -191,9 +190,12 @@ shared ingestion Slice B, and occurrence-metadata Slice C are complete in PRs
 #152/#153/#154. The bounded shared-derivative registry/resolver/export foundation
 is complete in PR #155, including the client-preview trust boundary and complete
 export schema v7. Trusted server-side generation remains a separately justified
-follow-up. Phase 5 execution planning is active in Draft PR #156. Storage,
-lifecycle, Reference, and rich-content foundations return to correctness
-maintenance rather than continuing as independent feature tracks.
+follow-up. Phase 5 execution planning is complete in PR #156. Phase 5A Project
+workspace shell and state hierarchy is complete in PR #157; its exact-head review
+found no concrete A2 follow-up, so Phase 5B begins with occurrence identity
+language in Draft PR #158. Storage, lifecycle, Reference, and rich-content
+foundations return to correctness maintenance rather than continuing as
+independent feature tracks.
 
 ## Active implementation roadmap
 
@@ -526,7 +528,8 @@ After the freeze:
 
 ### Phase 5 — frontend refinement
 
-**Status:** active planning in Draft PR #156; implementation has not started.
+**Status:** active implementation; Phase 5A is complete in PR #157 and the
+first bounded Phase 5B slice is active in Draft PR #158.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -688,15 +691,18 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of Draft PR #156, which freezes the
-   bounded Phase 5 slice order and verification contract.
-2. Implement **Phase 5A1 — Project workspace shell and state hierarchy** without
-   changing Project persistence, Map content, or source-record surfaces.
-3. Continue the remaining bounded Phase 5 Project-content, attachment/media,
-   source-record, and cross-product integration slices.
-4. Introduce a trusted server-side derivative producer only as a separately
+1. Complete independent review and merge of **Phase 5B1 — Project occurrence
+   identity language** in Draft PR #158.
+2. Continue the remaining bounded **Phase 5B** Map, Reading, Inspector, edge, and
+   rich-content language slices only where review identifies concrete problems.
+3. Complete **Phase 5C — attachment and media surfaces** without changing preview
+   trust or owner lifecycle.
+4. Complete **Phase 5D — source-record and directory coherence**.
+5. Run **Phase 5E — cross-product integration review** and update the measured
+   frontend baseline.
+6. Introduce a trusted server-side derivative producer only as a separately
    reviewed follow-up; keep upload-transport convergence independently justified.
-5. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+7. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,
