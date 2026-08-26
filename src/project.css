@@ -247,13 +247,11 @@
 }
 
 @media (max-width: 560px) {
-  .projects-page { width: min(100% - 28px, var(--content-width)); }
   .project-directory-section-heading { align-items: flex-start; flex-direction: column; }
   .project-directory-row { grid-template-columns: 1fr; gap: 6px; }
   .project-directory-row time { grid-column: auto; }
   .project-create-form .form-actions { justify-content: stretch; }
   .project-create-form .form-actions .button { flex: 1 1 0; }
-  .project-directory-state { padding: 18px; }
 }
 
 .project-owned-content-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
