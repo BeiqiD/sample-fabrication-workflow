@@ -1,17 +1,19 @@
 # Phase 5 frontend refinement implementation plan
 
-Status: active execution plan; Phase 5A is complete in PR #157 and Phase 5B is
-active through the bounded B3 slice in Draft PR #160
+Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
+#157–#160, and the Project workspace layout and control rebuild is active through
+the bounded Phase 5C0 planning slice in the current Draft PR
 
 Last reviewed: 2026-08-27
 
 Execution base: `v2/backend-foundation` at
-`2ede638bb766d1f15bae048f6b6da1f84513a389`
+`a8ee0fec2b27dbb4981c285e2ce7d0d5589e3252`
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
-reviewable frontend slices. It does not authorize a visual rewrite or reopen the
-v1 interaction feature set.
+reviewable frontend slices. Phase 5C explicitly authorizes a Project-scoped
+layout and control rewrite; it does not authorize a whole-product visual rewrite
+or reopen the v1 interaction feature set.
 
 The governing principle remains the one frozen in
 [Frontend interface guidelines](./FRONTEND_GUIDELINES.md):
@@ -96,19 +98,20 @@ practical.
 - do not add a new hard-coded interface palette or component-local color system;
 - do not create a late override stylesheet whose main purpose is to cancel an
   earlier selector;
-- do not perform mass selector moves or stylesheet consolidation as a Phase 5
-  deliverable.
+- Phase 5C may replace Project-local layout and control selectors when ownership
+  is explicit and superseded rules are removed in the same slice; it does not
+  authorize whole-product selector consolidation.
 
 ### Geometry and performance boundary
 
 - preserve the global `1200px` / `720px` viewport-tier baseline for ordinary
   application surfaces;
-- preserve the Project workspace's existing `min-width: 860px` functional
-  desktop-Map/Reading boundary and its local `1180px` / `560px` layout
-  thresholds during Phase 5A; these are scoped Project contracts rather than
-  additional global viewport tiers;
-- change any global or Project-specific threshold only through a separately
-  measured responsive change with adjacent-boundary verification;
+- treat the Project workspace's current `min-width: 860px` functional
+  desktop-Map/Reading boundary and local `1180px` / `560px` thresholds as the
+  measured starting baseline rather than the Phase 5C target;
+- Phase 5C may replace Project-local layout thresholds only through an explicit,
+  measured responsive slice with adjacent-boundary verification; global
+  `1200px` / `720px` tiers remain unchanged;
 - preserve Project placement coordinates, node dimensions, edge endpoints,
   z-order, save boundaries, and React Flow/database separation;
 - preserve the representative Project Map target and envelope and its permanent
@@ -158,8 +161,8 @@ Each PR uses the relevant subset of this matrix and records omissions explicitly
 - `1600–1920px` only for wide Processing and representative large-Project checks;
 - the adjacent widths around every documented global or component-local threshold
   touched by the PR. Global responsive work uses `720px` / `721px` and `1200px`
-  / `1201px`; Project shell work also uses `559px` / `560px` / `561px`, `859px`
-  / `860px`, and `1180px` / `1181px`.
+  / `1201px`; Phase 5C must verify the current `560px`, `860px`, and `1180px`
+  boundaries and every proposed replacement threshold on both adjacent widths.
 
 ### Content
 
@@ -204,9 +207,10 @@ mature component that already satisfies its role.
 
 A numbered sub-slice does not automatically complete its parent slice. Phase 5A
 satisfied this gate after the independent exact-head review of PR #157 found no
-remaining concrete shell defect that justified A2. Phase 5A is therefore complete
-and Phase 5B1/B2 are complete in PRs #158/#159. Phase 5B remains active through
-the bounded B3 slice in Draft PR #160.
+remaining concrete shell defect that justified A2. Phase 5B1/B2/B3 are complete
+in PRs #158/#159/#160; no additional B4 content-language defect is currently
+justified. The larger Project composition gap is intentionally tracked as the
+separate Phase 5C layout and control rebuild, active through its C0 planning slice.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -246,8 +250,8 @@ behavior remains unchanged.
 
 ### Phase 5B — Project Map, Reading, and Inspector content language
 
-Status: active through Phase 5B3 in Draft PR #160; Phase 5B1/B2 are complete in
-PRs #158/#159 and the parent slice remains open.
+Status: complete after Phase 5B3 in PR #160; Phase 5B1/B2 are complete in PRs
+#158/#159 and no B4 is currently required.
 
 Goal: make the same Project occurrence read consistently across spatial,
 linear, and detailed projections while preserving the different information
@@ -277,7 +281,106 @@ Protected boundary:
 Exit: one occurrence is recognizable across Map, Reading, and Inspector without
 forcing those projections into identical layouts.
 
-### Phase 5C — attachment and media surfaces
+### Phase 5C — Project workspace layout and control architecture
+
+Status: active through Phase 5C0 in the current Draft planning PR.
+
+Goal: rebuild Project as a workspace-first interface whose Map, Reading,
+References, Inspector, and controls use deliberate composition rather than a
+centered document page containing a framed three-column card, without changing
+authoritative Project behavior.
+
+Current evidence:
+
+- the shell is constrained to a centered `1600px` page, uses a large document
+  heading, and places the desktop workspace inside a second framed surface;
+- the Map competes with fixed `250–300px` and `270px` side columns instead of
+  owning the remaining workspace viewport;
+- the Project page, Map, and Reading source currently contain 83 `button` sites
+  (73 / 3 / 7 respectively) and 70 `compact-button` class usages. These are
+  source-level audit counts, not the number mounted simultaneously, but they
+  demonstrate that Project controls need explicit architecture rather than more
+  ad hoc compact variants.
+
+Target anatomy:
+
+- a compact Project top bar owns navigation, project identity, mode, save state,
+  and the highest-priority workspace actions;
+- Map owns the remaining desktop viewport instead of being nested in a
+  page-within-a-card composition;
+- References and Inspector become explicit, independently collapsible workspace
+  panels; intermediate widths use measured overlays or drawers instead of
+  continuously squeezing the Map;
+- Reading uses its own centered document shell and reading rhythm rather than
+  inheriting Map geometry;
+- mobile remains Reading-first, with operations and detail exposed through
+  accessible drawers or sheets instead of a compressed desktop Map.
+
+Control architecture:
+
+- define Project-local roles for mode controls, workspace toolbar actions, panel
+  actions, content actions, destructive actions, and overflow actions;
+- give each role deliberate height, density, label/icon rule, grouping, priority,
+  disabled/loading treatment, tooltip or accessible name, and focus-visible state;
+- preserve text where it carries decision meaning; collapse lower-priority actions
+  to icon-only or overflow only at measured widths and never without an accessible
+  name;
+- keep semantic danger separate from primary interaction accent and avoid turning
+  every visible action into a filled primary button;
+- replace generic Project `compact-button` accumulation incrementally with
+  Project-owned primitives or explicit role classes; do not globally rewrite
+  unrelated product controls.
+
+Bounded sequence:
+
+- **C0 — layout and control contract:** freeze the current audit, target anatomy,
+  control taxonomy, protected behavior, responsive matrix, and PR sequence;
+- **C1 — viewport workspace frame:** introduce the compact top bar and
+  full-viewport desktop Map frame without changing Map data or interaction;
+- **C2 — panels and control hierarchy:** rebuild Reference/Inspector composition
+  and migrate the major Project button families to the agreed roles;
+- **C3 — Reading and responsive composition:** establish the document shell,
+  intermediate overlays, and mobile Reading-first transformations;
+- **C4 — Project integration review:** reconcile the Project directory and
+  workspace entry, close only evidenced cross-slice gaps, and record the measured
+  final baseline.
+
+Protected boundary:
+
+- no backend, API, schema, migration, export-version, dependency, or domain-model
+  change;
+- no change to Project occurrence, content, placement, source, revision, save,
+  retry, conflict, reconciliation, attachment-trust, or Reading-order semantics;
+- no change to Map node/edge stored geometry, endpoints, direction, selection,
+  copy/paste, z-order, contextual-zoom bands, or performance policy without a
+  separately measured and authorized defect;
+- no new workspace mode, Inspector capability, automatic layout, mobile editable
+  Map, or source-record feature;
+- no site-wide button rewrite: new control primitives stay Project-scoped until a
+  separate cross-product audit proves broader reuse;
+- layout slices may replace Project-local thresholds, but must preserve the
+  desktop-only Map editing boundary unless a separate functional proposal is
+  approved.
+
+Required acceptance:
+
+- `1440px`, `1024px`, `390px`, and `360px`, plus both adjacent widths for
+  every threshold added, removed, or changed;
+- empty, ordinary mixed-content, long-title, and representative large Projects;
+- Map and Reading; References and Inspector open/closed; light and dark themes;
+- saved, unsaved, saving, uncertain, error, conflict, and operation-blocked states
+  where exposed;
+- normal, hover, pressed/current, disabled, loading, danger, focus-visible, and
+  keyboard focus-restoration behavior for changed controls;
+- full Verify, affected mounted/accessibility gates, production build, and Project
+  Map performance qualification on every implementation head.
+
+Exit: Project reads as one purpose-built workspace at desktop, intermediate, and
+mobile widths; controls communicate role and priority before color or proximity;
+and every existing mutation, navigation, accessibility, and performance contract
+remains authoritative.
+
+### Phase 5D — attachment and media surfaces
 
 Goal: expose the stable shared attachment semantics through one clear visual and
 wording system while preserving separate Project, Comment, and Run ownership.
@@ -306,7 +409,7 @@ Protected boundary:
 Exit: attachment actions and states are understandable across domains without
 misrepresenting lifecycle or preview trust.
 
-### Phase 5D — source-record and directory coherence
+### Phase 5E — source-record and directory coherence
 
 Goal: complete evidence-driven refinement of Samples, Templates, Processing,
 Comments, Timeline, and Settings/Export after the Project visual language is
@@ -332,7 +435,7 @@ Protected boundary:
 Exit: mature source-record surfaces use the same role definitions while retaining
 their intentional density and workflow differences.
 
-### Phase 5E — cross-product integration review
+### Phase 5F — cross-product integration review
 
 Goal: prove that the completed slices form one product and close only concrete
 cross-surface gaps.
@@ -540,7 +643,7 @@ evidenced node, Reading, Inspector, and rich-content problems.
 
 ### Phase 5B3 — Project-owned editor outcome feedback
 
-Status: active in Draft PR #160.
+Status: complete in PR #160.
 
 #### Concrete problem
 
@@ -590,8 +693,60 @@ operation as warning and determined failure at once.
 
 Project-owned editor feedback communicates whether an operation is unresolved or
 determined to have failed without changing the authoritative mutation protocol.
-Phase 5B remains open for separately evidenced node, Reading, Inspector, and
-rich-content problems.
+The independent exact-head review found no further B4 content-language defect;
+Phase 5B is complete, while the separately evidenced layout gap proceeds in
+Phase 5C.
+
+### Phase 5C0 — Project layout and control contract
+
+Status: active in the current Draft planning PR.
+
+#### Concrete problem
+
+The current Project workspace is structurally a centered page with a large title
+and a second framed three-column surface. Its Map does not own the viewport, side
+panels reduce the central canvas continuously, and control priority is encoded
+mainly through repeated generic `button`, `primary`, `wide`, and
+`compact-button` combinations. This composition is materially different from
+the intended Project experience and cannot be resolved through isolated spacing
+or color adjustments.
+
+#### In scope
+
+- close Phase 5B after merged PR #160 and record that no B4 is currently required;
+- authorize the Project-scoped layout and control rewrite as Phase 5C;
+- record the workspace anatomy, Project control taxonomy, responsive strategy,
+  protected behavior, acceptance matrix, and C1–C4 sequence;
+- shift the unstarted attachment/media, source-record, and integration phases to
+  Phase 5D, Phase 5E, and Phase 5F without changing their scope;
+- keep this planning slice documentation-only.
+
+#### Protected boundary
+
+- no production component, stylesheet, test, dependency, backend, schema,
+  migration, export, or runtime behavior change in C0;
+- C0 does not pre-authorize a single giant implementation PR;
+- Project actions, save/retry/conflict semantics, focus behavior, Map geometry,
+  Reading order, and responsive behavior remain unchanged until the relevant
+  implementation slice is independently reviewed;
+- no global button or stylesheet rewrite.
+
+#### Required acceptance cases
+
+- Product roadmap and this execution plan agree that Phase 5B is complete and
+  Phase 5C is active;
+- C1–C4 each have distinct layout/behavior ownership and can be reviewed
+  independently;
+- the button-heavy control migration is explicit scope, not an incidental CSS
+  side effect;
+- all shifted future phase labels and immediate-order references remain coherent;
+- the planning PR is exact-head reviewed before it becomes Ready.
+
+#### Exit
+
+The repository has one unambiguous authorization for the Project layout rebuild,
+including substantial Project button changes, and Phase 5C1 can begin without
+reopening functional product scope.
 
 ## Documentation and review discipline
 

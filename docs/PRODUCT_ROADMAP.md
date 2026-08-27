@@ -2,8 +2,9 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-27 after PR #159 completed Phase 5B2 edge-state
-language and Phase 5B3 opened in Draft PR #160
+Last reviewed: 2026-08-27 after PR #160 completed Phase 5B and the Project
+workspace layout and control rebuild opened through Phase 5C0 in the current
+Draft planning PR
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -193,11 +194,12 @@ export schema v7. Trusted server-side generation remains a separately justified
 follow-up. Phase 5 execution planning is complete in PR #156. Phase 5A Project
 workspace shell and state hierarchy is complete in PR #157; its exact-head review
 found no concrete A2 follow-up. Phase 5B1 occurrence identity language and
-Phase 5B2 edge theme/mutation-state language are complete in PRs #158/#159.
-Project-owned editor outcome feedback is active in Draft PR #160. Storage,
-lifecycle, Reference, and rich-content
-foundations return to correctness maintenance rather than continuing as
-independent feature tracks.
+Phase 5B2 edge theme/mutation-state language and Phase 5B3 Project-owned editor
+outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required.
+The materially larger Project composition gap is now authorized as Phase 5C,
+starting with the current Draft C0 planning slice. Storage, lifecycle, Reference,
+and rich-content foundations return to correctness maintenance rather than
+continuing as independent feature tracks.
 
 ## Active implementation roadmap
 
@@ -530,8 +532,8 @@ After the freeze:
 
 ### Phase 5 — frontend refinement
 
-**Status:** active implementation; Phase 5A is complete in PR #157, Phase 5B1/B2
-are complete in PRs #158/#159, and Phase 5B3 is active in Draft PR #160.
+**Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
+#157–#160, and Phase 5C is active through its current Draft C0 planning slice.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -557,6 +559,20 @@ still changing.
 - keyboard/focus/accessibility polish;
 - wording, labels, and microcopy consistency across the whole product;
 - cross-page visual review so old and new UI conventions cannot coexist unnoticed.
+
+**Current Project priority:** Phase 5C is a deliberate Project-scoped layout and
+control rebuild, not a functional feature phase. It will replace the current
+centered page-within-a-card composition with a workspace-first shell, give Map
+the remaining desktop viewport, give Reading an independent document layout, and
+turn References/Inspector into responsive panels. It explicitly includes
+substantial Project button work: mode, toolbar, panel, content, destructive, and
+overflow controls will receive owned roles, grouping, priority, responsive
+collapse rules, and complete accessibility states. Existing mutation, navigation,
+Map geometry, Reading order, backend, and performance contracts remain frozen.
+
+The previously planned attachment/media, source-record/directory, and
+cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
+respectively; its product scope is unchanged.
 
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
@@ -693,18 +709,22 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **Phase 5B3 — Project-owned editor
-   outcome feedback** in Draft PR #160.
-2. Continue the remaining bounded **Phase 5B** Map, Reading, Inspector, and
-   rich-content language slices only where review identifies concrete problems.
-3. Complete **Phase 5C — attachment and media surfaces** without changing preview
+1. Complete independent review and merge of **Phase 5C0 — Project layout and
+   control contract** in the current Draft planning PR.
+2. Implement **Phase 5C1 — viewport workspace frame**: compact Project top bar and
+   a full-viewport desktop Map frame, with behavior frozen.
+3. Implement **Phase 5C2 — panels and control hierarchy**: responsive
+   Reference/Inspector composition and the major Project button-family migration.
+4. Implement **Phase 5C3 — Reading and responsive composition**, then run the
+   bounded **Phase 5C4 Project integration review**.
+5. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.
-4. Complete **Phase 5D — source-record and directory coherence**.
-5. Run **Phase 5E — cross-product integration review** and update the measured
+6. Complete **Phase 5E — source-record and directory coherence**.
+7. Run **Phase 5F — cross-product integration review** and update the measured
    frontend baseline.
-6. Introduce a trusted server-side derivative producer only as a separately
+8. Introduce a trusted server-side derivative producer only as a separately
    reviewed follow-up; keep upload-transport convergence independently justified.
-7. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+9. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,
