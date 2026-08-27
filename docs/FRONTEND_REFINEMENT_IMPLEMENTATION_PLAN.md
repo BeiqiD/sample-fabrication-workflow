@@ -2,7 +2,7 @@
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, and the Project workspace layout and control rebuild is active through
-the bounded Phase 5C0 planning slice in the current Draft PR
+the bounded Phase 5C0 planning slice in Draft PR #161
 
 Last reviewed: 2026-08-27
 
@@ -283,7 +283,7 @@ forcing those projections into identical layouts.
 
 ### Phase 5C — Project workspace layout and control architecture
 
-Status: active through Phase 5C0 in the current Draft planning PR.
+Status: active through Phase 5C0 in Draft PR #161.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -699,7 +699,7 @@ Phase 5C.
 
 ### Phase 5C0 — Project layout and control contract
 
-Status: active in the current Draft planning PR.
+Status: active in Draft PR #161.
 
 #### Concrete problem
 

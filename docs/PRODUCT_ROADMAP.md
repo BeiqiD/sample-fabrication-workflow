@@ -3,8 +3,7 @@
 Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-08-27 after PR #160 completed Phase 5B and the Project
-workspace layout and control rebuild opened through Phase 5C0 in the current
-Draft planning PR
+workspace layout and control rebuild opened through Phase 5C0 in Draft PR #161
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -197,7 +196,7 @@ found no concrete A2 follow-up. Phase 5B1 occurrence identity language and
 Phase 5B2 edge theme/mutation-state language and Phase 5B3 Project-owned editor
 outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required.
 The materially larger Project composition gap is now authorized as Phase 5C,
-starting with the current Draft C0 planning slice. Storage, lifecycle, Reference,
+starting with Draft PR #161. Storage, lifecycle, Reference,
 and rich-content foundations return to correctness maintenance rather than
 continuing as independent feature tracks.
 
@@ -533,7 +532,7 @@ After the freeze:
 ### Phase 5 — frontend refinement
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
-#157–#160, and Phase 5C is active through its current Draft C0 planning slice.
+#157–#160, and Phase 5C is active through Phase 5C0 in Draft PR #161.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -710,7 +709,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 ## Immediate next PR order
 
 1. Complete independent review and merge of **Phase 5C0 — Project layout and
-   control contract** in the current Draft planning PR.
+   control contract** in Draft PR #161.
 2. Implement **Phase 5C1 — viewport workspace frame**: compact Project top bar and
    a full-viewport desktop Map frame, with behavior frozen.
 3. Implement **Phase 5C2 — panels and control hierarchy**: responsive
