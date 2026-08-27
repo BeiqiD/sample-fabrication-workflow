@@ -113,4 +113,32 @@ describe("Phase 3D rich Reading projection", () => {
     expect(screen.getByRole("link", { name: "Open file" }).getAttribute("href"))
       .toBe("/api/projects/project-a/contents/file-a/file");
   });
+  it("presents outcome-uncertain attachment metadata as warning in Reading", () => {
+    render(<MemoryRouter><ProjectReadingSurface
+      nodes={[node({
+        itemId: "file-a",
+        kind: "attachment",
+        title: "measurement.csv",
+        createdSequence: 1,
+        mimeType: "text/csv",
+        fileUrl: "/api/projects/project-a/contents/file-a/file",
+      })]}
+      attachmentEditor={{
+        itemId: "file-a",
+        contentId: "content-file-a",
+        caption: "",
+        sourceUrl: "",
+        status: "uncertain",
+        message: "The response was lost before confirmation.",
+      }}
+    /></MemoryRouter>);
+
+    const feedback = screen.getByRole("status");
+    expect(feedback.getAttribute("data-project-editor-status")).toBe("uncertain");
+    expect(feedback.classList.contains("warning")).toBe(true);
+    expect(feedback.classList.contains("danger")).toBe(false);
+    expect(document.querySelector(".error-banner")).toBeNull();
+  });
+
+
 });

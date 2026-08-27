@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
+import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import { ProjectMarkdown } from "./ProjectMarkdown";
 import "./project-rich-content.css";
 
@@ -62,8 +63,11 @@ export default function ProjectMarkdownEditor({
       <ProjectMarkdown source={editor.value} emptyLabel="The current draft is empty." />
     </div>}
 
-    <p className="project-rich-editor-status" role="status">{editorStatusLabel(editor)}</p>
-    {editor.message && <p className="error-banner">{editor.message}</p>}
+    <ProjectEditorFeedback
+      status={editor.status}
+      summary={editorStatusLabel(editor)}
+      message={editor.message}
+    />
     <div className="project-owned-content-pending-actions">
       {canSave && <button
         type="button"

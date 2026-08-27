@@ -38,6 +38,7 @@ import type {
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
 import { ProjectInspectorChildren } from "../components/project/ProjectInspectorChildren";
+import { ProjectEditorFeedback } from "../components/project/ProjectEditorFeedback";
 import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
 import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
 import {
@@ -2655,7 +2656,10 @@ export function ProjectPage() {
                 onChange={(event) => updateAttachmentDraft("sourceUrl", event.currentTarget.value)}
               />
             </label>
-            {attachmentEditor.message && <p className="error-banner">{attachmentEditor.message}</p>}
+            {attachmentEditor.message && <ProjectEditorFeedback
+              status={attachmentEditor.status}
+              message={attachmentEditor.message}
+            />}
             <div className="project-owned-content-pending-actions">
               {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
                 {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}

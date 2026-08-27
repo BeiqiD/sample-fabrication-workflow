@@ -523,4 +523,40 @@ describe("real Project Map surface keyboard behavior", () => {
     await new Promise((resolve) => window.setTimeout(resolve, 250));
     expect(viewport!.style.transform).toBe(beforeTransform);
   });
+  it("presents outcome-uncertain Markdown feedback as warning in the dense Map editor", async () => {
+    const snapshot = projectTestSnapshot();
+    const { container } = render(<div style={{ width: 900, height: 700 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        markdownEditor={{
+          itemId: "item-note",
+          value: "# Design note",
+          isNew: false,
+          geometry: null,
+          status: "uncertain",
+          message: "The response was lost before confirmation.",
+        }}
+        selectedItemId="item-note"
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+        onMarkdownChange={() => undefined}
+        onMarkdownSave={() => undefined}
+        onMarkdownCancel={() => undefined}
+      />
+    </div>);
+
+    const feedback = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>(
+        '[data-project-editor-status="uncertain"]',
+      );
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    expect(feedback.getAttribute("role")).toBe("status");
+    expect(feedback.classList.contains("warning")).toBe(true);
+    expect(feedback.classList.contains("danger")).toBe(false);
+    expect(feedback.classList.contains("project-markdown-editor-feedback")).toBe(true);
+  });
+
+
 });

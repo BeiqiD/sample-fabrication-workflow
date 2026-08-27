@@ -127,4 +127,29 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page).toContain("const removeAttachmentItem");
     expect(page).toContain("onAttachmentDeleteRequest={removeAttachmentItem}");
   });
+  it("reserves warning for uncertain editor outcomes and danger for determined failures", () => {
+    const feedback = read("./components/project/ProjectEditorFeedback.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const markdown = read("./components/project/ProjectMarkdownEditor.tsx");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const page = read("./pages/ProjectPage.tsx");
+    const richCss = read("./components/project/project-rich-content.css");
+    expect(feedback).toContain('status === "uncertain"');
+    expect(feedback).toContain('status === "error" || status === "conflict"');
+    expect(feedback).toContain('role={tone === "danger" ? "alert" : "status"}');
+    expect(map).toContain("<ProjectEditorFeedback");
+    expect(markdown).toContain("<ProjectEditorFeedback");
+    expect(reading).toContain("<ProjectEditorFeedback");
+    expect(page).toContain("<ProjectEditorFeedback");
+    expect(richCss).toContain(".project-editor-feedback.warning");
+    expect(richCss).toContain("background: var(--warning-soft)");
+    expect(richCss).toContain(".project-editor-feedback.danger");
+    expect(richCss).toContain("background: var(--danger-soft)");
+    expect(map).not.toContain("project-markdown-editor-message");
+    expect(markdown).not.toContain('editor.message && <p className="error-banner"');
+    expect(reading).not.toContain('attachmentEditor.message && <p className="error-banner"');
+    expect(page).not.toContain('attachmentEditor.message && <p className="error-banner"');
+  });
+
+
 });
