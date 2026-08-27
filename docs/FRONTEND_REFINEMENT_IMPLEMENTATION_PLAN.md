@@ -1,12 +1,12 @@
 # Phase 5 frontend refinement implementation plan
 
 Status: active execution plan; Phase 5A is complete in PR #157 and Phase 5B is
-active through the bounded B2 slice in Draft PR #159
+active through the bounded B3 slice in Draft PR #160
 
 Last reviewed: 2026-08-27
 
 Execution base: `v2/backend-foundation` at
-`251ad1e3579529d711f5884fb038a85eeb5e0285`
+`2ede638bb766d1f15bae048f6b6da1f84513a389`
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -205,8 +205,8 @@ mature component that already satisfies its role.
 A numbered sub-slice does not automatically complete its parent slice. Phase 5A
 satisfied this gate after the independent exact-head review of PR #157 found no
 remaining concrete shell defect that justified A2. Phase 5A is therefore complete
-and Phase 5B1 is complete in PR #158. Phase 5B remains active through the
-bounded B2 slice in Draft PR #159.
+and Phase 5B1/B2 are complete in PRs #158/#159. Phase 5B remains active through
+the bounded B3 slice in Draft PR #160.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -246,8 +246,8 @@ behavior remains unchanged.
 
 ### Phase 5B — Project Map, Reading, and Inspector content language
 
-Status: active through Phase 5B2 in Draft PR #159; Phase 5B1 is complete in
-PR #158 and the parent slice remains open.
+Status: active through Phase 5B3 in Draft PR #160; Phase 5B1/B2 are complete in
+PRs #158/#159 and the parent slice remains open.
 
 Goal: make the same Project occurrence read consistently across spatial,
 linear, and detailed projections while preserving the different information
@@ -483,7 +483,7 @@ rich-content problems.
 
 ### Phase 5B2 — Project edge theme and mutation-state language
 
-Status: active in Draft PR #159.
+Status: complete in PR #159.
 
 #### Concrete problem
 
@@ -536,6 +536,62 @@ Project edges participate in the same light/dark, interaction-accent, and
 semantic-failure language as the rest of the Map without changing the frozen
 edge model or interaction behavior. Phase 5B remains open for separately
 evidenced node, Reading, Inspector, and rich-content problems.
+
+
+### Phase 5B3 — Project-owned editor outcome feedback
+
+Status: active in Draft PR #160.
+
+#### Concrete problem
+
+The Project mutation model distinguishes an outcome-uncertain save from a
+deterministic error or conflict: uncertain writes preserve exact mutation identity
+and expose an exact retry. The existing editor feedback does not preserve that
+distinction. Dense Map Markdown messages always use danger, while Reading Markdown
+and Reading/Inspector attachment metadata render uncertain server detail through
+the danger-only `error-banner`. Reading Markdown can therefore show the same
+operation as warning and determined failure at once.
+
+#### In scope
+
+- project one shared visible/accessibility tone from the existing owned-content
+  mutation status;
+- use warning and a polite status live region for `uncertain`;
+- use danger and an alert live region for `error` and `conflict`;
+- keep Markdown summary and server detail in one coherent live region;
+- reuse the projection in Dense Map Markdown, document-mode Reading Markdown,
+  Reading attachment metadata, and Compact Inspector attachment metadata;
+- add focused component, mounted, and source-contract coverage.
+
+#### Protected boundary
+
+- no request payload, expected revision, operation ID, retry identity,
+  reconciliation, conflict, cancellation, or navigation-blocking change;
+- no editor button, input-enabled state, creation, update, or removal behavior
+  change;
+- no node geometry, placement, z-order, detail band, contextual zoom, viewport,
+  Reading order, or Inspector capability change;
+- no attachment byte, preview trust, media, lifecycle, backend, schema, migration,
+  export, breakpoint, token-definition, or Map-performance-policy change.
+
+#### Required acceptance cases
+
+- uncertain Markdown detail is warning, not danger, in Map and Reading;
+- uncertain attachment metadata detail is warning in Reading and Inspector;
+- error and conflict detail remain danger;
+- uncertain feedback uses `role="status"`, while error/conflict use
+  `role="alert"`;
+- Markdown summary and server detail occupy one live region rather than competing
+  warning/error announcements;
+- existing exact retry, deterministic cancel/reopen, full Verify, owned-content,
+  Reading, build, bundle, and Map performance gates remain green.
+
+#### Exit
+
+Project-owned editor feedback communicates whether an operation is unresolved or
+determined to have failed without changing the authoritative mutation protocol.
+Phase 5B remains open for separately evidenced node, Reading, Inspector, and
+rich-content problems.
 
 ## Documentation and review discipline
 
