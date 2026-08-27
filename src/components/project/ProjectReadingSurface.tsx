@@ -6,6 +6,7 @@ import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-cont
 import { projectMarkdownStartsWithHeading } from "../../lib/project-markdown";
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
 import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
+import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import { ProjectMarkdown } from "./ProjectMarkdown";
 import "./project-rich-content.css";
 
@@ -219,7 +220,10 @@ export function ProjectReadingSurface({
                 onChange={(event) => onAttachmentChange?.("sourceUrl", event.currentTarget.value)}
               />
             </label>
-            {attachmentEditor.message && <p className="error-banner">{attachmentEditor.message}</p>}
+            {attachmentEditor.message && <ProjectEditorFeedback
+              status={attachmentEditor.status}
+              message={attachmentEditor.message}
+            />}
             <div className="project-owned-content-pending-actions">
               {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button
                 type="button"

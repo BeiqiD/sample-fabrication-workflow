@@ -58,6 +58,7 @@ import {
   projectMapPerformancePolicy,
   type ProjectMapDetailLevel,
 } from "../../lib/project-map-performance";
+import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import {
   normalizeProjectItemSelection,
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
@@ -261,7 +262,11 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
           if (markdownEditor.isNew && !markdownEditor.value.trim()) data.onMarkdownCancel();
         }}
       />
-      {markdownEditor.message && <p className={`project-markdown-editor-message ${markdownEditor.status}`}>{markdownEditor.message}</p>}
+      {markdownEditor.message && <ProjectEditorFeedback
+        status={markdownEditor.status}
+        message={markdownEditor.message}
+        className="project-markdown-editor-feedback"
+      />}
       <div className="project-markdown-editor-actions">
         {markdownEditor.status !== "error" && markdownEditor.status !== "conflict" && <button type="button" className="button primary compact-button" disabled={markdownEditor.status === "saving" || !markdownEditor.value.trim()} onClick={data.onMarkdownSave}>
           {markdownEditor.status === "saving" ? "Saving…" : markdownEditor.status === "uncertain" ? "Retry exact save" : "Save Markdown"}

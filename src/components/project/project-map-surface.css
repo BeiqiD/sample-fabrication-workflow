@@ -227,11 +227,7 @@
   outline: 2px solid var(--accent-soft);
 }
 
-.project-markdown-editor-message {
-  margin: 0;
-  color: var(--danger);
-  font-size: 10px;
-}
+.project-markdown-editor-feedback { font-size: 10px; }
 
 .project-markdown-editor-actions {
   display: flex;
