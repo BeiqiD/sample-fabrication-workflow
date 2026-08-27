@@ -45,9 +45,12 @@ Desktop Project is a **Canvas-first application workspace**.
 - Map owns all viewport area that is not actively required by Project chrome or
   an open docked panel.
 - References and Inspector are optional workspace panels, not permanent columns.
+- At desktop widths that retain editable Map, overlay panels are non-modal
+  workspace surfaces and the remaining Canvas stays interactive.
 - Reading is a separate document composition over the same occurrences, not a
   replacement cell inside Map geometry.
-- mobile remains Reading-first and does not receive a compressed editable Map.
+- mobile remains Reading-first and does not receive a compressed editable Map;
+  its sheets/drawers may use the ordinary modal pattern.
 
 The Project route must no longer read visually as a normal centered content page
 with a large card embedded inside it.
@@ -189,10 +192,10 @@ measured in Phase 5C2.
 ### Narrow/intermediate behavior
 
 When a docked Inspector would violate the protected Canvas-width rule, Inspector
-becomes an overlay/drawer over the Canvas rather than continuously reducing the
-Map. Opening an overlay may adjust only the React Flow viewport if necessary to
-keep the selected occurrence visible. It must never rewrite persisted item
-coordinates or sizes.
+uses the desktop non-modal overlay presentation rather than continuously reducing
+or blocking the Map. Opening that overlay may adjust only the React Flow viewport
+if necessary to keep the selected occurrence visible. It must never rewrite
+persisted item coordinates or sizes.
 
 ### Information hierarchy
 
@@ -206,6 +209,42 @@ Existing Inspector capability is preserved but reorganized by priority:
    geometry, and immutable insertion sequence.
 
 The Inspector remains read-only for external source records.
+
+## Desktop Map panel modality and interaction contract
+
+At every width that retains editable Map, an overlaid Research-record panel or
+Inspector is a **non-modal workspace panel**, not an ordinary modal drawer. This
+is a product and interaction boundary, not an implementation preference.
+
+Desktop Map overlays must:
+
+- add no backdrop that intercepts pointer input over the visible Canvas;
+- never mark the Canvas or Project workspace `inert`;
+- use no modal focus trap and no document/body scroll lock;
+- allow focus to move between panel controls and the Canvas through the existing
+  keyboard paths;
+- preserve drag of a Reference result across the panel boundary to an exact
+  visible Map coordinate; `Place at Map center` remains the keyboard-equivalent
+  path and is not a replacement for exact pointer placement;
+- allow a user to select a different node or edge while Inspector remains open,
+  updating the same temporary/pinned Inspector rather than requiring close and
+  reopen;
+- provide a close control and contextual Escape behavior, then restore focus to
+  the rail trigger, prior Canvas selection, or another sensible surviving origin;
+- scroll long panel content internally without creating Project-page scroll.
+
+Panel state and panel presentation are orthogonal:
+
+- Research-record state is closed/open and Inspector state is
+  closed/temporary/pinned;
+- desktop presentation is docked/overlay;
+- changing available width may change presentation but must not silently clear
+  open/pin state, selection, search input, pending placement, or reconciliation;
+- presentation changes never alter Project persistence or mutation identity.
+
+Only mobile/Reading-first sheets and drawers use the ordinary modal contract,
+including backdrop, background inertness, focus containment, background scroll
+lock, Escape close, and focus restoration.
 
 ## Canvas chrome
 
@@ -280,7 +319,7 @@ The following placement rules are frozen for Phase 5C implementation:
 |---|---|---|
 | Project overflow | Project-level low-frequency actions, export, lifecycle | below/end-aligned to the top-bar overflow control |
 | Add | Markdown, attachment, research-record entry | anchored beside the left-rail Add control |
-| Reference rail entry | search/discovery surface | left docked panel or overlay drawer |
+| Reference rail entry | search/discovery surface | left docked panel or desktop non-modal overlay |
 | Node body click | inspection | Inspector; body click itself does not navigate |
 | Selected node quick actions | frequent item commands | bounded toolbar above/adjacent to the selected node |
 | Node More / context menu | full node command set | anchored to More or the pointer position |
@@ -290,8 +329,10 @@ The following placement rules are frozen for Phase 5C implementation:
 | Destructive confirmation | guarded confirmation | existing modal/dialog pattern |
 | Mobile detail/action | selection/detail operations | accessible bottom sheet/drawer |
 
-Menus, drawers, and toolbars must restore focus to a sensible originating control
-or selected object after close.
+Menus, panels, drawers, and toolbars must restore focus to a sensible originating
+control or selected object after close. Desktop Map overlays follow the non-modal
+workspace-panel contract above; only mobile Reading-first sheets/drawers use
+modal focus containment and background inertness.
 
 ## Visible sequence and numbering contract
 
@@ -350,8 +391,35 @@ The starting desktop content-width target is approximately `760–840px`; Phase
 - Reading order and content ownership remain unchanged.
 
 Mobile stays Reading-first. Operations that are already permitted on mobile may
-use accessible sheets/drawers, but this contract does not authorize mobile Map
-editing or new mobile mutations.
+use accessible modal sheets/drawers, but this contract does not authorize mobile
+Map editing or new mobile mutations.
+
+## Vertical viewport and scroll ownership
+
+Desktop Map mode occupies the viewport available below global application
+navigation. It must not recreate the current `100vh - fixed constant` shell under
+a different selector.
+
+- Project top bar and any bounded status strip consume their intrinsic content
+  height; the workspace row owns all remaining height.
+- The height chain from the Project route to the workspace row must permit
+  shrinking (for example through `min-height: 0` semantics) rather than forcing
+  ordinary document overflow.
+- Map/React Flow fills the workspace row and does not create Project-page vertical
+  scrolling in desktop Map mode.
+- Docked and overlaid Research-record/Inspector panels scroll independently
+  inside that row; long search results or Inspector detail never increase route
+  height.
+- A multi-line status strip must be height-bounded and internally scrollable or
+  expandable when necessary instead of pushing the Canvas below the viewport.
+- At short desktop heights, workspace content shrinks within the available row;
+  controls and panel content remain reachable through their owned internal
+  scrolling.
+- Reading mode and mobile Reading-first composition return to ordinary document
+  scrolling. A modal mobile sheet may lock that document scroll only while open.
+
+C1 owns this vertical frame and scroll chain. C2 must preserve it while adding
+panel internals, and C3 must preserve it while choosing responsive presentations.
 
 ## Responsive composition rule
 
@@ -365,9 +433,10 @@ The intended transformation is:
 
 - wide desktop: both side panels may dock when the Map remains above the measured
   minimum;
-- medium desktop: at most one side panel docks and the other becomes overlay;
-- narrower desktop above the functional Map boundary: side panels are overlays so
-  Map retains the working viewport;
+- medium desktop: at most one side panel docks and the other uses the existing
+  desktop non-modal overlay presentation;
+- narrower desktop above the functional Map boundary: side panels use desktop
+  non-modal overlays so Map retains an interactive working viewport;
 - below the existing functional desktop-Map boundary: preserve Reading-first
   mobile behavior unless a separate functional proposal changes that boundary.
 
@@ -391,7 +460,10 @@ Owns:
 - top-bar grouping for identity, projection mode, save/history, and Project
   overflow;
 - moving low-frequency Project lifecycle actions out of permanent primary chrome;
-- shell-only state/status-strip placement needed by the new frame.
+- shell-only state/status-strip placement needed by the new frame;
+- vertical viewport ownership below global navigation, the shrinking height chain,
+  Map page-scroll suppression, and the `1366×768`, `1024×768`, and `1024×600`
+  height cases.
 
 Does not own:
 
@@ -405,15 +477,20 @@ Does not own:
 Owns:
 
 - left rail and Add popover;
-- Research-record panel;
-- Inspector temporary/pinned/docked/overlay behavior;
+- Research-record closed/open state and Inspector closed/temporary/pinned state;
+- docked and desktop non-modal-overlay presentation capabilities, with
+  wide-desktop docked presentation as the initial integration target;
+- desktop overlay modality, close/Escape/focus behavior, internal scrolling, and
+  selection continuity;
+- exact Reference drag from an overlaid panel to visible Canvas coordinates, with
+  `Place at Map center` retained as the keyboard-equivalent path;
 - unified Project command roles and major button-family migration;
 - node, edge, and multi-selection quick-toolbar placement;
-- removal of visible immutable `#created_sequence` from Map nodes;
-- panel focus restoration and keyboard access.
+- removal of visible immutable `#created_sequence` from Map nodes.
 
-Does not change the underlying creation, selection, edge, removal, save, or
-navigation protocols.
+C2 must directly mount and verify both desktop panel presentations, but does not
+own the final responsive threshold resolver. It does not change the underlying
+creation, selection, edge, removal, save, or navigation protocols.
 
 ### Phase 5C3 — Reading and responsive composition
 
@@ -423,10 +500,15 @@ Owns:
 - Reading action density and Inspector integration;
 - removal of user-facing immutable `#created_sequence` from Reading;
 - optional derived dense reading-position display if evidence supports it;
-- measured dock/overlay transformations across intermediate widths;
-- mobile Reading-first sheets/drawers for already-authorized operations.
+- the measured responsive resolver that chooses among C2's already-established
+  docked and desktop non-modal-overlay presentations;
+- mobile Reading-first modal sheets/drawers for already-authorized operations.
 
-Does not add custom Reading order or mobile Canvas editing.
+C3 may choose when presentation changes, but must not redefine panel state,
+commands, desktop modality, exact Reference drag behavior, Inspector selection
+continuity, or focus semantics. It revalidates those C2 contracts at both
+adjacent widths when the responsive resolver activates each presentation. It
+does not add custom Reading order or mobile Canvas editing.
 
 ### Phase 5C4 — Project integration review
 
@@ -465,15 +547,23 @@ Phase 5C does not change:
 Every Phase 5C implementation head must cover the relevant subset of:
 
 - `1440px`, `1024px`, `390px`, and `360px`;
+- `1366×768`, `1024×768`, and a `1024×600` short-height desktop case;
 - both adjacent widths for every Project threshold added, removed, or changed;
 - empty Project, ordinary mixed-content Project, long-title Project, and the
   representative large Project;
 - Map and Reading;
 - References closed/open and Inspector closed/temporary/pinned where applicable;
+- desktop Map page-scroll suppression, internal panel/status scrolling, and
+  ordinary Reading/mobile document scrolling;
+- exact Reference drag from a desktop non-modal overlay to visible Canvas,
+  `Place at Map center`, and Inspector selection changes while its overlay stays
+  open;
+- absence of desktop overlay backdrop, Canvas `inert`, modal focus trap, and
+  document scroll lock; modal containment remains verified for mobile sheets;
 - saved, unsaved, saving, uncertain, reconciling, error, conflict, and
   operation-blocked states where exposed by the changed shell;
-- pointer and keyboard selection, menus, drawers, focus-visible state, Escape,
-  and focus restoration;
+- pointer and keyboard selection, menus, panels, drawers, focus-visible state,
+  Escape, and focus restoration;
 - light and dark themes;
 - full Verify, affected mounted/accessibility suites, production build, and the
   Project Map performance gate.
