@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-26 after PR #157 completed the Phase 5A Project shell
-and state hierarchy and Phase 5B1 opened in Draft PR #158
+Last reviewed: 2026-08-27 after PR #158 completed Phase 5B1 occurrence
+identity language and Phase 5B2 opened in Draft PR #159
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -192,8 +192,9 @@ is complete in PR #155, including the client-preview trust boundary and complete
 export schema v7. Trusted server-side generation remains a separately justified
 follow-up. Phase 5 execution planning is complete in PR #156. Phase 5A Project
 workspace shell and state hierarchy is complete in PR #157; its exact-head review
-found no concrete A2 follow-up, so Phase 5B begins with occurrence identity
-language in Draft PR #158. Storage, lifecycle, Reference, and rich-content
+found no concrete A2 follow-up. Phase 5B1 occurrence identity language is
+complete in PR #158, and the bounded Project edge theme/mutation-state slice is
+active in Draft PR #159. Storage, lifecycle, Reference, and rich-content
 foundations return to correctness maintenance rather than continuing as
 independent feature tracks.
 
@@ -528,8 +529,8 @@ After the freeze:
 
 ### Phase 5 — frontend refinement
 
-**Status:** active implementation; Phase 5A is complete in PR #157 and the
-first bounded Phase 5B slice is active in Draft PR #158.
+**Status:** active implementation; Phase 5A is complete in PR #157, Phase 5B1
+is complete in PR #158, and Phase 5B2 is active in Draft PR #159.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -691,9 +692,9 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **Phase 5B1 — Project occurrence
-   identity language** in Draft PR #158.
-2. Continue the remaining bounded **Phase 5B** Map, Reading, Inspector, edge, and
+1. Complete independent review and merge of **Phase 5B2 — Project edge theme
+   and mutation-state language** in Draft PR #159.
+2. Continue the remaining bounded **Phase 5B** Map, Reading, Inspector, and
    rich-content language slices only where review identifies concrete problems.
 3. Complete **Phase 5C — attachment and media surfaces** without changing preview
    trust or owner lifecycle.

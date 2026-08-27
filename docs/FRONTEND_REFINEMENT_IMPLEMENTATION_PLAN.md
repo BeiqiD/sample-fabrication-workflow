@@ -1,12 +1,12 @@
 # Phase 5 frontend refinement implementation plan
 
 Status: active execution plan; Phase 5A is complete in PR #157 and Phase 5B is
-active through the bounded B1 slice in Draft PR #158
+active through the bounded B2 slice in Draft PR #159
 
-Last reviewed: 2026-08-26
+Last reviewed: 2026-08-27
 
 Execution base: `v2/backend-foundation` at
-`bf6a4925c228e657adceff8c1f6d437c6731bba1`
+`251ad1e3579529d711f5884fb038a85eeb5e0285`
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -205,7 +205,8 @@ mature component that already satisfies its role.
 A numbered sub-slice does not automatically complete its parent slice. Phase 5A
 satisfied this gate after the independent exact-head review of PR #157 found no
 remaining concrete shell defect that justified A2. Phase 5A is therefore complete
-and Phase 5B is active through the bounded B1 slice in Draft PR #158.
+and Phase 5B1 is complete in PR #158. Phase 5B remains active through the
+bounded B2 slice in Draft PR #159.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -245,7 +246,8 @@ behavior remains unchanged.
 
 ### Phase 5B — Project Map, Reading, and Inspector content language
 
-Status: active through Phase 5B1 in Draft PR #158; the parent slice remains open.
+Status: active through Phase 5B2 in Draft PR #159; Phase 5B1 is complete in
+PR #158 and the parent slice remains open.
 
 Goal: make the same Project occurrence read consistently across spatial,
 linear, and detailed projections while preserving the different information
@@ -427,7 +429,7 @@ slice.
 
 ### Phase 5B1 — occurrence identity language and semantic-color boundary
 
-Status: active in Draft PR #158.
+Status: complete in PR #158.
 
 #### Concrete problem
 
@@ -477,6 +479,63 @@ Occurrence kinds read consistently across Map, Reading, and Inspector, and color
 communicates interaction or real state rather than ordinary content category.
 Phase 5B remains open for separately evidenced node, edge, Reading, Inspector, and
 rich-content problems.
+
+
+### Phase 5B2 — Project edge theme and mutation-state language
+
+Status: active in Draft PR #159.
+
+#### Concrete problem
+
+Project Map nodes and surfaces already consume application theme tokens, but
+React Flow still owns ordinary/selected edge strokes, connection lines, and edge
+label colors through its light-mode defaults. The Map does not pass a React Flow
+dark color mode, so those defaults do not follow the application theme. Pending
+edges also expose `error` and `conflict` classes without danger treatment on
+their paths or arrow markers.
+
+#### In scope
+
+- make the Dense Project Map own React Flow edge, selected-edge, connection-line,
+  and edge-label colors through existing application tokens;
+- keep ordinary paths and arrow markers structurally neutral;
+- use accent for selected paths/markers and the active connection line;
+- use danger for pending `error` and `conflict` paths/markers;
+- qualify the actual mounted closed-arrow SVG markers as well as the stylesheet
+  ownership contract.
+
+#### Protected boundary
+
+- no edge identity, endpoint, handle, direction, marker type, label value,
+  Bezier-routing, persistence, retry, conflict, deletion, restore, or undo/redo
+  change;
+- no label-visibility, selection, keyboard, focus, creation, or connection
+  behavior change;
+- no node projection, placement, geometry, z-order, detail-band,
+  contextual-zoom, viewport, or Map-performance-policy change;
+- no design-token definition, breakpoint, Reading, Inspector, backend, schema,
+  migration, or export change.
+
+#### Required acceptance cases
+
+- ordinary persisted edge path and arrow marker remain neutral in both themes;
+- selected persisted edge path and arrow marker consume accent;
+- focus-visible edge paths and the active connection line consume accent through
+  the same Project-owned React Flow variables;
+- edge-label background/text consume `--paper` and `--ink`, not library
+  light-mode constants;
+- pending `error` and `conflict` paths and arrow markers consume danger,
+  while non-failure pending edges remain neutral and saving animation is
+  unchanged;
+- existing edge direction accessibility labels, keyboard selection, full Verify,
+  Project edge, build, bundle, and Map performance gates remain green.
+
+#### Exit
+
+Project edges participate in the same light/dark, interaction-accent, and
+semantic-failure language as the rest of the Map without changing the frozen
+edge model or interaction behavior. Phase 5B remains open for separately
+evidenced node, Reading, Inspector, and rich-content problems.
 
 ## Documentation and review discipline
 
