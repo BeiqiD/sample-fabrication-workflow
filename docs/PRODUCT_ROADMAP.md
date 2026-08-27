@@ -563,9 +563,12 @@ still changing.
 control rebuild, not a functional feature phase. It will replace the current
 centered page-within-a-card composition with a workspace-first shell, give Map
 the remaining desktop viewport, give Reading an independent document layout, and
-turn References/Inspector into responsive panels. It explicitly includes
-substantial Project button work: mode, toolbar, panel, content, destructive, and
-overflow controls will receive owned roles, grouping, priority, responsive
+turn References/Inspector into responsive panels. Desktop Map overlays remain
+non-modal so visible Canvas drag and selection continue; only mobile Reading-first
+sheets use modal behavior. The detailed boundary is recorded in the
+[Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
+It explicitly includes substantial Project button work: mode, toolbar, panel,
+content, destructive, and overflow controls will receive owned roles, grouping, priority, responsive
 collapse rules, and complete accessibility states. Existing mutation, navigation,
 Map geometry, Reading order, backend, and performance contracts remain frozen.
 
@@ -712,10 +715,12 @@ Project-owned Markdown or attachment content only through explicit user action.
    control contract** in Draft PR #161.
 2. Implement **Phase 5C1 — viewport workspace frame**: compact Project top bar and
    a full-viewport desktop Map frame, with behavior frozen.
-3. Implement **Phase 5C2 — panels and control hierarchy**: responsive
-   Reference/Inspector composition and the major Project button-family migration.
-4. Implement **Phase 5C3 — Reading and responsive composition**, then run the
-   bounded **Phase 5C4 Project integration review**.
+3. Implement **Phase 5C2 — panels and control hierarchy**: panel state, docked
+   and desktop non-modal-overlay capabilities, preserved Canvas interaction, and
+   the major Project button-family migration.
+4. Implement **Phase 5C3 — Reading and responsive composition**: measure when C2
+   presentations switch, add Reading/mobile composition without redefining panel
+   modality, then run the bounded **Phase 5C4 Project integration review**.
 5. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.
 6. Complete **Phase 5E — source-record and directory coherence**.
