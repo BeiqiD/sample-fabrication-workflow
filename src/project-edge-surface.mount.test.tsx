@@ -523,9 +523,10 @@ it("keeps edge selection and connection handles stable after local geometry move
       const markerReference = edge!.querySelector<SVGPathElement>(
         ".react-flow__edge-path",
       )?.getAttribute("marker-end");
-      const markerId = markerReference?.match(/#([^)'"]+)/)?.[1];
+      const markerId = markerReference?.match(/^url\('#(.+)'\)$/)?.[1];
       expect(markerId).toBeTruthy();
       const marker = document.getElementById(markerId!);
+      expect(marker).toBeTruthy();
       const symbol = marker?.querySelector<SVGPolylineElement>(".arrowclosed");
       expect(symbol).toBeTruthy();
       return {
