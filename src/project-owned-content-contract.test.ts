@@ -77,6 +77,26 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page).not.toContain("sourceAttachmentId");
   });
 
+  it("keeps occurrence classification textual and reserves semantic color for real state", () => {
+    const model = read("./lib/project-map-model.ts");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const inspector = read("./lib/project-inspector-model.ts");
+    const inspectorDetails = read("./components/project/ProjectInspectorDetails.tsx");
+    const css = read("./components/project/project-map-surface.css");
+    expect(model).toContain("export function projectNodeKindLabel");
+    expect(map).toContain("projectNodeKindLabel(descriptor.kind)");
+    expect(reading).toContain("projectNodeKindLabel(node.kind)");
+    expect(inspector).toContain("projectNodeKindLabel(descriptor.kind)");
+    expect(inspectorDetails).toContain("projectNodeKindLabel(descriptor.kind)");
+    expect(css).toMatch(/\.project-map-node header\s*\{[\s\S]*?flex-wrap:\s*wrap;/);
+    expect(css).not.toContain(".project-map-node-markdown::before");
+    expect(css).not.toContain(".project-map-node-attachment::before");
+    expect(css).not.toContain(".project-map-node-reference::before");
+    expect(css).toContain(".project-map-node.pending.error::before");
+    expect(css).toContain(".project-map-node.pending.conflict::before");
+  });
+
   it("anchors the context menu to the Project Map canvas", () => {
     const css = read("./components/project/project-map-surface.css");
     expect(css).toMatch(/\.project-flow-canvas\s*\{[\s\S]*?position:\s*relative;/);

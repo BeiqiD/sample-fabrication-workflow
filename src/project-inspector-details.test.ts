@@ -5,11 +5,54 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProjectInspectorDetails } from "./components/project/ProjectInspectorDetails";
 import { projectMapNodes } from "./lib/project-map-model";
-import { projectTestSnapshot } from "./project-test-fixture";
+import {
+  projectTestSnapshot,
+  projectTestSnapshotWithAttachment,
+} from "./project-test-fixture";
 
 afterEach(cleanup);
 
 describe("Project Inspector details", () => {
+  it("renders each occurrence kind once and keeps the unavailable fallback product-facing", () => {
+    const snapshot = projectTestSnapshotWithAttachment();
+    const descriptors = projectMapNodes(snapshot);
+    const cases = [
+      ["item-note", "Project Markdown"],
+      ["item-reference", "Reference"],
+      ["item-attachment", "Project attachment"],
+    ] as const;
+    for (const [itemId, label] of cases) {
+      const descriptor = descriptors.find((candidate) => candidate.itemId === itemId)!;
+      const view = render(createElement(
+        MemoryRouter,
+        null,
+        createElement(ProjectInspectorDetails, { snapshot, descriptor }),
+      ));
+      expect(view.container.querySelector(".meta-badge")?.textContent).toBe(label);
+      expect([...view.container.querySelectorAll<HTMLElement>("*")]
+        .filter((element) => element.textContent === label)).toHaveLength(1);
+      if (itemId === "item-note") {
+        expect(descriptor.subtitle).toBeNull();
+        expect(view.container.querySelector(".card-meta")).toBeNull();
+      }
+      view.unmount();
+    }
+
+    const attachmentDescriptor = descriptors.find(
+      (descriptor) => descriptor.itemId === "item-attachment",
+    )!;
+    const fallback = render(createElement(
+      MemoryRouter,
+      null,
+      createElement(ProjectInspectorDetails, {
+        snapshot,
+        descriptor: { ...attachmentDescriptor, itemId: "missing-item" },
+      }),
+    ));
+    expect(fallback.container.querySelector(".meta-badge")?.textContent)
+      .toBe("Project attachment");
+  });
+
   it("renders occurrence, relationships, provenance and exact source navigation", () => {
     const snapshot = projectTestSnapshot();
     const createdAt = snapshot.project.createdAt;
@@ -81,6 +124,7 @@ describe("Project Inspector details", () => {
       createElement(ProjectInspectorDetails, { snapshot, descriptor }),
     ));
 
+    expect(screen.getByText("Reference", { selector: ".meta-badge" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Project occurrence" })).toBeTruthy();
     expect(screen.getByText("1 incoming · 0 outgoing")).toBeTruthy();
     expect(screen.getByLabelText("incoming relationship: supports; Design note")).toBeTruthy();

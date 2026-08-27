@@ -8,7 +8,7 @@ import {
   type ProjectInspectorAction,
   type ProjectInspectorContext,
 } from "../../lib/project-inspector-model";
-import type { ProjectNodeDescriptor } from "../../lib/project-map-model";
+import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import "./project-inspector-details.css";
 
 export interface ProjectInspectorDetailsProps {
@@ -59,7 +59,7 @@ export function ProjectInspectorDetails({
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
   if (!projection) {
     return <>
-      <span className="meta-badge">{descriptor.kind}</span>
+      <span className="meta-badge">{projectNodeKindLabel(descriptor.kind)}</span>
       <h2>{descriptor.title}</h2>
       <p className="project-inspector-excerpt">The authoritative Project occurrence is unavailable.</p>
     </>;

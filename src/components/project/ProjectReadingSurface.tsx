@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../EmptyState";
-import type { ProjectNodeDescriptor } from "../../lib/project-map-model";
+import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
 import { projectMarkdownStartsWithHeading } from "../../lib/project-markdown";
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
@@ -168,9 +168,9 @@ export function ProjectReadingSurface({
         aria-current={focused ? "location" : undefined}
         tabIndex={focused ? -1 : undefined}
       >
-        <header><span className="meta-badge">{node.kind}</span><small>#{node.createdSequence}</small></header>
+        <header><span className="meta-badge">{projectNodeKindLabel(node.kind)}</span><small>#{node.createdSequence}</small></header>
         {showGeneratedTitle && <h2>{node.title}</h2>}
-        {node.subtitle && node.kind !== "markdown" && <p className="card-meta">{node.subtitle}</p>}
+        {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
 
         {node.kind === "markdown" && (editingMarkdown ? <Suspense fallback={<div className="project-rich-editor-loading">Loading editor…</div>}>
           <LazyProjectMarkdownEditor

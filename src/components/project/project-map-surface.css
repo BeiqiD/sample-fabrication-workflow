@@ -85,12 +85,8 @@
   inset: 0 auto 0 0;
   width: 4px;
   border-radius: 12px 0 0 12px;
-  background: var(--neutral);
+  background: var(--line-strong);
 }
-
-.project-map-node-markdown::before { background: var(--accent); }
-.project-map-node-attachment::before { background: var(--info); }
-.project-map-node-reference::before { background: var(--warning); }
 
 .project-map-node.pending {
   border-style: dashed;
@@ -110,15 +106,18 @@
 
 .project-map-node header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 2px 10px;
   color: var(--muted);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: .07em;
   text-transform: uppercase;
 }
+
+.project-map-node header small { margin-left: auto; }
 
 .project-map-node h2 {
   margin: 1px 0 0;

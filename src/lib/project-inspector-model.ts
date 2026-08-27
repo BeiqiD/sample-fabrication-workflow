@@ -12,6 +12,7 @@ import type {
 import {
   formatByteSize,
   projectMapNodes,
+  projectNodeKindLabel,
   type ProjectNodeDescriptor,
 } from "./project-map-model";
 
@@ -337,11 +338,7 @@ export function projectInspectorProjection(
     : projectOwnedProjection(snapshot, descriptor, item);
 
   return {
-    kindLabel: descriptor.kind === "reference"
-      ? "Reference"
-      : descriptor.kind === "attachment"
-        ? "Project attachment"
-        : "Project Markdown",
+    kindLabel: projectNodeKindLabel(descriptor.kind),
     title: descriptor.title,
     subtitle: descriptor.subtitle,
     excerpt: descriptor.excerpt,

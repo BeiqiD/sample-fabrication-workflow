@@ -49,6 +49,7 @@ import {
 import {
   normalizeProjectGeometryCommands,
   projectGeometryEquals,
+  projectNodeKindLabel,
   type ProjectGeometryCommand,
   type ProjectNodeDescriptor,
 } from "../../lib/project-map-model";
@@ -188,7 +189,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
   if (pendingReference) {
     return <article className={`project-map-node project-map-node-reference pending ${pendingReference.status}`}>
       <header>
-        <span>reference</span>
+        <span>{projectNodeKindLabel("reference")}</span>
         <small>{pendingReference.status === "placing"
           ? "Placing…"
           : pendingReference.status === "reconciling"
@@ -207,7 +208,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
 
   if (pendingAttachment) {
     return <article className={`project-map-node project-map-node-attachment pending ${pendingAttachment.status}`}>
-      <header><span>attachment</span><small>{pendingLabel(pendingAttachment.status)}</small></header>
+      <header><span>{projectNodeKindLabel("attachment")}</span><small>{pendingLabel(pendingAttachment.status)}</small></header>
       <h2>{pendingAttachment.filename}</h2>
       <p className="project-node-subtitle">{pendingAttachment.mimeType || "File"}</p>
       {pendingAttachment.message && <p className="project-node-excerpt">{pendingAttachment.message}</p>}
@@ -245,7 +246,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
       }}
     />
     <header>
-      <span>{descriptor.kind}</span>
+      <span>{projectNodeKindLabel(descriptor.kind)}</span>
       {showHeaderMeta && <small>{markdownEditor?.isNew ? "draft" : `#${descriptor.createdSequence}`}</small>}
     </header>
     {markdownEditor ? <div className="project-markdown-editor nodrag nopan">
@@ -429,7 +430,7 @@ function buildFlowNode(
     connectable: !edgeInteractionDisabled && !editing,
     deletable: false,
     focusable: !geometryInteractionDisabled,
-    ariaLabel: `${descriptor.kind}: ${descriptor.title}`,
+    ariaLabel: `${projectNodeKindLabel(descriptor.kind)}: ${descriptor.title}`,
   };
 }
 

@@ -1,12 +1,12 @@
 # Phase 5 frontend refinement implementation plan
 
-Status: active execution plan; Phase 5 is authorized after the v1 feature freeze
-and the merge of PR #155
+Status: active execution plan; Phase 5A is complete in PR #157 and Phase 5B is
+active through the bounded B1 slice in Draft PR #158
 
-Last reviewed: 2026-08-25
+Last reviewed: 2026-08-26
 
 Execution base: `v2/backend-foundation` at
-`a63ba0903282575879b27868cb8410a2cf26d138`
+`bf6a4925c228e657adceff8c1f6d437c6731bba1`
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -202,12 +202,14 @@ The sequence below is ordered by structural leverage and regression isolation.
 A slice may use more than one PR. Completing a slice does not require changing a
 mature component that already satisfies its role.
 
-A numbered sub-slice does not automatically complete its parent slice. Before
-work moves from Phase 5A to Phase 5B, the active plan and roadmap must either
-mark Phase 5A complete after A1 proves that no additional shell slice is needed,
-or schedule and complete any required A2 follow-up.
+A numbered sub-slice does not automatically complete its parent slice. Phase 5A
+satisfied this gate after the independent exact-head review of PR #157 found no
+remaining concrete shell defect that justified A2. Phase 5A is therefore complete
+and Phase 5B is active through the bounded B1 slice in Draft PR #158.
 
 ### Phase 5A — Project workspace shell and state hierarchy
+
+Status: complete in PR #157 after A1; no A2 is currently required.
 
 Goal: make Project entry and workspace chrome establish one clear hierarchy
 before refining the content rendered inside Map, Reading, and Inspector.
@@ -242,6 +244,8 @@ operation feedback communicate one coherent hierarchy while all authoritative
 behavior remains unchanged.
 
 ### Phase 5B — Project Map, Reading, and Inspector content language
+
+Status: active through Phase 5B1 in Draft PR #158; the parent slice remains open.
 
 Goal: make the same Project occurrence read consistently across spatial,
 linear, and detailed projections while preserving the different information
@@ -346,13 +350,13 @@ Exit: every remaining difference is either role-appropriate, documented, or
 backed by a concrete follow-up defect rather than accidental coexistence of old
 and new conventions.
 
-## First authorized implementation slice
-
-After this planning PR is reviewed and merged, the next code PR is:
+## Authorized implementation slices
 
 ### Phase 5A1 — Project workspace shell and state hierarchy
 
-The first code slice is deliberately narrower than all of Phase 5A.
+Status: complete in PR #157.
+
+A1 was deliberately narrower than all of Phase 5A.
 
 #### Concrete problem to verify
 
@@ -414,12 +418,65 @@ must not assume that every difference needs normalization.
 
 #### Exit
 
-The workspace shell establishes location, mode, complete save state, separate
+The workspace shell now establishes location, mode, complete save state, separate
 operation state, and selection context clearly, with no change to Project data
-or Map geometry. After A1, Phase 5A may be marked complete only if the review
-shows that no additional Phase 5A implementation slice is required. Otherwise,
-schedule and complete A2 first. Only after Phase 5A is complete should Phase 5B
-begin changing the presentation of Project content itself.
+or Map geometry. Independent exact-head review of PR #157 found no remaining
+concrete Phase 5A defect that justified A2. Phase 5A is complete; a later shell
+correctness bug remains maintenance unless the roadmap explicitly reopens the
+slice.
+
+### Phase 5B1 — occurrence identity language and semantic-color boundary
+
+Status: active in Draft PR #158.
+
+#### Concrete problem
+
+Map and Reading expose raw lowercase `markdown`, `attachment`, and `reference`
+implementation kinds while Inspector uses product-facing labels. Map also uses the
+interaction accent and the info/warning semantic colors as permanent content-type
+rails. This makes an ordinary Reference look cautionary and uses the selection
+accent to describe ordinary Markdown, contrary to the frozen color contract.
+
+#### In scope
+
+- define one canonical visible vocabulary: `Project Markdown`, `Project
+  attachment`, and `Reference`;
+- reuse that vocabulary in Dense Map nodes, document-mode Reading cards, and the
+  Compact Inspector;
+- replace default kind-colored Map rails with one neutral structural rail;
+- retain accent for selected/focused interaction and danger for actual
+  error/conflict states;
+- add focused model, mounted, and source-contract coverage.
+
+#### Protected boundary
+
+- no node or edge geometry, placement, z-order, detail-band, contextual-zoom, or
+  performance-policy change;
+- no selection, focus, editing, insertion, deletion, copy/paste, edge, or
+  Reading-order behavior change;
+- no new content type, Inspector capability, design token, breakpoint, backend
+  route, persistence field, or attachment-preview behavior;
+- no attempt to make Map, Reading, and Inspector use identical density.
+
+#### Required acceptance cases
+
+- all three occurrence kinds use the canonical label in every changed projection;
+- ordinary nodes use no accent/info/warning classification color;
+- selected and focus-visible nodes still expose interaction accent;
+- pending error/conflict nodes still expose danger treatment;
+- light and dark themes continue to consume existing tokens;
+- the existing Project Map, Reading, Inspector, owned-content, build, and Map
+  performance gates remain green;
+- canonical labels and transient status metadata remain legible at the existing
+  180px minimum node width through bounded header wrapping; node geometry,
+  breakpoints, media queries, and projection rules remain unchanged.
+
+#### Exit
+
+Occurrence kinds read consistently across Map, Reading, and Inspector, and color
+communicates interaction or real state rather than ordinary content category.
+Phase 5B remains open for separately evidenced node, edge, Reading, Inspector, and
+rich-content problems.
 
 ## Documentation and review discipline
 

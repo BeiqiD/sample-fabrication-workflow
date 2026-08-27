@@ -5,7 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
 import type { ProjectItemSelection } from "./lib/project-canvas-productivity";
 import { projectMapNodes } from "./lib/project-map-model";
-import { projectTestSnapshot } from "./project-test-fixture";
+import {
+  projectTestSnapshot,
+  projectTestSnapshotWithAttachment,
+} from "./project-test-fixture";
 
 function testContentRect(target: Element): DOMRectReadOnly {
   const width = target instanceof HTMLElement ? target.offsetWidth : 1;
@@ -96,6 +99,74 @@ describe("real Project Map surface keyboard behavior", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("renders each persisted and pending kind once at the minimum node width", async () => {
+    const descriptors = projectMapNodes(projectTestSnapshotWithAttachment());
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={descriptors}
+        pendingReference={{
+          localId: "pending-reference",
+          target: { type: "execution_image", id: "pending-image" },
+          preview: {
+            title: "Pending reference",
+            subtitle: "Execution image",
+            excerpt: null,
+            referenceUrl: "/references/execution_image/r1_pending-image",
+            openSourceUrl: null,
+          },
+          geometry: { x: 20, y: 260, width: 180, height: 160, zIndex: 3 },
+          status: "uncertain",
+          message: null,
+        }}
+        pendingAttachment={{
+          localId: "pending-attachment",
+          filename: "pending.bin",
+          mimeType: "application/octet-stream",
+          geometry: { x: 220, y: 260, width: 180, height: 160, zIndex: 4 },
+          status: "uncertain",
+          message: null,
+        }}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    const nodeFor = async (itemId: string) => waitFor(() => {
+      const node = container.querySelector<HTMLElement>(
+        `.react-flow__node[data-id="${itemId}"] .project-map-node`,
+      );
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    const labelFor = async (itemId: string) => (
+      await nodeFor(itemId)
+    ).querySelector<HTMLElement>("header span")?.textContent;
+
+    expect(await labelFor("item-note")).toBe("Project Markdown");
+    expect(await labelFor("item-reference")).toBe("Reference");
+    expect(await labelFor("item-attachment")).toBe("Project attachment");
+    expect(await labelFor("pending-reference")).toBe("Reference");
+    expect(await labelFor("pending-attachment")).toBe("Project attachment");
+
+    const markdownNode = await nodeFor("item-note");
+    expect([...markdownNode.querySelectorAll<HTMLElement>("*")]
+      .filter((element) => element.textContent === "Project Markdown")).toHaveLength(1);
+    expect(markdownNode.querySelector(".project-node-subtitle")).toBeNull();
+    expect(markdownNode.closest(".react-flow__node")?.getAttribute("aria-label"))
+      .toBe("Project Markdown: Design note");
+
+    for (const itemId of ["item-attachment", "pending-reference", "pending-attachment"]) {
+      const minimumWidthNode = await nodeFor(itemId);
+      expect(minimumWidthNode.closest<HTMLElement>(".react-flow__node")?.style.width)
+        .toBe("180px");
+    }
+    for (const itemId of ["pending-reference", "pending-attachment"]) {
+      expect((await nodeFor(itemId)).querySelector("header small")?.textContent)
+        .toBe("Outcome uncertain");
+    }
   });
 
   it("keeps Shift-click multi-selection controlled by the parent selection model", async () => {
