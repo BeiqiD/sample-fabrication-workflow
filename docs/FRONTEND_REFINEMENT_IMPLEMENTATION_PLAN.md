@@ -290,6 +290,10 @@ References, Inspector, and controls use deliberate composition rather than a
 centered document page containing a framed three-column card, without changing
 authoritative Project behavior.
 
+The detailed anatomy, panel modality, scroll ownership, and slice boundaries are
+frozen in the
+[Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
+
 Current evidence:
 
 - the shell is constrained to a centered `1600px` page, uses a large document
@@ -309,11 +313,11 @@ Target anatomy:
 - Map owns the remaining desktop viewport instead of being nested in a
   page-within-a-card composition;
 - References and Inspector become explicit, independently collapsible workspace
-  panels; intermediate widths use measured overlays or drawers instead of
-  continuously squeezing the Map;
+  panels; intermediate desktop Map widths use non-modal workspace overlays rather
+  than continuously squeezing or blocking the Canvas;
 - Reading uses its own centered document shell and reading rhythm rather than
   inheriting Map geometry;
-- mobile remains Reading-first, with operations and detail exposed through
+- mobile remains Reading-first, with operations and detail exposed through modal,
   accessible drawers or sheets instead of a compressed desktop Map.
 
 Control architecture:
@@ -337,10 +341,12 @@ Bounded sequence:
   control taxonomy, protected behavior, responsive matrix, and PR sequence;
 - **C1 — viewport workspace frame:** introduce the compact top bar and
   full-viewport desktop Map frame without changing Map data or interaction;
-- **C2 — panels and control hierarchy:** rebuild Reference/Inspector composition
-  and migrate the major Project button families to the agreed roles;
+- **C2 — panels and control hierarchy:** own panel state, wide-desktop docked and
+  desktop non-modal-overlay capabilities, exact Canvas interaction preservation,
+  and the major Project button-family migration;
 - **C3 — Reading and responsive composition:** establish the document shell,
-  intermediate overlays, and mobile Reading-first transformations;
+  measure when existing docked/overlay presentations switch, and own mobile
+  Reading-first modal transformations without redefining C2 panel behavior;
 - **C4 — Project integration review:** reconcile the Project directory and
   workspace entry, close only evidenced cross-slice gaps, and record the measured
   final baseline.
@@ -366,10 +372,14 @@ Required acceptance:
 
 - `1440px`, `1024px`, `390px`, and `360px`, plus both adjacent widths for
   every threshold added, removed, or changed;
+- `1366×768`, `1024×768`, and a `1024×600` short-height desktop case for vertical
+  viewport and scroll ownership;
 - empty, ordinary mixed-content, long-title, and representative large Projects;
 - Map and Reading; References and Inspector open/closed; light and dark themes;
-- saved, unsaved, saving, uncertain, error, conflict, and operation-blocked states
-  where exposed;
+- desktop Map overlays preserve exact Reference drag-to-Canvas and live Inspector
+  selection without a backdrop, `inert`, focus trap, or document scroll lock;
+- saved, unsaved, saving, uncertain, reconciling, error, conflict, and
+  operation-blocked states where exposed;
 - normal, hover, pressed/current, disabled, loading, danger, focus-visible, and
   keyboard focus-restoration behavior for changed controls;
 - full Verify, affected mounted/accessibility gates, production build, and Project
@@ -715,8 +725,9 @@ or color adjustments.
 
 - close Phase 5B after merged PR #160 and record that no B4 is currently required;
 - authorize the Project-scoped layout and control rewrite as Phase 5C;
-- record the workspace anatomy, Project control taxonomy, responsive strategy,
-  protected behavior, acceptance matrix, and C1–C4 sequence;
+- record the workspace anatomy, desktop non-modal/mobile modal panel contract,
+  vertical viewport and scroll ownership, Project control taxonomy, responsive
+  strategy, protected behavior, acceptance matrix, and C1–C4 sequence;
 - shift the unstarted attachment/media, source-record, and integration phases to
   Phase 5D, Phase 5E, and Phase 5F without changing their scope;
 - keep this planning slice documentation-only.
@@ -736,7 +747,12 @@ or color adjustments.
 - Product roadmap and this execution plan agree that Phase 5B is complete and
   Phase 5C is active;
 - C1–C4 each have distinct layout/behavior ownership and can be reviewed
-  independently;
+  independently; C2 owns panel state and presentation capabilities, while C3 owns
+  only the measured responsive switch among them plus Reading/mobile composition;
+- desktop Map overlays are explicitly non-modal and preserve Canvas drag,
+  selection, Escape, close, and focus-restoration behavior;
+- vertical viewport and scroll ownership is explicit for Map, panels, Reading,
+  mobile, status content, and short-height desktops;
 - the button-heavy control migration is explicit scope, not an incidental CSS
   side effect;
 - all shifted future phase labels and immediate-order references remain coherent;
