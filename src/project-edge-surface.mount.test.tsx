@@ -489,4 +489,65 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(edgeSelections).toHaveLength(edgeSelectionCount);
   });
 
+  it("keeps selected and failed edge markers aligned with Project state tokens", async () => {
+    const snapshot = projectTestSnapshot();
+    const selectedEdge = edgeRecord();
+    const { container } = render(<div style={{ width: 900, height: 700 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        edges={[selectedEdge]}
+        pendingEdge={{
+          edgeId: "edge-conflict",
+          sourceItemId: "item-note",
+          targetItemId: "item-reference",
+          sourceHandle: "bottom",
+          targetHandle: "top",
+          markerStart: "none",
+          markerEnd: "arrow",
+          label: "retry",
+          status: "conflict",
+        }}
+        selectedItemId={null}
+        selectedEdgeId={selectedEdge.id}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+
+    const renderedEdge = (edgeId: string) => container.querySelector<SVGGElement>(
+      `.react-flow__edge[data-id="${edgeId}"]`,
+    );
+    const markerColor = (edgeId: string) => {
+      const edge = renderedEdge(edgeId);
+      expect(edge).toBeTruthy();
+      const markerReference = edge!.querySelector<SVGPathElement>(
+        ".react-flow__edge-path",
+      )?.getAttribute("marker-end");
+      const markerId = markerReference?.match(/#([^)'"]+)/)?.[1];
+      expect(markerId).toBeTruthy();
+      const marker = document.getElementById(markerId!);
+      const symbol = marker?.querySelector<SVGPolylineElement>(".arrowclosed");
+      expect(symbol).toBeTruthy();
+      return {
+        stroke: symbol!.style.stroke,
+        fill: symbol!.style.fill,
+      };
+    };
+
+    await waitFor(() => expect(renderedEdge("edge-a")).toBeTruthy());
+    await waitFor(() => expect(renderedEdge("edge-conflict")).toBeTruthy());
+    expect(renderedEdge("edge-a")?.classList.contains("selected")).toBe(true);
+    expect(renderedEdge("edge-conflict")?.classList.contains("project-edge-pending")).toBe(true);
+    expect(renderedEdge("edge-conflict")?.classList.contains("conflict")).toBe(true);
+    await waitFor(() => expect(markerColor("edge-a")).toEqual({
+      stroke: "var(--accent)",
+      fill: "var(--accent)",
+    }));
+    expect(markerColor("edge-conflict")).toEqual({
+      stroke: "var(--danger)",
+      fill: "var(--danger)",
+    });
+  });
+
+
 });

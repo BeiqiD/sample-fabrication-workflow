@@ -310,8 +310,14 @@ function isProjectEdgeHandle(value: string | null | undefined): value is Project
   return value === "top" || value === "right" || value === "bottom" || value === "left";
 }
 
-function projectFlowMarker(marker: "none" | "arrow") {
-  return marker === "arrow" ? { type: MarkerType.ArrowClosed } : undefined;
+function projectFlowMarker(marker: "none" | "arrow", color: string) {
+  return marker === "arrow" ? { type: MarkerType.ArrowClosed, color } : undefined;
+}
+
+function projectPendingEdgeColor(status: ProjectPendingEdgePreview["status"]) {
+  return status === "error" || status === "conflict"
+    ? "var(--danger)"
+    : "var(--line-strong)";
 }
 
 function projectFlowEdgeAriaLabel(edge: ProjectEdgeRecord, sourceLabel: string, targetLabel: string) {
@@ -331,6 +337,7 @@ function buildFlowEdge(
   targetLabel: string,
   detailLevel: ProjectMapDetailLevel,
 ): ProjectFlowEdge {
+  const markerColor = selected ? "var(--accent)" : "var(--line-strong)";
   return {
     id: edge.id,
     source: edge.sourceItemId,
@@ -339,8 +346,8 @@ function buildFlowEdge(
     targetHandle: edge.targetHandle,
     type: "default",
     label: selected || detailLevel === "full" ? edge.label ?? undefined : undefined,
-    markerStart: projectFlowMarker(edge.markerStart),
-    markerEnd: projectFlowMarker(edge.markerEnd),
+    markerStart: projectFlowMarker(edge.markerStart, markerColor),
+    markerEnd: projectFlowMarker(edge.markerEnd, markerColor),
     selected,
     selectable: true,
     deletable: false,
@@ -349,6 +356,7 @@ function buildFlowEdge(
 }
 
 function buildPendingFlowEdge(edge: ProjectPendingEdgePreview): ProjectFlowEdge {
+  const markerColor = projectPendingEdgeColor(edge.status);
   return {
     id: edge.edgeId,
     source: edge.sourceItemId,
@@ -357,8 +365,8 @@ function buildPendingFlowEdge(edge: ProjectPendingEdgePreview): ProjectFlowEdge 
     targetHandle: edge.targetHandle,
     type: "default",
     label: edge.label ?? undefined,
-    markerStart: projectFlowMarker(edge.markerStart),
-    markerEnd: projectFlowMarker(edge.markerEnd),
+    markerStart: projectFlowMarker(edge.markerStart, markerColor),
+    markerEnd: projectFlowMarker(edge.markerEnd, markerColor),
     selectable: false,
     deletable: false,
     animated: edge.status === "saving",

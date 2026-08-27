@@ -38,6 +38,21 @@ describe("Phase 3B4 edge contract", () => {
     expect(page).toContain("Dirty/saving placement state must not serialize");
   });
 
+  it("owns Project edge theme, interaction, and failure-state language", () => {
+    const surface = fs.readFileSync("src/components/project/ProjectMapSurface.tsx", "utf8");
+    const css = fs.readFileSync("src/components/project/project-map-surface.css", "utf8");
+    expect(css).toMatch(/\.project-flow-canvas\s*\{[\s\S]*?--xy-edge-stroke:\s*var\(--line-strong\);/);
+    expect(css).toContain("--xy-edge-stroke-selected: var(--accent);");
+    expect(css).toContain("--xy-connectionline-stroke: var(--accent);");
+    expect(css).toContain("--xy-edge-label-background-color: var(--paper);");
+    expect(css).toContain("--xy-edge-label-color: var(--ink);");
+    expect(css).toContain(".react-flow__edge.project-edge-pending.error .react-flow__edge-path");
+    expect(css).toContain(".react-flow__edge.project-edge-pending.conflict .react-flow__edge-path");
+    expect(surface).toContain('selected ? "var(--accent)" : "var(--line-strong)"');
+    expect(surface).toContain('status === "error" || status === "conflict"');
+    expect(css).not.toMatch(/--xy-edge-[^:]+:\s*#[0-9a-f]/i);
+  });
+
   it("keeps Phase 3B4 in the permanent fail-closed verification chain", () => {
     const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
     const workflow = fs.readFileSync(".github/workflows/verify.yml", "utf8");

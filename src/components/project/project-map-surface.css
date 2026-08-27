@@ -1,4 +1,11 @@
 .project-flow-canvas {
+  --xy-edge-stroke: var(--line-strong);
+  --xy-edge-stroke-width: 1.5;
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-connectionline-stroke: var(--accent);
+  --xy-connectionline-stroke-width: 1.5;
+  --xy-edge-label-background-color: var(--paper);
+  --xy-edge-label-color: var(--ink);
   position: relative;
   width: 100%;
   height: 100%;
@@ -285,6 +292,10 @@
   stroke-dasharray: 6 5;
 }
 
+.project-flow-canvas .react-flow__edge.project-edge-pending.error .react-flow__edge-path,
+.project-flow-canvas .react-flow__edge.project-edge-pending.conflict .react-flow__edge-path {
+  stroke: var(--danger);
+}
 
 /* Phase 4C contextual zoom: low-detail bands intentionally remove expensive
    decoration and mount no rich media; this is performance behavior, not the
