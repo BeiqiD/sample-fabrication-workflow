@@ -489,6 +489,175 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(edgeSelections).toHaveLength(edgeSelectionCount);
   });
 
+  it("projects context-aware commands above panels with exact links, availability, and focus", async () => {
+    const snapshot = projectTestSnapshot();
+    const baseNodes = projectMapNodes(snapshot);
+    const attachmentNode = {
+      ...baseNodes[0],
+      itemId: "item-attachment",
+      placementId: "placement-attachment",
+      kind: "attachment" as const,
+      title: "attachment.pdf",
+      subtitle: "application/pdf",
+      excerpt: "Attachment caption",
+      geometry: { ...baseNodes[0].geometry, x: 600, zIndex: 2 },
+      createdSequence: 3,
+      contentId: "content-attachment",
+      markdownSource: null,
+      attachmentCaption: "Attachment caption",
+      attachmentSourceUrl: "https://example.com/source",
+      mimeType: "application/pdf",
+      attachmentByteSize: 42,
+      fileUrl: "/api/projects/project-a/contents/content-attachment/file",
+      openReferenceUrl: null,
+    };
+    const stableNodes = [...baseNodes, attachmentNode];
+    const stableEdges = [edgeRecord()];
+    const addMarkdown = vi.fn();
+    const addAttachment = vi.fn();
+    const inspectItem = vi.fn();
+    const inspectEdge = vi.fn();
+    const copyItemLink = vi.fn();
+    const copySelection = vi.fn();
+    const pasteSelection = vi.fn();
+    const selectAll = vi.fn();
+    const clearSelection = vi.fn();
+    const alignSelection = vi.fn();
+    const changeZOrder = vi.fn();
+    const removeItem = vi.fn();
+    const editItem = vi.fn();
+    const editEdge = vi.fn();
+    const deleteEdge = vi.fn();
+    const openReferences = vi.fn();
+    const openInspector = vi.fn();
+
+    function ContextMenuHarness() {
+      const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      const selectedItemId = selectedItemIds.at(-1) ?? null;
+      return <div className="project-desktop-workspace" style={{ width: 900, height: 700 }}>
+        <button type="button" onClick={() => {
+          setSelectedItemIds(["item-note", "item-reference"]);
+          setSelectedEdgeId(null);
+        }}>Select both for test</button>
+        <div className="project-map-panel">
+          <ProjectMapSurface
+            nodes={stableNodes}
+            edges={stableEdges}
+            selectedItemId={selectedItemId}
+            selectedItemIds={selectedItemIds}
+            selectedEdgeId={selectedEdgeId}
+            onSelect={(itemId) => {
+              setSelectedItemIds(itemId ? [itemId] : []);
+              if (itemId) setSelectedEdgeId(null);
+            }}
+            onSelectionChange={(selection) => {
+              setSelectedItemIds(selection.itemIds);
+              if (selection.itemIds.length > 0) setSelectedEdgeId(null);
+            }}
+            onEdgeSelect={(edgeId) => {
+              setSelectedEdgeId(edgeId);
+              if (edgeId) setSelectedItemIds([]);
+            }}
+            onGeometryCommit={() => undefined}
+            onMarkdownCreateRequest={addMarkdown}
+            onAttachmentRequest={addAttachment}
+            contextCommands={{
+              createDisabled: false,
+              selectAllDisabled: false,
+              clearSelectionDisabled: selectedItemIds.length === 0 && selectedEdgeId === null,
+              copyDisabled: selectedItemIds.length === 0,
+              pasteDisabled: false,
+              editDisabled: false,
+              removeDisabled: false,
+              edgeCommandsDisabled: false,
+              panelCommandsDisabled: false,
+              alignmentDisabled: (alignment) => alignment === "left",
+              zOrderDisabled: (action) => action === "bring-to-front",
+              inspectItem,
+              editItem,
+              copyItemLink,
+              copySelection,
+              pasteSelection,
+              selectAll,
+              clearSelection,
+              alignSelection,
+              changeZOrder,
+              removeItem,
+              inspectEdge,
+              editEdge,
+              deleteEdge,
+              openReferences,
+              openInspector,
+            }}
+          />
+        </div>
+      </div>;
+    }
+
+    const view = render(<ContextMenuHarness />);
+    const { container } = view;
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__node").length).toBe(3));
+    const workspace = () => container.querySelector<HTMLElement>(".project-desktop-workspace")!;
+    const canvas = () => container.querySelector<HTMLElement>("[data-testid='project-flow-canvas']")!;
+    const pane = () => container.querySelector<HTMLElement>(".react-flow__pane")!;
+    const note = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    const attachment = () => container.querySelector<HTMLElement>('.react-flow__node[data-id="item-attachment"]')!;
+    const edge = () => container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    const menu = () => container.querySelector<HTMLElement>('.project-map-context-menu[role="menu"]')!;
+    await waitFor(() => expect(edge()).toBeTruthy());
+
+    fireEvent.contextMenu(pane(), { clientX: 110, clientY: 120 });
+    await waitFor(() => expect(view.getByRole("menu", { name: "Canvas actions" })).toBeTruthy());
+    expect(menu().parentElement).toBe(workspace());
+    expect(container.querySelector(".project-map-panel .project-map-context-menu")).toBeNull();
+    expect(view.getByRole("menuitem", { name: "Add Markdown here" })).toBeTruthy();
+    expect(view.getByRole("menuitem", { name: "Paste copied selection" })).toBeTruthy();
+    expect(view.getByRole("menuitem", { name: "Open References" })).toBeTruthy();
+    fireEvent.click(view.getByRole("menuitem", { name: "Add Markdown here" }));
+    expect(addMarkdown).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(document.activeElement).toBe(canvas()));
+
+    fireEvent.contextMenu(note(), { clientX: 210, clientY: 180 });
+    await waitFor(() => expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy());
+    expect(view.getByRole("menuitem", { name: "Edit Markdown" })).toBeTruthy();
+    fireEvent.click(view.getByRole("menuitem", { name: "Inspect occurrence" }));
+    expect(inspectItem).toHaveBeenCalledWith("item-note");
+
+    fireEvent.contextMenu(attachment(), { clientX: 680, clientY: 180 });
+    await waitFor(() => expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy());
+    expect(view.getByRole("menuitem", { name: "Open attachment" }).getAttribute("href"))
+      .toBe("/api/projects/project-a/contents/content-attachment/file");
+    expect(view.getByRole("menuitem", { name: "Open source URL" }).getAttribute("href"))
+      .toBe("https://example.com/source");
+
+    fireEvent.click(view.getByRole("button", { name: "Select both for test" }));
+    await waitFor(() => expect(note().classList.contains("selected")).toBe(true));
+    fireEvent.contextMenu(note(), { clientX: 250, clientY: 200 });
+    await waitFor(() => expect(view.getByRole("menu", { name: "Selection actions" })).toBeTruthy());
+    expect(view.getByRole("menuitem", { name: "Align left" }).hasAttribute("disabled")).toBe(true);
+    expect(view.getByRole("menuitem", { name: "Bring to front" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(view.getByRole("menuitem", { name: "Align right" }));
+    expect(alignSelection).toHaveBeenCalledWith("right");
+    await waitFor(() => expect(document.activeElement).toBe(canvas()));
+
+    fireEvent.contextMenu(edge(), { clientX: 300, clientY: 220 });
+    await waitFor(() => expect(view.getByRole("menu", { name: "Edge actions" })).toBeTruthy());
+    expect(inspectEdge).not.toHaveBeenCalled();
+    fireEvent.click(view.getByRole("menuitem", { name: "Inspect edge" }));
+    expect(inspectEdge).toHaveBeenCalledWith("edge-a");
+
+    fireEvent.contextMenu(pane(), { clientX: 150, clientY: 150 });
+    await waitFor(() => expect(document.activeElement).toBe(
+      view.getByRole("menuitem", { name: "Add Markdown here" }),
+    ));
+    fireEvent.keyDown(menu(), { key: "End" });
+    expect(document.activeElement).toBe(view.getByRole("menuitem", { name: "Open Inspector" }));
+    fireEvent.keyDown(menu(), { key: "Escape" });
+    await waitFor(() => expect(container.querySelector(".project-map-context-menu")).toBeNull());
+    expect(document.activeElement).toBe(canvas());
+  });
+
   it("keeps selected and failed edge markers aligned with Project state tokens", async () => {
     const snapshot = projectTestSnapshot();
     const selectedEdge = edgeRecord();

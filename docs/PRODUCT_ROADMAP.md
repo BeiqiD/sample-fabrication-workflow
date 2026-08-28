@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-28 after Phase 5C0 completed in PR #161 and the Project
-viewport workspace frame opened through Phase 5C1 in Draft PR #162
+Last reviewed: 2026-08-28 with Phase 5C1 in Draft PR #162 and the floating-panel /
+context-command part of Phase 5C2 active in stacked Draft PR #163
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -533,8 +533,8 @@ After the freeze:
 ### Phase 5 — frontend refinement
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
-#157–#160, Phase 5C0 is complete in PR #161, and Phase 5C1 is active in Draft PR
-#162.
+#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is in Draft PR #162, and
+Phase 5C2 is active through stacked Draft PR #163.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -564,10 +564,10 @@ still changing.
 **Current Project priority:** Phase 5C is a deliberate Project-scoped layout and
 control rebuild, not a functional feature phase. It will replace the current
 centered page-within-a-card composition with a workspace-first shell, give Map
-the remaining desktop viewport, give Reading an independent document layout, and
-turn References/Inspector into responsive panels. Desktop Map overlays remain
-non-modal so visible Canvas drag and selection continue; only mobile Reading-first
-sheets use modal behavior. The detailed boundary is recorded in the
+the complete desktop workspace below Project chrome, give Reading an independent
+document layout, and float References/Inspector above the Canvas without resizing
+it. Desktop Map panels remain non-modal so visible Canvas drag and selection
+continue; only mobile Reading-first sheets use modal behavior. The detailed boundary is recorded in the
 [Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
 It explicitly includes substantial Project button work: mode, toolbar, panel,
 content, destructive, and overflow controls will receive owned roles, grouping, priority, responsive
@@ -714,22 +714,25 @@ Project-owned Markdown or attachment content only through explicit user action.
 ## Immediate next PR order
 
 1. Complete independent review and merge of **Phase 5C1 — viewport workspace
-   frame** in Draft PR #162: compact Project top bar, bounded status area, and a
-   full-viewport desktop Map frame with behavior frozen.
-2. Implement **Phase 5C2 — panels and control hierarchy**: panel state, docked
-   and desktop non-modal-overlay capabilities, preserved Canvas interaction, and
-   the major Project button-family migration.
-3. Implement **Phase 5C3 — Reading and responsive composition**: measure when C2
-   presentations switch, add Reading/mobile composition without redefining panel
-   modality, then run the bounded **Phase 5C4 Project integration review**.
-4. Complete **Phase 5D — attachment and media surfaces** without changing preview
+   frame** in Draft PR #162.
+2. Complete independent review of stacked Draft PR #163 for **Phase 5C2a —
+   floating panels and context-aware Canvas commands**, then retarget/merge it
+   after #162: Canvas stays full-area, both desktop panels float non-modally, and
+   blank/node/selection/edge right-clicks reuse existing commands.
+3. Complete **Phase 5C2b — Project control hierarchy**: finish the major
+   button-family, Add, overflow, and quick-toolbar migration on the same unified
+   command model.
+4. Implement **Phase 5C3 — Reading and responsive composition**: measure desktop
+   floating-panel sizing, add Reading/mobile composition without redefining
+   desktop modality, then run the bounded **Phase 5C4 Project integration review**.
+5. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.
-5. Complete **Phase 5E — source-record and directory coherence**.
-6. Run **Phase 5F — cross-product integration review** and update the measured
+6. Complete **Phase 5E — source-record and directory coherence**.
+7. Run **Phase 5F — cross-product integration review** and update the measured
    frontend baseline.
-7. Introduce a trusted server-side derivative producer only as a separately
+8. Introduce a trusted server-side derivative producer only as a separately
    reviewed follow-up; keep upload-transport convergence independently justified.
-8. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+9. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

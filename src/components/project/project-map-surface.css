@@ -36,10 +36,12 @@
 }
 
 .project-flow-canvas .react-flow__controls {
+  left: var(--project-map-controls-left, 10px);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 9px;
   box-shadow: 0 4px 16px var(--shadow);
+  transition: left 160ms ease;
 }
 
 .project-flow-canvas .react-flow__controls-button {
@@ -247,31 +249,67 @@
 
 .project-map-context-menu {
   position: absolute;
-  z-index: 20;
-  min-width: 168px;
-  padding: 5px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  z-index: 30;
+  width: min(248px, calc(100% - 16px));
+  max-height: calc(100% - 16px);
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 10px;
   background: var(--paper);
-  box-shadow: 0 8px 24px var(--shadow);
+  box-shadow: 0 12px 34px var(--shadow);
 }
 
-.project-map-context-menu button {
+.project-map-context-menu-entry + .project-map-context-menu-entry .project-map-context-menu-label {
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.project-map-context-menu-label {
+  margin: 0;
+  padding: 4px 9px 3px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.project-map-context-menu button,
+.project-map-context-menu a {
   width: 100%;
-  padding: 8px 10px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 7px 9px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   color: var(--ink);
   background: transparent;
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
 
 .project-map-context-menu button:hover,
-.project-map-context-menu button:focus-visible {
+.project-map-context-menu button:focus-visible,
+.project-map-context-menu a:hover,
+.project-map-context-menu a:focus-visible {
   color: var(--accent);
   background: var(--accent-soft);
   outline: none;
+}
+
+.project-map-context-menu button.danger { color: var(--danger); }
+.project-map-context-menu button.danger:hover,
+.project-map-context-menu button.danger:focus-visible { background: var(--danger-soft); }
+.project-map-context-menu button:disabled {
+  color: var(--muted);
+  background: transparent;
+  cursor: not-allowed;
+  opacity: .55;
 }
 .project-edge-handle {
   width: 10px;

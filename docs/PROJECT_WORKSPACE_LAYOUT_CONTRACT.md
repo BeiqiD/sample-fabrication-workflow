@@ -1,9 +1,9 @@
 # Project workspace layout and control contract
 
-Status: governing Phase 5C contract; C0 complete in PR #161 and C1 active in
-Draft PR #162
+Status: governing Phase 5C contract; C0 complete in PR #161, C1 in Draft PR
+#162, and C2 active through stacked Draft PR #163
 
-Last reviewed: 2026-08-28 during the Phase 5C1 viewport-frame implementation
+Last reviewed: 2026-08-28 during the Phase 5C2a floating-panel and context-command implementation
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in
@@ -42,11 +42,12 @@ button-color pass.
 Desktop Project is a **Canvas-first application workspace**.
 
 - Map is the primary creation and spatial-organization surface.
-- Map owns all viewport area that is not actively required by Project chrome or
-  an open docked panel.
-- References and Inspector are optional workspace panels, not permanent columns.
-- At desktop widths that retain editable Map, overlay panels are non-modal
-  workspace surfaces and the remaining Canvas stays interactive.
+- Map owns all viewport area below Project chrome; opening a desktop panel never
+  changes the Canvas box or persisted viewport coordinates.
+- References and Inspector are optional floating workspace panels, not permanent
+  columns, rails, or docked layout tracks.
+- At every desktop width that retains editable Map, panels are non-modal workspace
+  surfaces and the visible Canvas stays interactive outside panel bounds.
 - Reading is a separate document composition over the same occurrences, not a
   replacement cell inside Map geometry.
 - mobile remains Reading-first and does not receive a compressed editable Map;
@@ -62,24 +63,27 @@ The intended shell is:
 ```text
 Global application navigation
 Project top bar
-┌────┬───────────────────────┬──────────────────────────────┬──────────────┐
-│rail│ optional source panel │             Map              │ Inspector    │
-│    │                       │                              │ optional     │
-│    │                       │ selection/edge toolbars      │              │
-│    │                       │                              │              │
-│    │                       │               Canvas nav     │              │
-└────┴───────────────────────┴──────────────────────────────┴──────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         full-area Map Canvas                            │
+│  ┌ floating References ┐                    ┌ floating Inspector ┐      │
+│  │ search / placement  │                    │ selection context  │      │
+│  └─────────────────────┘                    └────────────────────┘      │
+│  Canvas navigation and context-aware pointer commands remain available │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-The shell must not add a second rounded outer card around the Map. Borders may
-separate top bar, rail, and docked panels, while the Canvas itself remains the
-workspace background.
+The shell must not add a second rounded outer card, grid column, or perimeter
+border around the Map. The top bar may separate global chrome from the workspace;
+floating panels use their own shadow/surface edge while the Canvas remains the
+continuous workspace background.
 
 ## Project top bar
 
 The Project top bar is a compact, single-row workspace bar. Its exact pixel
 height is measured in Phase 5C1; the initial design target is approximately
-`48–52px`, not the current document-title block.
+`48–52px`, not the current document-title block. Ordinary top-bar controls retain
+a `36px` minimum target and Map/Reading retain `34px`; compact composition does
+not reuse the Dense Process action tier.
 
 ### Left group — location and identity
 
@@ -106,24 +110,17 @@ Error, conflict, uncertain-outcome, navigation-blocked, and reconciliation
 feedback that requires explanatory text may occupy a bounded status strip below
 the top bar. Moving that feedback must not merge semantically different states.
 
-## Left workspace rail and Add flow
+## Workspace entry and Add flow
 
-A narrow Project-local rail provides entry points for operations that should not
-consume permanent Canvas width. The starting design range is approximately
-`44–48px`; the final value belongs to Phase 5C2 measurement.
+Desktop Map adds no permanent left rail: the Canvas remains continuous beneath
+the top bar. References/Inspector receive compact top-bar toggles, and blank
+Canvas right-click provides exact-position creation plus panel entry. C2b may
+consolidate the remaining creation buttons into one top-bar Add menu without
+adding a layout track.
 
-The first-version rail needs only a small command set, for example:
+### Add menu
 
-- Add;
-- Research record / References;
-- optional help/shortcut entry only if real use justifies it.
-
-The rail is not a second application navigation bar and must not duplicate the
-global product navigation.
-
-### Add popover
-
-The primary Add entry opens a small anchored menu with the three existing Project
+The Add entry and blank-Canvas context menu expose the three existing Project
 content paths:
 
 ```text
@@ -146,10 +143,10 @@ No new content type or creation transaction is introduced.
 
 ## Research-record / Reference panel
 
-Reference discovery becomes an explicit source panel opened from the workspace
-rail. The starting docked-width target is approximately `320px`; Phase 5C2 must
-measure the final width against real search results and the protected Canvas
-minimum.
+Reference discovery becomes an explicit floating source panel opened from the
+Project top bar or a context-aware Canvas command. Its starting width target is
+approximately `300–320px`; Phase 5C2/C3 measure the final size against real
+search results without shrinking the underlying Canvas.
 
 The panel owns:
 
@@ -175,8 +172,8 @@ record. It disappears once it is no longer useful.
 
 Inspector is selection context, not permanent page chrome.
 
-The starting docked-width target is approximately `360–400px`; the exact value is
-measured in Phase 5C2.
+The starting floating-width target is approximately `320–360px`; the exact value
+is measured in Phase 5C2/C3 without creating a Canvas layout track.
 
 ### Default behavior
 
@@ -189,13 +186,12 @@ measured in Phase 5C2.
 - panel open/pin state is interface preference only and must not mutate the
   Project, Project revision, placement rows, or export.
 
-### Narrow/intermediate behavior
+### Desktop behavior
 
-When a docked Inspector would violate the protected Canvas-width rule, Inspector
-uses the desktop non-modal overlay presentation rather than continuously reducing
-or blocking the Map. Opening that overlay may adjust only the React Flow viewport
-if necessary to keep the selected occurrence visible. It must never rewrite
-persisted item coordinates or sizes.
+Inspector always uses the desktop non-modal floating presentation. Opening it does
+not resize the React Flow host or rewrite viewport, item coordinates, or sizes.
+C3 may measure a narrower panel width before the mobile boundary, but may not
+reintroduce a docked track that reduces Canvas area.
 
 ### Information hierarchy
 
@@ -230,16 +226,18 @@ Desktop Map overlays must:
   updating the same temporary/pinned Inspector rather than requiring close and
   reopen;
 - provide a close control and contextual Escape behavior, then restore focus to
-  the rail trigger, prior Canvas selection, or another sensible surviving origin;
+  the top-bar panel trigger, prior Canvas selection, or another sensible surviving origin;
 - scroll long panel content internally without creating Project-page scroll.
 
-Panel state and panel presentation are orthogonal:
+Panel state is independent from the responsive mobile presentation boundary:
 
 - Research-record state is closed/open and Inspector state is
   closed/temporary/pinned;
-- desktop presentation is docked/overlay;
-- changing available width may change presentation but must not silently clear
-  open/pin state, selection, search input, pending placement, or reconciliation;
+- desktop presentation is always floating/non-modal; mobile Reading-first
+  presentation may become a modal sheet only in C3;
+- changing available width may adjust floating panel size but must not silently
+  clear open/pin state, selection, search input, pending placement, or
+  reconciliation;
 - presentation changes never alter Project persistence or mutation identity.
 
 Only mobile/Reading-first sheets and drawers use the ordinary modal contract,
@@ -251,13 +249,30 @@ lock, Escape close, and focus restoration.
 The Canvas should remain visually dominant.
 
 - zoom, fit-view, and related Canvas-navigation controls belong near the lower
-  right of the Canvas rather than in Project identity chrome;
+  Canvas edge rather than in Project identity chrome and shift clear of an open
+  floating panel without changing the React Flow viewport;
 - a MiniMap is optional and must not become permanent until representative-scale
   performance and actual navigation value justify it;
 - the current React Flow dependency remains sufficient for Phase 5C; no new
   Canvas/whiteboard framework is authorized by this contract;
 - panel and toolbar changes must preserve the permanent Project Map performance
   gate.
+
+### Context command surface
+
+The desktop context menu is a workspace-level command overlay, not content trapped
+inside the Map panel stacking context. It renders above floating panels while its
+coordinates remain clamped to the Canvas/workspace rectangle.
+
+- stored attachment files and optional source URLs are separate commands with
+  destination-accurate labels and the existing safe-link projection;
+- each creation, selection, alignment, layer, edge, and panel item reflects that
+  command's actual route availability rather than a coarse shared disabled flag;
+- Escape restores Canvas focus; ordinary activation falls back to Canvas only when
+  the command did not open an editor or panel destination;
+- commands that open References/Inspector focus that panel, while an unpinned
+  Inspector removed by selection clearing restores a surviving trigger when its
+  focused descendant would otherwise be removed.
 
 ## Selection and edge toolbars
 
@@ -318,11 +333,12 @@ The following placement rules are frozen for Phase 5C implementation:
 | Trigger | Secondary surface | Placement |
 |---|---|---|
 | Project overflow | Project-level low-frequency actions, export, lifecycle | below/end-aligned to the top-bar overflow control |
-| Add | Markdown, attachment, research-record entry | anchored beside the left-rail Add control |
-| Reference rail entry | search/discovery surface | left docked panel or desktop non-modal overlay |
+| Add | Markdown, attachment, research-record entry | top-bar Add menu or exact-position blank-Canvas context menu |
+| References top-bar/context entry | search/discovery surface | left floating desktop non-modal panel |
 | Node body click | inspection | Inspector; body click itself does not navigate |
 | Selected node quick actions | frequent item commands | bounded toolbar above/adjacent to the selected node |
-| Node More / context menu | full node command set | anchored to More or the pointer position |
+| Blank Canvas context menu | exact-position creation, paste, select/fit, panel entry | pointer position clamped inside Canvas |
+| Node More / context menu | inspect/edit/open/copy/layer/remove as applicable | anchored to More or the pointer position |
 | Selected edge | frequent edge commands | bounded toolbar near the edge midpoint |
 | Multi-selection | alignment/z-order/bulk commands | one toolbar for the selection, not per-node duplicate toolbars |
 | Multi-field editing | editor/detail workflow | Inspector or dedicated editor, not a tiny popover |
@@ -407,7 +423,7 @@ a different selector.
   ordinary document overflow.
 - Map/React Flow fills the workspace row and does not create Project-page vertical
   scrolling in desktop Map mode.
-- Docked and overlaid Research-record/Inspector panels scroll independently
+- Floating Research-record/Inspector panels scroll independently
   inside that row; long search results or Inspector detail never increase route
   height.
 - A multi-line status strip must be height-bounded and internally scrollable or
@@ -425,20 +441,18 @@ panel internals, and C3 must preserve it while choosing responsive presentations
 
 The protected quantity is the usable Map, not a historical fixed column layout.
 
-Phase 5C starts with a design target that a docked desktop Map should retain
-approximately `720–760px` of usable width. Exact thresholds must be measured in
-implementation and verified on both adjacent widths before becoming contract.
+Desktop Map keeps a full-size Canvas at every editable width. C2 establishes
+floating panel widths; C3 may measure smaller widths or spacing at adjacent
+desktop sizes, but no desktop panel may become a docked layout track.
 
 The intended transformation is:
 
-- wide desktop: both side panels may dock when the Map remains above the measured
-  minimum;
-- medium desktop: at most one side panel docks and the other uses the existing
-  desktop non-modal overlay presentation;
-- narrower desktop above the functional Map boundary: side panels use desktop
-  non-modal overlays so Map retains an interactive working viewport;
+- wide desktop: both side panels may float above the full Canvas simultaneously;
+- medium and narrower desktop above the functional Map boundary: panels remain
+  floating/non-modal, may use measured narrower widths, and never resize Canvas;
 - below the existing functional desktop-Map boundary: preserve Reading-first
-  mobile behavior unless a separate functional proposal changes that boundary.
+  mobile behavior and use ordinary modal sheets only when C3 implements them,
+  unless a separate functional proposal changes that boundary.
 
 The current `560px`, `860px`, and `1180px` Project thresholds are starting
 baselines, not presumed final layout thresholds. Every changed threshold requires
@@ -474,23 +488,29 @@ Does not own:
 
 ### Phase 5C2 — panels and control hierarchy
 
-Owns:
+C2a owns:
 
-- left rail and Add popover;
 - Research-record closed/open state and Inspector closed/temporary/pinned state;
-- docked and desktop non-modal-overlay presentation capabilities, with
-  wide-desktop docked presentation as the initial integration target;
-- desktop overlay modality, close/Escape/focus behavior, internal scrolling, and
-  selection continuity;
-- exact Reference drag from an overlaid panel to visible Canvas coordinates, with
+- left/right floating desktop non-modal panel presentation over the full Canvas;
+- close/Escape/focus behavior, internal scrolling, selection continuity, and
+  simultaneous-panel operation without backdrop, inertness, or focus trap;
+- exact Reference drag from a floating panel to visible Canvas coordinates, with
   `Place at Map center` retained as the keyboard-equivalent path;
-- unified Project command roles and major button-family migration;
+- one route-owned command adapter shared by keyboard, top-bar, Inspector, and
+  target-aware blank/node/selection/edge context menus;
+- keeping exact-position Markdown/attachment creation and hidden file input
+  available even when the left panel is closed.
+
+C2b owns:
+
+- the remaining Project button-family, Add/overflow, and quick-toolbar migration;
 - node, edge, and multi-selection quick-toolbar placement;
 - removal of visible immutable `#created_sequence` from Map nodes.
 
-C2 must directly mount and verify both desktop panel presentations, but does not
-own the final responsive threshold resolver. It does not change the underlying
-creation, selection, edge, removal, save, or navigation protocols.
+C2a must directly mount and verify both panels open simultaneously, each context
+target, menu keyboard/focus behavior, and preserved Canvas interaction. C2 does
+not change the underlying creation, selection, edge, removal, save, or navigation
+protocols.
 
 ### Phase 5C3 — Reading and responsive composition
 
@@ -500,14 +520,14 @@ Owns:
 - Reading action density and Inspector integration;
 - removal of user-facing immutable `#created_sequence` from Reading;
 - optional derived dense reading-position display if evidence supports it;
-- the measured responsive resolver that chooses among C2's already-established
-  docked and desktop non-modal-overlay presentations;
+- measured desktop floating-panel widths/spacing and the resolver that switches
+  from desktop non-modal panels to mobile modal presentation;
 - mobile Reading-first modal sheets/drawers for already-authorized operations.
 
-C3 may choose when presentation changes, but must not redefine panel state,
-commands, desktop modality, exact Reference drag behavior, Inspector selection
-continuity, or focus semantics. It revalidates those C2 contracts at both
-adjacent widths when the responsive resolver activates each presentation. It
+C3 may choose measured panel sizes and the mobile transition, but must not
+redefine panel state, commands, desktop floating modality, exact Reference drag
+behavior, Inspector selection continuity, or focus semantics. It revalidates
+those C2 contracts at adjacent desktop widths and the mobile boundary. It
 does not add custom Reading order or mobile Canvas editing.
 
 ### Phase 5C4 — Project integration review

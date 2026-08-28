@@ -1,13 +1,13 @@
 # Phase 5 frontend refinement implementation plan
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
-#157–#160, Phase 5C0 is complete in PR #161, and the Project workspace layout
-rebuild is active through Phase 5C1 in Draft PR #162
+#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is in Draft PR #162,
+and Phase 5C2 is active through stacked Draft PR #163
 
 Last reviewed: 2026-08-28
 
-Execution base: `v2/backend-foundation` at
-`5d52f2ccdda059e203d7225b897536e3dc888f44`
+Stacked execution base: `agent/phase-5c1-viewport-workspace-frame` at
+`dfde54425c915c74336c8bd67cce583b1b72515c`
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -284,7 +284,8 @@ forcing those projections into identical layouts.
 
 ### Phase 5C — Project workspace layout and control architecture
 
-Status: Phase 5C0 is complete in PR #161; Phase 5C1 is active in Draft PR #162.
+Status: Phase 5C0 is complete in PR #161; Phase 5C1 is in Draft PR #162, and
+Phase 5C2 is active through its C2a stacked Draft PR #163.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -313,9 +314,9 @@ Target anatomy:
   and the highest-priority workspace actions;
 - Map owns the remaining desktop viewport instead of being nested in a
   page-within-a-card composition;
-- References and Inspector become explicit, independently collapsible workspace
-  panels; intermediate desktop Map widths use non-modal workspace overlays rather
-  than continuously squeezing or blocking the Canvas;
+- References and Inspector become explicit, independently collapsible floating
+  workspace panels over a full-area Canvas at every editable desktop Map width;
+  they never resize, inert, or block the visible Canvas outside their own bounds;
 - Reading uses its own centered document shell and reading rhythm rather than
   inheriting Map geometry;
 - mobile remains Reading-first, with operations and detail exposed through modal,
@@ -342,11 +343,12 @@ Bounded sequence:
   control taxonomy, protected behavior, responsive matrix, and PR sequence;
 - **C1 — viewport workspace frame:** introduce the compact top bar and
   full-viewport desktop Map frame without changing Map data or interaction;
-- **C2 — panels and control hierarchy:** own panel state, wide-desktop docked and
-  desktop non-modal-overlay capabilities, exact Canvas interaction preservation,
-  and the major Project button-family migration;
+- **C2 — panels and control hierarchy:** C2a owns floating desktop panel state,
+  non-modal behavior, exact Canvas interaction, and the complete context-aware
+  right-click command surface; C2b completes the major Project button-family and
+  quick-toolbar migration without creating a second command implementation;
 - **C3 — Reading and responsive composition:** establish the document shell,
-  measure when existing docked/overlay presentations switch, and own mobile
+  measure desktop floating-panel sizing and the mobile transition, and own mobile
   Reading-first modal transformations without redefining C2 panel behavior;
 - **C4 — Project integration review:** reconcile the Project directory and
   workspace entry, close only evidenced cross-slice gaps, and record the measured
@@ -748,8 +750,8 @@ or color adjustments.
 - Product roadmap and this execution plan agree that Phase 5B is complete and
   Phase 5C is active;
 - C1–C4 each have distinct layout/behavior ownership and can be reviewed
-  independently; C2 owns panel state and presentation capabilities, while C3 owns
-  only the measured responsive switch among them plus Reading/mobile composition;
+  independently; C2 owns desktop floating panel state/presentation, while C3 owns
+  only measured panel sizing, the mobile transition, and Reading/mobile composition;
 - desktop Map overlays are explicitly non-modal and preserve Canvas drag,
   selection, Escape, close, and focus-restoration behavior;
 - vertical viewport and scroll ownership is explicit for Map, panels, Reading,
@@ -828,6 +830,79 @@ the viewport on short desktop screens.
 Desktop Map owns the viewport below global navigation without page scrolling or
 fixed height subtraction; Project chrome is compact enough for C2 to add panel and
 button hierarchy without rebuilding the route frame.
+
+### Phase 5C2a — floating panels and context-aware Canvas commands
+
+Status: active in stacked Draft PR #163, based on the exact Phase 5C1 head in
+Draft PR #162.
+
+#### Concrete problem
+
+The C1 frame still projects References, Map, and Inspector through historical grid
+columns, so closing a panel changes available Canvas area and open panels read as
+page borders rather than workspace tools. The existing pointer context menu exposes
+only one blank-Canvas attachment action and leaves occurrence, selection, edge,
+navigation, and creation commands scattered across unrelated button sites.
+
+#### In scope
+
+- keep the Map surface mounted as the full workspace background with no outer
+  Canvas border and project both desktop side regions as floating, independently
+  scrollable, non-modal panels;
+- add top-bar panel triggers, Reference open/closed state, and Inspector
+  closed/temporary/pinned state without persisting UI preference;
+- keep the attachment file input mounted when the Reference panel is closed and
+  move React Flow navigation controls clear of an open left panel without changing
+  viewport coordinates;
+- replace the single-purpose context menu with target-aware blank Canvas,
+  occurrence, multi-selection, and edge command sets;
+- share the existing selection, copy/paste, alignment, z-order, edit, removal, edge,
+  and panel commands between keyboard/top-bar/Inspector/context projections;
+- provide menu focus entry, Arrow/Home/End navigation, Escape close, outside-click
+  close, viewport clamping, disabled states, and focus restoration.
+
+#### Protected boundary
+
+- no backdrop, Canvas `inert`, modal focus trap, document scroll lock, or panel
+  action that changes persisted geometry merely to reveal a panel;
+- no backend, API, schema, migration, dependency, mutation identity, retry,
+  conflict, reconciliation, attachment trust, edge model, selection model,
+  Reading order, responsive threshold, or performance-policy change;
+- no mobile drawer/Reading composition and no final C2b Project-wide button-family
+  or quick-toolbar rewrite in this bounded slice.
+
+#### Required acceptance cases
+
+- both floating panels can be open at once while the full-size Canvas, visible
+  selection, edge interaction, Reference drag target, and Canvas navigation remain
+  operable;
+- selecting a node/edge opens temporary Inspector context, clearing selection
+  closes it when unpinned, explicit pin survives selection changes, and close/Escape
+  restores a surviving trigger;
+- the hidden attachment input and exact-position creation paths remain available
+  with the Reference panel closed;
+- mounted menus cover blank Canvas, single occurrence, multi-selection, and edge,
+  including keyboard traversal and Escape focus return;
+- attachment commands keep the stored file and optional source URL as separate,
+  safely projected destinations with labels that match the navigation target;
+- the menu is a workspace-level overlay above floating panels; ordinary command
+  activation restores Canvas focus when no editor/panel destination claims it;
+- panel commands focus the opened panel, and automatic temporary-Inspector closure
+  restores a surviving trigger when the prior focus would otherwise be removed;
+- creation, selection, alignment, and z-order items project per-command
+  availability from the route adapter rather than a coarse geometry flag;
+- source contracts prohibit grid-owned Canvas columns, modal desktop panel
+  semantics, and a second mutation/controller implementation;
+- focused Map, Canvas productivity, Reference placement, owned-content, edge,
+  lifecycle, full test/build, bundle, and Map performance gates pass on the exact
+  head before Ready.
+
+#### Exit
+
+Desktop Map remains the sole full-area workspace background while optional side
+surfaces float above it; every right-click target exposes the relevant existing
+commands through one route-owned command adapter. C2b can now concentrate on the
+remaining button-family and quick-toolbar visual hierarchy.
 
 ## Documentation and review discipline
 

@@ -3,6 +3,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ProjectMapContextCommands } from "./components/project/ProjectMapSurface";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
@@ -10,9 +11,23 @@ vi.mock("./components/ReferenceSearchSurface", () => ({ ReferenceSearchSurface: 
 vi.mock("./components/project/ProjectMapSurface", async () => {
   const React = await import("react");
   return {
-    ProjectMapSurface: React.forwardRef((_props, ref) => {
+    ProjectMapSurface: React.forwardRef<{
+      getViewportCenter: () => { x: number; y: number };
+    }, {
+      onSelect: (itemId: string | null) => boolean | void;
+      contextCommands?: ProjectMapContextCommands;
+    }>((props, ref) => {
       React.useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 400, y: 300 }) }));
-      return <div>Project Map fixture</div>;
+      return <div>
+        Project Map fixture
+        <button type="button" onClick={() => props.onSelect("item-note")}>Select test Map item</button>
+        <button type="button" onClick={() => props.contextCommands?.openReferences()}>
+          Open References from Canvas
+        </button>
+        <button type="button" onClick={() => props.contextCommands?.inspectItem("item-note")}>
+          Inspect test Map item
+        </button>
+      </div>;
     }),
   };
 });
@@ -87,6 +102,54 @@ describe("Project lifecycle UI", () => {
       name: snapshot.project.title,
     }).getAttribute("title")).toBe(snapshot.project.title);
     expect(within(header as HTMLElement).queryByText("Project workspace")).toBeNull();
+
+    const workspace = document.querySelector(".project-desktop-workspace");
+    const referencesToggle = screen.getByRole("button", { name: "References" });
+    const inspectorToggle = screen.getByRole("button", { name: "Inspector" });
+    expect(workspace?.getAttribute("data-reference-open")).toBe("true");
+    expect(workspace?.getAttribute("data-inspector-open")).toBe("false");
+    expect(screen.getByRole("complementary", {
+      name: "Reference search and placement",
+    }).getAttribute("data-panel-presentation")).toBe("floating");
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+
+    fireEvent.click(referencesToggle);
+    expect(screen.queryByRole("complementary", {
+      name: "Reference search and placement",
+    })).toBeNull();
+    expect(screen.getByText("Project Map fixture")).toBeTruthy();
+    expect(document.querySelector("input[aria-label='Choose Project attachment']")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Open References from Canvas" }));
+    const referencePanel = screen.getByRole("complementary", {
+      name: "Reference search and placement",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(referencePanel));
+
+    fireEvent.click(screen.getByRole("button", { name: "Inspect test Map item" }));
+    const inspector = await screen.findByRole("complementary", { name: "Project Inspector" });
+    expect(inspector.getAttribute("data-panel-presentation")).toBe("floating");
+    await waitFor(() => expect(document.activeElement).toBe(inspector));
+    expect(screen.getByRole("button", { name: "Pin" }).getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(within(inspector).getByRole("button", { name: "Close Inspector" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+      expect(document.activeElement).toBe(inspectorToggle);
+    });
+
+    fireEvent.click(inspectorToggle);
+    const pinnedInspector = await screen.findByRole("complementary", {
+      name: "Project Inspector",
+    });
+    expect(within(pinnedInspector).getByRole("button", { name: "Unpin" })).toBeTruthy();
+    const inspectorClose = within(pinnedInspector).getByRole("button", {
+      name: "Close Inspector",
+    });
+    inspectorClose.focus();
+    fireEvent.keyDown(inspectorClose, { key: "Escape" });
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+      expect(document.activeElement).toBe(inspectorToggle);
+    });
 
     const projectActions = screen.getByRole("button", { name: "Project actions" });
     expect(projectActions.getAttribute("aria-expanded")).toBe("false");

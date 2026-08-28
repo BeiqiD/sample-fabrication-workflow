@@ -64,7 +64,7 @@ describe("Project Map kernel boundaries", () => {
     expect(pageSource).toContain("Leave without saving");
   });
 
-  it("keeps the Phase 5A1 directory states while projecting the Phase 5C1 viewport frame", () => {
+  it("keeps the Phase 5A1 directory states while projecting the Phase 5C1/C2 workspace", () => {
     expect(projectsPageSource).toContain('type ProjectDirectoryState = "loading" | "ready" | "error"');
     expect(projectsPageSource).toContain("const [loadError, setLoadError]");
     expect(projectsPageSource).toContain("const [createError, setCreateError]");
@@ -93,6 +93,13 @@ describe("Project Map kernel boundaries", () => {
     expect(projectStyles).toMatch(/\.project-page\.desktop\.reading \.project-desktop-workspace\s*\{[^}]*overflow:\s*visible;/s);
     expect(projectStyles).not.toMatch(/\.project-desktop-workspace\s*\{[^}]*100vh/s);
     expect(surfaceStyles).toMatch(/\.project-flow-canvas\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*0;/s);
+    expect(projectStyles).toMatch(/\.project-map-panel\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
+    expect(projectStyles).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[^}]*position:\s*absolute;[^}]*border:\s*0;/s);
+    expect(pageSource).toContain('data-panel-presentation="floating"');
+    expect(pageSource).toContain("contextCommands={contextCommands}");
+    expect(surfaceSource).toContain("onPaneContextMenu={handlePaneContextMenu}");
+    expect(surfaceSource).toContain("onNodeContextMenu={handleNodeContextMenu}");
+    expect(surfaceSource).toContain("onEdgeContextMenu={handleEdgeContextMenu}");
 
     expect(projectStyles).toMatch(/\.project-view-toggle\s*\{[^}]*background:\s*var\(--surface-warm\);/s);
     expect(projectStyles).toMatch(/\.project-save-state\s*\{[^}]*border-radius:\s*999px;/s);
