@@ -154,6 +154,7 @@
   border-radius: 7px;
   font-size: 11px;
 }
+.project-control-label-compact { display: none; }
 .project-workspace-header-actions {
   min-width: 0;
   grid-area: actions;
@@ -213,6 +214,19 @@
   white-space: nowrap;
 }
 .project-selection-count { padding: 4px 7px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: 10px; font-weight: 720; white-space: nowrap; }
+.project-canvas-transient-status {
+  max-width: calc(100% - 32px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 5;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
 .project-save-state.unsaved { color: var(--warning-text); background: var(--warning-soft); }
 .project-save-state.saving { color: var(--info); background: var(--info-soft); }
 .project-save-state.error,
@@ -414,6 +428,9 @@
   .project-workspace-header,
   .project-page.desktop .project-workspace-header { gap: 7px; }
   .project-workspace-header-actions { gap: 5px; }
+  .project-page.desktop.map .project-control-label-full { display: none; }
+  .project-page.desktop.map .project-control-label-compact { display: inline; }
+  .project-page.desktop.map .project-workspace-header .compact-button { padding-inline: 7px; }
 }
 
 @media (max-width: 859px) {

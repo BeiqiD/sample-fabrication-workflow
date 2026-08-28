@@ -534,12 +534,16 @@ it("keeps edge selection and connection handles stable after local geometry move
     function ContextMenuHarness() {
       const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
       const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      const [rejectEdgeSelection, setRejectEdgeSelection] = useState(false);
       const selectedItemId = selectedItemIds.at(-1) ?? null;
       return <div className="project-desktop-workspace" style={{ width: 900, height: 700 }}>
         <button type="button" onClick={() => {
           setSelectedItemIds(["item-note", "item-reference"]);
           setSelectedEdgeId(null);
         }}>Select both for test</button>
+        <button type="button" onClick={() => setRejectEdgeSelection(true)}>
+          Reject edge selection for test
+        </button>
         <div className="project-map-panel">
           <ProjectMapSurface
             nodes={stableNodes}
@@ -556,8 +560,10 @@ it("keeps edge selection and connection handles stable after local geometry move
               if (selection.itemIds.length > 0) setSelectedEdgeId(null);
             }}
             onEdgeSelect={(edgeId) => {
+              if (rejectEdgeSelection) return false;
               setSelectedEdgeId(edgeId);
               if (edgeId) setSelectedItemIds([]);
+              return true;
             }}
             onGeometryCommit={() => undefined}
             onMarkdownCreateRequest={addMarkdown}
@@ -570,7 +576,9 @@ it("keeps edge selection and connection handles stable after local geometry move
               pasteDisabled: false,
               editDisabled: false,
               removeDisabled: false,
-              edgeCommandsDisabled: false,
+              edgeInspectDisabled: false,
+              edgeEditDisabled: false,
+              edgeDeleteDisabled: false,
               panelCommandsDisabled: false,
               alignmentDisabled: (alignment) => alignment === "left",
               zOrderDisabled: (action) => action === "bring-to-front",
@@ -656,6 +664,10 @@ it("keeps edge selection and connection handles stable after local geometry move
     fireEvent.keyDown(menu(), { key: "Escape" });
     await waitFor(() => expect(container.querySelector(".project-map-context-menu")).toBeNull());
     expect(document.activeElement).toBe(canvas());
+
+    fireEvent.click(view.getByRole("button", { name: "Reject edge selection for test" }));
+    fireEvent.contextMenu(edge(), { clientX: 300, clientY: 220 });
+    await waitFor(() => expect(container.querySelector(".project-map-context-menu")).toBeNull());
   });
 
   it("keeps selected and failed edge markers aligned with Project state tokens", async () => {

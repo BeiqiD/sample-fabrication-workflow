@@ -148,6 +148,16 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(map).not.toContain("descriptor.attachmentSourceUrl || descriptor.fileUrl");
 
     expect(page).toContain("createDisabled: createCommandDisabled");
+    expect(page).toContain("edgeInspectDisabled");
+    expect(page).toContain("edgeEditDisabled: edgeMutationCommandsDisabled");
+    expect(page).toContain("edgeDeleteDisabled: edgeMutationCommandsDisabled");
+    expect(page).toContain("const edgeMutationCommandsDisabled = edgeController.interactionDisabled");
+    expect(page).not.toContain("edgeCommandsDisabled");
+    expect(page).toContain("if (selectProjectEdge(edgeId) === false) return");
+    expect(map).toContain("if (onEdgeSelect(edge.id) === false) return");
+    expect(map).toContain("disabled: contextCommands.edgeInspectDisabled");
+    expect(map).toContain("disabled: contextCommands.edgeEditDisabled");
+    expect(map).toContain("disabled: contextCommands.edgeDeleteDisabled");
     expect(page).toContain("alignmentDisabled: alignmentActionDisabled");
     expect(page).toContain("zOrderDisabled: zOrderActionDisabled");
     expect(map).toContain('disabled: contextCommands.alignmentDisabled("left")');

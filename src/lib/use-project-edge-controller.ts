@@ -278,16 +278,17 @@ export function useProjectEdgeController({
   }, [runMutation]);
 
   const selectEdge = useCallback((edgeId: string | null) => {
-    if (pendingRef.current || editorRef.current) return;
+    if (pendingRef.current || editorRef.current) return false;
     setSelectedEdgeId(edgeId);
     setActionError("");
+    return true;
   }, []);
 
   const startEdit = useCallback(() => {
     const current = snapshotRef.current;
-    if (!current || pendingRef.current || editorRef.current || externalBusyRef.current || !selectedEdgeId) return;
+    if (!current || pendingRef.current || editorRef.current || externalBusyRef.current || !selectedEdgeId) return false;
     const edge = current.edges.find((candidate) => candidate.id === selectedEdgeId);
-    if (!edge) return;
+    if (!edge) return false;
     updateEditor({
       edgeId: edge.id,
       direction: projectEdgeDirection(edge.markerStart, edge.markerEnd),
@@ -295,6 +296,7 @@ export function useProjectEdgeController({
       status: "editing",
       message: null,
     });
+    return true;
   }, [selectedEdgeId, updateEditor]);
 
   const changeEdit = useCallback((field: "direction" | "label", value: string) => {
@@ -381,9 +383,9 @@ export function useProjectEdgeController({
 
   const deleteSelected = useCallback(() => {
     const current = snapshotRef.current;
-    if (!current || externalBusyRef.current || pendingRef.current || editorRef.current || !selectedEdgeId) return;
+    if (!current || externalBusyRef.current || pendingRef.current || editorRef.current || !selectedEdgeId) return false;
     const edge = current.edges.find((candidate) => candidate.id === selectedEdgeId);
-    if (!edge) return;
+    if (!edge) return false;
     const input: ProjectEdgeLifecycleInput = {
       expectedRevision: edge.revision,
       operationId: createProjectApiId("operation"),
@@ -398,6 +400,7 @@ export function useProjectEdgeController({
       message: null,
       recordHistory: true,
     });
+    return true;
   }, [runMutation, selectedEdgeId]);
 
   const retryExact = useCallback(() => {

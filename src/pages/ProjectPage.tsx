@@ -2009,12 +2009,13 @@ export function ProjectPage() {
   }, [selectProjectItems]);
 
   const selectProjectEdge = useCallback((edgeId: string | null) => {
-    if (markdownEditorRef.current || attachmentEditorRef.current) return;
+    if (markdownEditorRef.current || attachmentEditorRef.current) return false;
+    if (edgeController.selectEdge(edgeId) === false) return false;
     if (edgeId !== null) {
       setSelectedItemIds([]);
       setNavigationFocusItemId(null);
     }
-    edgeController.selectEdge(edgeId);
+    return true;
   }, [edgeController.selectEdge]);
 
   const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
@@ -2279,7 +2280,7 @@ export function ProjectPage() {
   ]);
 
   const inspectContextEdge = useCallback((edgeId: string) => {
-    selectProjectEdge(edgeId);
+    if (selectProjectEdge(edgeId) === false) return;
     setInspectorPanelOpen(true);
     focusInspectorPanel();
   }, [focusInspectorPanel, selectProjectEdge]);
@@ -2405,6 +2406,11 @@ export function ProjectPage() {
   const createCommandDisabled = geometryInteractionDisabled
     || pendingReference !== null
     || saveState === "conflict";
+  const edgeInspectDisabled = markdownEditor !== null
+    || attachmentEditor !== null
+    || edgeController.unsafe;
+  const edgeMutationCommandsDisabled = edgeController.interactionDisabled
+    || saveState !== "saved";
   const contextCommands: ProjectMapContextCommands = {
     createDisabled: createCommandDisabled,
     selectAllDisabled: canvasCommandsBlocked || descriptors.length === 0,
@@ -2428,7 +2434,9 @@ export function ProjectPage() {
       || pendingReference !== null
       || pendingReferenceRemoval !== null
       || saveState !== "saved",
-    edgeCommandsDisabled: workspaceOperationBusy || saveState !== "saved",
+    edgeInspectDisabled,
+    edgeEditDisabled: edgeMutationCommandsDisabled,
+    edgeDeleteDisabled: edgeMutationCommandsDisabled,
     panelCommandsDisabled: false,
     alignmentDisabled: alignmentActionDisabled,
     zOrderDisabled: zOrderActionDisabled,
@@ -2444,11 +2452,13 @@ export function ProjectPage() {
     removeItem: removeContextItem,
     inspectEdge: inspectContextEdge,
     editEdge: () => {
+      if (edgeController.startEdit() === false) return;
       setInspectorPanelOpen(true);
-      edgeController.startEdit();
       focusInspectorPanel();
     },
-    deleteEdge: edgeController.deleteSelected,
+    deleteEdge: () => {
+      edgeController.deleteSelected();
+    },
     openReferences: openReferencePanel,
     openInspector: openInspectorPanel,
   };
@@ -2564,15 +2574,20 @@ export function ProjectPage() {
             className="button compact-button"
             aria-controls="project-reference-panel"
             aria-pressed={referencePanelOpen}
+            aria-label="References"
             disabled={viewSwitchDisabled && referencePanelOpen}
             onClick={() => setReferencePanelOpen((open) => !open)}
-          >References</button>
+          >
+            <span className="project-control-label-full">References</span>
+            <span className="project-control-label-compact" aria-hidden="true">Refs</span>
+          </button>
           <button
             ref={inspectorPanelTriggerRef}
             type="button"
             className="button compact-button"
             aria-controls="project-inspector-panel"
             aria-pressed={inspectorPanelOpen}
+            aria-label="Inspector"
             disabled={viewSwitchDisabled && inspectorPanelOpen}
             onClick={() => {
               if (inspectorPanelOpen) {
@@ -2583,18 +2598,21 @@ export function ProjectPage() {
                 setInspectorPinned(true);
               }
             }}
-          >Inspector</button>
+          >
+            <span className="project-control-label-full">Inspector</span>
+            <span className="project-control-label-compact" aria-hidden="true">Inspect</span>
+          </button>
         </div>}
         {desktop && desktopView === "map" && <div className="project-save-toolbar">
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-          {selectedItemIds.length > 1 && <span className="project-selection-count" role="status">
-            {selectedItemIds.length} selected
-          </span>}
-          {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count" role="status">
-            {copyPaste.clipboard.itemCount} copied
-          </span>}
-          <button type="button" className="button compact-button" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>Undo</button>
-          <button type="button" className="button compact-button" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>Redo</button>
+          <button type="button" className="button compact-button" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
+            <span className="project-control-label-full">Undo</span>
+            <span className="project-control-label-compact" aria-hidden="true">↶</span>
+          </button>
+          <button type="button" className="button compact-button" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
+            <span className="project-control-label-full">Redo</span>
+            <span className="project-control-label-compact" aria-hidden="true">↷</span>
+          </button>
           <button
             type="button"
             className="button primary compact-button"
@@ -2612,10 +2630,14 @@ export function ProjectPage() {
             ref={projectActionsTriggerRef}
             type="button"
             className="button compact-button project-overflow-trigger"
+            aria-label="Project actions"
             aria-expanded={projectActionsOpen}
             aria-controls="project-overflow-panel"
             onClick={() => setProjectActionsOpen((open) => !open)}
-          >Project actions</button>
+          >
+            <span className="project-control-label-full">Project actions</span>
+            <span className="project-control-label-compact" aria-hidden="true">More</span>
+          </button>
           {projectActionsOpen && <div
             id="project-overflow-panel"
             className="project-overflow-panel"
@@ -2766,6 +2788,18 @@ export function ProjectPage() {
           handleAttachmentFile(file);
         }}
       />
+      {(selectedItemIds.length > 1 || copyPaste.clipboard?.status === "ready") && <div
+        className="project-canvas-transient-status"
+        role="status"
+        aria-label="Canvas selection and clipboard status"
+      >
+        {selectedItemIds.length > 1 && <span className="project-selection-count">
+          {selectedItemIds.length} selected
+        </span>}
+        {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count">
+          {copyPaste.clipboard.itemCount} copied
+        </span>}
+      </div>}
       {referencePanelOpen && <aside
         ref={referencePanelRef}
         id="project-reference-panel"

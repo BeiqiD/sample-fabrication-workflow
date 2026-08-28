@@ -83,7 +83,11 @@ The Project top bar is a compact, single-row workspace bar. Its exact pixel
 height is measured in Phase 5C1; the initial design target is approximately
 `48–52px`, not the current document-title block. Ordinary top-bar controls retain
 a `36px` minimum target and Map/Reading retain `34px`; compact composition does
-not reuse the Dense Process action tier.
+not reuse the Dense Process action tier. Selection and clipboard counts are
+Canvas-local transient status rather than permanent header width. Within the
+existing `860–1180px` desktop range, lower-priority controls may use shorter
+visible labels only when their full accessible names and target sizes remain
+unchanged.
 
 ### Left group — location and identity
 
@@ -268,6 +272,10 @@ coordinates remain clamped to the Canvas/workspace rectangle.
   destination-accurate labels and the existing safe-link projection;
 - each creation, selection, alignment, layer, edge, and panel item reflects that
   command's actual route availability rather than a coarse shared disabled flag;
+- an edge menu opens only after the route/controller accepts its target selection;
+  Inspect, Edit, and Delete expose separate availability, and edge mutation
+  availability includes pending Reference insertion/removal through the existing
+  controller capability;
 - Escape restores Canvas focus; ordinary activation falls back to Canvas only when
   the command did not open an editor or panel destination;
 - commands that open References/Inspector focus that panel, while an unpinned

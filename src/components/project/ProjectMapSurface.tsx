@@ -104,7 +104,9 @@ export interface ProjectMapContextCommands {
   pasteDisabled: boolean;
   editDisabled: boolean;
   removeDisabled: boolean;
-  edgeCommandsDisabled: boolean;
+  edgeInspectDisabled: boolean;
+  edgeEditDisabled: boolean;
+  edgeDeleteDisabled: boolean;
   panelCommandsDisabled: boolean;
   alignmentDisabled: (alignment: ProjectCanvasAlignment) => boolean;
   zOrderDisabled: (action: ProjectCanvasZOrderAction) => boolean;
@@ -140,7 +142,7 @@ export interface ProjectMapSurfaceProps {
   edgeInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => boolean | void;
   onSelectionChange?: (selection: ProjectItemSelection) => boolean | void;
-  onEdgeSelect?: (edgeId: string | null) => void;
+  onEdgeSelect?: (edgeId: string | null) => boolean | void;
   onEdgeConnect?: (connection: {
     sourceItemId: string;
     targetItemId: string;
@@ -1129,7 +1131,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     if (!position) return;
     event.preventDefault();
     event.stopPropagation();
-    onEdgeSelect(edge.id);
+    if (onEdgeSelect(edge.id) === false) return;
     setContextMenu({ target: "edge", ...position, edgeId: edge.id });
   }, [contextCommands, contextMenuPosition, onEdgeSelect, pendingEdge?.edgeId]);
 
@@ -1228,19 +1230,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         {
           label: "Inspect edge",
           section: "Edge",
+          disabled: contextCommands.edgeInspectDisabled,
           action: () => contextCommands.inspectEdge(contextMenu.edgeId),
         },
         {
           label: "Edit edge",
           section: "Edge",
-          disabled: contextCommands.edgeCommandsDisabled,
+          disabled: contextCommands.edgeEditDisabled,
           action: contextCommands.editEdge,
         },
         {
           label: "Delete edge",
           section: "Edge",
           danger: true,
-          disabled: contextCommands.edgeCommandsDisabled,
+          disabled: contextCommands.edgeDeleteDisabled,
           action: contextCommands.deleteEdge,
         },
       ];

@@ -1,8 +1,8 @@
 # Phase 5 frontend refinement implementation plan
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
-#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is in Draft PR #162,
-and Phase 5C2 is active through stacked Draft PR #163
+#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
+and Phase 5C2 is active through retargeted Draft PR #163
 
 Last reviewed: 2026-08-28
 
@@ -211,7 +211,7 @@ remaining concrete shell defect that justified A2. Phase 5B1/B2/B3 are complete
 in PRs #158/#159/#160; no additional B4 content-language defect is currently
 justified. The larger Project composition gap is intentionally tracked as the
 separate Phase 5C layout and control rebuild. Its C0 contract is complete in PR
-#161, and its C1 viewport-frame implementation is active in Draft PR #162.
+#161, and its C1 viewport-frame implementation is complete in PR #162.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -284,8 +284,8 @@ forcing those projections into identical layouts.
 
 ### Phase 5C — Project workspace layout and control architecture
 
-Status: Phase 5C0 is complete in PR #161; Phase 5C1 is in Draft PR #162, and
-Phase 5C2 is active through its C2a stacked Draft PR #163.
+Status: Phase 5C0 is complete in PR #161; Phase 5C1 is complete in PR #162,
+and Phase 5C2 is active through its retargeted C2a Draft PR #163.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -769,7 +769,7 @@ reopening functional product scope.
 
 ### Phase 5C1 — viewport workspace frame
 
-Status: active in Draft PR #162.
+Status: complete in PR #162.
 
 #### Concrete problem
 
@@ -833,8 +833,8 @@ button hierarchy without rebuilding the route frame.
 
 ### Phase 5C2a — floating panels and context-aware Canvas commands
 
-Status: active in stacked Draft PR #163, based on the exact Phase 5C1 head in
-Draft PR #162.
+Status: active in retargeted Draft PR #163, based on
+`v2/backend-foundation` after PR #162.
 
 #### Concrete problem
 
@@ -891,6 +891,14 @@ navigation, and creation commands scattered across unrelated button sites.
   restores a surviving trigger when the prior focus would otherwise be removed;
 - creation, selection, alignment, and z-order items project per-command
   availability from the route adapter rather than a coarse geometry flag;
+- edge target selection returns an acceptance result; rejected selection does not
+  open an edge menu or stale Inspector, while Edit/Delete consume the controller's
+  interaction capability including pending Reference insertion/removal;
+- selection/copy counts move to Canvas-local transient status, and the existing
+  `860–1180px` desktop range uses shorter visible control labels with unchanged
+  accessible names and the frozen `36px` targets; long titles, both panels,
+  selected/copied state, and save outcomes keep every top-bar action reachable at
+  `860px`, `861px`, and `1024px`;
 - source contracts prohibit grid-owned Canvas columns, modal desktop panel
   semantics, and a second mutation/controller implementation;
 - focused Map, Canvas productivity, Reference placement, owned-content, edge,

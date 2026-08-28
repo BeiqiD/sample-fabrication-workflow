@@ -3,7 +3,10 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ProjectEdgeRecord } from "../shared/project-api";
 import type { ProjectMapContextCommands } from "./components/project/ProjectMapSurface";
+import type { ProjectItemSelection } from "./lib/project-canvas-productivity";
+import type { ProjectReferenceDragPayload } from "./lib/project-reference-placement";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
@@ -14,7 +17,15 @@ vi.mock("./components/project/ProjectMapSurface", async () => {
     ProjectMapSurface: React.forwardRef<{
       getViewportCenter: () => { x: number; y: number };
     }, {
+      selectedEdgeId?: string | null;
       onSelect: (itemId: string | null) => boolean | void;
+      onSelectionChange?: (selection: ProjectItemSelection) => boolean | void;
+      onEdgeSelect?: (edgeId: string | null) => boolean | void;
+      onReferenceDrop?: (
+        payload: ProjectReferenceDragPayload,
+        point: { x: number; y: number },
+      ) => void;
+      onMarkdownCreateRequest?: (point: { x: number; y: number }) => void;
       contextCommands?: ProjectMapContextCommands;
     }>((props, ref) => {
       React.useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 400, y: 300 }) }));
@@ -27,6 +38,43 @@ vi.mock("./components/project/ProjectMapSurface", async () => {
         <button type="button" onClick={() => props.contextCommands?.inspectItem("item-note")}>
           Inspect test Map item
         </button>
+        <button type="button" onClick={() => props.onSelectionChange?.({
+          itemIds: ["item-note", "item-reference"],
+          primaryItemId: "item-reference",
+        })}>Select two test Map items</button>
+        <button type="button" onClick={() => props.onEdgeSelect?.("edge-a")}>Select test edge A</button>
+        <button type="button" onClick={() => props.onEdgeSelect?.("edge-b")}>Try selecting test edge B</button>
+        <p>Selected edge: {props.selectedEdgeId ?? "none"}</p>
+        <button
+          type="button"
+          disabled={props.contextCommands?.edgeInspectDisabled}
+          onClick={() => props.contextCommands?.inspectEdge("edge-a")}
+        >Inspect edge from Canvas</button>
+        <button
+          type="button"
+          disabled={props.contextCommands?.edgeEditDisabled}
+          onClick={() => props.contextCommands?.editEdge()}
+        >Edit selected edge</button>
+        <button
+          type="button"
+          disabled={props.contextCommands?.edgeDeleteDisabled}
+          onClick={() => props.contextCommands?.deleteEdge()}
+        >Delete selected edge</button>
+        <button type="button" onClick={() => props.onReferenceDrop?.({
+          version: 1,
+          target: { type: "sample", id: "sample-pending" },
+          preview: {
+            title: "Pending sample",
+            subtitle: null,
+            excerpt: null,
+            referenceUrl: "/references/sample/r1_sample-pending",
+            openSourceUrl: "/samples/sample-pending",
+          },
+        }, { x: 420, y: 320 })}>Start pending Reference</button>
+        <button type="button" onClick={() => props.onMarkdownCreateRequest?.({
+          x: 420,
+          y: 320,
+        })}>Start Markdown editor from Canvas</button>
       </div>;
     }),
   };
@@ -50,6 +98,28 @@ function jsonResponse(payload: unknown, status = 200) {
     status,
     headers: { "content-type": "application/json" },
   }));
+}
+
+function edgeRecord(id: string): ProjectEdgeRecord {
+  const now = "2026-08-28T12:00:00.000Z";
+  return {
+    id,
+    projectId: "project-a",
+    sourceItemId: "item-note",
+    targetItemId: "item-reference",
+    sourceHandle: id === "edge-a" ? "right" : "bottom",
+    targetHandle: id === "edge-a" ? "left" : "top",
+    markerStart: "none",
+    markerEnd: "arrow",
+    label: id,
+    revision: 1,
+    createdBy: "user@example.com",
+    updatedBy: "user@example.com",
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedBy: null,
+  };
 }
 
 function renderProjectPage() {
@@ -175,6 +245,102 @@ describe("Project lifecycle UI", () => {
 
     view.unmount();
     expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
+  });
+
+  it("projects pending Reference work into exact edge mutation availability", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.edges = [edgeRecord("edge-a")];
+    fetchMock.mockImplementation((path, init) => {
+      if (!init?.method || init.method === "GET") return jsonResponse(snapshot);
+      if (init.method === "POST" && String(path).endsWith("/items/reference")) {
+        return new Promise<Response>(() => undefined);
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method} ${String(path)}` }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Select test edge A" }));
+    await screen.findByText("Selected edge: edge-a");
+    fireEvent.click(screen.getByRole("button", { name: "Start pending Reference" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Edit selected edge" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.getByRole("button", { name: "Delete selected edge" }).hasAttribute("disabled")).toBe(true);
+    });
+    expect(screen.getByRole("button", { name: "Inspect edge from Canvas" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("rejects edge inspection while an owned-content editor owns selection", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.edges = [edgeRecord("edge-a")];
+    fetchMock.mockImplementation(() => jsonResponse(snapshot));
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Start Markdown editor from Canvas" }));
+    await screen.findByText("Selected edge: none");
+    const inspector = await screen.findByRole("complementary", { name: "Project Inspector" });
+    expect(within(inspector).queryByText("edge-a")).toBeNull();
+
+    const inspectEdge = screen.getByRole("button", { name: "Inspect edge from Canvas" });
+    expect(inspectEdge.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Try selecting test edge B" }));
+    expect(screen.getByText("Selected edge: none")).toBeTruthy();
+  });
+
+  it("keeps an unresolved edge editor on its original edge", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.edges = [edgeRecord("edge-a"), edgeRecord("edge-b")];
+    fetchMock.mockImplementation(() => jsonResponse(snapshot));
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Select test edge A" }));
+    await screen.findByText("Selected edge: edge-a");
+    fireEvent.click(screen.getByRole("button", { name: "Edit selected edge" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Inspect edge from Canvas" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.getByRole("button", { name: "Edit selected edge" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.getByRole("button", { name: "Delete selected edge" }).hasAttribute("disabled")).toBe(true);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try selecting test edge B" }));
+    expect(screen.getByText("Selected edge: edge-a")).toBeTruthy();
+  });
+
+  it("moves selection and clipboard counts out of the single-row header at the desktop boundary", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.project = {
+      ...snapshot.project,
+      title: "A deliberately long Project title that must truncate without hiding workspace controls",
+    };
+    fetchMock.mockImplementation(() => jsonResponse(snapshot));
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Select two test Map items" }));
+    fireEvent.keyDown(document, { key: "c", code: "KeyC", ctrlKey: true });
+
+    const header = document.querySelector<HTMLElement>(".project-workspace-header")!;
+    const workspace = document.querySelector<HTMLElement>(".project-desktop-workspace")!;
+    await waitFor(() => {
+      expect(within(header).queryByText("2 selected")).toBeNull();
+      expect(within(header).queryByText("2 copied")).toBeNull();
+      expect(within(workspace).getByText("2 selected")).toBeTruthy();
+      expect(within(workspace).getByText("2 copied")).toBeTruthy();
+    });
+    expect(within(header).getByRole("button", { name: "References" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Inspector" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Undo" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Redo" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Save" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();
+    expect(header.querySelectorAll(".project-control-label-compact")).toHaveLength(5);
+
+    document.documentElement.dataset.theme = "dark";
+    expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();
+    delete document.documentElement.dataset.theme;
   });
 
   it("moves a Project to trash and exact-retries the same lifecycle request after an uncertain outcome", async () => {
