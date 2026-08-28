@@ -666,6 +666,7 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(document.activeElement).toBe(canvas());
 
     fireEvent.click(view.getByRole("button", { name: "Reject edge selection for test" }));
+    await waitFor(() => expect(edge()).toBeTruthy());
     fireEvent.contextMenu(edge(), { clientX: 300, clientY: 220 });
     await waitFor(() => expect(container.querySelector(".project-map-context-menu")).toBeNull());
   });
