@@ -273,6 +273,7 @@ export function ProjectPage() {
   const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
   const [ownedContentActionError, setOwnedContentActionError] = useState("");
   const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
+  const [projectActionsOpen, setProjectActionsOpen] = useState(false);
   const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
   const [projectDeleteConfirmation, setProjectDeleteConfirmation] = useState("");
   const [projectDeleteError, setProjectDeleteError] = useState("");
@@ -312,6 +313,8 @@ export function ProjectPage() {
   const projectDeleteRequestRef = useRef<ProjectDeletionRequest | null>(null);
   const projectDeletionNavigationRequestedRef = useRef(false);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
+  const projectActionsRef = useRef<HTMLDivElement | null>(null);
+  const projectActionsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const appliedFocusRef = useRef<string | null>(null);
   const stableLinkCopyGenerationRef = useRef(0);
   const installPasteSnapshotRef = useRef<(
@@ -482,6 +485,35 @@ export function ProjectPage() {
       || copyPaste.unsafeRef.current !== null
       || edgeController.unsafeRef.current
   ));
+  const mapViewportActive = desktop && desktopView === "map" && snapshot !== null;
+
+  useEffect(() => {
+    const className = "project-map-viewport";
+    if (mapViewportActive) document.documentElement.classList.add(className);
+    else document.documentElement.classList.remove(className);
+    return () => document.documentElement.classList.remove(className);
+  }, [mapViewportActive]);
+
+  useEffect(() => {
+    if (!projectActionsOpen) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (!projectActionsRef.current?.contains(event.target as Node)) setProjectActionsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setProjectActionsOpen(false);
+      projectActionsTriggerRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [projectActionsOpen]);
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
     !projectDeletionNavigationRequestedRef.current
@@ -2277,20 +2309,21 @@ export function ProjectPage() {
                 ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
                 : "Saving placement changes before leaving this Project…";
 
-  return <div className={`project-page${desktop ? " desktop" : " mobile"}`}>
-    <header className="project-workspace-header">
-      <div>
-        <Link className="back-link" to="/projects">← Projects</Link>
-        <p className="eyebrow">Project workspace</p>
-        <h1>{snapshot.project.title}</h1>
+  return <div
+    className={`project-page ${desktop ? `desktop ${desktopView}` : "mobile reading"}`}
+    data-project-view={desktop ? desktopView : "reading"}
+  >
+    <header className="project-workspace-header" aria-label="Project workspace controls">
+      <div className="project-workspace-identity">
+        <Link className="back-link project-workspace-back" to="/projects">← Projects</Link>
+        <h1 title={snapshot.project.title}>{snapshot.project.title}</h1>
       </div>
+      {desktop && <div className="project-view-toggle" role="group" aria-label="Project view">
+        <button type="button" className={`button compact-button${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
+        <button type="button" className={`button compact-button${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
+      </div>}
       <div className="project-workspace-header-actions">
-        {desktop && <>
-        <div className="project-view-toggle" role="group" aria-label="Project view">
-          <button type="button" className={`button compact-button${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
-          <button type="button" className={`button compact-button${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
-        </div>
-        {desktopView === "map" && <div className="project-save-toolbar">
+        {desktop && desktopView === "map" && <div className="project-save-toolbar">
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
           {selectedItemIds.length > 1 && <span className="project-selection-count" role="status">
             {selectedItemIds.length} selected
@@ -2312,15 +2345,36 @@ export function ProjectPage() {
             }}
           >Save</button>
         </div>}
-        </>}
-        <button
-          type="button"
-          className="button danger compact-button"
-          disabled={viewSwitchDisabled || deletingProject}
-          onClick={openProjectDeletion}
-        >Move to trash</button>
+        <div ref={projectActionsRef} className="project-overflow">
+          <button
+            ref={projectActionsTriggerRef}
+            type="button"
+            className="button compact-button project-overflow-trigger"
+            aria-expanded={projectActionsOpen}
+            aria-controls="project-overflow-panel"
+            onClick={() => setProjectActionsOpen((open) => !open)}
+          >Project actions</button>
+          {projectActionsOpen && <div
+            id="project-overflow-panel"
+            className="project-overflow-panel"
+            role="group"
+            aria-label="Project actions"
+          >
+            <p className="card-label">Project</p>
+            <button
+              type="button"
+              className="button danger compact-button"
+              disabled={viewSwitchDisabled || deletingProject}
+              onClick={() => {
+                setProjectActionsOpen(false);
+                openProjectDeletion();
+              }}
+            >Move to trash</button>
+          </div>}
+        </div>
       </div>
     </header>
+    <div className="project-workspace-status-region">
 
     {focusRequest.status === "invalid" && <div className="project-save-banner warning" role="status">
       <p>The Project occurrence focus link is malformed and was not applied.</p>
@@ -2431,6 +2485,8 @@ export function ProjectPage() {
         {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
       </div>
     </div>}
+
+    </div>
 
     {desktop ? <div className="project-desktop-workspace with-reference-sidebar">
       {desktopView === "map" ? <>

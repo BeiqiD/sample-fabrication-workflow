@@ -48,6 +48,13 @@ function renderProjectPage() {
   return { router, view: render(<RouterProvider router={router} />) };
 }
 
+function openProjectActions() {
+  const trigger = screen.getByRole("button", { name: "Project actions" });
+  fireEvent.click(trigger);
+  expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  return screen.getByRole("button", { name: "Move to trash" });
+}
+
 describe("Project lifecycle UI", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
@@ -60,6 +67,51 @@ describe("Project lifecycle UI", () => {
     cleanup();
     fetchMock.mockReset();
     vi.unstubAllGlobals();
+  });
+
+  it("owns the desktop Map viewport and releases document scrolling for Reading", async () => {
+    const snapshot = projectTestSnapshot();
+    fetchMock.mockImplementationOnce(() => jsonResponse(snapshot));
+
+    const { view } = renderProjectPage();
+    await screen.findByText("Project Map fixture");
+
+    const page = document.querySelector(".project-page");
+    const header = document.querySelector(".project-workspace-header");
+    expect(page?.classList.contains("desktop")).toBe(true);
+    expect(page?.classList.contains("map")).toBe(true);
+    expect(document.documentElement.classList.contains("project-map-viewport")).toBe(true);
+    expect(header).toBeTruthy();
+    expect(within(header as HTMLElement).getByRole("heading", {
+      level: 1,
+      name: snapshot.project.title,
+    }).getAttribute("title")).toBe(snapshot.project.title);
+    expect(within(header as HTMLElement).queryByText("Project workspace")).toBeNull();
+
+    const projectActions = screen.getByRole("button", { name: "Project actions" });
+    expect(projectActions.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
+    fireEvent.click(projectActions);
+    expect(screen.getByRole("button", { name: "Move to trash" })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(projectActions.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
+    expect(document.activeElement).toBe(projectActions);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reading" }));
+    await waitFor(() => {
+      expect(page?.classList.contains("reading")).toBe(true);
+      expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Map" }));
+    await waitFor(() => {
+      expect(page?.classList.contains("map")).toBe(true);
+      expect(document.documentElement.classList.contains("project-map-viewport")).toBe(true);
+    });
+
+    view.unmount();
+    expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
   });
 
   it("moves a Project to trash and exact-retries the same lifecycle request after an uncertain outcome", async () => {
@@ -85,7 +137,7 @@ describe("Project lifecycle UI", () => {
 
     renderProjectPage();
     await screen.findByText("Project Map fixture");
-    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));
+    fireEvent.click(openProjectActions());
     expect(await screen.findByRole("alertdialog", { name: "Move Project to trash" })).toBeTruthy();
     expect(screen.getByText(/can be restored later/)).toBeTruthy();
     expect(screen.queryByText(/cannot be undone/i)).toBeNull();
@@ -145,7 +197,7 @@ describe("Project lifecycle UI", () => {
 
     renderProjectPage();
     await screen.findByText("Project Map fixture");
-    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));
+    fireEvent.click(openProjectActions());
     fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
       target: { value: initial.project.title },
     });
@@ -225,7 +277,7 @@ describe("Project lifecycle UI", () => {
 
     const { router } = renderProjectPage();
     await screen.findByText("Project Map fixture");
-    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));
+    fireEvent.click(openProjectActions());
     fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
       target: { value: projectA.project.title },
     });
@@ -250,7 +302,7 @@ describe("Project lifecycle UI", () => {
     expect(screen.queryByRole("alertdialog", { name: "Move Project to trash" })).toBeNull();
     expect(deletionCalls).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Move to trash" }));
+    fireEvent.click(openProjectActions());
     dialog = await screen.findByRole("alertdialog", { name: "Move Project to trash" });
     const confirmation = screen.getByLabelText("Type the Project title to confirm") as HTMLInputElement;
     expect(confirmation.value).toBe("");

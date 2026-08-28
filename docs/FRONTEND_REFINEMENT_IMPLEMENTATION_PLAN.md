@@ -1,13 +1,13 @@
 # Phase 5 frontend refinement implementation plan
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
-#157–#160, and the Project workspace layout and control rebuild is active through
-the bounded Phase 5C0 planning slice in Draft PR #161
+#157–#160, Phase 5C0 is complete in PR #161, and the Project workspace layout
+rebuild is active through Phase 5C1 in Draft PR #162
 
-Last reviewed: 2026-08-27
+Last reviewed: 2026-08-28
 
 Execution base: `v2/backend-foundation` at
-`a8ee0fec2b27dbb4981c285e2ce7d0d5589e3252`
+`5d52f2ccdda059e203d7225b897536e3dc888f44`
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -210,7 +210,8 @@ satisfied this gate after the independent exact-head review of PR #157 found no
 remaining concrete shell defect that justified A2. Phase 5B1/B2/B3 are complete
 in PRs #158/#159/#160; no additional B4 content-language defect is currently
 justified. The larger Project composition gap is intentionally tracked as the
-separate Phase 5C layout and control rebuild, active through its C0 planning slice.
+separate Phase 5C layout and control rebuild. Its C0 contract is complete in PR
+#161, and its C1 viewport-frame implementation is active in Draft PR #162.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -283,7 +284,7 @@ forcing those projections into identical layouts.
 
 ### Phase 5C — Project workspace layout and control architecture
 
-Status: active through Phase 5C0 in Draft PR #161.
+Status: Phase 5C0 is complete in PR #161; Phase 5C1 is active in Draft PR #162.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -709,7 +710,7 @@ Phase 5C.
 
 ### Phase 5C0 — Project layout and control contract
 
-Status: active in Draft PR #161.
+Status: complete in PR #161.
 
 #### Concrete problem
 
@@ -763,6 +764,67 @@ or color adjustments.
 The repository has one unambiguous authorization for the Project layout rebuild,
 including substantial Project button changes, and Phase 5C1 can begin without
 reopening functional product scope.
+
+### Phase 5C1 — viewport workspace frame
+
+Status: active in Draft PR #162.
+
+#### Concrete problem
+
+The desktop Map is still nested in a centered document page and a rounded
+fixed-height card. Its `100vh - fixed constant` route formula and the Map
+surface's separate `560px` minimum prevent the workspace from shrinking inside
+the viewport on short desktop screens.
+
+#### In scope
+
+- replace the desktop Map route's height subtraction with an explicit shrinking
+  height chain below global application navigation;
+- introduce the compact single-row Project top bar, truncated accessible Project
+  identity, unchanged Map/Reading mode control, save/history group, and a thin
+  Project-actions overflow adapter;
+- move Project lifecycle deletion out of permanent red chrome while preserving the
+  existing guarded confirmation and mutation flow;
+- bound explanatory route status below the top bar and give Map, References, and
+  Inspector independent scroll ownership;
+- remove the second rounded outer workspace card and the Map surface's fixed
+  minimum height;
+- return Reading and mobile to ordinary document scrolling without changing their
+  content or mutation behavior.
+
+#### Protected boundary
+
+- no panel state, rail, dock/overlay presentation, Reference drag, Inspector,
+  selection-toolbar, or responsive-threshold redesign owned by C2/C3;
+- no Project mutation, save, retry, conflict, reconciliation, geometry, selection,
+  edge, Reading-order, backend, schema, migration, dependency, or performance
+  policy change;
+- no site-wide shell or button rewrite; the root viewport class is active only for
+  a mounted desktop Project in Map mode and is removed for Reading, mobile, and
+  unmount.
+
+#### Required acceptance cases
+
+- mounted desktop Map applies the viewport-owned root class, projects the compact
+  title bar, and removes that class on Reading switch and unmount;
+- Project lifecycle deletion is absent from permanent chrome, remains reachable
+  through Project actions, and the new overflow closes on Escape with focus
+  restored;
+- source contracts prohibit a Project `100vh - fixed constant` workspace and a
+  fixed Map minimum height while retaining `min-height: 0`, bounded status
+  overflow, and panel-owned scrolling;
+- existing `560px`, `860px`, and `1180px` Project thresholds remain unchanged,
+  so C1 adds no unmeasured horizontal breakpoint;
+- `1366×768`, `1024×768`, and `1024×600` share the same intrinsic top-bar /
+  status / remaining-workspace height chain;
+- focused Project Map, Reading, lifecycle, full test/build, and Map performance
+  gates pass on the exact head before Ready.
+
+#### Exit
+
+Desktop Map owns the viewport below global navigation without page scrolling or
+fixed height subtraction; Project chrome is compact enough for C2 to add panel and
+button hierarchy without rebuilding the route frame.
 
 ## Documentation and review discipline
 
