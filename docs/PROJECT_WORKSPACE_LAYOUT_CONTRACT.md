@@ -1,12 +1,12 @@
 # Project workspace layout and control contract
 
-Status: Phase 5C0 layout/control contract; Draft PR #161
+Status: governing Phase 5C contract; C0 complete in PR #161 and C1 active in
+Draft PR #162
 
-Last reviewed: 2026-08-27 after the current Project workspace source audit and
-comparison against mature canvas/workspace composition patterns
+Last reviewed: 2026-08-28 during the Phase 5C1 viewport-frame implementation
 
-This document freezes the Project-specific layout and control decisions required
-before Phase 5C1 begins. The high-level phase order remains in
+This document governs the Project-specific layout and control decisions now being
+implemented through the bounded Phase 5C sequence. The high-level phase order remains in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md), the bounded frontend sequence
 and acceptance gates remain in
 [Phase 5 frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md),

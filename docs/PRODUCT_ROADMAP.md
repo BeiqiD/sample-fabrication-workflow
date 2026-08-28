@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-27 after PR #160 completed Phase 5B and the Project
-workspace layout and control rebuild opened through Phase 5C0 in Draft PR #161
+Last reviewed: 2026-08-28 after Phase 5C0 completed in PR #161 and the Project
+viewport workspace frame opened through Phase 5C1 in Draft PR #162
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -195,10 +195,11 @@ workspace shell and state hierarchy is complete in PR #157; its exact-head revie
 found no concrete A2 follow-up. Phase 5B1 occurrence identity language and
 Phase 5B2 edge theme/mutation-state language and Phase 5B3 Project-owned editor
 outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required.
-The materially larger Project composition gap is now authorized as Phase 5C,
-starting with Draft PR #161. Storage, lifecycle, Reference,
-and rich-content foundations return to correctness maintenance rather than
-continuing as independent feature tracks.
+The materially larger Project composition gap is authorized as Phase 5C. Its C0
+contract is complete in PR #161, and its C1 viewport-frame implementation is active
+in Draft PR #162. Storage, lifecycle, Reference, and rich-content foundations
+return to correctness maintenance rather than continuing as independent feature
+tracks.
 
 ## Active implementation roadmap
 
@@ -532,7 +533,8 @@ After the freeze:
 ### Phase 5 — frontend refinement
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
-#157–#160, and Phase 5C is active through Phase 5C0 in Draft PR #161.
+#157–#160, Phase 5C0 is complete in PR #161, and Phase 5C1 is active in Draft PR
+#162.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -711,24 +713,23 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **Phase 5C0 — Project layout and
-   control contract** in Draft PR #161.
-2. Implement **Phase 5C1 — viewport workspace frame**: compact Project top bar and
-   a full-viewport desktop Map frame, with behavior frozen.
-3. Implement **Phase 5C2 — panels and control hierarchy**: panel state, docked
+1. Complete independent review and merge of **Phase 5C1 — viewport workspace
+   frame** in Draft PR #162: compact Project top bar, bounded status area, and a
+   full-viewport desktop Map frame with behavior frozen.
+2. Implement **Phase 5C2 — panels and control hierarchy**: panel state, docked
    and desktop non-modal-overlay capabilities, preserved Canvas interaction, and
    the major Project button-family migration.
-4. Implement **Phase 5C3 — Reading and responsive composition**: measure when C2
+3. Implement **Phase 5C3 — Reading and responsive composition**: measure when C2
    presentations switch, add Reading/mobile composition without redefining panel
    modality, then run the bounded **Phase 5C4 Project integration review**.
-5. Complete **Phase 5D — attachment and media surfaces** without changing preview
+4. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.
-6. Complete **Phase 5E — source-record and directory coherence**.
-7. Run **Phase 5F — cross-product integration review** and update the measured
+5. Complete **Phase 5E — source-record and directory coherence**.
+6. Run **Phase 5F — cross-product integration review** and update the measured
    frontend baseline.
-8. Introduce a trusted server-side derivative producer only as a separately
+7. Introduce a trusted server-side derivative producer only as a separately
    reviewed follow-up; keep upload-transport convergence independently justified.
-9. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+8. Run **Phase 6 release hardening** and real-use/operational rehearsal.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

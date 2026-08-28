@@ -6,6 +6,8 @@ const mainSource = readFileSync(new URL("./main.tsx", import.meta.url), "utf8");
 const pageSource = readFileSync(new URL("./pages/ProjectPage.tsx", import.meta.url), "utf8");
 const projectsPageSource = readFileSync(new URL("./pages/ProjectsPage.tsx", import.meta.url), "utf8");
 const projectStyles = readFileSync(new URL("./project.css", import.meta.url), "utf8");
+const globalStyles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+const surfaceStyles = readFileSync(new URL("./components/project/project-map-surface.css", import.meta.url), "utf8");
 const surfaceSource = readFileSync(new URL("./components/project/ProjectMapSurface.tsx", import.meta.url), "utf8");
 const performanceSource = readFileSync(new URL("./lib/project-map-performance.ts", import.meta.url), "utf8");
 
@@ -62,7 +64,7 @@ describe("Project Map kernel boundaries", () => {
     expect(pageSource).toContain("Leave without saving");
   });
 
-  it("keeps Phase 5A1 directory states and shell geometry explicit", () => {
+  it("keeps the Phase 5A1 directory states while projecting the Phase 5C1 viewport frame", () => {
     expect(projectsPageSource).toContain('type ProjectDirectoryState = "loading" | "ready" | "error"');
     expect(projectsPageSource).toContain("const [loadError, setLoadError]");
     expect(projectsPageSource).toContain("const [createError, setCreateError]");
@@ -71,10 +73,27 @@ describe("Project Map kernel boundaries", () => {
     expect(projectsPageSource).not.toContain("<EmptyState");
     expect(projectStyles.match(/\.projects-page\s*\{/g)).toHaveLength(1);
     expect(projectStyles).toMatch(/\.projects-page\s*\{[^}]*calc\(100% - 40px\)/s);
-    expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*flex-wrap:\s*wrap;/s);
-    expect(projectStyles).toMatch(/\.project-workspace-header\s*>\s*div:first-child\s*\{[^}]*flex:\s*2 1 620px;/s);
-    expect(projectStyles).toMatch(/\.project-workspace-header-actions\s*\{[^}]*flex:\s*1 1 auto;/s);
-    expect(projectStyles).toMatch(/\.project-workspace-header-actions\s*>\s*\.button\.danger\s*\{[^}]*margin-left:\s*auto;/s);
+
+    expect(pageSource).toContain('const mapViewportActive = desktop && desktopView === "map" && snapshot !== null');
+    expect(pageSource).toContain('const className = "project-map-viewport"');
+    expect(pageSource).not.toContain('<p className="eyebrow">Project workspace</p>');
+    expect(pageSource).toContain('className="project-overflow-panel"');
+    expect(pageSource).toContain('aria-label="Project actions"');
+    expect(globalStyles).toMatch(/html\.project-map-viewport \.app-shell\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\);/s);
+    expect(globalStyles).toMatch(/html\.project-map-viewport \.app-shell > main\s*\{[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s);
+    expect(projectStyles).toMatch(/\.project-page\.desktop\.map\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*min-height:\s*50px;[^}]*grid-template-areas:\s*"identity actions";/s);
+    expect(projectStyles).toMatch(/\.project-page\.desktop \.project-workspace-header\s*\{[^}]*grid-template-areas:\s*"identity view actions";/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*36px;/s);
+    expect(projectStyles).toMatch(/\.project-view-toggle \.button\s*\{[^}]*min-height:\s*34px;/s);
+    expect(projectStyles).not.toMatch(/\.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*(?:2[0-9]|3[0-3])px;/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header h1\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
+    expect(projectStyles).toMatch(/\.project-page\.desktop\.map \.project-workspace-status-region\s*\{[^}]*max-height:\s*min\(34dvh, 240px\);[^}]*overflow-y:\s*auto;/s);
+    expect(projectStyles).toMatch(/\.project-page\.desktop\.map \.project-desktop-workspace\s*\{[^}]*flex:\s*1 1 auto;/s);
+    expect(projectStyles).toMatch(/\.project-page\.desktop\.reading \.project-desktop-workspace\s*\{[^}]*overflow:\s*visible;/s);
+    expect(projectStyles).not.toMatch(/\.project-desktop-workspace\s*\{[^}]*100vh/s);
+    expect(surfaceStyles).toMatch(/\.project-flow-canvas\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*0;/s);
+
     expect(projectStyles).toMatch(/\.project-view-toggle\s*\{[^}]*background:\s*var\(--surface-warm\);/s);
     expect(projectStyles).toMatch(/\.project-save-state\s*\{[^}]*border-radius:\s*999px;/s);
     expect(projectStyles).toContain("@media (max-width: 1180px) and (min-width: 860px)");
