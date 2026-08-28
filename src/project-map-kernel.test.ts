@@ -84,6 +84,9 @@ describe("Project Map kernel boundaries", () => {
     expect(projectStyles).toMatch(/\.project-page\.desktop\.map\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s);
     expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*min-height:\s*50px;[^}]*grid-template-areas:\s*"identity actions";/s);
     expect(projectStyles).toMatch(/\.project-page\.desktop \.project-workspace-header\s*\{[^}]*grid-template-areas:\s*"identity view actions";/s);
+    expect(projectStyles).toMatch(/\.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*36px;/s);
+    expect(projectStyles).toMatch(/\.project-view-toggle \.button\s*\{[^}]*min-height:\s*34px;/s);
+    expect(projectStyles).not.toMatch(/\.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*(?:2[0-9]|3[0-3])px;/s);
     expect(projectStyles).toMatch(/\.project-workspace-header h1\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
     expect(projectStyles).toMatch(/\.project-page\.desktop\.map \.project-workspace-status-region\s*\{[^}]*max-height:\s*min\(34dvh, 240px\);[^}]*overflow-y:\s*auto;/s);
     expect(projectStyles).toMatch(/\.project-page\.desktop\.map \.project-desktop-workspace\s*\{[^}]*flex:\s*1 1 auto;/s);

@@ -149,7 +149,7 @@
   white-space: nowrap;
 }
 .project-workspace-header .compact-button {
-  min-height: 30px;
+  min-height: 36px;
   padding: 5px 9px;
   border-radius: 7px;
   font-size: 11px;
@@ -173,7 +173,7 @@
   background: var(--surface-warm);
 }
 .project-view-toggle:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
-.project-view-toggle .button { min-height: 26px; border-color: transparent; box-shadow: none; }
+.project-view-toggle .button { min-height: 34px; border-color: transparent; box-shadow: none; }
 .project-view-toggle .button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .project-save-toolbar {
   min-width: 0;

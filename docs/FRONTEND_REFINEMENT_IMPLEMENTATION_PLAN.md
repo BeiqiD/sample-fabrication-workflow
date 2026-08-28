@@ -810,6 +810,9 @@ the viewport on short desktop screens.
 - Project lifecycle deletion is absent from permanent chrome, remains reachable
   through Project actions, and the new overflow closes on Escape with focus
   restored;
+- ordinary Project top-bar controls retain a `36px` minimum target and the
+  Map/Reading mode controls retain `34px`; the compact frame does not reuse
+  Dense Process action sizing;
 - source contracts prohibit a Project `100vh - fixed constant` workspace and a
   fixed Map minimum height while retaining `min-height: 0`, bounded status
   overflow, and panel-owned scrolling;
