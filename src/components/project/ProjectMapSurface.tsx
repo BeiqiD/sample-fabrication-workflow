@@ -65,6 +65,7 @@ import {
   normalizeProjectItemSelection,
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
   projectCanvasAlignmentGuides,
+  projectCanvasKeyboardShortcutFromEvent,
   type ProjectCanvasAlignment,
   type ProjectCanvasAlignmentGuides,
   type ProjectCanvasZOrderAction,
@@ -1346,6 +1347,18 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
           '[role="menuitem"]:not([disabled])',
         ));
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          closeContextMenu(false);
+          canvasRef.current?.focus();
+          return;
+        }
+        if (projectCanvasKeyboardShortcutFromEvent(event.nativeEvent)) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         if (items.length === 0) return;
         const currentIndex = items.indexOf(document.activeElement as HTMLElement);
         let nextIndex = currentIndex;
@@ -1353,13 +1366,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         else if (event.key === "ArrowUp") nextIndex = (currentIndex - 1 + items.length) % items.length;
         else if (event.key === "Home") nextIndex = 0;
         else if (event.key === "End") nextIndex = items.length - 1;
-        else if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          closeContextMenu(false);
-          canvasRef.current?.focus();
-          return;
-        } else return;
+        else return;
         event.preventDefault();
         items[nextIndex]?.focus();
       }}

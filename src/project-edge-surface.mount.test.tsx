@@ -671,6 +671,58 @@ it("keeps edge selection and connection handles stable after local geometry move
     await waitFor(() => expect(container.querySelector(".project-map-context-menu")).toBeNull());
   });
 
+  it("contains Ctrl/Cmd+A while an occurrence menu owns focus", async () => {
+    const nodes = projectMapNodes(projectTestSnapshot());
+    const onSelect = vi.fn();
+    const view = render(<div className="project-desktop-workspace" style={{ width: 900, height: 700 }}>
+      <ProjectMapSurface
+        nodes={nodes}
+        selectedItemId={null}
+        onSelect={onSelect}
+        onGeometryCommit={() => undefined}
+      />
+    </div>);
+    const { container } = view;
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__node")).toHaveLength(2));
+    const reference = container.querySelector<HTMLElement>(
+      '.react-flow__node[data-id="item-reference"]',
+    )!;
+
+    fireEvent.contextMenu(reference, { clientX: 420, clientY: 180 });
+    await waitFor(() => expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy());
+    await waitFor(() => expect(document.activeElement).toBe(
+      view.getByRole("menuitem", { name: "Open Reference" }),
+    ));
+
+    const leakedSelectAll = vi.fn();
+    const onDocumentKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") leakedSelectAll();
+    };
+    const shortcutEvents: KeyboardEvent[] = [];
+    document.addEventListener("keydown", onDocumentKeyDown);
+    try {
+      for (const modifier of [{ ctrlKey: true }, { metaKey: true }]) {
+        const event = new KeyboardEvent("keydown", {
+          key: "a",
+          code: "KeyA",
+          bubbles: true,
+          cancelable: true,
+          ...modifier,
+        });
+        fireEvent(document.activeElement!, event);
+        shortcutEvents.push(event);
+      }
+    } finally {
+      document.removeEventListener("keydown", onDocumentKeyDown);
+    }
+
+    for (const event of shortcutEvents) expect(event.defaultPrevented).toBe(true);
+    expect(leakedSelectAll).not.toHaveBeenCalled();
+    expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy();
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith("item-reference");
+  });
+
   it("keeps selected and failed edge markers aligned with Project state tokens", async () => {
     const snapshot = projectTestSnapshot();
     const selectedEdge = edgeRecord();

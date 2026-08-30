@@ -4,10 +4,11 @@ Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2 is active through retargeted Draft PR #163
 
-Last reviewed: 2026-08-28
+Last reviewed: 2026-08-30
 
-Stacked execution base: `agent/phase-5c1-viewport-workspace-frame` at
-`dfde54425c915c74336c8bd67cce583b1b72515c`
+Execution base: `v2/backend-foundation` at
+`a929f4f37f085056d3fdbe31bf4e62a02710b4a9`; PR #162 is merged and Draft PR
+#163 is retargeted directly to this base
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -859,7 +860,8 @@ navigation, and creation commands scattered across unrelated button sites.
 - share the existing selection, copy/paste, alignment, z-order, edit, removal, edge,
   and panel commands between keyboard/top-bar/Inspector/context projections;
 - provide menu focus entry, Arrow/Home/End navigation, Escape close, outside-click
-  close, viewport clamping, disabled states, and focus restoration.
+  close, viewport clamping, disabled states, focus restoration, and isolation from
+  document-level Canvas shortcuts while menu focus is active.
 
 #### Protected boundary
 
@@ -882,7 +884,8 @@ navigation, and creation commands scattered across unrelated button sites.
 - the hidden attachment input and exact-position creation paths remain available
   with the Reference panel closed;
 - mounted menus cover blank Canvas, single occurrence, multi-selection, and edge,
-  including keyboard traversal and Escape focus return;
+  including keyboard traversal, Escape focus return, and Ctrl/Cmd Canvas-shortcut
+  isolation while a menu item owns focus;
 - attachment commands keep the stored file and optional source URL as separate,
   safely projected destinations with labels that match the navigation target;
 - the menu is a workspace-level overlay above floating panels; ordinary command

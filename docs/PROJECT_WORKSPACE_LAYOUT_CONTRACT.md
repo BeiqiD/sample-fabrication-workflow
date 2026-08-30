@@ -1,9 +1,10 @@
 # Project workspace layout and control contract
 
-Status: governing Phase 5C contract; C0 complete in PR #161, C1 in Draft PR
-#162, and C2 active through stacked Draft PR #163
+Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
+merged PR #162, and C2 active through retargeted Draft PR #163
 
-Last reviewed: 2026-08-28 during the Phase 5C2a floating-panel and context-command implementation
+Last reviewed: 2026-08-30 during the retargeted Phase 5C2a floating-panel and
+context-command implementation
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in
@@ -278,6 +279,9 @@ coordinates remain clamped to the Canvas/workspace rectangle.
   controller capability;
 - Escape restores Canvas focus; ordinary activation falls back to Canvas only when
   the command did not open an editor or panel destination;
+- while a menu item owns focus, document-level Canvas shortcuts are consumed by
+  the menu and must not change selection, history, clipboard, or save state behind
+  the still-open target-specific command surface;
 - commands that open References/Inspector focus that panel, while an unpinned
   Inspector removed by selection clearing restores a surviving trigger when its
   focused descendant would otherwise be removed.
