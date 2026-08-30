@@ -2,12 +2,12 @@
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2 is active through retargeted Draft PR #163
+and Phase 5C2 is active through retargeted PR #163
 
 Last reviewed: 2026-08-30
 
 Execution base: `v2/backend-foundation` at
-`a929f4f37f085056d3fdbe31bf4e62a02710b4a9`; PR #162 is merged and Draft PR
+`a929f4f37f085056d3fdbe31bf4e62a02710b4a9`; PR #162 is merged, and PR
 #163 is retargeted directly to this base
 
 This document turns the whole-product Phase 5 goal in
@@ -286,7 +286,7 @@ forcing those projections into identical layouts.
 ### Phase 5C — Project workspace layout and control architecture
 
 Status: Phase 5C0 is complete in PR #161; Phase 5C1 is complete in PR #162,
-and Phase 5C2 is active through its retargeted C2a Draft PR #163.
+and Phase 5C2 is active through its retargeted C2a PR #163.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -834,7 +834,7 @@ button hierarchy without rebuilding the route frame.
 
 ### Phase 5C2a — floating panels and context-aware Canvas commands
 
-Status: active in retargeted Draft PR #163, based on
+Status: active in retargeted PR #163, based on
 `v2/backend-foundation` after PR #162.
 
 #### Concrete problem

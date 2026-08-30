@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-28 with Phase 5C1 complete in PR #162 and the floating-panel /
-context-command part of Phase 5C2 active in retargeted Draft PR #163
+Last reviewed: 2026-08-30 with Phase 5C1 complete in PR #162 and the floating-panel /
+context-command part of Phase 5C2 active in retargeted PR #163
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -534,7 +534,7 @@ After the freeze:
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2 is active through retargeted Draft PR #163.
+and Phase 5C2 is active through retargeted PR #163.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -713,7 +713,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review of retargeted Draft PR #163 for **Phase 5C2a —
+1. Complete and merge retargeted PR #163 for **Phase 5C2a —
    floating panels and context-aware Canvas commands**: Canvas stays full-area,
    both desktop panels float non-modally, and blank/node/selection/edge
    right-clicks reuse existing commands.
