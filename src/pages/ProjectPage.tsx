@@ -40,7 +40,10 @@ import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
 import { ProjectInspectorChildren } from "../components/project/ProjectInspectorChildren";
 import { ProjectEditorFeedback } from "../components/project/ProjectEditorFeedback";
 import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
-import type { ProjectMapSurfaceHandle } from "../components/project/ProjectMapSurface";
+import type {
+  ProjectMapContextCommands,
+  ProjectMapSurfaceHandle,
+} from "../components/project/ProjectMapSurface";
 import {
   ProjectApiError,
   createProjectApiId,
@@ -273,6 +276,9 @@ export function ProjectPage() {
   const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
   const [ownedContentActionError, setOwnedContentActionError] = useState("");
   const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
+  const [referencePanelOpen, setReferencePanelOpen] = useState(true);
+  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false);
+  const [inspectorPinned, setInspectorPinned] = useState(false);
   const [projectActionsOpen, setProjectActionsOpen] = useState(false);
   const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
   const [projectDeleteConfirmation, setProjectDeleteConfirmation] = useState("");
@@ -313,6 +319,11 @@ export function ProjectPage() {
   const projectDeleteRequestRef = useRef<ProjectDeletionRequest | null>(null);
   const projectDeletionNavigationRequestedRef = useRef(false);
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
+  const referencePanelRef = useRef<HTMLElement | null>(null);
+  const inspectorPanelRef = useRef<HTMLElement | null>(null);
+  const referencePanelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const inspectorPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const inspectorHadTargetRef = useRef(false);
   const projectActionsRef = useRef<HTMLDivElement | null>(null);
   const projectActionsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const appliedFocusRef = useRef<string | null>(null);
@@ -493,6 +504,72 @@ export function ProjectPage() {
     else document.documentElement.classList.remove(className);
     return () => document.documentElement.classList.remove(className);
   }, [mapViewportActive]);
+
+  useEffect(() => {
+    if (!desktop || desktopView !== "map") return;
+    if (pendingReference || pendingAttachment) setReferencePanelOpen(true);
+    const hasInspectorTarget = selectedItemIds.length > 0
+      || edgeController.selectedEdgeId !== null
+      || attachmentEditor !== null
+      || edgeController.editor !== null;
+    const hadInspectorTarget = inspectorHadTargetRef.current;
+    inspectorHadTargetRef.current = hasInspectorTarget;
+    if (hasInspectorTarget) setInspectorPanelOpen(true);
+    else if (!inspectorPinned) {
+      const activeElement = document.activeElement;
+      const restoreFocus = hadInspectorTarget && (
+        !activeElement
+        || activeElement === document.body
+        || !document.contains(activeElement)
+        || Boolean(inspectorPanelRef.current?.contains(activeElement))
+      );
+      setInspectorPanelOpen(false);
+      if (restoreFocus) {
+        window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
+      }
+    }
+    // Pin state is deliberately not a trigger: explicitly closing a pinned
+    // Inspector with a selection present must not immediately reopen it.
+  }, [
+    attachmentEditor,
+    desktop,
+    desktopView,
+    edgeController.editor,
+    edgeController.selectedEdgeId,
+    pendingAttachment,
+    pendingReference,
+    selectedItemIds,
+  ]);
+
+  useEffect(() => {
+    if (!desktop || desktopView !== "map") return;
+    const closePanelOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || projectionSwitchLocked) return;
+      const target = event.target as Node;
+      if (inspectorPanelOpen && inspectorPanelRef.current?.contains(target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        setInspectorPanelOpen(false);
+        setInspectorPinned(false);
+        window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
+        return;
+      }
+      if (referencePanelOpen && referencePanelRef.current?.contains(target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        setReferencePanelOpen(false);
+        window.requestAnimationFrame(() => referencePanelTriggerRef.current?.focus());
+      }
+    };
+    document.addEventListener("keydown", closePanelOnEscape, true);
+    return () => document.removeEventListener("keydown", closePanelOnEscape, true);
+  }, [
+    desktop,
+    desktopView,
+    inspectorPanelOpen,
+    projectionSwitchLocked,
+    referencePanelOpen,
+  ]);
 
   useEffect(() => {
     if (!projectActionsOpen) return;
@@ -1932,12 +2009,13 @@ export function ProjectPage() {
   }, [selectProjectItems]);
 
   const selectProjectEdge = useCallback((edgeId: string | null) => {
-    if (markdownEditorRef.current || attachmentEditorRef.current) return;
+    if (markdownEditorRef.current || attachmentEditorRef.current) return false;
+    if (edgeController.selectEdge(edgeId) === false) return false;
     if (edgeId !== null) {
       setSelectedItemIds([]);
       setNavigationFocusItemId(null);
     }
-    edgeController.selectEdge(edgeId);
+    return true;
   }, [edgeController.selectEdge]);
 
   const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
@@ -2010,10 +2088,9 @@ export function ProjectPage() {
     setStableLinkCopyState(null);
   }, [projectId, selectedItemId]);
 
-  const copySelectedItemLink = useCallback(async () => {
-    if (!selected) return;
+  const copyProjectItemLink = useCallback(async (itemId: string) => {
+    if (!descriptors.some((descriptor) => descriptor.itemId === itemId)) return;
     const requestProjectId = projectId;
-    const itemId = selected.itemId;
     const generation = stableLinkCopyGenerationRef.current + 1;
     stableLinkCopyGenerationRef.current = generation;
     setStableLinkCopyState(null);
@@ -2035,20 +2112,33 @@ export function ProjectPage() {
       if (!requestIsCurrent()) return;
       setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "error" });
     }
-  }, [location.pathname, projectId, selected]);
+  }, [descriptors, location.pathname, projectId]);
+
+  const copySelectedItemLink = useCallback(() => {
+    if (!selected) return;
+    return copyProjectItemLink(selected.itemId);
+  }, [copyProjectItemLink, selected]);
 
   const selectedStableLinkCopyStatus = stableLinkCopyState?.projectId === projectId
     && stableLinkCopyState.itemId === selectedItemId
     ? stableLinkCopyState.status
     : "idle";
 
-  const removeSelectedReference = useCallback(() => {
-    if (!snapshot || !selectedItem || selectedItem.itemType !== "reference"
-      || saveStateRef.current !== "saved" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+  const removeReferenceItem = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current) return;
-    startReferenceRemoval(selectedItem.id, selectedItem.revision);
-  }, [selectedItem, snapshot, startReferenceRemoval]);
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    if (!item || item.itemType !== "reference") return;
+    setSelectedItemIds([item.id]);
+    startReferenceRemoval(item.id, item.revision);
+  }, [snapshot, startReferenceRemoval]);
+
+  const removeSelectedReference = useCallback(() => {
+    if (!selectedItem) return;
+    removeReferenceItem(selectedItem.id);
+  }, [removeReferenceItem, selectedItem]);
 
   const removeMarkdownItem = useCallback((itemId: string) => {
     if (!snapshot || saveStateRef.current !== "saved"
@@ -2078,8 +2168,136 @@ export function ProjectPage() {
     startReferenceRemoval(item.id, item.revision, content.revision);
   }, [snapshot, startReferenceRemoval]);
 
-  // Install Canvas shortcuts in the same commit as the desktop Map. This
-  // avoids a one-frame listener gap when the lazy Map surface resolves.
+  const canvasCommandOperationBlocked = useCallback(() => Boolean(
+    pendingReferenceRef.current
+    || pendingReferenceRemovalRef.current
+    || markdownEditorRef.current
+    || pendingAttachmentRef.current
+    || attachmentEditorRef.current
+    || projectDeleteRequestRef.current
+    || copyPaste.unsafeRef.current
+    || edgeController.unsafeRef.current
+  ), [copyPaste.unsafeRef, edgeController.unsafeRef]);
+
+  const copyCanvasSelection = useCallback(() => {
+    if (canvasCommandOperationBlocked() || saveStateRef.current !== "saved"
+      || !snapshot || selectedItemIds.length === 0) return false;
+    copyPaste.copySelection(
+      snapshotWithPlacementProjection(snapshot, geometryRef.current),
+      selectedItemIds,
+    );
+    return true;
+  }, [
+    canvasCommandOperationBlocked,
+    copyPaste.copySelection,
+    selectedItemIds,
+    snapshot,
+  ]);
+
+  const pasteCanvasSelection = useCallback(() => {
+    if (canvasCommandOperationBlocked() || saveStateRef.current !== "saved" || !snapshot) return false;
+    if (!copyPaste.pasteClipboard(
+      snapshotWithPlacementProjection(snapshot, geometryRef.current),
+    )) return false;
+    setSelectedItemIds([]);
+    setNavigationFocusItemId(null);
+    edgeController.selectEdge(null);
+    return true;
+  }, [
+    canvasCommandOperationBlocked,
+    copyPaste.pasteClipboard,
+    edgeController.selectEdge,
+    snapshot,
+  ]);
+
+  const selectAllCanvasItems = useCallback(() => {
+    if (canvasCommandOperationBlocked() || descriptors.length === 0) return false;
+    const primaryItemId = selectedItemId
+      && descriptors.some((descriptor) => descriptor.itemId === selectedItemId)
+      ? selectedItemId
+      : descriptors.at(-1)?.itemId ?? null;
+    return selectProjectItems({
+      itemIds: descriptors.map((descriptor) => descriptor.itemId),
+      primaryItemId,
+    }) !== false;
+  }, [
+    canvasCommandOperationBlocked,
+    descriptors,
+    selectProjectItems,
+    selectedItemId,
+  ]);
+
+  const clearCanvasSelection = useCallback(() => {
+    if (canvasCommandOperationBlocked()
+      || (selectedItemIds.length === 0 && !edgeController.selectedEdgeId)) return false;
+    selectProjectItems({ itemIds: [], primaryItemId: null });
+    edgeController.selectEdge(null);
+    return true;
+  }, [
+    canvasCommandOperationBlocked,
+    edgeController.selectEdge,
+    edgeController.selectedEdgeId,
+    selectProjectItems,
+    selectedItemIds.length,
+  ]);
+
+  const focusReferencePanel = useCallback(() => {
+    window.requestAnimationFrame(() => referencePanelRef.current?.focus());
+  }, []);
+
+  const focusInspectorPanel = useCallback(() => {
+    window.requestAnimationFrame(() => inspectorPanelRef.current?.focus());
+  }, []);
+
+  const inspectContextItem = useCallback((itemId: string) => {
+    if (selectProjectItem(itemId) === false) return;
+    setInspectorPanelOpen(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel, selectProjectItem]);
+
+  const editContextItem = useCallback((itemId: string) => {
+    const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
+    if (!descriptor) return;
+    setInspectorPanelOpen(true);
+    if (descriptor.kind === "markdown") startMarkdownEdit(itemId);
+    else if (descriptor.kind === "attachment") {
+      startAttachmentEdit(itemId);
+      focusInspectorPanel();
+    }
+  }, [descriptors, focusInspectorPanel, startAttachmentEdit, startMarkdownEdit]);
+
+  const removeContextItem = useCallback((itemId: string) => {
+    const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
+    if (!descriptor) return;
+    if (descriptor.kind === "reference") removeReferenceItem(itemId);
+    else if (descriptor.kind === "markdown") removeMarkdownItem(itemId);
+    else removeAttachmentItem(itemId);
+  }, [
+    descriptors,
+    removeAttachmentItem,
+    removeMarkdownItem,
+    removeReferenceItem,
+  ]);
+
+  const inspectContextEdge = useCallback((edgeId: string) => {
+    if (selectProjectEdge(edgeId) === false) return;
+    setInspectorPanelOpen(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel, selectProjectEdge]);
+
+  const openReferencePanel = useCallback(() => {
+    setReferencePanelOpen(true);
+    focusReferencePanel();
+  }, [focusReferencePanel]);
+
+  const openInspectorPanel = useCallback(() => {
+    setInspectorPanelOpen(true);
+    setInspectorPinned(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel]);
+
+  // Keyboard shortcuts and context menus share these route commands, so
+  // selection, paste, and history never gain a second mutation path.
   useLayoutEffect(() => {
     if (!desktop || desktopView !== "map") return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -2087,57 +2305,24 @@ export function ProjectPage() {
       const shortcut = projectCanvasKeyboardShortcutFromEvent(event);
       if (!shortcut) return;
       if (shortcut === "save") event.preventDefault();
-      const operationBlocked = Boolean(
-        pendingReferenceRef.current
-        || pendingReferenceRemovalRef.current
-        || markdownEditorRef.current
-        || pendingAttachmentRef.current
-        || attachmentEditorRef.current
-        || projectDeleteRequestRef.current
-        || copyPaste.unsafeRef.current
-        || edgeController.unsafeRef.current
-      );
 
       if (shortcut === "copy") {
-        if (operationBlocked || saveStateRef.current !== "saved" || !snapshot || selectedItemIds.length === 0) return;
-        event.preventDefault();
-        copyPaste.copySelection(
-          snapshotWithPlacementProjection(snapshot, geometryRef.current),
-          selectedItemIds,
-        );
+        if (copyCanvasSelection()) event.preventDefault();
         return;
       }
       if (shortcut === "paste") {
-        if (operationBlocked || saveStateRef.current !== "saved" || !snapshot) return;
-        if (!copyPaste.pasteClipboard(
-          snapshotWithPlacementProjection(snapshot, geometryRef.current),
-        )) return;
-        event.preventDefault();
-        setSelectedItemIds([]);
-        setNavigationFocusItemId(null);
-        edgeController.selectEdge(null);
+        if (pasteCanvasSelection()) event.preventDefault();
         return;
       }
-      if (operationBlocked) return;
 
+      const operationBlocked = canvasCommandOperationBlocked();
+      if (operationBlocked) return;
       if (shortcut === "select-all") {
-        if (descriptors.length === 0) return;
-        event.preventDefault();
-        const primaryItemId = selectedItemId
-          && descriptors.some((descriptor) => descriptor.itemId === selectedItemId)
-          ? selectedItemId
-          : descriptors.at(-1)?.itemId ?? null;
-        selectProjectItems({
-          itemIds: descriptors.map((descriptor) => descriptor.itemId),
-          primaryItemId,
-        });
+        if (selectAllCanvasItems()) event.preventDefault();
         return;
       }
       if (shortcut === "clear-selection") {
-        if (selectedItemIds.length === 0 && !edgeController.selectedEdgeId) return;
-        event.preventDefault();
-        selectProjectItems({ itemIds: [], primaryItemId: null });
-        edgeController.selectEdge(null);
+        if (clearCanvasSelection()) event.preventDefault();
         return;
       }
       if (shortcut === "undo") {
@@ -2165,20 +2350,15 @@ export function ProjectPage() {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [
+    canvasCommandOperationBlocked,
+    clearCanvasSelection,
+    copyCanvasSelection,
     desktop,
     desktopView,
-    descriptors,
-    copyPaste.copySelection,
-    copyPaste.pasteClipboard,
-    edgeController.selectEdge,
-    edgeController.selectedEdgeId,
-    edgeController.unsafeRef,
+    pasteCanvasSelection,
     redo,
     redoStack.length,
-    selectProjectItems,
-    selectedItemId,
-    selectedItemIds,
-    snapshot,
+    selectAllCanvasItems,
     undo,
     undoStack.length,
   ]);
@@ -2222,6 +2402,66 @@ export function ProjectPage() {
     geometryInteractionDisabled
     || projectCanvasZOrderCommands(descriptors, selectedItemIds, action).length === 0
   );
+  const canvasCommandsBlocked = canvasCommandOperationBlocked();
+  const createCommandDisabled = geometryInteractionDisabled
+    || pendingReference !== null
+    || saveState === "conflict";
+  const edgeInspectDisabled = markdownEditor !== null
+    || attachmentEditor !== null
+    || edgeController.unsafe;
+  const edgeMutationCommandsDisabled = edgeController.interactionDisabled
+    || saveState !== "saved";
+  const contextCommands: ProjectMapContextCommands = {
+    createDisabled: createCommandDisabled,
+    selectAllDisabled: canvasCommandsBlocked || descriptors.length === 0,
+    clearSelectionDisabled: canvasCommandsBlocked
+      || (selectedItemIds.length === 0 && edgeController.selectedEdgeId === null),
+    copyDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState !== "saved"
+      || selectedItemIds.length === 0,
+    pasteDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState !== "saved"
+      || copyPaste.clipboard?.status !== "ready",
+    editDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState === "conflict",
+    removeDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState !== "saved",
+    edgeInspectDisabled,
+    edgeEditDisabled: edgeMutationCommandsDisabled,
+    edgeDeleteDisabled: edgeMutationCommandsDisabled,
+    panelCommandsDisabled: false,
+    alignmentDisabled: alignmentActionDisabled,
+    zOrderDisabled: zOrderActionDisabled,
+    inspectItem: inspectContextItem,
+    editItem: editContextItem,
+    copyItemLink: copyProjectItemLink,
+    copySelection: copyCanvasSelection,
+    pasteSelection: pasteCanvasSelection,
+    selectAll: selectAllCanvasItems,
+    clearSelection: clearCanvasSelection,
+    alignSelection: alignSelectedItems,
+    changeZOrder: changeSelectedZOrder,
+    removeItem: removeContextItem,
+    inspectEdge: inspectContextEdge,
+    editEdge: () => {
+      if (edgeController.startEdit() === false) return;
+      setInspectorPanelOpen(true);
+      focusInspectorPanel();
+    },
+    deleteEdge: () => {
+      edgeController.deleteSelected();
+    },
+    openReferences: openReferencePanel,
+    openInspector: openInspectorPanel,
+  };
   const alignmentControls = <div className="project-canvas-command-group">
     <p className="card-label">Align selection</p>
     <div className="project-canvas-command-grid align" role="group" aria-label="Align selected items">
@@ -2323,16 +2563,56 @@ export function ProjectPage() {
         <button type="button" className={`button compact-button${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
       </div>}
       <div className="project-workspace-header-actions">
+        {desktop && desktopView === "map" && <div
+          className="project-panel-toggle-group"
+          role="group"
+          aria-label="Workspace panels"
+        >
+          <button
+            ref={referencePanelTriggerRef}
+            type="button"
+            className="button compact-button"
+            aria-controls="project-reference-panel"
+            aria-pressed={referencePanelOpen}
+            aria-label="References"
+            disabled={viewSwitchDisabled && referencePanelOpen}
+            onClick={() => setReferencePanelOpen((open) => !open)}
+          >
+            <span className="project-control-label-full">References</span>
+            <span className="project-control-label-compact" aria-hidden="true">Refs</span>
+          </button>
+          <button
+            ref={inspectorPanelTriggerRef}
+            type="button"
+            className="button compact-button"
+            aria-controls="project-inspector-panel"
+            aria-pressed={inspectorPanelOpen}
+            aria-label="Inspector"
+            disabled={viewSwitchDisabled && inspectorPanelOpen}
+            onClick={() => {
+              if (inspectorPanelOpen) {
+                setInspectorPanelOpen(false);
+                setInspectorPinned(false);
+              } else {
+                setInspectorPanelOpen(true);
+                setInspectorPinned(true);
+              }
+            }}
+          >
+            <span className="project-control-label-full">Inspector</span>
+            <span className="project-control-label-compact" aria-hidden="true">Inspect</span>
+          </button>
+        </div>}
         {desktop && desktopView === "map" && <div className="project-save-toolbar">
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-          {selectedItemIds.length > 1 && <span className="project-selection-count" role="status">
-            {selectedItemIds.length} selected
-          </span>}
-          {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count" role="status">
-            {copyPaste.clipboard.itemCount} copied
-          </span>}
-          <button type="button" className="button compact-button" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>Undo</button>
-          <button type="button" className="button compact-button" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>Redo</button>
+          <button type="button" className="button compact-button" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
+            <span className="project-control-label-full">Undo</span>
+            <span className="project-control-label-compact" aria-hidden="true">↶</span>
+          </button>
+          <button type="button" className="button compact-button" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
+            <span className="project-control-label-full">Redo</span>
+            <span className="project-control-label-compact" aria-hidden="true">↷</span>
+          </button>
           <button
             type="button"
             className="button primary compact-button"
@@ -2350,10 +2630,14 @@ export function ProjectPage() {
             ref={projectActionsTriggerRef}
             type="button"
             className="button compact-button project-overflow-trigger"
+            aria-label="Project actions"
             aria-expanded={projectActionsOpen}
             aria-controls="project-overflow-panel"
             onClick={() => setProjectActionsOpen((open) => !open)}
-          >Project actions</button>
+          >
+            <span className="project-control-label-full">Project actions</span>
+            <span className="project-control-label-compact" aria-hidden="true">More</span>
+          </button>
           {projectActionsOpen && <div
             id="project-overflow-panel"
             className="project-overflow-panel"
@@ -2488,26 +2772,62 @@ export function ProjectPage() {
 
     </div>
 
-    {desktop ? <div className="project-desktop-workspace with-reference-sidebar">
+    {desktop ? <div className="project-desktop-workspace with-reference-sidebar"
+      data-reference-open={desktopView === "map" && referencePanelOpen}
+      data-inspector-open={desktopView === "map" && inspectorPanelOpen}
+    >
       {desktopView === "map" ? <>
-      <aside className="project-reference-sidebar" aria-label="Reference search and placement">
+      <input
+        ref={attachmentInputRef}
+        className="project-hidden-file-input"
+        type="file"
+        aria-label="Choose Project attachment"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0] ?? null;
+          event.currentTarget.value = "";
+          handleAttachmentFile(file);
+        }}
+      />
+      {(selectedItemIds.length > 1 || copyPaste.clipboard?.status === "ready") && <div
+        className="project-canvas-transient-status"
+        role="status"
+        aria-label="Canvas selection and clipboard status"
+      >
+        {selectedItemIds.length > 1 && <span className="project-selection-count">
+          {selectedItemIds.length} selected
+        </span>}
+        {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count">
+          {copyPaste.clipboard.itemCount} copied
+        </span>}
+      </div>}
+      {referencePanelOpen && <aside
+        ref={referencePanelRef}
+        id="project-reference-panel"
+        className="project-reference-sidebar"
+        aria-label="Reference search and placement"
+        tabIndex={-1}
+        data-panel-presentation="floating"
+      >
+        <div className="project-workspace-panel-toolbar">
+          <p className="card-label">References &amp; content</p>
+          <button
+            type="button"
+            className="button compact-button"
+            aria-label="Close References"
+            aria-keyshortcuts="Escape"
+            disabled={viewSwitchDisabled}
+            onClick={() => {
+              setReferencePanelOpen(false);
+              window.requestAnimationFrame(() => referencePanelTriggerRef.current?.focus());
+            }}
+          >Close</button>
+        </div>
         <div className="project-reference-sidebar-heading">
           <p className="card-label">Add Project content</p>
           <p className="card-meta">Double-click empty Map space for Markdown, or add a generic file at the visible Map center.</p>
         </div>
         <div className="project-owned-content-actions">
           <button type="button" className="button wide" disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || saveState === "conflict"} onClick={requestAttachmentAtCenter}>Add attachment</button>
-          <input
-            ref={attachmentInputRef}
-            className="project-hidden-file-input"
-            type="file"
-            aria-label="Choose Project attachment"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0] ?? null;
-              event.currentTarget.value = "";
-              handleAttachmentFile(file);
-            }}
-          />
         </div>
         {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}>
           <strong>{pendingAttachment.filename}</strong>
@@ -2552,7 +2872,7 @@ export function ProjectPage() {
           placementDisabled={referencePlacementDisabled}
           onPlaceAtCenter={placeReferenceAtCenter}
         />
-      </aside>
+      </aside>}
       <section className="project-map-panel" aria-label="Project Map">
         <Suspense fallback={<div className="project-map-loading"><p className="muted">Loading Map editor…</p></div>}>
           <DesktopProjectMap
@@ -2569,6 +2889,7 @@ export function ProjectPage() {
             selectedEdgeId={edgeController.selectedEdgeId}
             geometryInteractionDisabled={geometryInteractionDisabled}
             edgeInteractionDisabled={edgeController.interactionDisabled}
+            contextCommands={contextCommands}
             onSelect={selectProjectItem}
             onSelectionChange={selectProjectItems}
             onEdgeSelect={selectProjectEdge}
@@ -2585,8 +2906,45 @@ export function ProjectPage() {
           />
         </Suspense>
       </section>
-      <aside className="project-inspector" aria-label="Project Inspector">
-        <p className="card-label">Inspector</p>
+      {inspectorPanelOpen && <aside
+        ref={inspectorPanelRef}
+        id="project-inspector-panel"
+        className="project-inspector"
+        aria-label="Project Inspector"
+        tabIndex={-1}
+        data-panel-presentation="floating"
+      >
+        <div className="project-workspace-panel-toolbar">
+          <p className="card-label">Inspector</p>
+          <div className="project-workspace-panel-actions">
+            <button
+              type="button"
+              className="button compact-button"
+              aria-pressed={inspectorPinned}
+              disabled={viewSwitchDisabled}
+              onClick={() => {
+                const nextPinned = !inspectorPinned;
+                setInspectorPinned(nextPinned);
+                if (!nextPinned && selectedItemIds.length === 0 && !edgeController.selectedEdgeId) {
+                  setInspectorPanelOpen(false);
+                  window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
+                }
+              }}
+            >{inspectorPinned ? "Unpin" : "Pin"}</button>
+            <button
+              type="button"
+              className="button compact-button"
+              aria-label="Close Inspector"
+              aria-keyshortcuts="Escape"
+              disabled={viewSwitchDisabled}
+              onClick={() => {
+                setInspectorPanelOpen(false);
+                setInspectorPinned(false);
+                window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
+              }}
+            >Close</button>
+          </div>
+        </div>
         {edgeController.selectedEdge ? <div className="project-inspector-content">
           <span className="meta-badge">edge</span>
           <h2>{edgeController.selectedEdge.label || "Relationship"}</h2>
@@ -2739,7 +3097,7 @@ export function ProjectPage() {
             : "Remove from Project"}</button>}
           {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
         </div> : <p className="muted">Select a Map item or edge to inspect it.</p>}
-      </aside>
+      </aside>}
       </> : <Suspense fallback={<div className="card"><p className="muted">Loading Reading…</p></div>}>
         <ProjectReadingSurface
           nodes={readingNodes}

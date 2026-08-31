@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   Background,
   ConnectionMode,
@@ -23,7 +24,7 @@ import {
   type Connection,
   type Edge,
   type EdgeChange,
-  type Node,
+  type Node as ReactFlowNode,
   type NodeChange,
   type NodeProps,
   type OnMove,
@@ -53,6 +54,7 @@ import {
   type ProjectGeometryCommand,
   type ProjectNodeDescriptor,
 } from "../../lib/project-map-model";
+import { projectMarkdownSafeHref, projectMarkdownSafeImageSrc } from "../../lib/project-markdown";
 import {
   projectMapDetailLevelForZoom,
   projectMapPerformancePolicy,
@@ -63,7 +65,10 @@ import {
   normalizeProjectItemSelection,
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
   projectCanvasAlignmentGuides,
+  projectCanvasKeyboardShortcutFromEvent,
+  type ProjectCanvasAlignment,
   type ProjectCanvasAlignmentGuides,
+  type ProjectCanvasZOrderAction,
   type ProjectItemSelection,
 } from "../../lib/project-canvas-productivity";
 import "./project-map-surface.css";
@@ -85,11 +90,42 @@ type ProjectFlowNodeData = {
   onMarkdownCancel: () => void;
 };
 
-type ProjectFlowNode = Node<ProjectFlowNodeData, "projectItem">;
+type ProjectFlowNode = ReactFlowNode<ProjectFlowNodeData, "projectItem">;
 type ProjectFlowEdge = Edge;
 
 export interface ProjectMapSurfaceHandle {
   getViewportCenter: () => { x: number; y: number } | null;
+}
+
+export interface ProjectMapContextCommands {
+  createDisabled: boolean;
+  selectAllDisabled: boolean;
+  clearSelectionDisabled: boolean;
+  copyDisabled: boolean;
+  pasteDisabled: boolean;
+  editDisabled: boolean;
+  removeDisabled: boolean;
+  edgeInspectDisabled: boolean;
+  edgeEditDisabled: boolean;
+  edgeDeleteDisabled: boolean;
+  panelCommandsDisabled: boolean;
+  alignmentDisabled: (alignment: ProjectCanvasAlignment) => boolean;
+  zOrderDisabled: (action: ProjectCanvasZOrderAction) => boolean;
+  inspectItem: (itemId: string) => void;
+  editItem: (itemId: string) => void;
+  copyItemLink: (itemId: string) => void | Promise<void>;
+  copySelection: () => void;
+  pasteSelection: () => void;
+  selectAll: () => void;
+  clearSelection: () => void;
+  alignSelection: (alignment: ProjectCanvasAlignment) => void;
+  changeZOrder: (action: ProjectCanvasZOrderAction) => void;
+  removeItem: (itemId: string) => void;
+  inspectEdge: (edgeId: string) => void;
+  editEdge: () => void;
+  deleteEdge: () => void;
+  openReferences: () => void;
+  openInspector: () => void;
 }
 
 export interface ProjectMapSurfaceProps {
@@ -107,7 +143,7 @@ export interface ProjectMapSurfaceProps {
   edgeInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => boolean | void;
   onSelectionChange?: (selection: ProjectItemSelection) => boolean | void;
-  onEdgeSelect?: (edgeId: string | null) => void;
+  onEdgeSelect?: (edgeId: string | null) => boolean | void;
   onEdgeConnect?: (connection: {
     sourceItemId: string;
     targetItemId: string;
@@ -126,7 +162,33 @@ export interface ProjectMapSurfaceProps {
   onMarkdownSave?: () => void;
   onMarkdownCancel?: () => void;
   onAttachmentRequest?: (point: { x: number; y: number }) => void;
+  contextCommands?: ProjectMapContextCommands;
 }
+
+type ProjectMapContextMenu =
+  | { target: "pane"; left: number; top: number; point: { x: number; y: number } }
+  | { target: "node"; left: number; top: number; itemId: string }
+  | { target: "selection"; left: number; top: number; itemId: string }
+  | { target: "edge"; left: number; top: number; edgeId: string };
+
+type ProjectMapMenuItem = {
+  label: string;
+  section: string;
+  disabled?: boolean;
+  danger?: boolean;
+  href?: string;
+  action?: () => void | Promise<void>;
+};
+
+const PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR = [
+  "a",
+  "button",
+  "input",
+  "textarea",
+  "select",
+  "[contenteditable='true']",
+  "[role='textbox']",
+].join(",");
 
 function nodeGeometry(node: ProjectFlowNode): ProjectMapGeometry {
   const fallback = node.data.descriptor.geometry;
@@ -552,6 +614,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   onMarkdownSave = NOOP_ACTION,
   onMarkdownCancel = NOOP_ACTION,
   onAttachmentRequest,
+  contextCommands,
 }, ref) {
   const selectedItemIds = useMemo<readonly string[]>(() => (
     controlledSelectedItemIds ?? (selectedItemId ? [selectedItemId] : [])
@@ -572,11 +635,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const flowInstanceRef = useRef<ReactFlowInstance<ProjectFlowNode> | null>(null);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<ProjectFlowNode> | null>(null);
   const lastFocusedItemIdRef = useRef<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<{
-  left: number;
-  top: number;
-  point: { x: number; y: number };
-} | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const [contextMenu, setContextMenu] = useState<ProjectMapContextMenu | null>(null);
+  const closeContextMenu = useCallback((restoreFocus: boolean) => {
+    setContextMenu(null);
+    if (!restoreFocus) return;
+    window.requestAnimationFrame(() => {
+      const nextActiveElement = document.activeElement;
+      if (!nextActiveElement
+        || nextActiveElement === document.body
+        || !document.contains(nextActiveElement)) {
+        canvasRef.current?.focus();
+      }
+    });
+  }, []);
   const [alignmentGuides, setAlignmentGuides] = useState<ProjectCanvasAlignmentGuides>(
     NO_PROJECT_ALIGNMENT_GUIDES,
   );
@@ -587,6 +659,38 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         : NO_PROJECT_ALIGNMENT_GUIDES
     ));
   }, []);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const frame = window.requestAnimationFrame(() => {
+      const menu = contextMenuRef.current;
+      const canvas = canvasRef.current;
+      if (!menu || !canvas) return;
+      const menuRect = menu.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const left = Math.max(8, Math.min(
+        contextMenu.left,
+        Math.max(8, canvasRect.width - menuRect.width - 8),
+      ));
+      const top = Math.max(8, Math.min(
+        contextMenu.top,
+        Math.max(8, canvasRect.height - menuRect.height - 8),
+      ));
+      if (left !== contextMenu.left || top !== contextMenu.top) {
+        setContextMenu((current) => current ? { ...current, left, top } : current);
+        return;
+      }
+      menu.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')?.focus();
+    });
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (!contextMenuRef.current?.contains(event.target as Node)) setContextMenu(null);
+    };
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+    };
+  }, [contextMenu]);
 
   const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
     if (geometryInteractionDisabled) return;
@@ -963,20 +1067,339 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onMarkdownCreateRequest(point);
   }, [flowPointFromClient, geometryInteractionDisabled, onMarkdownCreateRequest]);
 
-  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (geometryInteractionDisabled || !onAttachmentRequest) return;
-    const target = event.target as HTMLElement;
-    if (!target.classList.contains("react-flow__pane")) return;
-    const point = flowPointFromClient(event.clientX, event.clientY);
+  const contextMenuPosition = useCallback((event: MouseEvent | React.MouseEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect();
-    if (!point || !rect) return;
+    if (!rect) return null;
+    return {
+      left: Math.max(8, event.clientX - rect.left),
+      top: Math.max(8, event.clientY - rect.top),
+    };
+  }, []);
+
+  const handlePaneContextMenu = useCallback((event: MouseEvent | React.MouseEvent) => {
+    if (!onMarkdownCreateRequest && !onAttachmentRequest && !contextCommands) return;
+    const point = flowPointFromClient(event.clientX, event.clientY);
+    const position = contextMenuPosition(event);
+    if (!point || !position) return;
     event.preventDefault();
+    setContextMenu({ target: "pane", ...position, point });
+  }, [
+    contextCommands,
+    contextMenuPosition,
+    flowPointFromClient,
+    onAttachmentRequest,
+    onMarkdownCreateRequest,
+  ]);
+
+  const handleNodeContextMenu = useCallback((
+    event: MouseEvent | React.MouseEvent,
+    node: ProjectFlowNode,
+  ) => {
+    if (node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
+    const target = event.target;
+    if (target instanceof Element && target.closest(PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR)) return;
+    const position = contextMenuPosition(event);
+    if (!position) return;
+    const inCurrentSelection = selectedItemIds.includes(node.id);
+    const opensSelectionMenu = inCurrentSelection && selectedItemIds.length > 1;
+    if (!opensSelectionMenu) {
+      const selection = { itemIds: [node.id], primaryItemId: node.id };
+      const accepted = onSelectionChange
+        ? onSelectionChange(selection) !== false
+        : onSelect(node.id) !== false;
+      if (!accepted) return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
     setContextMenu({
-      left: Math.max(8, Math.min(rect.width - 180, event.clientX - rect.left)),
-      top: Math.max(8, Math.min(rect.height - 58, event.clientY - rect.top)),
-      point,
+      target: opensSelectionMenu ? "selection" : "node",
+      ...position,
+      itemId: node.id,
     });
-  }, [flowPointFromClient, geometryInteractionDisabled, onAttachmentRequest]);
+  }, [
+    contextMenuPosition,
+    onSelect,
+    onSelectionChange,
+    selectedItemIds,
+  ]);
+
+  const handleEdgeContextMenu = useCallback((
+    event: MouseEvent | React.MouseEvent,
+    edge: ProjectFlowEdge,
+  ) => {
+    if (edge.id === pendingEdge?.edgeId || !contextCommands) return;
+    const position = contextMenuPosition(event);
+    if (!position) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (onEdgeSelect(edge.id) === false) return;
+    setContextMenu({ target: "edge", ...position, edgeId: edge.id });
+  }, [contextCommands, contextMenuPosition, onEdgeSelect, pendingEdge?.edgeId]);
+
+  const contextMenuItems = useMemo<ProjectMapMenuItem[]>(() => {
+    if (!contextMenu) return [];
+    if (contextMenu.target === "pane") {
+      const items: ProjectMapMenuItem[] = [];
+      if (onMarkdownCreateRequest) items.push({
+        label: "Add Markdown here",
+        section: "Create",
+        disabled: contextCommands?.createDisabled ?? geometryInteractionDisabled,
+        action: () => onMarkdownCreateRequest(contextMenu.point),
+      });
+      if (onAttachmentRequest) items.push({
+        label: "Add attachment here",
+        section: "Create",
+        disabled: contextCommands?.createDisabled ?? geometryInteractionDisabled,
+        action: () => onAttachmentRequest(contextMenu.point),
+      });
+      if (contextCommands) {
+        items.push(
+          {
+            label: "Paste copied selection",
+            section: "Canvas",
+            disabled: contextCommands.pasteDisabled,
+            action: contextCommands.pasteSelection,
+          },
+          {
+            label: "Select all",
+            section: "Canvas",
+            disabled: contextCommands.selectAllDisabled,
+            action: contextCommands.selectAll,
+          },
+          {
+            label: "Fit all content",
+            section: "Canvas",
+            disabled: !flowInstance,
+            action: () => {
+              if (flowInstance) void flowInstance.fitView(PROJECT_FIT_VIEW_OPTIONS);
+            },
+          },
+          {
+            label: "Open References",
+            section: "Panels",
+            disabled: contextCommands.panelCommandsDisabled,
+            action: contextCommands.openReferences,
+          },
+          {
+            label: "Open Inspector",
+            section: "Panels",
+            disabled: contextCommands.panelCommandsDisabled,
+            action: contextCommands.openInspector,
+          },
+        );
+      }
+      return items;
+    }
+
+    if (contextMenu.target === "selection") {
+      if (!contextCommands) return [];
+      return [
+        {
+          label: "Open selection in Inspector",
+          section: "Selection",
+          disabled: contextCommands.panelCommandsDisabled,
+          action: contextCommands.openInspector,
+        },
+        {
+          label: "Copy selected occurrences",
+          section: "Selection",
+          disabled: contextCommands.copyDisabled,
+          action: contextCommands.copySelection,
+        },
+        { label: "Align left", section: "Align", disabled: contextCommands.alignmentDisabled("left"), action: () => contextCommands.alignSelection("left") },
+        { label: "Align horizontal centers", section: "Align", disabled: contextCommands.alignmentDisabled("center-x"), action: () => contextCommands.alignSelection("center-x") },
+        { label: "Align right", section: "Align", disabled: contextCommands.alignmentDisabled("right"), action: () => contextCommands.alignSelection("right") },
+        { label: "Align top", section: "Align", disabled: contextCommands.alignmentDisabled("top"), action: () => contextCommands.alignSelection("top") },
+        { label: "Align vertical centers", section: "Align", disabled: contextCommands.alignmentDisabled("center-y"), action: () => contextCommands.alignSelection("center-y") },
+        { label: "Align bottom", section: "Align", disabled: contextCommands.alignmentDisabled("bottom"), action: () => contextCommands.alignSelection("bottom") },
+        { label: "Bring to front", section: "Layer", disabled: contextCommands.zOrderDisabled("bring-to-front"), action: () => contextCommands.changeZOrder("bring-to-front") },
+        { label: "Bring forward", section: "Layer", disabled: contextCommands.zOrderDisabled("bring-forward"), action: () => contextCommands.changeZOrder("bring-forward") },
+        { label: "Send backward", section: "Layer", disabled: contextCommands.zOrderDisabled("send-backward"), action: () => contextCommands.changeZOrder("send-backward") },
+        { label: "Send to back", section: "Layer", disabled: contextCommands.zOrderDisabled("send-to-back"), action: () => contextCommands.changeZOrder("send-to-back") },
+        {
+          label: "Clear selection",
+          section: "Selection state",
+          disabled: contextCommands.clearSelectionDisabled,
+          action: contextCommands.clearSelection,
+        },
+      ];
+    }
+
+    if (contextMenu.target === "edge") {
+      if (!contextCommands) return [];
+      return [
+        {
+          label: "Inspect edge",
+          section: "Edge",
+          disabled: contextCommands.edgeInspectDisabled,
+          action: () => contextCommands.inspectEdge(contextMenu.edgeId),
+        },
+        {
+          label: "Edit edge",
+          section: "Edge",
+          disabled: contextCommands.edgeEditDisabled,
+          action: contextCommands.editEdge,
+        },
+        {
+          label: "Delete edge",
+          section: "Edge",
+          danger: true,
+          disabled: contextCommands.edgeDeleteDisabled,
+          action: contextCommands.deleteEdge,
+        },
+      ];
+    }
+
+    const descriptor = descriptors.find((candidate) => candidate.itemId === contextMenu.itemId);
+    if (!descriptor) return [];
+    const referenceHref = descriptor.kind === "reference" && descriptor.openReferenceUrl
+      ? projectMarkdownSafeHref(descriptor.openReferenceUrl)
+      : null;
+    const attachmentFileHref = descriptor.kind === "attachment" && descriptor.fileUrl
+      ? projectMarkdownSafeImageSrc(descriptor.fileUrl)
+      : null;
+    const attachmentSourceHref = descriptor.kind === "attachment" && descriptor.attachmentSourceUrl
+      ? projectMarkdownSafeHref(descriptor.attachmentSourceUrl)
+      : null;
+    const items: ProjectMapMenuItem[] = [];
+    if (contextCommands) {
+      items.push({
+        label: "Inspect occurrence",
+        section: "Occurrence",
+        action: () => contextCommands.inspectItem(descriptor.itemId),
+      });
+      if (descriptor.kind === "markdown" || descriptor.kind === "attachment") items.push({
+        label: descriptor.kind === "markdown" ? "Edit Markdown" : "Edit attachment metadata",
+        section: "Occurrence",
+        disabled: contextCommands.editDisabled,
+        action: () => contextCommands.editItem(descriptor.itemId),
+      });
+    }
+    if (referenceHref) items.push({
+      label: "Open Reference",
+      section: "Occurrence",
+      href: referenceHref,
+    });
+    if (attachmentFileHref) items.push({
+      label: "Open attachment",
+      section: "Occurrence",
+      href: attachmentFileHref,
+    });
+    if (attachmentSourceHref) items.push({
+      label: "Open source URL",
+      section: "Occurrence",
+      href: attachmentSourceHref,
+    });
+    if (contextCommands) {
+      items.push(
+        {
+          label: "Copy stable link",
+          section: "Copy",
+          action: () => contextCommands.copyItemLink(descriptor.itemId),
+        },
+        {
+          label: "Copy occurrence",
+          section: "Copy",
+          disabled: contextCommands.copyDisabled,
+          action: contextCommands.copySelection,
+        },
+        { label: "Bring to front", section: "Layer", disabled: contextCommands.zOrderDisabled("bring-to-front"), action: () => contextCommands.changeZOrder("bring-to-front") },
+        { label: "Bring forward", section: "Layer", disabled: contextCommands.zOrderDisabled("bring-forward"), action: () => contextCommands.changeZOrder("bring-forward") },
+        { label: "Send backward", section: "Layer", disabled: contextCommands.zOrderDisabled("send-backward"), action: () => contextCommands.changeZOrder("send-backward") },
+        { label: "Send to back", section: "Layer", disabled: contextCommands.zOrderDisabled("send-to-back"), action: () => contextCommands.changeZOrder("send-to-back") },
+        {
+          label: descriptor.kind === "reference" ? "Remove from Project" : "Move to trash",
+          section: "Remove",
+          danger: true,
+          disabled: contextCommands.removeDisabled,
+          action: () => contextCommands.removeItem(descriptor.itemId),
+        },
+      );
+    }
+    return items;
+  }, [
+    contextCommands,
+    contextMenu,
+    descriptors,
+    flowInstance,
+    geometryInteractionDisabled,
+    onAttachmentRequest,
+    onMarkdownCreateRequest,
+  ]);
+
+  const contextMenuPortalTarget = contextMenu
+    ? canvasRef.current?.closest<HTMLElement>(".project-desktop-workspace") ?? null
+    : null;
+  const contextMenuElement = contextMenu && contextMenuItems.length > 0 ? <div
+      ref={contextMenuRef}
+      className="project-map-context-menu"
+      style={{ left: contextMenu.left, top: contextMenu.top }}
+      role="menu"
+      aria-label={contextMenu.target === "pane"
+        ? "Canvas actions"
+        : contextMenu.target === "edge"
+          ? "Edge actions"
+          : contextMenu.target === "selection"
+            ? "Selection actions"
+            : "Occurrence actions"}
+      onContextMenu={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+          '[role="menuitem"]:not([disabled])',
+        ));
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          closeContextMenu(false);
+          canvasRef.current?.focus();
+          return;
+        }
+        if (projectCanvasKeyboardShortcutFromEvent(event.nativeEvent)) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        if (items.length === 0) return;
+        const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowDown") nextIndex = (currentIndex + 1 + items.length) % items.length;
+        else if (event.key === "ArrowUp") nextIndex = (currentIndex - 1 + items.length) % items.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = items.length - 1;
+        else return;
+        event.preventDefault();
+        items[nextIndex]?.focus();
+      }}
+    >
+      {contextMenuItems.map((item, index) => <div
+        className="project-map-context-menu-entry"
+        key={item.label}
+      >
+        {(index === 0 || contextMenuItems[index - 1]?.section !== item.section) && <p
+          className="project-map-context-menu-label"
+          role="presentation"
+        >{item.section}</p>}
+        {item.href ? <a
+          role="menuitem"
+          tabIndex={-1}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => closeContextMenu(true)}
+        >{item.label}</a> : <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          className={item.danger ? "danger" : undefined}
+          disabled={item.disabled}
+          onClick={() => {
+            const result = item.action?.();
+            closeContextMenu(true);
+            void result;
+          }}
+        >{item.label}</button>}
+      </div>)}
+  </div> : null;
 
   return <div
     ref={canvasRef}
@@ -987,8 +1410,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     data-project-map-culling={performancePolicy.onlyRenderVisibleElements ? "visible-elements" : "all-elements"}
     data-project-map-node-count={performancePolicy.nodeCount}
     data-project-map-edge-count={performancePolicy.edgeCount}
+    tabIndex={-1}
     onDoubleClick={handleDoubleClick}
-    onContextMenu={handleContextMenu}
     onDragOver={handleDragOver}
     onDrop={handleDrop}
   >
@@ -1008,6 +1431,9 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onEdgesChange={handleEdgesChange}
       onNodeClick={handleElementClick}
       onEdgeClick={handleElementClick}
+      onNodeContextMenu={handleNodeContextMenu}
+      onEdgeContextMenu={handleEdgeContextMenu}
+      onPaneContextMenu={handlePaneContextMenu}
       onConnect={handleConnect}
       onPaneClick={handlePaneClick}
       onMove={handleViewportMove}
@@ -1055,12 +1481,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       <Background gap={22} size={1.2} />
       <Controls showInteractive={false} />
     </ReactFlow>
-    {contextMenu && <div className="project-map-context-menu" style={{ left: contextMenu.left, top: contextMenu.top }} role="menu">
-      <button type="button" role="menuitem" onClick={() => {
-        const point = contextMenu.point;
-        setContextMenu(null);
-        onAttachmentRequest?.(point);
-      }}>Add attachment here</button>
-    </div>}
+    {contextMenuElement && (contextMenuPortalTarget
+      ? createPortal(contextMenuElement, contextMenuPortalTarget)
+      : contextMenuElement)}
   </div>;
 });

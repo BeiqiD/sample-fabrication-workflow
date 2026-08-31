@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-28 after Phase 5C0 completed in PR #161 and the Project
-viewport workspace frame opened through Phase 5C1 in Draft PR #162
+Last reviewed: 2026-08-30 with Phase 5C1 complete in PR #162 and the floating-panel /
+context-command part of Phase 5C2 active in retargeted PR #163
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -196,8 +196,8 @@ found no concrete A2 follow-up. Phase 5B1 occurrence identity language and
 Phase 5B2 edge theme/mutation-state language and Phase 5B3 Project-owned editor
 outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required.
 The materially larger Project composition gap is authorized as Phase 5C. Its C0
-contract is complete in PR #161, and its C1 viewport-frame implementation is active
-in Draft PR #162. Storage, lifecycle, Reference, and rich-content foundations
+contract is complete in PR #161, and its C1 viewport-frame implementation is
+complete in PR #162. Storage, lifecycle, Reference, and rich-content foundations
 return to correctness maintenance rather than continuing as independent feature
 tracks.
 
@@ -533,8 +533,8 @@ After the freeze:
 ### Phase 5 — frontend refinement
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
-#157–#160, Phase 5C0 is complete in PR #161, and Phase 5C1 is active in Draft PR
-#162.
+#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
+and Phase 5C2 is active through retargeted PR #163.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -564,10 +564,10 @@ still changing.
 **Current Project priority:** Phase 5C is a deliberate Project-scoped layout and
 control rebuild, not a functional feature phase. It will replace the current
 centered page-within-a-card composition with a workspace-first shell, give Map
-the remaining desktop viewport, give Reading an independent document layout, and
-turn References/Inspector into responsive panels. Desktop Map overlays remain
-non-modal so visible Canvas drag and selection continue; only mobile Reading-first
-sheets use modal behavior. The detailed boundary is recorded in the
+the complete desktop workspace below Project chrome, give Reading an independent
+document layout, and float References/Inspector above the Canvas without resizing
+it. Desktop Map panels remain non-modal so visible Canvas drag and selection
+continue; only mobile Reading-first sheets use modal behavior. The detailed boundary is recorded in the
 [Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
 It explicitly includes substantial Project button work: mode, toolbar, panel,
 content, destructive, and overflow controls will receive owned roles, grouping, priority, responsive
@@ -713,15 +713,16 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete independent review and merge of **Phase 5C1 — viewport workspace
-   frame** in Draft PR #162: compact Project top bar, bounded status area, and a
-   full-viewport desktop Map frame with behavior frozen.
-2. Implement **Phase 5C2 — panels and control hierarchy**: panel state, docked
-   and desktop non-modal-overlay capabilities, preserved Canvas interaction, and
-   the major Project button-family migration.
-3. Implement **Phase 5C3 — Reading and responsive composition**: measure when C2
-   presentations switch, add Reading/mobile composition without redefining panel
-   modality, then run the bounded **Phase 5C4 Project integration review**.
+1. Complete and merge retargeted PR #163 for **Phase 5C2a —
+   floating panels and context-aware Canvas commands**: Canvas stays full-area,
+   both desktop panels float non-modally, and blank/node/selection/edge
+   right-clicks reuse existing commands.
+2. Complete **Phase 5C2b — Project control hierarchy**: finish the major
+   button-family, Add, overflow, and quick-toolbar migration on the same unified
+   command model.
+3. Implement **Phase 5C3 — Reading and responsive composition**: measure desktop
+   floating-panel sizing, add Reading/mobile composition without redefining
+   desktop modality, then run the bounded **Phase 5C4 Project integration review**.
 4. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.
 5. Complete **Phase 5E — source-record and directory coherence**.

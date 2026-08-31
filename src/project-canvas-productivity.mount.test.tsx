@@ -137,7 +137,12 @@ describe("mounted Phase 4B Canvas productivity", () => {
     expect(screen.queryByRole("button", { name: "Copy stable link" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
-    expect(screen.getByText("Select a Map item or edge to inspect it.")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+      const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+      expect(inspectorTrigger.getAttribute("aria-pressed")).toBe("false");
+      expect(document.activeElement).toBe(inspectorTrigger);
+    });
     expect(screen.queryByText("2 selected")).toBeNull();
   });
 
@@ -287,7 +292,12 @@ describe("mounted Phase 4B Canvas productivity", () => {
     fireEvent.keyDown(document, { key: "a", code: "KeyA", ctrlKey: true });
     expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
-    expect(screen.getByText("Select a Map item or edge to inspect it.")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+      const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+      expect(inspectorTrigger.getAttribute("aria-pressed")).toBe("false");
+      expect(document.activeElement).toBe(inspectorTrigger);
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Select two items" }));
     fireEvent.click(screen.getByRole("button", { name: "Move selected items" }));

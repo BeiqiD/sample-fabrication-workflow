@@ -54,7 +54,7 @@ describe("Phase 3B2 source contract", () => {
 
   it("keeps reference creation desktop-only and preserves the mobile no-creation boundary", () => {
     const page = read("./pages/ProjectPage.tsx");
-    const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
+    const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar"');
     const searchSurface = page.indexOf("<ReferenceSearchSurface", desktopBranch);
     const readingBranch = page.indexOf("<ProjectReadingSurface", searchSurface);
     expect(desktopBranch).toBeGreaterThan(-1);

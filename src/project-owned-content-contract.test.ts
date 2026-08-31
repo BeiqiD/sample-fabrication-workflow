@@ -104,6 +104,69 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(css).toContain("position: absolute;");
   });
 
+  it("keeps the Canvas borderless beneath floating panels and owns a complete context menu", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const projectCss = read("./project.css");
+    const mapCss = read("./components/project/project-map-surface.css");
+
+    expect(page).toContain('data-reference-open={desktopView === "map" && referencePanelOpen}');
+    expect(page).toContain('data-inspector-open={desktopView === "map" && inspectorPanelOpen}');
+    expect(page).toContain('data-panel-presentation="floating"');
+    expect(page).toContain("contextCommands={contextCommands}");
+    expect(page).not.toContain("aria-modal");
+    expect(page).not.toContain("inert=");
+
+    expect(projectCss).toMatch(/\.project-desktop-workspace\s*\{[\s\S]*?position:\s*relative;[\s\S]*?border:\s*0;/);
+    expect(projectCss).toMatch(/\.project-map-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?inset:\s*0;/);
+    expect(projectCss).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?border:\s*0;/);
+    expect(projectCss).toContain('--project-map-controls-left: calc(');
+    expect(mapCss).toContain("left: var(--project-map-controls-left, 10px)");
+
+    expect(map).toContain("onPaneContextMenu={handlePaneContextMenu}");
+    expect(map).toContain("onNodeContextMenu={handleNodeContextMenu}");
+    expect(map).toContain("onEdgeContextMenu={handleEdgeContextMenu}");
+    expect(map).toContain('"Add Markdown here"');
+    expect(map).toContain('"Paste copied selection"');
+    expect(map).toContain('"Align horizontal centers"');
+    expect(map).toContain('"Copy stable link"');
+    expect(map).toContain('"Edit edge"');
+    expect(map).toContain('"Delete edge"');
+    expect(map).toContain('event.key === "ArrowDown"');
+    expect(map).toContain('event.key === "Escape"');
+
+    expect(map).toContain('import { createPortal } from "react-dom"');
+    expect(map).toContain('closest<HTMLElement>(".project-desktop-workspace")');
+    expect(map).toContain("createPortal(contextMenuElement, contextMenuPortalTarget)");
+    expect(projectCss).toMatch(/\.project-desktop-workspace > \.project-map-context-menu\s*\{[^}]*z-index:\s*30;/s);
+    expect(projectCss).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[^}]*z-index:\s*6;/s);
+
+    expect(map).toContain('label: "Open attachment"');
+    expect(map).toContain('label: "Open source URL"');
+    expect(map).toContain("projectMarkdownSafeImageSrc(descriptor.fileUrl)");
+    expect(map).toContain("projectMarkdownSafeHref(descriptor.attachmentSourceUrl)");
+    expect(map).not.toContain("descriptor.attachmentSourceUrl || descriptor.fileUrl");
+
+    expect(page).toContain("createDisabled: createCommandDisabled");
+    expect(page).toContain("edgeInspectDisabled");
+    expect(page).toContain("edgeEditDisabled: edgeMutationCommandsDisabled");
+    expect(page).toContain("edgeDeleteDisabled: edgeMutationCommandsDisabled");
+    expect(page).toContain("const edgeMutationCommandsDisabled = edgeController.interactionDisabled");
+    expect(page).not.toContain("edgeCommandsDisabled");
+    expect(page).toContain("if (selectProjectEdge(edgeId) === false) return");
+    expect(map).toContain("if (onEdgeSelect(edge.id) === false) return");
+    expect(map).toContain("disabled: contextCommands.edgeInspectDisabled");
+    expect(map).toContain("disabled: contextCommands.edgeEditDisabled");
+    expect(map).toContain("disabled: contextCommands.edgeDeleteDisabled");
+    expect(page).toContain("alignmentDisabled: alignmentActionDisabled");
+    expect(page).toContain("zOrderDisabled: zOrderActionDisabled");
+    expect(map).toContain('disabled: contextCommands.alignmentDisabled("left")');
+    expect(map).toContain('disabled: contextCommands.zOrderDisabled("bring-to-front")');
+    expect(page).toContain("focusReferencePanel");
+    expect(page).toContain("focusInspectorPanel");
+    expect(page).toContain("inspectorHadTargetRef");
+  });
+
   it("keeps the dedicated gate on the real Project asset Worker path", () => {
     const packageJson = read("../package.json");
     const workerSmoke = read("../scripts/verify-project-worker.mjs");
@@ -117,7 +180,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
   it("keeps Project-owned content creation Map-only while Reading edits existing content", () => {
     const page = read("./pages/ProjectPage.tsx");
     const reading = read("./components/project/ProjectReadingSurface.tsx");
-    expect(page).toContain('{desktop ? <div className="project-desktop-workspace with-reference-sidebar">');
+    expect(page).toContain('{desktop ? <div className="project-desktop-workspace with-reference-sidebar"');
     expect(page).toContain('desktopView === "map" ? <>');
     expect(reading).not.toContain("Add attachment");
     expect(reading).not.toContain("New Project Markdown");
