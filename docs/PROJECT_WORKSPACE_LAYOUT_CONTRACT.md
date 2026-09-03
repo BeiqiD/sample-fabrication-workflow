@@ -1,10 +1,10 @@
 # Project workspace layout and control contract
 
 Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
-merged PR #162, C2a complete in PR #163, and C2b next
+merged PR #162, C2a complete in PR #163, and C2b active
 
-Last reviewed: 2026-09-03 after the Phase 5C2a floating-panel and
-context-command implementation merged
+Last reviewed: 2026-09-03 during the Phase 5C2b Reference and Inspector
+hierarchy implementation
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in
@@ -156,11 +156,42 @@ search results without shrinking the underlying Canvas.
 The panel owns:
 
 - search query;
-- filters;
+- a small semantic type-scope row and query-only advanced filters;
+- a default Suggested state derived from the current Project context;
 - search results;
 - drag/place actions;
 - pending, retry, conflict, uncertain, and reconciliation states required by the
   existing insertion protocol.
+
+Search is a refinement path, not the panel's empty prerequisite. With no committed
+query, the panel deterministically loads a bounded set of direct related records
+through the existing Reference-children contract:
+
+1. the currently selected reference context is the first seed when eligible;
+2. a small number of active Project reference occurrences, newest insertion first,
+   provide fallback seeds;
+3. leaf references may use their deepest eligible resolved context as a seed;
+4. duplicate targets are removed, but a target already on the Map remains visible
+   with its active occurrence count because repeated occurrences are valid;
+5. every suggestion identifies why it appears, such as `Selected · Sample A` or
+   `From Etch run`.
+
+This is deterministic hierarchy expansion, not semantic/LLM inference. It adds no
+ranking store, source mutation, Project mutation, or new API. Clearing a search
+returns to Suggested and clears query-only advanced constraints.
+
+The default panel filter is a compact semantic scope row: All, Samples, Process,
+Comments, Files & data, and Recipes. Exact Sample/date constraints remain behind
+`More filters` and appear only in search context. The historical one-column list
+of every internal target type must not occupy the placement panel.
+
+Suggested and searched placement results share one compact card hierarchy:
+
+- stable type and title;
+- match or suggestion reason and active `On Map` count;
+- short subtitle/excerpt/context where available;
+- one compact drag affordance and one primary `Place` action;
+- secondary Open/Details destinations.
 
 It does not permanently own:
 
@@ -204,10 +235,17 @@ Existing Inspector capability is preserved but reorganized by priority:
 
 1. selected type and title;
 2. primary item action such as Open reference, Edit Markdown, or Open attachment;
-3. ordinary summary, relationships, children, and source hierarchy;
-4. provenance/identity detail;
-5. advanced Project-local technical metadata such as occurrence ID, revision,
-   geometry, and immutable insertion sequence.
+3. ordinary summary/preview, relationships, and on-demand related records;
+4. collapsed source hierarchy and source/provenance identity;
+5. collapsed Project-local technical metadata such as occurrence ID, revision,
+   geometry, and immutable insertion sequence;
+6. low-frequency Map arrangement and stable-link utilities below detail;
+7. destructive occurrence/edge actions in a visually separate final region.
+
+An active editor replaces or follows the primary action at the top of the content
+hierarchy. It must not be stranded beneath provenance and geometry. Edge inspection
+uses the same hierarchy: title, Edit, connection summary, collapsed technical
+handles/identity, then Delete.
 
 The Inspector remains read-only for external source records.
 
@@ -515,6 +553,14 @@ C2a owns:
 
 C2b owns:
 
+- the Reference panel's default Suggested state, bounded explainable hierarchy
+  expansion, compact semantic scopes, and compact placement-card hierarchy;
+- removal of persistent Markdown/attachment creation content from References
+  while preserving Canvas gestures, context commands, the hidden attachment input,
+  and pending attachment feedback;
+- Inspector priority/disclosure hierarchy for occurrences and edges, including
+  top primary actions, visible relationships/related records, collapsed provenance
+  and Project detail, and separated utility/danger regions;
 - the remaining Project button-family, Add/overflow, and quick-toolbar migration;
 - node, edge, and multi-selection quick-toolbar placement;
 - removal of visible immutable `#created_sequence` from Map nodes.

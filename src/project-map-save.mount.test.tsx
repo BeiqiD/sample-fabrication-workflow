@@ -6,6 +6,10 @@ import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/projec
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
+vi.mock("./components/ReferenceSearchSurface", () => ({
+  ReferenceSearchSurface: () => null,
+}));
+
 vi.mock("./components/project/ProjectMapSurface", () => ({
   ProjectMapSurface: ({
     nodes,

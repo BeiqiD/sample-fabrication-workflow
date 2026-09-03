@@ -180,8 +180,18 @@ describe("Phase 3B3 Project-owned content contract", () => {
   it("keeps Project-owned content creation Map-only while Reading edits existing content", () => {
     const page = read("./pages/ProjectPage.tsx");
     const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const referencePanelStart = page.indexOf('id="project-reference-panel"');
+    const referenceSearchStart = page.indexOf("<ReferenceSearchSurface", referencePanelStart);
+    const permanentReferencePanelContent = page.slice(referencePanelStart, referenceSearchStart);
     expect(page).toContain('{desktop ? <div className="project-desktop-workspace with-reference-sidebar"');
     expect(page).toContain('desktopView === "map" ? <>');
+    expect(referencePanelStart).toBeGreaterThan(-1);
+    expect(referenceSearchStart).toBeGreaterThan(referencePanelStart);
+    expect(permanentReferencePanelContent).not.toContain("Add Project content");
+    expect(permanentReferencePanelContent).not.toContain("Add attachment");
+    expect(page).not.toContain("requestAttachmentAtCenter");
+    expect(page).toContain("onAttachmentRequest={requestAttachmentAt}");
+    expect(page).toContain("suggestionSeeds={referenceSuggestionSeeds}");
     expect(reading).not.toContain("Add attachment");
     expect(reading).not.toContain("New Project Markdown");
     expect(reading).toContain("Edit Markdown");

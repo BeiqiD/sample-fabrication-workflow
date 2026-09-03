@@ -2,7 +2,7 @@
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163; Phase 5C2b is next
+and Phase 5C2a is complete in PR #163; Phase 5C2b is active
 
 Last reviewed: 2026-09-03
 
@@ -213,7 +213,7 @@ justified. The larger Project composition gap is intentionally tracked as the
 separate Phase 5C layout and control rebuild. Its C0 contract is complete in PR
 #161, its C1 viewport-frame implementation is complete in PR #162, and its C2a
 floating-panel/context-command implementation is complete in PR #163. C2b is
-next.
+active.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -287,7 +287,7 @@ forcing those projections into identical layouts.
 ### Phase 5C — Project workspace layout and control architecture
 
 Status: Phase 5C0 is complete in PR #161; Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163. Phase 5C2b is next.
+and Phase 5C2a is complete in PR #163. Phase 5C2b is active.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -347,8 +347,10 @@ Bounded sequence:
   full-viewport desktop Map frame without changing Map data or interaction;
 - **C2 — panels and control hierarchy:** C2a owns floating desktop panel state,
   non-modal behavior, exact Canvas interaction, and the complete context-aware
-  right-click command surface; C2b completes the major Project button-family and
-  quick-toolbar migration without creating a second command implementation;
+  right-click command surface; C2b first resolves Reference discovery and
+  Inspector information hierarchy, then completes the remaining Project
+  button-family and quick-toolbar migration without creating a second command
+  implementation;
 - **C3 — Reading and responsive composition:** establish the document shell,
   measure desktop floating-panel sizing and the mobile transition, and own mobile
   Reading-first modal transformations without redefining C2 panel behavior;
@@ -914,6 +916,76 @@ Desktop Map remains the sole full-area workspace background while optional side
 surfaces float above it; every right-click target exposes the relevant existing
 commands through one route-owned command adapter. C2b can now concentrate on the
 remaining button-family and quick-toolbar visual hierarchy.
+
+### Phase 5C2b.1 — Reference discovery and Inspector hierarchy
+
+Status: active bounded first slice of C2b.
+
+#### Concrete problem
+
+The floating Reference panel still begins as a search form followed by a large
+internal-type checkbox list, while Project-owned Markdown/attachment creation
+competes for the same narrow surface. Useful records appear only after a query and
+the result/placement hierarchy is too large for a `300–320px` panel. Inspector
+similarly renders primary actions after identity, occurrence, provenance, geometry,
+and relationship detail, making frequent work visually subordinate to diagnostic
+metadata.
+
+#### In scope
+
+- make the query-empty Reference panel a deterministic Suggested surface using a
+  bounded selected/current-Project seed set and the existing direct-child endpoint;
+- label each suggestion by its selected/Project origin, deduplicate target identity,
+  retain repeat-placement visibility, and show active `On Map` occurrence count;
+- replace the placement panel's full internal-type checklist with compact semantic
+  scopes, keeping exact Sample/date fields behind query-context `More filters`;
+- give Suggested and searched records one compact placement-card hierarchy with
+  drag, `Place`, Open, and Details paths;
+- remove persistent Markdown instructions and `Add attachment` from References,
+  retaining exact Canvas gestures/context commands, the hidden file input, and any
+  pending attachment lifecycle feedback;
+- reorder occurrence and edge Inspector content around title, primary action,
+  summary/relationships/related records, collapsed source and Project details,
+  low-frequency utilities, then destructive actions.
+
+#### Protected boundary
+
+- no semantic/LLM recommendation, ranking persistence, new Reference endpoint,
+  source mutation, backend, API, schema, migration, dependency, or export change;
+- no change to exact drag/drop or Map-center coordinate conversion, repeated
+  occurrence identity, Project insertion/removal, retry, conflict, reconciliation,
+  navigation blocking, or attachment trust/lifecycle behavior;
+- no loss of Inspector source identity, provenance, context, occurrence, geometry,
+  revision, relationship, media, child discovery, editing, or deletion capability;
+- no completion claim for the remaining C2b Add/overflow, node/edge/multi-selection
+  quick-toolbar, button-family, or visible Map sequence-number work.
+
+#### Required acceptance cases
+
+- a query is not required to see useful Reference candidates when an eligible
+  selection or Project reference exists; selected context wins, fallback seeds are
+  bounded/deterministic, duplicate suggestions collapse, and stale requests abort;
+- clearing search returns to Suggested without leaving hidden advanced constraints;
+- semantic scope changes filter already-loaded suggestions without refetching, while
+  explicit search continues to use the existing search request contract;
+- suggestion/search cards retain exact safe drag payload and Map-center placement;
+  an already placed target remains placeable and reports its active occurrence count;
+- empty/no-child, partial failure, total failure, retry, loading, and operation-disabled
+  states stay inside the panel without horizontal overflow;
+- Markdown/attachment Canvas creation and pending/error/exact-retry paths remain
+  available with the Reference panel open or closed;
+- Inspector primary actions precede diagnostic fields; source hierarchy, provenance,
+  Project detail, Arrange, utility, editor, and danger paths remain reachable with
+  correct semantics;
+- focused suggestion, Reference placement, Inspector, Reading, Canvas productivity,
+  owned-content, edge, Map, full mounted, production-build, bundle, and Map-performance
+  gates pass on the exact head.
+
+#### Exit and remaining C2b work
+
+Reference discovery works before search and Inspector reads in action-first priority
+without changing authoritative behavior. C2b remains open for its separately bounded
+Add/overflow, quick-toolbar, button-family, and Map sequence-display slice.
 
 ## Documentation and review discipline
 
