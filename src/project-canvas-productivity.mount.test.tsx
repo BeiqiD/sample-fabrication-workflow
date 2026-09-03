@@ -8,6 +8,10 @@ import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content"
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
+vi.mock("./components/ReferenceSearchSurface", () => ({
+  ReferenceSearchSurface: () => null,
+}));
+
 vi.mock("./components/project/ProjectMapSurface", () => ({
   ProjectMapSurface: ({
     nodes,
@@ -184,6 +188,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    fireEvent.click(screen.getByText("Arrange on Map", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Bring to front" }));
     expect(screen.getByText("Note z: 2")).toBeTruthy();
     expect(screen.getByText("Reference z: 1")).toBeTruthy();
@@ -220,6 +225,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    fireEvent.click(screen.getByText("Arrange on Map", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Bring to front" }));
     expect(screen.getByText("Note z: 2")).toBeTruthy();
     dispatchSaveShortcut();

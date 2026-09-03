@@ -6,6 +6,10 @@ import type { ProjectSnapshot } from "../shared/project-api";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
+vi.mock("./components/ReferenceSearchSurface", () => ({
+  ReferenceSearchSurface: () => null,
+}));
+
 vi.mock("./components/project/ProjectMapSurface", async () => {
   const React = await import("react");
   return {

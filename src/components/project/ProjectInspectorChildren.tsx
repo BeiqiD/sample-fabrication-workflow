@@ -71,14 +71,14 @@ export function ProjectInspectorChildren({
 
   return <section
     className="project-inspector-section project-inspector-children"
-    aria-label="Direct child references"
+    aria-label="Related reference records"
   >
-    <h3>Direct child references</h3>
+    <h3>Related records</h3>
     {loadState.status === "idle" && <button
       type="button"
       className="button compact-button"
       onClick={loadChildren}
-    >Browse direct child references</button>}
+    >Browse related records</button>}
     {loadState.status === "loading" && <p className="muted" role="status">
       Loading child references…
     </p>}
@@ -94,7 +94,7 @@ export function ProjectInspectorChildren({
       This source is no longer eligible for new Project references.
     </p>}
     {response?.parentEligible && children.length === 0 && <p className="muted">
-      No direct child references are available.
+      No related child records are available.
     </p>}
     {children.length > 0 && <>
       <ul className="project-inspector-child-list">
@@ -118,7 +118,7 @@ export function ProjectInspectorChildren({
         })}
       </ul>
       {response?.truncated && <small className="muted">
-        More direct children exist; use Reference search for the complete set.
+        More related records exist; use Reference search for the complete set.
       </small>}
     </>}
   </section>;

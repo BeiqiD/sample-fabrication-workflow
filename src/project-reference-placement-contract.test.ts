@@ -7,8 +7,8 @@ describe("Phase 3B2 source contract", () => {
   it("reuses the read-only ReferenceSearchSurface and writes only a drag payload before placement", () => {
     const surface = read("./components/ReferenceSearchSurface.tsx");
     expect(surface).toContain('mode: "place"');
-    expect(surface).toContain("writeProjectReferenceDragPayload(event.dataTransfer, result)");
-    expect(surface).toContain("Place at Map center");
+    expect(surface).toContain("writeProjectReferenceResolutionDragPayload(event.dataTransfer, resolution)");
+    expect(surface).toContain('aria-label={`Place ${title} at Map center`}');
     expect(surface).not.toContain("createReferenceItem");
     expect(surface).not.toContain("/projects/");
   });

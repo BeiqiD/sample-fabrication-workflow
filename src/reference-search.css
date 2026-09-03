@@ -74,6 +74,43 @@
   font-variant-numeric: tabular-nums;
 }
 
+.reference-search-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.reference-search-scopes button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--paper);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.reference-search-scopes button:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.reference-search-scopes button.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.reference-search-scopes button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .reference-search-filter-trigger {
   gap: 7px;
 }
@@ -104,6 +141,11 @@
   display: grid;
   gap: 20px;
   padding: 20px;
+}
+
+.reference-search-filter-panel.compact {
+  gap: 12px;
+  padding: 12px;
 }
 
 .reference-search-type-filter {
@@ -224,6 +266,248 @@
   background: linear-gradient(90deg, var(--paper), var(--surface), var(--paper));
   background-size: 220% 100%;
   animation: reference-search-loading 1.2s ease-in-out infinite;
+}
+
+.reference-suggestions {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.reference-suggestions-heading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.reference-suggestions-heading > div {
+  min-width: 0;
+}
+
+.reference-suggestions-heading h2,
+.reference-suggestions-heading p {
+  margin: 0;
+}
+
+.reference-suggestions-heading h2 {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.reference-suggestions-heading p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.reference-suggestions-heading > span {
+  flex: 0 0 auto;
+  min-width: 22px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-warm);
+  font-size: 10px;
+  font-weight: 720;
+  text-align: center;
+}
+
+.reference-suggestion-results {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.reference-suggestion-empty,
+.reference-suggestion-message p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.reference-suggestion-empty {
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  background: var(--surface-warm);
+}
+
+.reference-suggestion-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-warm);
+}
+
+.reference-suggestion-message.error {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.reference-suggestion-message.warning {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.reference-suggestion-loading {
+  display: grid;
+  gap: 7px;
+}
+
+.reference-suggestion-loading span {
+  min-height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: linear-gradient(90deg, var(--paper), var(--surface), var(--paper));
+  background-size: 220% 100%;
+  animation: reference-search-loading 1.2s ease-in-out infinite;
+}
+
+.reference-placement-card {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+}
+
+.reference-placement-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 5px 14px var(--shadow);
+}
+
+.reference-placement-card-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: start;
+}
+
+.reference-placement-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.reference-placement-card-labels {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.2;
+}
+
+.reference-placement-card-labels > span:not(.reference-search-type-badge) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-placement-card-labels .reference-search-type-badge {
+  min-height: 18px;
+  padding: 3px 5px;
+  font-size: 8px;
+}
+
+.reference-placement-card-present {
+  color: var(--status-neutral-ink);
+  font-weight: 720;
+}
+
+.reference-placement-card h2,
+.reference-placement-card h3,
+.reference-placement-card-copy > p,
+.reference-placement-card-excerpt,
+.reference-placement-card-footer p {
+  margin: 0;
+}
+
+.reference-placement-card h2,
+.reference-placement-card h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.reference-placement-card-copy > p {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-placement-card-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 9px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.reference-placement-card-footer {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.reference-placement-card-footer p {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-placement-card-footer > div {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 7px;
+}
+
+.reference-placement-card-footer a {
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 680;
+  text-decoration: none;
+}
+
+.reference-placement-card-footer a:hover {
+  text-decoration: underline;
+}
+
+.reference-placement-action {
+  min-width: 0;
+  min-height: 28px;
+  padding-inline: 7px;
+  font-size: 9px;
 }
 
 @keyframes reference-search-loading {
