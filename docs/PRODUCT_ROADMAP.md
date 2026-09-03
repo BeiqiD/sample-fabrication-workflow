@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-08-30 with Phase 5C1 complete in PR #162 and the floating-panel /
-context-command part of Phase 5C2 active in retargeted PR #163
+Last reviewed: 2026-09-03 with Phase 5C2a complete in PR #163, Phase 5C2b next,
+and the post-Phase-5 V3 architecture-stabilization sequence planned
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -16,6 +16,9 @@ The shared attachment ownership and lifecycle boundary is defined in
 [shared attachment backend contract](./ATTACHMENT_BACKEND_CONTRACT.md).
 The bounded Phase 5 sequence and verification contract are defined in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
+The behavior-preserving architecture cleanup, schema-baseline replacement, and
+release handoff are defined in
+[V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 
 ## North star
 
@@ -197,9 +200,10 @@ Phase 5B2 edge theme/mutation-state language and Phase 5B3 Project-owned editor
 outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required.
 The materially larger Project composition gap is authorized as Phase 5C. Its C0
 contract is complete in PR #161, and its C1 viewport-frame implementation is
-complete in PR #162. Storage, lifecycle, Reference, and rich-content foundations
-return to correctness maintenance rather than continuing as independent feature
-tracks.
+complete in PR #162. Phase 5C2a floating panels and context-aware Canvas commands
+are complete in PR #163; Phase 5C2b control hierarchy is next. Storage, lifecycle,
+Reference, and rich-content foundations return to correctness maintenance rather
+than continuing as independent feature tracks.
 
 ## Active implementation roadmap
 
@@ -534,7 +538,7 @@ After the freeze:
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2 is active through retargeted PR #163.
+and Phase 5C2a is complete in PR #163. Phase 5C2b is next.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -581,9 +585,42 @@ respectively; its product scope is unchanged.
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
 
-### Phase 6 — release hardening
+### Phase 6 — architecture stabilization and release hardening
 
-**Goal:** validate the refined v1 with realistic use and operational rehearsal before
+Phase 6 starts only after Phase 5F records the final frontend baseline. It is
+split so internal stabilization cannot be mixed into representative-data release
+validation.
+
+#### Phase 6A — V3 architecture stabilization
+
+**Goal:** preserve the verified v1 behavior while establishing explicit module
+ownership, a bounded Web/Worker contract surface, a final pre-release schema, and
+one clean V3 migration baseline before persistent V3 activation.
+
+**Scope:**
+
+- characterize the post-Phase-5 dependency, route, SQL, compatibility-field, and
+  migration boundaries;
+- extract remaining Sample, Execution, Process-definition, import, export, and
+  asset routes from `worker/index.ts` through behavior-preserving PRs;
+- separate stable contracts and pure shared algorithms without requiring a
+  repository-wide monorepo conversion;
+- remove only explicitly verified compatibility fields;
+- build and verify `0001_v3_baseline.sql` against the expected final schema;
+- update migration, export, deployment, backup, and recovery gates without remote
+  side effects.
+
+The bounded sequence, protected invariants, decision gates, and explicit
+non-goals are defined in
+[V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
+
+**Exit:** the existing V3 implementation is modularized without a rewrite, the
+approved compatibility state is removed, one baseline creates the final schema
+from an empty database, and every permanent gate passes.
+
+#### Phase 6B — release validation and operational rehearsal
+
+**Goal:** validate the stabilized and refined v1 with realistic use before
 treating it as a release candidate.
 
 **Scope:**
@@ -592,12 +629,13 @@ treating it as a release candidate.
 - desktop/mobile and supported-browser regression passes;
 - performance regression and large-Project checks;
 - backup, complete export, human-readable export, and restore rehearsal;
-- migration/deployment/runbook verification;
+- isolated migration/deployment/runbook verification;
 - accessibility and security review of the final interaction surface;
 - release-blocking bug fixing without reopening optional feature development.
 
-**Exit:** a release candidate is functionally stable, visually coherent, operationally
-rehearsed, and suitable for longer real-world use.
+**Exit:** a release candidate is functionally stable, visually coherent,
+architecturally bounded, operationally rehearsed, and suitable for longer
+real-world use.
 
 ## Save, history, and collaboration direction
 
@@ -707,30 +745,29 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
 | Project v1 functional shape | MVP plus mature Inspector/navigation, selected Canvas productivity, previews where justified, and representative-scale performance |
 | V1 feature freeze | Interaction-shaping v1 scope is fixed; optional future capabilities no longer block refinement |
-| Refined release candidate | Frozen v1 plus systematic frontend refinement and release hardening |
+| Refined release candidate | Frozen v1 plus systematic frontend refinement, V3 architecture stabilization, and release validation |
 | Portable release | Later milestone: the same Project contracts pass in a documented Docker/self-hosted deployment |
 | Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
 
 ## Immediate next PR order
 
-1. Complete and merge retargeted PR #163 for **Phase 5C2a —
-   floating panels and context-aware Canvas commands**: Canvas stays full-area,
-   both desktop panels float non-modally, and blank/node/selection/edge
-   right-clicks reuse existing commands.
-2. Complete **Phase 5C2b — Project control hierarchy**: finish the major
+1. Complete **Phase 5C2b — Project control hierarchy**: finish the major
    button-family, Add, overflow, and quick-toolbar migration on the same unified
    command model.
-3. Implement **Phase 5C3 — Reading and responsive composition**: measure desktop
+2. Implement **Phase 5C3 — Reading and responsive composition**: measure desktop
    floating-panel sizing, add Reading/mobile composition without redefining
    desktop modality, then run the bounded **Phase 5C4 Project integration review**.
-4. Complete **Phase 5D — attachment and media surfaces** without changing preview
+3. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.
-5. Complete **Phase 5E — source-record and directory coherence**.
-6. Run **Phase 5F — cross-product integration review** and update the measured
+4. Complete **Phase 5E — source-record and directory coherence**.
+5. Run **Phase 5F — cross-product integration review** and update the measured
    frontend baseline.
-7. Introduce a trusted server-side derivative producer only as a separately
-   reviewed follow-up; keep upload-transport convergence independently justified.
-8. Run **Phase 6 release hardening** and real-use/operational rehearsal.
+6. Introduce a trusted server-side derivative producer only as a separately
+   reviewed follow-up if it remains justified. Any required schema change must
+   finish before the final V3 baseline or resume later as an ordinary migration.
+7. Run **Phase 6A V3 architecture stabilization** through bounded,
+   behavior-preserving PRs.
+8. Run **Phase 6B release validation and operational rehearsal**.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,
@@ -749,6 +786,10 @@ The next phase should not be:
 - real-time collaboration before the single-user save/revision model is stable;
 - one unbounded whole-product visual mega-PR or global selector-normalization
   pass;
+- architecture implementation mixed into the remaining Phase 5 frontend slices;
+- a replacement V3 implementation or another long-lived integration branch;
+- a repository-wide `apps/` / `packages/` / workspaces move without an independent
+  build or distribution requirement;
 - near-term Docker/self-hosted implementation or a Docker-specific fork that
   distracts from completing and refining the v1 product;
 - LLM features before the deterministic Project workflow is usable.

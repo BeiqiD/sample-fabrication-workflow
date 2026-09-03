@@ -2,13 +2,12 @@
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2 is active through retargeted PR #163
+and Phase 5C2a is complete in PR #163; Phase 5C2b is next
 
-Last reviewed: 2026-08-30
+Last reviewed: 2026-09-03
 
 Execution base: `v2/backend-foundation` at
-`a929f4f37f085056d3fdbe31bf4e62a02710b4a9`; PR #162 is merged, and PR
-#163 is retargeted directly to this base
+`ada7e6b1b3a0d442420e01509bb152653620d030`; PR #163 is merged
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -212,7 +211,9 @@ remaining concrete shell defect that justified A2. Phase 5B1/B2/B3 are complete
 in PRs #158/#159/#160; no additional B4 content-language defect is currently
 justified. The larger Project composition gap is intentionally tracked as the
 separate Phase 5C layout and control rebuild. Its C0 contract is complete in PR
-#161, and its C1 viewport-frame implementation is complete in PR #162.
+#161, its C1 viewport-frame implementation is complete in PR #162, and its C2a
+floating-panel/context-command implementation is complete in PR #163. C2b is
+next.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -286,7 +287,7 @@ forcing those projections into identical layouts.
 ### Phase 5C — Project workspace layout and control architecture
 
 Status: Phase 5C0 is complete in PR #161; Phase 5C1 is complete in PR #162,
-and Phase 5C2 is active through its retargeted C2a PR #163.
+and Phase 5C2a is complete in PR #163. Phase 5C2b is next.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -834,8 +835,7 @@ button hierarchy without rebuilding the route frame.
 
 ### Phase 5C2a — floating panels and context-aware Canvas commands
 
-Status: active in retargeted PR #163, based on
-`v2/backend-foundation` after PR #162.
+Status: complete in merged PR #163.
 
 #### Concrete problem
 
@@ -947,6 +947,10 @@ Phase 5 is complete only when:
 - all exact-head CI and affected permanent gates are green;
 - the measured frontend baseline and product roadmap are updated for Phase 6.
 
-Phase 6 release hardening follows. Optional trusted derivative generation,
-transport convergence, Docker distribution, semantic/LLM features, real-time
-collaboration, and other deferred capabilities remain independent projects.
+Phase 6A V3 architecture stabilization follows without reopening Phase 5 visual
+or interaction scope; its bounded plan is in
+[V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
+Phase 6B release validation and operational rehearsal follows that gate. Optional
+trusted derivative generation, transport convergence, Docker distribution,
+semantic/LLM features, real-time collaboration, and other deferred capabilities
+remain independent projects.

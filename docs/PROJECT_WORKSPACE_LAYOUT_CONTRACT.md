@@ -1,10 +1,10 @@
 # Project workspace layout and control contract
 
 Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
-merged PR #162, and C2 active through retargeted PR #163
+merged PR #162, C2a complete in PR #163, and C2b next
 
-Last reviewed: 2026-08-30 during the retargeted Phase 5C2a floating-panel and
-context-command implementation
+Last reviewed: 2026-09-03 after the Phase 5C2a floating-panel and
+context-command implementation merged
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in

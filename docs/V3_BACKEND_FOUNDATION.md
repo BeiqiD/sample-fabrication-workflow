@@ -7,7 +7,11 @@ used by the Project-ready backend rebuild. The v3 database is new and empty; no
 alpha-v2 data migration or compatibility import is provided.
 
 The canonical product phase order is defined in
-[the product roadmap](./PRODUCT_ROADMAP.md). Project ownership and interaction
+[the product roadmap](./PRODUCT_ROADMAP.md). The post-Phase-5 modularization,
+compatibility cleanup, and clean-baseline replacement are bounded by the
+[V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md);
+the current ordered migration and deployment gates remain authoritative until
+that replacement is implemented and verified. Project ownership and interaction
 contracts are defined in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md) and
 [Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).

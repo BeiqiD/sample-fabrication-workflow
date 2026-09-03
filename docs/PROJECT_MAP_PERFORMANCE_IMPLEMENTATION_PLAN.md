@@ -42,7 +42,7 @@ The permanent `pre-pr/project-map-performance` gate covers:
 - no eager rich image previews at envelope startup;
 - production TypeScript/Vite build and the existing Map bundle boundary.
 
-This is a deterministic structural and interaction stress contract, not a claim that CI wall-clock timing predicts every browser or device. Phase 6 still owns supported-browser and realistic-data performance rehearsal.
+This is a deterministic structural and interaction stress contract, not a claim that CI wall-clock timing predicts every browser or device. Phase 6B still owns supported-browser and realistic-data performance rehearsal.
 
 ## Final v1 include/defer decisions
 

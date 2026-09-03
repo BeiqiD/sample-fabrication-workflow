@@ -162,6 +162,7 @@ The first full-export implementation builds the ZIP in browser memory. Large arc
 - [Architecture and invariants](./docs/ARCHITECTURE.md)
 - [Data model](./docs/DATA_MODEL.md)
 - [Product goal and roadmap](./docs/PRODUCT_ROADMAP.md)
+- [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)
 - [Project Map kernel implementation record](./docs/PROJECT_MAP_KERNEL_IMPLEMENTATION_PLAN.md)
