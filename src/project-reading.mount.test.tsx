@@ -271,8 +271,13 @@ describe("mounted Phase 3C Reading projection", () => {
     clipboardWriteText.mockRejectedValueOnce(new Error("denied"));
     renderProjectPage("/projects/project-a?focus=item-note");
 
-    await screen.findByText("Map fixture");
+    const map = await screen.findByTestId("project-flow-canvas");
+    await waitFor(() => {
+      expect(map.getAttribute("data-selected-item-id")).toBe("item-note");
+      expect(map.getAttribute("data-focused-item-id")).toBe("item-note");
+    });
     fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
     fireEvent.click(screen.getByText("More actions", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Copy stable link" }));
     expect(await screen.findByText("Clipboard access was unavailable; the link was not copied.")).toBeTruthy();

@@ -90,6 +90,13 @@ The reconnection review found no additional defect in atomic endpoint updates,
 migration identity/provenance guards or Undo/Redo. Targeted independent suites and
 new regressions were followed by the integrated checks below.
 
+The first follow-up CI exposed a timing race in the clipboard-denial test: it
+clicked Inspector after Map mounted but before the canonical focus link had
+selected its item. A bounded repeated run reproduced the same failure locally.
+The test now waits for the requested selected/focused item and Inspector content
+before exercising clipboard denial, matching the successful-copy fixture's
+preconditions. The clipboard error assertions remain unchanged.
+
 ## Automated and integration evidence
 
 - Follow-up `npm test`: **175 source suites / 870 tests**, **39 mounted suites / 213 tests**,
