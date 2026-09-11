@@ -236,7 +236,7 @@ describe("Project reference navigation safety", () => {
     expect(screen.getByText("Pending reference: uncertain")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(true));
     expect(screen.queryByText("Projects route")).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel placement and leave" })).toBeNull();
