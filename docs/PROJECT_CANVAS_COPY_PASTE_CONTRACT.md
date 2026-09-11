@@ -2,13 +2,23 @@
 
 Status: Phase 4B2 complete in PR #149.
 
-Last reviewed: 2026-08-18 after making uncertain replay settlement proof directional, row-specific, and independent of human-readable errors
+Last reviewed: 2026-09-11 for user-authorized pointer-anchored paste; existing replay guarantees retained
 
 ## Goal
 
 Copy/paste duplicates a bounded selection without turning the Canvas into a frontend-owned document. The clipboard freezes one transient projection of authoritative Project records, while paste is an ordered journal of ordinary item and edge mutations.
 
 This contract defines the Phase 4B2 identity, authorization, geometry, retry, partial-result, and interaction boundaries. `PROJECT_CANVAS_PRODUCTIVITY_IMPLEMENTATION_PLAN.md` records the wider Phase 4B sequence.
+
+## Authorized interaction amendment
+
+The 2026-09-11 user-authorized workflow UX repair extends presentation beyond the
+original PR scope. Context-menu Paste here now anchors the copied group's top-left
+bound at the accepted Canvas pointer coordinate. Keyboard paste retains the
+existing deterministic offset. The anchor is frozen before the first write, so
+retries never read a new pointer or viewport position. Integrated results and
+remaining acceptance boundaries are in `PROJECT_UX_REPAIR_ACCEPTANCE.md`;
+the completed Phase 4B2 record above remains historical.
 
 ## Identity semantics
 
@@ -73,7 +83,18 @@ The preliminary source lookup is still same-Project and type-safe. It cannot aut
 
 ## Geometry
 
-Paste preserves every selected node's width, height, and relative x/y/z differences. The default offset is 32 Canvas units multiplied by a transient paste ordinal. Translation is clamped as one group at authoritative coordinate bounds so relative geometry is not distorted. The copied group is shifted above the current highest z-index when bounded integer space remains; otherwise the largest valid common z-offset is used.
+Paste preserves every selected node's width, height, and relative x/y/z differences.
+Keyboard paste uses 32 Canvas units multiplied by a transient paste ordinal.
+Context-menu Paste here instead translates the selection's top-left bound to the
+accepted Canvas-space pointer anchor. Translation is clamped as one group at
+authoritative coordinate bounds so relative geometry is not distorted. The copied
+group is shifted above the current highest z-index when bounded integer space
+remains; otherwise the largest valid common z-offset is used.
+
+The anchor belongs to the frozen paste journal, not mutable menu state. A menu
+close, viewport movement, partial response, or retry cannot reposition a paste
+already in progress. Exact pointer placement does not automatically rearrange
+existing nodes or become a persisted viewport preference.
 
 No clipboard or paste ordinal becomes persistent Project state.
 
@@ -146,7 +167,9 @@ The permanent `pre-pr/project-canvas-productivity` and Project-persistence gates
 - authoritative clipboard classification for Reference, Markdown, and attachment occurrences;
 - fresh identity allocation and source identity non-reuse;
 - internal-edge copying and boundary-edge exclusion;
-- deterministic grouped geometry mapping;
+- deterministic grouped geometry mapping and keyboard-offset compatibility;
+- context-menu Paste here at a non-origin viewport, preserved relative spacing,
+  coordinate-bound clamping, and unchanged geometry on exact retry;
 - ordered Project-revision expectations and fresh endpoint identities;
 - pause/resume behavior and lost-response exact replay;
 - source-authorized attachment blob reuse without a client locator;

@@ -85,6 +85,10 @@ export const projectApi = {
     `/projects/${encodeURIComponent(projectId)}`,
     signal ? { signal } : undefined,
   ),
+  readTrash: (projectId: string, signal?: AbortSignal) => projectRequest<ProjectSnapshot>(
+    `/projects/${encodeURIComponent(projectId)}?includeDeleted=1`,
+    signal ? { signal } : undefined,
+  ),
   deleteProject: (
     projectId: string,
     input: ProjectLifecycleInput,
@@ -138,6 +142,14 @@ export const projectApi = {
   ) => projectRequest<ProjectItemMutationResponse>(
     `/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(itemId)}`,
     jsonRequest("DELETE", input),
+  ),
+  restoreItem: (
+    projectId: string,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(itemId)}/restore`,
+    jsonRequest("POST", input),
   ),
   updateMarkdown: (
     projectId: string,

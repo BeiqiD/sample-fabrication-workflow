@@ -2,7 +2,7 @@
 
 Status: canonical product and architecture contract; Phase 4C is complete in PR #151
 
-Last reviewed: 2026-08-18 after representative-scale Map performance hardening and v1 functional-gap decisions
+Last reviewed: 2026-09-11 for the user-authorized interaction, editing, and recovery revision
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
@@ -33,6 +33,20 @@ The Phase 4C scale, contextual-zoom, and final v1 decision boundary is in
 [PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md](./PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md).
 The stable reference, lifecycle, search, and storage boundaries remain in their
 existing focused documents.
+
+## Current authorized UX revision
+
+On 2026-09-11 the user authorized implementation of the whole-workflow UX review,
+including repairs beyond the original PR's presentation scope. The current rules
+below supersede earlier selection-opens-Inspector, creation-free Reading/mobile,
+fixed-edge-endpoint, and placement-only Save rules. Completed Phase 3/4 records
+remain historical. Integrated results and remaining acceptance boundaries are
+recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`; the PR remains Draft.
+
+Identity, immutable Reading order, revision checks, exact operation replay,
+uncertain-outcome protection, and attachment trust remain authoritative. Edge
+reconnection is the explicit schema exception in migration
+`0036_project_edge_reconnection.sql`; it does not introduce a new graph model.
 
 ## Core product model
 
@@ -146,21 +160,19 @@ Desktop is the full Project editing environment:
 
 Mobile defaults to Reading. It does not provide full Canvas editing.
 
-The initial mobile contract permits:
+The current mobile contract permits:
 
-- reading the complete Project;
-- opening external references;
-- editing existing Project-owned Markdown;
-- moving an existing Project-owned Markdown occurrence to Trash through the
-  guarded item/content lifecycle operation;
-- editing attachment caption and optional source URL;
-- reviewing the fixed insertion-order sequence; and
-- viewing item detail.
+- reading the complete Project and opening reference sources;
+- Add > Markdown, Attachment, and Reference using the same route-owned mutations
+  and deterministic default placements as desktop Reading;
+- editing Project-owned Markdown and attachment caption/source URL;
+- recoverable item removal and restoration through the guarded lifecycle paths;
+- reviewing immutable insertion order without displaying it as gap-prone numbering;
+- viewing details and using an accessible expanded editor or reference picker.
 
-The initial mobile contract excludes item creation, reference removal,
-attachment removal, file upload, byte replacement, Map placement, resize, edge
-creation/editing, and bulk Canvas actions. Recoverable Markdown removal is the
-only mobile structural mutation in this phase.
+Mobile excludes an editable Canvas, touch coordinate placement, resizing, edge
+creation/editing, and Canvas selection gestures. It does not gain byte replacement,
+a separate content system, or a separate mutation controller.
 
 ## Map creation interactions
 
@@ -201,8 +213,12 @@ normal Project-local recoverable removal route. If it cannot be safely
 reconciled, the user receives an explicit conflict rather than a guessed delete
 or a hidden local ghost.
 
-Keyboard users have the equivalent `Place at Map center` action. Full mobile
-placement is deferred rather than emulated through fragile touch dragging.
+Keyboard/click Place chooses a bounded free position near the visible Map center
+when the Map is mounted; Reading/mobile uses the documented deterministic default.
+Exact pointer drops keep their coordinate. Existing nodes are never rearranged.
+The Suggested type filter is applied before the display cap; bounded upstream
+truncation or partial failure is visible and cannot imply an exhaustive empty
+result. Mobile uses a picker and Place, not touch dragging on a hidden Canvas.
 
 ### Markdown creation
 
@@ -214,9 +230,12 @@ pointer position and immediately focuses its editor.
 - `Escape` cancels an unsaved empty draft;
 - only one Markdown node loads the full editor at a time;
 - editing temporarily disables node dragging;
-- existing Markdown nodes enter edit mode through an explicit action or
-  double-click;
-- Map and Reading edit the same canonical Markdown source;
+- existing Markdown nodes enter edit mode through Edit or title/chrome double-click;
+  double-clicking rendered body text preserves ordinary word selection;
+- Map, Reading, and the expanded editor share one draft and canonical Markdown
+  source; changing editor presentation must not create a new operation identity;
+- active-editor Save and Ctrl/Command+S save that draft; safe navigation offers
+  Save and leave as well as Stay / Discard, while unresolved outcomes remain guarded;
 - persistence creates the content, item occurrence, creation sequence, and Map
   placement atomically.
 
@@ -244,15 +263,18 @@ references found through the sidebar.
 
 ### Selection and navigation
 
-- click node body: select and open/update Inspector;
+- click node body: select and expose local quick actions; update Inspector if it
+  is already open, without opening or pinning it implicitly;
 - drag node handle/body non-interactive area: move;
 - drag resize border: resize;
 - double-click empty space: create Markdown;
-- double-click or explicit Edit on Markdown: edit;
+- Markdown title/chrome double-click or explicit Edit: edit; body double-click: select text;
 - edit attachment caption/source URL through an explicit metadata action;
 - click hover/selected/focused `Open reference`: navigate to source;
 - drag one of four connection handles: create an edge;
-- right-click: context menu.
+- Details: explicitly open Inspector; Pin is a separate action;
+- right-click or More: the same context commands, with grouped alignment/layer
+  entries and destination-accurate Open source / Open attachment labels.
 
 Interactive controls and editor regions must not initiate node dragging.
 
@@ -265,7 +287,9 @@ Phase 4B multi-selection uses only Project item occurrence IDs:
 - dragging any selected node or using an arrow key moves all selected committed
   occurrences together;
 - one grouped movement becomes one client-session geometry history command;
-- Inspector detail, resize, edit, and removal remain single-item operations;
+- Inspector detail, resize, and content editing remain single-item operations;
+  removal may target the whole committed selection through the bounded removal
+  journal described below;
 - pending placement ghosts and unsaved draft nodes do not become ordinary bulk
   selection targets;
 - `ProjectPage` owns the accepted occurrence IDs. If an editor lock or unsafe edge
@@ -274,9 +298,11 @@ Phase 4B multi-selection uses only Project item occurrence IDs:
 
 `Ctrl/Command+A` selects all committed Map occurrences, `Escape` clears selection,
 `Ctrl/Command+Z` undoes, `Ctrl/Command+Shift+Z` or `Ctrl/Command+Y` redoes, and
-`Ctrl/Command+S` flushes placement saves. These shortcuts are inactive in inputs,
-textareas, selects, contenteditable regions, textbox roles, and IME composition.
-Outside those editable regions, the Save chord is still consumed when Save is
+`Ctrl/Command+S` saves the active editor first, otherwise flushes placement saves.
+Canvas selection, movement, history, clipboard, and Delete/Backspace shortcuts do
+not take over inputs, textareas, selects, contenteditable regions, textbox roles,
+rendered reading text, or IME composition. The Save chord is the explicit exception
+inside the active Project editor. It is still consumed when Save is
 disabled by saved/saving/conflict or another active operation, so it becomes a
 safe Project no-op rather than opening the browser Save Page dialog. Selection is
 never persisted or exported.
@@ -334,11 +360,20 @@ The first edge model uses:
 
 - Bezier rendering only;
 - top, right, bottom, and left handles;
-- one fixed source handle and target handle after creation;
+- explicit source/target handles, mutable through guarded reconnection;
 - endpoint marker values `none | arrow`;
 - optional short free-text labels;
 - no self-loop;
-- deletion and recreation to change endpoints or handles.
+- reconnect either endpoint/handle while retaining the edge's identity, label,
+  direction, and provenance.
+
+Reconnection is a revisioned edge update carrying all endpoint IDs, handles, and
+expected endpoint-item revisions together. The Worker validates active same-Project
+endpoints, no self-loop, handles, duplicates, and the expected edge revision.
+Migration `0036_project_edge_reconnection.sql` permits these semantic endpoint
+changes while preserving immutable edge ID, Project ID, and creation provenance;
+it requires one revision advance and a fresh mutation ID. Lost responses exact-retry
+the frozen update; undo/redo uses a guarded inverse update, not delete/recreate.
 
 Direction is represented by endpoint markers:
 
@@ -359,19 +394,23 @@ while parallel edges with a meaningful difference may remain possible.
 
 ## Reading projection and first-version order
 
-Reading contains every active Project item occurrence and provides no creation
-operations. It allows:
+Reading contains every active Project item occurrence and exposes Add through the
+same page-owned content and placement operations as Map. It allows:
 
 - complete rendering of existing items;
 - editing existing Project-owned Markdown;
 - moving an existing Project-owned Markdown occurrence to Trash through the
   guarded item/content lifecycle operation;
 - editing attachment caption and optional source URL;
+- removing and restoring attachment or reference occurrences through their
+  Project-local lifecycle paths, without mutating an external source;
 - never retargeting attachment bytes or intrinsic filename/type/size metadata;
 - opening references and Inspector.
 
-Reference blocks remain read-only. Mobile defaults to this projection and keeps
-the same limited editing boundary.
+Reference blocks remain read-only for their external source. Reading and mobile
+can place another reference without modifying the source. Edit/Open actions stay
+at the card header, removal and export use More, and a new shared Markdown draft
+renders before committed items until saved or safely canceled.
 
 ### Initial deterministic order
 
@@ -455,8 +494,16 @@ local draft
 + bounded autosave on idle and semantic operation boundaries
 ```
 
-Save always flushes pending deltas. UI shows `Saved`, `Saving`, `Unsaved`, and
-`Conflict/Error` state.
+Save targets the active Markdown, attachment metadata, or edge editor before
+placement deltas. Status must not say Saved while a draft remains uncommitted.
+Correctable validation/server rejection keeps editable fields and the draft intact;
+conflict requires reconciliation, while outcome-uncertain writes keep their exact
+frozen payload and cannot be freely edited or discarded. UI distinguishes Saved,
+Unsaved, Saving, Conflict, Error, and uncertain/reconciling state.
+
+Expanded Markdown is the same editor session, not a second draft. Save and leave
+may continue navigation only after that session commits and all existing
+operation/navigation guards have cleared.
 
 Undo/redo is client-session history, but persistence depends on command type:
 
@@ -469,6 +516,30 @@ Undo/redo is client-session history, but persistence depends on command type:
   revision and a new operation ID. The history stack advances only after that
   inverse mutation succeeds; an uncertain outcome must exact-retry the frozen
   inverse request before history may move.
+
+### Recoverable item removal and Trash
+
+Reference removal deletes only the Project occurrence, retaining the source record.
+Markdown/attachment removal uses the existing Project-owned item/content lifecycle
+operation. Trash exposes a restore path rather than an unrecoverable label.
+
+Single and bulk removal freeze the target set and execute ordinary revision-guarded
+item operations sequentially. Acknowledged removals stay visible as partial progress;
+uncertain requests retain the exact payload/operation ID, stop later work, and keep
+selection, geometry, and navigation guards until settlement and authoritative
+snapshot reconciliation. The UI must not claim a bulk atomic transaction.
+
+The latest deletion group can be restored through the recovery toast or Trash.
+Immediately after deletion, global Undo prioritizes restoring that group. A later
+geometry or edge-history action clears that priority so global Undo again targets
+the newer history action; the dedicated restore paths remain available. This does
+not place content typing, creation, or every user action into global Undo history.
+
+Restoration restores the same item/content identity and original insertion sequence.
+Cascaded edges may be restored only when both endpoints are active and their
+`deletionOperationId` still identifies this removal; edges deleted independently
+before the item removal must not be resurrected. Restore journals keep partial
+acknowledgements and uncertain exact retries until authoritative reconciliation.
 
 There is no requirement to permanently store every drag, resize, keystroke, or
 undo command.
@@ -535,7 +606,7 @@ project_contents                 markdown or attachment owner; revisioned captio
 project_content_attachments      immutable intrinsic attachment -> blob record
 project_items                    Project-local occurrences; content XOR reference; immutable created_sequence
 project_map_placements           zero or one DB row per item; exactly one through authoritative creation
-project_edges                    Project-local edges with fixed handles/markers; no Reading-order field in v1
+project_edges                    Project-local edges with explicit handles/markers; no Reading-order field in v1
 ```
 
 Every committed active Project item occurrence has one Map placement and

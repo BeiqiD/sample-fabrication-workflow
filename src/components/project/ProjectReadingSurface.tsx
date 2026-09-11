@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { isProjectAttachmentSourceUrl } from "../../../shared/project-api";
 import { EmptyState } from "../EmptyState";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
@@ -8,6 +9,7 @@ import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import { ProjectMarkdown } from "./ProjectMarkdown";
 import "./project-rich-content.css";
+import "./project-reading-surface.css";
 
 const LazyProjectMarkdownEditor = lazy(() => import("./ProjectMarkdownEditor"));
 
@@ -76,6 +78,41 @@ function exportFilename(projectTitle: string) {
   return `${slug}-reading-${new Date().toISOString().slice(0, 10)}.zip`;
 }
 
+function ReadingMore({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return <details
+    className="project-reading-more"
+    open={open}
+    onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+    }}
+    onKeyDown={(event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
+      event.currentTarget.querySelector("summary")?.focus();
+    }}
+    onClick={(event) => {
+      if (event.target instanceof Element && event.target.closest("button, a")) setOpen(false);
+    }}
+  >
+    <summary aria-label={label} aria-expanded={open} onClick={(event) => {
+      event.preventDefault();
+      setOpen((current) => !current);
+    }}>More</summary>
+    <div className="project-reading-more-actions" hidden={!open}>{children}</div>
+  </details>;
+}
+
+function ReadingReferenceLink({ node }: { node: ProjectNodeDescriptor }) {
+  const href = node.openSourceUrl || node.openReferenceUrl;
+  if (!href) return null;
+  const label = node.openSourceUrl ? "Open source" : "Open reference";
+  return /^https?:\/\//i.test(href)
+    ? <a className="button compact-button" href={href} target="_blank" rel="noreferrer">{label}</a>
+    : <Link className="button compact-button" to={href}>{label}</Link>;
+}
+
 export function ProjectReadingSurface({
   nodes,
   mobile = false,
@@ -138,20 +175,32 @@ export function ProjectReadingSurface({
     <div className="project-reading-heading">
       <div>
         <p className="card-label">Reading</p>
-        <p className="card-meta">Items follow immutable creation order. Reading never changes Map positions, edges, or occurrence order.</p>
       </div>
-      <div className="project-reading-export-actions">
+      <ReadingMore label="Reading options">
         <button
           type="button"
           className="button compact-button"
           disabled={!nodes.length || interactionDisabled || editorBusy || exportState.status === "exporting"}
           onClick={exportReading}
         >{exportState.status === "exporting" ? "Exporting…" : "Export readable ZIP"}</button>
-      </div>
+      </ReadingMore>
       {exportState.message && <p className={`project-reading-export-message ${exportState.status === "error" ? "error" : exportState.message.includes("warning") ? "warning" : ""}`} role="status">
         {exportState.message}
       </p>}
     </div>
+    {markdownEditor?.isNew && <article className="card project-reading-item project-reading-new-note">
+      <header><span className="meta-badge">New note</span></header>
+      <Suspense fallback={<div className="project-rich-editor-loading">Loading editor…</div>}>
+        <LazyProjectMarkdownEditor
+          key={markdownEditor.itemId}
+          editor={markdownEditor}
+          ariaLabel="New Markdown editor"
+          onChange={(value) => onMarkdownChange?.(value)}
+          onSave={() => onMarkdownSave?.()}
+          onCancel={() => onMarkdownCancel?.()}
+        />
+      </Suspense>
+    </article>}
     {nodes.length ? nodes.map((node) => {
       const editingMarkdown = markdownEditor?.itemId === node.itemId;
       const editingAttachment = attachmentEditor?.itemId === node.itemId;
@@ -168,7 +217,42 @@ export function ProjectReadingSurface({
         aria-current={focused ? "location" : undefined}
         tabIndex={focused ? -1 : undefined}
       >
-        <header><span className="meta-badge">{projectNodeKindLabel(node.kind)}</span><small>#{node.createdSequence}</small></header>
+        <header>
+          <span className="meta-badge">{projectNodeKindLabel(node.kind)}</span>
+          <div className="project-reading-item-actions">
+            {node.kind === "markdown" && !editingMarkdown && onMarkdownEditRequest && <button
+              type="button"
+              className="button compact-button reading-edit-button"
+              aria-label="Edit Markdown"
+              disabled={interactionDisabled || editorBusy}
+              onClick={() => onMarkdownEditRequest(node.itemId)}
+            >Edit</button>}
+            {node.kind === "attachment" && !editingAttachment && onAttachmentEditRequest && <button
+              type="button"
+              className="button compact-button reading-edit-button"
+              aria-label="Edit attachment metadata"
+              disabled={interactionDisabled || editorBusy}
+              onClick={() => onAttachmentEditRequest(node.itemId)}
+            >Edit</button>}
+            {node.kind === "reference" && <ReadingReferenceLink node={node} />}
+            {node.kind === "markdown" && !editingMarkdown && onMarkdownDeleteRequest && <ReadingMore label={`More actions for ${node.title}`}>
+              <button
+                type="button"
+                className="button compact-button danger"
+                disabled={interactionDisabled || editorBusy}
+                onClick={() => onMarkdownDeleteRequest(node.itemId)}
+              >Move Markdown to trash</button>
+            </ReadingMore>}
+            {node.kind === "attachment" && !editingAttachment && onAttachmentDeleteRequest && <ReadingMore label={`More actions for ${node.title}`}>
+              <button
+                type="button"
+                className="button compact-button danger"
+                disabled={interactionDisabled || editorBusy}
+                onClick={() => onAttachmentDeleteRequest(node.itemId)}
+              >Move attachment to trash</button>
+            </ReadingMore>}
+          </div>
+        </header>
         {showGeneratedTitle && <h2>{node.title}</h2>}
         {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
 
@@ -183,20 +267,6 @@ export function ProjectReadingSurface({
           />
         </Suspense> : <>
           <ProjectMarkdown source={node.markdownSource || ""} className="project-reading-markdown-source" />
-          <div className="project-owned-content-pending-actions">
-            <button
-              type="button"
-              className="button reading-edit-button"
-              disabled={interactionDisabled || editorBusy}
-              onClick={() => onMarkdownEditRequest?.(node.itemId)}
-            >Edit Markdown</button>
-            <button
-              type="button"
-              className="button reading-edit-button"
-              disabled={interactionDisabled || editorBusy}
-              onClick={() => onMarkdownDeleteRequest?.(node.itemId)}
-            >Move Markdown to trash</button>
-          </div>
         </>)}
 
         {node.kind === "attachment" && <>
@@ -205,7 +275,7 @@ export function ProjectReadingSurface({
               <textarea
                 aria-label="Reading attachment caption"
                 value={attachmentEditor.caption}
-                disabled={attachmentEditor.status !== "editing"}
+                disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}
                 onChange={(event) => onAttachmentChange?.("caption", event.currentTarget.value)}
               />
             </label>
@@ -215,7 +285,8 @@ export function ProjectReadingSurface({
                 type="url"
                 placeholder="https://…"
                 value={attachmentEditor.sourceUrl}
-                disabled={attachmentEditor.status !== "editing"}
+                aria-invalid={attachmentEditor.status === "error" && !isProjectAttachmentSourceUrl(attachmentEditor.sourceUrl.trim() || null)}
+                disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}
                 onChange={(event) => onAttachmentChange?.("sourceUrl", event.currentTarget.value)}
               />
             </label>
@@ -224,13 +295,13 @@ export function ProjectReadingSurface({
               message={attachmentEditor.message}
             />}
             <div className="project-owned-content-pending-actions">
-              {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button
+              {(attachmentEditor.status === "editing" || attachmentEditor.status === "error" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button
                 type="button"
                 className="button primary compact-button"
                 disabled={attachmentEditor.status === "saving"}
                 onClick={onAttachmentSave}
               >{attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}</button>}
-              {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={onAttachmentCancel}>Cancel</button>}
+              {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={onAttachmentCancel}>{attachmentEditor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
             </div>
           </div> : <>
             <ProjectAttachmentPresentation
@@ -240,30 +311,15 @@ export function ProjectReadingSurface({
               caption={node.attachmentCaption}
               sourceUrl={node.attachmentSourceUrl}
             />
-            <div className="project-owned-content-pending-actions">
-              <button
-                type="button"
-                className="button reading-edit-button"
-                disabled={interactionDisabled || editorBusy}
-                onClick={() => onAttachmentEditRequest?.(node.itemId)}
-              >Edit attachment metadata</button>
-              {onAttachmentDeleteRequest && <button
-                type="button"
-                className="button reading-edit-button"
-                disabled={interactionDisabled || editorBusy}
-                onClick={() => onAttachmentDeleteRequest(node.itemId)}
-              >Move attachment to trash</button>}
-            </div>
           </>}
         </>}
 
         {node.kind === "reference" && <>
           {node.excerpt && <p className="project-reading-excerpt">{node.excerpt}</p>}
-          {node.openReferenceUrl && <Link className="button wide" to={node.openReferenceUrl}>Open reference</Link>}
         </>}
       </article>;
-    }) : <EmptyState title="This Project is empty">
-      Add references or Project-owned content from the desktop Map workspace.
+    }) : !markdownEditor?.isNew && <EmptyState title="This Project is empty">
+      Add a note, attachment, or reference to get started.
     </EmptyState>}
   </section>;
 }

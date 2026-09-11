@@ -7,14 +7,19 @@ and Phase 5C2b.2 is active
 
 Last reviewed: 2026-09-11
 
-Execution base: `v2/backend-foundation` at
+Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
 reviewable frontend slices. Phase 5C explicitly authorizes a Project-scoped
-layout and control rewrite; it does not authorize a whole-product visual rewrite
-or reopen the v1 interaction feature set.
+layout and control rewrite; it does not authorize a whole-product visual rewrite.
+The user-authorized Project UX repair revision dated 2026-09-11 below is an explicit
+functional exception to the original presentation-only scope. Completed slice
+records retain their historical scope and acceptance statements; the active
+revision governs the newly authorized behavior. Integrated test and desktop
+browser results, plus remaining acceptance boundaries, are recorded in
+`PROJECT_UX_REPAIR_ACCEPTANCE.md`.
 
 The governing principle remains the one frozen in
 [Frontend interface guidelines](./FRONTEND_GUIDELINES.md):
@@ -68,14 +73,17 @@ performance guarantee.
 
 ## Hard boundaries
 
-Phase 5 preserves the following boundaries unless a separately authorized
-correctness fix proves that one is invalid.
+Phase 5 preserves the following boundaries except for a separately authorized
+correctness fix or an explicit exception in the current user-authorized UX
+revision. A changed interaction is not permission to relax data-safety guarantees.
 
 ### Product and backend boundary
 
 - no new source-record or Project content type;
 - no schema migration, export-version change, persistence rewrite, or new domain
-  mutation API merely for visual refinement;
+  mutation API merely for visual refinement; the authorized endpoint-reconnection
+  migration 0036 is the explicit functional exception, preserving stable identity
+  and revision/lifecycle guards;
 - no change to Project occurrence, content, placement, edge, or Reading-order
   identity;
 - no groups/frames, custom Reading order, automatic layout, semantic search,
@@ -292,8 +300,8 @@ and Phase 5C2a is complete in PR #163. Phase 5C2b is active.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
-centered document page containing a framed three-column card, without changing
-authoritative Project behavior.
+centered document page containing a framed three-column card, while preserving
+authoritative Project identity, ownership, retry, and concurrency guarantees.
 
 The detailed anatomy, panel modality, scroll ownership, and slice boundaries are
 frozen in the
@@ -362,7 +370,8 @@ Bounded sequence:
 Protected boundary:
 
 - no backend, API, schema, migration, export-version, dependency, or domain-model
-  change;
+  change except the explicitly authorized guarded reconnection update and migration
+  0036 described in the current UX revision;
 - no change to Project occurrence, content, placement, source, revision, save,
   retry, conflict, reconciliation, attachment-trust, or Reading-order semantics;
 - no change to Map node/edge stored geometry, endpoints, direction, selection,
@@ -1013,8 +1022,9 @@ and reuses existing creation, upload, placement, retry, and conflict paths.
   or starting an upload; pointer/context creation retains its original coordinates;
 - top-bar creation, view, panels, history/save, and overflow have local control
   roles; ordinary Map cards omit creation sequence while drafts retain their badge;
-- no Add entry is introduced in Reading/mobile; persisted sequence, Reading order,
-  identity, authoritative mutations, and Canvas geometry remain unchanged.
+- the original Add slice was desktop-Map-only; the 2026-09-11 authorized follow-up
+  adds Reading/mobile entry points through the same mutation controller and
+  deterministic placement defaults, preserving sequence, order, and identity.
 
 Acceptance includes live-center placement, cancellation and exact retry, operation
 availability, menu priority/focus, desktop/Reading transitions, and the relevant
@@ -1038,9 +1048,69 @@ Pattern references: [Miro toolbars](https://help.miro.com/hc/en-us/articles/3600
 and [tldraw actions](https://tldraw.dev/sdk-features/actions). These inform grouping
 and discoverability; no unsupported editor tools are introduced.
 
-Phase 5C2b.3 remains separate for node/edge/multi-selection quick toolbars, with its
-own placement, focus, and performance review. C2b is not complete until that slice
-and its integration acceptance are finished; C3 follows C2b.
+The 2026-09-11 authorized follow-up below now includes the previously separate
+C2b.3 quick-toolbar work and directly related Reading/mobile interaction repairs.
+Its placement, focus, recovery, and performance acceptance remains required. This
+does not declare C2b or C3 complete or erase the earlier slice boundaries.
+
+### User-authorized Project UX repair revision — 2026-09-11
+
+Status: implemented; automated and desktop browser acceptance recorded in
+`PROJECT_UX_REPAIR_ACCEPTANCE.md`. Draft status and the documented remaining
+cross-viewport/export/import acceptance boundaries remain in effect.
+
+The user requested a complete review of entry, edit, reference, connection,
+modification, removal, mouse gestures, and secondary-information density, then
+explicitly authorized fixing those findings beyond the original PR scope. This
+revision supersedes conflicting current presentation-only exclusions while leaving
+completed PR records, source ownership, storage trust, and exact-replay protections
+intact.
+
+In scope:
+
+- select without opening Inspector; update it when already open, open Details
+  explicitly, and change Pin only through the Pin control;
+- References closed by default, opened by the reference task; narrower editable
+  desktop widths prefer one panel while respecting an explicit Inspector pin;
+- local single/edge/multi-selection toolbars and More; group alignment/layer
+  commands and keep body double-click for word selection, title double-click for Edit;
+- a complete but height-bounded Inspector Markdown preview, optional expansion,
+  one technical Details group, clickable graph relationships, and one References
+  browser reached from related-record entry;
+- shared expanded Markdown drafts, active-editor Save/Ctrl-S, accurate unsaved
+  status, Save and leave, and correctable metadata rejection without losing input;
+- Reading/mobile Add using the same mutation controller and deterministic default
+  placement, header Edit/Open, and More for low-frequency export/removal; no mobile Canvas;
+- recoverable single/bulk item removal, dedicated Trash restore and deletion-group
+  Undo priority; independent per-item acknowledgements, uncertain exact retry,
+  safe cascaded-edge restoration, and reconciliation before unlocking;
+- reconnect an edge through the existing update route with endpoint/item revision
+  checks and migration `0036_project_edge_reconnection.sql`; preserve edge identity,
+  label, markers, no-self-loop, same-Project, and duplicate protections;
+- Paste here at the right-click Canvas position with a frozen retry anchor, while
+  keyboard paste retains its established offset and bounded grouped geometry;
+- deterministic new-card placement avoiding overlap near the viewport center,
+  scope filtering before the suggestion presentation cap, and honest feedback
+  for bounded/truncated or partially failed recommendation reads.
+
+Required acceptance before readiness or merge:
+
+- meaningful source/mounted coverage of changed entry, editor, error, panel, focus,
+  source navigation, copy/paste, reconnection, deletion, and restoration paths;
+- endpoint-mutation route/schema tests and migration 0036 applied to the local
+  browser-test database before exercising reconnection;
+- browser task sequences for long Markdown/formulas, invalid URL correction,
+  shared expanded edits, Save and leave, keyboard Save, reference placement/filtering,
+  right-click Paste here, endpoint reconnection, multi-delete and restore;
+- partial/uncertain mutation recovery without discarding identities, drafts, or
+  independent deleted edges; global Undo must not be advertised as universal
+  content/creation history;
+- desktop 1440/1024, short-height, adjacent functional thresholds, Reading/mobile
+  390/360, and light/dark checks for the changed controls and panels;
+- full Verify, build/bundled-math checks, and the permanent Map performance gate on
+  the final integrated head, with actual results recorded separately from this plan.
+
+No final-pass or merge-readiness claim is made by this document update.
 
 ## Documentation and review discipline
 

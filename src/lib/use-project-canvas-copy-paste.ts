@@ -77,7 +77,7 @@ export interface ProjectCanvasCopyPasteController {
   acknowledgedWrites: number;
   totalWrites: number;
   copySelection: (snapshot: ProjectSnapshot, selectedItemIds: readonly string[]) => boolean;
-  pasteClipboard: (snapshot: ProjectSnapshot) => boolean;
+  pasteClipboard: (snapshot: ProjectSnapshot, point?: { x: number; y: number }) => boolean;
   retryExact: () => void;
   reloadAndAbandon: () => void;
   retryAuthoritativeReload: () => void;
@@ -420,13 +420,14 @@ export function useProjectCanvasCopyPaste({
     }
   }, []);
 
-  const pasteClipboard = useCallback((snapshot: ProjectSnapshot) => {
+  const pasteClipboard = useCallback((snapshot: ProjectSnapshot, point?: { x: number; y: number }) => {
     const source = clipboardRef.current;
     if (!source || pasteStateRef.current || snapshot.project.id !== projectIdRef.current) return false;
     try {
       const pasteOrdinal = pasteOrdinalRef.current + 1;
       const journal = createProjectCanvasPasteJournal(snapshot, source, {
         pasteOrdinal,
+        point,
         createIdentity: (kind) => createProjectApiId(kind),
       });
       pasteOrdinalRef.current = pasteOrdinal;

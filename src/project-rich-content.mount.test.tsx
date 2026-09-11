@@ -72,7 +72,7 @@ describe("Phase 3D rich Reading projection", () => {
 
 
   it("uses the shared modal contract for image previews", () => {
-    render(<MemoryRouter><ProjectReadingSurface nodes={[node({
+    render(<MemoryRouter><ProjectReadingSurface onAttachmentEditRequest={() => {}} nodes={[node({
       itemId: "image-a",
       kind: "attachment",
       title: "surface.png",

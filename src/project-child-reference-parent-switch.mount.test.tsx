@@ -34,26 +34,6 @@ import type {
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
-vi.mock("./components/ReferenceSearchSurface", () => ({
-  ReferenceSearchSurface: () => null,
-}));
-
-vi.mock("./components/project/ProjectInspectorChildren", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-  return {
-    ProjectInspectorChildren: ({
-      parent,
-    }: {
-      parent: { type: string; id: string };
-    }) => {
-      const [mountedParent] = React.useState(parent);
-      return <p data-testid="mounted-child-parent">
-        {mountedParent.type}:{mountedParent.id}
-      </p>;
-    },
-  };
-});
-
 vi.mock("./components/project/ProjectMapSurface", () => ({
   ProjectMapSurface: forwardRef(function ProjectMapSurfaceFixture({
     nodes,
@@ -88,7 +68,9 @@ const secondParentResolution: ReferenceResolution = {
     deletedAt: null,
     archivedAt: null,
   },
-  contexts: [],
+  contexts: [{ segments: [{
+    type: "sample", id: "sample-b", label: "Sample B", deletedAt: null, archivedAt: null,
+  }] }],
   destination: {
     referenceUrl: "/references/sample/r1_sample-b",
     mode: "source",
@@ -98,7 +80,7 @@ const secondParentResolution: ReferenceResolution = {
 };
 
 function twoReferenceSnapshot(): ProjectSnapshot {
-  const snapshot = projectTestSnapshot();
+  const snapshot = projectSnapshotWithReferenceContexts();
   const referenceItem = snapshot.items.find(
     (item) => item.id === "item-reference",
   )!;
@@ -131,6 +113,15 @@ function twoReferenceSnapshot(): ProjectSnapshot {
   };
 }
 
+
+function projectSnapshotWithReferenceContexts(): ProjectSnapshot {
+  const snapshot = projectTestSnapshot();
+  snapshot.references[0].resolution.contexts = [{ segments: [{
+    type: "sample", id: "sample-a", label: "Sample A", deletedAt: null, archivedAt: null,
+  }] }];
+  return snapshot;
+}
+
 function desktopMatchMedia() {
   return vi.fn(() => ({
     matches: true,
@@ -161,7 +152,7 @@ function renderProjectPage() {
   return render(<RouterProvider router={router} />);
 }
 
-describe("Project child browser parent identity", () => {
+describe("Project related-reference context", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
@@ -175,26 +166,49 @@ describe("Project child browser parent identity", () => {
     vi.unstubAllGlobals();
   });
 
-  it("remounts the child browser when the selected Reference target changes", async () => {
+  it("opens Suggested for the current parent and clears an unrelated search", async () => {
     const snapshot = twoReferenceSnapshot();
+    const childRequests: Array<{ parent: { type: string; id: string }; limit: number }> = [];
     fetchMock.mockImplementation((request, init) => {
       const path = String(request);
-      if (path === "/api/projects/project-a" && !init?.method) {
-        return jsonResponse(snapshot);
+      if (path === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshot);
+      if (path === "/api/references/children") {
+        const input = JSON.parse(String(init?.body));
+        childRequests.push(input);
+        return jsonResponse({
+          parent: input.parent.id === "sample-a" ? snapshot.references[0].resolution : secondParentResolution,
+          parentEligible: true, children: [], truncated: false,
+        });
+      }
+      if (path === "/api/references/search") {
+        return jsonResponse({ query: "unrelated", results: [], truncated: false });
       }
       return jsonResponse({ error: `Unexpected request: ${path}` }, 500);
     });
 
     renderProjectPage();
     await screen.findByTestId("project-flow-canvas");
-    expect(screen.getByTestId("mounted-child-parent").textContent)
-      .toBe("sample:sample-a");
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    fireEvent.click(screen.getByRole("button", { name: "Browse related records" }));
+    await screen.findByRole("heading", { name: "Suggested references" });
+    await waitFor(() => expect(childRequests.length).toBe(2));
+    expect(childRequests[0]).toEqual({ parent: { type: "sample", id: "sample-a" }, limit: 100 });
 
-    fireEvent.click(screen.getByRole("button", {
-      name: "Select Sample B",
-    }));
-    await waitFor(() => expect(
-      screen.getByTestId("mounted-child-parent").textContent,
-    ).toBe("sample:sample-b"));
+    fireEvent.change(screen.getByPlaceholderText("Search records…"), { target: { value: "unrelated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await screen.findByText("No matching references");
+    expect(screen.queryByRole("heading", { name: "Suggested references" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Sample B" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    const requestCount = childRequests.length;
+    fireEvent.click(screen.getByRole("button", { name: "Browse related records" }));
+    await screen.findByRole("heading", { name: "Suggested references" });
+    await waitFor(() => expect(childRequests.length).toBe(requestCount + 2));
+    expect(childRequests[requestCount]).toEqual({ parent: { type: "sample", id: "sample-b" }, limit: 100 });
+    expect((screen.getByPlaceholderText("Search records…") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

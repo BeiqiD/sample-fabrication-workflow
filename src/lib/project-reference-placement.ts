@@ -1,3 +1,4 @@
+import { findAvailableProjectPlacementPoint } from "./project-placement-position";
 import { referenceUrlForTarget } from "../../shared/reference-destinations";
 import type { ReferenceSearchResult } from "../../shared/reference-search";
 import {
@@ -175,6 +176,14 @@ export function projectReferenceGeometryAtPoint(
     zIndex,
   };
   return isProjectMapGeometry(geometry) ? geometry : null;
+}
+
+/** Preserve the reference placement API while sharing actual-size collision checks. */
+export function findAvailableProjectReferencePoint(
+  preferred: { x: number; y: number },
+  occupied: readonly ProjectMapGeometry[],
+): { x: number; y: number } | null {
+  return findAvailableProjectPlacementPoint(preferred, occupied, projectReferenceGeometryAtPoint);
 }
 
 export function projectReferenceRecordFromPreview(

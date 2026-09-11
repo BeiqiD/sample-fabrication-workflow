@@ -160,6 +160,7 @@ describe("responsive Project projection safety", () => {
 
     renderProjectPage();
     await screen.findByText("Responsive Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
     fireEvent.click(screen.getByRole("button", { name: "Start pending reference" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(screen.getByText("Pending reference state: placing")).toBeTruthy();

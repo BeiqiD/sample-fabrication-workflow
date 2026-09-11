@@ -234,8 +234,9 @@ describe("mounted Phase 3C Reading projection", () => {
       expect(map.getAttribute("data-selected-item-id")).toBe("item-note");
       expect(map.getAttribute("data-focused-item-id")).toBe("item-note");
     });
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
-
+    fireEvent.click(screen.getByText("More actions", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Copy stable link" }));
     await waitFor(() => expect(clipboardWriteText).toHaveBeenCalledWith(
       `${window.location.origin}/projects/project-a?focus=item-note`,
@@ -270,7 +271,9 @@ describe("mounted Phase 3C Reading projection", () => {
     clipboardWriteText.mockRejectedValueOnce(new Error("denied"));
     renderProjectPage("/projects/project-a?focus=item-note");
 
-    await screen.findByRole("button", { name: "Copy stable link" });
+    await screen.findByText("Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    fireEvent.click(screen.getByText("More actions", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Copy stable link" }));
     expect(await screen.findByText("Clipboard access was unavailable; the link was not copied.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Stable link copied" })).toBeNull();
@@ -300,7 +303,8 @@ describe("mounted Phase 3C Reading projection", () => {
     renderProjectPage();
     await screen.findByText("Map fixture");
     fireEvent.click(screen.getByRole("button", { name: "Reading" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Move Markdown to trash" }));
+    fireEvent.click(await screen.findByLabelText("More actions for Design note"));
+    fireEvent.click(screen.getByRole("button", { name: "Move Markdown to trash" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const request = fetchMock.mock.calls[1];
@@ -342,7 +346,8 @@ describe("mounted Phase 3C Reading projection", () => {
     renderProjectPage();
     await screen.findByText("Map fixture");
     fireEvent.click(screen.getByRole("button", { name: "Reading" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Move attachment to trash" }));
+    fireEvent.click(await screen.findByLabelText("More actions for result.pdf"));
+    fireEvent.click(screen.getByRole("button", { name: "Move attachment to trash" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const request = fetchMock.mock.calls[1];

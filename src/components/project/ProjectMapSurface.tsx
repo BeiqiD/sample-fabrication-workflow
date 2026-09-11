@@ -1,9 +1,12 @@
 import {
   forwardRef,
+  lazy,
+  Suspense,
   memo,
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -14,9 +17,11 @@ import {
   Background,
   ConnectionMode,
   Controls,
+  EdgeToolbar,
   Handle,
   MarkerType,
   NodeResizer,
+  NodeToolbar,
   Position,
   ReactFlow,
   SelectionMode,
@@ -61,7 +66,9 @@ import {
   projectMapPerformancePolicy,
   type ProjectMapDetailLevel,
 } from "../../lib/project-map-performance";
-import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
+import type { ProjectEdgeEditorState } from "../../lib/use-project-edge-controller";
+import type { ProjectEdgeConnection } from "../../lib/project-edge-history";
+import { projectEdgeToolbarPosition } from "../../lib/project-edge-toolbar";
 import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import {
   normalizeProjectItemSelection,
@@ -74,6 +81,8 @@ import {
   type ProjectItemSelection,
 } from "../../lib/project-canvas-productivity";
 import "./project-map-surface.css";
+
+const ProjectMarkdownEditor = lazy(() => import("./ProjectMarkdownEditor"));
 
 type ProjectFlowNodeData = {
   descriptor: ProjectNodeDescriptor;
@@ -97,6 +106,7 @@ type ProjectFlowEdge = Edge;
 
 export interface ProjectMapSurfaceHandle {
   getViewportCenter: () => { x: number; y: number } | null;
+  ensureGeometryVisible?: (geometry: ProjectMapGeometry) => void;
 }
 
 export interface ProjectMapContextCommands {
@@ -117,12 +127,14 @@ export interface ProjectMapContextCommands {
   editItem: (itemId: string) => void;
   copyItemLink: (itemId: string) => void | Promise<void>;
   copySelection: () => void;
-  pasteSelection: () => void;
+  pasteSelection: (point?: { x: number; y: number }) => void;
   selectAll: () => void;
   clearSelection: () => void;
   alignSelection: (alignment: ProjectCanvasAlignment) => void;
   changeZOrder: (action: ProjectCanvasZOrderAction) => void;
   removeItem: (itemId: string) => void;
+  removeSelection?: () => void;
+  removeSelectionDisabled?: boolean;
   inspectEdge: (edgeId: string) => void;
   editEdge: () => void;
   deleteEdge: () => void;
@@ -152,6 +164,11 @@ export interface ProjectMapSurfaceProps {
     sourceHandle: ProjectEdgeHandle;
     targetHandle: ProjectEdgeHandle;
   }) => void;
+  onEdgeReconnect?: (edgeId: string, connection: ProjectEdgeConnection) => void;
+  edgeEditor?: ProjectEdgeEditorState | null;
+  onEdgeEditChange?: (field: "label" | "direction", value: string) => void;
+  onEdgeEditSave?: () => void;
+  onEdgeEditCancel?: () => void;
   onGeometryCommit: (command: ProjectGeometryCommand) => void;
   onGeometryBatchCommit?: (commands: ProjectGeometryCommand[]) => void;
   onReferenceDrop?: (
@@ -180,6 +197,7 @@ type ProjectMapMenuItem = {
   danger?: boolean;
   href?: string;
   action?: () => void | Promise<void>;
+  children?: ProjectMapMenuItem[];
 };
 
 const PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR = [
@@ -283,11 +301,6 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
   return <article
     className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}`}
     data-detail-level={detailLevel}
-    onDoubleClick={(event) => {
-      if (descriptor.kind !== "markdown" || editing) return;
-      event.stopPropagation();
-      data.onMarkdownEditRequest(descriptor.itemId);
-    }}
   >
     <>
       <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
@@ -310,35 +323,31 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         if (!geometryInteractionDisabled && !editing) data.onResizeEnd(descriptor, params);
       }}
     />
-    <header>
+    <header
+      className="project-node-drag-handle"
+      title={descriptor.kind === "markdown" && !editing ? "Double-click to edit Markdown" : "Drag to move card"}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        if (descriptor.kind === "markdown" && !editing) data.onMarkdownEditRequest(descriptor.itemId);
+      }}
+    >
       <span><ActionIcon name={descriptor.kind === "reference" ? "link" : descriptor.kind === "markdown" ? "note" : "attachment"} />{projectNodeKindLabel(descriptor.kind)}</span>
       {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
     </header>
-    {markdownEditor ? <div className="project-markdown-editor nodrag nopan">
-      <textarea
-        autoFocus
-        aria-label={markdownEditor.isNew ? "New Project Markdown" : "Edit Project Markdown"}
-        value={markdownEditor.value}
-        disabled={markdownEditor.status !== "editing"}
-        onChange={(event) => data.onMarkdownChange(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
-          if (markdownEditor.isNew && !markdownEditor.value.trim()) data.onMarkdownCancel();
-        }}
-      />
-      {markdownEditor.message && <ProjectEditorFeedback
-        status={markdownEditor.status}
-        message={markdownEditor.message}
-        className="project-markdown-editor-feedback"
-      />}
-      <div className="project-markdown-editor-actions">
-        {markdownEditor.status !== "error" && markdownEditor.status !== "conflict" && <button type="button" className="button primary compact-button" disabled={markdownEditor.status === "saving" || !markdownEditor.value.trim()} onClick={data.onMarkdownSave}>
-          {markdownEditor.status === "saving" ? "Saving…" : markdownEditor.status === "uncertain" ? "Retry exact save" : "Save Markdown"}
-        </button>}
-        {(markdownEditor.status === "editing" || markdownEditor.status === "error" || markdownEditor.status === "conflict") && <button type="button" className="button compact-button" onClick={data.onMarkdownCancel}>Cancel</button>}
-      </div>
+    {markdownEditor ? <div className="project-markdown-editor nodrag nopan nowheel">
+      <Suspense fallback={<p role="status">Opening editor…</p>}><ProjectMarkdownEditor
+        compact
+        editor={markdownEditor}
+        ariaLabel={markdownEditor.isNew ? "New Project Markdown" : "Edit Project Markdown"}
+        onChange={data.onMarkdownChange}
+        onSave={data.onMarkdownSave}
+        onCancel={data.onMarkdownCancel}
+      /></Suspense>
     </div> : <>
-      {!(showRichContent && descriptor.kind === "markdown") && <h2 title={descriptor.title}>{descriptor.title}</h2>}
+      {!(showRichContent && descriptor.kind === "markdown") && <h2 className="project-node-drag-handle" title={descriptor.title} onDoubleClick={(event) => {
+        event.stopPropagation();
+        if (descriptor.kind === "markdown") data.onMarkdownEditRequest(descriptor.itemId);
+      }}>{descriptor.title}</h2>}
       {showSubtitle && descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
       {previewUrl && <img
         className="project-node-image"
@@ -364,20 +373,16 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
             event.stopPropagation();
           }
         }}
-        onDoubleClick={(event) => {
-          if (event.target instanceof Element && event.target.closest("a, button, input")) {
-            event.stopPropagation();
-          }
-        }}
+        onDoubleClick={(event) => event.stopPropagation()}
       >
         <ProjectMarkdownPreview source={descriptor.markdownSource || ""} />
       </div> : descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>)}
-      {showAction && descriptor.openReferenceUrl && <a
+      {showAction && (descriptor.openSourceUrl || descriptor.openReferenceUrl) && <a
         className="project-node-open-reference nodrag nopan"
-        href={descriptor.openReferenceUrl}
+        href={descriptor.openSourceUrl ?? descriptor.openReferenceUrl!}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
-      >Open reference</a>}
+      >{descriptor.openSourceUrl ? "Open source" : "Reference details"}</a>}
     </>}
   </article>;
 });
@@ -522,6 +527,7 @@ function buildFlowNode(
       ...callbacks,
     },
     draggable: !geometryInteractionDisabled && !editing,
+    dragHandle: ".project-node-drag-handle",
     selectable: true,
     connectable: !edgeInteractionDisabled && !editing,
     deletable: false,
@@ -626,6 +632,11 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   onSelectionChange,
   onEdgeSelect = NOOP_EDGE_SELECT,
   onEdgeConnect,
+  onEdgeReconnect,
+  edgeEditor = null,
+  onEdgeEditChange,
+  onEdgeEditSave,
+  onEdgeEditCancel,
   onGeometryCommit,
   onGeometryBatchCommit,
   onReferenceDrop,
@@ -658,8 +669,13 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const lastFocusedItemIdRef = useRef<string | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const [contextMenu, setContextMenu] = useState<ProjectMapContextMenu | null>(null);
+  const [edgeToolbarViewport, setEdgeToolbarViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [edgeToolbarMetrics, setEdgeToolbarMetrics] = useState({ width: 360, height: 44, canvasWidth: window.innerWidth, canvasHeight: window.innerHeight });
+  const [contextSubmenu, setContextSubmenu] = useState<string | null>(null);
+  const submenuFocusRef = useRef<string | null>(null);
   const closeContextMenu = useCallback((restoreFocus: boolean) => {
     setContextMenu(null);
+    setContextSubmenu(null);
     if (!restoreFocus) return;
     window.requestAnimationFrame(() => {
       const nextActiveElement = document.activeElement;
@@ -701,7 +717,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         setContextMenu((current) => current ? { ...current, left, top } : current);
         return;
       }
-      menu.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')?.focus();
+      const candidates = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'));
+      const preferred = submenuFocusRef.current;
+      submenuFocusRef.current = null;
+      (candidates.find((item) => item.dataset.menuLabel === preferred) ?? candidates[0])?.focus();
     });
     const closeOnPointerDown = (event: PointerEvent) => {
       if (!contextMenuRef.current?.contains(event.target as Node)) setContextMenu(null);
@@ -711,7 +730,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       window.cancelAnimationFrame(frame);
       document.removeEventListener("pointerdown", closeOnPointerDown);
     };
-  }, [contextMenu]);
+  }, [contextMenu, contextSubmenu]);
 
   const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
     if (geometryInteractionDisabled) return;
@@ -842,6 +861,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (!rect) return null;
       return flowPointFromClient(rect.left + rect.width / 2, rect.top + rect.height / 2);
     },
+    ensureGeometryVisible(geometry) {
+      const instance = flowInstanceRef.current;
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!instance || !rect || rect.width <= 0 || rect.height <= 0) return;
+      const topLeft = instance.screenToFlowPosition({ x: rect.left + 24, y: rect.top + 24 });
+      const bottomRight = instance.screenToFlowPosition({ x: rect.right - 24, y: rect.bottom - 24 });
+      if (geometry.x >= topLeft.x && geometry.y >= topLeft.y
+        && geometry.x + geometry.width <= bottomRight.x
+        && geometry.y + geometry.height <= bottomRight.y) return;
+      // Reveal the new card without changing the user's zoom or any placement.
+      void instance.setCenter(geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, {
+        zoom: instance.getZoom(), duration: 0,
+      });
+    },
   }), [flowPointFromClient]);
 
   useEffect(() => {
@@ -962,6 +995,15 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       targetHandle: connection.targetHandle,
     });
   }, [edgeInteractionDisabled, onEdgeConnect]);
+  const handleReconnect = useCallback((edge: ProjectFlowEdge, connection: Connection) => {
+    if (edgeInteractionDisabled || !onEdgeReconnect || edge.id === pendingEdge?.edgeId
+      || !connection.source || !connection.target
+      || !isProjectEdgeHandle(connection.sourceHandle) || !isProjectEdgeHandle(connection.targetHandle)) return;
+    onEdgeReconnect(edge.id, {
+      sourceItemId: connection.source, targetItemId: connection.target,
+      sourceHandle: connection.sourceHandle, targetHandle: connection.targetHandle,
+    });
+  }, [edgeInteractionDisabled, onEdgeReconnect, pendingEdge?.edgeId]);
   const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
     clearAlignmentGuides();
     if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
@@ -1049,6 +1091,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
 
   const handleViewportMove = useCallback<OnMove>((_event, viewport) => {
     synchronizeDetailLevel(viewport.zoom);
+    if (selectedEdgeIdRef.current) setEdgeToolbarViewport(viewport);
   }, [synchronizeDetailLevel]);
 
   useEffect(() => {
@@ -1103,6 +1146,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     const position = contextMenuPosition(event);
     if (!point || !position) return;
     event.preventDefault();
+    setContextSubmenu(null);
     setContextMenu({ target: "pane", ...position, point });
   }, [
     contextCommands,
@@ -1132,6 +1176,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     }
     event.preventDefault();
     event.stopPropagation();
+    setContextSubmenu(null);
     setContextMenu({
       target: opensSelectionMenu ? "selection" : "node",
       ...position,
@@ -1154,6 +1199,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     event.preventDefault();
     event.stopPropagation();
     if (onEdgeSelect(edge.id) === false) return;
+    setContextSubmenu(null);
     setContextMenu({ target: "edge", ...position, edgeId: edge.id });
   }, [contextCommands, contextMenuPosition, onEdgeSelect, pendingEdge?.edgeId]);
 
@@ -1176,10 +1222,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (contextCommands) {
         items.push(
           {
-            label: "Paste copied selection",
+            label: "Paste here",
             section: "Canvas",
             disabled: contextCommands.pasteDisabled,
-            action: contextCommands.pasteSelection,
+            action: () => contextCommands.pasteSelection(contextMenu.point),
           },
           {
             label: "Select all",
@@ -1237,6 +1283,11 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         { label: "Bring forward", section: "Layer", disabled: contextCommands.zOrderDisabled("bring-forward"), action: () => contextCommands.changeZOrder("bring-forward") },
         { label: "Send backward", section: "Layer", disabled: contextCommands.zOrderDisabled("send-backward"), action: () => contextCommands.changeZOrder("send-backward") },
         { label: "Send to back", section: "Layer", disabled: contextCommands.zOrderDisabled("send-to-back"), action: () => contextCommands.changeZOrder("send-to-back") },
+        ...(contextCommands.removeSelection ? [{
+          label: "Remove selected cards", section: "Remove", danger: true,
+          disabled: contextCommands.removeSelectionDisabled ?? contextCommands.removeDisabled,
+          action: contextCommands.removeSelection,
+        }] : []),
         {
           label: "Clear selection",
           section: "Selection state",
@@ -1274,7 +1325,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     const descriptor = descriptors.find((candidate) => candidate.itemId === contextMenu.itemId);
     if (!descriptor) return [];
     const referenceHref = descriptor.kind === "reference" && descriptor.openReferenceUrl
-      ? projectMarkdownSafeHref(descriptor.openReferenceUrl)
+      ? projectMarkdownSafeHref(descriptor.openSourceUrl ?? descriptor.openReferenceUrl)
       : null;
     const attachmentFileHref = descriptor.kind === "attachment" && descriptor.fileUrl
       ? projectMarkdownSafeImageSrc(descriptor.fileUrl)
@@ -1297,7 +1348,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       });
     }
     if (referenceHref) items.push({
-      label: "Open Reference",
+      label: descriptor.openSourceUrl ? "Open source" : "Reference details",
       section: "Occurrence",
       href: referenceHref,
     });
@@ -1348,6 +1399,98 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onMarkdownCreateRequest,
   ]);
 
+  const groupedMenuItems = useMemo(() => {
+    const groups = new Map<string, ProjectMapMenuItem>();
+    const result: ProjectMapMenuItem[] = [];
+    for (const item of contextMenuItems) {
+      if (item.section !== "Align" && item.section !== "Layer") {
+        result.push(item);
+        continue;
+      }
+      let group = groups.get(item.section);
+      if (!group) {
+        group = { label: item.section, section: "Arrange", children: [] };
+        groups.set(item.section, group);
+        result.push(group);
+      }
+      group.children!.push(item);
+    }
+    return result;
+  }, [contextMenuItems]);
+  const activeSubmenu = groupedMenuItems.find((item) => item.label === contextSubmenu && item.children);
+  const menuItems = activeSubmenu?.children
+    ? [{ label: "Back to actions", section: activeSubmenu.label, action: () => {
+      submenuFocusRef.current = activeSubmenu.label;
+      setContextSubmenu(null);
+    } }, ...activeSubmenu.children]
+    : groupedMenuItems;
+  const primaryDescriptor = descriptors.find((descriptor) => descriptor.itemId === selectedItemId) ?? null;
+  const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId) ?? null;
+  useLayoutEffect(() => {
+    if (!selectedEdgeId || !flowInstance) return;
+    setEdgeToolbarViewport(flowInstance.getViewport());
+    const canvas = canvasRef.current;
+    const toolbar = canvas?.querySelector<HTMLElement>(".project-edge-toolbar");
+    if (!canvas || !toolbar) return;
+    const measure = () => {
+      const canvasRect = canvas.getBoundingClientRect();
+      const toolbarRect = toolbar.getBoundingClientRect();
+      const next = {
+        width: toolbarRect.width || (edgeEditor ? 500 : 360),
+        height: toolbarRect.height || (edgeEditor ? 120 : 44),
+        canvasWidth: canvasRect.width || window.innerWidth,
+        canvasHeight: canvasRect.height || window.innerHeight,
+      };
+      setEdgeToolbarMetrics((current) => current.width === next.width && current.height === next.height
+        && current.canvasWidth === next.canvasWidth && current.canvasHeight === next.canvasHeight ? current : next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    observer.observe(toolbar);
+    return () => observer.disconnect();
+  }, [selectedEdgeId, Boolean(edgeEditor), flowInstance]);
+  const edgeToolbarPoint = useMemo(() => {
+    if (!selectedEdge) return null;
+    const source = flowNodes.find((node) => node.id === selectedEdge.sourceItemId);
+    const target = flowNodes.find((node) => node.id === selectedEdge.targetItemId);
+    if (!source || !target) return null;
+    const handlePoint = (node: ProjectFlowNode, handle: ProjectEdgeHandle) => {
+      const geometry = nodeGeometry(node);
+      return {
+        x: geometry.x + (handle === "left" ? 0 : handle === "right" ? geometry.width : geometry.width / 2),
+        y: geometry.y + (handle === "top" ? 0 : handle === "bottom" ? geometry.height : geometry.height / 2),
+      };
+    };
+    const from = handlePoint(source, selectedEdge.sourceHandle);
+    const to = handlePoint(target, selectedEdge.targetHandle);
+    const viewport = edgeToolbarViewport;
+    const screenPoint = (point: { x: number; y: number }) => ({
+      x: point.x * viewport.zoom + viewport.x,
+      y: point.y * viewport.zoom + viewport.y,
+    });
+    const position = projectEdgeToolbarPosition(screenPoint(from), screenPoint(to), {
+      width: edgeToolbarMetrics.canvasWidth, height: edgeToolbarMetrics.canvasHeight,
+    }, edgeToolbarMetrics);
+    return { x: (position.x - viewport.x) / viewport.zoom, y: (position.y - viewport.y) / viewport.zoom };
+  }, [flowNodes, selectedEdge, edgeToolbarViewport, edgeToolbarMetrics]);
+  const openToolbarMenu = (event: React.MouseEvent<HTMLButtonElement>, target: "node" | "edge") => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const position = contextMenuPosition({ clientX: rect.left, clientY: rect.bottom } as MouseEvent);
+    if (!position) return;
+    setContextSubmenu(null);
+    if (target === "edge" && selectedEdge) setContextMenu({ target: "edge", ...position, edgeId: selectedEdge.id });
+    else if (primaryDescriptor) setContextMenu({
+      target: selectedItemIds.length > 1 ? "selection" : "node", ...position, itemId: primaryDescriptor.itemId,
+    });
+  };
+  const primaryOpenUrl = primaryDescriptor
+    ? primaryDescriptor.kind === "attachment" ? primaryDescriptor.fileUrl
+      : primaryDescriptor.openSourceUrl ?? primaryDescriptor.openReferenceUrl
+    : null;
+  const safePrimaryOpenUrl = primaryOpenUrl ? projectMarkdownSafeHref(primaryOpenUrl) : null;
+
   const contextMenuPortalTarget = contextMenu
     ? canvasRef.current?.closest<HTMLElement>(".project-desktop-workspace") ?? null
     : null;
@@ -1356,7 +1499,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       className="project-map-context-menu"
       style={{ left: contextMenu.left, top: contextMenu.top }}
       role="menu"
-      aria-label={contextMenu.target === "pane"
+      aria-label={activeSubmenu ? `${activeSubmenu.label} actions` : contextMenu.target === "pane"
         ? "Canvas actions"
         : contextMenu.target === "edge"
           ? "Edge actions"
@@ -1368,6 +1511,27 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
           '[role="menuitem"]:not([disabled])',
         ));
+        if (event.key === "Tab") {
+          closeContextMenu(false);
+          return;
+        }
+        if (event.key === "ArrowLeft" && activeSubmenu || event.key === "Escape" && activeSubmenu) {
+          event.preventDefault();
+          event.stopPropagation();
+          submenuFocusRef.current = activeSubmenu!.label;
+          setContextSubmenu(null);
+          return;
+        }
+        if (event.key === "ArrowRight") {
+          const label = (document.activeElement as HTMLElement | null)?.dataset.menuLabel;
+          const item = menuItems.find((candidate) => candidate.label === label);
+          if (item?.children) {
+            event.preventDefault();
+            event.stopPropagation();
+            setContextSubmenu(item.label);
+          }
+          return;
+        }
         if (event.key === "Escape") {
           event.preventDefault();
           event.stopPropagation();
@@ -1375,7 +1539,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
           canvasRef.current?.focus();
           return;
         }
-        if (projectCanvasKeyboardShortcutFromEvent(event.nativeEvent)) {
+        if (projectCanvasKeyboardShortcutFromEvent(event.nativeEvent)
+          || event.key === "Delete" || event.key === "Backspace") {
           event.preventDefault();
           event.stopPropagation();
           return;
@@ -1392,17 +1557,18 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         items[nextIndex]?.focus();
       }}
     >
-      {contextMenuItems.map((item, index) => <div
+      {menuItems.map((item, index) => <div
         className="project-map-context-menu-entry"
         key={item.label}
       >
-        {(index === 0 || contextMenuItems[index - 1]?.section !== item.section) && <p
+        {(index === 0 || menuItems[index - 1]?.section !== item.section) && <p
           className="project-map-context-menu-label"
           role="presentation"
         >{item.section}</p>}
         {item.href ? <a
           role="menuitem"
           tabIndex={-1}
+          data-menu-label={item.label}
           href={item.href}
           target="_blank"
           rel="noopener noreferrer"
@@ -1412,13 +1578,17 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
           role="menuitem"
           tabIndex={-1}
           className={item.danger ? "danger" : undefined}
+          data-menu-label={item.label}
+          aria-haspopup={item.children ? "menu" : undefined}
+          aria-expanded={item.children ? false : undefined}
           disabled={item.disabled}
           onClick={() => {
+            if (item.children) { setContextSubmenu(item.label); return; }
             const result = item.action?.();
-            closeContextMenu(true);
+            if (item.label !== "Back to actions") closeContextMenu(true);
             void result;
           }}
-        >{item.label}</button>}
+        >{item.label}{item.children && <span aria-hidden="true">›</span>}</button>}
       </div>)}
   </div> : null;
 
@@ -1426,6 +1596,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     ref={canvasRef}
     className="project-flow-canvas"
     data-testid="project-flow-canvas"
+    data-project-selection-tools={contextCommands ? "true" : "false"}
     data-project-map-detail={detailLevel}
     data-project-map-scale={performancePolicy.scale}
     data-project-map-culling={performancePolicy.onlyRenderVisibleElements ? "visible-elements" : "all-elements"}
@@ -1435,6 +1606,20 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onDoubleClick={handleDoubleClick}
     onDragOver={handleDragOver}
     onDrop={handleDrop}
+    onKeyDown={(event) => {
+      if (!contextCommands || event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey
+        || (event.key !== "Delete" && event.key !== "Backspace")) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest(`${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR}, [data-project-reading-content], [data-rich-text], [role='menu'], [role='dialog']`)) return;
+      if (selectedEdgeId && !contextCommands.edgeDeleteDisabled) {
+        event.preventDefault(); event.stopPropagation(); contextCommands.deleteEdge();
+      } else if (selectedItemIds.length && !(contextCommands.removeSelectionDisabled ?? contextCommands.removeDisabled)) {
+        if (!contextCommands.removeSelection && selectedItemIds.length !== 1) return;
+        event.preventDefault(); event.stopPropagation();
+        if (contextCommands.removeSelection) contextCommands.removeSelection();
+        else contextCommands.removeItem(selectedItemIds[0]);
+      }
+    }}
   >
     <ReactFlow<ProjectFlowNode, ProjectFlowEdge>
       nodes={flowNodes}
@@ -1456,6 +1641,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onEdgeContextMenu={handleEdgeContextMenu}
       onPaneContextMenu={handlePaneContextMenu}
       onConnect={handleConnect}
+      onReconnect={handleReconnect}
       onPaneClick={handlePaneClick}
       onMove={handleViewportMove}
       onNodeDragStart={handleNodeDragStart}
@@ -1463,7 +1649,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onNodeDragStop={handleNodeDragStop}
       nodesDraggable={!geometryInteractionDisabled}
       nodesConnectable={!edgeInteractionDisabled}
-      edgesReconnectable={false}
+      edgesReconnectable={!edgeInteractionDisabled && Boolean(onEdgeReconnect)}
       connectionMode={ConnectionMode.Loose}
       elementsSelectable
       onlyRenderVisibleElements={performancePolicy.onlyRenderVisibleElements}
@@ -1477,6 +1663,63 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       deleteKeyCode={null}
       proOptions={PROJECT_PRO_OPTIONS}
     >
+      {contextCommands && primaryDescriptor && selectedItemIds.length > 0 && !selectedEdgeId && !markdownEditor && !geometryInteractionDisabled && <NodeToolbar
+        nodeId={[...selectedItemIds]}
+        isVisible
+        position={Position.Top}
+        className="project-selection-toolbar nodrag nopan"
+        role="toolbar"
+        aria-label={selectedItemIds.length > 1 ? "Selected cards actions" : "Selected card actions"}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        {selectedItemIds.length > 1 ? <><span>{selectedItemIds.length} cards</span><button type="button" disabled={contextCommands.copyDisabled} onClick={contextCommands.copySelection}>Copy</button></>
+          : <>
+            {(primaryDescriptor.kind === "markdown" || primaryDescriptor.kind === "attachment") && <button
+              type="button" disabled={contextCommands.editDisabled}
+              onClick={() => contextCommands.editItem(primaryDescriptor.itemId)}
+            ><ActionIcon name="plan-update" />Edit</button>}
+            {safePrimaryOpenUrl && <a href={safePrimaryOpenUrl} target="_blank" rel="noopener noreferrer"><ActionIcon name="open" />{primaryDescriptor.kind === "reference" ? primaryDescriptor.openSourceUrl ? "Open source" : "Reference details" : "Open"}</a>}
+          </>}
+        <button type="button" disabled={contextCommands.panelCommandsDisabled} onClick={() => selectedItemIds.length > 1
+          ? contextCommands.openInspector() : contextCommands.inspectItem(primaryDescriptor.itemId)}><ActionIcon name="inspector" />Details</button>
+        <button type="button" aria-label="More card actions" aria-haspopup="menu" onClick={(event) => openToolbarMenu(event, "node")}><ActionIcon name="more" /></button>
+      </NodeToolbar>}
+      {contextCommands && selectedEdge && edgeToolbarPoint && <EdgeToolbar
+        edgeId={selectedEdge.id} x={edgeToolbarPoint.x} y={edgeToolbarPoint.y} isVisible
+        alignX="left" alignY="top"
+        style={{ zIndex: 1_000_002, maxWidth: Math.max(1, edgeToolbarMetrics.canvasWidth - 24) }}
+        className={`project-selection-toolbar project-edge-toolbar nodrag nopan${edgeEditor ? " editing" : ""}`}
+        role={edgeEditor ? "group" : "toolbar"} aria-label={edgeEditor ? "Edit selected edge" : "Selected edge actions"}
+        onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (!edgeEditor) return;
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+            event.preventDefault(); event.stopPropagation();
+            if (["editing", "error", "uncertain"].includes(edgeEditor.status)) onEdgeEditSave?.();
+          }
+        }}
+      >
+        {edgeEditor ? <>
+          <label>Label<input autoFocus aria-label="Edge label" value={edgeEditor.label}
+            disabled={!["editing", "error"].includes(edgeEditor.status)}
+            onChange={(event) => onEdgeEditChange?.("label", event.currentTarget.value)} /></label>
+          <label>Direction<select aria-label="Edge direction" value={edgeEditor.direction}
+            disabled={!["editing", "error"].includes(edgeEditor.status)}
+            onChange={(event) => onEdgeEditChange?.("direction", event.currentTarget.value)}>
+            <option value="undirected">No arrow</option><option value="forward">Source → target</option>
+            <option value="reverse">Target → source</option><option value="bidirectional">Both directions</option>
+          </select></label>
+          <button type="button" disabled={!["editing", "error", "uncertain"].includes(edgeEditor.status)} onClick={onEdgeEditSave}>
+            {edgeEditor.status === "saving" ? "Saving…" : edgeEditor.status === "uncertain" ? "Retry exact save" : "Save edge"}
+          </button>
+          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} onClick={onEdgeEditCancel}>Cancel</button>
+          {edgeEditor.message && <p role="status">{edgeEditor.message}</p>}
+        </> : <>
+          <button type="button" disabled={contextCommands.edgeEditDisabled} onClick={contextCommands.editEdge}><ActionIcon name="plan-update" />Edit label / direction</button>
+          <button type="button" disabled={contextCommands.edgeInspectDisabled} onClick={() => contextCommands.inspectEdge(selectedEdge.id)}><ActionIcon name="inspector" />Details</button>
+          <button type="button" aria-label="More edge actions" aria-haspopup="menu" onClick={(event) => openToolbarMenu(event, "edge")}><ActionIcon name="more" /></button>
+        </>}
+      </EdgeToolbar>}
       <ViewportPortal>
         {alignmentGuides.vertical !== null && <div
           aria-hidden

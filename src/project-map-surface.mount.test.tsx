@@ -216,6 +216,8 @@ The ratio is $\frac{1}{1+x_0^2}$.
     fireEvent.doubleClick(link);
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     fireEvent.doubleClick(body);
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    fireEvent.doubleClick(note.querySelector("header")!);
     expect(onMarkdownEditRequest).toHaveBeenCalledWith("item-note");
   });
 
@@ -349,7 +351,7 @@ The ratio is $\frac{1}{1+x_0^2}$.
       target.dispatchEvent(event);
     };
 
-    dispatchMouse(note, "mousedown", {
+    dispatchMouse(note.querySelector("header")!, "mousedown", {
       button: 0,
       buttons: 1,
       clientX: 100,
@@ -606,7 +608,7 @@ The ratio is $\frac{1}{1+x_0^2}$.
     expect(feedback.getAttribute("role")).toBe("status");
     expect(feedback.classList.contains("warning")).toBe(true);
     expect(feedback.classList.contains("danger")).toBe(false);
-    expect(feedback.classList.contains("project-markdown-editor-feedback")).toBe(true);
+    expect(feedback.closest(".project-markdown-editor")).not.toBeNull();
   });
 
 

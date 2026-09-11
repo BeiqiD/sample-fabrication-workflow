@@ -139,6 +139,13 @@ describe("Project reference removal safety", () => {
     renderProjectPage();
     await screen.findByText("Map ready");
     fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    {
+      const moreActions = screen.getByText("More actions", { selector: "summary" });
+      if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+    }
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
     expect(screen.getByText("Geometry locked: yes")).toBeTruthy();
@@ -146,7 +153,9 @@ describe("Project reference removal safety", () => {
     fireEvent.click(screen.getByRole("button", { name: "Attempt geometry mutation" }));
     await Promise.resolve();
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(false);
-    expect(screen.getByText("Saved")).toBeTruthy();
+    expect(screen.getByText("Operation in progress")).toBeTruthy();
+    expect(screen.queryByText("Saved")).toBeNull();
+    expect(screen.getByRole("button", { name: "Save" }).hasAttribute("disabled")).toBe(true);
     expect(screen.queryByText("Conflict")).toBeNull();
 
     pendingDelete.resolve(new Response(JSON.stringify(removalResponse()), {
@@ -174,6 +183,13 @@ describe("Project reference removal safety", () => {
     renderProjectPage();
     await screen.findByText("Map ready");
     fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    {
+      const moreActions = screen.getByText("More actions", { selector: "summary" });
+      if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+    }
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
 
     expect(await screen.findByText("Temporary removal failure")).toBeTruthy();
@@ -204,6 +220,13 @@ describe("Project reference removal safety", () => {
     renderProjectPage();
     await screen.findByText("Map ready");
     fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    {
+      const moreActions = screen.getByText("More actions", { selector: "summary" });
+      if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+    }
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
 
     await waitFor(() => expect(readCount).toBe(2));
@@ -234,6 +257,13 @@ describe("Project reference removal safety", () => {
     renderProjectPage();
     await screen.findByText("Map ready");
     fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    {
+      const moreActions = screen.getByText("More actions", { selector: "summary" });
+      if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+    }
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
 
     expect(await screen.findByText(
@@ -246,6 +276,13 @@ describe("Project reference removal safety", () => {
     expect(staleBody.expectedItemRevision).toBe(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    {
+      const moreActions = screen.getByText("More actions", { selector: "summary" });
+      if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+    }
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
     await waitFor(() => expect(deletes()).toHaveLength(2));
     const freshBody = JSON.parse(String(deletes()[1][1]?.body));

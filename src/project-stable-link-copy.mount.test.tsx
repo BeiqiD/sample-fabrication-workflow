@@ -92,6 +92,10 @@ describe("mounted Project stable-link copy identity", () => {
     fireEvent.click(await screen.findByRole("button", { name: `Select ${itemId}` }));
     await waitFor(() => expect(screen.getByTestId("project-flow-canvas").getAttribute("data-selected-item-id"))
       .toBe(itemId));
+    const trigger = screen.getByRole("button", { name: "Inspector" });
+    if (trigger.getAttribute("aria-pressed") !== "true") fireEvent.click(trigger);
+    const more = screen.getByText("More actions", { selector: "summary" });
+    if (!(more.parentElement as HTMLDetailsElement).open) fireEvent.click(more);
   }
 
   it.each(["resolve", "reject"] as const)(

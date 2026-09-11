@@ -328,6 +328,8 @@
   opacity: .55;
 }
 .project-edge-handle {
+  /* Keep connection targets above the selected card's resize border. */
+  z-index: 3;
   width: 10px;
   height: 10px;
   border-width: 2px;
@@ -390,3 +392,69 @@
   border-radius: 4px;
 }
 .project-node-markdown .rich-text { font-size: 13px; line-height: 1.6; }
+
+.project-node-drag-handle { cursor: grab; }
+.project-node-drag-handle:active { cursor: grabbing; }
+
+/* Selection tools follow their card or edge and remain legible at any zoom. */
+.project-selection-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 5px 20px var(--shadow);
+  pointer-events: all;
+}
+.project-selection-toolbar > span { padding: 0 7px; font-size: 12px; white-space: nowrap; }
+.project-selection-toolbar button,
+.project-selection-toolbar a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+.project-selection-toolbar button:hover,
+.project-selection-toolbar a:hover { color: var(--accent); background: var(--accent-soft); }
+.project-selection-toolbar :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.project-selection-toolbar button:disabled { opacity: .5; cursor: not-allowed; }
+.project-selection-toolbar .action-icon { width: 16px; height: 16px; }
+.project-map-context-menu [aria-haspopup="menu"] { justify-content: space-between; }
+.project-map-context-menu [aria-haspopup="menu"] > span { font-size: 18px; }
+.project-edge-toolbar.editing { align-items: end; flex-wrap: wrap; padding: 9px; gap: 7px; }
+.project-edge-toolbar label { display: grid; gap: 4px; min-width: 0; font-size: 11px; }
+.project-edge-toolbar input,
+.project-edge-toolbar select {
+  min-width: 0;
+  max-width: 200px;
+  min-height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  padding: 5px 7px;
+  color: var(--ink);
+  background: var(--paper);
+  font: inherit;
+  font-size: 12px;
+}
+.project-edge-toolbar p { flex-basis: 100%; margin: 0; max-width: 380px; font-size: 11px; overflow-wrap: anywhere; }
+.project-flow-canvas[data-project-selection-tools="true"] .react-flow__node.selected .project-node-open-reference { display: none; }
+.project-markdown-editor > .project-rich-editor { min-height: 0; }
+
+/* Readable edge controls stay above node layers, while their portal remains inside the Canvas. */
+.project-flow-canvas .react-flow__edgelabel-renderer { z-index: 1000002; }

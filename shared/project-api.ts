@@ -81,6 +81,8 @@ export interface ProjectItemRecord {
   updatedAt: string;
   deletedAt: string | null;
   deletedBy: string | null;
+  /** Present for trashed rows; matches connections removed by the same action. */
+  deletionOperationId?: string | null;
 }
 
 export interface ProjectPlacementRecord extends ProjectMapGeometry {
@@ -110,6 +112,8 @@ export interface ProjectEdgeRecord {
   updatedAt: string;
   deletedAt: string | null;
   deletedBy: string | null;
+  /** Present for trashed rows; matches connections removed by the same action. */
+  deletionOperationId?: string | null;
 }
 
 export interface ProjectReferenceRecord {
@@ -250,6 +254,14 @@ export interface CreateProjectEdgeInput {
 }
 
 export interface UpdateProjectEdgeInput {
+  // Supply all six endpoint fields together to reconnect an existing edge.
+  // Metadata-only updates keep the current endpoints and remain compatible.
+  sourceItemId?: string;
+  targetItemId?: string;
+  sourceHandle?: ProjectEdgeHandle;
+  targetHandle?: ProjectEdgeHandle;
+  expectedSourceItemRevision?: number;
+  expectedTargetItemRevision?: number;
   markerStart: ProjectEdgeMarker;
   markerEnd: ProjectEdgeMarker;
   label: string | null;
@@ -504,6 +516,22 @@ export function isUpdateProjectEdgeInput(
 ): value is UpdateProjectEdgeInput {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<UpdateProjectEdgeInput>;
+  const endpointFields = [
+    candidate.sourceItemId,
+    candidate.targetItemId,
+    candidate.sourceHandle,
+    candidate.targetHandle,
+    candidate.expectedSourceItemRevision,
+    candidate.expectedTargetItemRevision,
+  ];
+  const hasEndpoints = endpointFields.some((field) => field !== undefined);
+  if (hasEndpoints && !(isProjectApiId(candidate.sourceItemId)
+    && isProjectApiId(candidate.targetItemId)
+    && candidate.sourceItemId !== candidate.targetItemId
+    && isProjectEdgeHandle(candidate.sourceHandle)
+    && isProjectEdgeHandle(candidate.targetHandle)
+    && isProjectExpectedRevision(candidate.expectedSourceItemRevision)
+    && isProjectExpectedRevision(candidate.expectedTargetItemRevision))) return false;
   return isProjectEdgeMarker(candidate.markerStart)
     && isProjectEdgeMarker(candidate.markerEnd)
     && isProjectEdgeLabel(candidate.label)

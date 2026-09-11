@@ -8,12 +8,13 @@ describe("Phase 3C/3D Reading contract", () => {
     const model = read("src/lib/project-map-model.ts");
     const reading = read("src/components/project/ProjectReadingSurface.tsx");
     expect(model).toContain("left.createdSequence - right.createdSequence || left.itemId.localeCompare(right.itemId)");
-    expect(reading).toContain("Items follow immutable creation order");
+    expect(reading).not.toContain("Items follow immutable creation order");
+    expect(reading).not.toContain("#{node.createdSequence}");
     expect(reading).not.toContain("projectApi");
     expect(reading).not.toContain("created_sequence");
   });
 
-  it("keeps Reading creation-free while allowing only existing owned-content edits", () => {
+  it("renders owned-content editing and accepts a shared new-note draft without a second creation controller", () => {
     const reading = read("src/components/project/ProjectReadingSurface.tsx");
     const page = read("src/pages/ProjectPage.tsx");
     expect(reading).toContain("Edit Markdown");
@@ -21,6 +22,8 @@ describe("Phase 3C/3D Reading contract", () => {
     expect(reading).toContain("Open reference");
     expect(reading).not.toContain("Add attachment");
     expect(reading).not.toContain("onMarkdownCreateRequest");
+    expect(reading).toContain("markdownEditor?.isNew");
+    expect(reading).toContain('ariaLabel="New Markdown editor"');
     expect(reading).not.toContain("Remove from Project");
     expect(page).toContain('desktopView === "map" ? <>');
     expect(page).toContain("<ProjectReadingSurface");

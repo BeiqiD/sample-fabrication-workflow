@@ -4,6 +4,7 @@ import {
   PROJECT_REFERENCE_DRAG_MIME,
   PROJECT_REFERENCE_NODE_HEIGHT,
   PROJECT_REFERENCE_NODE_WIDTH,
+  findAvailableProjectReferencePoint,
   isProjectReferenceDragPayload,
   projectReferenceDragPayloadFromResolution,
   projectReferenceDragPayloadFromResult,
@@ -109,4 +110,43 @@ describe("Project reference placement client contract", () => {
     });
     expect(projectReferenceGeometryAtPoint({ x: Number.POSITIVE_INFINITY, y: 0 })).toBeNull();
   });
+
+  it("places repeated button additions in separate nearby spaces without moving existing cards", () => {
+    const center = { x: 500, y: 300 };
+    const occupied = [projectReferenceGeometryAtPoint(center)!];
+    const original = { ...occupied[0] };
+    for (let index = 0; index < 20; index += 1) {
+      const point = findAvailableProjectReferencePoint(center, occupied);
+      expect(point).not.toBeNull();
+      const next = projectReferenceGeometryAtPoint(point!)!;
+      for (const previous of occupied) {
+        expect(next.x + next.width <= previous.x
+          || previous.x + previous.width <= next.x
+          || next.y + next.height <= previous.y
+          || previous.y + previous.height <= next.y).toBe(true);
+      }
+      occupied.push(next);
+    }
+    expect(occupied[0]).toEqual(original);
+    expect(findAvailableProjectReferencePoint(center, [])).toEqual(center);
+  });
+
+  it("finds an edge outside a dense occupied area and rejects unsupported coordinates", () => {
+    const center = { x: 500, y: 300 };
+    const occupied = Array.from({ length: 100 }, (_, index) => ({
+      x: (index % 10) * 1000 - 5000,
+      y: Math.floor(index / 10) * 1000 - 5000,
+      width: 1000,
+      height: 1000,
+      zIndex: 0,
+    }));
+    const point = findAvailableProjectReferencePoint(center, occupied);
+    expect(point).not.toBeNull();
+    const next = projectReferenceGeometryAtPoint(point!)!;
+    expect(next.x >= 5000 || next.x + next.width <= -5000
+      || next.y >= 5000 || next.y + next.height <= -5000).toBe(true);
+    expect(findAvailableProjectReferencePoint({ x: Infinity, y: 0 }, [])).toBeNull();
+    expect(findAvailableProjectReferencePoint({ x: 2_000_000, y: 0 }, [])).toBeNull();
+  });
+
 });

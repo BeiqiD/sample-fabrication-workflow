@@ -19,10 +19,6 @@ import type {
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
-vi.mock("./components/ReferenceSearchSurface", () => ({
-  ReferenceSearchSurface: () => null,
-}));
-
 vi.mock("./components/project/ProjectMapSurface", () => ({
   ProjectMapSurface: forwardRef(function ProjectMapSurfaceFixture({
     nodes,
@@ -99,7 +95,9 @@ const secondParentResolution: ReferenceResolution = {
     deletedAt: null,
     archivedAt: null,
   },
-  contexts: [],
+  contexts: [{ segments: [{
+    type: "sample", id: "sample-b", label: "Sample B", deletedAt: null, archivedAt: null,
+  }] }],
   destination: {
     referenceUrl: "/references/sample/r1_sample-b",
     mode: "source",
@@ -144,6 +142,15 @@ const secondChildResolution: ReferenceResolution = {
   },
 };
 
+
+function projectSnapshotWithReferenceContexts(): ProjectSnapshot {
+  const snapshot = projectTestSnapshot();
+  snapshot.references[0].resolution.contexts = [{ segments: [{
+    type: "sample", id: "sample-a", label: "Sample A", deletedAt: null, archivedAt: null,
+  }] }];
+  return snapshot;
+}
+
 function desktopMatchMedia() {
   return vi.fn(() => ({
     matches: true,
@@ -171,7 +178,7 @@ function deferred<T>() {
 }
 
 function insertionResponse(input: CreateReferenceProjectItemInput): ProjectItemMutationResponse {
-  const snapshot = projectTestSnapshot();
+  const snapshot = projectSnapshotWithReferenceContexts();
   const now = "2026-08-17T10:00:00.000Z";
   return {
     item: {
@@ -212,7 +219,7 @@ function insertionResponse(input: CreateReferenceProjectItemInput): ProjectItemM
 }
 
 function projectSnapshotWithTwoReferences(): ProjectSnapshot {
-  const snapshot = projectTestSnapshot();
+  const snapshot = projectSnapshotWithReferenceContexts();
   const referenceItem = snapshot.items.find((item) => item.id === "item-reference")!;
   const referencePlacement = snapshot.placements.find(
     (placement) => placement.projectItemId === referenceItem.id,
@@ -267,7 +274,7 @@ describe("mounted authoritative child-reference insertion", () => {
 
   it("loads stable direct children and reuses the existing exact placement mutation", async () => {
     const pendingInsertion = deferred<Response>();
-    const snapshot = projectTestSnapshot();
+    const snapshot = projectSnapshotWithReferenceContexts();
     fetchMock.mockImplementation((request, init) => {
       const path = String(request);
       if (path === "/api/projects/project-a" && !init?.method) {
@@ -299,6 +306,9 @@ describe("mounted authoritative child-reference insertion", () => {
     expect(fetchMock.mock.calls.some(([path]) => (
       String(path) === "/api/references/children"
     ))).toBe(false);
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
     fireEvent.click(await screen.findByRole("button", {
       name: "Browse related records",
     }));
@@ -312,6 +322,7 @@ describe("mounted authoritative child-reference insertion", () => {
     expect(childRequest).toBeTruthy();
     expect(JSON.parse(String(childRequest?.[1]?.body))).toEqual({
       parent: { type: "sample", id: "sample-a" },
+      limit: 100,
     });
 
     fireEvent.click(place);
@@ -326,7 +337,7 @@ describe("mounted authoritative child-reference insertion", () => {
     expect(input.expectedProjectRevision).toBe(2);
     expect(input.geometry).toEqual({
       x: 350,
-      y: 210,
+      y: 214,
       width: 300,
       height: 180,
       zIndex: 2,
@@ -348,6 +359,8 @@ describe("mounted authoritative child-reference insertion", () => {
     const delayedFirstParent = deferred<Response>();
     const snapshot = projectSnapshotWithTwoReferences();
     let inserted: CreateReferenceProjectItemInput | null = null;
+    let firstParentReads = 0;
+    let staleRequestSignal: AbortSignal | null = null;
     fetchMock.mockImplementation((request, init) => {
       const path = String(request);
       if (path === "/api/projects/project-a" && !init?.method) {
@@ -357,7 +370,19 @@ describe("mounted authoritative child-reference insertion", () => {
         const input = JSON.parse(String(init.body)) as {
           parent: { type: string; id: string };
         };
-        if (input.parent.id === "sample-a") return delayedFirstParent.promise;
+        if (input.parent.id === "sample-a") {
+          firstParentReads += 1;
+          if (firstParentReads === 1) {
+            staleRequestSignal = init?.signal as AbortSignal;
+            return delayedFirstParent.promise;
+          }
+          return jsonResponse({
+            parent: snapshot.references[0].resolution,
+            parentEligible: true,
+            children: [],
+            truncated: false,
+          } satisfies ListReferenceChildrenResponse);
+        }
         if (input.parent.id === "sample-b") {
           const response: ListReferenceChildrenResponse = {
             parent: secondParentResolution,
@@ -378,6 +403,9 @@ describe("mounted authoritative child-reference insertion", () => {
 
     renderProjectPage();
     await screen.findByTestId("project-flow-canvas");
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
     fireEvent.click(await screen.findByRole("button", {
       name: "Browse related records",
     }));
@@ -387,12 +415,16 @@ describe("mounted authoritative child-reference insertion", () => {
     ))).toBe(true));
 
     fireEvent.click(screen.getByRole("button", { name: "Select Sample B" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
     fireEvent.click(await screen.findByRole("button", {
       name: "Browse related records",
     }));
     const placeSecondChild = await screen.findByRole("button", {
       name: "Place Reference process B on Map",
     });
+    expect((staleRequestSignal as unknown as AbortSignal).aborted).toBe(true);
 
     const firstParentResponse: ListReferenceChildrenResponse = {
       parent: snapshot.references[0].resolution,

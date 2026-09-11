@@ -231,6 +231,9 @@ describe("Project reference navigation safety", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
     expect(screen.getByText("Unsaved")).toBeTruthy();
 
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
     expect(screen.getByText("Pending reference: uncertain")).toBeTruthy();
@@ -287,6 +290,9 @@ describe("Project reference navigation safety", () => {
     expect(screen.getByText("Note x: 100")).toBeTruthy();
     expect(screen.getByText("Unsaved")).toBeTruthy();
 
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reconcile and cancel" }));
@@ -319,6 +325,9 @@ describe("Project reference navigation safety", () => {
     renderProjectPage();
     await screen.findByText("Map ready");
     fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
 
     expect(await screen.findByText("Project revision conflict")).toBeTruthy();
@@ -330,12 +339,15 @@ describe("Project reference navigation safety", () => {
     expect(fetchMock.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Reload Project" }).hasAttribute("disabled")).toBe(false));
+    expect(screen.getByText("Pending reference: conflict")).toBeTruthy();
+    expect(screen.queryByText("Saved")).toBeNull();
     reload = screen.getByRole("button", { name: "Reload Project" });
-    expect(reload.hasAttribute("disabled")).toBe(false);
     fireEvent.click(reload);
 
     await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(2));
     await waitFor(() => expect(screen.queryByText("Pending reference: conflict")).toBeNull());
+    expect(screen.getByText("Saved")).toBeTruthy();
   });
 });

@@ -10,6 +10,7 @@ import {
   isProjectAttachmentSourceUrl,
   isProjectItemLifecycleInput,
   isRenameProjectInput,
+  isUpdateProjectEdgeInput,
   isUpdateProjectPlacementInput,
   MAX_PROJECT_MARKDOWN_LENGTH,
 } from "./project-api";
@@ -225,4 +226,42 @@ describe("Project persistence API contract", () => {
       operationId: "remove-item-a",
     })).toBe(false);
   });
+
+  it("accepts metadata-only edits and requires a complete revisioned reconnection", () => {
+    const metadata = {
+      markerStart: "none",
+      markerEnd: "arrow",
+      label: "supports",
+      expectedRevision: 2,
+      operationId: "reconnect-edge",
+    };
+    const endpoints = {
+      sourceItemId: "item-a",
+      targetItemId: "item-c",
+      sourceHandle: "bottom",
+      targetHandle: "top",
+      expectedSourceItemRevision: 1,
+      expectedTargetItemRevision: 3,
+    };
+    expect(isUpdateProjectEdgeInput(metadata)).toBe(true);
+    expect(isUpdateProjectEdgeInput({ ...metadata, ...endpoints })).toBe(true);
+    for (const key of Object.keys(endpoints)) {
+      expect(isUpdateProjectEdgeInput({
+        ...metadata, ...endpoints, [key]: undefined,
+      })).toBe(false);
+    }
+    for (const invalid of [
+      { sourceItemId: "item-c" },
+      { targetItemId: "../item-c" },
+      { sourceHandle: "center" },
+      { targetHandle: null },
+      { expectedSourceItemRevision: 0 },
+      { expectedTargetItemRevision: Number.POSITIVE_INFINITY },
+    ]) {
+      expect(isUpdateProjectEdgeInput({
+        ...metadata, ...endpoints, ...invalid,
+      })).toBe(false);
+    }
+  });
+
 });

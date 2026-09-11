@@ -1529,45 +1529,78 @@ export async function updateProjectEdge(
 ): Promise<ProjectRowMutationResponse<ReturnType<typeof serializeProjectEdge>>> {
   const current = await readProjectEdgeRow(db, projectId, edgeId);
   if (!current) notFound("Project edge not found");
+  const reconnecting = input.sourceItemId !== undefined;
+  const desired = {
+    sourceItemId: input.sourceItemId ?? current.source_item_id,
+    targetItemId: input.targetItemId ?? current.target_item_id,
+    sourceHandle: input.sourceHandle ?? current.source_handle,
+    targetHandle: input.targetHandle ?? current.target_handle,
+    markerStart: input.markerStart,
+    markerEnd: input.markerEnd,
+    label: input.label,
+  };
+  const unchanged = current.source_item_id === desired.sourceItemId
+    && current.target_item_id === desired.targetItemId
+    && edgeShapeMatches(current, desired);
   if (current.last_mutation_id === input.operationId) {
-    if (!edgeShapeMatches(current, {
-      sourceHandle: current.source_handle,
-      targetHandle: current.target_handle,
-      markerStart: input.markerStart,
-      markerEnd: input.markerEnd,
-      label: input.label,
-    })) {
-      conflict("The operation ID was reused with different edge metadata");
+    if (!unchanged) {
+      conflict("The operation ID was reused with different edge content");
     }
     return { value: serializeProjectEdge(current), replayed: true };
   }
   if (current.revision !== input.expectedRevision) conflict("Edge revision conflict");
-  if (current.marker_start === input.markerStart
-    && current.marker_end === input.markerEnd
-    && current.label === input.label) {
+  if (unchanged) {
     return { value: serializeProjectEdge(current), replayed: false };
   }
 
-  const result = await db.prepare(`
-    UPDATE project_edges
-    SET marker_start = ?, marker_end = ?, label = ?,
-        revision = revision + 1, last_mutation_id = ?,
-        updated_by = ?, updated_at = ?
-    WHERE id = ? AND project_id = ? AND revision = ?
-      AND deleted_at IS NULL AND revision < ?
-  `).bind(
-    input.markerStart,
-    input.markerEnd,
-    input.label,
-    input.operationId,
-    actor,
-    now,
-    edgeId,
-    projectId,
-    input.expectedRevision,
-    MAX_PROJECT_SAFE_INTEGER,
-  ).run();
-  if (!result.meta.changes) conflict("Edge revision conflict");
+  // A single guarded write commits endpoints and presentation together. Checking
+  // both item revisions here also rejects a remove/restore race after the read.
+  try {
+    const result = await db.prepare(`
+      UPDATE project_edges
+      SET source_item_id = ?, target_item_id = ?, source_handle = ?, target_handle = ?,
+          marker_start = ?, marker_end = ?, label = ?,
+          revision = revision + 1, last_mutation_id = ?,
+          updated_by = ?, updated_at = ?
+      WHERE id = ? AND project_id = ? AND revision = ?
+        AND deleted_at IS NULL AND revision < ?
+        AND EXISTS (
+          SELECT 1
+          FROM projects p
+          JOIN project_items source ON source.id = ?
+          JOIN project_items target ON target.id = ?
+          WHERE p.id = project_edges.project_id AND p.deleted_at IS NULL
+            AND source.project_id = p.id AND target.project_id = p.id
+            AND source.deleted_at IS NULL AND target.deleted_at IS NULL
+            AND (? = 0 OR (source.revision = ? AND target.revision = ?))
+        )
+    `).bind(
+      desired.sourceItemId,
+      desired.targetItemId,
+      desired.sourceHandle,
+      desired.targetHandle,
+      desired.markerStart,
+      desired.markerEnd,
+      desired.label,
+      input.operationId,
+      actor,
+      now,
+      edgeId,
+      projectId,
+      input.expectedRevision,
+      MAX_PROJECT_SAFE_INTEGER,
+      desired.sourceItemId,
+      desired.targetItemId,
+      reconnecting ? 1 : 0,
+      input.expectedSourceItemRevision ?? null,
+      input.expectedTargetItemRevision ?? null,
+    ).run();
+    if (!result.meta.changes) conflict("Project, edge, or endpoint revision conflict");
+  } catch (error) {
+    if (error instanceof ProjectServiceError) throw error;
+    if (constraintConflict(error)) conflict("Edge endpoints or relationship conflict");
+    throw error;
+  }
   const updated = await readProjectEdgeRow(db, projectId, edgeId);
   if (!updated) throw new Error("Updated edge disappeared");
   return { value: serializeProjectEdge(updated), replayed: false };

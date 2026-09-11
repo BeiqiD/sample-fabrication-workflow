@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProjectInspectorDetails } from "./components/project/ProjectInspectorDetails";
@@ -142,12 +142,15 @@ describe("Project Inspector details", () => {
     ));
 
     expect(screen.getByText("Reference", { selector: ".meta-badge" })).toBeTruthy();
-    expect(screen.getByText("Project details", { selector: "summary" })).toBeTruthy();
+    expect(screen.getAllByText("Details", { selector: "summary" })).toHaveLength(1);
+    expect(document.querySelectorAll("details")).toHaveLength(1);
+    fireEvent.click(screen.getByText("Details", { selector: "summary" }));
+    expect(screen.getByRole("heading", { name: "Project details" })).toBeTruthy();
     expect(screen.getByText("1 incoming · 0 outgoing")).toBeTruthy();
     expect(screen.getByLabelText("incoming relationship: supports; Design note")).toBeTruthy();
-    expect(screen.getByText("Source & provenance", { selector: "summary" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Source & provenance" })).toBeTruthy();
     expect(screen.getByText("execution_image:execution-image-a")).toBeTruthy();
-    expect(screen.getByText("Source hierarchy", { selector: "summary" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Source hierarchy" })).toBeTruthy();
     expect(screen.getByText("Sample A › Etch run › Endpoint")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open exact source" }).getAttribute("href"))
       .toBe("/processing/sample-a?run=run-a&step=step-a");

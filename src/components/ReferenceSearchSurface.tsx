@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import type { ListReferenceChildrenResponse } from "../../shared/reference-children";
+import { MAX_REFERENCE_CHILD_LIMIT, type ListReferenceChildrenResponse } from "../../shared/reference-children";
 import type {
   ReferenceSearchResult,
   SearchReferencesResponse,
@@ -16,6 +16,7 @@ import {
   writeProjectReferenceResolutionDragPayload,
 } from "../lib/project-reference-placement";
 import {
+  MAX_PROJECT_REFERENCE_SUGGESTION_SEEDS,
   projectReferenceTargetKey,
   type ProjectReferenceSuggestionSeed,
 } from "../lib/project-reference-suggestions";
@@ -129,7 +130,7 @@ type ReferenceSuggestionState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; suggestions: ReferenceSuggestion[]; failedSeeds: number };
+  | { status: "ready"; suggestions: ReferenceSuggestion[]; failedSeeds: number; truncated: boolean };
 
 function sameTypes(left: readonly ReferenceTargetType[], right: readonly ReferenceTargetType[]) {
   return left.length === right.length && left.every((type, index) => type === right[index]);
@@ -162,55 +163,60 @@ function ReferencePlacementCard({
   const Heading = nested ? "h3" : "h2";
 
   return <article className="reference-placement-card">
-    <div className="reference-placement-card-main">
-      <span
-        className={`reference-search-drag-handle${placementDisabled ? " disabled" : ""}`}
-        draggable={!placementDisabled}
-        title={placementDisabled ? "Finish the current reference placement first" : "Drag reference to Map"}
-        onDragStart={(event) => {
-          if (placementDisabled) {
-            event.preventDefault();
-            return;
-          }
-          writeProjectReferenceResolutionDragPayload(event.dataTransfer, resolution);
-        }}
-        aria-hidden="true"
-      ><ActionIcon name="grip" /></span>
+    <div
+      className={`reference-placement-card-main${placementDisabled ? " disabled" : ""}`}
+      draggable={!placementDisabled}
+      title={placementDisabled ? "Finish the current action before placing a reference" : "Drag reference to Map"}
+      onDragStart={(event) => {
+        if (placementDisabled) {
+          event.preventDefault();
+          return;
+        }
+        writeProjectReferenceResolutionDragPayload(event.dataTransfer, resolution);
+      }}
+    >
+      <span className="reference-placement-card-grip" aria-hidden="true"><ActionIcon name="grip" /></span>
       <div className="reference-placement-card-copy">
+        <Heading title={title}>{title}</Heading>
         <div className="reference-placement-card-labels">
           <span className="reference-search-type-badge">
             {REFERENCE_SEARCH_TYPE_LABELS[resolution.target.type]}
           </span>
-          <span title={supportingLabel}>{supportingLabel}</span>
           {placedCount > 0 && <span className="reference-placement-card-present">
             {placedCount === 1 ? "On Map" : `${placedCount} on Map`}
           </span>}
         </div>
-        <Heading title={title}>{title}</Heading>
-        {resolution.source?.subtitle && <p>{resolution.source.subtitle}</p>}
+        {(context.length > 0 || resolution.source?.subtitle) && <p
+          title={context.length > 0 ? context.join(" › ") : resolution.source?.subtitle || undefined}
+        >{context.length > 0 ? context.join(" › ") : resolution.source?.subtitle}</p>}
       </div>
     </div>
-    {resolution.source?.excerpt && <p className="reference-placement-card-excerpt">
-      {resolution.source.excerpt}
-    </p>}
     <div className="reference-placement-card-footer">
-      {context.length > 0 && <p title={context.join(" › ")}>{context.join(" › ")}</p>}
       <div className="reference-placement-card-actions">
         <button
           type="button"
           className="button primary compact-button reference-placement-action"
           disabled={placementDisabled}
-          aria-label={`Place ${title} at Map center`}
-          title="Place at Map center"
+          aria-label={`Place ${title} on Map`}
+          title="Place in an available space near the Map center"
           onClick={onPlace}
         ><ActionIcon name="plus" />Place</button>
         <div className="reference-placement-card-links">
-          <Link to={openUrl}>Open<ActionIcon name="open" /></Link>
-          {openUrl !== resolution.destination.referenceUrl && <Link
-            to={resolution.destination.referenceUrl}
-          >Details</Link>}
+          <Link to={openUrl} draggable={false}>Open<ActionIcon name="open" /></Link>
         </div>
       </div>
+      <details className="reference-placement-card-more">
+        <summary aria-label={`More about ${title}`} title="More about this reference">More</summary>
+        <div className="reference-placement-card-details">
+          <p>{supportingLabel}</p>
+          {resolution.source?.subtitle && <p>{resolution.source.subtitle}</p>}
+          {resolution.source?.excerpt && <p>{resolution.source.excerpt}</p>}
+          {openUrl !== resolution.destination.referenceUrl && <Link
+            to={resolution.destination.referenceUrl}
+            draggable={false}
+          >Reference details</Link>}
+        </div>
+      </details>
     </div>
   </article>;
 }
@@ -361,7 +367,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       return;
     }
     const controller = new AbortController();
-    const seeds = [...suggestionSeeds];
+    const seeds = suggestionSeeds.slice(0, MAX_PROJECT_REFERENCE_SUGGESTION_SEEDS);
     setSuggestionState({ status: "loading" });
     void Promise.all(seeds.map(async (seed): Promise<{
       seed: ProjectReferenceSuggestionSeed;
@@ -371,7 +377,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       try {
         const childResponse = await listReferenceChildren({
           parent: seed.target,
-          limit: 12,
+          limit: MAX_REFERENCE_CHILD_LIMIT,
         }, controller.signal);
         return { seed, response: childResponse, error: null };
       } catch (caught: unknown) {
@@ -389,6 +395,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       const suggestions: ReferenceSuggestion[] = [];
       const seen = new Set<string>();
       let failedSeeds = 0;
+      let truncated = false;
       let firstError = "";
       for (const group of groups) {
         if (group.error) {
@@ -396,14 +403,13 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
           if (!firstError) firstError = group.error;
           continue;
         }
+        truncated ||= group.response?.truncated ?? false;
         for (const resolution of group.response?.children ?? []) {
           const key = projectReferenceTargetKey(resolution.target);
           if (seen.has(key)) continue;
           seen.add(key);
           suggestions.push({ seed: group.seed, resolution });
-          if (suggestions.length === 18) break;
         }
-        if (suggestions.length === 18) break;
       }
       if (failedSeeds === groups.length) {
         setSuggestionState({
@@ -412,7 +418,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
         });
         return;
       }
-      setSuggestionState({ status: "ready", suggestions, failedSeeds });
+      setSuggestionState({ status: "ready", suggestions, failedSeeds, truncated });
     });
     return () => controller.abort();
   }, [committedQuery, mode, suggestionKey, suggestionRevision]);
@@ -492,11 +498,14 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       + Number(Boolean(displayedFilterState.to))
     : activeReferenceSearchFilterCount(displayedFilterState);
   const resultCount = response?.results.length ?? 0;
-  const visibleSuggestions = suggestionState.status === "ready"
+  const matchingSuggestions = suggestionState.status === "ready"
     ? suggestionState.suggestions.filter((suggestion) => (
       props.value.types.includes(suggestion.resolution.target.type)
     ))
     : [];
+  const visibleSuggestions = matchingSuggestions.slice(0, 18);
+  const suggestionsIncomplete = suggestionState.status === "ready"
+    && (suggestionState.truncated || suggestionState.failedSeeds > 0);
   const statusText = loading
     ? "Searching references…"
     : error
@@ -694,10 +703,15 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       {suggestionState.status === "ready" && visibleSuggestions.length === 0 && <p
         className="reference-suggestion-empty"
       >
-        {suggestionState.suggestions.length > 0
-          ? "No suggested records match this type. Choose another type or search."
-          : "No direct related records are available. Search the research record for another reference."}
+        {suggestionsIncomplete
+          ? "No matching records in this preview. Search to check for more related records."
+          : suggestionState.suggestions.length > 0
+            ? "No suggested records match this type. Choose another type or search."
+            : "No direct related records are available. Search the research record for another reference."}
       </p>}
+      {suggestionState.status === "ready" && (suggestionState.truncated || matchingSuggestions.length > 18) && <p
+        className="reference-suggestion-empty"
+      >Showing a limited preview of related records. Search to find more matches.</p>}
       {visibleSuggestions.length > 0 && <div className="reference-suggestion-results">
         {visibleSuggestions.map(({ seed, resolution }) => <ReferencePlacementCard
           key={projectReferenceTargetKey(resolution.target)}

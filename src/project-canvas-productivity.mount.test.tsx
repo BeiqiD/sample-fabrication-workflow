@@ -90,6 +90,17 @@ function renderProjectPage() {
   return { router, ...render(<RouterProvider router={router} />) };
 }
 
+function openInspector() {
+  const trigger = screen.getByRole("button", { name: "Inspector" });
+  if (trigger.getAttribute("aria-pressed") !== "true") fireEvent.click(trigger);
+}
+
+function openItemMoreActions() {
+  openInspector();
+  const summary = screen.getByText("More actions", { selector: "summary" });
+  if (!(summary.parentElement as HTMLDetailsElement).open) fireEvent.click(summary);
+}
+
 const actor = "user@example.com";
 const createdAt = "2026-08-11T08:00:00.000Z";
 
@@ -135,6 +146,8 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+    openInspector();
     expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
     expect(screen.getByText("2 selected")).toBeTruthy();
     expect(screen.getByText("Sample A")).toBeTruthy();
@@ -155,6 +168,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
     renderProjectPage();
     fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    openInspector();
     const region = await screen.findByRole("region", { name: "Inspector Markdown content" });
     await within(region).findByRole("heading", { name: "Design note" });
     region.focus();
@@ -172,6 +186,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
 
     // The ownership guard is scoped to reading content, not the entire Project.
     fireEvent.keyDown(document, { key: "a", ctrlKey: true });
+    openInspector();
     expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
   });
 
@@ -199,6 +214,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    openInspector();
     fireEvent.click(screen.getByRole("button", { name: "Align left" }));
     expect(screen.getByText("Note x: 20")).toBeTruthy();
     expect(screen.getByText("Reference x: 20")).toBeTruthy();
@@ -213,6 +229,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    openItemMoreActions();
     fireEvent.click(screen.getByText("Arrange on Map", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Bring to front" }));
     expect(screen.getByText("Note z: 2")).toBeTruthy();
@@ -250,6 +267,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    openItemMoreActions();
     fireEvent.click(screen.getByText("Arrange on Map", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Bring to front" }));
     expect(screen.getByText("Note z: 2")).toBeTruthy();
@@ -292,6 +310,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    openInspector();
     fireEvent.click(screen.getByRole("button", { name: "Align left" }));
     dispatchSaveShortcut();
     await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
@@ -321,6 +340,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
 
     await screen.findByTestId("project-flow-canvas");
     fireEvent.keyDown(document, { key: "a", code: "KeyA", ctrlKey: true });
+    openInspector();
     expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
     await waitFor(() => {
@@ -422,6 +442,7 @@ describe("mounted Phase 4B Canvas productivity", () => {
     expect(writes[0].body.itemId).not.toBe("item-note");
     expect(writes[1].body.itemId).not.toBe("item-reference");
     await screen.findByText("Pasted 2 Project items.");
+    openInspector();
     expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
   });
 

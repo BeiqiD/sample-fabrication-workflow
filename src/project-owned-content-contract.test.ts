@@ -8,7 +8,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
     const page = read("./pages/ProjectPage.tsx");
     const map = read("./components/project/ProjectMapSurface.tsx");
     expect(map).toContain("onMarkdownCreateRequest(point)");
-    expect(map).toContain('aria-label={markdownEditor.isNew ? "New Project Markdown"');
+    expect(map).toContain('ariaLabel={markdownEditor.isNew ? "New Project Markdown"');
     expect(page).toContain("projectMarkdownGeometryAtPoint");
     expect(page).toContain("markdownCreateInputRef.current = null");
     expect(page).toContain("projectApi.createMarkdownItem(projectId, input)");
@@ -16,10 +16,10 @@ describe("Phase 3B3 Project-owned content contract", () => {
   });
 
   it("only lets Escape cancel an empty new Markdown draft", () => {
-    const map = read("./components/project/ProjectMapSurface.tsx");
-    expect(map).toContain('if (event.key !== "Escape") return;');
-    expect(map).toContain("if (markdownEditor.isNew && !markdownEditor.value.trim()) data.onMarkdownCancel()");
-    expect(map).not.toContain("if (!markdownEditor.isNew || !markdownEditor.value.trim()) data.onMarkdownCancel()");
+    const editor = read("./components/project/ProjectMarkdownEditor.tsx");
+    expect(editor).toContain('const canCancel = editor.status !== "saving" && editor.status !== "uncertain"');
+    expect(editor).toContain('event.key === "Escape" && canCancel && editor.isNew && !editor.value.trim()');
+    expect(editor).not.toContain('!editor.isNew || !editor.value.trim()');
   });
 
   it("uploads generic files through the Project asset route before creating one authoritative occurrence", () => {
@@ -38,15 +38,19 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page).toContain("await performAttachmentProjectCreate(generation, input, file)");
   });
 
-  it("freezes editable payloads after the first request so retries preserve mutation identity", () => {
+  it("freezes uncertain requests while allowing correction after a determined rejection", () => {
     const page = read("./pages/ProjectPage.tsx");
     const map = read("./components/project/ProjectMapSurface.tsx");
     expect(page).toContain("markdownCreateInputRef.current");
     expect(page).toContain("markdownUpdateInputRef.current");
     expect(page).toContain("pendingAttachmentInputRef.current");
     expect(page).toContain("attachmentUpdateInputRef.current");
-    expect(map).toContain('disabled={markdownEditor.status !== "editing"}');
-    expect(page).toContain('disabled={attachmentEditor.status !== "editing"}');
+    const editor = read("./components/project/ProjectMarkdownEditor.tsx");
+    expect(map).toContain("editor={markdownEditor}");
+    expect(editor).toContain('const canEdit = editor.status === "editing" || editor.status === "error"');
+    expect(editor).toContain("disabled={!canEdit}");
+    expect(page).toContain('disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}');
+    expect(page).toContain('current.status === "uncertain" && failureStatus === "error"');
   });
 
   it("only exact-retries outcome-uncertain owned-content mutations", () => {
@@ -127,7 +131,8 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(map).toContain("onNodeContextMenu={handleNodeContextMenu}");
     expect(map).toContain("onEdgeContextMenu={handleEdgeContextMenu}");
     expect(map).toContain('"Add Markdown here"');
-    expect(map).toContain('"Paste copied selection"');
+    expect(map).toContain('"Paste here"');
+    expect(map).toContain("contextCommands.pasteSelection(contextMenu.point)");
     expect(map).toContain('"Align horizontal centers"');
     expect(map).toContain('"Copy stable link"');
     expect(map).toContain('"Edit edge"');
@@ -177,7 +182,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(workerSmoke).not.toContain("project-smoke-asset");
   });
 
-  it("keeps Project-owned content creation Map-only while Reading edits existing content", () => {
+  it("keeps creation in the shared Add menu and renders local drafts in either projection", () => {
     const page = read("./pages/ProjectPage.tsx");
     const reading = read("./components/project/ProjectReadingSurface.tsx");
     const referencePanelStart = page.indexOf('id="project-reference-panel"');
@@ -193,7 +198,8 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page).toContain("onAttachmentRequest={requestAttachmentAt}");
     expect(page).toContain("suggestionSeeds={referenceSuggestionSeeds}");
     expect(reading).not.toContain("Add attachment");
-    expect(reading).not.toContain("New Project Markdown");
+    expect(reading).toContain("markdownEditor?.isNew");
+    expect(reading).toContain('ariaLabel="New Markdown editor"');
     expect(reading).toContain("Edit Markdown");
     expect(reading).toContain("Edit attachment metadata");
     expect(reading).toContain("Move attachment to trash");
@@ -210,7 +216,8 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(feedback).toContain('status === "uncertain"');
     expect(feedback).toContain('status === "error" || status === "conflict"');
     expect(feedback).toContain('role={tone === "danger" ? "alert" : "status"}');
-    expect(map).toContain("<ProjectEditorFeedback");
+    expect(map).toContain('lazy(() => import("./ProjectMarkdownEditor"))');
+    expect(map).toContain("<ProjectMarkdownEditor");
     expect(markdown).toContain("<ProjectEditorFeedback");
     expect(reading).toContain("<ProjectEditorFeedback");
     expect(page).toContain("<ProjectEditorFeedback");

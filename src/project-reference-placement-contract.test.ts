@@ -8,7 +8,7 @@ describe("Phase 3B2 source contract", () => {
     const surface = read("./components/ReferenceSearchSurface.tsx");
     expect(surface).toContain('mode: "place"');
     expect(surface).toContain("writeProjectReferenceResolutionDragPayload(event.dataTransfer, resolution)");
-    expect(surface).toContain('aria-label={`Place ${title} at Map center`}');
+    expect(surface).toContain('aria-label={`Place ${title} on Map`}');
     expect(surface).not.toContain("createReferenceItem");
     expect(surface).not.toContain("/projects/");
   });
@@ -52,16 +52,17 @@ describe("Phase 3B2 source contract", () => {
     expect(map).toContain('changes.filter((change) => change.type !== "position")');
   });
 
-  it("keeps reference creation desktop-only and preserves the mobile no-creation boundary", () => {
+  it("shares reference placement with Reading while keeping the interactive Map desktop-only", () => {
     const page = read("./pages/ProjectPage.tsx");
     const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar"');
-    const searchSurface = page.indexOf("<ReferenceSearchSurface", desktopBranch);
-    const readingBranch = page.indexOf("<ProjectReadingSurface", searchSurface);
+    const mapSurface = page.indexOf("<DesktopProjectMap", desktopBranch);
+    const readingBranch = page.indexOf("<ProjectReadingSurface", mapSurface);
     expect(desktopBranch).toBeGreaterThan(-1);
-    expect(searchSurface).toBeGreaterThan(desktopBranch);
-    expect(readingBranch).toBeGreaterThan(searchSurface);
-    expect(page.slice(readingBranch)).not.toContain("<ReferenceSearchSurface");
+    expect(mapSurface).toBeGreaterThan(desktopBranch);
+    expect(readingBranch).toBeGreaterThan(mapSurface);
+    expect(page.slice(readingBranch)).not.toContain("<DesktopProjectMap");
+    expect(page).toContain('referencePanelOpen && (!desktop || desktopView !== "map")');
     const reading = read("./components/project/ProjectReadingSurface.tsx");
-    expect(reading).not.toContain("Remove from Project");
+    expect(reading).not.toContain("projectApi.createReferenceItem");
   });
 });

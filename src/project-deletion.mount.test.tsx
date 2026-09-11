@@ -81,8 +81,8 @@ vi.mock("./components/project/ProjectMapSurface", async () => {
 });
 
 function desktopMatchMedia() {
-  return vi.fn(() => ({
-    matches: true,
+  return vi.fn((query: string) => ({
+    matches: query.includes("min-width"),
     media: "(min-width: 860px)",
     onchange: null,
     addEventListener: vi.fn(),
@@ -176,13 +176,15 @@ describe("Project lifecycle UI", () => {
     const workspace = document.querySelector(".project-desktop-workspace");
     const referencesToggle = screen.getByRole("button", { name: "References" });
     const inspectorToggle = screen.getByRole("button", { name: "Inspector" });
-    expect(workspace?.getAttribute("data-reference-open")).toBe("true");
+    expect(workspace?.getAttribute("data-reference-open")).toBe("false");
     expect(workspace?.getAttribute("data-inspector-open")).toBe("false");
+    expect(screen.queryByRole("complementary", { name: "Reference search and placement" })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+
+    fireEvent.click(referencesToggle);
     expect(screen.getByRole("complementary", {
       name: "Reference search and placement",
     }).getAttribute("data-panel-presentation")).toBe("floating");
-    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
-
     fireEvent.click(referencesToggle);
     expect(screen.queryByRole("complementary", {
       name: "Reference search and placement",
@@ -210,6 +212,8 @@ describe("Project lifecycle UI", () => {
     const pinnedInspector = await screen.findByRole("complementary", {
       name: "Project Inspector",
     });
+    expect(within(pinnedInspector).getByRole("button", { name: "Pin" }).getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(within(pinnedInspector).getByRole("button", { name: "Pin" }));
     expect(within(pinnedInspector).getByRole("button", { name: "Unpin" })).toBeTruthy();
     const inspectorClose = within(pinnedInspector).getByRole("button", {
       name: "Close Inspector",
@@ -259,7 +263,7 @@ describe("Project lifecycle UI", () => {
     await waitFor(() => {
       expect(page?.classList.contains("reading")).toBe(true);
       expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
-      expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Map" }));
@@ -305,8 +309,7 @@ describe("Project lifecycle UI", () => {
     await screen.findByText("Project Map fixture");
     fireEvent.click(screen.getByRole("button", { name: "Start Markdown editor from Canvas" }));
     await screen.findByText("Selected edge: none");
-    const inspector = await screen.findByRole("complementary", { name: "Project Inspector" });
-    expect(within(inspector).queryByText("edge-a")).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
 
     const inspectEdge = screen.getByRole("button", { name: "Inspect edge from Canvas" });
     expect(inspectEdge.hasAttribute("disabled")).toBe(true);

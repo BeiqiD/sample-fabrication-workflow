@@ -125,9 +125,15 @@
 .project-inspector-relationships {
   display: grid;
   gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 2px;
 }
 
-.project-inspector-relationships li {
+.project-inspector-relationships li { min-width: 0; }
+
+.project-inspector-relationship-link {
+  width: 100%;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 2px 7px;
@@ -135,9 +141,17 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-warm);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.project-inspector-relationships li > span {
+.project-inspector-relationship-link:hover { border-color: var(--accent); }
+.project-inspector-relationship-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.project-inspector-relationship-link > span {
   grid-row: 1 / span 2;
   align-self: start;
   color: var(--muted);
@@ -227,6 +241,13 @@
   background: var(--surface-warm);
 }
 
-.project-inspector-markdown { min-width: 0; }
+.project-inspector-preview { min-width: 0; display: grid; gap: 7px; }
+.project-inspector-preview > .button { justify-self: start; }
+.project-inspector-markdown { min-width: 0; max-height: 240px; overflow: auto; overscroll-behavior: contain; padding: 2px; }
+.project-inspector-markdown.expanded { max-height: none; }
+.project-inspector-technical-details > section { min-width: 0; padding-top: 10px; }
+.project-inspector-technical-details h4 { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.project-inspector-technical-details dl { margin: 0; }
+.project-inspector-technical-details dl > div { display: contents; }
 .project-inspector-markdown .rich-text { font-size: 13px; }
 .project-inspector-markdown:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }

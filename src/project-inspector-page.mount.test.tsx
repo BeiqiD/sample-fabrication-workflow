@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectPage } from "./pages/ProjectPage";
@@ -86,9 +86,11 @@ describe("mounted Project Inspector integration", () => {
       expect(map.getAttribute("data-focused-item-id")).toBe("item-reference");
     });
 
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
     const inspector = screen.getByRole("complementary", { name: "Project Inspector" });
     expect(within(inspector).getByRole("heading", { level: 2, name: "Sample A" })).toBeTruthy();
-    expect(within(inspector).getByText("Source & provenance", { selector: "summary" })).toBeTruthy();
+    fireEvent.click(within(inspector).getByText("Details", { selector: "summary" }));
+    expect(within(inspector).getByRole("heading", { name: "Source & provenance" })).toBeTruthy();
     expect(within(inspector).getByText("sample:sample-a")).toBeTruthy();
     expect(within(inspector).getByRole("link", { name: "Open exact source" }).getAttribute("href"))
       .toBe("/samples/sample-a");
