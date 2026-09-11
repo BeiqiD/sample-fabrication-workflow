@@ -67,6 +67,7 @@ import {
   projectCanvasAlignmentCommands,
   projectCanvasKeyboardShortcutFromEvent,
   projectCanvasKeyboardTargetIsEditable,
+  projectCanvasKeyboardTargetIsReading,
   projectCanvasZOrderCommands,
   type ProjectCanvasAlignment,
   type ProjectCanvasZOrderAction,
@@ -2339,6 +2340,9 @@ export function ProjectPage() {
       if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)) return;
       const shortcut = projectCanvasKeyboardShortcutFromEvent(event);
       if (!shortcut) return;
+      // Text selection/copy and native reading shortcuts must not mutate the Map.
+      if (projectCanvasKeyboardTargetIsReading(event.target)
+        && shortcut !== "save" && shortcut !== "clear-selection") return;
       if (shortcut === "save") event.preventDefault();
 
       if (shortcut === "copy") {

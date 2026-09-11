@@ -87,7 +87,7 @@ export function ProjectInspectorDetails({
     </div>}
 
     {descriptor.kind === "markdown"
-      ? <div className="project-inspector-markdown"><ProjectMarkdownPreview source={descriptor.markdownSource || ""} /></div>
+      ? <div className="project-inspector-markdown" data-project-reading-content="true" tabIndex={0} role="region" aria-label="Inspector Markdown content"><ProjectMarkdownPreview source={descriptor.markdownSource || ""} /></div>
       : projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
 
     {media && <img

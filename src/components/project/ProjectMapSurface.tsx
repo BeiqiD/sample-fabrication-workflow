@@ -354,6 +354,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
       >Open attachment</a>}
       {showRichContent && (descriptor.kind === "markdown" ? <div
         className="project-node-markdown nodrag nopan nowheel"
+        data-project-reading-content="true"
         tabIndex={0}
         role="region"
         aria-label="Markdown content"

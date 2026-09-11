@@ -79,6 +79,11 @@ export function projectCanvasKeyboardTargetIsEditable(target: EventTarget | null
   return control instanceof HTMLElement && !control.hasAttribute("disabled");
 }
 
+export function projectCanvasKeyboardTargetIsReading(target: EventTarget | null) {
+  return target instanceof Element
+    && Boolean(target.closest("[data-project-reading-content], [data-rich-text]"));
+}
+
 export function projectCanvasKeyboardShortcutFromEvent(event: Pick<
   KeyboardEvent,
   "altKey" | "ctrlKey" | "isComposing" | "key" | "metaKey" | "shiftKey"

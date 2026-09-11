@@ -16,7 +16,7 @@ Follow-up to merged #167, prompted by Project Markdown displaying TeX source. Th
 | Short-viewport confirmations lost action access | Constrain dialog height to the available viewport with internal scrolling. |
 | Sample/reference descriptions lost authored line breaks | Preserve whitespace on these plain-text description fields. |
 
-Validation: added renderer regressions for fractions, scripts, matrices/aligned, escaped delimiters, malformed TeX and protected code; mounted regressions cover complete Map/Inspector content past the old excerpt boundary, reading-key isolation, link double-click behavior and compact Timeline scroll access. Existing representative Map performance and repository CI gates remain required.
+Validation: added renderer regressions for fractions, scripts, matrices/aligned, escaped delimiters, malformed TeX and protected code; mounted regressions cover complete Map/Inspector content past the old excerpt boundary, reading-key isolation, link double-click behavior, native text shortcuts in the actual ProjectPage, and compact Timeline scroll access. Existing representative Map performance and repository CI gates remain required. The representative performance fixture covers compact/overview and existing scale contracts; complex full-detail MathML layout still needs browser timing.
 
 The execution environment disconnected before implementation. Source edits were prepared through the repository connection; locked Marked 18.0.9 / Temml 0.13.3 parsing was exercised in an isolated JavaScript runtime. Local build and browser visual QA are **not yet verified**. Do not treat CI as evidence of actual viewport/MathML font layout. Review light/dark, narrow cards, wide formulas, 390px Reading and short dialogs when preview access returns.
 

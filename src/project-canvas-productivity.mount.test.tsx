@@ -150,6 +150,31 @@ describe("mounted Phase 4B Canvas productivity", () => {
     expect(screen.queryByText("2 selected")).toBeNull();
   });
 
+
+  it("preserves native reading shortcuts in Inspector while Canvas shortcuts still work", async () => {
+    fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+    const region = await screen.findByRole("region", { name: "Inspector Markdown content" });
+    await within(region).findByRole("heading", { name: "Design note" });
+    region.focus();
+    for (const modifier of ["ctrlKey", "metaKey"] as const) {
+      for (const key of ["a", "c", "v", "z", "y"]) {
+        const event = new KeyboardEvent("keydown", {
+          key, [modifier]: true, bubbles: true, cancelable: true,
+        });
+        fireEvent(region, event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+    expect(screen.queryByText("2 selected")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // The ownership guard is scoped to reading content, not the entire Project.
+    fireEvent.keyDown(document, { key: "a", ctrlKey: true });
+    expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
+  });
+
   it("records grouped movement as one Undo/Redo history command", async () => {
     fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
     renderProjectPage();

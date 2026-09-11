@@ -234,7 +234,7 @@ describe("mounted Phase 3C Reading projection", () => {
       expect(map.getAttribute("data-selected-item-id")).toBe("item-note");
       expect(map.getAttribute("data-focused-item-id")).toBe("item-note");
     });
-    expect(screen.getByRole("heading", { level: 2, name: "Design note" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Copy stable link" }));
     await waitFor(() => expect(clipboardWriteText).toHaveBeenCalledWith(
