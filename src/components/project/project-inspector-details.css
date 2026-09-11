@@ -226,3 +226,6 @@
   border-radius: 9px;
   background: var(--surface-warm);
 }
+
+.project-inspector-markdown { min-width: 0; }
+.project-inspector-markdown .rich-text { font-size: 13px; }

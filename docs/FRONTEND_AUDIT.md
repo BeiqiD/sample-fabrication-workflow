@@ -1,3 +1,25 @@
+## 2026-09-11 — Math rendering and cross-surface card audit
+
+Follow-up to merged #167, prompted by Project Markdown displaying TeX source. This pass covers the shared renderer, Project Map/Reading/Inspector, Comment surfaces, Search controls, template/import cards, descriptions and confirmation dialogs.
+
+| Finding | Correction |
+| --- | --- |
+| Map and Inspector used a truncated plain-text Markdown excerpt | Render the complete source with the shared lazy renderer. Full-detail Map cards have a keyboard-accessible scroll region; compact/overview retain lightweight descriptors and visible-node culling. |
+| Generated card titles repeated Markdown/TeX source | Full Markdown cards use the document's own headings/content in Map, Reading and Inspector. Non-Markdown titles remain; Map titles wrap to two lines. |
+| Parent card heading/paragraph selectors and Reading pre-wrap leaked into rich content | Scope card chrome selectors and restore normal Markdown whitespace and zero-minimum grid columns. |
+| Explicit TeX parentheses rejected whitespace/newlines; escaped dollars closed formulas early | Scan unescaped closing delimiters, keep separate dollar and explicit-parenthesis rules. Only complete standalone display blocks interrupt paragraphs. |
+| Malformed TeX exposed fixed-color parser error HTML | Keep escaped source readable with the existing theme-aware error style. |
+| Compact Timeline line-clamped the rich tree and clipped matrices/fractions | Preserve complete content in a focusable scroll region. |
+| Global input/table styles distorted task-list checkboxes and scientific table headers | Reset native checkbox/radio sizes and rich-text table-header casing/typography. This also repairs Search filter controls. |
+| Common Comment pre-wrap doubled renderer-generated line breaks | Restrict legacy plain-text whitespace rules. |
+| Long template names, workbook fields and import parameters overflowed cards | Allow wrapping and zero-minimum grid columns; keep preview images in their column. |
+| Short-viewport confirmations lost action access | Constrain dialog height to the available viewport with internal scrolling. |
+| Sample/reference descriptions lost authored line breaks | Preserve whitespace on these plain-text description fields. |
+
+Validation: added renderer regressions for fractions, scripts, matrices/aligned, escaped delimiters, malformed TeX and protected code; mounted regressions cover complete Map/Inspector content past the old excerpt boundary, reading-key isolation, link double-click behavior and compact Timeline scroll access. Existing representative Map performance and repository CI gates remain required.
+
+The execution environment disconnected before implementation. Source edits were prepared through the repository connection; locked Marked 18.0.9 / Temml 0.13.3 parsing was exercised in an isolated JavaScript runtime. Local build and browser visual QA are **not yet verified**. Do not treat CI as evidence of actual viewport/MathML font layout. Review light/dark, narrow cards, wide formulas, 390px Reading and short dialogs when preview access returns.
+
 # Frontend implementation baseline
 
 Status: **frozen reference baseline**  

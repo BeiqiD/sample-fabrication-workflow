@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { EmptyState } from "../EmptyState";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
-import { projectMarkdownStartsWithHeading } from "../../lib/project-markdown";
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
 import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
@@ -157,7 +156,7 @@ export function ProjectReadingSurface({
       const editingMarkdown = markdownEditor?.itemId === node.itemId;
       const editingAttachment = attachmentEditor?.itemId === node.itemId;
       const focused = focusedItemId === node.itemId;
-      const showGeneratedTitle = node.kind !== "markdown" || !projectMarkdownStartsWithHeading(node.markdownSource);
+      const showGeneratedTitle = node.kind !== "markdown";
       return <article
         ref={(element) => {
           if (element) itemElementsRef.current.set(node.itemId, element);

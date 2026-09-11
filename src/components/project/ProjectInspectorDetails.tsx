@@ -9,6 +9,7 @@ import {
   type ProjectInspectorContext,
 } from "../../lib/project-inspector-model";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
+import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import "./project-inspector-details.css";
 
 export interface ProjectInspectorDetailsProps {
@@ -73,7 +74,7 @@ export function ProjectInspectorDetails({
   return <>
     <header className="project-inspector-summary">
       <span className="meta-badge">{projection.kindLabel}</span>
-      <h2>{projection.title}</h2>
+      {descriptor.kind !== "markdown" && <h2>{projection.title}</h2>}
       {projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
     </header>
 
@@ -85,7 +86,9 @@ export function ProjectInspectorDetails({
       {primaryContent}
     </div>}
 
-    {projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
+    {descriptor.kind === "markdown"
+      ? <div className="project-inspector-markdown"><ProjectMarkdownPreview source={descriptor.markdownSource || ""} /></div>
+      : projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
 
     {media && <img
       className="project-inspector-media"

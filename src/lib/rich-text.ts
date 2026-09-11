@@ -71,7 +71,7 @@ function renderRichTextMath(source: string, displayMode: boolean) {
       maxExpand: 1_000,
       maxSize: [20, 200],
       strict: false,
-      throwOnError: false,
+      throwOnError: true,
       trust: false,
     });
     const tag = displayMode ? "div" : "span";
@@ -87,24 +87,59 @@ function firstIndex(source: string, needles: string[]) {
   return matches.length ? Math.min(...matches) : undefined;
 }
 
+function mathClosingIndex(source: string, delimiter: string, offset: number, multiline: boolean) {
+  for (let index = offset; index < source.length; index += 1) {
+    if (!multiline && source[index] === "\n") return -1;
+    if (source.startsWith(delimiter, index)) {
+      // A display delimiter must not close a single-dollar expression.
+      if (delimiter === "$" && source[index + 1] === "$") {
+        index += 1;
+        continue;
+      }
+      return index;
+    }
+    // Skip escaped delimiters, respecting paired backslashes in TeX.
+    if (source[index] === "\\") {
+      if (!multiline && source[index + 1] === "\n") return -1;
+      index += 1;
+    }
+  }
+  return -1;
+}
+
+function blockMathToken(source: string): RichTextMathToken | undefined {
+  const opening = source.match(/^ {0,3}(\$\$|\\\[)/);
+  if (!opening) return undefined;
+  const delimiter = opening[1] === "$$" ? "$$" : "\\]";
+  const closing = mathClosingIndex(source, delimiter, opening[0].length, true);
+  if (closing < 0) return undefined;
+  const end = closing + delimiter.length;
+  const trailing = source.slice(end).match(/^[ \t]*(?:\n|$)/);
+  const expression = source.slice(opening[0].length, closing);
+  if (!trailing || !expression.trim()) return undefined;
+  return {
+    type: "richTextMathBlock",
+    raw: source.slice(0, end + trailing[0].length),
+    text: expression,
+    displayMode: true,
+  };
+}
+
 const blockMathExtension: TokenizerAndRendererExtension = {
   name: "richTextMathBlock",
   level: "block",
   start(source) {
-    return firstIndex(source, ["$$", "\\["]);
+    // Marked passes source.slice(1) here. Only interrupt a paragraph at a
+    // subsequent line, and only when the tokenizer can consume a complete block.
+    const starts = /\n {0,3}(?:\$\$|\\\[)/g;
+    let match: RegExpExecArray | null;
+    while ((match = starts.exec(source))) {
+      const index = match.index + 1;
+      if (blockMathToken(source.slice(index))) return index;
+    }
+    return undefined;
   },
-  tokenizer(source) {
-    const dollarMatch = source.match(/^\$\$[ \t]*\n?([\s\S]+?)\n?[ \t]*\$\$(?:[ \t]*(?:\n|$))/);
-    const bracketMatch = source.match(/^\\\[[ \t]*\n?([\s\S]+?)\n?[ \t]*\\\](?:[ \t]*(?:\n|$))/);
-    const match = dollarMatch ?? bracketMatch;
-    if (!match || !match[1].trim()) return undefined;
-    return {
-      type: "richTextMathBlock",
-      raw: match[0],
-      text: match[1],
-      displayMode: true,
-    } as RichTextMathToken;
-  },
+  tokenizer: blockMathToken,
   renderer(token) {
     const math = token as RichTextMathToken;
     return renderRichTextMath(math.text, true);
@@ -118,14 +153,20 @@ const inlineMathExtension: TokenizerAndRendererExtension = {
     return firstIndex(source, ["$", "\\("]);
   },
   tokenizer(source) {
-    const dollarMatch = source.match(/^\$(?!\$)([^$\n]+?)\$(?!\$)/);
-    const bracketMatch = source.match(/^\\\((.+?)\\\)/);
-    const match = dollarMatch ?? bracketMatch;
-    if (!match || !match[1].trim() || /^\s|\s$/.test(match[1])) return undefined;
+    const bracket = source.startsWith("\\(");
+    if (!bracket && (!source.startsWith("$") || source.startsWith("$$"))) return undefined;
+    const offset = bracket ? 2 : 1;
+    const delimiter = bracket ? "\\)" : "$";
+    const closing = mathClosingIndex(source, delimiter, offset, bracket);
+    if (closing < 0) return undefined;
+    const expression = source.slice(offset, closing);
+    // Dollar delimiters retain their currency/whitespace guard. Explicit TeX
+    // parentheses are unambiguous and accept surrounding whitespace and newlines.
+    if (!expression.trim() || (!bracket && /^\s|\s$/.test(expression))) return undefined;
     return {
       type: "richTextMathInline",
-      raw: match[0],
-      text: match[1],
+      raw: source.slice(0, closing + delimiter.length),
+      text: expression,
       displayMode: false,
     } as RichTextMathToken;
   },

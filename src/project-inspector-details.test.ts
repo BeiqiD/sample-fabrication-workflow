@@ -53,6 +53,24 @@ describe("Project Inspector details", () => {
       .toBe("Project attachment");
   });
 
+
+  it("renders Markdown math beyond the old excerpt limit in Inspector", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.contents[0].markdownSource = "# Research note\n\n" + "Observation. ".repeat(40)
+      + String.raw`
+
+\[
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+\]
+`;
+    const descriptor = projectMapNodes(snapshot).find((node) => node.itemId === "item-note")!;
+    const view = render(createElement(MemoryRouter, null,
+      createElement(ProjectInspectorDetails, { snapshot, descriptor })));
+    await screen.findByRole("heading", { name: "Research note" });
+    expect(view.container.querySelector("mtable")).not.toBeNull();
+    expect(view.container.querySelector(".project-inspector-excerpt")).toBeNull();
+  });
+
   it("renders occurrence, relationships, provenance and exact source navigation", () => {
     const snapshot = projectTestSnapshot();
     const createdAt = snapshot.project.createdAt;

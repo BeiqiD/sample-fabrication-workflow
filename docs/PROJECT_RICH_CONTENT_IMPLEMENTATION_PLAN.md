@@ -1,3 +1,5 @@
+> 2026-09-11 follow-up: full-detail Map and Inspector now share lazy Markdown/TeX rendering with Reading. Complete source stays inside the Map card's scroll region, while compact/overview remain lightweight. Full-document cards use their authored headings without duplicating a generated plain-source title. See FRONTEND_AUDIT.md for the cross-surface corrections and outstanding browser validation.
+
 # Project rich content implementation plan
 
 Status: complete in PR #143, with shared Project/Comment presentation reuse completed in PR #144

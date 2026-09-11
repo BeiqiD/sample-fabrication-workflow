@@ -210,7 +210,7 @@ export function SamplePage() {
   return <div className="page sample-overview-page">
     <Link className="back-link" to="/samples">← Samples</Link>
     <div className="sample-header">
-      <div className="sample-header-copy"><p className="eyebrow">{sample.code}</p><h1>{sample.title}</h1><p className="lead">{sample.description || "No description"}</p></div>
+      <div className="sample-header-copy"><p className="eyebrow">{sample.code}</p><h1>{sample.title}</h1><p className="lead sample-description">{sample.description || "No description"}</p></div>
       <div className="header-actions sample-header-actions">
         <StatusPill status={sample.status} />
         <div className="sample-header-action-buttons">

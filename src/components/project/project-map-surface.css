@@ -121,7 +121,7 @@
 .project-map-node.pending.error::before,
 .project-map-node.pending.conflict::before { background: var(--danger); }
 
-.project-map-node header {
+.project-map-node > header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -134,22 +134,25 @@
   text-transform: uppercase;
 }
 
-.project-map-node header > span { display: inline-flex; align-items: center; gap: 6px; }
-.project-map-node header svg { width: 14px; height: 14px; flex: 0 0 auto; }
-.project-map-node header small { margin-left: auto; }
-.project-map-node header { letter-spacing: .035em; }
+.project-map-node > header > span { display: inline-flex; align-items: center; gap: 6px; }
+.project-map-node > header svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.project-map-node > header small { margin-left: auto; }
+.project-map-node > header { letter-spacing: .035em; }
 
 
-.project-map-node h2 {
+.project-map-node > h2 {
   margin: 1px 0 0;
   overflow: hidden;
   font-size: 16px;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
-.project-map-node p { margin: 0; overflow-wrap: anywhere; }
+.project-map-node > p { margin: 0; overflow-wrap: anywhere; }
 .project-node-subtitle { color: var(--muted); font-size: 11px; line-height: 1.4; }
 .project-node-excerpt {
   display: -webkit-box;
@@ -357,7 +360,7 @@
   padding: 10px 12px;
 }
 
-.project-flow-canvas[data-project-map-detail="overview"] .project-map-node h2 {
+.project-flow-canvas[data-project-map-detail="overview"] .project-map-node > h2 {
   font-size: 14px;
 }
 
@@ -365,3 +368,25 @@
 .project-flow-canvas[data-project-map-detail="compact"] .project-node-open-reference {
   transition: none;
 }
+
+/* Card chrome stays stable while the complete document scrolls within its geometry. */
+.project-map-node > header,
+.project-map-node > h2,
+.project-map-node > .project-node-subtitle { flex-shrink: 0; }
+
+.project-node-markdown {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 2px 4px 4px 0;
+  user-select: text;
+}
+.project-node-markdown:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.project-node-markdown .rich-text { font-size: 13px; line-height: 1.6; }

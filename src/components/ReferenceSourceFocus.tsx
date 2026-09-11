@@ -123,7 +123,7 @@ function ReferencePreviewDialog({
       </div>}
 
       {preview.kind === "file" && <div className="reference-preview-copy">
-        {preview.description && <p>{preview.description}</p>}
+        {preview.description && <p className="reference-description">{preview.description}</p>}
         <dl>
           <div><dt>Filename</dt><dd>{preview.filename}</dd></div>
           <div><dt>Type</dt><dd>{preview.mimeType || "Unknown"}</dd></div>
@@ -133,7 +133,7 @@ function ReferencePreviewDialog({
       </div>}
 
       {preview.kind === "link" && <div className="reference-preview-copy">
-        {preview.description && <p>{preview.description}</p>}
+        {preview.description && <p className="reference-description">{preview.description}</p>}
         <p className="reference-preview-url">{preview.url}</p>
       </div>}
 

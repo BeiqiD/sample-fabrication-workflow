@@ -31,7 +31,7 @@ export function SampleTimeline({
           </div>
         </div>
         {event.body && (event.kind === "comment" || event.kind === "image"
-          ? <CommentBody source={event.body} />
+          ? <CommentBody source={event.body} scrollable={compact} />
           : <p>{event.body}</p>)}
         {!compact && event.assetKey && <div className="event-asset">
           <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer">

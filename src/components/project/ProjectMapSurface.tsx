@@ -62,6 +62,7 @@ import {
   type ProjectMapDetailLevel,
 } from "../../lib/project-map-performance";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
+import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import {
   normalizeProjectItemSelection,
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
@@ -337,7 +338,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         {(markdownEditor.status === "editing" || markdownEditor.status === "error" || markdownEditor.status === "conflict") && <button type="button" className="button compact-button" onClick={data.onMarkdownCancel}>Cancel</button>}
       </div>
     </div> : <>
-      <h2>{descriptor.title}</h2>
+      {!(showRichContent && descriptor.kind === "markdown") && <h2 title={descriptor.title}>{descriptor.title}</h2>}
       {showSubtitle && descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
       {previewUrl && <img
         className="project-node-image"
@@ -351,7 +352,25 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >Open attachment</a>}
-      {showRichContent && descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>}
+      {showRichContent && (descriptor.kind === "markdown" ? <div
+        className="project-node-markdown nodrag nopan nowheel"
+        tabIndex={0}
+        role="region"
+        aria-label="Markdown content"
+        onKeyDown={(event) => {
+          // Arrow/Page keys scroll the note, rather than moving its canvas node.
+          if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) {
+            event.stopPropagation();
+          }
+        }}
+        onDoubleClick={(event) => {
+          if (event.target instanceof Element && event.target.closest("a, button, input")) {
+            event.stopPropagation();
+          }
+        }}
+      >
+        <ProjectMarkdownPreview source={descriptor.markdownSource || ""} />
+      </div> : descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>)}
       {showAction && descriptor.openReferenceUrl && <a
         className="project-node-open-reference nodrag nopan"
         href={descriptor.openReferenceUrl}

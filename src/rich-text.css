@@ -1,4 +1,4 @@
-.rich-text { min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
+.rich-text { min-width: 0; overflow-wrap: anywhere; white-space: normal; color: var(--ink); }
 .rich-text.empty { margin: 0; color: var(--muted); font-style: italic; }
 .rich-text > :first-child { margin-top: 0; }
 .rich-text > :last-child { margin-bottom: 0; }
@@ -15,8 +15,8 @@
 .rich-text table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
 .rich-text th,
 .rich-text td { min-width: 110px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
-.rich-text th { background: var(--surface-warm); }
-.rich-text input[type="checkbox"] { margin-right: .45em; }
+.rich-text th { color: inherit; font-size: inherit; text-transform: none; letter-spacing: normal; background: var(--surface-warm); }
+.rich-text input[type="checkbox"] { width: 1em; height: 1em; min-width: 0; padding: 0; margin: 0 .45em 0 0; vertical-align: -.1em; accent-color: var(--accent); }
 .rich-text hr { border: 0; border-top: 1px solid var(--line); }
 
 .rich-text-document { font-size: 14px; line-height: 1.68; }
@@ -65,5 +65,5 @@
 .rich-text-math { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .rich-text-math-inline { display: inline-block; max-width: 100%; vertical-align: -.12em; }
 .rich-text-math-block { padding: .3em 0; text-align: center; }
-.rich-text-math-error { color: var(--danger); }
+.rich-text-math-error { color: var(--danger); white-space: pre-wrap; }
 .rich-text-fallback { white-space: pre-wrap; }

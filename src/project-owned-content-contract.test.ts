@@ -89,7 +89,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(reading).toContain("projectNodeKindLabel(node.kind)");
     expect(inspector).toContain("projectNodeKindLabel(descriptor.kind)");
     expect(inspectorDetails).toContain("projectNodeKindLabel(descriptor.kind)");
-    expect(css).toMatch(/\.project-map-node header\s*\{[\s\S]*?flex-wrap:\s*wrap;/);
+    expect(css).toMatch(/\.project-map-node > header\s*\{[\s\S]*?flex-wrap:\s*wrap;/);
     expect(css).not.toContain(".project-map-node-markdown::before");
     expect(css).not.toContain(".project-map-node-attachment::before");
     expect(css).not.toContain(".project-map-node-reference::before");
