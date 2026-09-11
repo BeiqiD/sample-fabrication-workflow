@@ -12,6 +12,43 @@ describe("Project client", () => {
     expect(id.length).toBeLessThanOrEqual(256);
   });
 
+  it("preserves the native UUID path and caller prefix when available", () => {
+    const uuid = "00112233-4455-4677-8899-aabbccddeeff";
+    const randomUUID = vi.fn(() => uuid);
+    const getRandomValues = vi.fn();
+    vi.stubGlobal("crypto", { randomUUID, getRandomValues });
+
+    expect(createProjectApiId("operation")).toBe(`operation-${uuid}`);
+    expect(randomUUID).toHaveBeenCalledOnce();
+    expect(getRandomValues).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { entropy: 0x00, uuid: "00000000-0000-4000-8000-000000000000" },
+    { entropy: 0xff, uuid: "ffffffff-ffff-4fff-bfff-ffffffffffff" },
+  ])("creates a UUIDv4 from cryptographic entropy $entropy without randomUUID", ({ entropy, uuid }) => {
+    const getRandomValues = vi.fn((bytes: Uint8Array) => {
+      bytes.fill(entropy);
+      return bytes;
+    });
+    vi.stubGlobal("crypto", { getRandomValues });
+
+    expect(createProjectApiId("item")).toBe(`item-${uuid}`);
+    expect(getRandomValues).toHaveBeenCalledOnce();
+    expect(getRandomValues.mock.calls[0][0]).toBeInstanceOf(Uint8Array);
+    expect(getRandomValues.mock.calls[0][0]).toHaveLength(16);
+  });
+
+  it("preserves all non-version and non-variant entropy bytes in the fallback", () => {
+    vi.stubGlobal("crypto", { getRandomValues: (bytes: Uint8Array) => {
+      bytes.set([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        0xc8, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]);
+      return bytes;
+    } });
+
+    expect(createProjectApiId("placement")).toBe("placement-00112233-4455-4677-8899-aabbccddeeff");
+  });
+
   it("preserves HTTP conflict status and sends one compact placement mutation", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(
       JSON.stringify({ error: "Placement revision conflict" }),

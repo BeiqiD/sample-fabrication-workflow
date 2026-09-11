@@ -138,6 +138,11 @@ npm run dev
 
 Cloudflare's Vite plugin runs the API in the Workers runtime with local D1 and R2 simulations. `AUTH_MODE=disabled` is intended only for local development.
 
+The local migration script explicitly uses `.wrangler/state`, matching Vite's
+storage directory. Use `--persist-to .wrangler/state` for other local D1 commands
+as well; the generated configuration lives in `.wrangler/`, so Wrangler's default
+would otherwise point at a different database.
+
 Run the full verification suite with:
 
 ```bash
