@@ -1,5 +1,6 @@
 import type { ProjectSnapshot } from "../../shared/project-api";
 import type {
+  ReferenceContext,
   ReferenceContextSegment,
   ReferenceResolution,
   ReferenceTarget,
@@ -32,9 +33,9 @@ function canSuggestChildren(target: ReferenceTarget) {
 }
 
 function deepestEligibleContext(
-  resolution: ReferenceResolution,
+  contexts: readonly ReferenceContext[],
 ): ReferenceContextSegment | null {
-  for (const context of resolution.contexts) {
+  for (const context of contexts) {
     for (let index = context.segments.length - 1; index >= 0; index -= 1) {
       const segment = context.segments[index];
       if (REFERENCE_SUGGESTION_PARENT_TYPES.has(segment.type)) return segment;
@@ -47,6 +48,17 @@ function suggestionSeed(
   resolution: ReferenceResolution,
   origin: ProjectReferenceSuggestionSeed["origin"],
 ): ProjectReferenceSuggestionSeed | null {
+  if (resolution.resolution !== "resolved"
+    || !resolution.source
+    || resolution.source.deletedAt !== null) return null;
+  // Match Reference child-list eligibility: archiving alone does not remove
+  // eligibility, but a deleted ancestor makes that entire context unusable.
+  const activeContexts = resolution.contexts.filter((context) => (
+    context.segments.length > 0
+    && context.segments.every((segment) => segment.deletedAt === null)
+  ));
+  if (activeContexts.length === 0) return null;
+
   if (canSuggestChildren(resolution.target)) {
     return {
       target: resolution.target,
@@ -54,7 +66,7 @@ function suggestionSeed(
       origin,
     };
   }
-  const context = deepestEligibleContext(resolution);
+  const context = deepestEligibleContext(activeContexts);
   if (!context) return null;
   return {
     target: { type: context.type, id: context.id },

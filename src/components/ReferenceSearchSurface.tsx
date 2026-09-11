@@ -411,9 +411,8 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
     return () => controller.abort();
   }, [committedQuery, mode, suggestionKey, suggestionRevision]);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalized = normalizeReferenceSearchUiState(draft);
+  function applySearchState(state: ReferenceSearchUiState, closeFilters = false) {
+    const normalized = normalizeReferenceSearchUiState(state);
     const next = mode === "place" && !normalized.query
       ? normalizeReferenceSearchUiState({ ...normalized, sampleId: "", from: "", to: "" })
       : normalized;
@@ -422,13 +421,19 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
       setValidationError(nextError);
       return;
     }
+    setDraft(copySearchState(next));
     setValidationError("");
-    setFiltersOpen(false);
+    if (closeFilters) setFiltersOpen(false);
     if (referenceSearchUiStateEquals(next, props.value)) {
       if (next.query) setRequestRevision((revision) => revision + 1);
       return;
     }
     props.onChange(next);
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    applySearchState(draft, true);
   }
 
   function clearSearch() {
@@ -459,14 +464,7 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
   }
 
   function applyQuickScope(types: readonly ReferenceTargetType[]) {
-    const next = normalizeReferenceSearchUiState({ ...draft, types: [...types] });
-    setDraft(copySearchState(next));
-    setValidationError("");
-    if (referenceSearchUiStateEquals(next, props.value)) {
-      if (next.query) setRequestRevision((revision) => revision + 1);
-      return;
-    }
-    props.onChange(next);
+    applySearchState({ ...draft, types: [...types] });
   }
 
   function resetFilters() {

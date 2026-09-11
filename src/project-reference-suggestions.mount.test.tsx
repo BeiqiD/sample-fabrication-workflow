@@ -228,6 +228,65 @@ describe("Project suggested references", () => {
     expect(screen.queryByRole("button", { name: "More filters" })).toBeNull();
   });
 
+  it("validates quick scopes before committing a search and accepts corrected dates", async () => {
+    fetchMock.mockImplementation(() => jsonResponse({ query: "etch", results: [], truncated: false }));
+    const onChange = vi.fn();
+    function Harness() {
+      const [value, setValue] = useState(defaultReferenceSearchUiState());
+      return <ReferenceSearchSurface mode="place" value={value} onPlaceAtCenter={vi.fn()}
+        onChange={(next) => { onChange(next); setValue(next); }} />;
+    }
+    render(<MemoryRouter><Harness /></MemoryRouter>);
+    fireEvent.change(screen.getByPlaceholderText("Search records…"), { target: { value: "etch" } });
+    fireEvent.click(screen.getByRole("button", { name: "More filters" }));
+    fireEvent.change(screen.getByLabelText(/Updated from/), { target: { value: "2026-09-11" } });
+    fireEvent.change(screen.getByLabelText(/Updated to/), { target: { value: "2026-09-01" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    expect(screen.getByText("The start date must be on or before the end date.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Process" }));
+    expect(screen.getByText("The start date must be on or before the end date.")).toBeTruthy();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText(/Updated to/), { target: { value: "2026-09-12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Process" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+      query: "etch", types: ["run", "run_step"],
+      from: "2026-09-11T00:00:00.000Z", to: "2026-09-12T23:59:59.999Z",
+    });
+    expect(screen.queryByText("The start date must be on or before the end date.")).toBeNull();
+  });
+
+  it("clears query-only constraints when a quick scope returns to Suggested", async () => {
+    fetchMock.mockImplementation((path) => jsonResponse(path === "/api/references/search"
+      ? { query: "etch", results: [], truncated: false } : childrenResponse));
+    const onChange = vi.fn();
+    function Harness() {
+      const [value, setValue] = useState({
+        ...defaultReferenceSearchUiState(), query: "etch", sampleId: "sample-a",
+        from: "2026-09-01", to: "2026-09-11",
+      });
+      return <ReferenceSearchSurface mode="place" value={value} onPlaceAtCenter={vi.fn()}
+        onChange={(next) => { onChange(next); setValue(next); }}
+        suggestionSeeds={[{ target: { type: "sample", id: "sample-a" }, title: "Sample A", origin: "project" }]} />;
+    }
+    render(<MemoryRouter><Harness /></MemoryRouter>);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByPlaceholderText("Search records…"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Process" }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      query: "", types: ["run", "run_step"], sampleId: "", from: "", to: "",
+    });
+    expect(await screen.findByRole("heading", { name: "Etch run" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "More filters" })).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText("Search records…"), { target: { value: "etch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body)))
+      .toEqual({ query: "etch", types: ["run", "run_step"] });
+  });
+
   it("aborts stale recommendation requests when the Project context changes", async () => {
     const signals: AbortSignal[] = [];
     fetchMock.mockImplementation((_path, init) => {
