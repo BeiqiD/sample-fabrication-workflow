@@ -250,6 +250,37 @@
 }
 .project-overflow-panel .card-label { margin: 0; }
 .project-overflow-panel .button { width: 100%; justify-content: flex-start; }
+.project-workspace-header .project-add-trigger { padding-inline: 14px; font-weight: 750; }
+.project-workspace-header .project-history-control,
+.project-workspace-header .project-overflow-trigger {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+.project-workspace-header .project-history-control:hover:not(:disabled),
+.project-workspace-header .project-overflow-trigger:hover,
+.project-workspace-header .project-overflow-trigger[aria-expanded="true"] {
+  color: var(--ink);
+  background: var(--surface-warm);
+}
+.project-workspace-header .project-save-control { box-shadow: none; }
+.project-workspace-header .project-save-control:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.project-add-panel { width: 230px; max-width: calc(100vw - 24px); gap: 3px; }
+.project-workspace-header .project-menu-action {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  white-space: normal;
+  text-align: left;
+  font-size: 12px;
+}
+.project-workspace-header .project-menu-action:hover:not(:disabled),
+.project-workspace-header .project-menu-action:focus-visible { background: var(--surface-warm); }
 
 .project-workspace-status-region {
   min-width: 0;

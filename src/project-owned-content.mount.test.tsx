@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { forwardRef, useImperativeHandle } from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectItemMutationResponse } from "../shared/project-api";
 import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
+
+const mapViewport = vi.hoisted(() => ({ center: { x: 400, y: 300 } as { x: number; y: number } | null }));
 
 vi.mock("./components/ReferenceSearchSurface", () => ({
   ReferenceSearchSurface: () => null,
@@ -22,8 +24,8 @@ vi.mock("./components/project/ProjectMapSurface", async () => {
       onMarkdownSave?: () => void;
       onMarkdownCancel?: () => void;
       onAttachmentRequest?: (point: { x: number; y: number }) => void;
-    }, ref: React.ForwardedRef<{ getViewportCenter: () => { x: number; y: number } }>) => {
-      React.useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 400, y: 300 }) }));
+    }, ref: React.ForwardedRef<{ getViewportCenter: () => { x: number; y: number } | null }>) => {
+      React.useImperativeHandle(ref, () => ({ getViewportCenter: () => mapViewport.center }));
       return <div>
         <button type="button" onClick={() => props.onMarkdownCreateRequest?.({ x: 100, y: 200 })}>Simulate Markdown double click</button>
         <button type="button" onClick={() => props.onAttachmentRequest?.({ x: 300, y: 240 })}>Simulate attachment request</button>
@@ -122,6 +124,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
+    mapViewport.center = { x: 400, y: 300 };
     vi.stubGlobal("matchMedia", desktopMatchMedia());
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -129,17 +132,21 @@ describe("mounted Phase 3B3 Project-owned content", () => {
   afterEach(() => {
     cleanup();
     fetchMock.mockReset();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it("keeps a new Markdown draft local until Save, then exact-retries the same create request", async () => {
+  it("adds Markdown at the current viewport, keeps the draft local, and exact-retries Save", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(projectTestSnapshot()), {
       status: 200,
       headers: { "content-type": "application/json" },
     }));
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Simulate Markdown double click" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add" }));
+    // The viewport can move after opening Add; read it when choosing the action.
+    mapViewport.center = { x: 600, y: 500 };
+    fireEvent.click(screen.getByRole("button", { name: "Note / Markdown" }));
     fireEvent.change(screen.getByLabelText("Mock Markdown editor"), { target: { value: "# New idea" } });
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -151,7 +158,10 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     expect(await screen.findByText("Temporary create failure")).toBeTruthy();
     const firstBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
     expect(fetchMock.mock.calls[1][0]).toBe("/api/projects/project-a/items/markdown");
-    expect(firstBody).toMatchObject({ markdownSource: "# New idea", expectedProjectRevision: 2 });
+    expect(firstBody).toMatchObject({
+      markdownSource: "# New idea", expectedProjectRevision: 2,
+      geometry: { x: 420, y: 428, width: 360, height: 220 },
+    });
 
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(mutationResponse(firstBody, "markdown")), {
       status: 200,
@@ -183,7 +193,14 @@ describe("mounted Phase 3B3 Project-owned content", () => {
       });
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Simulate attachment request" }));
+    await screen.findByRole("button", { name: "Add" });
+    fireEvent.click(screen.getByRole("button", { name: "Close References" }));
+    const chooseFile = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => undefined);
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Attachment" }));
+    expect(chooseFile).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Add" }));
     fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
@@ -203,6 +220,40 @@ describe("mounted Phase 3B3 Project-owned content", () => {
       caption: null,
       sourceUrl: null,
       expectedProjectRevision: 2,
+      geometry: { x: 230, y: 300 - 170 / 3, width: 340, height: 170 },
     });
+  });
+
+  it.each(["Note / Markdown", "Attachment"])("reports an unready viewport for %s without starting a write", async (action) => {
+    mapViewport.center = null;
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(projectTestSnapshot())));
+    const chooseFile = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => undefined);
+    renderProjectPage();
+    const add = await screen.findByRole("button", { name: "Add" });
+    fireEvent.click(add);
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    expect(screen.getByText("The Map is still loading. Try adding content again in a moment.")).toBeTruthy();
+    expect(screen.queryByLabelText("Mock Markdown editor")).toBeNull();
+    expect(chooseFile).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(add);
+  });
+
+  it("keeps Reference discovery available while an existing Markdown draft blocks new content", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(projectTestSnapshot())));
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate Markdown double click" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close References" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    const menu = screen.getByRole("group", { name: "Add to Project" });
+    expect((within(menu).getByRole("button", { name: "Note / Markdown" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((within(menu).getByRole("button", { name: "Attachment" }) as HTMLButtonElement).disabled).toBe(true);
+    const reference = within(menu).getByRole("button", { name: "Reference from research record" });
+    expect((reference as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(reference);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("complementary", { name: "Reference search and placement" })));
+    expect(screen.getByLabelText("Mock Markdown editor")).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

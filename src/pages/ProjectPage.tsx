@@ -288,6 +288,7 @@ export function ProjectPage() {
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false);
   const [inspectorPinned, setInspectorPinned] = useState(false);
   const [projectActionsOpen, setProjectActionsOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
   const [projectDeleteConfirmation, setProjectDeleteConfirmation] = useState("");
   const [projectDeleteError, setProjectDeleteError] = useState("");
@@ -334,6 +335,8 @@ export function ProjectPage() {
   const inspectorHadTargetRef = useRef(false);
   const projectActionsRef = useRef<HTMLDivElement | null>(null);
   const projectActionsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
+  const addMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const appliedFocusRef = useRef<string | null>(null);
   const stableLinkCopyGenerationRef = useRef(0);
   const installPasteSnapshotRef = useRef<(
@@ -552,7 +555,7 @@ export function ProjectPage() {
   useEffect(() => {
     if (!desktop || desktopView !== "map") return;
     const closePanelOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || projectionSwitchLocked) return;
+      if (event.key !== "Escape" || projectionSwitchLocked || addMenuOpen || projectActionsOpen) return;
       const target = event.target as Node;
       if (inspectorPanelOpen && inspectorPanelRef.current?.contains(target)) {
         event.preventDefault();
@@ -572,33 +575,53 @@ export function ProjectPage() {
     document.addEventListener("keydown", closePanelOnEscape, true);
     return () => document.removeEventListener("keydown", closePanelOnEscape, true);
   }, [
+    addMenuOpen,
     desktop,
     desktopView,
     inspectorPanelOpen,
+    projectActionsOpen,
     projectionSwitchLocked,
     referencePanelOpen,
   ]);
 
   useEffect(() => {
-    if (!projectActionsOpen) return;
+    setAddMenuOpen(false);
+    setProjectActionsOpen(false);
+  }, [projectId, desktop, desktopView]);
+
+  useEffect(() => {
+    if (addMenuOpen) {
+      addMenuRef.current?.querySelector<HTMLButtonElement>(".project-add-panel button:not(:disabled)")?.focus();
+    }
+  }, [addMenuOpen]);
+
+  useEffect(() => {
+    if (!projectActionsOpen && !addMenuOpen) return;
+    const menuRef = addMenuOpen ? addMenuRef : projectActionsRef;
+    const triggerRef = addMenuOpen ? addMenuTriggerRef : projectActionsTriggerRef;
+    const close = () => {
+      setAddMenuOpen(false);
+      setProjectActionsOpen(false);
+    };
 
     const closeOnPointerDown = (event: PointerEvent) => {
-      if (!projectActionsRef.current?.contains(event.target as Node)) setProjectActionsOpen(false);
+      if (!menuRef.current?.contains(event.target as Node)) close();
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      setProjectActionsOpen(false);
-      projectActionsTriggerRef.current?.focus();
+      event.stopPropagation();
+      close();
+      triggerRef.current?.focus();
     };
 
     document.addEventListener("pointerdown", closeOnPointerDown);
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", closeOnEscape, true);
     return () => {
       document.removeEventListener("pointerdown", closeOnPointerDown);
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("keydown", closeOnEscape, true);
     };
-  }, [projectActionsOpen]);
+  }, [addMenuOpen, projectActionsOpen]);
 
   const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
     !projectDeletionNavigationRequestedRef.current
@@ -2471,6 +2494,23 @@ export function ProjectPage() {
     openReferences: openReferencePanel,
     openInspector: openInspectorPanel,
   };
+  const addOwnedContentAtCenter = (kind: "markdown" | "attachment") => {
+    if (contextCommands.createDisabled) return;
+    setAddMenuOpen(false);
+    const point = mapSurfaceRef.current?.getViewportCenter();
+    if (!point) {
+      setOwnedContentActionError("The Map is still loading. Try adding content again in a moment.");
+      addMenuTriggerRef.current?.focus();
+      return;
+    }
+    if (kind === "markdown") {
+      startMarkdownCreate(point);
+    } else {
+      // Keep the file chooser in the original click's user gesture.
+      addMenuTriggerRef.current?.focus();
+      requestAttachmentAt(point);
+    }
+  };
   const alignmentControls = <div className="project-canvas-command-group">
     <p className="card-label">Align selection</p>
     <div className="project-canvas-command-grid align" role="group" aria-label="Align selected items">
@@ -2568,10 +2608,36 @@ export function ProjectPage() {
         <h1 title={snapshot.project.title}>{snapshot.project.title}</h1>
       </div>
       {desktop && <div className="project-view-toggle" role="group" aria-label="Project view">
-        <button type="button" className={`button compact-button${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
-        <button type="button" className={`button compact-button${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
+        <button type="button" className={`button compact-button project-mode-control${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
+        <button type="button" className={`button compact-button project-mode-control${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
       </div>}
       <div className="project-workspace-header-actions">
+        {desktop && desktopView === "map" && <div ref={addMenuRef} className="project-overflow project-add">
+          <button
+            ref={addMenuTriggerRef}
+            type="button"
+            className="button primary compact-button project-add-trigger"
+            aria-expanded={addMenuOpen}
+            aria-controls="project-add-panel"
+            onClick={() => {
+              setProjectActionsOpen(false);
+              setAddMenuOpen((open) => !open);
+            }}
+          >Add</button>
+          {addMenuOpen && <div
+            id="project-add-panel"
+            className="project-overflow-panel project-add-panel"
+            role="group"
+            aria-label="Add to Project"
+          >
+            <button type="button" className="button compact-button project-menu-action" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("markdown")}>Note / Markdown</button>
+            <button type="button" className="button compact-button project-menu-action" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("attachment")}>Attachment</button>
+            <button type="button" className="button compact-button project-menu-action" disabled={contextCommands.panelCommandsDisabled} onClick={() => {
+              setAddMenuOpen(false);
+              contextCommands.openReferences();
+            }}>Reference from research record</button>
+          </div>}
+        </div>}
         {desktop && desktopView === "map" && <div
           className="project-panel-toggle-group"
           role="group"
@@ -2580,7 +2646,7 @@ export function ProjectPage() {
           <button
             ref={referencePanelTriggerRef}
             type="button"
-            className="button compact-button"
+            className="button compact-button project-panel-control"
             aria-controls="project-reference-panel"
             aria-pressed={referencePanelOpen}
             aria-label="References"
@@ -2593,7 +2659,7 @@ export function ProjectPage() {
           <button
             ref={inspectorPanelTriggerRef}
             type="button"
-            className="button compact-button"
+            className="button compact-button project-panel-control"
             aria-controls="project-inspector-panel"
             aria-pressed={inspectorPanelOpen}
             aria-label="Inspector"
@@ -2614,17 +2680,17 @@ export function ProjectPage() {
         </div>}
         {desktop && desktopView === "map" && <div className="project-save-toolbar">
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-          <button type="button" className="button compact-button" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
+          <button type="button" className="button compact-button project-history-control" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
             <span className="project-control-label-full">Undo</span>
             <span className="project-control-label-compact" aria-hidden="true">↶</span>
           </button>
-          <button type="button" className="button compact-button" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
+          <button type="button" className="button compact-button project-history-control" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
             <span className="project-control-label-full">Redo</span>
             <span className="project-control-label-compact" aria-hidden="true">↷</span>
           </button>
           <button
             type="button"
-            className="button primary compact-button"
+            className="button compact-button project-save-control"
             aria-keyshortcuts="Control+S Meta+S"
             disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled}
             onClick={() => {
@@ -2642,7 +2708,10 @@ export function ProjectPage() {
             aria-label="Project actions"
             aria-expanded={projectActionsOpen}
             aria-controls="project-overflow-panel"
-            onClick={() => setProjectActionsOpen((open) => !open)}
+            onClick={() => {
+              setAddMenuOpen(false);
+              setProjectActionsOpen((open) => !open);
+            }}
           >
             <span className="project-control-label-full">Project actions</span>
             <span className="project-control-label-compact" aria-hidden="true">More</span>

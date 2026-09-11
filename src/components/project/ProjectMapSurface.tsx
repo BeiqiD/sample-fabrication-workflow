@@ -310,7 +310,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
     />
     <header>
       <span>{projectNodeKindLabel(descriptor.kind)}</span>
-      {showHeaderMeta && <small>{markdownEditor?.isNew ? "draft" : `#${descriptor.createdSequence}`}</small>}
+      {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
     </header>
     {markdownEditor ? <div className="project-markdown-editor nodrag nopan">
       <textarea
