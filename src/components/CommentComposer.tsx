@@ -11,6 +11,7 @@ import type {
 import { MAX_COMMENT_SUBMISSION_ITEMS, MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
 import { isTiffMetadata } from "../../shared/tiff";
 import { api } from "../lib/api";
+import { createUuid } from "../lib/uuid";
 import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
 import { commentUploadQueue } from "../lib/commentUploadQueue";
 import { isTiffFile, prepareCommentImage } from "../lib/images";
@@ -396,12 +397,12 @@ export function CommentComposer({
           setStorage(checkedStorage);
         }
         if (tiff && !checkedStorage?.available) {
-          rejectedFiles.push({ id: crypto.randomUUID(), file, reason: checkedStorage?.message || storageMessage });
+          rejectedFiles.push({ id: createUuid(), file, reason: checkedStorage?.message || storageMessage });
           continue;
         }
         if (tiff && file.size > MAX_MANAGED_ATTACHMENT_BYTES) {
           rejectedFiles.push({
-            id: crypto.randomUUID(),
+            id: createUuid(),
             file,
             reason: "This TIFF is larger than 100 MB and cannot be uploaded through the web interface.",
           });
@@ -409,7 +410,7 @@ export function CommentComposer({
         }
         try {
           const processed = await prepareCommentImage(file);
-          const id = crypto.randomUUID();
+          const id = createUuid();
           setImages((current) => [...current, {
             id,
             original: file,
@@ -422,14 +423,14 @@ export function CommentComposer({
           const reason = error instanceof Error ? error.message : "This file cannot be inserted as a comment image.";
           if (tiff && checkedStorage?.available) {
             fallbackAttachments.push({
-              id: crypto.randomUUID(),
+              id: createUuid(),
               file,
               previewNote: reason.includes("will be attached without a preview")
                 ? reason
                 : `${reason} The original TIFF will be attached without a preview.`,
             });
           } else {
-            rejectedFiles.push({ id: crypto.randomUUID(), file, reason });
+            rejectedFiles.push({ id: createUuid(), file, reason });
           }
         }
       }
@@ -453,7 +454,7 @@ export function CommentComposer({
       if (file.size > MAX_MANAGED_ATTACHMENT_BYTES) {
         setDraftError("Files larger than 100 MB cannot be uploaded through the web interface. Upload the file through another storage or sync mechanism, then add its link as an attachment.");
       } else {
-        accepted.push({ id: crypto.randomUUID(), file });
+        accepted.push({ id: createUuid(), file });
       }
     }
     if (accepted.length) {
@@ -570,13 +571,13 @@ export function CommentComposer({
       setDraftError(`A comment can contain at most ${MAX_COMMENT_SUBMISSION_ITEMS} uploaded items. TIFF previews count as a preview and an original attachment.`);
       return;
     }
-    const submissionId = crypto.randomUUID();
+    const submissionId = createUuid();
     const itemInputs: CommentSubmissionItemInput[] = [];
     const localItems: LocalUploadItem[] = [];
 
     for (const image of images) {
-      const imageItemId = crypto.randomUUID();
-      const originalItemId = image.attachOriginal ? crypto.randomUUID() : undefined;
+      const imageItemId = createUuid();
+      const originalItemId = image.attachOriginal ? createUuid() : undefined;
       itemInputs.push({
         id: imageItemId,
         kind: "comment_image",
@@ -625,7 +626,7 @@ export function CommentComposer({
       }
     }
     for (const attachment of attachments) {
-      const itemId = crypto.randomUUID();
+      const itemId = createUuid();
       itemInputs.push({
         id: itemId,
         kind: "attachment",
@@ -648,7 +649,7 @@ export function CommentComposer({
       });
     }
     for (const link of links) {
-      const itemId = crypto.randomUUID();
+      const itemId = createUuid();
       itemInputs.push({ id: itemId, kind: "link", url: link.url, title: link.title, description: link.description });
       localItems.push({
         id: itemId,
@@ -867,7 +868,7 @@ export function CommentComposer({
     {showLinkForm && <LinkAttachmentForm
       onCancel={() => setShowLinkForm(false)}
       onAdd={(link) => {
-        setLinks((current) => [...current, { ...link, id: crypto.randomUUID() }]);
+        setLinks((current) => [...current, { ...link, id: createUuid() }]);
         setShowLinkForm(false);
       }}
     />}

@@ -1,3 +1,4 @@
+import { createUuid } from "./uuid";
 import type {
   CreateMarkdownProjectItemInput,
   CreateProjectEdgeInput,
@@ -293,7 +294,7 @@ export function buildProjectCanvasClipboard(
 }
 
 function defaultIdentity(kind: ProjectCanvasPasteIdentityKind) {
-  return `${kind}-${crypto.randomUUID()}`;
+  return `${kind}-${createUuid()}`;
 }
 
 function clampedTranslation(
