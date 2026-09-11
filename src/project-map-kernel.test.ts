@@ -98,7 +98,7 @@ describe("Project Map kernel boundaries", () => {
     expect(projectStyles).not.toMatch(/\.project-desktop-workspace\s*\{[^}]*100vh/s);
     expect(surfaceStyles).toMatch(/\.project-flow-canvas\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*0;/s);
     expect(projectStyles).toMatch(/\.project-map-panel\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
-    expect(projectStyles).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[^}]*position:\s*absolute;[^}]*border:\s*0;/s);
+    expect(projectStyles).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[^}]*position:\s*absolute;[^}]*border:\s*1px solid var\(--line\);/s);
     expect(pageSource).toContain('data-panel-presentation="floating"');
     expect(pageSource).toContain("contextCommands={contextCommands}");
     expect(surfaceSource).toContain("onPaneContextMenu={handlePaneContextMenu}");
@@ -112,7 +112,6 @@ describe("Project Map kernel boundaries", () => {
     expect(pageSource).toContain('aria-label="Canvas selection and clipboard status"');
     expect(projectStyles).toMatch(/\.project-canvas-transient-status\s*\{[^}]*position:\s*absolute;[^}]*pointer-events:\s*none;/s);
     expect(projectStyles).toMatch(/@media \(max-width: 1180px\) and \(min-width: 860px\)[\s\S]*?\.project-page\.desktop\.map \.project-control-label-full\s*\{[^}]*display:\s*none;/);
-    expect(projectStyles).toMatch(/@media \(max-width: 1180px\) and \(min-width: 860px\)[\s\S]*?\.project-page\.desktop\.map \.project-control-label-compact\s*\{[^}]*display:\s*inline;/);
     expect(pageSource).toContain('aria-label="References"');
     expect(pageSource).toContain('aria-label="Inspector"');
     expect(pageSource).toContain('aria-label="Undo"');

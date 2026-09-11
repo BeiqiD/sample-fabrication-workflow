@@ -516,7 +516,7 @@ describe("mounted Project edge behavior", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
     fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
     fireEvent.change(screen.getByLabelText("Label"), { target: { value: "causes" } });
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
 
     expect(await screen.findByRole("alertdialog", { name: "Unsaved Project changes" })).toBeTruthy();
     expect(screen.queryByText("Projects route")).toBeNull();

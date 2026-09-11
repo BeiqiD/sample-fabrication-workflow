@@ -60,6 +60,7 @@ describe("mounted mobile Project occurrence projection", () => {
     expect(screen.getByRole("button", { name: "Edit Markdown" })).toBeTruthy();
     expect(screen.queryByText("Add references")).toBeNull();
     expect(screen.queryByText("Add attachment")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/projects/project-a");
   });

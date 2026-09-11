@@ -177,7 +177,7 @@ describe("mounted desktop Project Map save behavior", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
 
     expect(screen.queryByText("Projects route")).toBeNull();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -206,7 +206,7 @@ describe("mounted desktop Project Map save behavior", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("button", { name: "Leave without saving" })).toBeNull();
@@ -307,7 +307,7 @@ describe("mounted desktop Project Map save behavior", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
 
     expect(await screen.findByText("Temporary save failure")).toBeTruthy();
     expect(screen.queryByText("Projects route")).toBeNull();
@@ -330,7 +330,7 @@ describe("mounted desktop Project Map save behavior", () => {
     renderProjectPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Simulate semantic move" }));
-    fireEvent.click(screen.getByRole("link", { name: "← Projects" }));
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
 
     expect(await screen.findByText("Placement revision conflict")).toBeTruthy();
     expect(screen.queryByText("Projects route")).toBeNull();

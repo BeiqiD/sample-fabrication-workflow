@@ -376,8 +376,8 @@
 .reference-placement-card {
   min-width: 0;
   display: grid;
-  gap: 7px;
-  padding: 9px;
+  gap: 8px;
+  padding: 11px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--paper);
@@ -391,8 +391,8 @@
 .reference-placement-card-main {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 7px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
   align-items: start;
 }
 
@@ -409,7 +409,7 @@
   flex-wrap: wrap;
   gap: 4px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.2;
 }
 
@@ -423,7 +423,7 @@
 .reference-placement-card-labels .reference-search-type-badge {
   min-height: 18px;
   padding: 3px 5px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .reference-placement-card-present {
@@ -443,14 +443,18 @@
 .reference-placement-card h3 {
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 12px;
-  line-height: 1.3;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .reference-placement-card-copy > p {
   overflow: hidden;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -460,7 +464,7 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--ink);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.4;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
@@ -469,9 +473,7 @@
 
 .reference-placement-card-footer {
   min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 8px;
   padding-top: 6px;
   border-top: 1px solid var(--line);
@@ -481,20 +483,28 @@
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.reference-placement-card-footer > div {
-  flex: 0 0 auto;
+.reference-placement-card-actions {
+  min-width: 0;
   display: flex;
-  gap: 7px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
+.reference-placement-card-links { display: flex; align-items: center; gap: 10px; }
+
 .reference-placement-card-footer a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--accent);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 680;
   text-decoration: none;
 }
@@ -505,10 +515,24 @@
 
 .reference-placement-action {
   min-width: 0;
-  min-height: 28px;
-  padding-inline: 7px;
-  font-size: 9px;
+  min-height: 32px;
+  padding: 5px 9px;
+  gap: 5px;
+  font-size: 11px;
 }
+
+.reference-search-surface.placement .reference-placement-action {
+  border-color: transparent;
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+.reference-search-surface.placement .reference-placement-action:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.reference-placement-card:focus-within { border-color: var(--accent); }
+.reference-search-surface.placement .reference-placement-card-links svg { width: 12px; height: 12px; }
+
 
 @keyframes reference-search-loading {
   from { background-position: 100% 0; }

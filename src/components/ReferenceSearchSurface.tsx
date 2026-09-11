@@ -32,6 +32,9 @@ import {
   validateReferenceSearchUiState,
   type ReferenceSearchUiState,
 } from "../lib/reference-search-ui";
+import { ActionIcon } from "./ActionIcon";
+import { NavigationIcon } from "./NavigationIcon";
+import { DialogCloseIcon } from "./DialogCloseIcon";
 import { EmptyState } from "./EmptyState";
 
 type ReferenceSearchSurfaceCommonProps = {
@@ -172,38 +175,41 @@ function ReferencePlacementCard({
           writeProjectReferenceResolutionDragPayload(event.dataTransfer, resolution);
         }}
         aria-hidden="true"
-      >⠿</span>
+      ><ActionIcon name="grip" /></span>
       <div className="reference-placement-card-copy">
         <div className="reference-placement-card-labels">
           <span className="reference-search-type-badge">
             {REFERENCE_SEARCH_TYPE_LABELS[resolution.target.type]}
           </span>
-          <span>{supportingLabel}</span>
+          <span title={supportingLabel}>{supportingLabel}</span>
           {placedCount > 0 && <span className="reference-placement-card-present">
             {placedCount === 1 ? "On Map" : `${placedCount} on Map`}
           </span>}
         </div>
-        <Heading>{title}</Heading>
+        <Heading title={title}>{title}</Heading>
         {resolution.source?.subtitle && <p>{resolution.source.subtitle}</p>}
       </div>
-      <button
-        type="button"
-        className="button primary compact-button reference-placement-action"
-        disabled={placementDisabled}
-        aria-label={`Place ${title} at Map center`}
-        onClick={onPlace}
-      >Place</button>
     </div>
     {resolution.source?.excerpt && <p className="reference-placement-card-excerpt">
       {resolution.source.excerpt}
     </p>}
     <div className="reference-placement-card-footer">
-      {context.length > 0 && <p>{context.join(" › ")}</p>}
-      <div>
-        <Link to={openUrl}>Open</Link>
-        {openUrl !== resolution.destination.referenceUrl && <Link
-          to={resolution.destination.referenceUrl}
-        >Details</Link>}
+      {context.length > 0 && <p title={context.join(" › ")}>{context.join(" › ")}</p>}
+      <div className="reference-placement-card-actions">
+        <button
+          type="button"
+          className="button primary compact-button reference-placement-action"
+          disabled={placementDisabled}
+          aria-label={`Place ${title} at Map center`}
+          title="Place at Map center"
+          onClick={onPlace}
+        ><ActionIcon name="plus" />Place</button>
+        <div className="reference-placement-card-links">
+          <Link to={openUrl}>Open<ActionIcon name="open" /></Link>
+          {openUrl !== resolution.destination.referenceUrl && <Link
+            to={resolution.destination.referenceUrl}
+          >Details</Link>}
+        </div>
       </div>
     </div>
   </article>;
@@ -534,11 +540,14 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
           className="text-button reference-search-clear"
           aria-label="Clear search"
           onClick={clearSearch}
-        >Clear</button>}
+          title="Clear search"
+        >{mode === "place" ? <DialogCloseIcon /> : "Clear"}</button>}
         <button
           type="submit"
           className={`button primary reference-search-submit${mode === "place" ? " compact-button" : ""}`}
-        >Search</button>
+          aria-label="Search"
+          title="Search references"
+        >{mode === "place" ? <NavigationIcon name="search" /> : "Search"}</button>
       </div>
 
       {mode === "place" && <div
@@ -567,9 +576,10 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
           aria-controls={filterPanelId}
           onClick={() => setFiltersOpen((open) => !open)}
         >
+          {mode === "place" && <ActionIcon name="actions" />}
           {mode === "place" ? "More filters" : "Filters"}
           {filterCount > 0 && <span className="reference-search-filter-count">{filterCount}</span>}
-          <span aria-hidden="true">▾</span>
+          {mode === "place" ? <ActionIcon name="chevron-down" /> : <span aria-hidden="true">▾</span>}
         </button>}
       </div>
 

@@ -222,19 +222,44 @@ describe("Project lifecycle UI", () => {
     });
 
     const projectActions = screen.getByRole("button", { name: "Project actions" });
+    const add = screen.getByRole("button", { name: "Add" });
     expect(projectActions.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
     fireEvent.click(projectActions);
     expect(screen.getByRole("button", { name: "Move to trash" })).toBeTruthy();
+    fireEvent.click(add);
+    expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
+    expect(screen.getByRole("group", { name: "Add to Project" })).toBeTruthy();
+    fireEvent.click(projectActions);
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(projectActions.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
     expect(document.activeElement).toBe(projectActions);
 
+    fireEvent.click(add);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    expect(document.activeElement).toBe(add);
+    fireEvent.click(add);
+    const referenceClose = screen.getByRole("button", { name: "Close References" });
+    referenceClose.focus();
+    fireEvent.keyDown(referenceClose, { key: "Escape" });
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    expect(screen.getByRole("complementary", { name: "Reference search and placement" })).toBeTruthy();
+    expect(document.activeElement).toBe(add);
+    // Menu Escape must not propagate into Canvas selection clearing.
+    fireEvent.click(inspectorToggle);
+    expect(screen.getByRole("complementary", { name: "Project Inspector" }).textContent).toContain("Design note");
+    fireEvent.click(add);
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Reading" }));
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+
     fireEvent.click(screen.getByRole("button", { name: "Reading" }));
     await waitFor(() => {
       expect(page?.classList.contains("reading")).toBe(true);
       expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
+      expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Map" }));
@@ -336,7 +361,11 @@ describe("Project lifecycle UI", () => {
     expect(within(header).getByRole("button", { name: "Redo" })).toBeTruthy();
     expect(within(header).getByRole("button", { name: "Save" })).toBeTruthy();
     expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();
-    expect(header.querySelectorAll(".project-control-label-compact")).toHaveLength(5);
+    for (const name of ["References", "Inspector", "Undo", "Redo", "Save", "Project actions"]) {
+      const control = within(header).getByRole("button", { name });
+      expect(control.querySelector('svg[aria-hidden="true"][focusable="false"]')).toBeTruthy();
+      expect(control.getAttribute("title")).toBeTruthy();
+    }
 
     document.documentElement.dataset.theme = "dark";
     expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();

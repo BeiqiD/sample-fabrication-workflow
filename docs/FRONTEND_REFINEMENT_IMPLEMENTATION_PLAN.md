@@ -2,12 +2,13 @@
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163; Phase 5C2b is active
+and Phase 5C2a is complete in PR #163; Phase 5C2b.1 is complete in PR #166,
+and Phase 5C2b.2 is active
 
-Last reviewed: 2026-09-03
+Last reviewed: 2026-09-11
 
 Execution base: `v2/backend-foundation` at
-`ada7e6b1b3a0d442420e01509bb152653620d030`; PR #163 is merged
+`5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
 
 This document turns the whole-product Phase 5 goal in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
@@ -919,7 +920,8 @@ remaining button-family and quick-toolbar visual hierarchy.
 
 ### Phase 5C2b.1 — Reference discovery and Inspector hierarchy
 
-Status: active bounded first slice of C2b.
+Status: complete in merged PR #166, including browser acceptance and placement
+hydration / local development compatibility fixes.
 
 #### Concrete problem
 
@@ -991,6 +993,54 @@ metadata.
 Reference discovery works before search and Inspector reads in action-first priority
 without changing authoritative behavior. C2b remains open for its separately bounded
 Add/overflow, quick-toolbar, button-family, and Map sequence-display slice.
+
+### Phase 5C2b.2 — Add entry and workspace control roles
+
+Status: active bounded second slice of C2b.
+
+The desktop Map needs an explicit creation entry after Project-owned content moved
+out of References. Add exposes Note / Markdown, Attachment, and Reference from
+research record. It reads the live Map viewport center when an action is selected
+and reuses existing creation, upload, placement, retry, and conflict paths.
+
+- content actions reuse the Canvas create capability; Reference discovery retains
+  its independent panel capability, including while an editor blocks new content;
+- Add and Project actions are mutually exclusive; Escape closes the current menu
+  first, preserves Canvas selection and other panels, and restores its trigger;
+- Reference and Markdown actions retain destination focus; Attachment opens the
+  existing file input synchronously and remains available with References closed;
+- unavailable viewport state produces visible feedback without creating a draft
+  or starting an upload; pointer/context creation retains its original coordinates;
+- top-bar creation, view, panels, history/save, and overflow have local control
+  roles; ordinary Map cards omit creation sequence while drafts retain their badge;
+- no Add entry is introduced in Reading/mobile; persisted sequence, Reading order,
+  identity, authoritative mutations, and Canvas geometry remain unchanged.
+
+Acceptance includes live-center placement, cancellation and exact retry, operation
+availability, menu priority/focus, desktop/Reading transitions, and the relevant
+1440/1024/860/859, 1181/1180, short-height and theme matrix. Run owned-content,
+workspace/mobile, Map surface, Reading and performance gates on the proposed head.
+
+The visual follow-up in PR #167 applies familiar editor patterns to this slice:
+
+- one outlined SVG system, icon-and-label view controls, and named/icon-only
+  Undo, Redo, panel, and overflow controls with tooltips at compact widths;
+- an emphasized Add trigger and three icon-led entries with short descriptions;
+- readable placement cards with full-title tooltips, a separate Place/Open/Details
+  action row, and consistent three-column type scopes;
+- compact search/clear/filter controls, bordered floating panels, explicit Pin
+  state, focus outlines, and a horizontal zoom/fit group;
+- changes stay inside Project/placement presentation and reuse existing handlers,
+  drag payloads, navigation targets, save gates, and authoritative data paths.
+
+Pattern references: [Miro toolbars](https://help.miro.com/hc/en-us/articles/360017730553-Toolbars),
+[FigJam workspace](https://help.figma.com/hc/en-us/articles/15300412458647-Explore-FigJam-files),
+and [tldraw actions](https://tldraw.dev/sdk-features/actions). These inform grouping
+and discoverability; no unsupported editor tools are introduced.
+
+Phase 5C2b.3 remains separate for node/edge/multi-selection quick toolbars, with its
+own placement, focus, and performance review. C2b is not complete until that slice
+and its integration acceptance are finished; C3 follows C2b.
 
 ## Documentation and review discipline
 

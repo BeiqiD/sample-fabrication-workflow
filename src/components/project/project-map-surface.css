@@ -37,6 +37,8 @@
 
 .project-flow-canvas .react-flow__controls {
   left: var(--project-map-controls-left, 10px);
+  display: flex;
+  flex-direction: row;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -45,10 +47,16 @@
 }
 
 .project-flow-canvas .react-flow__controls-button {
-  border-bottom-color: var(--line);
+  width: 36px;
+  height: 36px;
+  border-bottom: 0;
+  border-right: 1px solid var(--line);
   color: var(--ink);
   background: var(--paper);
 }
+
+.project-flow-canvas .react-flow__controls-button:last-child { border-right: 0; }
+.project-flow-canvas .react-flow__controls-button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 
 .project-flow-canvas .react-flow__controls-button:hover {
   color: var(--accent);
@@ -126,7 +134,11 @@
   text-transform: uppercase;
 }
 
+.project-map-node header > span { display: inline-flex; align-items: center; gap: 6px; }
+.project-map-node header svg { width: 14px; height: 14px; flex: 0 0 auto; }
 .project-map-node header small { margin-left: auto; }
+.project-map-node header { letter-spacing: .035em; }
+
 
 .project-map-node h2 {
   margin: 1px 0 0;
@@ -255,7 +267,7 @@
   padding: 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--paper);
   box-shadow: 0 12px 34px var(--shadow);
@@ -280,7 +292,8 @@
 .project-map-context-menu button,
 .project-map-context-menu a {
   width: 100%;
-  min-height: 30px;
+  min-height: 34px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   padding: 7px 9px;

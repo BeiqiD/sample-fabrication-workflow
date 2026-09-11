@@ -119,7 +119,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
 
     expect(projectCss).toMatch(/\.project-desktop-workspace\s*\{[\s\S]*?position:\s*relative;[\s\S]*?border:\s*0;/);
     expect(projectCss).toMatch(/\.project-map-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?inset:\s*0;/);
-    expect(projectCss).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?border:\s*0;/);
+    expect(projectCss).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?border:\s*1px solid var\(--line\);/);
     expect(projectCss).toContain('--project-map-controls-left: calc(');
     expect(mapCss).toContain("left: var(--project-map-controls-left, 10px)");
 

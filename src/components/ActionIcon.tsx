@@ -1,6 +1,21 @@
-export type ActionIconName = "actions" | "delete" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun";
+export type ActionIconName = "actions" | "delete" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun"
+  | "plus" | "chevron-down" | "arrow-left" | "undo" | "redo" | "more" | "attachment" | "pin" | "save" | "grip" | "open" | "inspector" | "note" | "link";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
+  plus: <path d="M12 5v14M5 12h14" />,
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
+  "arrow-left": <path d="M20 12H4m6-6-6 6 6 6" />,
+  undo: <path d="m8 4-5 5 5 5M3 9h10a7 7 0 0 1 7 7v3" />,
+  redo: <path d="m16 4 5 5-5 5M21 9H11a7 7 0 0 0-7 7v3" />,
+  more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
+  attachment: <path d="m9 13 6-6a2.8 2.8 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l8-8M7 15l8-8" />,
+  pin: <path d="m15 3 6 6-4 1-3 5-2 1-4-4 1-2 5-3zM10 14l-7 7" />,
+  save: <><path d="M5 3.5h12l3.5 3.5v13.5h-17v-17zM8 3.5V9h8V3.5" /><path d="M8 20.5v-7h8v7" /></>,
+  grip: <>{[6, 12, 18].map((y) => <g key={y}><circle cx="9" cy={y} r="1" /><circle cx="15" cy={y} r="1" /></g>)}</>,
+  open: <path d="M14 4h6v6M20 4 10 14M10 4H4v16h16v-6" />,
+  inspector: <><rect x="3.5" y="4" width="17" height="16" rx="2" /><path d="M14 4v16M17 8h.5M17 12h.5" /></>,
+  note: <><path d="M6 3.5h8l4 4v13H6zM14 3.5v4h4M9 12h6M9 16h4" /></>,
+  link: <><path d="m10 7 2-2a5 5 0 0 1 7 7l-2 2M14 17l-2 2a5 5 0 0 1-7-7l2-2M8 16l8-8" /></>,
   actions: <>
     <path d="M4 7h10M18 7h2M4 12h2M10 12h10M4 17h7M15 17h5" />
     <circle cx="16" cy="7" r="2" />

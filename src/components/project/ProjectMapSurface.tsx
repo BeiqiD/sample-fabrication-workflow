@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { ActionIcon } from "../ActionIcon";
 import {
   Background,
   ConnectionMode,
@@ -309,8 +310,8 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
       }}
     />
     <header>
-      <span>{projectNodeKindLabel(descriptor.kind)}</span>
-      {showHeaderMeta && <small>{markdownEditor?.isNew ? "draft" : `#${descriptor.createdSequence}`}</small>}
+      <span><ActionIcon name={descriptor.kind === "reference" ? "link" : descriptor.kind === "markdown" ? "note" : "attachment"} />{projectNodeKindLabel(descriptor.kind)}</span>
+      {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
     </header>
     {markdownEditor ? <div className="project-markdown-editor nodrag nopan">
       <textarea

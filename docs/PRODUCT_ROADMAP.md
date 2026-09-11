@@ -2,7 +2,7 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-03 with Phase 5C2a complete in PR #163, Phase 5C2b active,
+Last reviewed: 2026-09-11 with Phase 5C2b.1 complete in PR #166, Phase 5C2b.2 active,
 and the post-Phase-5 V3 architecture-stabilization sequence planned
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -201,8 +201,8 @@ outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required
 The materially larger Project composition gap is authorized as Phase 5C. Its C0
 contract is complete in PR #161, and its C1 viewport-frame implementation is
 complete in PR #162. Phase 5C2a floating panels and context-aware Canvas commands
-are complete in PR #163; Phase 5C2b control hierarchy is active, beginning with
-Reference discovery and Inspector information hierarchy. Storage, lifecycle,
+are complete in PR #163; Phase 5C2b.1 Reference discovery and Inspector hierarchy
+is complete in PR #166. Phase 5C2b.2 Add, workspace controls, and visual usability polish is active in PR #167. Storage, lifecycle,
 Reference, and rich-content foundations return to correctness maintenance rather
 than continuing as independent feature tracks.
 
@@ -754,10 +754,10 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete **Phase 5C2b — Project control hierarchy**: first land the bounded
-   default-Suggested Reference and action-first Inspector hierarchy slice, then
-   finish the major button-family, Add, overflow, quick-toolbar, and visible Map
-   sequence-display work on the same unified command model.
+1. Complete **Phase 5C2b — Project control hierarchy**: Reference discovery and
+   Inspector hierarchy landed in #166. Finish **C2b.2** Add, top-bar control roles,
+   and visible Map sequence display, then **C2b.3** node/edge/multi-selection quick
+   toolbars, using the same unified command model.
 2. Implement **Phase 5C3 — Reading and responsive composition**: measure desktop
    floating-panel sizing, add Reading/mobile composition without redefining
    desktop modality, then run the bounded **Phase 5C4 Project integration review**.

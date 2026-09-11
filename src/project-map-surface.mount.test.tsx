@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { useState } from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
 import type { ProjectItemSelection } from "./lib/project-canvas-productivity";
@@ -152,8 +152,10 @@ describe("real Project Map surface keyboard behavior", () => {
     expect(await labelFor("pending-attachment")).toBe("Project attachment");
 
     const markdownNode = await nodeFor("item-note");
-    expect([...markdownNode.querySelectorAll<HTMLElement>("*")]
-      .filter((element) => element.textContent === "Project Markdown")).toHaveLength(1);
+    for (const itemId of ["item-note", "item-reference", "item-attachment"]) {
+      expect((await nodeFor(itemId)).querySelector("header small")).toBeNull();
+    }
+    expect(within(markdownNode).getAllByText("Project Markdown", { exact: true })).toHaveLength(1);
     expect(markdownNode.querySelector(".project-node-subtitle")).toBeNull();
     expect(markdownNode.closest(".react-flow__node")?.getAttribute("aria-label"))
       .toBe("Project Markdown: Design note");
@@ -245,6 +247,7 @@ describe("real Project Map surface keyboard behavior", () => {
       return candidate!;
     });
     expect(draftNode.classList.contains("selected")).toBe(true);
+    expect(draftNode.querySelector("header small")?.textContent).toBe("draft");
     expect(draftNode.classList.contains("selectable")).toBe(false);
 
     fireEvent.keyDown(document, { key: "Shift", code: "ShiftLeft" });
