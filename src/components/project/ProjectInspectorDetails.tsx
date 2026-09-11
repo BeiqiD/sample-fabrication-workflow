@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { ProjectSnapshot } from "../../../shared/project-api";
 import {
@@ -14,6 +14,8 @@ import "./project-inspector-details.css";
 export interface ProjectInspectorDetailsProps {
   snapshot: ProjectSnapshot;
   descriptor: ProjectNodeDescriptor;
+  primaryContent?: ReactNode;
+  relatedContent?: ReactNode;
 }
 
 function ProjectInspectorActionLink({
@@ -54,6 +56,8 @@ function ContextLink({ context }: { context: ProjectInspectorContext }) {
 export function ProjectInspectorDetails({
   snapshot,
   descriptor,
+  primaryContent,
+  relatedContent,
 }: ProjectInspectorDetailsProps) {
   const projection = projectInspectorProjection(snapshot, descriptor);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
@@ -67,20 +71,38 @@ export function ProjectInspectorDetails({
 
   const media = projection.media?.url === failedMediaUrl ? null : projection.media;
   return <>
-    <span className="meta-badge">{projection.kindLabel}</span>
-    <h2>{projection.title}</h2>
-    {projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
+    <header className="project-inspector-summary">
+      <span className="meta-badge">{projection.kindLabel}</span>
+      <h2>{projection.title}</h2>
+      {projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
+    </header>
+
+    {(projection.primaryAction || primaryContent) && <div className="project-inspector-primary-actions">
+      {projection.primaryAction && <ProjectInspectorActionLink
+        action={projection.primaryAction}
+        className="button primary wide"
+      />}
+      {primaryContent}
+    </div>}
+
     {projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
 
-    <section className="project-inspector-section" aria-labelledby="project-inspector-occurrence-heading">
-      <h3 id="project-inspector-occurrence-heading">Project occurrence</h3>
-      <dl>
-        {projection.occurrenceFields.map((field) => <div key={field.label}>
-          <dt>{field.label}</dt>
-          <dd>{field.value}</dd>
-        </div>)}
-      </dl>
-      {projection.relationships.length > 0 && <ul className="project-inspector-relationships">
+    {media && <img
+      className="project-inspector-media"
+      src={media.url}
+      alt={media.alt}
+      onError={() => setFailedMediaUrl(media.url)}
+    />}
+
+    {projection.relationships.length > 0 && <section
+      className="project-inspector-section"
+      aria-labelledby="project-inspector-relationships-heading"
+    >
+      <div className="project-inspector-section-heading">
+        <h3 id="project-inspector-relationships-heading">Relationships</h3>
+        <span>{projection.relationshipSummary}</span>
+      </div>
+      <ul className="project-inspector-relationships">
         {projection.relationships.map((relationship) => <li
           key={relationship.edgeId}
           aria-label={projectInspectorRelationshipAriaLabel(relationship)}
@@ -89,26 +111,13 @@ export function ProjectInspectorDetails({
           <strong>{relationship.relatedTitle}</strong>
           <small>{relationship.label}</small>
         </li>)}
-      </ul>}
-    </section>
+      </ul>
+    </section>}
 
-    <section className="project-inspector-section" aria-labelledby="project-inspector-identity-heading">
-      <h3 id="project-inspector-identity-heading">{projection.identityHeading}</h3>
-      <dl>
-        {[...projection.identityFields, ...projection.detailFields].map((field, index) => <div
-          key={`${field.label}-${index}`}
-        >
-          <dt>{field.label}</dt>
-          <dd>{field.value}</dd>
-        </div>)}
-      </dl>
-    </section>
+    {relatedContent}
 
-    {projection.contexts.length > 0 && <section
-      className="project-inspector-section"
-      aria-labelledby="project-inspector-context-heading"
-    >
-      <h3 id="project-inspector-context-heading">Source hierarchy</h3>
+    {projection.contexts.length > 0 && <details className="project-inspector-disclosure">
+      <summary>Source hierarchy</summary>
       <ol className="project-inspector-contexts">
         {projection.contexts.map((context, contextIndex) => <li
           key={`${context.label}-${contextIndex}`}
@@ -126,18 +135,28 @@ export function ProjectInspectorDetails({
           <ContextLink context={context} />
         </li>)}
       </ol>
-    </section>}
+    </details>}
 
-    {media && <img
-      className="project-inspector-media"
-      src={media.url}
-      alt={media.alt}
-      onError={() => setFailedMediaUrl(media.url)}
-    />}
+    <details className="project-inspector-disclosure">
+      <summary>{projection.identityHeading}</summary>
+      <dl>
+        {[...projection.identityFields, ...projection.detailFields].map((field, index) => <div
+          key={`${field.label}-${index}`}
+        >
+          <dt>{field.label}</dt>
+          <dd>{field.value}</dd>
+        </div>)}
+      </dl>
+    </details>
 
-    {projection.primaryAction && <ProjectInspectorActionLink
-      action={projection.primaryAction}
-      className="button wide"
-    />}
+    <details className="project-inspector-disclosure">
+      <summary>Project details</summary>
+      <dl>
+        {projection.occurrenceFields.map((field) => <div key={field.label}>
+          <dt>{field.label}</dt>
+          <dd>{field.value}</dd>
+        </div>)}
+      </dl>
+    </details>
   </>;
 }

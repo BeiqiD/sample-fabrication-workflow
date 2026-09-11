@@ -2,7 +2,7 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-03 with Phase 5C2a complete in PR #163, Phase 5C2b next,
+Last reviewed: 2026-09-03 with Phase 5C2a complete in PR #163, Phase 5C2b active,
 and the post-Phase-5 V3 architecture-stabilization sequence planned
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -201,7 +201,8 @@ outcome feedback are complete in PRs #158/#159/#160; no B4 is currently required
 The materially larger Project composition gap is authorized as Phase 5C. Its C0
 contract is complete in PR #161, and its C1 viewport-frame implementation is
 complete in PR #162. Phase 5C2a floating panels and context-aware Canvas commands
-are complete in PR #163; Phase 5C2b control hierarchy is next. Storage, lifecycle,
+are complete in PR #163; Phase 5C2b control hierarchy is active, beginning with
+Reference discovery and Inspector information hierarchy. Storage, lifecycle,
 Reference, and rich-content foundations return to correctness maintenance rather
 than continuing as independent feature tracks.
 
@@ -538,7 +539,7 @@ After the freeze:
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163. Phase 5C2b is next.
+and Phase 5C2a is complete in PR #163. Phase 5C2b is active.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -573,9 +574,11 @@ document layout, and float References/Inspector above the Canvas without resizin
 it. Desktop Map panels remain non-modal so visible Canvas drag and selection
 continue; only mobile Reading-first sheets use modal behavior. The detailed boundary is recorded in the
 [Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
-It explicitly includes substantial Project button work: mode, toolbar, panel,
-content, destructive, and overflow controls will receive owned roles, grouping, priority, responsive
-collapse rules, and complete accessibility states. Existing mutation, navigation,
+Its active C2b slice makes Reference discovery useful before search and reorders
+Inspector content around the primary action, while retaining deterministic source
+hierarchy and all Project-local detail. It also includes substantial Project button
+work: mode, toolbar, panel, content, destructive, and overflow controls will receive
+owned roles, grouping, priority, responsive collapse rules, and complete accessibility states. Existing mutation, navigation,
 Map geometry, Reading order, backend, and performance contracts remain frozen.
 
 The previously planned attachment/media, source-record/directory, and
@@ -751,9 +754,10 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete **Phase 5C2b — Project control hierarchy**: finish the major
-   button-family, Add, overflow, and quick-toolbar migration on the same unified
-   command model.
+1. Complete **Phase 5C2b — Project control hierarchy**: first land the bounded
+   default-Suggested Reference and action-first Inspector hierarchy slice, then
+   finish the major button-family, Add, overflow, quick-toolbar, and visible Map
+   sequence-display work on the same unified command model.
 2. Implement **Phase 5C3 — Reading and responsive composition**: measure desktop
    floating-panel sizing, add Reading/mobile composition without redefining
    desktop modality, then run the bounded **Phase 5C4 Project integration review**.

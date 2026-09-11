@@ -105,7 +105,7 @@ describe("Project placement mode on ReferenceSearchSurface", () => {
     expect(JSON.stringify(payload)).not.toContain("contexts");
     expect(JSON.stringify(payload)).not.toContain("updatedAt");
 
-    fireEvent.click(screen.getByRole("button", { name: "Place at Map center" }));
+    fireEvent.click(screen.getByRole("button", { name: "Place Sample A at Map center" }));
     expect(onPlaceAtCenter).toHaveBeenCalledWith(result);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

@@ -356,7 +356,6 @@ export function projectInspectorProjection(
         label: "Size",
         value: `${Math.round(descriptor.geometry.width)} × ${Math.round(descriptor.geometry.height)}`,
       },
-      { label: "Relationships", value: relationships.summary },
     ],
     relationshipSummary: relationships.summary,
     relationships: relationships.relationships,
@@ -380,4 +379,3 @@ export function projectInspectorRelationshipAriaLabel(
     : `${relationship.direction} relationship`;
   return `${direction}: ${relationship.label}; ${relationship.relatedTitle}`;
 }
-

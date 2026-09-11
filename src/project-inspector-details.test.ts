@@ -125,12 +125,12 @@ describe("Project Inspector details", () => {
     ));
 
     expect(screen.getByText("Reference", { selector: ".meta-badge" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Project occurrence" })).toBeTruthy();
+    expect(screen.getByText("Project details", { selector: "summary" })).toBeTruthy();
     expect(screen.getByText("1 incoming · 0 outgoing")).toBeTruthy();
     expect(screen.getByLabelText("incoming relationship: supports; Design note")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Source & provenance" })).toBeTruthy();
+    expect(screen.getByText("Source & provenance", { selector: "summary" })).toBeTruthy();
     expect(screen.getByText("execution_image:execution-image-a")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Source hierarchy" })).toBeTruthy();
+    expect(screen.getByText("Source hierarchy", { selector: "summary" })).toBeTruthy();
     expect(screen.getByText("Sample A › Etch run › Endpoint")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open exact source" }).getAttribute("href"))
       .toBe("/processing/sample-a?run=run-a&step=step-a");

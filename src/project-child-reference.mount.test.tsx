@@ -300,7 +300,7 @@ describe("mounted authoritative child-reference insertion", () => {
       String(path) === "/api/references/children"
     ))).toBe(false);
     fireEvent.click(await screen.findByRole("button", {
-      name: "Browse direct child references",
+      name: "Browse related records",
     }));
     const place = await screen.findByRole("button", {
       name: "Place Reference process v3 on Map",
@@ -379,7 +379,7 @@ describe("mounted authoritative child-reference insertion", () => {
     renderProjectPage();
     await screen.findByTestId("project-flow-canvas");
     fireEvent.click(await screen.findByRole("button", {
-      name: "Browse direct child references",
+      name: "Browse related records",
     }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([request, init]) => (
       String(request) === "/api/references/children"
@@ -388,7 +388,7 @@ describe("mounted authoritative child-reference insertion", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Select Sample B" }));
     fireEvent.click(await screen.findByRole("button", {
-      name: "Browse direct child references",
+      name: "Browse related records",
     }));
     const placeSecondChild = await screen.findByRole("button", {
       name: "Place Reference process B on Map",

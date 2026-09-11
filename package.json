@@ -15,7 +15,7 @@
     "verify": "npm test && npm run build",
     "verify:comment-rich-text": "npm run test:comment-rich-text && npm run test:comment-rich-text-mounted && npm run build",
     "cf-typegen": "npm run config:local && wrangler types --config .wrangler/deploy.jsonc",
-    "db:migrate:local": "npm run config:local && wrangler d1 migrations apply DB --local --config .wrangler/deploy.jsonc",
+    "db:migrate:local": "npm run config:local && wrangler d1 migrations apply DB --local --config .wrangler/deploy.jsonc --persist-to .wrangler/state",
     "db:migrate:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
     "internal:db:migrate:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
     "test": "vitest run && npm run test:reference-mounted",

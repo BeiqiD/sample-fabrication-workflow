@@ -137,7 +137,14 @@ export function writeProjectReferenceDragPayload(
   dataTransfer: DataTransfer,
   result: ReferenceSearchResult,
 ) {
-  const payload = projectReferenceDragPayloadFromResult(result);
+  return writeProjectReferenceResolutionDragPayload(dataTransfer, result.resolution);
+}
+
+export function writeProjectReferenceResolutionDragPayload(
+  dataTransfer: DataTransfer,
+  resolution: ReferenceResolution,
+) {
+  const payload = projectReferenceDragPayloadFromResolution(resolution);
   dataTransfer.effectAllowed = "copy";
   dataTransfer.setData(PROJECT_REFERENCE_DRAG_MIME, JSON.stringify(payload));
   return payload;

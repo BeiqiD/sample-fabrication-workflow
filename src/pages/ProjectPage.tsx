@@ -78,6 +78,11 @@ import {
   type ProjectPendingReferencePlacement,
   type ProjectReferenceDragPayload,
 } from "../lib/project-reference-placement";
+import {
+  projectReferenceOccurrenceCounts,
+  projectReferenceSuggestionSeeds,
+} from "../lib/project-reference-suggestions";
+import { useProjectReferenceHydration } from "../lib/use-project-reference-hydration";
 import { projectEdgeDirection } from "../lib/project-edges";
 import {
   projectSessionHistoryTouchesItem,
@@ -252,6 +257,9 @@ export function ProjectPage() {
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
+  const { hydrate: hydrateReference, failures: referenceHydrationFailures } = useProjectReferenceHydration(
+    projectId, snapshot, setSnapshot,
+  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -1069,6 +1077,7 @@ export function ProjectPage() {
   ) => {
     const registryId = result.item.referenceTargetId;
     if (!registryId) throw new Error("Inserted reference has no registry identity");
+    const preview = projectReferenceRecordFromPreview(registryId, payload);
     baselineRef.current = {
       ...baselineRef.current,
       [result.placement.id]: result.placement,
@@ -1089,7 +1098,7 @@ export function ProjectPage() {
       if (!current) return current;
       const references = current.references.some((reference) => reference.registryId === registryId)
         ? current.references
-        : [...current.references, projectReferenceRecordFromPreview(registryId, payload)];
+        : [...current.references, preview];
       return {
         ...current,
         project: result.project,
@@ -1102,7 +1111,9 @@ export function ProjectPage() {
       };
     });
     setSelectedItemIds([result.item.id]);
-  }, []);
+    return snapshot?.references.some((reference) => reference.registryId === registryId)
+      ? null : preview;
+  }, [snapshot]);
 
   const performReferenceInsertion = useCallback(async (
     generation: number,
@@ -1122,10 +1133,11 @@ export function ProjectPage() {
     try {
       const result = await projectApi.createReferenceItem(projectId, input);
       if (!referenceInsertionIsActive(generation)) return;
-      mergeReferenceInsertion(result, payload);
+      const preview = mergeReferenceInsertion(result, payload);
       pendingReferenceInputRef.current = null;
       pendingReferencePayloadRef.current = null;
       updatePendingReference(null);
+      if (preview) hydrateReference(preview);
     } catch (caught) {
       if (!referenceInsertionIsActive(generation)) return;
       const status = referenceInsertionFailureStatus(caught);
@@ -1140,7 +1152,7 @@ export function ProjectPage() {
       });
       setReferenceActionError(message);
     }
-  }, [mergeReferenceInsertion, projectId, referenceInsertionIsActive, updatePendingReference]);
+  }, [hydrateReference, mergeReferenceInsertion, projectId, referenceInsertionIsActive, updatePendingReference]);
 
   const startReferencePlacement = useCallback((
     payload: ProjectReferenceDragPayload,
@@ -1183,7 +1195,7 @@ export function ProjectPage() {
     placeReferencePayloadAtCenter(projectReferenceDragPayloadFromResult(result));
   }, [placeReferencePayloadAtCenter]);
 
-  const placeInspectorChildAtCenter = useCallback((resolution: ReferenceResolution) => {
+  const placeReferenceResolutionAtCenter = useCallback((resolution: ReferenceResolution) => {
     placeReferencePayloadAtCenter(projectReferenceDragPayloadFromResolution(resolution));
   }, [placeReferencePayloadAtCenter]);
 
@@ -1701,15 +1713,6 @@ export function ProjectPage() {
     attachmentInputRef.current?.click();
   }, [desktop, snapshot]);
 
-  const requestAttachmentAtCenter = useCallback(() => {
-    const point = mapSurfaceRef.current?.getViewportCenter();
-    if (!point) {
-      setOwnedContentActionError("The Map viewport is not ready for attachment placement yet");
-      return;
-    }
-    requestAttachmentAt(point);
-  }, [requestAttachmentAt]);
-
   const performAttachmentProjectCreate = useCallback(async (
     generation: number,
     input: CreateAttachmentProjectItemInput,
@@ -2039,6 +2042,12 @@ export function ProjectPage() {
       reference.registryId === selectedItem.referenceTargetId
     ))?.resolution.target ?? null
     : null;
+  const referenceSuggestionSeeds = useMemo(() => snapshot
+    ? projectReferenceSuggestionSeeds(snapshot, selectedReferenceTarget)
+    : [], [snapshot, selectedReferenceTarget]);
+  const referenceOccurrenceCounts = useMemo(() => snapshot
+    ? projectReferenceOccurrenceCounts(snapshot)
+    : {}, [snapshot]);
   const selectedEdgeSource = edgeController.selectedEdge
     ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.sourceItemId) ?? null
     : null;
@@ -2809,7 +2818,7 @@ export function ProjectPage() {
         data-panel-presentation="floating"
       >
         <div className="project-workspace-panel-toolbar">
-          <p className="card-label">References &amp; content</p>
+          <p className="card-label">References</p>
           <button
             type="button"
             className="button compact-button"
@@ -2821,13 +2830,6 @@ export function ProjectPage() {
               window.requestAnimationFrame(() => referencePanelTriggerRef.current?.focus());
             }}
           >Close</button>
-        </div>
-        <div className="project-reference-sidebar-heading">
-          <p className="card-label">Add Project content</p>
-          <p className="card-meta">Double-click empty Map space for Markdown, or add a generic file at the visible Map center.</p>
-        </div>
-        <div className="project-owned-content-actions">
-          <button type="button" className="button wide" disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || saveState === "conflict"} onClick={requestAttachmentAtCenter}>Add attachment</button>
         </div>
         {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}>
           <strong>{pendingAttachment.filename}</strong>
@@ -2842,10 +2844,6 @@ export function ProjectPage() {
           </div>}
           {pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current && <small className="muted">The Project occurrence may already be committed. Retry replays the exact original creation request.</small>}
         </div>}
-        <div className="project-reference-sidebar-heading">
-          <p className="card-label">Add references</p>
-          <p className="card-meta">Search the research record, then drag a result onto the Map or place it at the visible Map center.</p>
-        </div>
         {pendingReference && <div className={`project-reference-pending ${pendingReference.status}`}>
           <strong>{pendingReference.preview.title}</strong>
           <span>{pendingReference.status === "placing"
@@ -2865,12 +2863,25 @@ export function ProjectPage() {
           </div>}
           {pendingReference.status === "conflict" && referenceConflictReloadDisabled && <small className="muted">Resolve existing placement changes before reloading the Project.</small>}
         </div>}
+        {referenceHydrationFailures.map((preview) => <div
+          key={preview.registryId}
+          className="project-reference-pending error"
+          role="status"
+        >
+          <span>{preview.resolution.source?.title || preview.resolution.target.id} was placed, but its details could not be loaded.</span>
+          <button type="button" className="button compact-button" onClick={() => hydrateReference(preview)}>
+            Retry details
+          </button>
+        </div>)}
         <ReferenceSearchSurface
           mode="place"
           value={referenceSearch}
           onChange={setReferenceSearch}
           placementDisabled={referencePlacementDisabled}
           onPlaceAtCenter={placeReferenceAtCenter}
+          suggestionSeeds={referenceSuggestionSeeds}
+          placedTargetCounts={referenceOccurrenceCounts}
+          onPlaceResolutionAtCenter={placeReferenceResolutionAtCenter}
         />
       </aside>}
       <section className="project-map-panel" aria-label="Project Map">
@@ -2946,14 +2957,10 @@ export function ProjectPage() {
           </div>
         </div>
         {edgeController.selectedEdge ? <div className="project-inspector-content">
-          <span className="meta-badge">edge</span>
-          <h2>{edgeController.selectedEdge.label || "Relationship"}</h2>
-          <dl>
-            <dt>Source</dt><dd>{selectedEdgeSource?.title || edgeController.selectedEdge.sourceItemId}</dd>
-            <dt>Target</dt><dd>{selectedEdgeTarget?.title || edgeController.selectedEdge.targetItemId}</dd>
-            <dt>Handles</dt><dd>{edgeController.selectedEdge.sourceHandle} → {edgeController.selectedEdge.targetHandle}</dd>
-            <dt>Direction</dt><dd>{projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)}</dd>
-          </dl>
+          <header className="project-inspector-summary">
+            <span className="meta-badge">edge</span>
+            <h2>{edgeController.selectedEdge.label || "Relationship"}</h2>
+          </header>
           {edgeController.editor?.edgeId === edgeController.selectedEdge.id ? <div className="project-attachment-meta-form">
             <label>Direction
               <select
@@ -2982,10 +2989,28 @@ export function ProjectPage() {
               {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Cancel</button>}
               {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
             </div>
-          </div> : <>
-            <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.startEdit}>Edit edge</button>
-            <button type="button" className="button wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
-          </>}
+          </div> : <div className="project-inspector-primary-actions">
+            <button type="button" className="button primary wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.startEdit}>Edit edge</button>
+          </div>}
+          <section className="project-inspector-section" aria-label="Edge connection">
+            <h3>Connection</h3>
+            <dl>
+              <dt>Source</dt><dd>{selectedEdgeSource?.title || edgeController.selectedEdge.sourceItemId}</dd>
+              <dt>Target</dt><dd>{selectedEdgeTarget?.title || edgeController.selectedEdge.targetItemId}</dd>
+              <dt>Direction</dt><dd>{projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)}</dd>
+            </dl>
+          </section>
+          <details className="project-inspector-disclosure">
+            <summary>Technical details</summary>
+            <dl>
+              <dt>Handles</dt><dd>{edgeController.selectedEdge.sourceHandle} → {edgeController.selectedEdge.targetHandle}</dd>
+              <dt>Edge ID</dt><dd>{edgeController.selectedEdge.id}</dd>
+              <dt>Revision</dt><dd>{edgeController.selectedEdge.revision}</dd>
+            </dl>
+          </details>
+          {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <div className="project-inspector-danger-zone">
+            <button type="button" className="button danger wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
+          </div>}
         </div> : selectedDescriptors.length > 1 ? <div className="project-inspector-content project-multi-selection-inspector">
           <span className="meta-badge">multi-selection</span>
           <h2>{selectedDescriptors.length} items selected</h2>
@@ -3000,102 +3025,120 @@ export function ProjectPage() {
           {zOrderControls}
           <button type="button" className="button wide" onClick={() => selectProjectItems({ itemIds: [], primaryItemId: null })}>Clear selection</button>
         </div> : selected ? <div className="project-inspector-content">
-          <ProjectInspectorDetails snapshot={snapshot} descriptor={selected} />
-          {zOrderControls}
-          {selectedReferenceTarget && <ProjectInspectorChildren
-            key={`${selectedReferenceTarget.type}\u0000${selectedReferenceTarget.id}`}
-            parent={selectedReferenceTarget}
-            placementDisabled={referencePlacementDisabled || !desktop || desktopView !== "map"}
-            onPlaceAtCenter={placeInspectorChildAtCenter}
-          />}
-          <button type="button" className="button wide" onClick={() => void copySelectedItemLink()}>
-            {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
-          </button>
-          {selectedStableLinkCopyStatus === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
-          {selected.kind === "markdown" && <button
-            type="button"
-            className="button wide"
-            disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
-            onClick={() => startMarkdownEdit(selected.itemId)}
-          >Edit Markdown</button>}
-          {selected.kind === "markdown" && <button
-            type="button"
-            className="button wide"
-            disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
-            onClick={() => removeMarkdownItem(selected.itemId)}
-          >{pendingReferenceRemoval?.itemId === selected.itemId
-            ? pendingReferenceRemoval.status === "removing"
-              ? "Moving Markdown…"
-              : pendingReferenceRemoval.status === "reconciling"
-                ? "Reconciling removal…"
-                : pendingReferenceRemoval.status === "uncertain"
-                  ? "Removal needs exact retry"
-                  : "Removal needs reconciliation"
-            : "Move Markdown to trash"}</button>}
-          {selected.kind === "attachment" && selected.attachmentSourceUrl && <a className="button wide" href={selected.attachmentSourceUrl} target="_blank" rel="noreferrer">Open source URL</a>}
-          {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
-            type="button"
-            className="button wide"
-            disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
-            onClick={() => startAttachmentEdit(selected.itemId)}
-          >Edit attachment metadata</button>}
-          {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
-            type="button"
-            className="button wide"
-            disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
-            onClick={() => removeAttachmentItem(selected.itemId)}
-          >{pendingReferenceRemoval?.itemId === selected.itemId
-            ? pendingReferenceRemoval.status === "removing"
-              ? "Moving attachment…"
-              : pendingReferenceRemoval.status === "reconciling"
-                ? "Reconciling removal…"
-                : pendingReferenceRemoval.status === "uncertain"
-                  ? "Removal needs exact retry"
-                  : "Removal needs reconciliation"
-            : "Move attachment to trash"}</button>}
-          {selected.kind === "attachment" && attachmentEditor?.itemId === selected.itemId && <div className="project-attachment-meta-form">
-            <label>Caption
-              <textarea
-                value={attachmentEditor.caption}
-                disabled={attachmentEditor.status !== "editing"}
-                onChange={(event) => updateAttachmentDraft("caption", event.currentTarget.value)}
-              />
-            </label>
-            <label>Source URL
-              <input
-                type="url"
-                placeholder="https://…"
-                value={attachmentEditor.sourceUrl}
-                disabled={attachmentEditor.status !== "editing"}
-                onChange={(event) => updateAttachmentDraft("sourceUrl", event.currentTarget.value)}
-              />
-            </label>
-            {attachmentEditor.message && <ProjectEditorFeedback
-              status={attachmentEditor.status}
-              message={attachmentEditor.message}
-            />}
-            <div className="project-owned-content-pending-actions">
-              {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
-                {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
-              </button>}
-              {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(false)}>Cancel</button>}
-            </div>
+          <ProjectInspectorDetails
+            snapshot={snapshot}
+            descriptor={selected}
+            primaryContent={selected.kind === "markdown" ? <button
+              type="button"
+              className="button primary wide"
+              disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => startMarkdownEdit(selected.itemId)}
+            >Edit Markdown</button> : selected.kind === "attachment" ? <>
+              {attachmentEditor?.itemId !== selected.itemId && <div className="project-inspector-supporting-actions">
+                {selected.attachmentSourceUrl && <a
+                  className="button compact-button"
+                  href={selected.attachmentSourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >Open source URL</a>}
+                <button
+                  type="button"
+                  className="button compact-button"
+                  disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+                  onClick={() => startAttachmentEdit(selected.itemId)}
+                >Edit metadata</button>
+              </div>}
+              {attachmentEditor?.itemId === selected.itemId && <div className="project-attachment-meta-form">
+                <label>Caption
+                  <textarea
+                    value={attachmentEditor.caption}
+                    disabled={attachmentEditor.status !== "editing"}
+                    onChange={(event) => updateAttachmentDraft("caption", event.currentTarget.value)}
+                  />
+                </label>
+                <label>Source URL
+                  <input
+                    type="url"
+                    placeholder="https://…"
+                    value={attachmentEditor.sourceUrl}
+                    disabled={attachmentEditor.status !== "editing"}
+                    onChange={(event) => updateAttachmentDraft("sourceUrl", event.currentTarget.value)}
+                  />
+                </label>
+                {attachmentEditor.message && <ProjectEditorFeedback
+                  status={attachmentEditor.status}
+                  message={attachmentEditor.message}
+                />}
+                <div className="project-owned-content-pending-actions">
+                  {(attachmentEditor.status === "editing" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
+                    {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
+                  </button>}
+                  {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(false)}>Cancel</button>}
+                </div>
+              </div>}
+            </> : null}
+            relatedContent={selectedReferenceTarget ? <ProjectInspectorChildren
+              key={`${selectedReferenceTarget.type}\u0000${selectedReferenceTarget.id}`}
+              parent={selectedReferenceTarget}
+              placementDisabled={referencePlacementDisabled || !desktop || desktopView !== "map"}
+              onPlaceAtCenter={placeReferenceResolutionAtCenter}
+            /> : null}
+          />
+          <details className="project-inspector-toolbox">
+            <summary>Arrange on Map</summary>
+            {zOrderControls}
+          </details>
+          <div className="project-inspector-utility-actions">
+            <button type="button" className="button compact-button" onClick={() => void copySelectedItemLink()}>
+              {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
+            </button>
+            {selectedStableLinkCopyStatus === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
+          </div>
+          {!(selected.kind === "attachment" && attachmentEditor?.itemId === selected.itemId) && <div className="project-inspector-danger-zone">
+            {selected.kind === "markdown" && <button
+              type="button"
+              className="button danger wide"
+              disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => removeMarkdownItem(selected.itemId)}
+            >{pendingReferenceRemoval?.itemId === selected.itemId
+              ? pendingReferenceRemoval.status === "removing"
+                ? "Moving Markdown…"
+                : pendingReferenceRemoval.status === "reconciling"
+                  ? "Reconciling removal…"
+                  : pendingReferenceRemoval.status === "uncertain"
+                    ? "Removal needs exact retry"
+                    : "Removal needs reconciliation"
+              : "Move Markdown to trash"}</button>}
+            {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
+              type="button"
+              className="button danger wide"
+              disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => removeAttachmentItem(selected.itemId)}
+            >{pendingReferenceRemoval?.itemId === selected.itemId
+              ? pendingReferenceRemoval.status === "removing"
+                ? "Moving attachment…"
+                : pendingReferenceRemoval.status === "reconciling"
+                  ? "Reconciling removal…"
+                  : pendingReferenceRemoval.status === "uncertain"
+                    ? "Removal needs exact retry"
+                    : "Removal needs reconciliation"
+              : "Move attachment to trash"}</button>}
+            {selected.kind === "reference" && <button
+              type="button"
+              className="button danger wide"
+              disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || workspaceOperationBusy}
+              onClick={removeSelectedReference}
+            >{pendingReferenceRemoval?.itemId === selected.itemId
+              ? pendingReferenceRemoval.status === "removing"
+                ? "Removing…"
+                : pendingReferenceRemoval.status === "reconciling"
+                  ? "Reconciling removal…"
+                  : pendingReferenceRemoval.status === "uncertain"
+                    ? "Removal needs exact retry"
+                    : "Removal needs reconciliation"
+              : "Remove from Project"}</button>}
+            {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
           </div>}
-          {selected.kind === "reference" && <button
-            type="button"
-            className="button wide"
-            disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || workspaceOperationBusy}
-            onClick={removeSelectedReference}
-          >{pendingReferenceRemoval?.itemId === selected.itemId
-            ? pendingReferenceRemoval.status === "removing"
-              ? "Removing…"
-              : pendingReferenceRemoval.status === "reconciling"
-                ? "Reconciling removal…"
-                : pendingReferenceRemoval.status === "uncertain"
-                  ? "Removal needs exact retry"
-                  : "Removal needs reconciliation"
-            : "Remove from Project"}</button>}
-          {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
         </div> : <p className="muted">Select a Map item or edge to inspect it.</p>}
       </aside>}
       </> : <Suspense fallback={<div className="card"><p className="muted">Loading Reading…</p></div>}>

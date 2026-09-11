@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
+vi.mock("./components/ReferenceSearchSurface", () => ({
+  ReferenceSearchSurface: () => null,
+}));
+
 vi.mock("./components/project/ProjectMapSurface", async () => {
   const React = await import("react");
   return {
@@ -84,7 +88,7 @@ describe("mounted Project Inspector integration", () => {
 
     const inspector = screen.getByRole("complementary", { name: "Project Inspector" });
     expect(within(inspector).getByRole("heading", { level: 2, name: "Sample A" })).toBeTruthy();
-    expect(within(inspector).getByRole("heading", { name: "Source & provenance" })).toBeTruthy();
+    expect(within(inspector).getByText("Source & provenance", { selector: "summary" })).toBeTruthy();
     expect(within(inspector).getByText("sample:sample-a")).toBeTruthy();
     expect(within(inspector).getByRole("link", { name: "Open exact source" }).getAttribute("href"))
       .toBe("/samples/sample-a");
