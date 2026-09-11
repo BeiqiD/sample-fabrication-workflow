@@ -3,7 +3,8 @@
 Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-09-11 with Phase 5C2b.1 complete in PR #166, C2b.2/C2b.3
-implemented and under acceptance in Draft PR #168, and the remaining C3 scope bounded
+implemented and under acceptance in Draft PR #168, and C3 implemented on a separate
+stacked Draft branch with acceptance in `PROJECT_C3_ACCEPTANCE.md`
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -545,7 +546,8 @@ After the freeze:
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163. Phase 5C2b implementation is under acceptance
-in Draft PR #168; C3 and C4 remain open.
+in Draft PR #168; C3 is implemented on a separate stacked Draft branch, and C4
+integration acceptance remains open.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -585,8 +587,9 @@ prioritize Inspector content and give mode, toolbar, panel, content, destructive
 and overflow actions explicit roles. The 2026-09-11 user-authorized repair amendment
 extends that slice to safe editing, placement, endpoint reconnection and recovery;
 see the implementation plan for its bounded exceptions to the earlier freeze.
-Remaining C3 work is Reading detail composition and modal mobile panels, followed
-by C4 integration acceptance. Existing identity, source hierarchy and performance
+C3 now implements Reading detail composition and modal mobile panels; its
+automated and browser evidence is recorded in `PROJECT_C3_ACCEPTANCE.md`. C4
+integration acceptance follows. Existing identity, source hierarchy and performance
 contracts continue to govern both.
 
 The previously planned attachment/media, source-record/directory, and
@@ -765,11 +768,11 @@ Project-owned Markdown or attachment content only through explicit user action.
 1. Finish review and acceptance of **Draft PR #168**. C2b.2 Add/control roles and
    C2b.3 node/edge/multi-selection actions are implemented; do not recreate them in
    a new slice. Preserve Draft status until an explicit merge decision.
-2. Implement the remaining **Phase 5C3 — Reading detail and mobile panel composition**:
-   add contextual Reading details and modal mobile References/Inspector behavior
-   with focus containment, Escape/backdrop dismissal and focus return. Reuse the
-   existing Reading shell, shared Add/editor and source navigation. Preserve
-   non-modal desktop Map panels. Then run **Phase 5C4 Project integration review**
+2. Review the separate stacked **Phase 5C3 — Reading detail and mobile panel composition**
+   Draft. Contextual Reading details, mobile References/Inspector/Trash, keyboard
+   containment, navigation confirmation and search-draft continuity are implemented.
+   Preserve non-modal desktop Map panels and the existing request controllers.
+   Then run **Phase 5C4 Project integration review**
    across directory entry, commands, focus, empty/normal/large Projects and themes.
 3. Complete **Phase 5D — attachment and media surfaces** without changing preview
    trust or owner lifecycle.

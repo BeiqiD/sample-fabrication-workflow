@@ -99,7 +99,7 @@ describe("Project Map kernel boundaries", () => {
     expect(surfaceStyles).toMatch(/\.project-flow-canvas\s*\{[^}]*height:\s*100%;[^}]*min-height:\s*0;/s);
     expect(projectStyles).toMatch(/\.project-map-panel\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
     expect(projectStyles).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[^}]*position:\s*absolute;[^}]*border:\s*1px solid var\(--line\);/s);
-    expect(pageSource).toContain('data-panel-presentation="floating"');
+    expect(pageSource).toContain('data-panel-presentation={desktop ? "floating" : "modal"}');
     expect(pageSource).toContain("contextCommands={contextCommands}");
     expect(surfaceSource).toContain("onPaneContextMenu={handlePaneContextMenu}");
     expect(surfaceSource).toContain("onNodeContextMenu={handleNodeContextMenu}");

@@ -1,30 +1,38 @@
 import { useEffect, useRef, useState } from "react";
 import type { ProjectItemTrashController } from "../../lib/use-project-item-trash";
+import { ProjectPanelSurface } from "./ProjectPanelSurface";
+import { DialogCloseIcon } from "../DialogCloseIcon";
 import "./project-trash-panel.css";
 
 export function ProjectTrashPanel({
   controller,
   disabled = false,
+  modal = false,
+  returnFocusRef,
 }: {
   controller: ProjectItemTrashController;
   disabled?: boolean;
+  modal?: boolean;
+  returnFocusRef?: { current: HTMLElement | null };
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const panelRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (!controller.isOpen) return;
+    if (!controller.isOpen || modal) return;
     const origin = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panelRef.current?.focus();
     return () => {
       if (origin?.isConnected && origin !== document.body) origin.focus();
       else document.querySelector<HTMLElement>('[aria-label="Project actions"]')?.focus();
     };
-  }, [controller.isOpen]);
+  }, [controller.isOpen, modal]);
   if (!controller.isOpen) return null;
   const busy = disabled || controller.pending !== null;
   const currentIds = new Set(controller.entries.map((entry) => entry.itemId));
   const selection = selectedIds.filter((id) => currentIds.has(id));
-  return <section ref={panelRef} tabIndex={-1} className="project-trash-panel" aria-labelledby="project-trash-heading" onKeyDown={(event) => {
+  return <ProjectPanelSurface modal={modal} label="Project trash" onClose={controller.close}
+    blocked={controller.pending !== null} returnFocusRef={returnFocusRef} initialFocusRef={panelRef}>
+  <section ref={panelRef} tabIndex={-1} className="project-trash-panel" aria-labelledby="project-trash-heading" onKeyDown={(event) => {
     if (event.key === "Escape" && !controller.pending) {
       event.preventDefault();
       event.stopPropagation();
@@ -33,7 +41,7 @@ export function ProjectTrashPanel({
   }}>
     <header className="project-trash-panel__header">
       <h2 id="project-trash-heading">Project trash</h2>
-      <button className="button compact-button" type="button" onClick={controller.close} disabled={controller.pending !== null} aria-label="Close Project trash">×</button>
+      <button className="button compact-button" type="button" onClick={controller.close} disabled={controller.pending !== null} aria-label="Close Project trash"><DialogCloseIcon /></button>
     </header>
     <p>Restore cards and their connections. Removed references leave the original records unchanged.</p>
     <div className="project-trash-panel__actions">
@@ -67,7 +75,8 @@ export function ProjectTrashPanel({
         <button className="button compact-button" type="button" disabled={busy} onClick={() => controller.restoreItems([entry.itemId])} aria-label={`Restore ${entry.title}`}>Restore</button>
       </li>)}
     </ul>
-  </section>;
+  </section>
+  </ProjectPanelSurface>;
 }
 
 /** Keep visible outside the drawer so a failed removal always has a recovery action. */

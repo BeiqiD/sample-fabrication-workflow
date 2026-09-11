@@ -27,6 +27,9 @@ export interface ProjectReadingSurfaceProps {
   mobile?: boolean;
   projectTitle?: string;
   focusedItemId?: string | null;
+  focusRequestSequence?: number;
+  inspectedItemId?: string | null;
+  onDetailsRequest?: (itemId: string) => void;
   markdownEditor?: ProjectMapMarkdownEditorState | null;
   attachmentEditor?: ProjectReadingAttachmentEditorState | null;
   interactionDisabled?: boolean;
@@ -118,6 +121,9 @@ export function ProjectReadingSurface({
   mobile = false,
   projectTitle = "Project Reading",
   focusedItemId = null,
+  focusRequestSequence = 0,
+  inspectedItemId = null,
+  onDetailsRequest,
   markdownEditor = null,
   attachmentEditor = null,
   interactionDisabled = false,
@@ -136,21 +142,31 @@ export function ProjectReadingSurface({
   const [exportState, setExportState] = useState<ExportState>({ status: "idle", message: null });
   const itemElementsRef = useRef(new Map<string, HTMLElement>());
   const lastFocusedItemIdRef = useRef<string | null>(null);
+  const lastFocusRequestSequenceRef = useRef(focusRequestSequence);
 
   useEffect(() => {
+    const explicitFocusRequested = lastFocusRequestSequenceRef.current !== focusRequestSequence;
     if (!focusedItemId) {
       lastFocusedItemIdRef.current = null;
+      lastFocusRequestSequenceRef.current = focusRequestSequence;
       return;
     }
-    if (lastFocusedItemIdRef.current === focusedItemId) return;
+    if (lastFocusedItemIdRef.current === focusedItemId && !explicitFocusRequested) return;
     const target = itemElementsRef.current.get(focusedItemId);
     if (!target) {
       lastFocusedItemIdRef.current = null;
       return;
     }
     lastFocusedItemIdRef.current = focusedItemId;
+    lastFocusRequestSequenceRef.current = focusRequestSequence;
     target.scrollIntoView?.({ block: "center" });
-  }, [focusedItemId, nodes]);
+    // Focus links may scroll on entry, but only an explicit interaction should
+    // move keyboard focus out of the control the reader is currently using.
+    if (explicitFocusRequested) {
+      const editor = target.querySelector<HTMLElement>("textarea:not([disabled]), input:not([disabled])");
+      (editor ?? target).focus({ preventScroll: true });
+    }
+  }, [focusedItemId, focusRequestSequence, nodes]);
 
   const exportReading = async () => {
     setExportState({ status: "exporting", message: null });
@@ -235,6 +251,19 @@ export function ProjectReadingSurface({
               onClick={() => onAttachmentEditRequest(node.itemId)}
             >Edit</button>}
             {node.kind === "reference" && <ReadingReferenceLink node={node} />}
+            {onDetailsRequest && <button
+              type="button"
+              className="button compact-button"
+              aria-label={`Details for ${node.title}`}
+              aria-expanded={inspectedItemId === node.itemId}
+              aria-controls="project-inspector-panel"
+              data-project-details-trigger={node.itemId}
+              disabled={interactionDisabled || editorBusy}
+              onClick={(event) => {
+                event.currentTarget.focus();
+                onDetailsRequest(node.itemId);
+              }}
+            >Details</button>}
             {node.kind === "markdown" && !editingMarkdown && onMarkdownDeleteRequest && <ReadingMore label={`More actions for ${node.title}`}>
               <button
                 type="button"

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { MAX_REFERENCE_CHILD_LIMIT, type ListReferenceChildrenResponse } from "../../shared/reference-children";
 import type {
@@ -41,6 +41,8 @@ import { EmptyState } from "./EmptyState";
 type ReferenceSearchSurfaceCommonProps = {
   value: ReferenceSearchUiState;
   onChange: (next: ReferenceSearchUiState) => void;
+  /** Optional owner for unsubmitted input across responsive panel remounts. */
+  draftState?: { value: ReferenceSearchUiState; onChange: (next: ReferenceSearchUiState) => void };
   autoFocus?: boolean;
 };
 
@@ -306,7 +308,14 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
   const filterPanelId = useId();
   const validationId = useId();
   const suggestionHeadingId = useId();
-  const [draft, setDraft] = useState<ReferenceSearchUiState>(() => copySearchState(props.value));
+  const [localDraft, setLocalDraft] = useState<ReferenceSearchUiState>(() => copySearchState(props.value));
+  const draft = props.draftState?.value ?? localDraft;
+  const committedStateRef = useRef(copySearchState(props.value));
+  function setDraft(next: ReferenceSearchUiState | ((current: ReferenceSearchUiState) => ReferenceSearchUiState)) {
+    const value = typeof next === "function" ? next(draft) : next;
+    if (props.draftState) props.draftState.onChange(value);
+    else setLocalDraft(value);
+  }
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [response, setResponse] = useState<SearchReferencesResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -329,6 +338,8 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
   })));
 
   useEffect(() => {
+    if (referenceSearchUiStateEquals(committedStateRef.current, props.value)) return;
+    committedStateRef.current = copySearchState(props.value);
     setDraft(copySearchState(props.value));
     setValidationError("");
   }, [props.value.query, props.value.sampleId, props.value.from, props.value.to, typeKey]);
