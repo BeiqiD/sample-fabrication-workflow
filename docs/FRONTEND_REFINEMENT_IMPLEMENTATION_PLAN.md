@@ -966,6 +966,11 @@ metadata.
   selection or Project reference exists; selected context wins, fallback seeds are
   bounded/deterministic, duplicate suggestions collapse, and stale requests abort;
 - clearing search returns to Suggested without leaving hidden advanced constraints;
+- a newly placed reference becomes eligible for Suggested after its authoritative
+  details load, without a page reload; concurrent placements hydrate independently;
+- detail-read failures offer a read-only retry without replaying insertion, and
+  late detail responses cannot restore removed references, cross Project sessions,
+  overwrite an authoritative reload, or replace unsaved Map geometry;
 - semantic scope changes filter already-loaded suggestions without refetching, while
   explicit search continues to use the existing search request contract;
 - suggestion/search cards retain exact safe drag payload and Map-center placement;

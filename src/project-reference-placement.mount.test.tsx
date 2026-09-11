@@ -276,8 +276,11 @@ describe("mounted Project reference placement", () => {
 
   it("allows the same stable target to become two distinct Project occurrences", async () => {
     let revision = 3;
-    fetchMock.mockImplementation((_path, init) => {
+    fetchMock.mockImplementation((path, init) => {
       if (!init?.method) return jsonResponse(projectTestSnapshot());
+      if (path === "/api/references/resolve") {
+        return jsonResponse({ results: [searchResult.resolution] });
+      }
       const input = JSON.parse(String(init.body)) as CreateReferenceProjectItemInput;
       return jsonResponse(insertionResponse(input, revision++), 201);
     });
@@ -289,8 +292,11 @@ describe("mounted Project reference placement", () => {
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     await waitFor(() => expect(screen.getByText("Map node count: 4")).toBeTruthy());
 
-    const first = JSON.parse(String(fetchMock.mock.calls[1][1]?.body)) as CreateReferenceProjectItemInput;
-    const second = JSON.parse(String(fetchMock.mock.calls[2][1]?.body)) as CreateReferenceProjectItemInput;
+    const insertions = fetchMock.mock.calls.filter(([path]) => path === "/api/projects/project-a/items/reference");
+    expect(insertions).toHaveLength(2);
+    expect(fetchMock.mock.calls.filter(([path]) => path === "/api/references/resolve")).toHaveLength(1);
+    const first = JSON.parse(String(insertions[0][1]?.body)) as CreateReferenceProjectItemInput;
+    const second = JSON.parse(String(insertions[1][1]?.body)) as CreateReferenceProjectItemInput;
     expect(first.target).toEqual(second.target);
     expect(first.itemId).not.toBe(second.itemId);
     expect(first.placementId).not.toBe(second.placementId);

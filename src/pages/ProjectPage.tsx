@@ -82,6 +82,7 @@ import {
   projectReferenceOccurrenceCounts,
   projectReferenceSuggestionSeeds,
 } from "../lib/project-reference-suggestions";
+import { useProjectReferenceHydration } from "../lib/use-project-reference-hydration";
 import { projectEdgeDirection } from "../lib/project-edges";
 import {
   projectSessionHistoryTouchesItem,
@@ -256,6 +257,9 @@ export function ProjectPage() {
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
   const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
+  const { hydrate: hydrateReference, failures: referenceHydrationFailures } = useProjectReferenceHydration(
+    projectId, snapshot, setSnapshot,
+  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -1073,6 +1077,7 @@ export function ProjectPage() {
   ) => {
     const registryId = result.item.referenceTargetId;
     if (!registryId) throw new Error("Inserted reference has no registry identity");
+    const preview = projectReferenceRecordFromPreview(registryId, payload);
     baselineRef.current = {
       ...baselineRef.current,
       [result.placement.id]: result.placement,
@@ -1093,7 +1098,7 @@ export function ProjectPage() {
       if (!current) return current;
       const references = current.references.some((reference) => reference.registryId === registryId)
         ? current.references
-        : [...current.references, projectReferenceRecordFromPreview(registryId, payload)];
+        : [...current.references, preview];
       return {
         ...current,
         project: result.project,
@@ -1106,7 +1111,9 @@ export function ProjectPage() {
       };
     });
     setSelectedItemIds([result.item.id]);
-  }, []);
+    return snapshot?.references.some((reference) => reference.registryId === registryId)
+      ? null : preview;
+  }, [snapshot]);
 
   const performReferenceInsertion = useCallback(async (
     generation: number,
@@ -1126,10 +1133,11 @@ export function ProjectPage() {
     try {
       const result = await projectApi.createReferenceItem(projectId, input);
       if (!referenceInsertionIsActive(generation)) return;
-      mergeReferenceInsertion(result, payload);
+      const preview = mergeReferenceInsertion(result, payload);
       pendingReferenceInputRef.current = null;
       pendingReferencePayloadRef.current = null;
       updatePendingReference(null);
+      if (preview) hydrateReference(preview);
     } catch (caught) {
       if (!referenceInsertionIsActive(generation)) return;
       const status = referenceInsertionFailureStatus(caught);
@@ -1144,7 +1152,7 @@ export function ProjectPage() {
       });
       setReferenceActionError(message);
     }
-  }, [mergeReferenceInsertion, projectId, referenceInsertionIsActive, updatePendingReference]);
+  }, [hydrateReference, mergeReferenceInsertion, projectId, referenceInsertionIsActive, updatePendingReference]);
 
   const startReferencePlacement = useCallback((
     payload: ProjectReferenceDragPayload,
@@ -2855,6 +2863,16 @@ export function ProjectPage() {
           </div>}
           {pendingReference.status === "conflict" && referenceConflictReloadDisabled && <small className="muted">Resolve existing placement changes before reloading the Project.</small>}
         </div>}
+        {referenceHydrationFailures.map((preview) => <div
+          key={preview.registryId}
+          className="project-reference-pending error"
+          role="status"
+        >
+          <span>{preview.resolution.source?.title || preview.resolution.target.id} was placed, but its details could not be loaded.</span>
+          <button type="button" className="button compact-button" onClick={() => hydrateReference(preview)}>
+            Retry details
+          </button>
+        </div>)}
         <ReferenceSearchSurface
           mode="place"
           value={referenceSearch}

@@ -180,6 +180,13 @@ This is deterministic hierarchy expansion, not semantic/LLM inference. It adds n
 ranking store, source mutation, Project mutation, or new API. Clearing a search
 returns to Suggested and clears query-only advanced constraints.
 
+Successful placement first adds the bounded drag preview, then loads authoritative
+Reference details through the existing resolver. Only those details can qualify a
+new recommendation seed. This read is independent of the completed insertion:
+failure offers a read-only retry, concurrent placements remain independent, and
+late responses cannot overwrite another Project session or a reloaded snapshot.
+Hydration updates Reference metadata only, preserving unsaved Map geometry.
+
 The default panel filter is a compact semantic scope row: All, Samples, Process,
 Comments, Files & data, and Recipes. Exact Sample/date constraints remain behind
 `More filters` and appear only in search context. The historical one-column list

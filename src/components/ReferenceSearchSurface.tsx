@@ -654,7 +654,9 @@ export function ReferenceSearchSurface(props: ReferenceSearchSurfaceProps) {
         {visibleSuggestions.length > 0 && <span>{visibleSuggestions.length}</span>}
       </div>
       {suggestionSeeds.length === 0 && <p className="reference-suggestion-empty">
-        Search the research record to add the first reference. Once the Project contains a Sample, Run, Step, Comment, or Recipe, related records appear here automatically.
+        {Object.values(placementProps?.placedTargetCounts ?? {}).some((count) => count > 0)
+          ? "No eligible related context is available yet. Search the research record to add another reference."
+          : "Search the research record to add the first reference. Once the Project contains a Sample, Run, Step, Comment, or Recipe, related records appear here automatically."}
       </p>}
       {suggestionState.status === "loading" && <div
         className="reference-suggestion-loading"
