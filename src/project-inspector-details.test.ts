@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProjectInspectorDetails } from "./components/project/ProjectInspectorDetails";
@@ -29,8 +29,7 @@ describe("Project Inspector details", () => {
         createElement(ProjectInspectorDetails, { snapshot, descriptor }),
       ));
       expect(view.container.querySelector(".meta-badge")?.textContent).toBe(label);
-      expect([...view.container.querySelectorAll<HTMLElement>("*")]
-        .filter((element) => element.textContent === label)).toHaveLength(1);
+      expect(within(view.container).getAllByText(label, { exact: true })).toHaveLength(1);
       if (itemId === "item-note") {
         expect(descriptor.subtitle).toBeNull();
         expect(view.container.querySelector(".card-meta")).toBeNull();
