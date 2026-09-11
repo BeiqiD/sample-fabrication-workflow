@@ -361,7 +361,11 @@ describe("Project lifecycle UI", () => {
     expect(within(header).getByRole("button", { name: "Redo" })).toBeTruthy();
     expect(within(header).getByRole("button", { name: "Save" })).toBeTruthy();
     expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();
-    expect(header.querySelectorAll(".project-control-label-compact")).toHaveLength(5);
+    for (const name of ["References", "Inspector", "Undo", "Redo", "Save", "Project actions"]) {
+      const control = within(header).getByRole("button", { name });
+      expect(control.querySelector('svg[aria-hidden="true"][focusable="false"]')).toBeTruthy();
+      expect(control.getAttribute("title")).toBeTruthy();
+    }
 
     document.documentElement.dataset.theme = "dark";
     expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();

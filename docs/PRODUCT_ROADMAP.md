@@ -202,7 +202,7 @@ The materially larger Project composition gap is authorized as Phase 5C. Its C0
 contract is complete in PR #161, and its C1 viewport-frame implementation is
 complete in PR #162. Phase 5C2a floating panels and context-aware Canvas commands
 are complete in PR #163; Phase 5C2b.1 Reference discovery and Inspector hierarchy
-is complete in PR #166. Phase 5C2b.2 Add and workspace controls is active. Storage, lifecycle,
+is complete in PR #166. Phase 5C2b.2 Add, workspace controls, and visual usability polish is active in PR #167. Storage, lifecycle,
 Reference, and rich-content foundations return to correctness maintenance rather
 than continuing as independent feature tracks.
 

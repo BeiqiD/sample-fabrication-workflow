@@ -35,6 +35,9 @@ import type {
 import type {
   ProjectMapGeometry,
 } from "../../shared/project-types";
+import { ActionIcon } from "../components/ActionIcon";
+import { NavigationIcon } from "../components/NavigationIcon";
+import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
 import { ProjectInspectorChildren } from "../components/project/ProjectInspectorChildren";
@@ -2604,12 +2607,12 @@ export function ProjectPage() {
   >
     <header className="project-workspace-header" aria-label="Project workspace controls">
       <div className="project-workspace-identity">
-        <Link className="back-link project-workspace-back" to="/projects">← Projects</Link>
+        <Link className="back-link project-workspace-back" to="/projects"><ActionIcon name="arrow-left" />Projects</Link>
         <h1 title={snapshot.project.title}>{snapshot.project.title}</h1>
       </div>
       {desktop && <div className="project-view-toggle" role="group" aria-label="Project view">
-        <button type="button" className={`button compact-button project-mode-control${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}>Map</button>
-        <button type="button" className={`button compact-button project-mode-control${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}>Reading</button>
+        <button type="button" className={`button compact-button project-mode-control${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}><NavigationIcon name="projects" />Map</button>
+        <button type="button" className={`button compact-button project-mode-control${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}><ActionIcon name="note" />Reading</button>
       </div>}
       <div className="project-workspace-header-actions">
         {desktop && desktopView === "map" && <div ref={addMenuRef} className="project-overflow project-add">
@@ -2623,19 +2626,29 @@ export function ProjectPage() {
               setProjectActionsOpen(false);
               setAddMenuOpen((open) => !open);
             }}
-          >Add</button>
+          ><ActionIcon name="plus" /><span>Add</span><ActionIcon name="chevron-down" /></button>
           {addMenuOpen && <div
             id="project-add-panel"
             className="project-overflow-panel project-add-panel"
             role="group"
             aria-label="Add to Project"
           >
-            <button type="button" className="button compact-button project-menu-action" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("markdown")}>Note / Markdown</button>
-            <button type="button" className="button compact-button project-menu-action" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("attachment")}>Attachment</button>
-            <button type="button" className="button compact-button project-menu-action" disabled={contextCommands.panelCommandsDisabled} onClick={() => {
+            <p className="card-label">Add to Project</p>
+            <button type="button" className="button compact-button project-menu-action" aria-label="Note / Markdown" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("markdown")}>
+              <span className="project-menu-icon"><ActionIcon name="note" /></span>
+              <span className="project-menu-copy"><strong>Note / Markdown</strong><small>Notes, equations and ideas</small></span>
+            </button>
+            <button type="button" className="button compact-button project-menu-action" aria-label="Attachment" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("attachment")}>
+              <span className="project-menu-icon"><ActionIcon name="attachment" /></span>
+              <span className="project-menu-copy"><strong>Attachment</strong><small>Images, documents and data</small></span>
+            </button>
+            <button type="button" className="button compact-button project-menu-action" aria-label="Reference from research record" disabled={contextCommands.panelCommandsDisabled} onClick={() => {
               setAddMenuOpen(false);
               contextCommands.openReferences();
-            }}>Reference from research record</button>
+            }}>
+              <span className="project-menu-icon"><ActionIcon name="link" /></span>
+              <span className="project-menu-copy"><strong>Reference</strong><small>From existing research records</small></span>
+            </button>
           </div>}
         </div>}
         {desktop && desktopView === "map" && <div
@@ -2650,11 +2663,13 @@ export function ProjectPage() {
             aria-controls="project-reference-panel"
             aria-pressed={referencePanelOpen}
             aria-label="References"
+            title="References"
             disabled={viewSwitchDisabled && referencePanelOpen}
             onClick={() => setReferencePanelOpen((open) => !open)}
           >
+            <NavigationIcon name="search" />
             <span className="project-control-label-full">References</span>
-            <span className="project-control-label-compact" aria-hidden="true">Refs</span>
+
           </button>
           <button
             ref={inspectorPanelTriggerRef}
@@ -2663,6 +2678,7 @@ export function ProjectPage() {
             aria-controls="project-inspector-panel"
             aria-pressed={inspectorPanelOpen}
             aria-label="Inspector"
+            title="Inspector"
             disabled={viewSwitchDisabled && inspectorPanelOpen}
             onClick={() => {
               if (inspectorPanelOpen) {
@@ -2674,23 +2690,24 @@ export function ProjectPage() {
               }
             }}
           >
+            <ActionIcon name="inspector" />
             <span className="project-control-label-full">Inspector</span>
-            <span className="project-control-label-compact" aria-hidden="true">Inspect</span>
+
           </button>
         </div>}
         {desktop && desktopView === "map" && <div className="project-save-toolbar">
           <span className={`project-save-state ${saveState}`}>{saveLabel(saveState)}</span>
-          <button type="button" className="button compact-button project-history-control" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
-            <span className="project-control-label-full">Undo</span>
-            <span className="project-control-label-compact" aria-hidden="true">↶</span>
+          <button type="button" className="button compact-button project-history-control" aria-label="Undo" title="Undo (Ctrl / ⌘ Z)" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
+            <ActionIcon name="undo" />
           </button>
-          <button type="button" className="button compact-button project-history-control" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
-            <span className="project-control-label-full">Redo</span>
-            <span className="project-control-label-compact" aria-hidden="true">↷</span>
+          <button type="button" className="button compact-button project-history-control" aria-label="Redo" title="Redo (Ctrl / ⌘ Shift Z)" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
+            <ActionIcon name="redo" />
           </button>
           <button
             type="button"
             className="button compact-button project-save-control"
+            aria-label="Save"
+            title="Save (Ctrl / ⌘ S)"
             aria-keyshortcuts="Control+S Meta+S"
             disabled={saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled}
             onClick={() => {
@@ -2698,7 +2715,7 @@ export function ProjectPage() {
               autosaveTimerRef.current = null;
               void flushSave();
             }}
-          >Save</button>
+          ><ActionIcon name="save" /><span className="project-control-label-full">Save</span></button>
         </div>}
         <div ref={projectActionsRef} className="project-overflow">
           <button
@@ -2706,6 +2723,7 @@ export function ProjectPage() {
             type="button"
             className="button compact-button project-overflow-trigger"
             aria-label="Project actions"
+            title="Project actions"
             aria-expanded={projectActionsOpen}
             aria-controls="project-overflow-panel"
             onClick={() => {
@@ -2713,8 +2731,7 @@ export function ProjectPage() {
               setProjectActionsOpen((open) => !open);
             }}
           >
-            <span className="project-control-label-full">Project actions</span>
-            <span className="project-control-label-compact" aria-hidden="true">More</span>
+            <ActionIcon name="more" />
           </button>
           {projectActionsOpen && <div
             id="project-overflow-panel"
@@ -2731,7 +2748,7 @@ export function ProjectPage() {
                 setProjectActionsOpen(false);
                 openProjectDeletion();
               }}
-            >Move to trash</button>
+            ><ActionIcon name="delete" />Move to trash</button>
           </div>}
         </div>
       </div>
@@ -2887,10 +2904,11 @@ export function ProjectPage() {
         data-panel-presentation="floating"
       >
         <div className="project-workspace-panel-toolbar">
-          <p className="card-label">References</p>
+          <p className="card-label"><NavigationIcon name="search" />References</p>
           <button
             type="button"
-            className="button compact-button"
+            className="button compact-button project-panel-icon-button"
+            title="Close References (Esc)"
             aria-label="Close References"
             aria-keyshortcuts="Escape"
             disabled={viewSwitchDisabled}
@@ -2898,7 +2916,7 @@ export function ProjectPage() {
               setReferencePanelOpen(false);
               window.requestAnimationFrame(() => referencePanelTriggerRef.current?.focus());
             }}
-          >Close</button>
+          ><DialogCloseIcon /></button>
         </div>
         {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}>
           <strong>{pendingAttachment.filename}</strong>
@@ -2995,11 +3013,13 @@ export function ProjectPage() {
         data-panel-presentation="floating"
       >
         <div className="project-workspace-panel-toolbar">
-          <p className="card-label">Inspector</p>
+          <p className="card-label"><ActionIcon name="inspector" />Inspector</p>
           <div className="project-workspace-panel-actions">
             <button
               type="button"
-              className="button compact-button"
+              className="button compact-button project-panel-icon-button"
+              aria-label={inspectorPinned ? "Unpin" : "Pin"}
+              title={inspectorPinned ? "Unpin Inspector" : "Keep Inspector open"}
               aria-pressed={inspectorPinned}
               disabled={viewSwitchDisabled}
               onClick={() => {
@@ -3010,10 +3030,11 @@ export function ProjectPage() {
                   window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
                 }
               }}
-            >{inspectorPinned ? "Unpin" : "Pin"}</button>
+            ><ActionIcon name="pin" /></button>
             <button
               type="button"
-              className="button compact-button"
+              className="button compact-button project-panel-icon-button"
+              title="Close Inspector (Esc)"
               aria-label="Close Inspector"
               aria-keyshortcuts="Escape"
               disabled={viewSwitchDisabled}
@@ -3022,7 +3043,7 @@ export function ProjectPage() {
                 setInspectorPinned(false);
                 window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
               }}
-            >Close</button>
+            ><DialogCloseIcon /></button>
           </div>
         </div>
         {edgeController.selectedEdge ? <div className="project-inspector-content">

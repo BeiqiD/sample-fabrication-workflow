@@ -1021,6 +1021,23 @@ availability, menu priority/focus, desktop/Reading transitions, and the relevant
 1440/1024/860/859, 1181/1180, short-height and theme matrix. Run owned-content,
 workspace/mobile, Map surface, Reading and performance gates on the proposed head.
 
+The visual follow-up in PR #167 applies familiar editor patterns to this slice:
+
+- one outlined SVG system, icon-and-label view controls, and named/icon-only
+  Undo, Redo, panel, and overflow controls with tooltips at compact widths;
+- an emphasized Add trigger and three icon-led entries with short descriptions;
+- readable placement cards with full-title tooltips, a separate Place/Open/Details
+  action row, and consistent three-column type scopes;
+- compact search/clear/filter controls, bordered floating panels, explicit Pin
+  state, focus outlines, and a horizontal zoom/fit group;
+- changes stay inside Project/placement presentation and reuse existing handlers,
+  drag payloads, navigation targets, save gates, and authoritative data paths.
+
+Pattern references: [Miro toolbars](https://help.miro.com/hc/en-us/articles/360017730553-Toolbars),
+[FigJam workspace](https://help.figma.com/hc/en-us/articles/15300412458647-Explore-FigJam-files),
+and [tldraw actions](https://tldraw.dev/sdk-features/actions). These inform grouping
+and discoverability; no unsupported editor tools are introduced.
+
 Phase 5C2b.3 remains separate for node/edge/multi-selection quick toolbars, with its
 own placement, focus, and performance review. C2b is not complete until that slice
 and its integration acceptance are finished; C3 follows C2b.
