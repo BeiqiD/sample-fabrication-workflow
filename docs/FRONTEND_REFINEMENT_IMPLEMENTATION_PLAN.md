@@ -1055,9 +1055,12 @@ does not declare C2b or C3 complete or erase the earlier slice boundaries.
 
 ### User-authorized Project UX repair revision — 2026-09-11
 
-Status: implemented; automated and desktop browser acceptance recorded in
-`PROJECT_UX_REPAIR_ACCEPTANCE.md`. Draft status and the documented remaining
-cross-viewport/export/import acceptance boundaries remain in effect.
+Status: implemented; independent review, automated and cross-size Chrome browser
+acceptance recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`. The follow-up fixes
+unknown-result create/Trash settlement and phone-header overlap. Draft status and
+the documented native-device/export/import acceptance boundaries remain in effect.
+Remaining C3 work is contextual Reading details and modal mobile panels, reusing
+the implemented Reading shell, Add and editor; C4 integration review follows.
 
 The user requested a complete review of entry, edit, reference, connection,
 modification, removal, mouse gestures, and secondary-information density, then

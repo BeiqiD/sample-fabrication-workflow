@@ -287,4 +287,260 @@ describe("Project trash recovery", () => {
     expect(remote.restoreEdge.mock.calls.map((call) => call[1])).toEqual(["edge-cascade"]);
     expect(view.result.current.recoverableConnectionCount).toBe(0);
   });
+
+  it("keeps an uncertain removal frozen after a forbidden retry until the same request is acknowledged", async () => {
+    const remote = server();
+    let commitOriginal!: () => ProjectItemMutationResponse;
+    let attempts = 0;
+    remote.remove.mockImplementation(async (_project, itemId, input) => {
+      attempts += 1;
+      if (attempts === 1) {
+        // The response can fail while its original server write is still running.
+        commitOriginal = () => remote.mutate(itemId, input, true);
+        throw new TypeError("Connection closed before the server write finished");
+      }
+      if (attempts === 2) throw new ProjectApiError("Forbidden", 403);
+      return remote.mutate(itemId, input, true);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.removeItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    const originalInput = structuredClone(remote.remove.mock.calls[0]![2]);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending?.status).toBe("uncertain");
+    expect(view.result.current.unsafeRef.current).toBe(true);
+    expect(remote.read).not.toHaveBeenCalled();
+    expect(view.onAuthoritativeSnapshot).not.toHaveBeenCalled();
+    expect(remote.remove.mock.calls[1]![2]).toEqual(originalInput);
+    act(() => { commitOriginal(); });
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(remote.remove.mock.calls[2]![2]).toEqual(originalInput);
+    expect(view.result.current.canUndo).toBe(true);
+    expect(view.result.current.unsafeRef.current).toBe(false);
+    expect(view.onItemRemoved).toHaveBeenCalledTimes(1);
+  });
+
+
+  it("retains a frozen item restoration after a forbidden retry without restoring connections early", async () => {
+    const remote = server();
+    remote.mutate("item-note", { expectedItemRevision: 1, expectedContentRevision: 1, operationId: "delete-note" }, true);
+    let commitOriginal!: () => ProjectItemMutationResponse;
+    let attempts = 0;
+    remote.restore.mockImplementation(async (_project, itemId, input) => {
+      attempts += 1;
+      if (attempts === 1) {
+        commitOriginal = () => remote.mutate(itemId, input, false);
+        throw new TypeError("Restoration response was lost");
+      }
+      if (attempts === 2) throw new ProjectApiError("Forbidden", 403);
+      return remote.mutate(itemId, input, false);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.restoreItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    const originalInput = structuredClone(remote.restore.mock.calls[0]![2]);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending?.status).toBe("uncertain");
+    expect(view.result.current.unsafeRef.current).toBe(true);
+    expect(remote.read).toHaveBeenCalledTimes(1);
+    expect(remote.restoreEdge).not.toHaveBeenCalled();
+    expect(remote.restore.mock.calls[1]![2]).toEqual(originalInput);
+    act(() => { commitOriginal(); });
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(remote.restore.mock.calls[2]![2]).toEqual(originalInput);
+    expect(view.onItemRestored).toHaveBeenCalledTimes(1);
+    expect(remote.restoreEdge).toHaveBeenCalledTimes(1);
+    expect(view.result.current.unsafeRef.current).toBe(false);
+  });
+
+  it("retains an uncertain connection restoration through a forbidden retry without repeating restored items", async () => {
+    const remote = server();
+    remote.mutate("item-note", { expectedItemRevision: 1, expectedContentRevision: 1, operationId: "delete-note" }, true);
+    const restoreEdge = remote.restoreEdge.getMockImplementation()!;
+    let commitOriginal!: () => ReturnType<typeof restoreEdge>;
+    let attempts = 0;
+    remote.restoreEdge.mockImplementation(async (...args) => {
+      attempts += 1;
+      if (attempts === 1) {
+        commitOriginal = () => restoreEdge(...args);
+        throw new TypeError("Connection restoration response was lost");
+      }
+      if (attempts === 2) throw new ProjectApiError("Forbidden", 403);
+      return restoreEdge(...args);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.restoreItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    const originalInput = structuredClone(remote.restoreEdge.mock.calls[0]![2]);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending?.status).toBe("uncertain");
+    expect(view.result.current.unsafeRef.current).toBe(true);
+    expect(remote.read).toHaveBeenCalledTimes(2);
+    expect(remote.restore).toHaveBeenCalledTimes(1);
+    expect(remote.restoreEdge.mock.calls[1]![2]).toEqual(originalInput);
+    await act(async () => { await commitOriginal(); });
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(remote.restoreEdge.mock.calls[2]![2]).toEqual(originalInput);
+    expect(remote.restore).toHaveBeenCalledTimes(1);
+    expect(view.onEdgeRestored).toHaveBeenCalledTimes(1);
+    expect(view.result.current.unsafeRef.current).toBe(false);
+  });
+
+
+  it("reconciles a new deterministic rejection after an earlier uncertain task is acknowledged", async () => {
+    const remote = server();
+    let loseResponse = true;
+    remote.remove.mockImplementation(async (_project, itemId, input) => {
+      if (itemId === "item-note") throw new ProjectApiError("Forbidden", 403);
+      const result = remote.mutate(itemId, input, true);
+      if (loseResponse) { loseResponse = false; throw new TypeError("Response lost"); }
+      return result;
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.removeItems(["item-reference", "item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(view.result.current.unsafeRef.current).toBe(false);
+    expect(view.result.current.canUndo).toBe(true);
+    expect(view.result.current.error).toContain("Completed changes are preserved");
+    expect(remote.read).toHaveBeenCalledTimes(1);
+    expect(remote.state.items.find((item) => item.id === "item-note")!.deletedAt).toBe(null);
+    expect(view.onItemRemoved).toHaveBeenCalledTimes(1);
+  });
+
+
+  it("keeps an uncertain connection restore frozen through reversible endpoint rejection", async () => {
+    const remote = server();
+    remote.mutate("item-note", { expectedItemRevision: 1, expectedContentRevision: 1, operationId: "delete-note" }, true);
+    const restoreEdge = remote.restoreEdge.getMockImplementation()!;
+    let attempts = 0;
+    remote.restoreEdge.mockImplementation(async (...args) => {
+      attempts += 1;
+      if (attempts === 1) throw new TypeError("Connection restoration response lost");
+      if (attempts === 2) {
+        remote.mutate("item-reference", { expectedItemRevision: 1, operationId: "temporarily-delete-endpoint" }, true);
+        throw new ProjectApiError("Edge endpoints are no longer available", 409);
+      }
+      return restoreEdge(...args);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.restoreItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    const originalInput = structuredClone(remote.restoreEdge.mock.calls[0]![2]);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending?.status).toBe("uncertain");
+    expect(view.result.current.unsafeRef.current).toBe(true);
+    expect(view.onAuthoritativeSnapshot).not.toHaveBeenCalled();
+    expect(remote.state.edges[0]!.revision).toBe(originalInput.expectedRevision);
+    expect(sessionStorage.getItem("project-trash-recovery:project-a")).toContain("delete-note");
+    remote.mutate("item-reference", { expectedItemRevision: 2, operationId: "restore-endpoint" }, false);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(remote.restoreEdge.mock.calls.every((call) => JSON.stringify(call[2]) === JSON.stringify(originalInput))).toBe(true);
+    expect(remote.restore).toHaveBeenCalledTimes(1);
+    expect(view.onEdgeRestored).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a reference restore frozen while its source is temporarily unavailable", async () => {
+    const remote = server();
+    remote.mutate("item-reference", { expectedItemRevision: 1, operationId: "delete-reference" }, true);
+    let attempts = 0;
+    remote.restore.mockImplementation(async (_project, itemId, input) => {
+      attempts += 1;
+      if (attempts === 1) throw new TypeError("Reference restoration response lost");
+      if (attempts === 2) throw new ProjectApiError("reference target is unavailable", 409);
+      return remote.mutate(itemId, input, false);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.restoreItems(["item-reference"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    const originalInput = structuredClone(remote.restore.mock.calls[0]![2]);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending?.status).toBe("uncertain");
+    expect(view.result.current.unsafeRef.current).toBe(true);
+    expect(view.onAuthoritativeSnapshot).not.toHaveBeenCalled();
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(remote.restore.mock.calls.every((call) => JSON.stringify(call[2]) === JSON.stringify(originalInput))).toBe(true);
+    expect(view.onItemRestored).toHaveBeenCalledTimes(1);
+    expect(remote.restoreEdge).toHaveBeenCalledTimes(1);
+  });
+
+  it("gets the original removal acknowledgement when a conflict read sees its deletion token", async () => {
+    const remote = server();
+    let attempts = 0;
+    remote.remove.mockImplementation(async (_project, itemId, input) => {
+      attempts += 1;
+      if (attempts === 2) throw new ProjectApiError("Transient removal conflict", 409);
+      const result = remote.mutate(itemId, input, true);
+      if (attempts === 1) throw new TypeError("Removal committed without acknowledgement");
+      return result;
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.removeItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    const originalInput = structuredClone(remote.remove.mock.calls[0]![2]);
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending?.status).toBe("uncertain");
+    expect(view.result.current.canUndo).toBe(false);
+    expect(view.onAuthoritativeSnapshot).not.toHaveBeenCalled();
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(remote.remove.mock.calls[2]![2]).toEqual(originalInput);
+    expect(view.result.current.canUndo).toBe(true);
+    expect(view.onItemRemoved).toHaveBeenCalledTimes(1);
+  });
+
+  it("reconciles a strictly advanced content revision after uncertain removal", async () => {
+    const remote = server();
+    let attempts = 0;
+    remote.remove.mockImplementation(async () => {
+      attempts += 1;
+      if (attempts === 1) throw new TypeError("Request outcome unknown");
+      remote.state.contents[0]!.revision += 1;
+      throw new ProjectApiError("Content revision conflict", 409);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.removeItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(view.result.current.unsafeRef.current).toBe(false);
+    expect(view.result.current.error).toContain("Completed changes are preserved");
+    expect(view.onAuthoritativeSnapshot).toHaveBeenCalledTimes(1);
+    expect(view.onItemRemoved).not.toHaveBeenCalled();
+  });
+
+  it("preserves connection recovery when a restoration committed before a later revision conflict", async () => {
+    const remote = server();
+    remote.mutate("item-note", { expectedItemRevision: 1, expectedContentRevision: 1, operationId: "delete-note" }, true);
+    let attempts = 0;
+    remote.restore.mockImplementation(async (_project, itemId, input) => {
+      attempts += 1;
+      if (attempts === 1) {
+        remote.mutate(itemId, input, false);
+        throw new TypeError("Restoration committed without acknowledgement");
+      }
+      remote.state.contents[0]!.revision += 1;
+      throw new ProjectApiError("Project item is already active", 409);
+    });
+    const view = harness(remote.state);
+    act(() => { view.result.current.restoreItems(["item-note"]); });
+    await waitFor(() => expect(view.result.current.pending?.status).toBe("uncertain"));
+    await act(async () => { await view.result.current.retry(); });
+    expect(view.result.current.pending).toBe(null);
+    expect(view.result.current.unsafeRef.current).toBe(false);
+    expect(view.result.current.recoverableConnectionCount).toBe(1);
+    expect(view.onAuthoritativeSnapshot.mock.calls[0]![0].items).toHaveLength(2);
+    expect(sessionStorage.getItem("project-trash-recovery:project-a")).toContain("delete-note");
+    await act(async () => { view.result.current.restoreConnections(); });
+    await waitFor(() => expect(view.result.current.pending).toBe(null));
+    expect(remote.restoreEdge).toHaveBeenCalledTimes(1);
+    expect(view.result.current.recoverableConnectionCount).toBe(0);
+  });
+
 });

@@ -52,6 +52,7 @@ function server() {
   const state = fixture();
   const acknowledgements = new Map<string, ProjectItemMutationResponse>();
   let loseNoteResponse = false;
+  let denyNoteRemoval = false;
   const mutate = (id: string, input: ProjectItemLifecycleInput, remove: boolean) => {
     const previous = acknowledgements.get(input.operationId);
     if (previous) return { ...structuredClone(previous), replayed: true };
@@ -83,6 +84,10 @@ function server() {
     }
     const itemMatch = url.match(/\/items\/([^/]+)(\/restore)?$/);
     if (itemMatch && (init?.method === "DELETE" || init?.method === "POST")) {
+      if (denyNoteRemoval && itemMatch[1] === "item-note" && init.method === "DELETE") {
+        denyNoteRemoval = false;
+        return json({ error: "Forbidden" }, 403);
+      }
       const result = mutate(itemMatch[1]!, JSON.parse(String(init.body)), init.method === "DELETE");
       if (loseNoteResponse && itemMatch[1] === "item-note" && init.method === "DELETE") {
         loseNoteResponse = false;
@@ -101,7 +106,11 @@ function server() {
     throw new Error(`Unexpected ${init?.method ?? "GET"} ${url}`);
   });
   vi.stubGlobal("fetch", fetchMock);
-  return { state, fetchMock, loseNextNoteResponse: () => { loseNoteResponse = true; } };
+  return {
+    state, fetchMock,
+    loseNextNoteResponse: () => { loseNoteResponse = true; },
+    denyNextNoteRemoval: () => { denyNoteRemoval = true; },
+  };
 }
 
 function renderPage() {
@@ -181,10 +190,21 @@ describe("Project page trash integration", () => {
     expect(view.router.state.location.pathname).toBe("/projects/project-a");
     expect(await screen.findByRole("alertdialog", { name: "Unsaved Project changes" })).toBeTruthy();
     expect(screen.queryByText("Projects destination")).toBeNull();
+    remote.denyNextNoteRemoval();
     fireEvent.click(screen.getByRole("button", { name: "Retry safely" }));
-    await screen.findByText("Projects destination");
+    await screen.findByText(/Forbidden.*result is not confirmed/);
+    expect(view.router.state.location.pathname).toBe("/projects/project-a");
+    expect(screen.getByText("Layout locked: yes")).toBeTruthy();
+    expect(screen.getByText("Connection commands locked: yes")).toBeTruthy();
+    const afterForbidden = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(afterForbidden);
+    expect(afterForbidden.defaultPrevented).toBe(true);
     expect(deletes()).toHaveLength(3);
     expect(String(deletes()[2]![1]!.body)).toBe(uncertainBody);
+    fireEvent.click(screen.getByRole("button", { name: "Retry safely" }));
+    await screen.findByText("Projects destination");
+    expect(deletes()).toHaveLength(4);
+    expect(String(deletes()[3]![1]!.body)).toBe(uncertainBody);
     const afterUnload = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(afterUnload);
     expect(afterUnload.defaultPrevented).toBe(false);

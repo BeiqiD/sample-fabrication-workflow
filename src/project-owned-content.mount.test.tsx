@@ -171,13 +171,22 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     });
     expect(mapViewport.reveal).toHaveBeenCalledWith(expect.objectContaining({ x: 420, y: 428, width: 360, height: 220 }));
 
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: "Create temporarily conflicts" }), {
+      status: 409,
+      headers: { "content-type": "application/json" },
+    }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact Markdown save" }));
+    await screen.findByText("Create temporarily conflicts");
+    expect(screen.queryByRole("button", { name: "Cancel Markdown" })).toBeNull();
+    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toEqual(firstBody);
+
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(mutationResponse(firstBody, "markdown")), {
       status: 200,
       headers: { "content-type": "application/json" },
     }));
     fireEvent.click(screen.getByRole("button", { name: "Retry exact Markdown save" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toEqual(firstBody);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual(firstBody);
     await waitFor(() => expect(screen.queryByLabelText("Mock Markdown editor")).toBeNull());
   });
 
@@ -233,7 +242,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     expect(createBody.geometry.y).toBeCloseTo(244, 8);
   });
 
-  it("keeps an uncertain attachment occurrence frozen when a later create retry is rejected", async () => {
+  it.each([403, 409])("keeps an uncertain attachment occurrence frozen after non-authoritative %s retry", async (retryStatus) => {
     const file = new File(["pdf"], "frozen.pdf", { type: "application/pdf" });
     const inputs: Record<string, any>[] = [];
     fetchMock.mockImplementation(async (path, init) => {
@@ -246,7 +255,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
       const input = JSON.parse(String(init?.body));
       inputs.push(input);
       if (inputs.length === 1) return new Response(JSON.stringify({ error: "Attachment create response unavailable" }), { status: 503, headers: { "content-type": "application/json" } });
-      if (inputs.length === 2) return new Response(JSON.stringify({ error: "Attachment retry permission expired" }), { status: 403, headers: { "content-type": "application/json" } });
+      if (inputs.length === 2) return new Response(JSON.stringify({ error: "Attachment retry rejected" }), { status: retryStatus, headers: { "content-type": "application/json" } });
       return new Response(JSON.stringify({ ...mutationResponse(input, "attachment", file), replayed: true }), { headers: { "content-type": "application/json" } });
     });
     renderProjectPage();
@@ -254,7 +263,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
     await screen.findByText("Attachment create response unavailable");
     fireEvent.click(screen.getByRole("button", { name: "Retry exact attachment" }));
-    await screen.findByText("Attachment retry permission expired");
+    await screen.findByText("Attachment retry rejected");
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     expect((screen.getByRole("button", { name: "Attachment" }) as HTMLButtonElement).disabled).toBe(true);

@@ -252,6 +252,11 @@ function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error"
   return "uncertain";
 }
 
+function projectCreateReplayIsAuthoritativelySettled(caught: unknown) {
+  return caught instanceof ProjectApiError
+    && caught.mutationDisposition === "authoritative-rejection";
+}
+
 function projectDeletionOutcomeIsUncertain(caught: unknown) {
   if (!(caught instanceof ProjectApiError)) return true;
   return caught.status === 408 || caught.status === 429 || caught.status >= 500;
@@ -1243,7 +1248,9 @@ export function ProjectPage() {
     } catch (caught) {
       if (!referenceInsertionIsActive(generation)) return;
       const failureStatus = referenceInsertionFailureStatus(caught);
-      const status = retryingUncertain && failureStatus === "error" ? "uncertain" : failureStatus;
+      // Reversible source/blob conflicts cannot settle an older in-flight create.
+      const status = retryingUncertain && !projectCreateReplayIsAuthoritativelySettled(caught)
+        ? "uncertain" : failureStatus;
       const message = caught instanceof Error ? caught.message : "The reference could not be placed";
       updatePendingReference({
         localId: `pending-${input.itemId}`,
@@ -1605,7 +1612,8 @@ export function ProjectPage() {
         queueReferenceCancellationRemoval(result.item.id, result.item.revision, leave);
         return;
       } catch (caught) {
-        if (!(caught instanceof ProjectApiError) || caught.status !== 409) throw caught;
+        if (!(caught instanceof ProjectApiError) || caught.status !== 409
+          || !projectCreateReplayIsAuthoritativelySettled(caught)) throw caught;
       }
 
       const authoritative = await projectApi.read(projectId);
@@ -1810,7 +1818,9 @@ export function ProjectPage() {
       const failureStatus = projectOwnedContentFailureStatus(caught);
       // A later permission/validation rejection cannot prove that an earlier
       // request with a lost response was not already committed.
-      const status = current.status === "uncertain" && failureStatus === "error"
+      const status = current.status === "uncertain" && (current.isNew
+        ? !projectCreateReplayIsAuthoritativelySettled(caught)
+        : failureStatus === "error")
         ? "uncertain" : failureStatus;
       // Only a determined rejection permits a changed payload/new operation ID.
       // Uncertain saves retain the exact frozen request until acknowledged.
@@ -1865,7 +1875,9 @@ export function ProjectPage() {
     } catch (caught) {
       if (!ownedContentMutationIsActive(generation)) return;
       const failureStatus = projectOwnedContentFailureStatus(caught);
-      const status = retryingUncertain && failureStatus === "error" ? "uncertain" : failureStatus;
+      // Reversible source/blob conflicts cannot settle an older in-flight create.
+      const status = retryingUncertain && !projectCreateReplayIsAuthoritativelySettled(caught)
+        ? "uncertain" : failureStatus;
       const message = caught instanceof Error ? caught.message : "The attachment occurrence could not be created";
       updatePendingAttachment({
         localId: `pending-${input.itemId}`,

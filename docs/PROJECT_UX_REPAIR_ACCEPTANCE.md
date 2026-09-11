@@ -52,9 +52,47 @@ Chrome, real local Worker/D1/R2 bindings; dedicated Project
   its card and updated the open Inspector. Technical Details/More stayed collapsed;
   expanding a preview did not pin the Inspector.
 
+## Independent review and cross-size follow-up
+
+Three independent read-only reviews covered editing/navigation, deletion/recovery,
+and endpoint reconnection/migration/history. The follow-up fixed two classes of
+unknown-result settlement defects and one mobile layout defect:
+
+- An uncertain create must retain its exact request after a reversible 409.
+  Reference cancellation may only treat a replay rejection as settled when the
+  Worker supplies its authoritative-rejection proof. A currently absent item is
+  insufficient: the original request may still commit later.
+- An uncertain Trash mutation stays locked after a later generic 4xx. A 409 only
+  permits reconciliation when the current task's item/content/edge revision has
+  strictly advanced. Temporary source or endpoint unavailability is reversible.
+  An original deletion token still requires acknowledgement so Undo is retained;
+  partially completed restoration preserves the cascade recovery ledger.
+- At phone widths, identity and commands use separate header rows. Multiword save
+  status wraps within its own space. Previously the title collapsed to zero width,
+  the Add button covered the return link, and editing status overflowed its badge.
+
+Browser checks used the real application in a temporary same-origin iframe with
+controlled CSS viewport dimensions, driven through ordinary browser UI. This
+exercises real layout/media-query behavior, not native device emulation. The
+temporary harness was removed before the production build.
+
+| CSS viewport | Observed acceptance |
+| --- | --- |
+| 360 × 900 and 360 × 600, dark/light | Add → Markdown → formula Preview → expanded editor → Save; all short-screen editor actions in bounds. Header identity and commands remain reachable, including multiline editing status. |
+| 390 × 600, light | Attachment edit → Save metadata and leave → reopen persisted value; reference search; card More → Trash → restore. |
+| 859 → 860 × 900, light | Draft text survives crossing the mobile/desktop boundary; Reading remains mounted until cancellation, then desktop Map appears. |
+| 860 and 1024 × 900, light | Map controls fit; References and Inspector switch as one unpinned panel. |
+| 1180 → 1181 × 900, light | At 1180 opening References closes unpinned Inspector; at 1181 both can remain open. |
+| 1440 × 600, light | Both floating panels stay within the short viewport and scroll internally; Canvas retains its full area. |
+| 360 × 600, light, complex math fixture | Fractions, matrix, integral, table, tasks and malformed-TeX fallback render. A 509 px equation scrolls within a 281 px region; browser wheel moved it to scrollLeft 228. Document scrollWidth equals clientWidth (345 px excluding scrollbar), and card scrollWidth equals clientWidth (315 px). |
+
+The reconnection review found no additional defect in atomic endpoint updates,
+migration identity/provenance guards or Undo/Redo. Targeted independent suites and
+new regressions were followed by the integrated checks below.
+
 ## Automated and integration evidence
 
-- `npm test`: **175 source suites / 869 tests**, **39 mounted suites / 200 tests**,
+- Follow-up `npm test`: **175 source suites / 870 tests**, **39 mounted suites / 213 tests**,
   all passing; development and production bundled-math gates also passed.
 - `tsc -b` and clean TypeScript/Vite production build passed. The Map bundle gate
   confirmed React Flow remains owned by the desktop-only lazy Map chunk.
@@ -63,18 +101,25 @@ Chrome, real local Worker/D1/R2 bindings; dedicated Project
   exact retry, copy/paste, endpoint reconnection, partial bulk restore and deletion
   provenance. Examples include 503 → 403 → successful exact replay without exposing
   an unsafe Cancel/new-write path, and restore/navigation unlock after reconciliation.
-- `verify:d1-migrations` passed through migration 0036. The local QA database was
+- The added follow-up regressions cover reversible 409 after an uncertain create
+  or restore, authoritative revision fences, original-deletion acknowledgement,
+  delayed commit during cancellation and retained connection recovery. A real
+  Worker/SQLite test proves an endpoint-unavailable restore can later succeed
+  with exactly the same edge revision and operation ID.
+- Integration baseline at `3833f406`: `verify:d1-migrations` passed through
+  migration 0036. The local QA database was
   backed up before applying it. `verify:project-worker` passed against real local
   bindings, including asset deduplication, retries, rollback and lifecycle flows.
 - `git diff --check` passed.
 
 ## Remaining acceptance boundaries
 
-- This repair pass used the available desktop Chrome viewport (1363 × 936), in
-  both themes. Mobile/adjacent-breakpoint behavior has mounted coverage; the new
-  controls were not rechecked in native mobile browsers or at every visual width.
-  The earlier 1440/1024/390/360 checks in `PR168_BROWSER_ACCEPTANCE.md` predate this
-  interaction revision and are not evidence for its new controls.
+- Desktop Chrome and the controlled iframe dimensions above cover this interaction
+  revision. Native mobile Safari/Chrome, touch gestures and the on-screen keyboard
+  were not tested; iframe resizing is not evidence for those device behaviors.
+- C3 remains open for contextual Reading details and fully modal mobile panels
+  with focus containment/dismissal/return. Existing Reading Add, shared editing and
+  compact actions are already implemented and should be reused by that slice.
 - Earlier export-download landing, full valid-workbook import, and configured
   managed-storage Comment upload limits remain as recorded in that report.
 - Global Undo covers layout/edge history and deletion priority; it is not universal

@@ -283,7 +283,7 @@ describe("mounted Project reference placement", () => {
     await waitFor(() => expect(screen.getByText("Map node count: 3")).toBeTruthy());
   });
 
-  it("keeps an uncertain reference frozen after a rejected retry until its exact create is acknowledged", async () => {
+  it.each([403, 409])("keeps an uncertain reference frozen after non-authoritative %s retry", async (retryStatus) => {
     const inputs: CreateReferenceProjectItemInput[] = [];
     fetchMock.mockImplementation((path, init) => {
       if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(projectTestSnapshot());
@@ -291,7 +291,7 @@ describe("mounted Project reference placement", () => {
       const input = JSON.parse(String(init?.body)) as CreateReferenceProjectItemInput;
       inputs.push(input);
       if (inputs.length === 1) return jsonResponse({ error: "Reference create response unavailable" }, 503);
-      if (inputs.length === 2) return jsonResponse({ error: "Reference retry permission expired" }, 403);
+      if (inputs.length === 2) return jsonResponse({ error: "Reference retry rejected" }, retryStatus);
       return jsonResponse({ ...insertionResponse(input), replayed: true }, 201);
     });
     renderProjectPage();
@@ -300,7 +300,7 @@ describe("mounted Project reference placement", () => {
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     await screen.findByText("Reference create response unavailable");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    await screen.findByText("Reference retry permission expired");
+    await screen.findByText("Reference retry rejected");
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     expect(screen.getByText("Pending ghost: uncertain · Sample New")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Place fixture at center" }) as HTMLButtonElement).disabled).toBe(true);

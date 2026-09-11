@@ -603,6 +603,21 @@
 }
 
 @media (max-width: 560px) {
+  .project-page.mobile .project-workspace-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "identity" "actions";
+    gap: 4px;
+  }
+  .project-page.mobile .project-workspace-header-actions { justify-content: space-between; }
+  .project-page.mobile .project-save-state {
+    display: block;
+    padding: 3px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+  }
+  .project-page.mobile .project-save-state::before { display: none; }
   .project-directory-section-heading { align-items: flex-start; flex-direction: column; }
   .project-directory-row { grid-template-columns: 1fr; gap: 6px; }
   .project-directory-row time { grid-column: auto; }

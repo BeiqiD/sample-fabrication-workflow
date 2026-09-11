@@ -33,6 +33,7 @@ interface TrashJournal {
   acknowledged: number;
   phase: "prepare" | "items" | "prepare-edges" | "edges" | "finish" | "reconcile";
   rejection: string | null;
+  uncertainMutation?: boolean;
   expectedDeletions?: Record<string, string>;
 }
 export interface ProjectTrashPending {
@@ -59,6 +60,23 @@ function definiteRejection(error: unknown) {
   return error instanceof ProjectApiError
     && error.status >= 400 && error.status < 500
     && error.status !== 408 && error.status !== 429;
+}
+
+/** Only revisions used by this exact request can make a later commit impossible. */
+function taskRevisionHasAdvanced(snapshot: ProjectSnapshot, task: ItemTask | EdgeTask) {
+  if (task.kind === "edge") {
+    const edge = snapshot.edges.find((candidate) => candidate.id === task.edgeId);
+    return edge !== undefined && edge.revision > task.input.expectedRevision;
+  }
+  const item = snapshot.items.find((candidate) => candidate.id === task.itemId);
+  if (!item) return false;
+  // Obtain the original removal acknowledgement so its Undo group is retained.
+  if (task.kind === "remove" && item.deletedAt !== null
+    && item.deletionOperationId === task.input.operationId) return false;
+  const content = snapshot.contents.find((candidate) => candidate.id === item.projectContentId);
+  return item.revision > task.input.expectedItemRevision
+    || (content !== undefined && task.input.expectedContentRevision !== undefined
+      && content.revision > task.input.expectedContentRevision);
 }
 
 function recoveryStorageKey(projectId: string) {
@@ -209,6 +227,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
           if (task.kind === "edge") {
             const result = await projectApi.restoreEdge(projectId, task.edgeId, task.input);
             if (!activeRef.current || journalRef.current !== journal) break;
+            journal.uncertainMutation = false;
             journal.cursor += 1;
             remember(rememberedRef.current.filter((edge) => edge.edgeId !== task.edgeId));
             optionsRef.current.onEdgeRestored(result.value);
@@ -217,6 +236,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
               ? await projectApi.removeItem(projectId, task.itemId, task.input)
               : await projectApi.restoreItem(projectId, task.itemId, task.input);
             if (!activeRef.current || journalRef.current !== journal) break;
+            journal.uncertainMutation = false;
             journal.cursor += 1;
             journal.acknowledged += 1;
             if (task.kind === "remove") {
@@ -277,11 +297,27 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
       } catch (caught) {
         if (!activeRef.current || journalRef.current !== journal) break;
         const detail = caught instanceof Error ? caught.message : "The operation could not be completed.";
-        if (mutationInFlight && definiteRejection(caught)) {
+        // A later access/validation rejection describes only the retry. It cannot
+        // prove that the original unacknowledged mutation will not still commit.
+        let rejectionSettled = !journal.uncertainMutation;
+        if (mutationInFlight && journal.uncertainMutation
+          && caught instanceof ProjectApiError && caught.status === 409) {
+          try {
+            const fresh = await projectApi.readTrash(projectId);
+            if (!activeRef.current || journalRef.current !== journal) break;
+            const task = journal.tasks[journal.cursor];
+            rejectionSettled = task !== undefined && taskRevisionHasAdvanced(fresh, task);
+          } catch {
+            // Missing proof cannot release the original request or navigation lock.
+            if (!activeRef.current || journalRef.current !== journal) break;
+          }
+        }
+        if (mutationInFlight && definiteRejection(caught) && rejectionSettled) {
           journal.rejection = detail;
           journal.phase = "reconcile";
           continue;
         }
+        if (mutationInFlight) journal.uncertainMutation = true;
         setError(mutationInFlight
           ? `${detail} The result is not confirmed. Retry to safely check the same request.`
           : `${detail} Reload to finish reconciling the Project.`);
