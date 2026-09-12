@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectEdgeRecord } from "../shared/project-api";
 import { ProjectMapSurface, type ProjectMapContextCommands } from "./components/project/ProjectMapSurface";
 import { projectMapNodes } from "./lib/project-map-model";
-import { projectTestSnapshot } from "./project-test-fixture";
+import { projectTestSnapshot, projectTestSnapshotWithAttachment } from "./project-test-fixture";
 
 function testContentRect(target: Element): DOMRectReadOnly {
   const width = target instanceof HTMLElement ? target.offsetWidth : 1;
@@ -134,6 +134,167 @@ describe("real Project edge surface", () => {
     cleanup();
     vi.unstubAllGlobals();
   });
+
+  it("selects edges with one click and opens Details only on double-click, excluding reconnect controls and locked commands", async () => {
+    const inspectEdge = vi.fn();
+    const editEdge = vi.fn();
+    const selected = vi.fn();
+    const nodes = projectMapNodes(projectTestSnapshot());
+    const edges = [edgeRecord()];
+    function EdgeActivationHarness({ locked = false }: { locked?: boolean }) {
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      return <ProjectMapSurface nodes={nodes} edges={edges} selectedItemId={null} selectedEdgeId={selectedEdgeId}
+        onSelect={() => undefined} onGeometryCommit={() => undefined} onEdgeReconnect={() => undefined}
+        onEdgeSelect={(edgeId) => { selected(edgeId); setSelectedEdgeId(edgeId); }}
+        contextCommands={{ ...availableContextCommands(), inspectEdge, editEdge, panelCommandsDisabled: locked }} />;
+    }
+    const view = render(<div style={{ width: 900, height: 700 }}><EdgeActivationHarness /></div>);
+    const edge = await waitFor(() => {
+      const element = view.container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]');
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    const currentEdge = () => view.container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    const path = () => currentEdge().querySelector(".react-flow__edge-interaction")!;
+    expect(edge).toBe(currentEdge());
+    fireEvent.click(path(), { detail: 1, clientX: 300, clientY: 300 });
+    expect(selected).toHaveBeenCalledExactlyOnceWith("edge-a");
+    expect(inspectEdge).not.toHaveBeenCalled();
+    expect(editEdge).not.toHaveBeenCalled();
+    await waitFor(() => expect(currentEdge()).toBeTruthy());
+    fireEvent.doubleClick(path(), { detail: 2, clientX: 300, clientY: 300 });
+    expect(inspectEdge).toHaveBeenCalledExactlyOnceWith("edge-a");
+    expect(editEdge).not.toHaveBeenCalled();
+    inspectEdge.mockClear();
+    expect(currentEdge().querySelectorAll(".react-flow__edgeupdater")).toHaveLength(2);
+    for (const anchor of currentEdge().querySelectorAll(".react-flow__edgeupdater")) fireEvent.doubleClick(anchor);
+    fireEvent.doubleClick(path(), { button: 2 });
+    fireEvent.doubleClick(view.getByRole("button", { name: "Details" }));
+    expect(inspectEdge).not.toHaveBeenCalled();
+    expect(editEdge).not.toHaveBeenCalled();
+    view.rerender(<div style={{ width: 900, height: 700 }}><EdgeActivationHarness locked /></div>);
+    await waitFor(() => expect(currentEdge()).toBeTruthy());
+    fireEvent.doubleClick(path());
+    expect(inspectEdge).not.toHaveBeenCalled();
+  });
+
+  it("moves the selected edge actions to each pointer click but preserves their location for keyboard and context-menu actions", async () => {
+    const nodes = projectMapNodes(projectTestSnapshot());
+    const edges = [edgeRecord()];
+    function EdgeAnchorHarness() {
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      return <ProjectMapSurface nodes={nodes} edges={edges} selectedItemId={null} selectedEdgeId={selectedEdgeId}
+        onSelect={() => undefined} onGeometryCommit={() => undefined} onEdgeSelect={setSelectedEdgeId}
+        contextCommands={availableContextCommands()} />;
+    }
+    const view = render(<div style={{ width: 1000, height: 700 }}><EdgeAnchorHarness /></div>);
+    const edge = await waitFor(() => {
+      const element = view.container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]');
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    const canvas = view.getByTestId("project-flow-canvas");
+    const currentEdge = () => view.container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 700, width: 1000, height: 700, toJSON: () => ({}) });
+    fireEvent.click(edge, { detail: 1, clientX: 300, clientY: 400 });
+    const toolbar = await view.findByRole("toolbar", { name: "Selected edge actions" });
+    const firstPosition = toolbar.style.transform;
+    fireEvent.click(currentEdge(), { detail: 1, clientX: 700, clientY: 500 });
+    await waitFor(() => expect(toolbar.style.transform).not.toBe(firstPosition));
+    const secondPosition = toolbar.style.transform;
+    fireEvent.click(currentEdge(), { detail: 0, clientX: 0, clientY: 0 });
+    expect(toolbar.style.transform).toBe(secondPosition);
+    fireEvent.contextMenu(currentEdge(), { clientX: 200, clientY: 200 });
+    expect(toolbar.style.transform).toBe(secondPosition);
+    fireEvent.click(currentEdge(), { detail: 1, button: 2, clientX: 100, clientY: 100 });
+    expect(toolbar.style.transform).toBe(secondPosition);
+    fireEvent.keyDown(currentEdge(), { key: "Escape" });
+    expect(view.queryByRole("toolbar", { name: "Selected edge actions" })).toBeNull();
+    await waitFor(() => expect(currentEdge()).toBeTruthy());
+    fireEvent.keyDown(currentEdge(), { key: "Enter" });
+    const keyboardToolbar = await view.findByRole("toolbar", { name: "Selected edge actions" });
+    expect(keyboardToolbar.style.transform).not.toBe(secondPosition);
+  });
+
+  it("does not retain a pointer location from a rejected edge selection", async () => {
+    const nodes = projectMapNodes(projectTestSnapshot());
+    const edges = [edgeRecord()];
+    function RejectedEdgeHarness({ blocked = false }: { blocked?: boolean }) {
+      const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+      return <ProjectMapSurface nodes={nodes} edges={edges} selectedItemId={null} selectedEdgeId={selectedEdgeId}
+        onSelect={() => undefined} onGeometryCommit={() => undefined}
+        onEdgeSelect={(edgeId) => { if (blocked) return false; setSelectedEdgeId(edgeId); return true; }}
+        contextCommands={availableContextCommands()} />;
+    }
+    const view = render(<div style={{ width: 1000, height: 700 }}><RejectedEdgeHarness /></div>);
+    const edge = () => view.container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+    const canvas = view.getByTestId("project-flow-canvas");
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 700, width: 1000, height: 700, toJSON: () => ({}) });
+    await waitFor(() => expect(edge()).toBeTruthy());
+    fireEvent.keyDown(edge(), { key: "Enter" });
+    const firstToolbar = await view.findByRole("toolbar", { name: "Selected edge actions" });
+    const keyboardPosition = firstToolbar.style.transform;
+    await waitFor(() => expect(edge()).toBeTruthy());
+    fireEvent.keyDown(edge(), { key: "Escape" });
+    view.rerender(<div style={{ width: 1000, height: 700 }}><RejectedEdgeHarness blocked /></div>);
+    await waitFor(() => expect(edge()).toBeTruthy());
+    fireEvent.click(edge(), { detail: 1, clientX: 800, clientY: 600 });
+    expect(view.queryByRole("toolbar", { name: "Selected edge actions" })).toBeNull();
+    expect(edge().classList.contains("selected")).toBe(false);
+    view.rerender(<div style={{ width: 1000, height: 700 }}><RejectedEdgeHarness /></div>);
+    await waitFor(() => expect(edge()).toBeTruthy());
+    fireEvent.keyDown(edge(), { key: "Enter" });
+    const toolbar = await view.findByRole("toolbar", { name: "Selected edge actions" });
+    expect(toolbar.style.transform).toBe(keyboardPosition);
+  });
+
+  it.each(["source handle", "target item", "source move", "target resize"])(
+    "retains the pointer anchor for metadata changes but discards it after a %s change, including after undo",
+    async (change) => {
+      const nodes = projectMapNodes(projectTestSnapshotWithAttachment());
+      const record = edgeRecord();
+      const noop = () => undefined;
+      const commands = availableContextCommands();
+      const surface = (nextNodes = nodes, nextEdge = record) => <div style={{ width: 1000, height: 700 }}>
+        <ProjectMapSurface nodes={nextNodes} edges={[nextEdge]} selectedItemId={null} selectedEdgeId={record.id}
+          onSelect={noop} onGeometryCommit={noop} onEdgeSelect={noop} contextCommands={commands} />
+      </div>;
+      const view = render(surface());
+      const edge = () => view.container.querySelector<SVGGElement>('.react-flow__edge[data-id="edge-a"]')!;
+      const canvas = view.getByTestId("project-flow-canvas");
+      vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 700, width: 1000, height: 700, toJSON: () => ({}) });
+      await waitFor(() => expect(edge()).toBeTruthy());
+      await waitFor(() => expect(view.container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform).not.toContain("scale(1)"));
+      const toolbar = await view.findByRole("toolbar", { name: "Selected edge actions" });
+      const initialPosition = toolbar.style.transform;
+      fireEvent.click(edge(), { detail: 1, clientX: 750, clientY: 550 });
+      await waitFor(() => expect(toolbar.style.transform).not.toBe(initialPosition));
+      const pointerPosition = toolbar.style.transform;
+      const metadataNodes = nodes.map((node) => ({
+        ...node, title: `${node.title} updated`, geometry: { ...node.geometry, zIndex: node.geometry.zIndex + 4 },
+      }));
+      const metadataEdge = { ...record, label: "new label", markerStart: "arrow" as const, revision: 2 };
+      view.rerender(surface(metadataNodes, metadataEdge));
+      await waitFor(() => expect(edge()?.textContent).toContain("new label"));
+      expect(toolbar.style.transform).toBe(pointerPosition);
+
+      const changedNodes = metadataNodes.map((node) => ({ ...node, geometry: {
+        ...node.geometry,
+        ...(change === "source move" && node.itemId === record.sourceItemId ? { x: node.geometry.x + 400, y: node.geometry.y + 200 } : {}),
+        ...(change === "target resize" && node.itemId === record.targetItemId ? { width: node.geometry.width + 150, height: node.geometry.height + 100 } : {}),
+      } }));
+      const changedEdge = {
+        ...metadataEdge,
+        ...(change === "source handle" ? { sourceHandle: "bottom" as const } : {}),
+        ...(change === "target item" ? { targetItemId: "item-attachment" } : {}),
+      };
+      view.rerender(surface(changedNodes, changedEdge));
+      await waitFor(() => expect(toolbar.style.transform).not.toBe(pointerPosition));
+      view.rerender(surface(metadataNodes, metadataEdge));
+      await waitFor(() => expect(edge()?.textContent).toContain("new label"));
+      expect(toolbar.style.transform).not.toBe(pointerPosition);
+    },
+  );
 
   it("keeps keyboard node, multi-edge, and empty selection synchronized", async () => {
     const snapshot = projectTestSnapshot();

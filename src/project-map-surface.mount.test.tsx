@@ -245,6 +245,7 @@ The ratio is $\frac{1}{1+x_0^2}$.
 [Source](https://example.com/research)`;
     const onGeometryCommit = vi.fn();
     const onMarkdownEditRequest = vi.fn();
+    const inspectItem = vi.fn();
     const { container } = render(<div style={{ width: 800, height: 600 }}>
       <ProjectMapSurface
         nodes={projectMapNodes(snapshot)}
@@ -252,6 +253,7 @@ The ratio is $\frac{1}{1+x_0^2}$.
         onSelect={() => undefined}
         onGeometryCommit={onGeometryCommit}
         onMarkdownEditRequest={onMarkdownEditRequest}
+        contextCommands={{ ...availableContextCommands(), inspectItem }}
       />
     </div>);
     const note = await waitFor(() => {
@@ -272,11 +274,13 @@ The ratio is $\frac{1}{1+x_0^2}$.
     const link = within(body).getByRole("link", { name: "Source" });
     expect(link.getAttribute("rel")).toContain("noopener");
     fireEvent.doubleClick(link);
+    expect(inspectItem).not.toHaveBeenCalled();
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     for (const target of [body, within(body).getByRole("heading", { name: "Research note" }), note.querySelector("mfrac")!, note.querySelector("header")!]) {
-      onMarkdownEditRequest.mockClear();
+      inspectItem.mockClear();
       fireEvent.doubleClick(target);
-      expect(onMarkdownEditRequest).toHaveBeenCalledExactlyOnceWith("item-note");
+      expect(inspectItem).toHaveBeenCalledExactlyOnceWith("item-note");
+      expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     }
   });
 
@@ -433,6 +437,7 @@ The complete explanation follows the equation.
   });
 
   it.each([
+    { itemId: "item-note", kind: "Markdown", linkName: null, href: null },
     { itemId: "item-reference", kind: "Reference", linkName: "Open source", href: "/samples/sample-a" },
     { itemId: "item-attachment", kind: "attachment", linkName: "Open attachment", href: "/api/projects/project-a/contents/content-attachment/file" },
   ])("opens $kind Details on card double-click, respecting links and disabled panel commands", async ({ itemId, linkName, href }) => {
@@ -457,13 +462,15 @@ The complete explanation follows the equation.
       expect(element).toBeTruthy();
       return element!;
     });
-    const link = within(card).getByRole("link", { name: linkName });
-    dragCanvasTarget(link);
-    fireEvent.doubleClick(link);
+    if (linkName) {
+      const link = within(card).getByRole("link", { name: linkName });
+      dragCanvasTarget(link);
+      fireEvent.doubleClick(link);
+      expect(link.getAttribute("href")).toBe(href);
+    }
     expect(inspectItem).not.toHaveBeenCalled();
     expect(onGeometryCommit).not.toHaveBeenCalled();
-    expect(link.getAttribute("href")).toBe(href);
-    for (const target of [card, card.querySelector("header")!, card.querySelector("h2")!]) {
+    for (const target of [card, card.querySelector("header")!, card.querySelector("h2, .project-node-markdown p")!]) {
       fireEvent.doubleClick(target);
       expect(inspectItem).toHaveBeenCalledExactlyOnceWith(itemId);
       inspectItem.mockClear();
@@ -471,7 +478,7 @@ The complete explanation follows the equation.
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     rerender(surface(true));
     fireEvent.doubleClick(card);
-    fireEvent.doubleClick(card.querySelector("h2")!);
+    fireEvent.doubleClick(card.querySelector("h2, .project-node-markdown p")!);
     expect(inspectItem).not.toHaveBeenCalled();
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
   });

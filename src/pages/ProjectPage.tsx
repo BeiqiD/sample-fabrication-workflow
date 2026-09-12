@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   Link,
   useBeforeUnload,
@@ -366,6 +367,8 @@ export function ProjectPage() {
   const cancelActiveEditorRef = useRef<(() => void) | null>(null);
   const editorReturnFocusRef = useRef<HTMLElement | null>(null);
   const inspectorWasEditingRef = useRef(false);
+  const canvasEditorHandoffRef = useRef(false);
+  const inspectorFocusRequestRef = useRef(0);
   const referencePanelTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorHadTargetRef = useRef(false);
@@ -2502,7 +2505,9 @@ export function ProjectPage() {
   }, []);
 
   const focusInspectorPanel = useCallback(() => {
+    const request = ++inspectorFocusRequestRef.current;
     window.requestAnimationFrame(() => {
+      if (request !== inspectorFocusRequestRef.current) return;
       const panel = inspectorPanelRef.current;
       const field = panel?.matches(".editing") ? panel.querySelector<HTMLElement>("textarea:not(:disabled), input:not(:disabled)") : null;
       (field ?? panel)?.focus({ preventScroll: true });
@@ -2644,10 +2649,58 @@ export function ProjectPage() {
 
   const inspectorEditing = markdownEditor?.host === "inspector" || attachmentEditor?.host === "inspector"
     || (inspectorPanelOpen && edgeController.editor !== null);
+
+  const prepareCanvasInteraction = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Element) || !projectReadyRef.current || !snapshot
+      || ownedContentReloadPending || confirmingProjectDeletion || deletingProject || projectDeleteUncertain
+      || blocker.state === "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || pendingAttachmentRef.current || copyPaste.unsafeRef.current || trashControllerRef.current?.unsafeRef.current
+      || edgeController.pending) return;
+    const canvas = target.closest<HTMLElement>(".project-flow-canvas");
+    if (!canvas || target.closest([
+      ".project-markdown-editor", ".project-markdown-editor-shell", ".project-edge-toolbar",
+      "input", "textarea", "select", "button", "a", "[contenteditable=true]",
+      "[role=menu]", "[role=dialog]", "[inert]",
+    ].join(","))) return;
+
+    const note = markdownEditorRef.current;
+    const attachment = attachmentEditorRef.current;
+    const edge = edgeController.editor;
+    if (note) {
+      const content = snapshot.contents.find((entry) => entry.id === note.contentId);
+      if (note.isNew || note.status !== "editing" || content?.contentType !== "markdown"
+        || note.value !== (content.markdownSource ?? "")) return;
+    } else if (attachment) {
+      const content = snapshot.contents.find((entry) => entry.id === attachment.contentId);
+      if (attachment.status !== "editing" || content?.contentType !== "attachment"
+        || attachment.caption !== (content.attachmentCaption ?? "")
+        || attachment.sourceUrl !== (content.attachmentSourceUrl ?? "")) return;
+    } else if (edge) {
+      const saved = snapshot.edges.find((entry) => entry.id === edge.edgeId);
+      if (edge.status !== "editing" || !saved || edge.label !== (saved.label ?? "")
+        || edge.direction !== projectEdgeDirection(saved.markerStart, saved.markerEnd)) return;
+    } else return;
+
+    // Commit the clean exit before XYDrag's native mousedown/touchstart so the
+    // original gesture sees unlocked nodes, refs and geometry commit guards.
+    // Focus stays with the new canvas action, not the removed editor's trigger.
+    canvasEditorHandoffRef.current = inspectorEditing;
+    inspectorFocusRequestRef.current += 1;
+    canvas.focus({ preventScroll: true });
+    flushSync(cancelActiveEditor);
+  }, [
+    blocker.state, cancelActiveEditor, confirmingProjectDeletion, copyPaste.unsafeRef,
+    deletingProject, edgeController.editor, edgeController.pending, inspectorEditing,
+    ownedContentReloadPending, projectDeleteUncertain, snapshot,
+  ]);
+
   useEffect(() => {
     const wasEditing = inspectorWasEditingRef.current;
     inspectorWasEditingRef.current = inspectorEditing;
-    if (!wasEditing || inspectorEditing || !inspectorPanelOpen) return;
+    if (!wasEditing || inspectorEditing) return;
+    const handedToCanvas = canvasEditorHandoffRef.current;
+    canvasEditorHandoffRef.current = false;
+    if (handedToCanvas || !inspectorPanelOpen) return;
     const frame = window.requestAnimationFrame(() => {
       const original = editorReturnFocusRef.current;
       const fallback = inspectorPanelRef.current?.querySelector<HTMLElement>('[data-project-edit-trigger]');
@@ -3070,6 +3123,11 @@ export function ProjectPage() {
             ><DialogCloseIcon /></button>
           </div>
         </div>
+        {inspectorEditing && !readingActive && activeEditor?.status === "editing" && <p className="project-editor-interaction-hint">
+          {activeEditorChanged
+            ? "Save or cancel before moving cards or switching selection."
+            : "Click or drag the canvas to leave this unchanged edit."}
+        </p>}
         {markdownEditor?.host === "inspector" ? <section className="project-inspector-content project-inspector-editor" aria-label="Edit Markdown">
           <h2>Edit Markdown</h2>
           <Suspense fallback={<p role="status">Opening editor…</p>}><ProjectMarkdownEditor
@@ -3647,7 +3705,17 @@ export function ProjectPage() {
         </span>}
       </div>}
       {referencePanelOpen && referencePanel}
-      <section className="project-map-panel" aria-label="Project Map">
+      <section className="project-map-panel" aria-label="Project Map"
+        onPointerDownCapture={(event) => {
+          if (event.button === 0 && event.isPrimary) prepareCanvasInteraction(event.target);
+        }}
+        onMouseDownCapture={(event) => {
+          if (event.button === 0) prepareCanvasInteraction(event.target);
+        }}
+        onTouchStartCapture={(event) => {
+          if (event.touches.length === 1) prepareCanvasInteraction(event.target);
+        }}
+      >
         <Suspense fallback={<div className="project-map-loading"><p className="muted">Loading Map editor…</p></div>}>
           <DesktopProjectMap
             ref={mapSurfaceRef}

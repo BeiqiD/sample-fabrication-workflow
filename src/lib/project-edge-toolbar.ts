@@ -1,11 +1,12 @@
 export interface ProjectEdgeToolbarPoint { x: number; y: number }
 
-/** Place the toolbar in canvas pixels, keeping both reconnect targets clear. */
+/** Place the toolbar near its pointer anchor in canvas pixels, keeping reconnect targets clear. */
 export function projectEdgeToolbarPosition(
   source: ProjectEdgeToolbarPoint,
   target: ProjectEdgeToolbarPoint,
   canvas: { width: number; height: number },
   toolbar: { width: number; height: number },
+  anchor?: ProjectEdgeToolbarPoint | null,
 ) {
   const margin = 12;
   const clearance = 28;
@@ -14,6 +15,12 @@ export function projectEdgeToolbarPosition(
   const centerX = (source.x + target.x) / 2;
   const centerY = (source.y + target.y) / 2;
   const candidates = [
+    ...(anchor ? [
+      { x: anchor.x - width / 2, y: anchor.y - height - clearance },
+      { x: anchor.x - width / 2, y: anchor.y + clearance },
+      { x: anchor.x - width - clearance, y: anchor.y - height / 2 },
+      { x: anchor.x + clearance, y: anchor.y - height / 2 },
+    ] : []),
     { x: centerX - width / 2, y: Math.min(source.y, target.y) - height - clearance },
     { x: centerX - width / 2, y: Math.max(source.y, target.y) + clearance },
     { x: Math.min(source.x, target.x) - width - clearance, y: centerY - height / 2 },

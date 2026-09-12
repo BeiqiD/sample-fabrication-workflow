@@ -126,7 +126,9 @@ describe("Project Map editor stacking", () => {
     expect(note.style.zIndex).toBe("1");
     expect(reference.style.zIndex).toBe("3");
     expect((screen.getByRole("button", { name: "Undo" }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.doubleClick(note.querySelector("header")!);
+    fireEvent.click(note);
+    const actions = await screen.findByRole("toolbar", { name: "Selected card actions" });
+    fireEvent.click(within(actions).getByRole("button", { name: "Edit" }));
     const textbox = await screen.findByRole("textbox", { name: "Edit Project Markdown" });
     // These are the actual ReactFlow node wrappers, the sibling stacking contexts in the browser.
     expect(Number(getComputedStyle(note).zIndex)).toBeGreaterThan(Number(getComputedStyle(reference).zIndex));

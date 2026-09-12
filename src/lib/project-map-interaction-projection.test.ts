@@ -35,6 +35,34 @@ function node(id: string): TestNode {
 }
 
 describe("Project Map projection during pointer interactions", () => {
+  it("keeps measured handles while unlocking an unchanged card, using current data and authoritative position", () => {
+    const current: TestNode = {
+      ...node("a"), measured: { width: 250, height: 180 }, draggable: false,
+      data: { ...node("a").data, geometryInteractionDisabled: true },
+    };
+    const projected = { ...node("a"), position: { x: 100, y: 80 } };
+    const [result] = projectMapInteractionProjection([projected], [current], noInteractions, noInteractions);
+    expect(result.measured).toEqual(current.measured);
+    expect(result.position).toEqual(projected.position);
+    expect(result.data).toBe(projected.data);
+    expect(result.draggable).toBe(true);
+  });
+
+  it.each(["width", "height", "style", "type", "placement", "pending"])(
+    "remeasures instead of carrying old handles after a %s change", (change) => {
+      const current = { ...node("a"), measured: { width: 250, height: 180 } };
+      const projected = node("a");
+      if (change === "width") projected.width = 300;
+      if (change === "height") projected.height = 240;
+      if (change === "style") projected.style = { ...projected.style, width: 300 };
+      if (change === "type") projected.type = "replacement";
+      if (change === "placement") projected.data.descriptor.placementId = "replacement";
+      if (change === "pending") projected.data.pendingReference = {};
+      const [result] = projectMapInteractionProjection([projected], [current], noInteractions, noInteractions);
+      expect(result.measured).toBeUndefined();
+    },
+  );
+
   it("keeps every moving card in a multi-drag while accepting new data and controlled selection", () => {
     const projected = [node("a"), node("b"), node("c")];
     const current = projected.map((value, index) => ({
