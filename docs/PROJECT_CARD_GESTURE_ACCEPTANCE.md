@@ -7,13 +7,14 @@ user's request for intuitive selection, dragging, editing and realistic records.
 
 | Gesture | Result |
 | --- | --- |
-| Single click | Select the card and show its nearby actions. |
+| Single click on a committed card or edge | Select it and show nearby actions. An already-open Inspector follows the selection; this gesture does not open it. |
 | Press and move | Drag from any non-interactive area, including Markdown text, mathematical content, blank space, reference excerpts and attachment images. No preliminary selection click is needed. |
-| Double-click Markdown | Open the existing editor from its body, formula, heading or header. |
-| Double-click a reference or attachment | Open Details, subject to the existing panel lock. |
-| Any committed card's bottom-right corner | Drag the always-visible triangular border corner to resize directly, without selecting first. The 36-unit corner scales with the card and stays clear of content/source links. Only that card resizes; selection is preserved. Editing and geometry locks disable this operation. |
+| Double-click a committed card or edge | Open its Inspector, subject to the existing panel lock. Markdown, reference, attachment and edge use the same inspection gesture. Editing starts through an explicit Edit action. |
+| Primary click or drag in Canvas while an existing editor is unchanged | Exit the clean editor and perform that same click or drag. This requires the editable draft to exactly match its existing persisted content; editor inputs and controls keep their own interaction. |
+| Click an edge | Place its action toolbar near the actual click, clamped inside the visible Canvas and clear of endpoint controls. Keyboard/programmatic selection uses the endpoint-based fallback. |
+| Any committed card's bottom-right corner | Drag the always-visible triangular border corner to resize directly, without selecting first. The 18-unit corner scales with the card, follows its 12-unit outer radius and stays clear of content/source links. Only that card resizes; selection is preserved. Editing and geometry locks disable this operation. |
 | Arrow keys with the resize grip focused | Adjust width/height by 5 canvas units, or 20 with Shift. Preserve position and layer, respect existing dimension limits, and retain Save/Undo/Redo. |
-| Link, editor, resize grip or connection handle | Keep its own operation; do not start card movement or double-click editing. |
+| Link, editor, resize grip or connection handle | Keep its own operation; do not start card movement or double-click inspection. |
 | Scroll a long note | Scroll its contents. Arrow/Page/Home/End keys retain scrolling when its reading region has focus. |
 | Copy/Delete with Map preview focus | Operate on selected cards through the existing guarded commands. |
 | Select/copy text in Reading or Inspector | Keep native text operations; do not mutate the Map. |
@@ -22,6 +23,14 @@ An acknowledgement for one card no longer replaces the transient position of
 another card during its active drag. The same projection rule preserves active
 resize dimensions while accepting fresh content and selection. Deleted,
 replaced, pending, locked or edited nodes do not retain stale pointer geometry.
+
+Clean-editor handoff applies only to an existing Markdown, attachment metadata or
+edge editor in the ordinary `editing` state. New or changed drafts, rejected saves,
+saving, uncertain and conflict states keep their selection and geometry guards.
+Pending operations, reloads, navigation decisions and modal controls cannot be
+cleared by clicking the Canvas. Handoff performs no content write and keeps focus
+with the new Canvas action instead of returning it to the former Edit trigger.
+This follow-up does not add or reorganize keyboard shortcuts.
 
 ## Reference mathematics
 
@@ -55,9 +64,26 @@ The pre-existing Doping Project was not changed by this workflow.
 This browser pass used the existing deployed frontend. It validates the actual
 backend workflow and supplies reproduction evidence, not proof that the new
 gestures have been deployed. Post-deployment verification must repeat body drag,
-double-click editing/Details and drag-during-save on the new served assets.
+double-click inspection, explicit editing, clean-editor handoff, near-click edge
+actions and drag-during-save on the new served assets. The historical browser
+observations above remain evidence for the deployment tested at that time.
 
 ## Regression evidence
+
+The Inspector follow-up keeps Markdown, attachment metadata and edge editing in
+the panel when started there. Save/Cancel stay beside the bounded input area;
+Cancel/Escape preserve the panel and selection and return to the Edit action.
+Tests cover unchanged exit without a write, successful saves, guarded uncertain
+outcomes, mobile sheet Escape ordering and blocked panel switches. Direction
+controls expose four keyboard-operable icon radio buttons instead of a select.
+Connection ports are siblings of the clipped article, and source actions are
+bottom-centered; native connection and card gesture regressions remain applicable.
+
+Live inspection of the deployed #173 assets confirmed article overflow/clip-path
+cuts the outer half of each connection port. The follow-up assets and bounded
+2K/4K layout still require post-deployment visual acceptance; the available browser
+viewport is 1363×936, so mounted coverage is not claimed as a physical large-screen
+or mobile visual test.
 
 Real ReactFlow mounted tests cover body/image/reference dragging, double-click
 ownership, native links and editor input, keyboard ownership, resize, mouse and
@@ -75,10 +101,12 @@ The authenticated Cloudflare page reproduced the resizing difficulty: selected
 cards exposed four 9px corner targets, partly clipped by the card, alongside
 thin edge targets. PR #172 replaced these with a selected-card floating grip.
 The user's follow-up clarified that the corner must always be present as part
-of the border. The revised control is a 36-unit triangle within every committed
-card's bottom-right corner, without a floating square or preliminary selection.
-It scales with the card and uses a triangular hit area, reserved bottom padding,
-and an offset source link to keep its operation clear of content and scrolling.
+of the border. PR #173 introduced a 36-unit triangle; the subsequent size refinement
+halves both dimensions to 18 units and follows the card's existing 12-unit outer
+radius. It remains visible within every committed card's bottom-right corner,
+without a floating square or preliminary selection.
+It scales with the card and uses a rounded triangular hit area, reserved bottom padding,
+and a bottom-centered source link to keep its operation clear of content and scrolling.
 
 Mounted regressions exercise native mouse and multi-step touch resizing from
 the button itself, unselected/primary/secondary cards, editing/lock cancellation, arrow

@@ -17,6 +17,7 @@ export interface ProjectInspectorDetailsProps {
   snapshot: ProjectSnapshot;
   descriptor: ProjectNodeDescriptor;
   primaryContent?: ReactNode;
+  editing?: boolean;
   relatedContent?: ReactNode;
   onFocusItem?: (itemId: string) => void;
 }
@@ -60,6 +61,7 @@ export function ProjectInspectorDetails({
   snapshot,
   descriptor,
   primaryContent,
+  editing = false,
   relatedContent,
   onFocusItem,
 }: ProjectInspectorDetailsProps) {
@@ -85,14 +87,14 @@ export function ProjectInspectorDetails({
     </header>
 
     {(projection.primaryAction || primaryContent) && <div className="project-inspector-primary-actions">
-      {projection.primaryAction && <ProjectInspectorActionLink
+      {!editing && projection.primaryAction && <ProjectInspectorActionLink
         action={projection.primaryAction}
         className="button primary wide"
       />}
       {primaryContent}
     </div>}
 
-    {descriptor.kind === "markdown"
+    {!editing && <>{descriptor.kind === "markdown"
       ? <div className="project-inspector-preview">
         <div
           id={previewId}
@@ -205,5 +207,6 @@ export function ProjectInspectorDetails({
       </dl>
       </section>
     </details>
+    </>}
   </>;
 }

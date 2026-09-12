@@ -400,7 +400,21 @@ of independently acknowledged lifecycle operations, not an atomic bulk API.
 
 Edit and More appear near the selected edge while full edge detail remains in
 Inspector. Dragging an endpoint or handle reconnects the same edge through its
-revisioned update operation; double-clicking a line/label opens its editor.
+revisioned update operation. A pointer selection anchors the bounded toolbar near
+the actual click, clamped within the visible Canvas and clear of endpoint controls;
+keyboard/programmatic selection uses the endpoint-based fallback. Double-clicking
+a line/label opens Inspector, matching every committed card. Edit is an explicit
+action after selection or inspection.
+
+A single click selects a committed card or edge and updates an already-open
+Inspector. A double-click opens Inspector for Markdown, references, attachments
+and edges alike. An unchanged existing editor in ordinary `editing` state exits
+when the user starts a primary Canvas click or drag outside editor controls, then
+allows that same gesture to continue. The draft must exactly match its persisted
+content/metadata, and focus follows the new Canvas action. New or changed drafts,
+rejected saves, saving, uncertain and conflict outcomes keep their guards; pending
+operations, reloads, navigation decisions and modal controls are not dismissed.
+This follow-up leaves keyboard shortcut organization unchanged.
 
 ## Unified command model
 
@@ -434,12 +448,12 @@ The following placement rules are frozen for Phase 5C implementation:
 | Project overflow | Project-level low-frequency actions, export, lifecycle | below/end-aligned to the top-bar overflow control |
 | Add | Markdown, attachment, research-record entry | top-bar Add menu or exact-position blank-Canvas context menu |
 | References top-bar/context entry | search/discovery surface | left floating desktop non-modal panel |
-| Node body click | selection | local quick actions; update Inspector only if already open |
-| Markdown title double-click | edit | shared draft editor; body double-click remains text selection |
+| Committed node or edge click | selection | local quick actions; update Inspector only if already open |
+| Committed card or edge double-click | inspection | open Inspector consistently; use an explicit Edit action to edit |
 | Selected node quick actions | frequent item commands | bounded toolbar above/adjacent to the selected node |
 | Blank Canvas context menu | exact-position creation, paste, select/fit, panel entry | pointer position clamped inside Canvas |
 | Node More / context menu | inspect/edit/open/copy/layer/remove as applicable | anchored to More or the pointer position |
-| Selected edge | frequent edge commands | bounded toolbar near the edge midpoint |
+| Selected edge | frequent edge commands | bounded toolbar near the actual pointer click, clamped to the visible Canvas; endpoint-based fallback for keyboard/programmatic selection |
 | Multi-selection | alignment/z-order/bulk commands | one toolbar for the selection, not per-node duplicate toolbars |
 | Multi-field editing | editor/detail workflow | Inspector or dedicated editor, not a tiny popover |
 | Recoverable item removal | removal and recovery | More/context/selection command; Undo or Trash restore |

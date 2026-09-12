@@ -6,8 +6,12 @@ PR #168 beyond its original rendering scope. No merge or production deployment.
 
 The historical Map body-selection rule below is superseded by the 2026-09-12
 [card gesture acceptance](./PROJECT_CARD_GESTURE_ACCEPTANCE.md): Map previews
-drag from their non-interactive body and double-click opens editing or Details.
-Reading and Inspector retain text selection.
+drag from their non-interactive body; single click selects any committed card or
+edge, and double-click opens its Inspector. Editing uses an explicit Edit action.
+An unchanged existing editor can yield to the same primary Canvas click or drag;
+changed/new drafts and unresolved operations stay protected. Reading and Inspector
+retain text selection. The implementation and browser results below record the
+historical version tested, not acceptance of these later interaction changes.
 
 ## Implemented behavior
 

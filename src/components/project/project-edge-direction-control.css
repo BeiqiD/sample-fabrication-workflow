@@ -1,0 +1,48 @@
+.project-edge-direction-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.project-edge-direction-control .project-edge-direction-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  min-height: 32px;
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.project-edge-direction-control .project-edge-direction-option:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.project-edge-direction-control .project-edge-direction-option[aria-checked="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.project-edge-direction-control .project-edge-direction-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.project-edge-direction-control .project-edge-direction-option:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}

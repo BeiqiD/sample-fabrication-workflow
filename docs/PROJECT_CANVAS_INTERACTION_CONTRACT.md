@@ -229,9 +229,11 @@ pointer position and immediately focuses its editor.
   explicitly saves;
 - `Escape` cancels an unsaved empty draft;
 - only one Markdown node loads the full editor at a time;
-- editing temporarily disables node dragging;
-- existing Markdown nodes enter edit mode through Edit or title/chrome double-click;
-  double-clicking rendered body text preserves ordinary word selection;
+- editing temporarily disables node dragging; an unchanged existing editor can
+  exit during the next primary Canvas click or drag and allow that same gesture;
+- existing Markdown nodes enter edit mode through an explicit Edit action;
+  double-clicking their non-interactive body/title/chrome opens Inspector, matching
+  references, attachments and edges;
 - Map, Reading, and the expanded editor share one draft and canonical Markdown
   source; changing editor presentation must not create a new operation identity;
 - active-editor Save and Ctrl/Command+S save that draft; safe navigation offers
@@ -263,7 +265,7 @@ references found through the sidebar.
 
 ### Selection and navigation
 
-- click node body: select and expose local quick actions; update Inspector if it
+- click a committed node or edge: select and expose local quick actions; update Inspector if it
   is already open, without opening or pinning it implicitly;
 - press and drag any non-interactive card area, including rendered Markdown,
   reference excerpts and attachment previews: move without a prior selection click;
@@ -272,8 +274,10 @@ references found through the sidebar.
 - focus the resize grip and use arrow keys: adjust the corresponding dimension
   by 5 canvas units, or 20 with Shift, without moving the card;
 - double-click empty space: create Markdown;
-- Markdown body/title/chrome double-click or explicit Edit: edit;
-- reference/attachment body/title/chrome double-click: open Details;
+- double-click any committed card's non-interactive body/title/chrome or an edge's
+  line/label: open Inspector; Markdown, reference, attachment and edge follow the
+  same inspection rule;
+- explicit Edit: start the corresponding content or edge editor;
 - Reading and Inspector content retain native text selection/copy; Map card
   previews use selection/copy/delete shortcuts for cards and retain scrolling;
 - edit attachment caption/source URL through an explicit metadata action;
@@ -285,8 +289,12 @@ references found through the sidebar.
 
 Interactive controls and editor regions must not initiate node dragging.
 Links, scrollbars, the resize grip and connection handles retain their own gestures.
-Every committed card displays a 36-unit triangular resize corner integrated into
-its border. It scales with the card, with reserved content clearance and the
+Source/attachment links appear at the bottom center of the card. The four connection
+ports are complete 12-unit circles centered on its edges, rendered outside the
+clipped content article so both halves remain visible and interactive.
+Every committed card displays an 18-unit triangular resize corner integrated into
+its border, following the card's 12-unit outer radius in both paint and hit area.
+It scales with the card, with reserved content clearance and the
 source link offset away from the corner. Resizing only affects that card's
 dimensions and preserves the existing selection. Editing or a geometry lock
 hides the control without reclaiming its content clearance during a lock.
@@ -295,6 +303,45 @@ and 110–1000 height limits, Save, Undo and Redo behavior, and stored position/
 An acknowledgement for another card must not replace the position or dimensions
 of a card while its pointer drag or resize is still active. Fresh content and
 selection still apply; deleted/replaced/locked cards must not be resurrected.
+
+An edge selected by pointer displays its quick actions near the actual click
+position, clamped inside the visible Canvas and clear of endpoint controls.
+Keyboard or programmatic selection retains the endpoint-based placement fallback.
+Reconnecting or changing either endpoint's geometry invalidates that clicked
+position; metadata changes, pan and zoom retain it.
+
+An existing unchanged editor yields to a primary click or drag elsewhere in the
+Canvas. This applies only to the ordinary `editing` state when Markdown source,
+attachment caption/source URL, or edge label/direction exactly matches its current
+persisted record. The editor exits before the native Canvas gesture begins, so
+the same click selects or the same drag moves the intended object. No content
+write is needed, and focus follows that Canvas action. Editor fields, controls,
+menus and dialogs retain their own interactions. New or changed drafts, rejected
+saves, saving, uncertain and conflict states remain protected, as do pending
+operations, reloads, navigation decisions and modal controls. This rule does not
+introduce an independent concurrent editing/movement path or new shortcuts.
+Refreshing an unchanged card's data or interaction lock preserves its measured
+dimensions and handle bounds, keeping the original edge click target mounted.
+Replacement cards and changed dimensions are measured again.
+
+Inspector editing stays in the Inspector: Markdown, attachment metadata and edge
+metadata use one local editing area with Save and Cancel next to the inputs.
+Existing card/Reading edits keep their local editor; opening an Inspector edit
+does not mount a second editor on the surface. During an Inspector edit, supporting
+previews/details/actions are hidden. The panel width is bounded at 460 CSS pixels
+on large Map workspaces, the default Markdown input height at 360 pixels, and the
+editing panel at 760 pixels; controls do not spread across a 2K/4K display.
+
+Plain Escape cancels editable/rejected drafts like Cancel, including an unchanged
+existing note, and returns focus to the local Edit action while leaving Inspector
+and selection open. A second Escape can close the Inspector. The panel close button
+and toolbar toggle follow the same editor-first exit rule. Other panel switches
+cannot hide an active Inspector editor. Saving, uncertain and conflict states retain
+their recovery controls; Escape must not discard them. IME composition and modified
+Escape do not cancel. An expanded editor consumes the first Escape to collapse.
+Ctrl/Command+S continues to save the active editor. Edge direction uses four icon
+radio buttons with tooltips, accessible names and arrow/Home/End navigation, in
+both Inspector and the contextual edge toolbar.
 
 Phase 4B multi-selection uses only Project item occurrence IDs:
 

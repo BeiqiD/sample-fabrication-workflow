@@ -179,23 +179,43 @@ describe("C3 Reading details and responsive panel integration", () => {
     expect(document.querySelectorAll("#project-inspector-panel")).toHaveLength(1);
   });
 
-  it.each(["markdown", "attachment"] as const)("hands %s editing from mobile details to exactly one inline editor", async (kind) => {
+  it.each(["markdown", "attachment"] as const)("keeps %s editing in one mobile Inspector and restores its Details origin on close", async (kind) => {
     media.setWidth(390);
-    renderProject();
-    await showReading();
-    const inspector = await openDetails(kind === "markdown" ? "Design note" : "evidence.pdf");
-    expect(screen.getByRole("dialog", { name: "Project Inspector" })).toBeTruthy();
-    click(within(inspector).getByRole("button", { name: kind === "markdown" ? "Edit Markdown" : "Edit metadata" }));
-    const fieldLabel = kind === "markdown" ? "Reading Markdown editor" : "Reading attachment caption";
-    const editor = await screen.findByLabelText(fieldLabel);
+    const { container } = renderProject();
+    const reading = await showReading();
+    const title = kind === "markdown" ? "Design note" : "evidence.pdf";
+    const detailsTrigger = within(reading).getByRole("button", { name: `Details for ${title}` });
+    const detailsButtons = within(reading).getAllByRole("button", { name: /^Details for / });
+    const inspector = await openDetails(title);
+    const dialog = screen.getByRole("dialog", { name: "Project Inspector" });
+    const editLabel = kind === "markdown" ? "Edit Markdown" : "Edit metadata";
+    click(within(inspector).getByRole("button", { name: editLabel }));
+    const fieldLabel = kind === "markdown" ? "Inspector Markdown editor" : "Caption";
+    const editor = await within(inspector).findByLabelText(fieldLabel);
     await waitFor(() => expect(document.activeElement).toBe(editor));
     expect(screen.getAllByLabelText(fieldLabel)).toHaveLength(1);
-    expect(screen.queryByRole("dialog", { name: "Project Inspector" })).toBeNull();
+    expect(screen.queryByLabelText(kind === "markdown" ? "Reading Markdown editor" : "Reading attachment caption")).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Project Inspector" })).toBe(dialog);
+    expect(screen.getByRole("complementary", { name: "Project Inspector" })).toBe(inspector);
+    expect(editor.closest("#project-inspector-panel")).toBe(inspector);
+    expect(editor.closest(".project-reading-item")).toBeNull();
+    expect(container.hasAttribute("inert")).toBe(true);
+    fireEvent.change(editor, { target: { value: "Draft stays in Inspector" } });
+    expect((editor as HTMLTextAreaElement).value).toBe("Draft stays in Inspector");
+    for (const details of detailsButtons) expect((details as HTMLButtonElement).disabled).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    click(within(inspector).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(within(inspector).queryByLabelText(fieldLabel)).toBeNull());
+    expect(screen.getByRole("dialog", { name: "Project Inspector" })).toBe(dialog);
+    expect(container.hasAttribute("inert")).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(within(inspector).getByRole("button", { name: editLabel })));
+    expect(within(inspector).queryByText("Draft stays in Inspector")).toBeNull();
+    click(within(inspector).getByRole("button", { name: "Close Inspector" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Project Inspector" })).toBeNull());
     expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
-    expect(editor.closest(".project-reading-item")).not.toBeNull();
-    fireEvent.change(editor, { target: { value: "Draft stays in Reading" } });
-    expect((editor as HTMLTextAreaElement).value).toBe("Draft stays in Reading");
-    for (const details of screen.getAllByRole("button", { name: /^Details for / })) expect((details as HTMLButtonElement).disabled).toBe(true);
+    expect(container.hasAttribute("inert")).toBe(false);
+    await waitFor(() => expect(document.activeElement).toBe(detailsTrigger));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

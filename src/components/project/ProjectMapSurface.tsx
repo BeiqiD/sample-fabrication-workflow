@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 import { ActionIcon } from "../ActionIcon";
 import { ReferenceExcerpt } from "../ReferenceExcerpt";
+import { ProjectEdgeDirectionControl } from "./ProjectEdgeDirectionControl";
 import {
   Background,
   ConnectionMode,
@@ -244,6 +245,23 @@ function nodeGeometry(node: ProjectFlowNode): ProjectMapGeometry {
   };
 }
 
+function edgeToolbarGeometrySignature(
+  edge: Pick<ProjectFlowEdge, "source" | "target" | "sourceHandle" | "targetHandle">,
+  nodes: ProjectFlowNode[],
+) {
+  const source = nodes.find((node) => node.id === edge.source);
+  const target = nodes.find((node) => node.id === edge.target);
+  if (!source || !target) return null;
+  const geometrySignature = (node: ProjectFlowNode) => {
+    const { x, y, width, height } = nodeGeometry(node);
+    return [x, y, width, height];
+  };
+  return JSON.stringify([
+    edge.source, edge.target, edge.sourceHandle, edge.targetHandle,
+    geometrySignature(source), geometrySignature(target),
+  ]);
+}
+
 function geometryFromResize(
   descriptor: ProjectNodeDescriptor,
   params: ResizeParams,
@@ -351,15 +369,9 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
       if (cardTargetIsInteractive(event.target)) event.stopPropagation();
     }}
   >
-    <>
-      <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-      <Handle type="source" id="right" position={Position.Right} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-      <Handle type="source" id="bottom" position={Position.Bottom} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-      <Handle type="source" id="left" position={Position.Left} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-    </>
     <header
       className="project-node-drag-handle"
-      title={descriptor.kind === "markdown" ? "Drag to move · Double-click to edit Markdown" : "Drag to move · Double-click for details"}
+      title="Drag to move · Double-click for details"
     >
       <span><ActionIcon name={descriptor.kind === "reference" ? "link" : descriptor.kind === "markdown" ? "note" : "attachment"} />{projectNodeKindLabel(descriptor.kind)}</span>
       {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
@@ -414,6 +426,11 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
       >{descriptor.openSourceUrl ? "Open source" : "Reference details"}</a>}
     </>}
   </article>
+    {/* Keep connection ports outside the article's content and resize-corner clipping. */}
+    <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="right" position={Position.Right} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="bottom" position={Position.Bottom} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="left" position={Position.Left} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
     {canResize && <NodeResizeControl
       position="bottom-right"
       minWidth={180}
@@ -454,9 +471,9 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
           data.onResizeEnd(descriptor, after);
         }}
       >
-        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
-          <path className="project-node-resize-corner" d="M1 35 35 1v34Z" />
-          <path d="m19 29 10-10m-3 10 3-3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+          <path className="project-node-resize-corner" d="M.5 17.5 17.5 .5V6A11.5 11.5 0 0 1 6 17.5Z" />
+          <path d="M8.5 13 13 8.5M11 14 14 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       </button>
     </NodeResizeControl>}
@@ -749,6 +766,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const [contextMenu, setContextMenu] = useState<ProjectMapContextMenu | null>(null);
   const [edgeToolbarViewport, setEdgeToolbarViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [edgeToolbarAnchor, setEdgeToolbarAnchor] = useState<{ edgeId: string; geometrySignature: string; x: number; y: number } | null>(null);
+  const edgeSelectionAcceptanceRef = useRef<{ edgeId: string; accepted: boolean } | null>(null);
   const [edgeToolbarMetrics, setEdgeToolbarMetrics] = useState({ width: 360, height: 44, canvasWidth: window.innerWidth, canvasHeight: window.innerHeight });
   const [contextSubmenu, setContextSubmenu] = useState<string | null>(null);
   const submenuFocusRef = useRef<string | null>(null);
@@ -1119,6 +1138,17 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const handleElementClick = useCallback(() => {
     setContextMenu(null);
   }, []);
+  const handleEdgeClick = useCallback((event: React.MouseEvent, edge: ProjectFlowEdge) => {
+    setContextMenu(null);
+    if (event.button !== 0 || event.detail === 0 || edge.id === pendingEdge?.edgeId
+      || cardTargetIsInteractive(event.target)
+      || (event.target instanceof Element && event.target.closest(".react-flow__edgeupdater"))) return;
+    const acceptance = edgeSelectionAcceptanceRef.current;
+    if (selectedEdgeIdRef.current !== edge.id && acceptance?.edgeId === edge.id && !acceptance.accepted) return;
+    const point = flowPointFromClient(event.clientX, event.clientY);
+    const geometrySignature = edgeToolbarGeometrySignature(edge, flowNodesRef.current);
+    if (point && geometrySignature) setEdgeToolbarAnchor({ edgeId: edge.id, geometrySignature, ...point });
+  }, [flowPointFromClient, pendingEdge?.edgeId]);
   const handlePaneClick = useCallback(() => {
     setContextMenu(null);
   }, []);
@@ -1136,7 +1166,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       change.type === "select" && change.selected && change.id !== pendingEdge?.edgeId
     ));
     if (selected?.type === "select") {
-      onEdgeSelect(selected.id);
+      edgeSelectionAcceptanceRef.current = { edgeId: selected.id, accepted: onEdgeSelect(selected.id) !== false };
       setContextMenu(null);
       return;
     }
@@ -1588,6 +1618,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     : groupedMenuItems;
   const primaryDescriptor = descriptors.find((descriptor) => descriptor.itemId === selectedItemId) ?? null;
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId) ?? null;
+  const selectedEdgeGeometrySignature = useMemo(() => selectedEdge ? edgeToolbarGeometrySignature({
+    source: selectedEdge.sourceItemId, target: selectedEdge.targetItemId,
+    sourceHandle: selectedEdge.sourceHandle, targetHandle: selectedEdge.targetHandle,
+  }, flowNodes) : null, [selectedEdge, flowNodes]);
+  useEffect(() => {
+    // A clicked point belongs to this edge geometry. Reconnect, move or resize
+    // invalidates it; labels, markers, selection and viewport changes do not.
+    setEdgeToolbarAnchor((current) => current?.edgeId === selectedEdgeId
+      && current.geometrySignature === selectedEdgeGeometrySignature ? current : null);
+  }, [selectedEdgeId, selectedEdgeGeometrySignature]);
   useLayoutEffect(() => {
     if (!selectedEdgeId || !flowInstance) return;
     setEdgeToolbarViewport(flowInstance.getViewport());
@@ -1633,9 +1673,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     });
     const position = projectEdgeToolbarPosition(screenPoint(from), screenPoint(to), {
       width: edgeToolbarMetrics.canvasWidth, height: edgeToolbarMetrics.canvasHeight,
-    }, edgeToolbarMetrics);
+    }, edgeToolbarMetrics, edgeToolbarAnchor?.edgeId === selectedEdge.id
+      && edgeToolbarAnchor.geometrySignature === selectedEdgeGeometrySignature ? screenPoint(edgeToolbarAnchor) : null);
     return { x: (position.x - viewport.x) / viewport.zoom, y: (position.y - viewport.y) / viewport.zoom };
-  }, [flowNodes, selectedEdge, edgeToolbarViewport, edgeToolbarMetrics]);
+  }, [flowNodes, selectedEdge, selectedEdgeGeometrySignature, edgeToolbarViewport, edgeToolbarMetrics, edgeToolbarAnchor]);
   const openToolbarMenu = (event: React.MouseEvent<HTMLButtonElement>, target: "node" | "edge") => {
     event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
@@ -1803,15 +1844,21 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onNodeClick={handleElementClick}
       onNodeDoubleClick={(event, node) => {
         event.stopPropagation();
-        if (cardTargetIsInteractive(event.target) || node.data.markdownEditor
+        if (event.button !== 0 || cardTargetIsInteractive(event.target) || node.data.markdownEditor
           || node.data.pendingReference || node.data.pendingAttachment) return;
-        if (node.data.descriptor.kind === "markdown") {
-          if (!geometryInteractionDisabled) onMarkdownEditRequest(node.id);
-        } else if (contextCommands && !contextCommands.panelCommandsDisabled) {
+        if (contextCommands && !contextCommands.panelCommandsDisabled) {
           contextCommands.inspectItem(node.id);
         }
       }}
-      onEdgeClick={handleElementClick}
+      onEdgeClick={handleEdgeClick}
+      onEdgeDoubleClick={(event, edge) => {
+        event.stopPropagation();
+        if (event.button !== 0 || cardTargetIsInteractive(event.target)
+          || (event.target instanceof Element && event.target.closest(".react-flow__edgeupdater"))
+          || edge.id === pendingEdge?.edgeId || !contextCommands
+          || contextCommands.panelCommandsDisabled || contextCommands.edgeInspectDisabled) return;
+        contextCommands.inspectEdge(edge.id);
+      }}
       onNodeContextMenu={handleNodeContextMenu}
       onEdgeContextMenu={handleEdgeContextMenu}
       onPaneContextMenu={handlePaneContextMenu}
@@ -1868,6 +1915,12 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
           if (!edgeEditor) return;
+          if (event.key === "Escape" && !event.nativeEvent.isComposing
+            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            event.preventDefault(); event.stopPropagation();
+            if (["editing", "error"].includes(edgeEditor.status)) onEdgeEditCancel?.();
+            return;
+          }
           if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
             event.preventDefault(); event.stopPropagation();
             if (["editing", "error", "uncertain"].includes(edgeEditor.status)) onEdgeEditSave?.();
@@ -1878,16 +1931,14 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
           <label>Label<input autoFocus aria-label="Edge label" value={edgeEditor.label}
             disabled={!["editing", "error"].includes(edgeEditor.status)}
             onChange={(event) => onEdgeEditChange?.("label", event.currentTarget.value)} /></label>
-          <label>Direction<select aria-label="Edge direction" value={edgeEditor.direction}
+          <div className="project-edge-direction-field"><span>Direction</span><ProjectEdgeDirectionControl value={edgeEditor.direction}
             disabled={!["editing", "error"].includes(edgeEditor.status)}
-            onChange={(event) => onEdgeEditChange?.("direction", event.currentTarget.value)}>
-            <option value="undirected">No arrow</option><option value="forward">Source → target</option>
-            <option value="reverse">Target → source</option><option value="bidirectional">Both directions</option>
-          </select></label>
+            onChange={(direction) => onEdgeEditChange?.("direction", direction)}
+          /></div>
           <button type="button" disabled={!["editing", "error", "uncertain"].includes(edgeEditor.status)} onClick={onEdgeEditSave}>
             {edgeEditor.status === "saving" ? "Saving…" : edgeEditor.status === "uncertain" ? "Retry exact save" : "Save edge"}
           </button>
-          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} onClick={onEdgeEditCancel}>Cancel</button>
+          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} aria-keyshortcuts="Escape" onClick={onEdgeEditCancel}>Cancel <kbd aria-hidden="true">Esc</kbd></button>
           {edgeEditor.message && <p role="status">{edgeEditor.message}</p>}
         </> : <>
           <button type="button" disabled={contextCommands.edgeEditDisabled} onClick={contextCommands.editEdge}><ActionIcon name="plan-update" />Edit label / direction</button>

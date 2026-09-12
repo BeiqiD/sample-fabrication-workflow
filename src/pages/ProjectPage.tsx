@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   Link,
   useBeforeUnload,
@@ -94,6 +95,7 @@ import {
 } from "../lib/project-reference-suggestions";
 import { useProjectReferenceHydration } from "../lib/use-project-reference-hydration";
 import { projectEdgeDirection } from "../lib/project-edges";
+import { ProjectEdgeDirectionControl } from "../components/project/ProjectEdgeDirectionControl";
 import {
   projectSessionHistoryTouchesItem,
   type ProjectEdgeHistoryCommand,
@@ -122,6 +124,7 @@ const DesktopProjectMap = lazy(() => import("../components/project/ProjectMapSur
   .then((module) => ({ default: module.ProjectMapSurface })));
 const ProjectReadingSurface = lazy(() => import("../components/project/ProjectReadingSurface")
   .then((module) => ({ default: module.ProjectReadingSurface })));
+const ProjectMarkdownEditor = lazy(() => import("../components/project/ProjectMarkdownEditor"));
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "conflict";
 type ReferenceRemovalStatus = "removing" | "uncertain" | "reconciling" | "conflict";
@@ -141,11 +144,13 @@ type PendingReferenceCancellationRemoval = {
 
 
 type MarkdownEditorState = ProjectMapMarkdownEditorState & {
+  host?: "surface" | "inspector";
   contentId: string;
   placementId: string | null;
 };
 
 type AttachmentEditorState = {
+  host?: "surface" | "inspector";
   itemId: string;
   contentId: string;
   caption: string;
@@ -359,6 +364,11 @@ export function ProjectPage() {
   const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
   const referencePanelRef = useRef<HTMLElement | null>(null);
   const inspectorPanelRef = useRef<HTMLElement | null>(null);
+  const cancelActiveEditorRef = useRef<(() => void) | null>(null);
+  const editorReturnFocusRef = useRef<HTMLElement | null>(null);
+  const inspectorWasEditingRef = useRef(false);
+  const canvasEditorHandoffRef = useRef(false);
+  const inspectorFocusRequestRef = useRef(0);
   const referencePanelTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorHadTargetRef = useRef(false);
@@ -577,11 +587,15 @@ export function ProjectPage() {
   }, [readingActive]);
 
   const closeInspectorPanel = useCallback(() => {
-    if (!readingActive && attachmentEditorRef.current) return;
+    if (markdownEditorRef.current?.host === "inspector" || attachmentEditorRef.current?.host === "inspector"
+      || edgeController.editor) {
+      cancelActiveEditorRef.current?.();
+      return;
+    }
     setInspectorPanelOpen(false);
     setInspectorPinned(false);
     restoreInspectorFocus();
-  }, [readingActive, restoreInspectorFocus]);
+  }, [edgeController.editor, restoreInspectorFocus]);
 
   const closeReferencePanel = useCallback(() => {
     if (pendingReferenceRef.current) return;
@@ -616,7 +630,7 @@ export function ProjectPage() {
     inspectorHadTargetRef.current = hasInspectorTarget;
     // Selection stays lightweight. Explicit Details and attachment editing open
     // the panel; a pinned panel follows the selection without taking more space.
-    if (attachmentEditor && !readingActive) {
+    if (attachmentEditor?.host === "inspector" || markdownEditor?.host === "inspector") {
       setInspectorPanelOpen(true);
       if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     } else if (!hasInspectorTarget && (readingActive || !inspectorPinned)) {
@@ -636,6 +650,7 @@ export function ProjectPage() {
     // Inspector with a selection present must not immediately reopen it.
   }, [
     attachmentEditor,
+    markdownEditor,
     desktop,
     desktopView,
     readingActive,
@@ -648,7 +663,9 @@ export function ProjectPage() {
 
   useEffect(() => {
     const closePanelOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || addMenuOpen || projectActionsOpen) return;
+      if (event.key !== "Escape" || event.isComposing || addMenuOpen || projectActionsOpen) return;
+      // The current editor owns Escape before the surrounding panel.
+      if (markdownEditor || attachmentEditor || edgeController.editor) return;
       const target = event.target as Node;
       if (!attachmentEditor && inspectorPanelOpen && inspectorPanelRef.current?.contains(target)) {
         event.preventDefault();
@@ -669,6 +686,8 @@ export function ProjectPage() {
     closeInspectorPanel,
     closeReferencePanel,
     attachmentEditor,
+    markdownEditor,
+    edgeController.editor,
     desktop,
     desktopView,
     inspectorPanelOpen,
@@ -1778,7 +1797,7 @@ export function ProjectPage() {
     setSelectedItemIds([itemId]);
   }, [ownedContentReloadPending, snapshot, updateMarkdownEditor]);
 
-  const startMarkdownEdit = useCallback((itemId: string) => {
+  const startMarkdownEdit = useCallback((itemId: string, host: "surface" | "inspector" = "surface") => {
     if (ownedContentReloadPending || !snapshot || saveStateRef.current === "conflict"
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
@@ -1788,12 +1807,14 @@ export function ProjectPage() {
       ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
       : null;
     if (!item || !content || content.contentType !== "markdown") return;
+    editorReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     ownedContentGenerationRef.current += 1;
     markdownCreateInputRef.current = null;
     markdownUpdateInputRef.current = null;
     setOwnedContentActionError("");
     updateMarkdownEditor({
       itemId,
+      host,
       contentId: content.id,
       placementId: null,
       value: content.markdownSource ?? "",
@@ -2063,7 +2084,7 @@ export function ProjectPage() {
     continueReferenceNavigation(leave);
   }, [continueReferenceNavigation, updatePendingAttachment]);
 
-  const startAttachmentEdit = useCallback((itemId: string) => {
+  const startAttachmentEdit = useCallback((itemId: string, requestedHost: "surface" | "inspector" = "surface") => {
     if (ownedContentReloadPending || !snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
@@ -2072,12 +2093,14 @@ export function ProjectPage() {
       ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
       : null;
     if (!item || !content || content.contentType !== "attachment") return;
+    editorReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     ownedContentGenerationRef.current += 1;
     attachmentUpdateInputRef.current = null;
     const caption = content.attachmentCaption ?? "";
     const sourceUrl = content.attachmentSourceUrl ?? "";
     updateAttachmentEditor({
       itemId,
+      host: readingActive ? requestedHost : "inspector",
       contentId: content.id,
       caption,
       sourceUrl,
@@ -2086,7 +2109,7 @@ export function ProjectPage() {
     });
     setSelectedItemIds([itemId]);
     setOwnedContentActionError("");
-  }, [ownedContentReloadPending, snapshot, updateAttachmentEditor]);
+  }, [ownedContentReloadPending, readingActive, snapshot, updateAttachmentEditor]);
 
   const updateAttachmentDraft = useCallback((field: "caption" | "sourceUrl", value: string) => {
     const current = attachmentEditorRef.current;
@@ -2482,7 +2505,13 @@ export function ProjectPage() {
   }, []);
 
   const focusInspectorPanel = useCallback(() => {
-    window.requestAnimationFrame(() => inspectorPanelRef.current?.focus());
+    const request = ++inspectorFocusRequestRef.current;
+    window.requestAnimationFrame(() => {
+      if (request !== inspectorFocusRequestRef.current) return;
+      const panel = inspectorPanelRef.current;
+      const field = panel?.matches(".editing") ? panel.querySelector<HTMLElement>("textarea:not(:disabled), input:not(:disabled)") : null;
+      (field ?? panel)?.focus({ preventScroll: true });
+    });
   }, []);
 
   const inspectContextItem = useCallback((itemId: string) => {
@@ -2524,11 +2553,13 @@ export function ProjectPage() {
   }, [focusInspectorPanel, selectProjectEdge]);
 
   const openReferencePanel = useCallback(() => {
+    if (markdownEditorRef.current?.host === "inspector" || attachmentEditorRef.current?.host === "inspector"
+      || edgeController.editor) return;
     if (readingActive) trash.close();
     setReferencePanelOpen(true);
     if (readingActive || (!inspectorPinned && window.matchMedia("(max-width: 1180px)").matches)) setInspectorPanelOpen(false);
     focusReferencePanel();
-  }, [focusReferencePanel, inspectorPinned, readingActive, trash.close]);
+  }, [edgeController.editor, focusReferencePanel, inspectorPinned, readingActive, trash.close]);
 
   const inspectReadingItem = useCallback((itemId: string) => {
     if (selectProjectItem(itemId) === false) return;
@@ -2591,6 +2622,94 @@ export function ProjectPage() {
     document.addEventListener("keydown", onSaveShortcut);
     return () => document.removeEventListener("keydown", onSaveShortcut);
   }, [saveCurrentChanges]);
+
+  const cancelActiveEditor = useCallback(() => {
+    const editor = markdownEditorRef.current ?? attachmentEditorRef.current ?? edgeController.editor;
+    if (!editor || (editor.status !== "editing" && editor.status !== "error")) return;
+    if (markdownEditorRef.current) cancelMarkdown();
+    else if (attachmentEditorRef.current) cancelAttachmentEdit();
+    else edgeController.cancelEdit();
+  }, [cancelMarkdown, cancelAttachmentEdit, edgeController.editor, edgeController.cancelEdit]);
+  cancelActiveEditorRef.current = cancelActiveEditor;
+
+  useEffect(() => {
+    const onEditorEscape = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.key !== "Escape"
+        || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (!markdownEditor && !attachmentEditor && !edgeController.editor) return;
+      // Menus and expanded/modal editors resolve their own top layer first.
+      if (event.target instanceof Element && event.target.closest('[role="menu"], [aria-modal="true"]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancelActiveEditor();
+    };
+    document.addEventListener("keydown", onEditorEscape);
+    return () => document.removeEventListener("keydown", onEditorEscape);
+  }, [attachmentEditor, cancelActiveEditor, edgeController.editor, markdownEditor]);
+
+  const inspectorEditing = markdownEditor?.host === "inspector" || attachmentEditor?.host === "inspector"
+    || (inspectorPanelOpen && edgeController.editor !== null);
+
+  const prepareCanvasInteraction = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Element) || !projectReadyRef.current || !snapshot
+      || ownedContentReloadPending || confirmingProjectDeletion || deletingProject || projectDeleteUncertain
+      || blocker.state === "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || pendingAttachmentRef.current || copyPaste.unsafeRef.current || trashControllerRef.current?.unsafeRef.current
+      || edgeController.pending) return;
+    const canvas = target.closest<HTMLElement>(".project-flow-canvas");
+    if (!canvas || target.closest([
+      ".project-markdown-editor", ".project-markdown-editor-shell", ".project-edge-toolbar",
+      "input", "textarea", "select", "button", "a", "[contenteditable=true]",
+      "[role=menu]", "[role=dialog]", "[inert]",
+    ].join(","))) return;
+
+    const note = markdownEditorRef.current;
+    const attachment = attachmentEditorRef.current;
+    const edge = edgeController.editor;
+    if (note) {
+      const content = snapshot.contents.find((entry) => entry.id === note.contentId);
+      if (note.isNew || note.status !== "editing" || content?.contentType !== "markdown"
+        || note.value !== (content.markdownSource ?? "")) return;
+    } else if (attachment) {
+      const content = snapshot.contents.find((entry) => entry.id === attachment.contentId);
+      if (attachment.status !== "editing" || content?.contentType !== "attachment"
+        || attachment.caption !== (content.attachmentCaption ?? "")
+        || attachment.sourceUrl !== (content.attachmentSourceUrl ?? "")) return;
+    } else if (edge) {
+      const saved = snapshot.edges.find((entry) => entry.id === edge.edgeId);
+      if (edge.status !== "editing" || !saved || edge.label !== (saved.label ?? "")
+        || edge.direction !== projectEdgeDirection(saved.markerStart, saved.markerEnd)) return;
+    } else return;
+
+    // Commit the clean exit before XYDrag's native mousedown/touchstart so the
+    // original gesture sees unlocked nodes, refs and geometry commit guards.
+    // Focus stays with the new canvas action, not the removed editor's trigger.
+    canvasEditorHandoffRef.current = inspectorEditing;
+    inspectorFocusRequestRef.current += 1;
+    canvas.focus({ preventScroll: true });
+    flushSync(cancelActiveEditor);
+  }, [
+    blocker.state, cancelActiveEditor, confirmingProjectDeletion, copyPaste.unsafeRef,
+    deletingProject, edgeController.editor, edgeController.pending, inspectorEditing,
+    ownedContentReloadPending, projectDeleteUncertain, snapshot,
+  ]);
+
+  useEffect(() => {
+    const wasEditing = inspectorWasEditingRef.current;
+    inspectorWasEditingRef.current = inspectorEditing;
+    if (!wasEditing || inspectorEditing) return;
+    const handedToCanvas = canvasEditorHandoffRef.current;
+    canvasEditorHandoffRef.current = false;
+    if (handedToCanvas || !inspectorPanelOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const original = editorReturnFocusRef.current;
+      const fallback = inspectorPanelRef.current?.querySelector<HTMLElement>('[data-project-edit-trigger]');
+      const target = original?.isConnected && original !== document.body
+        && !original.matches(":disabled") && !original.closest("[hidden], [inert]") ? original : fallback;
+      target?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [inspectorEditing, inspectorPanelOpen]);
 
   // Keyboard shortcuts and context menus share these route commands, so
   // selection, paste, and history never gain a second mutation path.
@@ -2682,13 +2801,16 @@ export function ProjectPage() {
   const activeEditor = markdownEditor ?? attachmentEditor ?? edgeController.editor;
   const activeEditorName = markdownEditor ? "Markdown" : attachmentEditor ? "metadata" : "edge";
   const activeEditorChanged = markdownEditor
-    ? markdownEditor.isNew || markdownEditor.value !== snapshot.contents.find((content) => content.id === markdownEditor.contentId)?.markdownSource
+    ? markdownEditor.isNew || markdownEditor.value !== (snapshot.contents.find((content) => content.id === markdownEditor.contentId)?.markdownSource ?? "")
     : attachmentEditor
       ? (() => {
         const content = snapshot.contents.find((candidate) => candidate.id === attachmentEditor.contentId);
         return attachmentEditor.caption !== (content?.attachmentCaption ?? "") || attachmentEditor.sourceUrl !== (content?.attachmentSourceUrl ?? "");
       })()
-      : true;
+      : edgeController.editor && edgeController.selectedEdge
+        ? edgeController.editor.label !== (edgeController.selectedEdge.label ?? "")
+          || edgeController.editor.direction !== projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)
+        : false;
   const activeEditorCanSave = Boolean(activeEditor
     && (activeEditor.status === "editing" || activeEditor.status === "error" || activeEditor.status === "uncertain")
     && (!markdownEditor || markdownEditor.value.trim()));
@@ -2708,6 +2830,7 @@ export function ProjectPage() {
     : saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled;
   const viewSwitchDisabled = projectionSwitchLocked;
   const readingInteractionDisabled = trash.pending !== null || ownedContentReloadPending || saveState !== "saved"
+    || markdownEditor?.host === "inspector" || attachmentEditor?.host === "inspector"
     || pendingReference !== null
     || pendingReferenceRemoval !== null
     || pendingAttachment !== null
@@ -2965,7 +3088,7 @@ export function ProjectPage() {
   const inspectorPanel = <aside
         ref={inspectorPanelRef}
         id="project-inspector-panel"
-        className="project-inspector"
+        className={`project-inspector${inspectorEditing ? " editing" : ""}`}
         aria-label="Project Inspector"
         tabIndex={-1}
         data-panel-presentation={desktop ? "floating" : "modal"}
@@ -2992,35 +3115,45 @@ export function ProjectPage() {
             <button
               type="button"
               className="button compact-button project-panel-icon-button"
-              title="Close Inspector (Esc)"
-              aria-label="Close Inspector"
+              title={inspectorEditing ? "Cancel editing (Esc)" : "Close Inspector (Esc)"}
+              aria-label={inspectorEditing ? "Cancel editing" : "Close Inspector"}
               aria-keyshortcuts="Escape"
-              disabled={!readingActive && attachmentEditor !== null}
+              disabled={inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error"}
               onClick={closeInspectorPanel}
             ><DialogCloseIcon /></button>
           </div>
         </div>
-        {!readingActive && edgeController.selectedEdge ? <div className="project-inspector-content">
+        {inspectorEditing && !readingActive && activeEditor?.status === "editing" && <p className="project-editor-interaction-hint">
+          {activeEditorChanged
+            ? "Save or cancel before moving cards or switching selection."
+            : "Click or drag the canvas to leave this unchanged edit."}
+        </p>}
+        {markdownEditor?.host === "inspector" ? <section className="project-inspector-content project-inspector-editor" aria-label="Edit Markdown">
+          <h2>Edit Markdown</h2>
+          <Suspense fallback={<p role="status">Opening editor…</p>}><ProjectMarkdownEditor
+            editor={markdownEditor}
+            ariaLabel="Inspector Markdown editor"
+            onChange={changeMarkdown}
+            onSave={() => void saveMarkdown()}
+            onCancel={() => cancelMarkdown(false)}
+          /></Suspense>
+        </section> : !readingActive && edgeController.selectedEdge ? <div className={`project-inspector-content${edgeController.editor ? " project-inspector-editor" : ""}`}>
           <header className="project-inspector-summary">
             <span className="meta-badge">edge</span>
             <h2>{edgeController.selectedEdge.label || "Relationship"}</h2>
           </header>
           {edgeController.editor?.edgeId === edgeController.selectedEdge.id ? <div className="project-attachment-meta-form">
-            <label>Direction
-              <select
+            <div className="project-inspector-direction"><span>Direction</span>
+              <ProjectEdgeDirectionControl
                 value={edgeController.editor.direction}
                 disabled={edgeController.editor.status === "saving" || edgeController.editor.status === "uncertain" || edgeController.editor.status === "conflict"}
-                onChange={(event) => edgeController.changeEdit("direction", event.currentTarget.value)}
-              >
-                <option value="undirected">Undirected</option>
-                <option value="forward">Forward</option>
-                <option value="reverse">Reverse</option>
-                <option value="bidirectional">Bidirectional</option>
-              </select>
-            </label>
+                onChange={(direction) => edgeController.changeEdit("direction", direction)}
+              />
+            </div>
             <label>Label
               <input
                 type="text"
+                autoFocus
                 value={edgeController.editor.label}
                 disabled={edgeController.editor.status === "saving" || edgeController.editor.status === "uncertain" || edgeController.editor.status === "conflict"}
                 onChange={(event) => edgeController.changeEdit("label", event.currentTarget.value)}
@@ -3030,13 +3163,16 @@ export function ProjectPage() {
             <div className="project-owned-content-pending-actions">
               {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge</button>}
               {edgeController.editor.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact save</button>}
-              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Cancel</button>}
+              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" aria-keyshortcuts="Escape" onClick={edgeController.cancelEdit}>Cancel <kbd aria-hidden="true">Esc</kbd></button>}
               {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
             </div>
           </div> : <div className="project-inspector-primary-actions">
-            <button type="button" className="button primary wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.startEdit}>Edit edge</button>
+            <button type="button" className="button primary wide" data-project-edit-trigger disabled={workspaceOperationBusy || saveState !== "saved"} onClick={(event) => {
+              editorReturnFocusRef.current = event.currentTarget;
+              edgeController.startEdit();
+            }}>Edit edge</button>
           </div>}
-          <section className="project-inspector-section" aria-label="Edge connection">
+          {!edgeController.editor && <><section className="project-inspector-section" aria-label="Edge connection">
             <h3>Connection</h3>
             <dl>
               <dt>Source</dt><dd>{selectedEdgeSource?.title || edgeController.selectedEdge.sourceItemId}</dd>
@@ -3052,6 +3188,7 @@ export function ProjectPage() {
               <dt>Revision</dt><dd>{edgeController.selectedEdge.revision}</dd>
             </dl>
           </details>
+          </>}
           {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <div className="project-inspector-danger-zone">
             <button type="button" className="button danger wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
           </div>}
@@ -3072,6 +3209,7 @@ export function ProjectPage() {
           <ProjectInspectorDetails
             snapshot={snapshot}
             descriptor={selected}
+            editing={attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId}
             onFocusItem={(itemId) => {
               if (readingActive) focusReadingItem(itemId);
               else if (selectProjectItem(itemId) !== false) setNavigationFocusItemId(itemId);
@@ -3079,10 +3217,10 @@ export function ProjectPage() {
             primaryContent={selected.kind === "markdown" ? <button
               type="button"
               className="button primary wide"
+              data-project-edit-trigger
               disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
               onClick={() => {
-                if (readingActive) focusReadingItem(selected.itemId);
-                startMarkdownEdit(selected.itemId);
+                startMarkdownEdit(selected.itemId, "inspector");
               }}
             >Edit Markdown</button> : selected.kind === "attachment" ? <>
               {attachmentEditor?.itemId !== selected.itemId && <div className="project-inspector-supporting-actions">
@@ -3095,16 +3233,17 @@ export function ProjectPage() {
                 <button
                   type="button"
                   className="button compact-button"
+                  data-project-edit-trigger
                   disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
                   onClick={() => {
-                    if (readingActive) focusReadingItem(selected.itemId);
-                    startAttachmentEdit(selected.itemId);
+                    startAttachmentEdit(selected.itemId, "inspector");
                   }}
                 >Edit metadata</button>
               </div>}
-              {!readingActive && attachmentEditor?.itemId === selected.itemId && <div className="project-attachment-meta-form">
+              {attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId && <div className="project-attachment-meta-form project-inspector-editor">
                 <label>Caption
                   <textarea
+                    autoFocus
                     value={attachmentEditor.caption}
                     disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}
                     onChange={(event) => updateAttachmentDraft("caption", event.currentTarget.value)}
@@ -3128,7 +3267,7 @@ export function ProjectPage() {
                   {(attachmentEditor.status === "editing" || attachmentEditor.status === "error" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
                     {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
                   </button>}
-                  {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(false)}>{attachmentEditor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
+                  {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" aria-keyshortcuts={attachmentEditor.status === "conflict" ? undefined : "Escape"} onClick={() => cancelAttachmentEdit(false)}>{attachmentEditor.status === "conflict" ? "Discard draft and reload" : <>Cancel <kbd aria-hidden="true">Esc</kbd></>}</button>}
                 </div>
               </div>}
             </> : null}
@@ -3143,7 +3282,7 @@ export function ProjectPage() {
               }}
             /> : null}
           />
-          <details className="project-inspector-item-more">
+          {!inspectorEditing && <details className="project-inspector-item-more">
             <summary>More actions</summary>
           {!readingActive && <details className="project-inspector-toolbox">
             <summary>Arrange on Map</summary>
@@ -3209,7 +3348,7 @@ export function ProjectPage() {
               : "Remove from Project"}</button>}
             {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
           </div>}
-          </details>
+          </details>}
         </div> : <p className="muted">Select a card or connection, then choose Details.</p>}
       </aside>;
 
@@ -3222,8 +3361,8 @@ export function ProjectPage() {
       mobile={!desktop}
       inspectedItemId={inspectorPanelOpen ? selectedItemId : null}
       onDetailsRequest={inspectReadingItem}
-      markdownEditor={markdownEditor}
-      attachmentEditor={attachmentEditor}
+      markdownEditor={markdownEditor?.host === "inspector" ? null : markdownEditor}
+      attachmentEditor={attachmentEditor?.host === "inspector" ? null : attachmentEditor}
       interactionDisabled={readingInteractionDisabled}
       onMarkdownEditRequest={startMarkdownEdit}
       onMarkdownDeleteRequest={removeMarkdownItem}
@@ -3301,8 +3440,8 @@ export function ProjectPage() {
             aria-controls="project-reference-panel"
             aria-pressed={referencePanelOpen}
             aria-label="References"
-            title="References"
-            disabled={pendingReference !== null && referencePanelOpen}
+            title={inspectorEditing ? "Finish editing before opening References" : "References"}
+            disabled={(pendingReference !== null && referencePanelOpen) || inspectorEditing || edgeController.editor !== null}
             onClick={() => referencePanelOpen ? setReferencePanelOpen(false) : openReferencePanel()}
           >
             <NavigationIcon name="search" />
@@ -3316,12 +3455,11 @@ export function ProjectPage() {
             aria-controls="project-inspector-panel"
             aria-pressed={inspectorPanelOpen}
             aria-label="Inspector"
-            title="Inspector"
-            disabled={attachmentEditor !== null && inspectorPanelOpen}
+            title={inspectorEditing ? "Cancel editing (Esc)" : "Inspector"}
+            disabled={inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error"}
             onClick={() => {
               if (inspectorPanelOpen) {
-                setInspectorPanelOpen(false);
-                setInspectorPinned(false);
+                closeInspectorPanel();
               } else {
                 openInspectorPanel();
               }
@@ -3567,7 +3705,17 @@ export function ProjectPage() {
         </span>}
       </div>}
       {referencePanelOpen && referencePanel}
-      <section className="project-map-panel" aria-label="Project Map">
+      <section className="project-map-panel" aria-label="Project Map"
+        onPointerDownCapture={(event) => {
+          if (event.button === 0 && event.isPrimary) prepareCanvasInteraction(event.target);
+        }}
+        onMouseDownCapture={(event) => {
+          if (event.button === 0) prepareCanvasInteraction(event.target);
+        }}
+        onTouchStartCapture={(event) => {
+          if (event.touches.length === 1) prepareCanvasInteraction(event.target);
+        }}
+      >
         <Suspense fallback={<div className="project-map-loading"><p className="muted">Loading Map editor…</p></div>}>
           <DesktopProjectMap
             ref={mapSurfaceRef}
@@ -3576,7 +3724,7 @@ export function ProjectPage() {
             pendingEdge={edgeController.pendingEdge}
             pendingReference={pendingReference}
             pendingAttachment={pendingAttachment}
-            markdownEditor={markdownEditor}
+            markdownEditor={markdownEditor?.host === "inspector" ? null : markdownEditor}
             selectedItemId={selectedItemId}
             selectedItemIds={selectedItemIds}
             focusedItemId={navigationFocusItemId}

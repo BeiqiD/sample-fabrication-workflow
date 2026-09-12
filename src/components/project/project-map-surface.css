@@ -73,7 +73,6 @@
 }
 
 .project-flow-canvas .react-flow__node-projectItem:has(:where(.project-map-node.resizable)) {
-  border-bottom-right-radius: 0;
   box-shadow: 0 4px 14px var(--shadow);
 }
 
@@ -176,7 +175,7 @@
 
 .project-node-open-reference {
   position: absolute;
-  right: 44px;
+  left: 50%;
   bottom: 10px;
   z-index: 2;
   display: inline-flex;
@@ -190,10 +189,11 @@
   box-shadow: 0 2px 8px var(--shadow);
   font-size: 10px;
   font-weight: 720;
+  white-space: nowrap;
   text-decoration: none;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(3px);
+  transform: translate(-50%, 3px);
   transition: opacity .12s ease, transform .12s ease;
 }
 
@@ -202,7 +202,7 @@
 .project-flow-canvas .react-flow__node-projectItem:focus-within .project-node-open-reference {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 .project-node-open-reference:hover,
@@ -215,20 +215,20 @@
 /* The diagonal grip is part of every editable card's lower-right border.
    Scale it with the card so zooming out cannot cover its content or scrollbar. */
 .project-map-node.resizable {
-  padding-bottom: 26px;
-  border-bottom-right-radius: 0;
+  padding-bottom: 14px;
   /* Even a minimum-height card with a long title cannot paint into the grip. */
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 36px), calc(100% - 36px) 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
 }
 
 .project-flow-canvas .react-flow__resize-control.project-node-resize-handle {
-  width: 36px;
-  height: 36px;
+  width: 18px;
+  height: 18px;
   border: 0;
   border-radius: 0;
   background: transparent;
   translate: -100% -100%;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  /* Match the card's 12px outer radius for both paint and pointer targeting. */
+  clip-path: path("M0 18 18 0V6A12 12 0 0 1 6 18Z");
   z-index: 6;
 }
 
@@ -382,12 +382,25 @@
   cursor: not-allowed;
   opacity: .55;
 }
-.project-edge-handle {
-  /* Keep connection targets above the selected card's resize border. */
-  z-index: 3;
-  width: 10px;
-  height: 10px;
-  border-width: 2px;
+.project-flow-canvas .project-edge-handle {
+  /* Ports are siblings of the clipped article: the complete ring straddles
+     the card edge, and stays above its border without clipping its content. */
+  z-index: 4;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line-strong);
+  background: var(--paper);
+}
+
+.project-flow-canvas .react-flow__node-projectItem:hover .project-edge-handle,
+.project-flow-canvas .react-flow__node-projectItem.selected .project-edge-handle,
+.project-flow-canvas .project-edge-handle.connectingfrom {
+  border-color: var(--accent);
+}
+
+.project-flow-canvas .project-edge-handle.connectionindicator:hover,
+.project-flow-canvas .project-edge-handle.connectingfrom {
+  background: var(--accent);
 }
 
 .project-edge-handle.contextual-hidden {
@@ -423,7 +436,7 @@
 }
 
 .project-flow-canvas[data-project-map-detail="overview"] .project-map-node.resizable {
-  padding-bottom: 26px;
+  padding-bottom: 14px;
 }
 
 .project-flow-canvas[data-project-map-detail="overview"] .project-map-node > h2 {
@@ -504,9 +517,9 @@
 .project-map-context-menu [aria-haspopup="menu"] { justify-content: space-between; }
 .project-map-context-menu [aria-haspopup="menu"] > span { font-size: 18px; }
 .project-edge-toolbar.editing { align-items: end; flex-wrap: wrap; padding: 9px; gap: 7px; }
-.project-edge-toolbar label { display: grid; gap: 4px; min-width: 0; font-size: 11px; }
-.project-edge-toolbar input,
-.project-edge-toolbar select {
+.project-edge-toolbar label,
+.project-edge-toolbar .project-edge-direction-field { display: grid; gap: 4px; min-width: 0; font-size: 11px; }
+.project-edge-toolbar input {
   min-width: 0;
   max-width: 200px;
   min-height: 32px;

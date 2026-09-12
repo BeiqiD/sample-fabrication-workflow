@@ -15,12 +15,9 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page.indexOf("projectApi.createMarkdownItem(projectId, input)")).toBeGreaterThan(page.indexOf("const saveMarkdown"));
   });
 
-  it("only lets Escape cancel an empty new Markdown draft", () => {
-    const editor = read("./components/project/ProjectMarkdownEditor.tsx");
-    expect(editor).toContain('const canCancel = editor.status !== "saving" && editor.status !== "uncertain"');
-    expect(editor).toContain('event.key === "Escape" && canCancel && editor.isNew && !editor.value.trim()');
-    expect(editor).not.toContain('!editor.isNew || !editor.value.trim()');
-  });
+  // Escape now cancels editable existing drafts as well as new ones. Behavioral
+  // and unresolved-save coverage lives in project-markdown-editor.mount.test.tsx
+  // and project-inspector-edit-session.mount.test.tsx.
 
   it("uploads generic files through the Project asset route before creating one authoritative occurrence", () => {
     const page = read("./pages/ProjectPage.tsx");

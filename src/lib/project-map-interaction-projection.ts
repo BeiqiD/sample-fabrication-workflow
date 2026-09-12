@@ -17,7 +17,7 @@ function canKeepInteraction(node: Node<ProjectInteractionProjectionData>) {
     && !node.data.markdownEditor;
 }
 
-/** Refresh card data without replacing geometry owned by an active pointer gesture. */
+/** Refresh card data without invalidating stable handles or an active pointer gesture. */
 export function projectMapInteractionProjection<T extends Node<ProjectInteractionProjectionData>>(
   projectedNodes: readonly T[],
   currentNodes: readonly T[],
@@ -27,14 +27,26 @@ export function projectMapInteractionProjection<T extends Node<ProjectInteractio
   const currentById = new Map(currentNodes.map((node) => [node.id, node]));
   return projectedNodes.map((projected) => {
     const placementId = projected.data.descriptor.placementId;
+    const current = currentById.get(projected.id);
+    const samePlacement = current?.data.descriptor.placementId === placementId;
+    // XYFlow clears handle bounds when a refreshed node loses its measurements.
+    // Keep valid measurements across data/lock changes so an edge being clicked
+    // is not removed between pointer-down and click. New sizes still remeasure.
+    const refreshed = current && samePlacement && current.type === projected.type
+      && current.width === projected.width && current.height === projected.height
+      && current.style?.width === projected.style?.width && current.style?.height === projected.style?.height
+      && Boolean(current.data.pendingReference) === Boolean(projected.data.pendingReference)
+      && Boolean(current.data.pendingAttachment) === Boolean(projected.data.pendingAttachment)
+      && current.measured?.width && current.measured?.height
+      ? { ...projected, measured: { ...current.measured, ...projected.measured } }
+      : projected;
     const dragging = dragStarts.has(placementId);
     const resizing = resizeStarts.has(placementId);
-    if ((!dragging && !resizing) || !canKeepInteraction(projected)) return projected;
-    const current = currentById.get(projected.id);
-    if (!current || current.data.descriptor.placementId !== placementId || !canKeepInteraction(current)) {
-      return projected;
+    if ((!dragging && !resizing) || !canKeepInteraction(projected)) return refreshed;
+    if (!current || !samePlacement || !canKeepInteraction(current)) {
+      return refreshed;
     }
-    const next = { ...projected, position: current.position };
+    const next = { ...refreshed, position: current.position };
     if (dragging) next.dragging = current.dragging;
     if (resizing) {
       const width = current.width ?? current.measured?.width ?? projected.width;

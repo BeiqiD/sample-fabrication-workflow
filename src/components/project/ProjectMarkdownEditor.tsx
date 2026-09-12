@@ -51,7 +51,18 @@ function ProjectMarkdownEditorBody({
   const canEdit = editor.status === "editing" || editor.status === "error";
   const canSave = canEdit || editor.status === "saving" || editor.status === "uncertain";
   const canCancel = editor.status !== "saving" && editor.status !== "uncertain";
-  return <div className={`project-rich-editor ${editor.status}${compact ? " compact" : ""}`}>
+  return <div
+    className={`project-rich-editor ${editor.status}${compact ? " compact" : ""}`}
+    onKeyDown={(event) => {
+      if (event.key !== "Escape" || event.defaultPrevented || event.nativeEvent.isComposing
+        || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      event.preventDefault();
+      event.stopPropagation();
+      // Keep unresolved saves/conflicts open rather than letting the canvas or
+      // Inspector consume Escape and silently abandon the recovery controls.
+      if (canEdit) onCancel();
+    }}
+  >
     <div className="project-rich-editor-toolbar">
       <div className="project-rich-editor-tabs" role="tablist" aria-label="Markdown editor mode">
         {(["write", "preview"] as const).map((tab) => <button
@@ -87,9 +98,6 @@ function ProjectMarkdownEditorBody({
         value={editor.value}
         disabled={!canEdit}
         onChange={(event) => onChange(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape" && canCancel && editor.isNew && !editor.value.trim()) onCancel();
-        }}
       /> : <div className="project-rich-editor-preview" tabIndex={0} aria-label="Markdown preview">
         <ProjectMarkdown source={editor.value} emptyLabel="The current draft is empty." />
       </div>}
@@ -105,13 +113,19 @@ function ProjectMarkdownEditorBody({
         type="button"
         className="button primary compact-button"
         disabled={editor.status === "saving" || !editor.value.trim()}
+        title="Save Markdown (Ctrl/Cmd+S)"
         onClick={onSave}
       >{editor.status === "saving"
           ? "Saving…"
           : editor.status === "uncertain"
             ? "Retry exact save"
             : "Save Markdown"}</button>}
-      {canCancel && <button type="button" className="button compact-button" onClick={onCancel}>{editor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
+      {canCancel && <button
+        type="button"
+        className="button compact-button"
+        aria-keyshortcuts={canEdit ? "Escape" : undefined}
+        onClick={onCancel}
+      >{editor.status === "conflict" ? "Discard draft and reload" : <>Cancel <kbd aria-hidden="true">Esc</kbd></>}</button>}
     </div>
   </div>;
 }
