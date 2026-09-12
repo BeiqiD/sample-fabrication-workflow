@@ -175,7 +175,7 @@
 
 .project-node-open-reference {
   position: absolute;
-  right: 26px;
+  left: 50%;
   bottom: 10px;
   z-index: 2;
   display: inline-flex;
@@ -189,10 +189,11 @@
   box-shadow: 0 2px 8px var(--shadow);
   font-size: 10px;
   font-weight: 720;
+  white-space: nowrap;
   text-decoration: none;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(3px);
+  transform: translate(-50%, 3px);
   transition: opacity .12s ease, transform .12s ease;
 }
 
@@ -201,7 +202,7 @@
 .project-flow-canvas .react-flow__node-projectItem:focus-within .project-node-open-reference {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 .project-node-open-reference:hover,
@@ -381,12 +382,25 @@
   cursor: not-allowed;
   opacity: .55;
 }
-.project-edge-handle {
-  /* Keep connection targets above the selected card's resize border. */
-  z-index: 3;
-  width: 10px;
-  height: 10px;
-  border-width: 2px;
+.project-flow-canvas .project-edge-handle {
+  /* Ports are siblings of the clipped article: the complete ring straddles
+     the card edge, and stays above its border without clipping its content. */
+  z-index: 4;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line-strong);
+  background: var(--paper);
+}
+
+.project-flow-canvas .react-flow__node-projectItem:hover .project-edge-handle,
+.project-flow-canvas .react-flow__node-projectItem.selected .project-edge-handle,
+.project-flow-canvas .project-edge-handle.connectingfrom {
+  border-color: var(--accent);
+}
+
+.project-flow-canvas .project-edge-handle.connectionindicator:hover,
+.project-flow-canvas .project-edge-handle.connectingfrom {
+  background: var(--accent);
 }
 
 .project-edge-handle.contextual-hidden {
@@ -503,9 +517,9 @@
 .project-map-context-menu [aria-haspopup="menu"] { justify-content: space-between; }
 .project-map-context-menu [aria-haspopup="menu"] > span { font-size: 18px; }
 .project-edge-toolbar.editing { align-items: end; flex-wrap: wrap; padding: 9px; gap: 7px; }
-.project-edge-toolbar label { display: grid; gap: 4px; min-width: 0; font-size: 11px; }
-.project-edge-toolbar input,
-.project-edge-toolbar select {
+.project-edge-toolbar label,
+.project-edge-toolbar .project-edge-direction-field { display: grid; gap: 4px; min-width: 0; font-size: 11px; }
+.project-edge-toolbar input {
   min-width: 0;
   max-width: 200px;
   min-height: 32px;

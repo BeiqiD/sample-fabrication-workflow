@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, createEvent, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useModalDialog } from "./lib/use-modal-dialog";
 
@@ -99,6 +99,21 @@ describe("shared modal dialog behavior", () => {
       expect(nextClose).toHaveBeenCalledOnce();
       expect(underlyingEscape).not.toHaveBeenCalled();
     } finally { window.removeEventListener("keydown", underlyingEscape); }
+  });
+
+  it("preserves input composition and modified Escape before closing with plain Escape", () => {
+    const onClose = vi.fn();
+    render(<Dialog onClose={onClose}><input aria-label="Draft" /></Dialog>);
+    const input = screen.getByRole("textbox", { name: "Draft" });
+    for (const modifier of ["isComposing", "altKey", "ctrlKey", "metaKey", "shiftKey"]) {
+      const escape = createEvent.keyDown(input, { key: "Escape", [modifier]: true });
+      fireEvent(input, escape);
+      expect(escape.defaultPrevented).toBe(false);
+    }
+    expect(document.activeElement).toBe(input);
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("registers only while enabled and releases background/scroll locks across responsive presentation changes", () => {

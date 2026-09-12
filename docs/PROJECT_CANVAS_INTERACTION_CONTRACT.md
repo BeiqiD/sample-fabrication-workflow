@@ -285,6 +285,9 @@ references found through the sidebar.
 
 Interactive controls and editor regions must not initiate node dragging.
 Links, scrollbars, the resize grip and connection handles retain their own gestures.
+Source/attachment links appear at the bottom center of the card. The four connection
+ports are complete 12-unit circles centered on its edges, rendered outside the
+clipped content article so both halves remain visible and interactive.
 Every committed card displays an 18-unit triangular resize corner integrated into
 its border, following the card's 12-unit outer radius in both paint and hit area.
 It scales with the card, with reserved content clearance and the
@@ -296,6 +299,25 @@ and 110–1000 height limits, Save, Undo and Redo behavior, and stored position/
 An acknowledgement for another card must not replace the position or dimensions
 of a card while its pointer drag or resize is still active. Fresh content and
 selection still apply; deleted/replaced/locked cards must not be resurrected.
+
+Inspector editing stays in the Inspector: Markdown, attachment metadata and edge
+metadata use one local editing area with Save and Cancel next to the inputs.
+Existing card/Reading edits keep their local editor; opening an Inspector edit
+does not mount a second editor on the surface. During an Inspector edit, supporting
+previews/details/actions are hidden. The panel width is bounded at 460 CSS pixels
+on large Map workspaces, the default Markdown input height at 360 pixels, and the
+editing panel at 760 pixels; controls do not spread across a 2K/4K display.
+
+Plain Escape cancels editable/rejected drafts like Cancel, including an unchanged
+existing note, and returns focus to the local Edit action while leaving Inspector
+and selection open. A second Escape can close the Inspector. The panel close button
+and toolbar toggle follow the same editor-first exit rule. Other panel switches
+cannot hide an active Inspector editor. Saving, uncertain and conflict states retain
+their recovery controls; Escape must not discard them. IME composition and modified
+Escape do not cancel. An expanded editor consumes the first Escape to collapse.
+Ctrl/Command+S continues to save the active editor. Edge direction uses four icon
+radio buttons with tooltips, accessible names and arrow/Home/End navigation, in
+both Inspector and the contextual edge toolbar.
 
 Phase 4B multi-selection uses only Project item occurrence IDs:
 

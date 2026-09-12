@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { useState } from "react";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, createEvent, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content";
 import ProjectMarkdownEditor from "./components/project/ProjectMarkdownEditor";
@@ -10,14 +10,40 @@ afterEach(cleanup);
 describe("Expanded Markdown editor", () => {
   it.each([
     { isNew: true, value: "", status: "editing" as const, cancels: true },
-    { isNew: true, value: "Keep my draft", status: "editing" as const, cancels: false },
-    { isNew: false, value: "", status: "editing" as const, cancels: false },
-    { isNew: true, value: "", status: "uncertain" as const, cancels: false },
-  ])("Escape respects draft identity and mutation state: %j", ({ isNew, value, status, cancels }) => {
+    { isNew: true, value: "Local draft", status: "editing" as const, cancels: true },
+    { isNew: false, value: "Unchanged saved note", status: "editing" as const, cancels: true },
+    { isNew: false, value: "Rejected draft", status: "error" as const, cancels: true },
+    { isNew: false, value: "Unresolved draft", status: "saving" as const, cancels: false },
+    { isNew: false, value: "Unresolved draft", status: "uncertain" as const, cancels: false },
+    { isNew: false, value: "Conflicting draft", status: "conflict" as const, cancels: false },
+  ])("Escape exits editable drafts and preserves unresolved mutations: %j", ({ isNew, value, status, cancels }) => {
     const onCancel = vi.fn();
-    render(<ProjectMarkdownEditor compact editor={{ itemId: "draft", value, isNew, geometry: null, status, message: null }} ariaLabel="Escape draft" onChange={vi.fn()} onSave={vi.fn()} onCancel={onCancel} />);
-    fireEvent.keyDown(screen.getByLabelText("Escape draft"), { key: "Escape" });
+    const surroundingKeyDown = vi.fn();
+    render(<div onKeyDown={surroundingKeyDown}><ProjectMarkdownEditor compact editor={{ itemId: "draft", value, isNew, geometry: null, status, message: null }} ariaLabel="Escape draft" onChange={vi.fn()} onSave={vi.fn()} onCancel={onCancel} /></div>);
+    // The mode controls remain focusable while a save or conflict locks typing.
+    const target = cancels ? screen.getByLabelText("Escape draft") : screen.getByRole("tab", { name: "Write" });
+    const escape = createEvent.keyDown(target, { key: "Escape" });
+    fireEvent(target, escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(surroundingKeyDown).not.toHaveBeenCalled();
     expect(onCancel).toHaveBeenCalledTimes(cancels ? 1 : 0);
+  });
+
+  it("cancels from Preview and action buttons while ignoring composition and modified Escape", () => {
+    const onCancel = vi.fn();
+    render(<ProjectMarkdownEditor editor={{ itemId: "note", value: "Saved note", isNew: false, geometry: null, status: "editing", message: null }} ariaLabel="Escape draft" onChange={vi.fn()} onSave={vi.fn()} onCancel={onCancel} />);
+    const input = screen.getByLabelText("Escape draft");
+    for (const modifier of ["isComposing", "altKey", "ctrlKey", "metaKey", "shiftKey"]) {
+      fireEvent.keyDown(input, { key: "Escape", [modifier]: true });
+    }
+    expect(onCancel).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("tab", { name: "Preview" }));
+    fireEvent.keyDown(screen.getByLabelText("Markdown preview"), { key: "Escape" });
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel.getAttribute("aria-keyshortcuts")).toBe("Escape");
+    fireEvent.keyDown(cancel, { key: "Escape" });
+    expect(onCancel).toHaveBeenCalledTimes(2);
   });
 
   it("shares the draft and preview across expansion and safely restores focus", () => {
@@ -39,13 +65,15 @@ describe("Expanded Markdown editor", () => {
     fireEvent.click(within(dialog).getByRole("tab", { name: "Preview" }));
     expect(dialog.querySelector("math")).not.toBeNull();
     expect(within(dialog).getByLabelText("Markdown preview").textContent).toContain("Updated");
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(within(dialog).getByLabelText("Markdown preview"), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(expand);
     expect(onCancel).not.toHaveBeenCalled();
     expect(screen.getByRole("tab", { name: "Preview" }).getAttribute("aria-selected")).toBe("true");
     fireEvent.click(screen.getByRole("tab", { name: "Write" }));
     expect((screen.getByLabelText("Note draft") as HTMLTextAreaElement).value).toBe("Updated $x^2$ draft");
+    fireEvent.keyDown(screen.getByLabelText("Note draft"), { key: "Escape" });
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it("allows correction after a determined error but keeps uncertain drafts locked", () => {

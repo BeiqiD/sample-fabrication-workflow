@@ -270,7 +270,7 @@ describe("mounted Project edge behavior", () => {
     fireEvent.click(screen.getByText("Technical details", { selector: "summary" }));
     expect(screen.getByText("right → left")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
-    fireEvent.change(screen.getByLabelText("Direction"), { target: { value: "forward" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Source to target" }));
     fireEvent.change(screen.getByLabelText("Label"), { target: { value: "feeds" } });
     fireEvent.click(screen.getByRole("button", { name: "Save edge" }));
 

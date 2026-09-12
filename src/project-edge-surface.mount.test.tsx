@@ -537,7 +537,7 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(view.container.querySelectorAll(".react-flow__edgeupdater")).toHaveLength(0);
     expect(view.getByRole("group", { name: "Edit selected edge" })).toBeTruthy();
     fireEvent.change(view.getByRole("textbox", { name: "Edge label" }), { target: { value: "measured by" } });
-    fireEvent.change(view.getByRole("combobox", { name: "Edge direction" }), { target: { value: "bidirectional" } });
+    fireEvent.click(view.getByRole("radio", { name: "Both directions" }));
     expect(changeEdit).toHaveBeenCalledWith("label", "measured by");
     expect(changeEdit).toHaveBeenCalledWith("direction", "bidirectional");
     fireEvent.keyDown(view.getByRole("textbox", { name: "Edge label" }), { key: "s", ctrlKey: true });

@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 import { ActionIcon } from "../ActionIcon";
 import { ReferenceExcerpt } from "../ReferenceExcerpt";
+import { ProjectEdgeDirectionControl } from "./ProjectEdgeDirectionControl";
 import {
   Background,
   ConnectionMode,
@@ -351,12 +352,6 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
       if (cardTargetIsInteractive(event.target)) event.stopPropagation();
     }}
   >
-    <>
-      <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-      <Handle type="source" id="right" position={Position.Right} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-      <Handle type="source" id="bottom" position={Position.Bottom} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-      <Handle type="source" id="left" position={Position.Left} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
-    </>
     <header
       className="project-node-drag-handle"
       title={descriptor.kind === "markdown" ? "Drag to move · Double-click to edit Markdown" : "Drag to move · Double-click for details"}
@@ -414,6 +409,11 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
       >{descriptor.openSourceUrl ? "Open source" : "Reference details"}</a>}
     </>}
   </article>
+    {/* Keep connection ports outside the article's content and resize-corner clipping. */}
+    <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="right" position={Position.Right} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="bottom" position={Position.Bottom} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
+    <Handle type="source" id="left" position={Position.Left} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
     {canResize && <NodeResizeControl
       position="bottom-right"
       minWidth={180}
@@ -1868,6 +1868,12 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
           if (!edgeEditor) return;
+          if (event.key === "Escape" && !event.nativeEvent.isComposing
+            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            event.preventDefault(); event.stopPropagation();
+            if (["editing", "error"].includes(edgeEditor.status)) onEdgeEditCancel?.();
+            return;
+          }
           if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
             event.preventDefault(); event.stopPropagation();
             if (["editing", "error", "uncertain"].includes(edgeEditor.status)) onEdgeEditSave?.();
@@ -1878,16 +1884,14 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
           <label>Label<input autoFocus aria-label="Edge label" value={edgeEditor.label}
             disabled={!["editing", "error"].includes(edgeEditor.status)}
             onChange={(event) => onEdgeEditChange?.("label", event.currentTarget.value)} /></label>
-          <label>Direction<select aria-label="Edge direction" value={edgeEditor.direction}
+          <div className="project-edge-direction-field"><span>Direction</span><ProjectEdgeDirectionControl value={edgeEditor.direction}
             disabled={!["editing", "error"].includes(edgeEditor.status)}
-            onChange={(event) => onEdgeEditChange?.("direction", event.currentTarget.value)}>
-            <option value="undirected">No arrow</option><option value="forward">Source → target</option>
-            <option value="reverse">Target → source</option><option value="bidirectional">Both directions</option>
-          </select></label>
+            onChange={(direction) => onEdgeEditChange?.("direction", direction)}
+          /></div>
           <button type="button" disabled={!["editing", "error", "uncertain"].includes(edgeEditor.status)} onClick={onEdgeEditSave}>
             {edgeEditor.status === "saving" ? "Saving…" : edgeEditor.status === "uncertain" ? "Retry exact save" : "Save edge"}
           </button>
-          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} onClick={onEdgeEditCancel}>Cancel</button>
+          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} aria-keyshortcuts="Escape" onClick={onEdgeEditCancel}>Cancel <kbd aria-hidden="true">Esc</kbd></button>
           {edgeEditor.message && <p role="status">{edgeEditor.message}</p>}
         </> : <>
           <button type="button" disabled={contextCommands.edgeEditDisabled} onClick={contextCommands.editEdge}><ActionIcon name="plan-update" />Edit label / direction</button>

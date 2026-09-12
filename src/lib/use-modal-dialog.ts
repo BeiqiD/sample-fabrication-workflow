@@ -198,6 +198,7 @@ export function useModalDialog({
       if (!isTopModal(dialog)) return;
       if (event.key !== "Escape" && event.key !== "Tab") return;
       if (event.key === "Escape") {
+        if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
         event.preventDefault();
         event.stopImmediatePropagation();
         if (!blockedRef.current) onCloseRef.current();

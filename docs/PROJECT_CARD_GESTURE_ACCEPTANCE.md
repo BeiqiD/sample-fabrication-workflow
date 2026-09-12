@@ -59,6 +59,21 @@ double-click editing/Details and drag-during-save on the new served assets.
 
 ## Regression evidence
 
+The Inspector follow-up keeps Markdown, attachment metadata and edge editing in
+the panel when started there. Save/Cancel stay beside the bounded input area;
+Cancel/Escape preserve the panel and selection and return to the Edit action.
+Tests cover unchanged exit without a write, successful saves, guarded uncertain
+outcomes, mobile sheet Escape ordering and blocked panel switches. Direction
+controls expose four keyboard-operable icon radio buttons instead of a select.
+Connection ports are siblings of the clipped article, and source actions are
+bottom-centered; native connection and card gesture regressions remain applicable.
+
+Live inspection of the deployed #173 assets confirmed article overflow/clip-path
+cuts the outer half of each connection port. The follow-up assets and bounded
+2K/4K layout still require post-deployment visual acceptance; the available browser
+viewport is 1363×936, so mounted coverage is not claimed as a physical large-screen
+or mobile visual test.
+
 Real ReactFlow mounted tests cover body/image/reference dragging, double-click
 ownership, native links and editor input, keyboard ownership, resize, mouse and
 touch connections, and a delayed real-Page save acknowledgement during a second
@@ -80,7 +95,7 @@ halves both dimensions to 18 units and follows the card's existing 12-unit outer
 radius. It remains visible within every committed card's bottom-right corner,
 without a floating square or preliminary selection.
 It scales with the card and uses a rounded triangular hit area, reserved bottom padding,
-and an offset source link to keep its operation clear of content and scrolling.
+and a bottom-centered source link to keep its operation clear of content and scrolling.
 
 Mounted regressions exercise native mouse and multi-step touch resizing from
 the button itself, unselected/primary/secondary cards, editing/lock cancellation, arrow
