@@ -6,7 +6,6 @@ import type {
   CommentImage,
   CommentAttachment,
   CreateCommentSubmissionInput,
-  ManagedStorageStatus,
 } from "../../shared/types";
 import { MAX_COMMENT_SUBMISSION_ITEMS, MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
 import { isTiffMetadata } from "../../shared/tiff";
@@ -15,18 +14,7 @@ import { createUuid } from "../lib/uuid";
 import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
 import { commentUploadQueue } from "../lib/commentUploadQueue";
 import { isTiffFile, prepareCommentImage } from "../lib/images";
-
-let managedStorageStatusPromise: Promise<ManagedStorageStatus> | null = null;
-
-function loadManagedStorageStatus() {
-  managedStorageStatusPromise ??= api.getManagedStorageStatus().catch(() => ({
-    provider: null,
-    available: false,
-    authentication: "not_configured" as const,
-    message: "File storage status could not be loaded. File attachments are disabled; attachment links remain available.",
-  }));
-  return managedStorageStatusPromise;
-}
+import { useManagedStorageStatus } from "../lib/useManagedStorageStatus";
 
 interface CommentComposerProps {
   label: string;
@@ -253,7 +241,7 @@ export function CommentComposer({
   const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<AnchoredMenuPosition | null>(null);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [toolbarExpanded, setToolbarExpanded] = useState(false);
-  const [storage, setStorage] = useState<ManagedStorageStatus | null>(null);
+  const { result: storageResult, checking: storageChecking, check: checkStorage } = useManagedStorageStatus();
   const [submissions, setSubmissions] = useState<LocalSubmission[]>([]);
   const submissionsRef = useRef(submissions);
   const imagesRef = useRef(images);
@@ -265,15 +253,15 @@ export function CommentComposer({
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composerRowRef = useRef<HTMLDivElement>(null);
-  const storageReady = storage?.available === true;
-  const storageMessage = storage?.message ?? "Checking file storage connection…";
+  const storage = storageResult?.status;
+  const storageReady = !storageChecking && storage?.available === true;
+  const storageMessage = storageChecking
+    ? "Checking file storage connection…"
+    : storageResult?.error ?? storage?.message ?? "";
   const hasDraftItems = images.length > 0 || attachments.length > 0 || links.length > 0 || rejected.length > 0;
 
   useEffect(() => { submissionsRef.current = submissions; }, [submissions]);
   useEffect(() => { imagesRef.current = images; }, [images]);
-  useEffect(() => {
-    void loadManagedStorageStatus().then(setStorage);
-  }, []);
   useEffect(() => {
     if (adaptiveToolbarLayout && (hasDraftItems || preparing || showLinkForm)) {
       setToolbarExpanded(true);
@@ -386,18 +374,18 @@ export function CommentComposer({
     if (adaptiveToolbarLayout) setToolbarExpanded(true);
     setPreparing(true);
     setDraftError("");
-    let checkedStorage = storage;
+    let checkedStorageResult = storageChecking ? null : storageResult;
     const fallbackAttachments: DraftAttachment[] = [];
     const rejectedFiles: RejectedDraftFile[] = [];
     try {
       for (const file of files) {
         const tiff = isTiffFile(file);
-        if (tiff && !checkedStorage) {
-          checkedStorage = await loadManagedStorageStatus();
-          setStorage(checkedStorage);
+        if (tiff && !checkedStorageResult) {
+          checkedStorageResult = await checkStorage();
         }
+        const checkedStorage = checkedStorageResult?.status;
         if (tiff && !checkedStorage?.available) {
-          rejectedFiles.push({ id: createUuid(), file, reason: checkedStorage?.message || storageMessage });
+          rejectedFiles.push({ id: createUuid(), file, reason: checkedStorageResult?.error || checkedStorage?.message || storageMessage });
           continue;
         }
         if (tiff && file.size > MAX_MANAGED_ATTACHMENT_BYTES) {
@@ -856,6 +844,12 @@ export function CommentComposer({
               setShowLinkForm(true);
             }}>Add attachment link</button>
             {!storageReady && <p>{storageMessage}</p>}
+            {!storageReady && <button
+              type="button"
+              role="menuitem"
+              disabled={storageChecking}
+              onClick={() => void checkStorage()}
+            >Retry storage connection</button>}
           </div>, document.body)}
         </div>
         {onCancel && <button type="button" className="comment-cancel-button" onClick={onCancel} aria-label="Cancel common comment" title="Cancel">×</button>}
