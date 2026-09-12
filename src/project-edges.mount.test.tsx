@@ -360,6 +360,8 @@ describe("mounted Project edge behavior", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
     const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
     if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
+    expect(screen.getByRole("button", { name: "Delete edge" }).closest("details")?.open).toBe(false);
+    fireEvent.click(screen.getByText("More actions", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete edge" }));
     await waitFor(() => expect(screen.getByText("Edge count: 0")).toBeTruthy());
 
@@ -502,6 +504,8 @@ describe("mounted Project edge behavior", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
     const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
     if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
+    expect(screen.getByRole("button", { name: "Delete edge" }).closest("details")?.open).toBe(false);
+    fireEvent.click(screen.getByText("More actions", { selector: "summary" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete edge" }));
     await waitFor(() => expect(screen.getByText("Edge count: 0")).toBeTruthy());
 

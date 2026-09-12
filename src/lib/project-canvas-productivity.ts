@@ -85,21 +85,37 @@ export function projectCanvasKeyboardTargetIsReading(target: EventTarget | null)
     && Boolean(target.closest("[data-project-reading-content], [data-rich-text]"));
 }
 
-export function projectCanvasKeyboardShortcutFromEvent(event: Pick<
+type ProjectKeyboardEvent = Pick<
   KeyboardEvent,
   "altKey" | "ctrlKey" | "isComposing" | "key" | "metaKey" | "shiftKey"
->): ProjectCanvasKeyboardShortcut | null {
+>;
+
+export function projectKeyboardEventIsPlainEscape(event: ProjectKeyboardEvent) {
+  return event.key === "Escape" && !event.isComposing
+    && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+}
+
+/** Non-Canvas panels own their focus even when the focused child is a button. */
+export function projectCanvasKeyboardTargetIsPanel(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest([
+    "#project-reference-panel", ".project-inspector", ".project-overflow", ".project-panel-toggle-group",
+    ".project-trash-panel", "[data-project-shortcut-scope]", "[role='menu']", "[aria-modal='true']",
+  ].join(",")));
+}
+
+export function projectCanvasKeyboardShortcutFromEvent(event: ProjectKeyboardEvent): ProjectCanvasKeyboardShortcut | null {
   if (event.isComposing || event.altKey) return null;
   const key = event.key.toLowerCase();
   const commandModifier = event.metaKey || event.ctrlKey;
 
-  if (!commandModifier) return key === "escape" ? "clear-selection" : null;
+  if (!commandModifier) return projectKeyboardEventIsPlainEscape(event) ? "clear-selection" : null;
+  if (event.metaKey && event.ctrlKey) return null;
   if (key === "a" && !event.shiftKey) return "select-all";
   if (key === "c" && !event.shiftKey) return "copy";
   if (key === "v" && !event.shiftKey) return "paste";
   if (key === "s" && !event.shiftKey) return "save";
   if (key === "z") return event.shiftKey ? "redo" : "undo";
-  if (key === "y" && !event.shiftKey) return "redo";
+  if (key === "y" && event.ctrlKey && !event.shiftKey) return "redo";
   return null;
 }
 

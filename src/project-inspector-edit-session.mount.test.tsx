@@ -101,6 +101,7 @@ describe("Inspector edit sessions through ProjectPage", () => {
     expect(map.getAttribute("data-has-markdown-editor")).toBe("false");
     expect(map.getAttribute("data-has-edge-editor")).toBe("false");
     expect(within(panel).getByRole("button", { name: "Cancel" }).getAttribute("aria-keyshortcuts")).toBe("Escape");
+    expect(within(panel).getByRole("button", { name: "Cancel" }).textContent).toBe("Cancel");
     fireEvent.keyDown(field, { key: "Escape" });
     await waitFor(() => expect(within(panel).queryByLabelText(fieldLabel)).toBeNull());
     expect(screen.getByRole("complementary", { name: "Project Inspector" })).toBe(panel);
@@ -121,6 +122,17 @@ describe("Inspector edit sessions through ProjectPage", () => {
     clickEdit(panel, "Edit Markdown");
     const field = await within(panel).findByLabelText("Inspector Markdown editor");
     fireEvent.change(field, { target: { value: "# Revised locally\n\nUpdated evidence." } });
+    const helpTrigger = screen.getByRole("button", { name: "Keyboard shortcuts" });
+    helpTrigger.focus();
+    fireEvent.click(helpTrigger);
+    const help = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
+    fireEvent.keyDown(help, { key: "s", ctrlKey: true });
+    expect(writes()).toHaveLength(0);
+    expect((field as HTMLTextAreaElement).value).toBe("# Revised locally\n\nUpdated evidence.");
+    fireEvent.keyDown(help, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull());
+    expect(document.activeElement).toBe(helpTrigger);
+    expect(within(panel).getByLabelText("Inspector Markdown editor")).toBe(field);
     fireEvent.keyDown(field, { key: "s", ctrlKey: true });
     await within(panel).findByRole("heading", { name: "Revised locally" });
     expect(screen.getByLabelText("Map note preview").textContent).toContain("Updated evidence.");

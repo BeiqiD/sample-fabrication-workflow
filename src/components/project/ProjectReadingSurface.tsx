@@ -8,6 +8,7 @@ import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-cont
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
 import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
+import { projectKeyboardEventIsPlainEscape } from "../../lib/project-canvas-productivity";
 import { ProjectMarkdown } from "./ProjectMarkdown";
 import "./project-rich-content.css";
 import "./project-reading-surface.css";
@@ -91,7 +92,8 @@ function ReadingMore({ label, children }: { label: string; children: ReactNode }
       if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
     }}
     onKeyDown={(event) => {
-      if (event.key !== "Escape") return;
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event.nativeEvent)) return;
+      event.preventDefault();
       event.stopPropagation();
       setOpen(false);
       event.currentTarget.querySelector("summary")?.focus();

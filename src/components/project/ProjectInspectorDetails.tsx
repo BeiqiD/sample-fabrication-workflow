@@ -16,6 +16,7 @@ import "./project-inspector-details.css";
 export interface ProjectInspectorDetailsProps {
   snapshot: ProjectSnapshot;
   descriptor: ProjectNodeDescriptor;
+  headerAction?: ReactNode;
   primaryContent?: ReactNode;
   editing?: boolean;
   relatedContent?: ReactNode;
@@ -60,6 +61,7 @@ function ContextLink({ context }: { context: ProjectInspectorContext }) {
 export function ProjectInspectorDetails({
   snapshot,
   descriptor,
+  headerAction,
   primaryContent,
   editing = false,
   relatedContent,
@@ -81,15 +83,24 @@ export function ProjectInspectorDetails({
   const media = projection.media?.url === failedMediaUrl ? null : projection.media;
   return <>
     <header className="project-inspector-summary">
-      <span className="meta-badge">{projection.kindLabel}</span>
+      <div className="project-inspector-summary-row">
+        <span className="meta-badge">{projection.kindLabel}</span>
+        {!editing && <div className="project-inspector-header-actions">
+          {headerAction}
+          {descriptor.kind === "reference" && projection.primaryAction && <ProjectInspectorActionLink
+            action={projection.primaryAction}
+            className="button compact-button project-inspector-header-action"
+          />}
+        </div>}
+      </div>
       {descriptor.kind !== "markdown" && <h2>{projection.title}</h2>}
       {projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
     </header>
 
-    {(projection.primaryAction || primaryContent) && <div className="project-inspector-primary-actions">
-      {!editing && projection.primaryAction && <ProjectInspectorActionLink
+    {((descriptor.kind !== "reference" && projection.primaryAction) || primaryContent) && <div className="project-inspector-primary-actions">
+      {!editing && descriptor.kind !== "reference" && projection.primaryAction && <ProjectInspectorActionLink
         action={projection.primaryAction}
-        className="button primary wide"
+        className="button compact-button project-inspector-open-action"
       />}
       {primaryContent}
     </div>}

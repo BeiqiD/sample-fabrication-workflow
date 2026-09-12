@@ -125,7 +125,7 @@ function ProjectMarkdownEditorBody({
         className="button compact-button"
         aria-keyshortcuts={canEdit ? "Escape" : undefined}
         onClick={onCancel}
-      >{editor.status === "conflict" ? "Discard draft and reload" : <>Cancel <kbd aria-hidden="true">Esc</kbd></>}</button>}
+      >{editor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
     </div>
   </div>;
 }

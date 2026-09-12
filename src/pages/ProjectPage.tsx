@@ -47,6 +47,7 @@ import { ProjectInspectorChildren } from "../components/project/ProjectInspector
 import { ProjectEditorFeedback } from "../components/project/ProjectEditorFeedback";
 import { ProjectPanelSurface } from "../components/project/ProjectPanelSurface";
 import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
+import { ProjectKeyboardShortcuts } from "../components/project/ProjectKeyboardShortcuts";
 import { ProjectTrashPanel, ProjectTrashStatus } from "../components/project/ProjectTrashPanel";
 import { useProjectItemTrash, type ProjectItemTrashController } from "../lib/use-project-item-trash";
 import type {
@@ -73,7 +74,9 @@ import {
   projectCanvasAlignmentCommands,
   projectCanvasKeyboardShortcutFromEvent,
   projectCanvasKeyboardTargetIsEditable,
+  projectCanvasKeyboardTargetIsPanel,
   projectCanvasKeyboardTargetIsReading,
+  projectKeyboardEventIsPlainEscape,
   projectCanvasZOrderCommands,
   type ProjectCanvasAlignment,
   type ProjectCanvasZOrderAction,
@@ -663,7 +666,7 @@ export function ProjectPage() {
 
   useEffect(() => {
     const closePanelOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.isComposing || addMenuOpen || projectActionsOpen) return;
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event) || addMenuOpen || projectActionsOpen) return;
       // The current editor owns Escape before the surrounding panel.
       if (markdownEditor || attachmentEditor || edgeController.editor) return;
       const target = event.target as Node;
@@ -721,7 +724,7 @@ export function ProjectPage() {
       if (!menuRef.current?.contains(event.target as Node)) close();
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event)) return;
       event.preventDefault();
       event.stopPropagation();
       close();
@@ -2614,8 +2617,8 @@ export function ProjectPage() {
   // Keep this separate from Canvas-only shortcuts that respect native text editing.
   useEffect(() => {
     const onSaveShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey
-        || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+      if (event.defaultPrevented || projectCanvasKeyboardShortcutFromEvent(event) !== "save"
+        || (event.target instanceof Element && event.target.closest('[data-project-shortcut-scope="help"]'))) return;
       event.preventDefault();
       saveCurrentChanges();
     };
@@ -2634,8 +2637,7 @@ export function ProjectPage() {
 
   useEffect(() => {
     const onEditorEscape = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || event.key !== "Escape"
-        || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event)) return;
       if (!markdownEditor && !attachmentEditor && !edgeController.editor) return;
       // Menus and expanded/modal editors resolve their own top layer first.
       if (event.target instanceof Element && event.target.closest('[role="menu"], [aria-modal="true"]')) return;
@@ -2718,7 +2720,7 @@ export function ProjectPage() {
     const onKeyDown = (event: KeyboardEvent) => {
       // Modal controls own keyboard input even when they are not text fields.
       if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)
-        || (event.target instanceof Element && event.target.closest('[aria-modal="true"]'))) return;
+        || projectCanvasKeyboardTargetIsPanel(event.target)) return;
       const shortcut = projectCanvasKeyboardShortcutFromEvent(event);
       if (!shortcut || shortcut === "save") return;
       // Text selection/copy and native reading shortcuts must not mutate the Map.
@@ -3139,8 +3141,14 @@ export function ProjectPage() {
           /></Suspense>
         </section> : !readingActive && edgeController.selectedEdge ? <div className={`project-inspector-content${edgeController.editor ? " project-inspector-editor" : ""}`}>
           <header className="project-inspector-summary">
-            <span className="meta-badge">edge</span>
-            <h2>{edgeController.selectedEdge.label || "Relationship"}</h2>
+            <div className="project-inspector-summary-row">
+              <span className="meta-badge">Relationship</span>
+              {!edgeController.editor && <button type="button" className="button compact-button project-inspector-header-action" aria-label="Edit edge" title="Edit relationship" data-project-edit-trigger disabled={workspaceOperationBusy || saveState !== "saved"} onClick={(event) => {
+                editorReturnFocusRef.current = event.currentTarget;
+                edgeController.startEdit();
+              }}><ActionIcon name="edit" />Edit</button>}
+            </div>
+            <h2>{edgeController.selectedEdge.label || "Unlabelled relationship"}</h2>
           </header>
           {edgeController.editor?.edgeId === edgeController.selectedEdge.id ? <div className="project-attachment-meta-form">
             <div className="project-inspector-direction"><span>Direction</span>
@@ -3163,21 +3171,16 @@ export function ProjectPage() {
             <div className="project-owned-content-pending-actions">
               {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge</button>}
               {edgeController.editor.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact save</button>}
-              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" aria-keyshortcuts="Escape" onClick={edgeController.cancelEdit}>Cancel <kbd aria-hidden="true">Esc</kbd></button>}
+              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" aria-keyshortcuts="Escape" onClick={edgeController.cancelEdit}>Cancel</button>}
               {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
             </div>
-          </div> : <div className="project-inspector-primary-actions">
-            <button type="button" className="button primary wide" data-project-edit-trigger disabled={workspaceOperationBusy || saveState !== "saved"} onClick={(event) => {
-              editorReturnFocusRef.current = event.currentTarget;
-              edgeController.startEdit();
-            }}>Edit edge</button>
-          </div>}
+          </div> : null}
           {!edgeController.editor && <><section className="project-inspector-section" aria-label="Edge connection">
             <h3>Connection</h3>
             <dl>
               <dt>Source</dt><dd>{selectedEdgeSource?.title || edgeController.selectedEdge.sourceItemId}</dd>
               <dt>Target</dt><dd>{selectedEdgeTarget?.title || edgeController.selectedEdge.targetItemId}</dd>
-              <dt>Direction</dt><dd>{projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)}</dd>
+              <dt>Direction</dt><dd>{{ undirected: "No arrow", forward: "Source → target", reverse: "Target → source", bidirectional: "Both directions" }[projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)]}</dd>
             </dl>
           </section>
           <details className="project-inspector-disclosure">
@@ -3189,9 +3192,12 @@ export function ProjectPage() {
             </dl>
           </details>
           </>}
-          {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <div className="project-inspector-danger-zone">
-            <button type="button" className="button danger wide" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
-          </div>}
+          {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <details className="project-inspector-item-more">
+            <summary>More actions</summary>
+            <div className="project-inspector-danger-zone">
+              <button type="button" className="button danger compact-button" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
+            </div>
+          </details>}
         </div> : !readingActive && selectedDescriptors.length > 1 ? <div className="project-inspector-content project-multi-selection-inspector">
           <span className="meta-badge">multi-selection</span>
           <h2>{selectedDescriptors.length} items selected</h2>
@@ -3214,15 +3220,26 @@ export function ProjectPage() {
               if (readingActive) focusReadingItem(itemId);
               else if (selectProjectItem(itemId) !== false) setNavigationFocusItemId(itemId);
             }}
-            primaryContent={selected.kind === "markdown" ? <button
+            headerAction={selected.kind === "markdown" ? <button
               type="button"
-              className="button primary wide"
+              className="button compact-button project-inspector-header-action"
+              aria-label="Edit Markdown"
+              title="Edit Markdown"
               data-project-edit-trigger
               disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
               onClick={() => {
                 startMarkdownEdit(selected.itemId, "inspector");
               }}
-            >Edit Markdown</button> : selected.kind === "attachment" ? <>
+            ><ActionIcon name="edit" />Edit</button> : selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId ? <button
+              type="button"
+              className="button compact-button project-inspector-header-action"
+              aria-label="Edit metadata"
+              title="Edit attachment details"
+              data-project-edit-trigger
+              disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => startAttachmentEdit(selected.itemId, "inspector")}
+            ><ActionIcon name="edit" />Edit</button> : null}
+            primaryContent={selected.kind === "attachment" ? <>
               {attachmentEditor?.itemId !== selected.itemId && <div className="project-inspector-supporting-actions">
                 {selected.attachmentSourceUrl && <a
                   className="button compact-button"
@@ -3230,15 +3247,6 @@ export function ProjectPage() {
                   target="_blank"
                   rel="noreferrer"
                 >Open source URL</a>}
-                <button
-                  type="button"
-                  className="button compact-button"
-                  data-project-edit-trigger
-                  disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
-                  onClick={() => {
-                    startAttachmentEdit(selected.itemId, "inspector");
-                  }}
-                >Edit metadata</button>
               </div>}
               {attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId && <div className="project-attachment-meta-form project-inspector-editor">
                 <label>Caption
@@ -3267,7 +3275,7 @@ export function ProjectPage() {
                   {(attachmentEditor.status === "editing" || attachmentEditor.status === "error" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
                     {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
                   </button>}
-                  {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" aria-keyshortcuts={attachmentEditor.status === "conflict" ? undefined : "Escape"} onClick={() => cancelAttachmentEdit(false)}>{attachmentEditor.status === "conflict" ? "Discard draft and reload" : <>Cancel <kbd aria-hidden="true">Esc</kbd></>}</button>}
+                  {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" aria-keyshortcuts={attachmentEditor.status === "conflict" ? undefined : "Escape"} onClick={() => cancelAttachmentEdit(false)}>{attachmentEditor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
                 </div>
               </div>}
             </> : null}
@@ -3475,7 +3483,7 @@ export function ProjectPage() {
           {desktop && desktopView === "map" && <><button type="button" className="button compact-button project-history-control" aria-label="Undo" title="Undo (Ctrl / ⌘ Z)" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
             <ActionIcon name="undo" />
           </button>
-          <button type="button" className="button compact-button project-history-control" aria-label="Redo" title="Redo (Ctrl / ⌘ Shift Z)" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled={redoDisabled} onClick={redo}>
+          <button type="button" className="button compact-button project-history-control" aria-label="Redo" title="Redo (Ctrl / ⌘ Shift Z)" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y" disabled={redoDisabled} onClick={redo}>
             <ActionIcon name="redo" />
           </button></>}
           <button
@@ -3487,6 +3495,10 @@ export function ProjectPage() {
             disabled={currentSaveDisabled}
             onClick={saveCurrentChanges}
           ><ActionIcon name="save" /><span className="project-control-label-full">Save</span></button>
+          <ProjectKeyboardShortcuts mapActive={desktop && desktopView === "map"} onOpen={() => {
+            setAddMenuOpen(false);
+            setProjectActionsOpen(false);
+          }} />
         </div>
         <div ref={projectActionsRef} className="project-overflow">
           <button

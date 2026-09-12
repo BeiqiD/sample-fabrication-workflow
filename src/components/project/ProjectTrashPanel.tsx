@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ProjectItemTrashController } from "../../lib/use-project-item-trash";
 import { ProjectPanelSurface } from "./ProjectPanelSurface";
 import { DialogCloseIcon } from "../DialogCloseIcon";
+import { projectKeyboardEventIsPlainEscape } from "../../lib/project-canvas-productivity";
 import "./project-trash-panel.css";
 
 export function ProjectTrashPanel({
@@ -33,7 +34,7 @@ export function ProjectTrashPanel({
   return <ProjectPanelSurface modal={modal} label="Project trash" onClose={controller.close}
     blocked={controller.pending !== null} returnFocusRef={returnFocusRef} initialFocusRef={panelRef}>
   <section ref={panelRef} tabIndex={-1} className="project-trash-panel" aria-labelledby="project-trash-heading" onKeyDown={(event) => {
-    if (event.key === "Escape" && !controller.pending) {
+    if (!event.defaultPrevented && projectKeyboardEventIsPlainEscape(event.nativeEvent) && !controller.pending) {
       event.preventDefault();
       event.stopPropagation();
       controller.close();

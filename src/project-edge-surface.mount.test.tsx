@@ -705,6 +705,33 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(saveEdit).toHaveBeenCalledOnce();
   });
 
+  it("leaves modified and composing save chords untouched in the inline edge editor", async () => {
+    const edge = edgeRecord();
+    const save = vi.fn();
+    const view = render(<div style={{ width: 900, height: 700 }}><ProjectMapSurface
+      nodes={projectMapNodes(projectTestSnapshot())} edges={[edge]}
+      selectedItemId={null} selectedEdgeId={edge.id} edgeInteractionDisabled
+      onSelect={() => undefined} onGeometryCommit={() => undefined}
+      contextCommands={availableContextCommands()}
+      edgeEditor={{ edgeId: edge.id, direction: "forward", label: "feeds", status: "editing", message: null }}
+      onEdgeEditSave={save}
+    /></div>);
+    const input = await view.findByRole("textbox", { name: "Edge label" });
+    for (const command of ["ctrlKey", "metaKey"] as const) {
+      for (const modifier of ["altKey", "shiftKey", "isComposing", command === "ctrlKey" ? "metaKey" : "ctrlKey"] as const) {
+        const event = new KeyboardEvent("keydown", {
+          key: "s", [command]: true, [modifier]: true, bubbles: true, cancelable: true,
+        });
+        fireEvent(input, event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.keyDown(input, { key: "s", ctrlKey: true });
+    fireEvent.keyDown(input, { key: "s", metaKey: true });
+    expect(save).toHaveBeenCalledTimes(2);
+  });
+
   it("shows only the edge toolbar when a newly selected edge retains its source card selection", async () => {
     const edge = edgeRecord();
     const props = {

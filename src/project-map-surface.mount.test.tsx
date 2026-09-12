@@ -767,6 +767,70 @@ The complete explanation follows the equation.
     });
   });
 
+  it.each([false, true])("keeps modified and composing renderer keys native with multi-selection=%s", async (multiple) => {
+    const onGeometryCommit = vi.fn();
+    const onGeometryBatchCommit = vi.fn();
+    const onSelectionChange = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface nodes={projectMapNodes(projectTestSnapshot())}
+        selectedItemId="item-note" selectedItemIds={multiple ? ["item-reference", "item-note"] : ["item-note"]}
+        onSelect={() => undefined} onSelectionChange={onSelectionChange}
+        onGeometryCommit={onGeometryCommit} onGeometryBatchCommit={onGeometryBatchCommit}
+      />
+    </div>);
+    const node = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
+      expect(candidate?.classList.contains("selected")).toBe(true);
+      return candidate!;
+    });
+    node.focus();
+    onSelectionChange.mockClear();
+    for (const modifier of ["altKey", "ctrlKey", "metaKey", "isComposing"] as const) {
+      for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape", "Enter", " "]) {
+        const event = new KeyboardEvent("keydown", {
+          key, [modifier]: true, bubbles: true, cancelable: true,
+        });
+        fireEvent(node, event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+    fireEvent.keyDown(node, { key: "Escape", shiftKey: true });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    expect(onGeometryBatchCommit).not.toHaveBeenCalled();
+
+    const commit = multiple ? onGeometryBatchCommit : onGeometryCommit;
+    fireEvent.keyDown(node, { key: "ArrowRight" });
+    await waitFor(() => expect(commit).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(node, { key: "ArrowRight", shiftKey: true });
+    await waitFor(() => expect(commit).toHaveBeenCalledTimes(2));
+  });
+
+  it("removes cards only with unmodified Delete or Backspace", async () => {
+    const removeSelection = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface nodes={projectMapNodes(projectTestSnapshot())}
+        selectedItemId="item-note" selectedItemIds={["item-note"]}
+        onSelect={() => undefined} onGeometryCommit={() => undefined}
+        contextCommands={{ ...availableContextCommands(), removeSelection, removeSelectionDisabled: false }}
+      />
+    </div>);
+    const canvas = container.querySelector<HTMLElement>(".project-flow-canvas")!;
+    for (const modifier of ["altKey", "ctrlKey", "metaKey", "shiftKey", "isComposing"] as const) {
+      for (const key of ["Delete", "Backspace"]) {
+        const event = new KeyboardEvent("keydown", {
+          key, [modifier]: true, bubbles: true, cancelable: true,
+        });
+        fireEvent(canvas, event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+    expect(removeSelection).not.toHaveBeenCalled();
+    fireEvent.keyDown(canvas, { key: "Delete" });
+    fireEvent.keyDown(canvas, { key: "Backspace" });
+    expect(removeSelection).toHaveBeenCalledTimes(2);
+  });
+
   it("commits one grouped geometry history payload when arrow keys move multiple selected nodes", async () => {
     const onGeometryBatchCommit = vi.fn();
     const descriptors = projectMapNodes(projectTestSnapshot());

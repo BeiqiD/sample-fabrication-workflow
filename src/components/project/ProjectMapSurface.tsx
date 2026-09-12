@@ -78,7 +78,9 @@ import {
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
   projectCanvasAlignmentGuides,
   projectCanvasKeyboardShortcutFromEvent,
+  projectCanvasKeyboardTargetIsEditable,
   projectCanvasKeyboardTargetIsReading,
+  projectKeyboardEventIsPlainEscape,
   type ProjectCanvasAlignment,
   type ProjectCanvasAlignmentGuides,
   type ProjectCanvasZOrderAction,
@@ -1711,6 +1713,9 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
             : "Occurrence actions"}
       onContextMenu={(event) => event.preventDefault()}
       onKeyDown={(event) => {
+        if (event.defaultPrevented || event.nativeEvent.isComposing) return;
+        if (["Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "Escape", "Delete", "Backspace"].includes(event.key)
+          && (event.altKey || event.ctrlKey || event.metaKey || (event.shiftKey && event.key !== "Tab"))) return;
         const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
           '[role="menuitem"]:not([disabled])',
         ));
@@ -1811,8 +1816,19 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     onTouchMoveCapture={handleCardTouchCapture}
     onDragOver={handleDragOver}
     onDrop={handleDrop}
+    onKeyDownCapture={(event) => {
+      const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key);
+      if ((!arrow && !["Escape", "Enter", " "].includes(event.key))
+        || projectCanvasKeyboardTargetIsEditable(event.target)) return;
+      // React Flow treats these descendant keys as node/edge selection or
+      // movement without checking modifiers or composition. Keep ordinary
+      // arrows (including Shift nudges), while leaving browser chords native.
+      if (event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey
+        || (event.shiftKey && !arrow)) event.stopPropagation();
+    }}
     onKeyDown={(event) => {
-      if (!contextCommands || event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey
+      if (!contextCommands || event.defaultPrevented || event.nativeEvent.isComposing
+        || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
         || (event.key !== "Delete" && event.key !== "Backspace")) return;
       const target = event.target;
       if (projectCanvasKeyboardTargetIsReading(target)
@@ -1914,14 +1930,13 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         role={edgeEditor ? "group" : "toolbar"} aria-label={edgeEditor ? "Edit selected edge" : "Selected edge actions"}
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
-          if (!edgeEditor) return;
-          if (event.key === "Escape" && !event.nativeEvent.isComposing
-            && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+          if (!edgeEditor || event.defaultPrevented) return;
+          if (projectKeyboardEventIsPlainEscape(event.nativeEvent)) {
             event.preventDefault(); event.stopPropagation();
             if (["editing", "error"].includes(edgeEditor.status)) onEdgeEditCancel?.();
             return;
           }
-          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+          if (projectCanvasKeyboardShortcutFromEvent(event.nativeEvent) === "save") {
             event.preventDefault(); event.stopPropagation();
             if (["editing", "error", "uncertain"].includes(edgeEditor.status)) onEdgeEditSave?.();
           }
@@ -1938,7 +1953,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
           <button type="button" disabled={!["editing", "error", "uncertain"].includes(edgeEditor.status)} onClick={onEdgeEditSave}>
             {edgeEditor.status === "saving" ? "Saving…" : edgeEditor.status === "uncertain" ? "Retry exact save" : "Save edge"}
           </button>
-          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} aria-keyshortcuts="Escape" onClick={onEdgeEditCancel}>Cancel <kbd aria-hidden="true">Esc</kbd></button>
+          <button type="button" disabled={["saving", "uncertain", "conflict"].includes(edgeEditor.status)} aria-keyshortcuts="Escape" onClick={onEdgeEditCancel}>Cancel</button>
           {edgeEditor.message && <p role="status">{edgeEditor.message}</p>}
         </> : <>
           <button type="button" disabled={contextCommands.edgeEditDisabled} onClick={contextCommands.editEdge}><ActionIcon name="plan-update" />Edit label / direction</button>
