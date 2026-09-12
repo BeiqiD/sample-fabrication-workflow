@@ -168,7 +168,8 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(map).toContain('disabled: contextCommands.zOrderDisabled("bring-to-front")');
     expect(page).toContain("focusReferencePanel");
     expect(page).toContain("focusInspectorPanel");
-    expect(page).toContain("inspectorHadTargetRef");
+    // Panel visibility and focus behavior are exercised by the mounted session
+    // regressions rather than requiring the former Inspector-only ref name.
   });
 
   it("keeps the dedicated gate on the real Project asset Worker path", () => {

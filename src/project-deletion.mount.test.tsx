@@ -201,7 +201,7 @@ describe("Project lifecycle UI", () => {
     const inspector = await screen.findByRole("complementary", { name: "Project Inspector" });
     expect(inspector.getAttribute("data-panel-presentation")).toBe("floating");
     await waitFor(() => expect(document.activeElement).toBe(inspector));
-    expect(screen.getByRole("button", { name: "Pin" }).getAttribute("aria-pressed")).toBe("false");
+    expect(within(inspector).getByRole("button", { name: "Pin" }).getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(within(inspector).getByRole("button", { name: "Close Inspector" }));
     await waitFor(() => {
       expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();

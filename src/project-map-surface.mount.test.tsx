@@ -119,6 +119,7 @@ function availableContextCommands(): ProjectMapContextCommands {
     edgeInspectDisabled: false, edgeEditDisabled: false, edgeDeleteDisabled: false,
     panelCommandsDisabled: false, alignmentDisabled: () => false, zOrderDisabled: () => false,
     inspectItem: noop, editItem: noop, copyItemLink: noop, copySelection: noop,
+    editAndInspectMarkdown: noop,
     pasteSelection: noop, selectAll: noop, clearSelection: noop, alignSelection: noop,
     changeZOrder: noop, removeItem: noop, inspectEdge: noop, editEdge: noop, deleteEdge: noop,
     openReferences: noop, openInspector: noop,
@@ -246,6 +247,8 @@ The ratio is $\frac{1}{1+x_0^2}$.
     const onGeometryCommit = vi.fn();
     const onMarkdownEditRequest = vi.fn();
     const inspectItem = vi.fn();
+    const editAndInspectMarkdown = vi.fn();
+    const createMarkdown = vi.fn();
     const { container } = render(<div style={{ width: 800, height: 600 }}>
       <ProjectMapSurface
         nodes={projectMapNodes(snapshot)}
@@ -253,7 +256,8 @@ The ratio is $\frac{1}{1+x_0^2}$.
         onSelect={() => undefined}
         onGeometryCommit={onGeometryCommit}
         onMarkdownEditRequest={onMarkdownEditRequest}
-        contextCommands={{ ...availableContextCommands(), inspectItem }}
+        onMarkdownCreateRequest={createMarkdown}
+        contextCommands={{ ...availableContextCommands(), inspectItem, editAndInspectMarkdown }}
       />
     </div>);
     const note = await waitFor(() => {
@@ -275,13 +279,16 @@ The ratio is $\frac{1}{1+x_0^2}$.
     expect(link.getAttribute("rel")).toContain("noopener");
     fireEvent.doubleClick(link);
     expect(inspectItem).not.toHaveBeenCalled();
+    expect(editAndInspectMarkdown).not.toHaveBeenCalled();
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     for (const target of [body, within(body).getByRole("heading", { name: "Research note" }), note.querySelector("mfrac")!, note.querySelector("header")!]) {
-      inspectItem.mockClear();
+      editAndInspectMarkdown.mockClear();
       fireEvent.doubleClick(target);
-      expect(inspectItem).toHaveBeenCalledExactlyOnceWith("item-note");
+      expect(editAndInspectMarkdown).toHaveBeenCalledExactlyOnceWith("item-note");
+      expect(inspectItem).not.toHaveBeenCalled();
       expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     }
+    expect(createMarkdown).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -440,12 +447,13 @@ The complete explanation follows the equation.
     { itemId: "item-note", kind: "Markdown", linkName: null, href: null },
     { itemId: "item-reference", kind: "Reference", linkName: "Open source", href: "/samples/sample-a" },
     { itemId: "item-attachment", kind: "attachment", linkName: "Open attachment", href: "/api/projects/project-a/contents/content-attachment/file" },
-  ])("opens $kind Details on card double-click, respecting links and disabled panel commands", async ({ itemId, linkName, href }) => {
+  ])("opens $kind with its intended double-click action, respecting links and disabled panel commands", async ({ itemId, linkName, href }) => {
     const descriptors = projectMapNodes(projectTestSnapshotWithAttachment());
     const inspectItem = vi.fn();
+    const editAndInspectMarkdown = vi.fn();
     const onGeometryCommit = vi.fn();
     const onMarkdownEditRequest = vi.fn();
-    const contextCommands = { ...availableContextCommands(), inspectItem };
+    const contextCommands = { ...availableContextCommands(), inspectItem, editAndInspectMarkdown };
     const surface = (panelCommandsDisabled: boolean) => <div style={{ width: 800, height: 600 }}>
       <ProjectMapSurface
         nodes={descriptors}
@@ -469,23 +477,79 @@ The complete explanation follows the equation.
       expect(link.getAttribute("href")).toBe(href);
     }
     expect(inspectItem).not.toHaveBeenCalled();
+    expect(editAndInspectMarkdown).not.toHaveBeenCalled();
     expect(onGeometryCommit).not.toHaveBeenCalled();
     for (const target of [card, card.querySelector("header")!, card.querySelector("h2, .project-node-markdown p")!]) {
       fireEvent.doubleClick(target);
-      expect(inspectItem).toHaveBeenCalledExactlyOnceWith(itemId);
+      const action = itemId === "item-note" ? editAndInspectMarkdown : inspectItem;
+      const otherAction = itemId === "item-note" ? inspectItem : editAndInspectMarkdown;
+      expect(action).toHaveBeenCalledExactlyOnceWith(itemId);
+      expect(otherAction).not.toHaveBeenCalled();
       inspectItem.mockClear();
+      editAndInspectMarkdown.mockClear();
     }
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     rerender(surface(true));
     fireEvent.doubleClick(card);
     fireEvent.doubleClick(card.querySelector("h2, .project-node-markdown p")!);
     expect(inspectItem).not.toHaveBeenCalled();
+    expect(editAndInspectMarkdown).not.toHaveBeenCalled();
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
   });
 
-  it("keeps an open Markdown editor interactive without reopening or moving its card", async () => {
+  it.each(["edit", "geometry"] as const)("blocks Markdown double-click during a %s operation without falling back to a partial action", async (lock) => {
+    const inspectItem = vi.fn();
+    const editAndInspectMarkdown = vi.fn();
+    const createMarkdown = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(projectTestSnapshot())}
+        selectedItemId="item-note"
+        geometryInteractionDisabled={lock === "geometry"}
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+        onMarkdownCreateRequest={createMarkdown}
+        contextCommands={{ ...availableContextCommands(), inspectItem, editAndInspectMarkdown, editDisabled: lock === "edit" }}
+      />
+    </div>);
+    const body = await within(container).findByRole("region", { name: "Markdown content" });
+    fireEvent.doubleClick(body);
+    expect(editAndInspectMarkdown).not.toHaveBeenCalled();
+    expect(inspectItem).not.toHaveBeenCalled();
+    expect(createMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("keeps Markdown Details read-only and excludes resize controls from double-click editing or creation", async () => {
+    const inspectItem = vi.fn();
+    const editAndInspectMarkdown = vi.fn();
+    const createMarkdown = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(projectTestSnapshot())}
+        selectedItemId="item-note"
+        onSelect={() => undefined}
+        onGeometryCommit={() => undefined}
+        onMarkdownCreateRequest={createMarkdown}
+        contextCommands={{ ...availableContextCommands(), inspectItem, editAndInspectMarkdown }}
+      />
+    </div>);
+    const toolbar = await within(container).findByRole("toolbar", { name: "Selected card actions" });
+    fireEvent.click(within(toolbar).getByRole("button", { name: "Details" }));
+    expect(inspectItem).toHaveBeenCalledExactlyOnceWith("item-note");
+    inspectItem.mockClear();
+    const node = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    fireEvent.doubleClick(within(node).getByRole("button", { name: "Resize card" }));
+    expect(inspectItem).not.toHaveBeenCalled();
+    expect(editAndInspectMarkdown).not.toHaveBeenCalled();
+    expect(createMarkdown).not.toHaveBeenCalled();
+  });
+
+  it.each(["editing", "saving", "uncertain"] as const)("keeps an open %s Markdown editor from reopening or moving its card", async (status) => {
     const onMarkdownEditRequest = vi.fn();
     const onGeometryCommit = vi.fn();
+    const inspectItem = vi.fn();
+    const editAndInspectMarkdown = vi.fn();
+    const createMarkdown = vi.fn();
     const { container } = render(<div style={{ width: 800, height: 600 }}>
       <ProjectMapSurface
         nodes={projectMapNodes(projectTestSnapshot())}
@@ -495,12 +559,14 @@ The complete explanation follows the equation.
           value: "Continue editing this note.",
           isNew: false,
           geometry: { x: 20, y: 40, width: 250, height: 180, zIndex: 0 },
-          status: "editing",
+          status,
           message: null,
         }}
         onSelect={() => undefined}
         onGeometryCommit={onGeometryCommit}
         onMarkdownEditRequest={onMarkdownEditRequest}
+        onMarkdownCreateRequest={createMarkdown}
+        contextCommands={{ ...availableContextCommands(), inspectItem, editAndInspectMarkdown }}
       />
     </div>);
     const editor = await within(container).findByRole("textbox", { name: "Edit Project Markdown" });
@@ -508,6 +574,9 @@ The complete explanation follows the equation.
     dragCanvasTarget(editor);
     for (const target of [editor, card, card.querySelector("header")!]) fireEvent.doubleClick(target);
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    expect(inspectItem).not.toHaveBeenCalled();
+    expect(editAndInspectMarkdown).not.toHaveBeenCalled();
+    expect(createMarkdown).not.toHaveBeenCalled();
     expect(onGeometryCommit).not.toHaveBeenCalled();
     expect((editor as HTMLTextAreaElement).value).toBe("Continue editing this note.");
     expect(editor.isConnected).toBe(true);

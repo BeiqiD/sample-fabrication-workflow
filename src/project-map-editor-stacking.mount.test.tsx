@@ -97,6 +97,83 @@ describe("Project Map editor stacking", () => {
     }
   });
 
+  it.each(["Save Markdown", "Cancel"] as const)("double-click opens Inspector alongside the focused card editor through %s", async (finish) => {
+    const snapshot = overlappingSnapshot();
+    const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return new Response(JSON.stringify(snapshot));
+      if (String(path).endsWith("/contents/content-note/markdown") && init?.method === "PATCH") {
+        return new Response(JSON.stringify({ value: { ...snapshot.contents[0],
+          markdownSource: JSON.parse(String(init.body)).markdownSource, revision: 2 }, replayed: false }));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], {
+      initialEntries: ["/projects/project-a"],
+    });
+    const { container } = render(<RouterProvider router={router} />);
+    const note = await flowCard(container, "item-note");
+    fireEvent.click(note);
+    expect(screen.queryByRole("textbox", { name: "Edit Project Markdown" })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+    fireEvent.doubleClick(note, { button: 0 });
+    const input = await screen.findByRole("textbox", { name: "Edit Project Markdown" }) as HTMLTextAreaElement;
+    expect(input.closest(".react-flow__node")).toBe(note);
+    const inspector = screen.getByRole("complementary", { name: "Project Inspector" });
+    expect(within(inspector).queryByRole("textbox")).toBeNull();
+    await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    expect(document.activeElement).toBe(input);
+    expect(container.querySelectorAll(".react-flow__node")).toHaveLength(2);
+    expect((within(note).getByRole("button", { name: "Resize card" }) as HTMLButtonElement).disabled).toBe(false);
+    const draft = "# 双击编辑\n\nThe existing card owns this draft.";
+    fireEvent.change(input, { target: { value: draft } });
+    fireEvent.doubleClick(input, { button: 0 });
+    expect(screen.getByRole("textbox", { name: "Edit Project Markdown" })).toBe(input);
+    expect(input.value).toBe(draft);
+    fireEvent.click(within(note).getByRole("button", { name: finish }));
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Edit Project Markdown" })).toBeNull());
+    expect(screen.getByRole("complementary", { name: "Project Inspector" })).toBeTruthy();
+    expect(container.querySelectorAll(".react-flow__node")).toHaveLength(2);
+    expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Saved");
+    const writes = fetchMock.mock.calls.filter(([, init]) => init?.method);
+    expect(writes).toHaveLength(finish === "Save Markdown" ? 1 : 0);
+    if (finish === "Save Markdown") expect(JSON.parse(String(writes[0][1]?.body)).markdownSource).toBe(draft);
+  });
+
+  it("keeps a newer card edit focused when an older References focus request completes", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("min-width"), media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    }));
+    const snapshot = overlappingSnapshot();
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(async (path) => {
+      if (String(path) === "/api/projects/project-a") return new Response(JSON.stringify(snapshot));
+      if (String(path) === "/api/references/children") return new Response(JSON.stringify({
+        parent: snapshot.references[0].resolution, parentEligible: false, children: [], truncated: false,
+      }));
+      throw new Error(`Unexpected request: ${path}`);
+    }));
+    const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], {
+      initialEntries: ["/projects/project-a"],
+    });
+    const { container } = render(<RouterProvider router={router} />);
+    const note = await flowCard(container, "item-note");
+    fireEvent.click(note);
+    let previousReferenceFocus: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementationOnce((callback) => {
+      previousReferenceFocus = callback;
+      return 0;
+    });
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    expect(previousReferenceFocus).toBeDefined();
+    fireEvent.doubleClick(note, { button: 0 });
+    const input = await screen.findByRole("textbox", { name: "Edit Project Markdown" });
+    expect(screen.getByRole("complementary", { name: "Reference search and placement" })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Project Inspector" })).toBeTruthy();
+    expect(document.activeElement).toBe(input);
+    act(() => previousReferenceFocus!(performance.now()));
+    expect(document.activeElement).toBe(input);
+  });
+
   it.each(["before", "after"] as const)("does not rewrite the native IME range when final input arrives %s compositionend", async (finalInputOrder) => {
     const snapshot = overlappingSnapshot();
     const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
