@@ -69,7 +69,7 @@ deployment gate and activation requirements still apply.
 
 ## Additional merge review
 
-Independent probes found and repaired three further boundaries:
+Independent probes found and repaired four further boundaries:
 
 - Literal math delimiters inside code examples, link destinations, HTML and
   nested Markdown constructs must not close a later real formula in a truncated
@@ -89,3 +89,10 @@ Independent probes found and repaired three further boundaries:
   limit, visible keyboard focus and native reading-shortcut ownership for both
   plain and Markdown content. Reading and source-detail documents retain their
   ordinary document layout.
+- Mobile Details must accept the first activation as soon as Reading appears.
+  CI exposed an intermittent failure that a first-frame activation probe then
+  reproduced deterministically: two passive effects based on the preceding
+  empty selection closed the newly requested panel. Both consistency checks
+  now run in the layout phase, before user interaction, retaining their existing
+  close conditions. The regression activates the real Details button from the
+  real Reading surface's first passive effect and verifies the live Inspector.
