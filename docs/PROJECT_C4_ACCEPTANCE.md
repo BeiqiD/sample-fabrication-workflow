@@ -1,8 +1,8 @@
 # Project C4 integration acceptance
 
-Status: in progress. PRs #175–#178 are merged and the final integration commit's
-CI passed, but the inspected deployment does not expose the new shortcut UI.
-Browser acceptance of that integrated build remains open; Phase 5D has not started.
+Status: in progress. PRs #175–#178 are merged, the final integration commit's
+CI passed, and the deployed page now exposes the new shortcut and Inspector UI.
+Browser/device acceptance remains incomplete; Phase 5D has not started.
 
 Reviewed: 2026-09-12.
 
@@ -16,31 +16,49 @@ Reviewed: 2026-09-12.
   and [Project Map performance](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/34710705597/job/103598858669).
   Both production builds emitted `index-CAh5QSPs.js`,
   `ProjectPage-CEKAkFht.js`, and `ProjectMapSurface-BxPAFhhU.js`.
-- An authenticated browser reloaded the existing synthetic QA Project at
+- Earlier observation: an authenticated browser reloaded the synthetic QA Project at
   `1363 × 936` on `https://sample-workflow-v3.clannadas.workers.dev`.
   It still served `index-BkL0387N.js`; the Keyboard shortcuts button count was
   zero. Double-clicking `QA · Diffusion hypothesis` opened the read-only
   Inspector, where the old `Edit Markdown` button measured `310 × 42px` inside
   a `340px` Inspector. The merged UI instead places pencil-and-Edit in the type
-  row. This session cannot establish acceptance of those merged UI changes.
-- This check used inspection and reload only. It changed no application data and
+  row. That earlier session could not establish acceptance of those merged UI changes.
+- That earlier check used inspection and reload only. It changed no application data and
   performed no deployment, configuration change, or migration. The observations
   do not identify the exact older deployed commit or explain the deployment gap.
   Inspector was closed afterward; Saved remained visible and Undo, Redo, and
   Save remained disabled throughout. No editor was entered.
+- Follow-up: the integration commit's
+  [Workers Builds: sample-workflow-v3 check](https://github.com/BeiqiD/sample-fabrication-workflow/runs/103601517189)
+  completed successfully. An ordinary browser reload then served
+  `index-CAh5QSPs.js`, matching the CI entry asset, and exposed one Keyboard
+  shortcuts button. The previously observed served-build mismatch is resolved.
+- At the same `1363 × 936` desktop viewport, opening Keyboard shortcuts displayed
+  Workspace and Map canvas instructions. Escape closed help and returned focus
+  to its trigger. Double-clicking the Markdown card opened Inspector; the visible
+  action text was `Edit`, measuring `64 × 34px` inside the unchanged `340px`
+  Inspector. These are direct observations of the new deployed controls.
+- A temporary QA marker was appended in the Inspector's native Markdown
+  textarea, producing Unsaved Markdown. With help open, Control+S left help
+  open, retained the temporary marker in the draft and Unsaved Markdown state,
+  and did not put the marker on the card. Escape closed only help, returned focus to Keyboard
+  shortcuts, and preserved the draft. Plain-text Cancel then restored Saved and
+  removed the marker. After closing Inspector and reloading, the matching entry,
+  four cards, Saved state, and absence of the marker were confirmed. No content
+  change was persisted. This exercised desktop Control+S, not macOS Command+S.
+- No manual deployment, migration, or remote configuration change was performed.
 
 ### Resume acceptance
 
-The served-build mismatch is the current blocker. Establish which commit and
-production assets the deployment serves, then confirm the new shortcut control
-is present. Reuse the existing CI and historical workflow evidence within its
+The entry-asset match and new controls allow integrated browser acceptance to
+continue. Reuse the existing CI and historical workflow evidence within its
 recorded scope; the remaining browser checks are:
 
 | Priority | Integrated browser check | Required observation |
 | --- | --- | --- |
 | P0 | Overlapping Markdown editor and higher-layer reference | Cancel and Save centers hit their own controls and real clicks work; leaving the editor restores the original display layer without a placement write. |
 | P0 | Markdown, reference, and edge interaction | Single-click selection, double-click Inspector, and explicit Edit remain consistent; an unchanged editor yields to the next Canvas operation, while a dirty draft remains protected. |
-| P0 | Keyboard help over an active draft | Ctrl/Cmd+S does not save the background draft; Escape closes only help, returns focus to its trigger, and retains the draft. |
+| P0 | Keyboard help over an active draft | Desktop Control+S isolation, Escape focus/draft retention, and subsequent Cancel passed above. macOS Command+S and other Canvas commands under help remain unverified in the browser. |
 | P0 | Keyboard ownership in Inspector and Reading | Native text selection/copy remain available; Delete and other Canvas commands do not mutate the background. Canvas commands resume when focus returns to the Canvas. |
 | P0 | Compact Inspector actions | The permanent Edit action is discoverable beside the type, content remains visually primary, direction is readable, and edge deletion is reachable through the initially closed More actions. |
 

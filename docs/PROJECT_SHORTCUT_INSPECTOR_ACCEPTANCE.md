@@ -10,7 +10,7 @@ PR #175 and follow-up fixes #176–#178 are merged into `v2/backend-foundation` 
 passed on that exact integration commit. The production assets and CI evidence
 are recorded in [Project C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-12).
 
-On 2026-09-12, an authenticated browser reloaded the synthetic QA Project at
+In the earlier check on 2026-09-12, an authenticated browser reloaded the synthetic QA Project at
 `1363 × 936`. The inspected deployment served `index-BkL0387N.js`, rather than
 the two CI builds' `index-CAh5QSPs.js`, and the new Keyboard shortcuts control was
 absent. Read-only Inspector inspection still showed the old `310 × 42px`
@@ -18,9 +18,26 @@ absent. Read-only Inspector inspection still showed the old `310 × 42px`
 was entered or application data changed. These observations do not identify the
 exact older deployed commit or establish a cause for the mismatch.
 
-Visual acceptance of the new UI remains open. Before resuming, establish the
-served commit/assets and confirm the new controls are present. Phase 5C4 remains
-in progress and Phase 5D has not started.
+The subsequent Workers Builds check on the integration commit passed. After an
+ordinary reload, the browser served `index-CAh5QSPs.js`, matching the CI entry,
+and displayed one Keyboard shortcuts button. The earlier mismatch is resolved.
+Opening help displayed Workspace and Map canvas instructions; Escape closed it
+and returned focus to the trigger. Double-clicking Markdown opened Inspector,
+where the visible action was now `Edit`, measuring `64 × 34px` inside the same
+`340px` panel at `1363 × 936`.
+
+An Inspector Markdown draft was then given a temporary QA marker. With help
+open, Control+S left help open, retained the temporary marker in the draft and
+Unsaved Markdown status, and did not put the marker on the card. Escape closed only help,
+returned focus to Keyboard shortcuts, and retained the draft. Plain-text Cancel
+discarded the marker and restored Saved. A final reload confirmed four cards,
+Saved, the matching entry asset, and no marker; no application content change
+was persisted. macOS Command+S was not exercised.
+
+These observations confirm the new controls are deployed, help retains an active
+draft, and desktop Control+S cannot save through it. Full interaction and device
+acceptance remains open: Phase 5C4 is in progress and Phase 5D has not started.
+No manual deployment, migration, or remote configuration change was performed.
 
 ## Product changes
 
@@ -68,10 +85,10 @@ or geometry write was needed for this inspection.
 
 ## Remaining browser acceptance
 
-After the served-build check, prioritize compact Markdown/edge Edit controls and
-More actions, native text selection and keyboard ownership, and help over an
-active draft. Help must block background Save and Canvas commands, close one
-layer at a time, return focus, and preserve the draft.
+Continue checking compact Markdown/edge Edit controls and More actions, native
+text selection and keyboard ownership, and Canvas commands under help. The
+desktop draft/Control+S/Escape/Cancel sequence passed above; macOS Command+S
+and other Canvas commands under help remain unverified in the browser.
 
 Check header alignment and light/night contrast at narrow and wide sizes, help
 scrolling at short heights, and the adjacent `480/481`, `560/561`, `859/860`, and
