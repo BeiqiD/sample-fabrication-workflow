@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateSampleInput, type CreateStateVerificationInput, type DeleteRunInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepAssetPresentationInput, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput, type UpdateSampleInput } from "../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRecordInput, type CreateRunStepCommentsInput, type CreateRunStepInput, type CreateStateVerificationInput, type DeleteRunInput, type DeleteSampleInput, type FinishProcessRunInput, type InitialSubstrateStep, type RunStepAssetPresentationInput, type RunStepTarget, type SampleDirectorySort, type SampleStatus, type SplitSampleInput, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput } from "../shared/types";
 import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepresentation, hashStepDefinition, logicalStepKey, normalizedStepName, sha256Hex, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../shared/content-addressing";
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isCanonicalMimeType } from "../shared/mime-type";
@@ -15,6 +15,7 @@ import { ACTIVATE_SAMPLE_FOR_RUN_SQL } from "./run-lifecycle";
 import { returnedEveryConfirmationTarget } from "./run-step-confirmation";
 import { resolveAssetReferences } from "./asset-dedupe";
 import { titleChangeAudit } from "./sample-update";
+import { validateCreateSampleInput, validateUpdateSampleInput } from "./sample-input";
 import { loadPlanContext } from "./plan-context";
 import { validateSubstrateTransition } from "./run-start";
 import { resolvePlanUpdateStructureTarget } from "./plan-update";
@@ -773,16 +774,11 @@ app.get("/samples", async (c) => {
 });
 
 app.post("/samples", async (c) => {
-  const input = await c.req.json<CreateSampleInput>();
-  if (typeof input.code !== "string" || typeof input.title !== "string" || (input.description !== undefined && typeof input.description !== "string") || (input.location !== undefined && typeof input.location !== "string") || (input.status !== undefined && !isSampleStatus(input.status))) {
-    throw new HTTPException(400, { message: "Invalid sample fields" });
-  }
+  const validation = validateCreateSampleInput(await c.req.json<unknown>().catch(() => null));
+  if (!validation.ok) throw new HTTPException(400, { message: validation.error });
+  const input = validation.input;
   const code = input.code.trim();
   const title = input.title.trim();
-  if (!code || !title) throw new HTTPException(400, { message: "Code and sample name are required" });
-  if (code.length > 100 || title.length > 200 || (input.description?.length ?? 0) > 10_000 || (input.location?.length ?? 0) > 500) {
-    throw new HTTPException(400, { message: "One or more sample fields are too long" });
-  }
 
   const id = crypto.randomUUID();
   const eventId = crypto.randomUUID();
@@ -1247,15 +1243,9 @@ app.get("/samples/:id", async (c) => {
 
 app.patch("/samples/:id", async (c) => {
   const id = c.req.param("id");
-  const input = await c.req.json<UpdateSampleInput>();
-  if ("code" in input) throw new HTTPException(400, { message: "Sample code is a permanent identifier and cannot be changed" });
-  if (typeof input.expectedUpdatedAt !== "string" || (input.title !== undefined && typeof input.title !== "string") || (input.description !== undefined && typeof input.description !== "string") || (input.location !== undefined && typeof input.location !== "string") || (input.pinned !== undefined && typeof input.pinned !== "boolean")) throw new HTTPException(400, { message: "Invalid sample update" });
-  if (input.title !== undefined && (!input.title.trim() || input.title.length > 200)) throw new HTTPException(400, { message: "Sample name is required and must be 200 characters or fewer" });
-  if (input.description !== undefined && input.description.length > 10_000) throw new HTTPException(400, { message: "Description is too long" });
-  if (input.location && input.location.length > 500) throw new HTTPException(400, { message: "Location is too long" });
-  if (input.status !== undefined && !isSampleStatus(input.status)) {
-    throw new HTTPException(400, { message: "Invalid sample status" });
-  }
+  const validation = validateUpdateSampleInput(await c.req.json<unknown>().catch(() => null));
+  if (!validation.ok) throw new HTTPException(400, { message: validation.error });
+  const input = validation.input;
   const current = await c.env.DB.prepare(
     `SELECT title, description, status, location, pinned, updated_at
      FROM samples WHERE id = ? AND deleted_at IS NULL`,

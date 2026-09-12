@@ -10,6 +10,12 @@ import { templateDetailPath } from "../lib/templateRoutes";
 
 export function MetrologyTemplatePage() {
   const { templateId = "" } = useParams();
+  // A different source starts a new editing session; focus/history changes for
+  // the same source keep its draft, pending file, and local feedback intact.
+  return <MetrologyTemplateSession key={templateId} templateId={templateId} />;
+}
+
+function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   const location = useLocation();
   const locationSearchRef = useRef(location.search);
   locationSearchRef.current = location.search;
@@ -27,8 +33,19 @@ export function MetrologyTemplatePage() {
   const [savingReference, setSavingReference] = useState(false);
   const [referenceToDelete, setReferenceToDelete] = useState<{ id: string; filename: string } | null>(null);
   const [referenceDeleteError, setReferenceDeleteError] = useState("");
+  const sessionActive = useRef(true);
+  const loadSequence = useRef(0);
   const load = useCallback(async (syncReferenceNotes = true) => {
-    const result = await api.getTemplate(templateId);
+    if (!sessionActive.current) return;
+    const sequence = ++loadSequence.current;
+    let result: Awaited<ReturnType<typeof api.getTemplate>>;
+    try {
+      result = await api.getTemplate(templateId);
+    } catch (error) {
+      if (!sessionActive.current || sequence !== loadSequence.current) return;
+      throw error;
+    }
+    if (!sessionActive.current || sequence !== loadSequence.current) return;
     if (result.template.templateKind !== "metrology") {
       navigate(`${templateDetailPath(templateId, "process")}${locationSearchRef.current}`, { replace: true });
       return;
@@ -39,11 +56,22 @@ export function MetrologyTemplatePage() {
     setTemplate(result.template);
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
   }, [navigate, templateId]);
-  useEffect(() => { void load(true).catch((error: Error) => setError(error.message)); }, [load]);
+  useEffect(() => {
+    sessionActive.current = true;
+    void load(true).catch((error: Error) => {
+      if (sessionActive.current) setError(error.message);
+    });
+    return () => {
+      sessionActive.current = false;
+      loadSequence.current += 1;
+    };
+  }, [load]);
 
   async function update(input: MetrologyTemplateInput) {
     await api.updateMetrologyTemplate(templateId, input);
+    if (!sessionActive.current) return;
     await load(false);
+    if (!sessionActive.current) return;
     setNotice("Template details saved.");
   }
 
@@ -51,10 +79,12 @@ export function MetrologyTemplatePage() {
     setSavingReference(true); setError(""); setNotice("");
     try {
       await api.updateMetrologyTemplateNotes(templateId, referenceNotes);
+      if (!sessionActive.current) return;
       await load();
+      if (!sessionActive.current) return;
       setNotice("Equipment and method notes saved.");
-    } catch (error) { setError((error as Error).message); }
-    finally { setSavingReference(false); }
+    } catch (error) { if (sessionActive.current) setError((error as Error).message); }
+    finally { if (sessionActive.current) setSavingReference(false); }
   }
 
   async function uploadReference() {
@@ -62,11 +92,13 @@ export function MetrologyTemplatePage() {
     setSavingReference(true); setError(""); setNotice("");
     try {
       await api.uploadMetrologyTemplateReference(templateId, referenceFile);
+      if (!sessionActive.current) return;
       setReferenceFile(null);
       await load(false);
+      if (!sessionActive.current) return;
       setNotice("Reference file attached.");
-    } catch (error) { setError((error as Error).message); }
-    finally { setSavingReference(false); }
+    } catch (error) { if (sessionActive.current) setError((error as Error).message); }
+    finally { if (sessionActive.current) setSavingReference(false); }
   }
 
   async function deleteReference() {
@@ -74,11 +106,13 @@ export function MetrologyTemplatePage() {
     setSavingReference(true); setReferenceDeleteError(""); setNotice("");
     try {
       await api.deleteMetrologyTemplateReference(templateId, referenceToDelete.id);
+      if (!sessionActive.current) return;
       setReferenceToDelete(null);
       await load(false);
+      if (!sessionActive.current) return;
       setNotice("Reference file removed.");
-    } catch (error) { setReferenceDeleteError((error as Error).message); }
-    finally { setSavingReference(false); }
+    } catch (error) { if (sessionActive.current) setReferenceDeleteError((error as Error).message); }
+    finally { if (sessionActive.current) setSavingReference(false); }
   }
 
   async function remove() {
@@ -86,9 +120,11 @@ export function MetrologyTemplatePage() {
     setDeleting(true); setTemplateDeleteError("");
     try {
       await api.removeTemplate(template.id);
+      if (!sessionActive.current) return;
       setConfirmingTemplateDeletion(false);
       navigate("/templates");
     } catch (error) {
+      if (!sessionActive.current) return;
       setTemplateDeleteError((error as Error).message);
       setDeleting(false);
     }
