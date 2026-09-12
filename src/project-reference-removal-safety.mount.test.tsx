@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { forwardRef, useImperativeHandle } from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectItemMutationResponse, ProjectSnapshot } from "../shared/project-api";
@@ -109,8 +109,22 @@ function renderProjectPage() {
   const router = createMemoryRouter([{
     path: "/projects/:projectId",
     element: <ProjectPage />,
+  }, {
+    path: "/projects",
+    element: <p>Projects destination</p>,
   }], { initialEntries: ["/projects/project-a"] });
-  return render(<RouterProvider router={router} />);
+  return { ...render(<RouterProvider router={router} />), router };
+}
+
+async function removeExistingReference() {
+  await screen.findByText("Map ready");
+  fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+  if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+  }
+  const moreActions = screen.getByText("More actions", { selector: "summary" });
+  if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+  fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
 }
 
 describe("Project reference removal safety", () => {
@@ -204,6 +218,106 @@ describe("Project reference removal safety", () => {
     await waitFor(() => expect(screen.getByText("Map node count: 1")).toBeTruthy());
     expect(screen.getByText("Geometry locked: no")).toBeTruthy();
     expect(screen.getByText("Saved")).toBeTruthy();
+  });
+
+  it.each([403, 409])("retains an uncertain single-card removal and navigation lock after a %i retry without a revision fence", async (status) => {
+    let deleteCount = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) return jsonResponse(projectTestSnapshot());
+      if (init.method === "DELETE") {
+        deleteCount += 1;
+        if (deleteCount === 1) return Promise.reject(new TypeError("Deletion acknowledgement lost"));
+        if (deleteCount === 2) return jsonResponse({ error: "Retry rejected without settlement" }, status);
+        return jsonResponse(removalResponse(true));
+      }
+      return jsonResponse({ error: "unexpected request" }, 500);
+    });
+
+    const view = renderProjectPage();
+    await removeExistingReference();
+    await screen.findByRole("button", { name: "Retry exact removal" });
+    await act(async () => { await view.router.navigate("/projects"); });
+    expect(view.router.state.location.pathname).toBe("/projects/project-a");
+    fireEvent.click(screen.getAllByRole("button", { name: "Retry exact removal" })[0]);
+    await screen.findAllByText("Retry rejected without settlement");
+    expect(screen.getByText("Geometry locked: yes")).toBeTruthy();
+    expect(view.router.state.location.pathname).toBe("/projects/project-a");
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(screen.queryByText("Saved")).toBeNull();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Retry exact removal" })[0]);
+    await screen.findByText("Projects destination");
+    const deletes = fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
+    expect(deletes).toHaveLength(3);
+    expect(deletes[1][1]?.body).toBe(deletes[0][1]?.body);
+    expect(deletes[2][1]?.body).toBe(deletes[0][1]?.body);
+  });
+
+  it("settles an uncertain removal only after a compared revision advances", async () => {
+    let deleteCount = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) return jsonResponse(deleteCount < 2
+        ? projectTestSnapshot() : snapshotWithReferenceRevision(2));
+      if (init.method === "DELETE") {
+        deleteCount += 1;
+        return deleteCount === 1
+          ? Promise.reject(new TypeError("Deletion acknowledgement lost"))
+          : jsonResponse({ error: "Item revision conflict" }, 409);
+      }
+      return jsonResponse({ error: "unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await removeExistingReference();
+    fireEvent.click(await screen.findByRole("button", { name: "Retry exact removal" }));
+    await screen.findByText("The occurrence changed elsewhere. The latest Project state was loaded; review it before starting a new removal.");
+    expect(screen.getByText("Geometry locked: no")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry exact removal" })).toBeNull();
+    expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("?includeDeleted=1"))).toBe(true);
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(false);
+  });
+
+  it.each(["own-acknowledgement", "read-unavailable"] as const)("keeps the exact single-card removal after a 409 with %s until its acknowledgement preserves Undo", async (proof) => {
+    let deleteCount = 0;
+    let operationId = "";
+    fetchMock.mockImplementation((path, init) => {
+      if (!init?.method) {
+        if (String(path).endsWith("?includeDeleted=1")) {
+          if (proof === "read-unavailable") return jsonResponse({ error: "Snapshot unavailable" }, 500);
+          const snapshot = snapshotWithReferenceRevision(2);
+          const item = snapshot.items.find((candidate) => candidate.id === "item-reference")!;
+          item.deletedAt = "2026-09-12T19:00:00Z";
+          item.deletionOperationId = operationId;
+          return jsonResponse(snapshot);
+        }
+        return jsonResponse(projectTestSnapshot());
+      }
+      if (init.method === "DELETE") {
+        deleteCount += 1;
+        operationId = JSON.parse(String(init.body)).operationId;
+        if (deleteCount === 1) return Promise.reject(new TypeError("Deletion acknowledgement lost"));
+        if (deleteCount === 2) return jsonResponse({ error: "Retry rejected without settlement" }, 409);
+        return jsonResponse(removalResponse(true));
+      }
+      return jsonResponse({ error: "unexpected request" }, 500);
+    });
+
+    renderProjectPage();
+    await removeExistingReference();
+    fireEvent.click(await screen.findByRole("button", { name: "Retry exact removal" }));
+    await screen.findByText("Retry rejected without settlement");
+    expect(screen.getByText("Geometry locked: yes")).toBeTruthy();
+    expect(screen.getByText("Map node count: 2")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact removal" }));
+    await screen.findByText("Map node count: 1");
+    expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(false);
+    const deletes = fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE");
+    expect(deletes).toHaveLength(3);
+    expect(deletes[2][1]?.body).toBe(deletes[0][1]?.body);
   });
 
   it("reconciles a deterministic conflict when another operation already removed the occurrence", async () => {

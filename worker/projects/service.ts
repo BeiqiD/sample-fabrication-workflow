@@ -19,10 +19,11 @@ import type {
   UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
-import type {
-  ReferenceResolution,
-  ReferenceTarget,
-  ReferenceTargetType,
+import {
+  MAX_REFERENCE_RESOLUTION_TARGETS,
+  type ReferenceResolution,
+  type ReferenceTarget,
+  type ReferenceTargetType,
 } from "../../shared/reference-types";
 import {
   MAX_PROJECT_SAFE_INTEGER,
@@ -626,10 +627,19 @@ export async function readProjectSnapshot(
     type: row.target_type,
     id: row.target_id,
   }));
-  const resolutions = targets.length ? await resolveReferences(db, targets) : [];
-  const resolutionsByTarget = new Map(
-    resolutions.map((resolution) => [referenceTargetKey(resolution.target), resolution]),
-  );
+  const resolutionsByTarget = new Map<string, ReferenceResolution>();
+  // A Project, including accumulated Trash, can exceed one resolver batch.
+  // Resolve sequentially to keep source queries bounded without changing the
+  // public resolver limit or the snapshot's stable registry ordering.
+  for (let offset = 0; offset < targets.length; offset += MAX_REFERENCE_RESOLUTION_TARGETS) {
+    const resolutions = await resolveReferences(
+      db,
+      targets.slice(offset, offset + MAX_REFERENCE_RESOLUTION_TARGETS),
+    );
+    for (const resolution of resolutions) {
+      resolutionsByTarget.set(referenceTargetKey(resolution.target), resolution);
+    }
+  }
 
   return {
     schemaVersion: PROJECT_SCHEMA_VERSION,
