@@ -1,5 +1,54 @@
 const DEFAULT_EXCERPT_LIMIT = 240;
 
+function hasNestedFenceMarker(line: string) {
+  // Lists, quotes and indented code require a block parser to distinguish. A
+  // suspicious fence in one of those containers must not license truncation.
+  let remainder = line;
+  let prefix: RegExpExecArray | null;
+  while ((prefix = /^(?:[\t ]+|>[\t ]?|(?:[-+*]|\d+[.)])[\t ]+)/.exec(remainder))) {
+    remainder = remainder.slice(prefix[0].length);
+  }
+  return remainder !== line && /^(?:`{3,}|~{3,})/.test(remainder);
+}
+
+function closingCodeSpanEnd(source: string, start: number, openingLength: number) {
+  // A later line can start another Markdown block even without a blank line.
+  // Keep complete short source, but do not infer cross-block code spans while
+  // choosing a truncated prefix without a full block parser.
+  const newline = source.indexOf("\n", start);
+  const end = newline < 0 ? source.length : newline;
+  for (let index = start; index < end;) {
+    const next = source.indexOf("`", index);
+    if (next < 0 || next >= end) return -1;
+    let length = 1;
+    while (source[next + length] === "`") length += 1;
+    if (length === openingLength) return next + length;
+    index = next + length;
+  }
+  return -1;
+}
+
+function ambiguousLinkMath(source: string, index: number) {
+  // Link destinations and titles may cross lines. Definitions are deliberately
+  // conservative through the end of this bounded candidate prefix.
+  if (source.startsWith("]:", index)) return /\$|\\[()[\]]/.test(source.slice(index + 2));
+  if (source[index] === "<") {
+    // Raw HTML is rendered as escaped text, potentially including an entire
+    // multiline block. Do not treat its contents as mathematical delimiters.
+    if (/^<(?:\/?[A-Za-z][\w:-]*(?:\s|\/?>)|[!?])/.test(source.slice(index))) return true;
+    const closing = source.indexOf(">", index + 1);
+    return /\$|\\[()[\]]/.test(source.slice(index + 1, closing < 0 ? source.length : closing));
+  }
+  if (!source.startsWith("](", index)) return false;
+  let depth = 1;
+  for (let cursor = index + 2; cursor < source.length; cursor += 1) {
+    if (/\$|\\/.test(source[cursor])) return true;
+    if (source[cursor] === "(") depth += 1;
+    if (source[cursor] === ")" && --depth === 0) break;
+  }
+  return false;
+}
+
 // This is a conservative boundary check, not a Markdown parser. It only decides
 // whether a complete-paragraph prefix could stop inside TeX or a code fence.
 function previewBoundaryIsClosed(source: string) {
@@ -16,12 +65,12 @@ function previewBoundaryIsClosed(source: string) {
       fence = { marker: marker[1][0], length: marker[1].length };
       continue;
     }
+    if (hasNestedFenceMarker(line)) return false;
     outsideFence.push(line);
   }
   if (fence) return false;
   source = outsideFence.join("\n");
   let math: "$" | "$$" | "\\(" | "\\[" | null = null;
-  const backtickRuns = new Map<number, number>();
   for (let index = 0; index < source.length; index += 1) {
     const character = source[index];
     if (character === "\\") {
@@ -36,22 +85,32 @@ function previewBoundaryIsClosed(source: string) {
       index += 1;
       continue;
     }
-    if (character === "`") {
+    if (character === "`" && math === null) {
       let length = 1;
       while (source[index + length] === "`") length += 1;
-      backtickRuns.set(length, (backtickRuns.get(length) ?? 0) + 1);
-      index += length - 1;
+      const end = closingCodeSpanEnd(source, index + length, length);
+      if (end < 0) return false;
+      index = end - 1;
       continue;
     }
+    // Link destinations, titles, autolinks and definitions do not render their
+    // delimiters as math. Without parsing those constructs, omit an ambiguous
+    // prefix instead of allowing their dollars to close a later real formula.
+    if (math === null && (character === "]" || character === "<")
+      && ambiguousLinkMath(source, index)) return false;
     if (character !== "$" || math === "\\(" || math === "\\[") continue;
     const delimiter = source[index + 1] === "$" ? "$$" : "$";
-    if (math === null) math = delimiter;
-    else if (math === delimiter) math = null;
+    if (math === null) {
+      // Display math is a block extension. Dollars in ordinary prose, code
+      // indentation or a container we have not parsed cannot open a block.
+      const lineStart = source.lastIndexOf("\n", index - 1) + 1;
+      if (delimiter === "$$" && !/^ {0,3}$/.test(source.slice(lineStart, index))) return false;
+      math = delimiter;
+    } else if (math === delimiter) math = null;
     else if (math !== "$$") return false;
     if (delimiter === "$$") index += 1;
   }
-  return math === null
-    && [...backtickRuns.values()].every((count) => count % 2 === 0);
+  return math === null;
 }
 
 /** Preserve complete short comments, or a closed paragraph prefix within budget. */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { referenceCommentExcerpt, referenceCommentTitle } from "./reference-comment-preview";
+import { renderRichText } from "../src/lib/rich-text";
 
 describe("bounded Comment reference previews", () => {
   it("preserves the exact paragraph structure of short inline and display math", () => {
@@ -42,6 +43,81 @@ $$`;
   it("omits a prefix ending inside a double-backtick code span", () => {
     expect(referenceCommentExcerpt(`Context.\n\nUse \`\`the first line\n\n${"a ".repeat(160)}\`\``))
       .toBe("Context.");
+  });
+
+  it.each([
+    "Use `$$` for display math.",
+    "Use ``a ` $$ literal`` for display math.",
+    "Use `\\` and `$$` for display math.",
+  ])("does not count delimiters in closed inline code: %s", (first) => {
+    const source = `${first}\n\n$$\nx=1\n\n${"a + ".repeat(70)}z\n$$`;
+    const preview = referenceCommentExcerpt(source);
+    expect(renderRichText(source, "comment")).toContain("<math");
+    expect(preview).toBe(first);
+    expect(renderRichText(preview!, "comment")).not.toContain("x=1");
+  });
+
+  it("pairs exact backtick runs instead of counting nested runs as separate spans", () => {
+    const first = "Use `a `` b` as literal text.";
+    expect(referenceCommentExcerpt(`${first}\n\n${"later ".repeat(70)}`)).toBe(first);
+  });
+
+  it("does not pair a code opener across a real display-math block interruption", () => {
+    const source = `Context.\n\nUse \`literal\n$$\nx=1 \`\n\n${"a + ".repeat(70)}z\n$$`;
+    expect(referenceCommentExcerpt(source)).toBe("Context.");
+    expect(renderRichText(source, "comment")).toContain("<math");
+  });
+
+  it("does not interpret backticks inside a TeX expression as Markdown code", () => {
+    const first = "Context.\n\n\\[\n\\text{` is literal}\n\\]";
+    expect(referenceCommentExcerpt(`${first}\n\n${"later ".repeat(70)}`)).toBe(first);
+    expect(renderRichText(first, "comment")).toContain("<math");
+  });
+
+  it.each(["~~~", "```"])("does not cut a %s fence nested inside a list", (fence) => {
+    const first = "Context.\n\n1. Example:";
+    const source = `${first}\n\n    ${fence}tex\n    x=1\n\n    ${"a + ".repeat(70)}z\n    ${fence}`;
+    expect(referenceCommentExcerpt(source)).toBe(first);
+    expect(renderRichText(source, "comment")).toContain('<pre><code class="language-tex">');
+  });
+
+  it.each(["- ", "> ", "> - ", "  > 1. ", "\t"])(
+    "conservatively omits an ambiguous nested fence with prefix %j", (prefix) => {
+      const source = `Context.\n\n${prefix}~~~tex\nx=1\n\n${"later ".repeat(70)}\n~~~`;
+      expect(referenceCommentExcerpt(source)).toBe("Context.");
+    },
+  );
+
+  it.each([
+    "[A](https://example.com/$$)",
+    '[A](https://example.com "$$")',
+    "[A](https://example.com/(part)/$$)",
+    "<https://example.com/$$>",
+    "[A]: https://example.com/$$",
+    "[A](\nhttps://example.com/$$\n)",
+    '[A](https://example.com\n"$$")',
+    "[A]:\n  https://example.com/$$",
+  ])("does not allow non-rendered link delimiters to close real math: %s", (link) => {
+    const source = `Context.\n\n${link}\n\n$$\nx=1\n\n${"a + ".repeat(70)}z\n$$`;
+    expect(referenceCommentExcerpt(source)).toBe("Context.");
+    expect(renderRichText(source, "comment")).toContain("<math");
+  });
+
+  it("retains ordinary links followed by complete math in a bounded paragraph", () => {
+    const first = "[Paper](https://example.com/a_(b)) gives $L=2$.";
+    expect(referenceCommentExcerpt(`${first}\n\n${"later ".repeat(70)}`)).toBe(first);
+  });
+
+  it.each([
+    "<div>$$</div>",
+    "<div>\n$$\n</div>",
+    "<!-- $$ -->",
+    "Use $$ for display math.",
+    "    $$",
+  ])("does not count other literal display delimiters as mathematical blocks: %s", (literal) => {
+    const source = `Context.\n\n${literal}\n\n$$\nx=1\n\n${"a + ".repeat(70)}z\n$$`;
+    expect(referenceCommentExcerpt(source)).toBe("Context.");
+    expect(renderRichText(source, "comment")).toContain("<math");
   });
 
   it.each(["~", "`"])("requires a %s fence closer at least as long as its opener", (marker) => {

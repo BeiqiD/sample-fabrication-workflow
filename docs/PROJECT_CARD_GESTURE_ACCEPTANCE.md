@@ -66,3 +66,26 @@ multi-drag, resize and replacement/lock boundaries.
 
 Full-suite and build results are recorded in the pull request. The existing
 deployment gate and activation requirements still apply.
+
+## Additional merge review
+
+Independent probes found and repaired three further boundaries:
+
+- Literal math delimiters inside code examples, link destinations, HTML and
+  nested Markdown constructs must not close a later real formula in a truncated
+  summary. Exact same-line code spans are skipped; ambiguous long-source
+  prefixes are omitted conservatively. The complete source remains available
+  through Open source, and complete short comments are unchanged.
+- A lock or interrupted pointer gesture must release its saved drag/resize
+  start state. Aborted geometry returns to the current projection; late stop
+  callbacks cannot create a write. Subsequent keyboard movement and normal
+  pointer gestures still commit, while unrelated acknowledgements preserve an
+  active drag. Real Page coverage includes opening and cancelling an editor
+  during a drag, then moving by keyboard and saving.
+  Cleanup runs in the next event task so native stop listeners finish first;
+  generation and unmount guards prevent an older cleanup from ending a new drag.
+- A 240-character summary can still contain dozens of Markdown paragraphs.
+  Inspector and expanded search-result summaries therefore have a 240px scroll
+  limit, visible keyboard focus and native reading-shortcut ownership for both
+  plain and Markdown content. Reading and source-detail documents retain their
+  ordinary document layout.

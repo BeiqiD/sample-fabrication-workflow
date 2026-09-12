@@ -114,6 +114,7 @@ export function ProjectInspectorDetails({
         source={projection.excerpt}
         format={descriptor.excerptFormat}
         className="project-inspector-excerpt"
+        scrollRegionLabel="Inspector content preview"
       />}
 
     {media && <img

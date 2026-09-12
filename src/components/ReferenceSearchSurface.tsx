@@ -293,6 +293,7 @@ function ReferenceSearchResultCard({
       source={source?.excerpt}
       format={source?.excerptFormat}
       className="reference-search-result-excerpt"
+      scrollRegionLabel={`Preview of ${source?.title || result.target.id}`}
     />
 
     <div className="reference-search-result-footer">
