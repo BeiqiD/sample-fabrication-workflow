@@ -47,7 +47,10 @@ import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
 import { ProjectInspectorChildren } from "../components/project/ProjectInspectorChildren";
 import { ProjectEditorFeedback } from "../components/project/ProjectEditorFeedback";
 import { ProjectPanelSurface } from "../components/project/ProjectPanelSurface";
+import { ProjectNavigationDialog } from "../components/project/ProjectNavigationDialog";
 import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
+import { ProjectInspectorDisclosure } from "../components/project/ProjectInspectorDisclosure";
+import { useProjectInspectorPreferences } from "../lib/use-project-inspector-preferences";
 import { ProjectKeyboardShortcuts } from "../components/project/ProjectKeyboardShortcuts";
 import { ProjectTrashPanel, ProjectTrashStatus } from "../components/project/ProjectTrashPanel";
 import { useProjectItemTrash, type ProjectItemTrashController } from "../lib/use-project-item-trash";
@@ -319,8 +322,18 @@ export function ProjectPage() {
   const [ownedContentReloadPending, setOwnedContentReloadPending] = useState(false);
   const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
   const [referencePanelOpen, setReferencePanelOpen] = useState(false);
-  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false);
-  const [inspectorPinned, setInspectorPinned] = useState(false);
+  const { preferences: inspectorPreferences, setPreference: setInspectorPreference } = useProjectInspectorPreferences(projectId);
+  const [inspectorVisibility, setInspectorVisibility] = useState({ projectId, open: false });
+  const inspectorPanelOpen = inspectorVisibility.projectId === projectId && inspectorVisibility.open;
+  const inspectorPinned = inspectorPreferences.pinned;
+  const setInspectorPanelVisible = useCallback((open: boolean) => {
+    setInspectorVisibility((current) => current.projectId === projectId && current.open === open
+      ? current : { projectId, open });
+  }, [projectId]);
+  const setInspectorPanelOpen = useCallback((open: boolean) => {
+    setInspectorPreference("panelOpen", open);
+    setInspectorPanelVisible(open);
+  }, [setInspectorPanelVisible, setInspectorPreference]);
   const [projectActionsOpen, setProjectActionsOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
@@ -606,9 +619,8 @@ export function ProjectPage() {
       return;
     }
     setInspectorPanelOpen(false);
-    setInspectorPinned(false);
     restoreInspectorFocus();
-  }, [edgeController.editor, restoreInspectorFocus]);
+  }, [edgeController.editor, restoreInspectorFocus, setInspectorPanelOpen]);
 
   const closeReferencePanel = useCallback(() => {
     if (pendingReferenceRef.current) return;
@@ -621,10 +633,10 @@ export function ProjectPage() {
     // Reading has one contextual panel, including after a clean breakpoint change.
     // Reconcile the committed selection before newly visible Details controls
     // can open a panel; a stale passive close must not overwrite that action.
-    if (referencePanelOpen || trash.isOpen) setInspectorPanelOpen(false);
+    if (referencePanelOpen || trash.isOpen) setInspectorPanelVisible(false);
     if (trash.isOpen && !pendingReference) setReferencePanelOpen(false);
-    if (selectedItemIds.length !== 1 || edgeController.selectedEdgeId) setInspectorPanelOpen(false);
-  }, [readingActive, referencePanelOpen, trash.isOpen, pendingReference, selectedItemIds, edgeController.selectedEdgeId]);
+    if (selectedItemIds.length !== 1 || edgeController.selectedEdgeId) setInspectorPanelVisible(false);
+  }, [readingActive, referencePanelOpen, trash.isOpen, pendingReference, selectedItemIds, edgeController.selectedEdgeId, setInspectorPanelVisible]);
 
   useEffect(() => {
     const className = "project-map-viewport";
@@ -646,7 +658,7 @@ export function ProjectPage() {
     if (attachmentEditor?.host === "inspector" || markdownEditor?.host === "inspector") {
       setInspectorPanelOpen(true);
       if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
-    } else if (!hasInspectorTarget && (readingActive || !inspectorPinned)) {
+    } else if (!hasInspectorTarget && (readingActive || !inspectorPinned) && (hadInspectorTarget || readingActive)) {
       const activeElement = document.activeElement;
       const restoreFocus = hadInspectorTarget && (
         !activeElement
@@ -654,13 +666,17 @@ export function ProjectPage() {
         || !document.contains(activeElement)
         || Boolean(inspectorPanelRef.current?.contains(activeElement))
       );
-      setInspectorPanelOpen(false);
+      setInspectorPanelVisible(false);
       if (restoreFocus) {
         restoreInspectorFocus();
       }
+    } else if (!readingActive && (hasInspectorTarget || inspectorPinned) && projectReadyRef.current && inspectorPreferences.panelOpen
+      && (!referencePanelOpen || inspectorPinned || !window.matchMedia("(max-width: 1180px)").matches)) {
+      // Restore an already-open Inspector after a temporary empty selection or
+      // Reading/References presentation. Selection never opens an explicitly
+      // closed panel, and Reading does not summon a modal without Details.
+      setInspectorPanelVisible(true);
     }
-    // Pin state is deliberately not a trigger: explicitly closing a pinned
-    // Inspector with a selection present must not immediately reopen it.
   }, [
     attachmentEditor,
     markdownEditor,
@@ -672,6 +688,13 @@ export function ProjectPage() {
     edgeController.selectedEdgeId,
     pendingReference,
     selectedItemIds,
+    referencePanelOpen,
+    inspectorPinned,
+    inspectorPreferences.panelOpen,
+    loading,
+    snapshot?.project.id,
+    setInspectorPanelOpen,
+    setInspectorPanelVisible,
   ]);
 
   useEffect(() => {
@@ -2595,7 +2618,7 @@ export function ProjectPage() {
     setInspectorPanelOpen(true);
     if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     focusInspectorPanel();
-  }, [focusInspectorPanel, selectProjectItem]);
+  }, [focusInspectorPanel, selectProjectItem, setInspectorPanelOpen]);
 
   const editContextItem = useCallback((itemId: string) => {
     const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
@@ -2606,7 +2629,7 @@ export function ProjectPage() {
       startAttachmentEdit(itemId);
       focusInspectorPanel();
     }
-  }, [descriptors, focusInspectorPanel, startAttachmentEdit, startMarkdownEdit]);
+  }, [descriptors, focusInspectorPanel, startAttachmentEdit, startMarkdownEdit, setInspectorPanelOpen]);
 
   const removeContextItem = useCallback((itemId: string) => {
     const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
@@ -2626,16 +2649,16 @@ export function ProjectPage() {
     setInspectorPanelOpen(true);
     if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     focusInspectorPanel();
-  }, [focusInspectorPanel, selectProjectEdge]);
+  }, [focusInspectorPanel, selectProjectEdge, setInspectorPanelOpen]);
 
   const openReferencePanel = useCallback(() => {
     if (markdownEditorRef.current?.host === "inspector" || attachmentEditorRef.current?.host === "inspector"
       || edgeController.editor) return;
     if (readingActive) trash.close();
     setReferencePanelOpen(true);
-    if (readingActive || (!inspectorPinned && window.matchMedia("(max-width: 1180px)").matches)) setInspectorPanelOpen(false);
+    if (readingActive || (!inspectorPinned && window.matchMedia("(max-width: 1180px)").matches)) setInspectorPanelVisible(false);
     focusReferencePanel();
-  }, [edgeController.editor, focusReferencePanel, inspectorPinned, readingActive, trash.close]);
+  }, [edgeController.editor, focusReferencePanel, inspectorPinned, readingActive, trash.close, setInspectorPanelVisible]);
 
   const inspectReadingItem = useCallback((itemId: string) => {
     if (selectProjectItem(itemId) === false) return;
@@ -2644,20 +2667,20 @@ export function ProjectPage() {
     setReferencePanelOpen(false);
     setInspectorPanelOpen(true);
     focusInspectorPanel();
-  }, [focusInspectorPanel, selectProjectItem, trash.close]);
+  }, [focusInspectorPanel, selectProjectItem, trash.close, setInspectorPanelOpen]);
 
   const focusReadingItem = useCallback((itemId: string) => {
     if (selectProjectItem(itemId) === false) return;
-    setInspectorPanelOpen(false);
+    setInspectorPanelVisible(false);
     setNavigationFocusItemId(itemId);
     setReadingFocusSequence((value) => value + 1);
-  }, [selectProjectItem]);
+  }, [selectProjectItem, setInspectorPanelVisible]);
 
   const openInspectorPanel = useCallback(() => {
     setInspectorPanelOpen(true);
     if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     focusInspectorPanel();
-  }, [focusInspectorPanel]);
+  }, [focusInspectorPanel, setInspectorPanelOpen]);
 
   const saveCurrentChanges = useCallback(() => {
     if (!projectReadyRef.current || confirmingProjectDeletion) return;
@@ -3071,7 +3094,11 @@ export function ProjectPage() {
             ? "Finishing the Project Markdown save before leaving…"
             : markdownEditor.status === "uncertain"
               ? "The Project Markdown save outcome is uncertain. Retry the exact save before leaving."
-              : "Save or discard this Markdown draft before leaving. Rejected changes can be corrected in the editor."
+              : markdownEditor.status === "error"
+                ? "The Markdown save was rejected. Stay to correct the draft, retry saving, or discard it before leaving."
+                : markdownEditor.status === "conflict"
+                  ? "This Markdown changed elsewhere. Stay to review the draft, or discard your local changes and leave."
+                  : "Your Markdown changes haven’t been saved. Save them before leaving, or discard this draft."
           : attachmentEditor
             ? attachmentEditor.status === "saving"
               ? "Finishing the attachment metadata save before leaving…"
@@ -3166,9 +3193,9 @@ export function ProjectPage() {
               disabled={viewSwitchDisabled}
               onClick={() => {
                 const nextPinned = !inspectorPinned;
-                setInspectorPinned(nextPinned);
+                setInspectorPreference("pinned", nextPinned);
                 if (!nextPinned && selectedItemIds.length === 0 && !edgeController.selectedEdgeId) {
-                  setInspectorPanelOpen(false);
+                  setInspectorPanelVisible(false);
                   window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
                 }
               }}
@@ -3243,21 +3270,27 @@ export function ProjectPage() {
               <dt>Direction</dt><dd>{{ undirected: "No arrow", forward: "Source → target", reverse: "Target → source", bidirectional: "Both directions" }[projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)]}</dd>
             </dl>
           </section>
-          <details className="project-inspector-disclosure">
-            <summary>Technical details</summary>
+          <ProjectInspectorDisclosure
+            className="project-inspector-disclosure" title="Technical details"
+            open={inspectorPreferences.detailsOpen}
+            onOpenChange={(open) => setInspectorPreference("detailsOpen", open)}
+          >
             <dl>
               <dt>Handles</dt><dd>{edgeController.selectedEdge.sourceHandle} → {edgeController.selectedEdge.targetHandle}</dd>
               <dt>Edge ID</dt><dd>{edgeController.selectedEdge.id}</dd>
               <dt>Revision</dt><dd>{edgeController.selectedEdge.revision}</dd>
             </dl>
-          </details>
+          </ProjectInspectorDisclosure>
           </>}
-          {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <details className="project-inspector-item-more">
-            <summary>More actions</summary>
+          {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <ProjectInspectorDisclosure
+            className="project-inspector-item-more" title="More actions"
+            open={inspectorPreferences.moreActionsOpen}
+            onOpenChange={(open) => setInspectorPreference("moreActionsOpen", open)}
+          >
             <div className="project-inspector-danger-zone">
               <button type="button" className="button danger compact-button" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
             </div>
-          </details>}
+          </ProjectInspectorDisclosure>}
         </div> : !readingActive && selectedDescriptors.length > 1 ? <div className="project-inspector-content project-multi-selection-inspector">
           <span className="meta-badge">multi-selection</span>
           <h2>{selectedDescriptors.length} items selected</h2>
@@ -3275,6 +3308,10 @@ export function ProjectPage() {
           <ProjectInspectorDetails
             snapshot={snapshot}
             descriptor={selected}
+            detailsOpen={inspectorPreferences.detailsOpen}
+            onDetailsOpenChange={(open) => setInspectorPreference("detailsOpen", open)}
+            previewExpanded={inspectorPreferences.previewExpanded}
+            onPreviewExpandedChange={(expanded) => setInspectorPreference("previewExpanded", expanded)}
             editing={attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId}
             onFocusItem={(itemId) => {
               if (readingActive) focusReadingItem(itemId);
@@ -3350,12 +3387,18 @@ export function ProjectPage() {
               }}
             /> : null}
           />
-          {!inspectorEditing && <details className="project-inspector-item-more">
-            <summary>More actions</summary>
-          {!readingActive && <details className="project-inspector-toolbox">
-            <summary>Arrange on Map</summary>
+          {!inspectorEditing && <ProjectInspectorDisclosure
+            className="project-inspector-item-more" title="More actions"
+            open={inspectorPreferences.moreActionsOpen}
+            onOpenChange={(open) => setInspectorPreference("moreActionsOpen", open)}
+          >
+          {!readingActive && <ProjectInspectorDisclosure
+            className="project-inspector-toolbox" title="Arrange on Map"
+            open={inspectorPreferences.arrangeOpen}
+            onOpenChange={(open) => setInspectorPreference("arrangeOpen", open)}
+          >
             {zOrderControls}
-          </details>}
+          </ProjectInspectorDisclosure>}
           <div className="project-inspector-utility-actions">
             <button type="button" className="button compact-button" onClick={() => void copySelectedItemLink()}>
               {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
@@ -3416,7 +3459,7 @@ export function ProjectPage() {
               : "Remove from Project"}</button>}
             {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
           </div>}
-          </details>}
+          </ProjectInspectorDisclosure>}
         </div> : <p className="muted">Select a card or connection, then choose Details.</p>}
       </aside>;
 
@@ -3712,39 +3755,40 @@ export function ProjectPage() {
       </div>
     </div>}
 
-    {blocker.state === "blocked" && <ProjectPanelSurface modal alert label="Unsaved Project changes" onClose={stayOnProject} returnFocusRef={addMenuTriggerRef}>
-    <div className="project-save-banner warning">
-      <p>{navigationBlockMessage}</p>
-      <div className="project-navigation-actions">
-        <button type="button" className="button compact-button" onClick={stayOnProject}>Stay on Project</button>
-        {copyPaste.paste?.status === "paused" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>}
+    {blocker.state === "blocked" && <ProjectNavigationDialog
+      message={navigationBlockMessage}
+      onStay={stayOnProject}
+      returnFocusRef={addMenuTriggerRef}
+      secondaryActions={<>
         {copyPaste.paste?.status === "paused" && <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>}
+        {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss edge operation and leave</button>}
+        {(edgeController.editor?.status === "editing" || edgeController.editor?.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Discard edge edit and leave</button>}
+        {pendingReference?.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(true)}>Reconcile, cancel and leave</button>}
+        {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
+        {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
+        {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
+        {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
+        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
+      </>}
+      primaryActions={<>
+        {copyPaste.paste?.status === "paused" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>}
         {copyPaste.paste?.status === "reconcile-error" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>}
         {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
-        {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss edge operation and leave</button>}
         {(edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict") && <button type="button" className="button primary compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
         {edgeController.editor && (edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge and leave</button>}
         {edgeController.editor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge save</button>}
-        {(edgeController.editor?.status === "editing" || edgeController.editor?.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Discard edge edit and leave</button>}
         {pendingReferenceRemoval?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>}
         {pendingReferenceRemoval?.status === "conflict" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemovalReconciliation}>Retry reconciliation</button>}
         {(pendingReference?.status === "error" || pendingReference?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
-        {pendingReference?.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(true)}>Reconcile, cancel and leave</button>}
         {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
-        {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
-        {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
         {pendingAttachment?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
         {markdownEditor && (markdownEditor.status === "editing" || markdownEditor.status === "error") && <button type="button" className="button primary compact-button" disabled={markdownResizeActive || !markdownEditor.value.trim()} onClick={() => void saveMarkdown()}>Save Markdown and leave</button>}
         {markdownEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
-        {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
         {attachmentEditor && (attachmentEditor.status === "editing" || attachmentEditor.status === "error") && <button type="button" className="button primary compact-button" onClick={() => void saveAttachmentMetadata()}>Save metadata and leave</button>}
         {attachmentEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
-        {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
         {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
-        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
-      </div>
-    </div>
-    </ProjectPanelSurface>}
+      </>}
+    />}
 
     </div>
 

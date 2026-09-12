@@ -11,7 +11,7 @@ import { projectTestSnapshot, projectTestSnapshotWithAttachment } from "./projec
 afterEach(cleanup);
 
 describe("compact Inspector and Reading interactions", () => {
-  it("expands the complete note without cutting its math and resets the disclosure for another item", async () => {
+  it("expands the complete note without cutting its math and retains the disclosure for another item", async () => {
     const snapshot = projectTestSnapshot();
     snapshot.contents[0].markdownSource = "# Long note\n\n" + "Observation. ".repeat(80)
       + String.raw`
@@ -36,7 +36,7 @@ describe("compact Inspector and Reading interactions", () => {
     fireEvent.click(screen.getByText("Details", { selector: "summary" }));
     expect(view.container.querySelector("details")?.open).toBe(true);
     view.rerender(<MemoryRouter><ProjectInspectorDetails snapshot={snapshot} descriptor={nodes.find((node) => node.itemId === "item-reference")!} /></MemoryRouter>);
-    expect(view.container.querySelector("details")?.open).toBe(false);
+    expect(view.container.querySelector("details")?.open).toBe(true);
   });
 
   it("focuses the related card from a relationship instead of rendering a dead-end row", () => {

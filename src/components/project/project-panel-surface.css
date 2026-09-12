@@ -44,7 +44,7 @@
 .project-panel-dialog .project-trash-panel__header .button { min-width: 44px; }
 .project-panel-dialog .project-inspector-primary-actions > .button,
 .project-panel-dialog .project-inspector-relationship-link { min-height: 44px; }
-.project-panel-dialog .project-inspector-content { font-size: 0.875rem; }
+.project-panel-dialog .project-inspector-content { font-size: var(--project-panel-font-body, 13px); }
 .project-panel-alert-backdrop { z-index: 1100; align-items: center; padding: 16px; }
 .project-panel-alert { border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
 .project-panel-alert .project-save-banner { margin: 0; padding: 0; display: grid; gap: 16px; background: transparent; color: var(--ink); }

@@ -12,6 +12,7 @@ export function ProjectPanelSurface({
   blocked = false,
   returnFocusRef,
   initialFocusRef,
+  descriptionId,
   className = "",
   alert = false,
 }: {
@@ -22,6 +23,7 @@ export function ProjectPanelSurface({
   blocked?: boolean;
   returnFocusRef?: { current: HTMLElement | null };
   initialFocusRef?: { current: HTMLElement | null };
+  descriptionId?: string;
   className?: string;
   alert?: boolean;
 }) {
@@ -71,6 +73,7 @@ export function ProjectPanelSurface({
       role={alert ? "alertdialog" : "dialog"}
       aria-modal="true"
       aria-label={label}
+      aria-describedby={descriptionId}
     >{children}</div>
   </div>, document.body);
 }
