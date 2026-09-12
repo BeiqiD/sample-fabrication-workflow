@@ -207,13 +207,43 @@
   outline: none;
 }
 
-.project-node-resize-line { border-color: var(--accent) !important; }
-.project-node-resize-handle {
-  width: 9px !important;
-  height: 9px !important;
-  border: 1px solid var(--paper) !important;
-  border-radius: 3px !important;
-  background: var(--accent) !important;
+/* Keep the only resize target outside the card's clipping/scrolling surface.
+   React Flow's autoScale keeps it at least 32 screen pixels when zoomed out. */
+.project-flow-canvas .react-flow__resize-control.project-node-resize-handle {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  translate: -25% -25%;
+  transform-origin: 25% 25%;
+  z-index: 6;
+}
+
+.project-node-resize-grip {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  color: var(--accent);
+  background: var(--paper);
+  box-shadow: 0 2px 6px var(--shadow);
+  cursor: nwse-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.project-node-resize-grip svg { pointer-events: none; }
+.project-node-resize-grip:hover,
+.project-node-resize-grip:active { background: var(--accent-soft); }
+.project-node-resize-grip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .project-map-node.editing {

@@ -11,7 +11,9 @@ user's request for intuitive selection, dragging, editing and realistic records.
 | Press and move | Drag from any non-interactive area, including Markdown text, mathematical content, blank space, reference excerpts and attachment images. No preliminary selection click is needed. |
 | Double-click Markdown | Open the existing editor from its body, formula, heading or header. |
 | Double-click a reference or attachment | Open Details, subject to the existing panel lock. |
-| Link, editor, resize border or connection handle | Keep its own operation; do not start card movement or double-click editing. |
+| Selected card's bottom-right triangular grip | Drag to resize. The target stays at least 32 screen pixels when zoomed out; other corners and edges do not resize. Only the primary selection exposes the grip, outside editing and geometry locks. |
+| Arrow keys with the resize grip focused | Adjust width/height by 5 canvas units, or 20 with Shift. Preserve position and layer, respect existing dimension limits, and retain Save/Undo/Redo. |
+| Link, editor, resize grip or connection handle | Keep its own operation; do not start card movement or double-click editing. |
 | Scroll a long note | Scroll its contents. Arrow/Page/Home/End keys retain scrolling when its reading region has focus. |
 | Copy/Delete with Map preview focus | Operate on selected cards through the existing guarded commands. |
 | Select/copy text in Reading or Inspector | Keep native text operations; do not mutate the Map. |
@@ -66,6 +68,26 @@ multi-drag, resize and replacement/lock boundaries.
 
 Full-suite and build results are recorded in the pull request. The existing
 deployment gate and activation requirements still apply.
+
+## Dedicated resize grip follow-up
+
+The authenticated Cloudflare page reproduced the resizing difficulty: selected
+cards exposed four 9px corner targets, partly clipped by the card, alongside
+thin edge targets. The replacement uses one bottom-right triangular grip with a
+32px target outside that clipping boundary. It remains visible when the canvas
+is zoomed out and does not cover the card's source link or scrolling content.
+
+Mounted regressions exercise native mouse and multi-step touch resizing from
+the button itself, single-primary visibility, editing/lock cancellation, arrow
+and Shift-arrow adjustments, dimension limits, modifier/activation key ownership,
+and real-Page Save/Undo/Redo persistence. Stable resize callbacks prevent live
+dimension updates from restarting the native touch listener mid-gesture.
+
+Browser evidence for this follow-up currently covers reproduction on the
+existing deployment. The new grip still requires post-deployment browser
+verification, including zoomed-out hit targets and nearby links/connection
+handles. Mounted touch coverage does not establish physical mobile acceptance
+or change the existing Reading-only mobile scope.
 
 ## Additional merge review
 

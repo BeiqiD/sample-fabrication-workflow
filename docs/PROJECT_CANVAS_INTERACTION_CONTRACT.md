@@ -267,7 +267,10 @@ references found through the sidebar.
   is already open, without opening or pinning it implicitly;
 - press and drag any non-interactive card area, including rendered Markdown,
   reference excerpts and attachment previews: move without a prior selection click;
-- drag resize border: resize;
+- select a card, then drag its bottom-right triangular grip: resize; edges and
+  other corners do not resize;
+- focus the resize grip and use arrow keys: adjust the corresponding dimension
+  by 5 canvas units, or 20 with Shift, without moving the card;
 - double-click empty space: create Markdown;
 - Markdown body/title/chrome double-click or explicit Edit: edit;
 - reference/attachment body/title/chrome double-click: open Details;
@@ -281,7 +284,11 @@ references found through the sidebar.
   entries and destination-accurate Open source / Open attachment labels.
 
 Interactive controls and editor regions must not initiate node dragging.
-Links, scrollbars, resize borders and connection handles retain their own gestures.
+Links, scrollbars, the resize grip and connection handles retain their own gestures.
+Only the primary selected card displays a resize grip. Its target stays at least
+32 screen pixels when zoomed out and sits outside the card's clipped content.
+Editing or a geometry lock hides it. Resize retains the existing 180–1200 width
+and 110–1000 height limits, Save, Undo and Redo behavior, and stored position/layer.
 An acknowledgement for another card must not replace the position or dimensions
 of a card while its pointer drag or resize is still active. Fresh content and
 selection still apply; deleted/replaced/locked cards must not be resurrected.

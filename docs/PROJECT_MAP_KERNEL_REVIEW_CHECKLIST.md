@@ -19,7 +19,7 @@ The Phase 3B1 PR was permitted to include:
 - Project navigation and list/create/open shell;
 - desktop-only dynamic loading of `@xyflow/react`;
 - snapshot-derived Markdown, attachment, and reference renderers;
-- pan, zoom, selection, fit view, move, and border resize;
+- pan, zoom, selection, fit view, move, and bottom-right grip resize;
 - placement drafts, explicit Save, bounded autosave, and client-session
   undo/redo;
 - a lightweight selection Inspector;
