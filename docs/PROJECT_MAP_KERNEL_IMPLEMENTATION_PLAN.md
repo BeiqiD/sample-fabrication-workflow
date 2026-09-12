@@ -19,7 +19,7 @@ The implementation adds:
   temporary mobile occurrence view;
 - a desktop-only lazy boundary around `@xyflow/react`;
 - pan, zoom, fit view, selection, lightweight node renderers, pointer movement,
-  keyboard nudging, and border resize;
+  keyboard nudging, and bottom-right grip resize;
 - explicit Save and a bounded 1.6-second autosave after completed semantic
   geometry changes;
 - placement writes only after semantic geometry commands, explicit Save, or an

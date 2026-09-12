@@ -195,19 +195,21 @@ describe("Project Map cancelled pointer gestures", () => {
       await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
         .not.toMatch(/^translate\(0px,\s*0px\)/));
       const initialTransform = card.style.transform;
-      const control = card.querySelector<HTMLElement>(".react-flow__resize-control.top.left.handle")!;
+      const control = within(card).getByRole("button", { name: "Resize card" });
+      expect(control.closest(".react-flow__resize-control.bottom.right.handle")).toBeTruthy();
       mouse(control, "mousedown", 100, 100);
       if (scenario !== "click") {
-        mouse(window, "mousemove", 90, 90);
-        mouse(window, "mousemove", 50, 50);
+        mouse(window, "mousemove", 110, 110);
+        mouse(window, "mousemove", 150, 150);
         expect(card.style.width).not.toBe("250px");
         rerender(surface(true));
+        expect(within(card).queryByRole("button", { name: "Resize card" })).toBeNull();
         if (scenario === "unlock-before-release") {
           rerender(surface(false));
-          mouse(window, "mousemove", 30, 30);
+          mouse(window, "mousemove", 170, 170);
         }
       }
-      mouse(window, "mouseup", scenario === "click" ? 100 : 30, scenario === "click" ? 100 : 30);
+      mouse(window, "mouseup", scenario === "click" ? 100 : 170, scenario === "click" ? 100 : 170);
       await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 0)); });
       rerender(surface(false));
       expect(onGeometryCommit).not.toHaveBeenCalled();

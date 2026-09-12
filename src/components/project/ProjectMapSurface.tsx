@@ -21,7 +21,7 @@ import {
   EdgeToolbar,
   Handle,
   MarkerType,
-  NodeResizer,
+  NodeResizeControl,
   NodeToolbar,
   Position,
   ReactFlow,
@@ -276,6 +276,22 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
     edgeInteractionDisabled,
   } = data;
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  // XYFlow rebuilds the native resizer when callback identities change. Keep
+  // touch gestures alive across live dimensions and unrelated projection updates.
+  const resizeDataRef = useRef(data);
+  resizeDataRef.current = data;
+  const handleControlResizeStart = useCallback((_event: unknown, params: ResizeParams) => {
+    const current = resizeDataRef.current;
+    if (!current.geometryInteractionDisabled && !current.markdownEditor) {
+      current.onResizeStart(current.descriptor, params);
+    }
+  }, []);
+  const handleControlResizeEnd = useCallback((_event: unknown, params: ResizeParams) => {
+    const current = resizeDataRef.current;
+    if (!current.geometryInteractionDisabled && !current.markdownEditor) {
+      current.onResizeEnd(current.descriptor, params);
+    }
+  }, []);
   const editing = Boolean(markdownEditor);
   const detailLevel = editing ? "full" : data.detailLevel;
   const showHeaderMeta = detailLevel !== "overview" || data.primarySelected;
@@ -319,7 +335,8 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
     </article>;
   }
 
-  return <article
+  const canResize = selected && data.primarySelected && !geometryInteractionDisabled && !editing;
+  return <><article
     className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}`}
     data-detail-level={detailLevel}
     onMouseDownCapture={(event) => {
@@ -340,21 +357,6 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
       <Handle type="source" id="bottom" position={Position.Bottom} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
       <Handle type="source" id="left" position={Position.Left} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
     </>
-    <NodeResizer
-      isVisible={selected && data.primarySelected && !geometryInteractionDisabled && !editing}
-      minWidth={180}
-      minHeight={110}
-      maxWidth={1_200}
-      maxHeight={1_000}
-      lineClassName="project-node-resize-line nodrag nopan"
-      handleClassName="project-node-resize-handle nodrag nopan"
-      onResizeStart={(_event, params) => {
-        if (!geometryInteractionDisabled && !editing) data.onResizeStart(descriptor, params);
-      }}
-      onResizeEnd={(_event, params) => {
-        if (!geometryInteractionDisabled && !editing) data.onResizeEnd(descriptor, params);
-      }}
-    />
     <header
       className="project-node-drag-handle"
       title={descriptor.kind === "markdown" ? "Drag to move · Double-click to edit Markdown" : "Drag to move · Double-click for details"}
@@ -411,7 +413,52 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         onClick={(event) => event.stopPropagation()}
       >{descriptor.openSourceUrl ? "Open source" : "Reference details"}</a>}
     </>}
-  </article>;
+  </article>
+    {canResize && <NodeResizeControl
+      position="bottom-right"
+      minWidth={180}
+      minHeight={110}
+      maxWidth={1_200}
+      maxHeight={1_000}
+      autoScale
+      className="project-node-resize-handle nodrag nopan"
+      onResizeStart={handleControlResizeStart}
+      onResizeEnd={handleControlResizeEnd}
+    >
+      <button
+        type="button"
+        className="project-node-resize-grip"
+        aria-label="Resize card"
+        aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
+        title="Drag to resize · Arrow keys adjust size · Shift for larger steps"
+        onKeyDown={(event) => {
+          const arrowKey = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key);
+          if (!arrowKey && event.key !== "Enter" && event.key !== " ") return;
+          // React Flow also handles descendant button keys as node movement/selection.
+          event.stopPropagation();
+          if (!canResize || !arrowKey || event.altKey || event.ctrlKey || event.metaKey) return;
+          event.preventDefault();
+          const before = descriptor.geometry;
+          const step = event.shiftKey ? 20 : 5;
+          const after = {
+            ...before,
+            width: Math.max(180, Math.min(1_200, before.width
+              + (event.key === "ArrowRight" ? step : event.key === "ArrowLeft" ? -step : 0))),
+            height: Math.max(110, Math.min(1_000, before.height
+              + (event.key === "ArrowDown" ? step : event.key === "ArrowUp" ? -step : 0))),
+          };
+          if (before.width === after.width && before.height === after.height) return;
+          data.onResizeStart(descriptor, before);
+          data.onResizeEnd(descriptor, after);
+        }}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 20 20 4v16Z" fill="currentColor" />
+          <path d="m12 18 6-6m-1 6 1-1" fill="none" stroke="var(--paper)" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
+    </NodeResizeControl>}
+  </>;
 });
 
 const PROJECT_NODE_TYPES = { projectItem: ProjectItemNode } as const;
