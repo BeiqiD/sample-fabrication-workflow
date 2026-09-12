@@ -32,6 +32,7 @@ type EditorMode = "write" | "preview";
 type EditorBodyProps = ProjectMarkdownEditorProps & {
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
+  onCompositionStart: (value: string) => void;
   onExpand?: () => void;
   autoFocus?: boolean;
 };
@@ -43,6 +44,7 @@ function ProjectMarkdownEditorBody({
   interactionDisabled = false,
   mode,
   onModeChange,
+  onCompositionStart,
   onExpand,
   autoFocus = true,
   onChange,
@@ -100,6 +102,8 @@ function ProjectMarkdownEditorBody({
         value={editor.value}
         disabled={!canEdit}
         onChange={(event) => onChange(event.currentTarget.value)}
+        onCompositionStart={(event) => onCompositionStart(event.currentTarget.value)}
+        onCompositionEnd={(event) => onChange(event.currentTarget.value)}
       /> : <div className="project-rich-editor-preview" tabIndex={0} aria-label="Markdown preview">
         <ProjectMarkdown source={editor.value} emptyLabel="The current draft is empty." />
       </div>}
@@ -153,14 +157,41 @@ function ExpandedMarkdownEditor({ onClose, ...props }: EditorBodyProps & { onClo
   </div>, document.body);
 }
 
-export default function ProjectMarkdownEditor({
+function ProjectMarkdownEditorSession({
   ariaLabel = "Reading Markdown editor",
   compact = false,
   ...props
 }: ProjectMarkdownEditorProps) {
   const [mode, setMode] = useState<EditorMode>("write");
   const [expanded, setExpanded] = useState(false);
-  const sharedProps = { ...props, ariaLabel, compact, mode, onModeChange: setMode };
+  // A live draft must echo synchronously: Map node props pass through two
+  // effect-driven projections before returning here. Reapplying that delayed
+  // value to a controlled textarea interrupts the browser's IME composition.
+  // This editing session owns its text after the first input/composition;
+  // parent props still supply status and geometry, but cannot roll it back.
+  const [localValue, setLocalValue] = useState<string | null>(null);
+  const value = localValue ?? props.editor.value;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const changeDraft = (next: string) => {
+    const changed = valueRef.current !== next;
+    valueRef.current = next;
+    setLocalValue(next);
+    // compositionend can precede or follow the final input event. Reading the
+    // whole DOM value and suppressing an identical echo handles both orders,
+    // including a cancelled composition, without appending event.data.
+    if (changed) props.onChange(next);
+  };
+  const sharedProps = {
+    ...props,
+    editor: { ...props.editor, value },
+    ariaLabel,
+    compact,
+    mode,
+    onModeChange: setMode,
+    onChange: changeDraft,
+    onCompositionStart: changeDraft,
+  };
   return <div className={`project-markdown-editor-shell nodrag nopan nowheel${compact ? " compact" : ""}`}>
     <div hidden={expanded}>
       <ProjectMarkdownEditorBody {...sharedProps} onExpand={() => setExpanded(true)} />
@@ -170,4 +201,10 @@ export default function ProjectMarkdownEditor({
       <ExpandedMarkdownEditor {...sharedProps} onClose={() => setExpanded(false)} />
     </>}
   </div>;
+}
+
+export default function ProjectMarkdownEditor(props: ProjectMarkdownEditorProps) {
+  // Reload/discard closes the session; switching identity starts a fresh one.
+  const sessionKey = JSON.stringify([props.editor.itemId, props.editor.isNew]);
+  return <ProjectMarkdownEditorSession key={sessionKey} {...props} />;
 }

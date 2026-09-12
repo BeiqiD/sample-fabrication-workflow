@@ -97,6 +97,83 @@ describe("Project Map editor stacking", () => {
     }
   });
 
+  it.each(["before", "after"] as const)("does not rewrite the native IME range when final input arrives %s compositionend", async (finalInputOrder) => {
+    const snapshot = overlappingSnapshot();
+    const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
+      const response = (value: unknown) => new Response(JSON.stringify(value), {
+        headers: { "content-type": "application/json" },
+      });
+      if (String(path) === "/api/projects/project-a") return response(snapshot);
+      if (String(path).endsWith("/contents/content-note/markdown")) {
+        return response({ value: { ...snapshot.contents[0],
+          markdownSource: JSON.parse(String(init?.body)).markdownSource, revision: 2 }, replayed: false });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], {
+      initialEntries: ["/projects/project-a"],
+    });
+    const { container } = render(<RouterProvider router={router} />);
+    const note = await flowCard(container, "item-note");
+    fireEvent.click(note);
+    fireEvent.click(within(await screen.findByRole("toolbar", { name: "Selected card actions" }))
+      .getByRole("button", { name: "Edit" }));
+    const input = await screen.findByRole("textbox", { name: "Edit Project Markdown" }) as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: "前文  后文" } });
+    input.focus();
+
+    // Native typing bypasses React's value tracker. Record script writes as well
+    // as the final value: a write of the old value followed by the new one can
+    // look correct after act(), but already destroyed the browser's IME range.
+    const nativeValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!;
+    const trackedValue = Object.getOwnPropertyDescriptor(input, "value")!;
+    const scriptWrites: string[] = [];
+    Object.defineProperty(input, "value", {
+      ...trackedValue,
+      set(value: string) {
+        if (nativeValue.get!.call(this) !== value) scriptWrites.push(value);
+        trackedValue.set!.call(this, value);
+      },
+    });
+    const nativeInput = (text: string, isComposing: boolean) => {
+      nativeValue.set!.call(input, `前文 ${text} 后文`);
+      input.setSelectionRange(3 + text.length, 3 + text.length);
+      fireEvent.input(input, { inputType: "insertCompositionText", data: text, isComposing });
+      expect(input.value).toBe(`前文 ${text} 后文`);
+      expect(scriptWrites).toEqual([]);
+      expect(input.selectionStart).toBe(3 + text.length);
+    };
+    fireEvent.compositionStart(input);
+    for (const text of ["s", "sh", "shi", "shi'z", "shi'zhe", "shi'zhe'yang"]) {
+      nativeInput(text, true);
+      expect(screen.getByRole("status", { name: "Project save status" }).textContent).toContain("Unsaved Markdown");
+    }
+    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
+    expect(screen.getByRole("textbox", { name: "Edit Project Markdown" })).toBe(input);
+    if (finalInputOrder === "before") nativeInput("是这样的", true);
+    else {
+      nativeValue.set!.call(input, "前文 是这样的 后文");
+      input.setSelectionRange(7, 7);
+    }
+    fireEvent.compositionEnd(input, { data: "是这样的" });
+    if (finalInputOrder === "after") nativeInput("是这样的", false);
+    expect(scriptWrites).toEqual([]);
+    expect(input.value).toBe("前文 是这样的 后文");
+
+    fireEvent.click(within(note).getByRole("button", { name: "Expand editor" }));
+    const expanded = screen.getByRole("dialog", { name: "Expanded Markdown editor" });
+    expect((within(expanded).getByRole("textbox") as HTMLTextAreaElement).value).toBe("前文 是这样的 后文");
+    fireEvent.click(within(expanded).getByRole("button", { name: "Collapse editor" }));
+    fireEvent.click(within(note).getByRole("tab", { name: "Preview" }));
+    expect(within(note).getByLabelText("Markdown preview").textContent).toContain("前文 是这样的 后文");
+    fireEvent.click(screen.getByRole("button", { name: /^Save$/ }));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Saved"));
+    const writes = fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH");
+    expect(writes).toHaveLength(1);
+    expect(JSON.parse(String(writes[0][1]?.body)).markdownSource).toBe("前文 是这样的 后文");
+  });
+
   it.each(["cancel", "save"] as const)("raises the actual editor until %s without persisting its visual layer", async (action) => {
     const snapshot = overlappingSnapshot();
     let completeMarkdownSave: (() => void) | undefined;
