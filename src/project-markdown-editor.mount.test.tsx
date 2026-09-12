@@ -8,6 +8,75 @@ import ProjectMarkdownEditor from "./components/project/ProjectMarkdownEditor";
 afterEach(cleanup);
 
 describe("Expanded Markdown editor", () => {
+  it.each([true, false])("keeps native composition ahead of delayed parent echoes (compact: %s)", (compact) => {
+    const onChange = vi.fn();
+    const editor: ProjectMapMarkdownEditorState = {
+      itemId: "note", value: "前文  后文", isNew: false, geometry: null, status: "editing", message: null,
+    };
+    const props = { editor, compact, ariaLabel: "IME draft", onChange, onSave: vi.fn(), onCancel: vi.fn() };
+    const { rerender } = render(<ProjectMarkdownEditor {...props} />);
+    const input = screen.getByLabelText("IME draft") as HTMLTextAreaElement;
+    const nativeValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!;
+    const type = (text: string) => {
+      nativeValue.set!.call(input, `前文 ${text} 后文`);
+      input.setSelectionRange(3 + text.length, 3 + text.length);
+      fireEvent.input(input, { data: text, inputType: "insertCompositionText", isComposing: true });
+      expect(input.value).toBe(`前文 ${text} 后文`);
+      expect(onChange).toHaveBeenLastCalledWith(`前文 ${text} 后文`);
+    };
+    fireEvent.compositionStart(input);
+    type("s");
+    type("sh");
+    rerender(<ProjectMarkdownEditor {...props} editor={{ ...editor, value: "前文 s 后文" }} interactionDisabled />);
+    expect(screen.getByLabelText("IME draft")).toBe(input);
+    expect(input.value).toBe("前文 sh 后文");
+    expect(input.selectionStart).toBe(5);
+    expect(input.disabled).toBe(false);
+    // Repeated values must not be mistaken for the latest upstream ACK.
+    type("s");
+    rerender(<ProjectMarkdownEditor {...props} editor={{ ...editor, value: "前文 sh 后文" }} />);
+    expect(input.value).toBe("前文 s 后文");
+    nativeValue.set!.call(input, "前文 是 后文");
+    fireEvent.compositionEnd(input, { data: "是" });
+    expect(input.value).toBe("前文 是 后文");
+    expect(onChange).toHaveBeenLastCalledWith("前文 是 后文");
+    const calls = onChange.mock.calls.length;
+    fireEvent.input(input, { data: "是", inputType: "insertCompositionText", isComposing: false });
+    expect(onChange).toHaveBeenCalledTimes(calls);
+    fireEvent.click(screen.getByRole("tab", { name: "Preview" }));
+    expect(screen.getByLabelText("Markdown preview").textContent).toContain("前文 是 后文");
+    fireEvent.click(screen.getByRole("button", { name: "Expand editor" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByLabelText("Markdown preview").textContent).toContain("前文 是 后文");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Collapse editor" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Write" }));
+    expect((screen.getByLabelText("IME draft") as HTMLTextAreaElement).value).toBe("前文 是 后文");
+  });
+
+  it("publishes native composition cancellation and resets local ownership for a different note", () => {
+    const onChange = vi.fn();
+    const editor: ProjectMapMarkdownEditorState = {
+      itemId: "first-note", value: "已有文字", isNew: false, geometry: null, status: "editing", message: null,
+    };
+    const props = { editor, ariaLabel: "IME draft", onChange, onSave: vi.fn(), onCancel: vi.fn() };
+    const { rerender } = render(<ProjectMarkdownEditor {...props} />);
+    const input = screen.getByLabelText("IME draft") as HTMLTextAreaElement;
+    const nativeValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!;
+    fireEvent.compositionStart(input);
+    nativeValue.set!.call(input, "已有文字shi");
+    fireEvent.input(input, { data: "shi", inputType: "insertCompositionText", isComposing: true });
+    nativeValue.set!.call(input, "已有文字");
+    fireEvent.compositionEnd(input, { data: "" });
+    expect(input.value).toBe("已有文字");
+    expect(onChange.mock.calls.map(([value]) => value)).toEqual(["已有文字shi", "已有文字"]);
+    rerender(<ProjectMarkdownEditor {...props} editor={{ ...editor, value: "已有文字shi", status: "uncertain" }} />);
+    expect(input.value).toBe("已有文字");
+    expect(input.disabled).toBe(true);
+    rerender(<ProjectMarkdownEditor {...props} editor={{ ...editor, itemId: "second-note", value: "另一张卡片" }} />);
+    expect(screen.getByLabelText("IME draft")).not.toBe(input);
+    expect((screen.getByLabelText("IME draft") as HTMLTextAreaElement).value).toBe("另一张卡片");
+  });
+
   it("keeps typing available but defers Save and Cancel until a card resize ends", () => {
     const onSave = vi.fn();
     const onCancel = vi.fn();
