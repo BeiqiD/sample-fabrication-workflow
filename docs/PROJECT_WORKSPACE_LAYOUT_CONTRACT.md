@@ -1,7 +1,8 @@
 # Project workspace layout and control contract
 
 Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
-merged PR #162, C2a complete in PR #163, C2b.1 complete in PR #166, and C2b.2 active
+merged PR #162, C2a complete in PR #163, C2b.1 complete in PR #166; C2b.2/C2b.3
+are under acceptance in Draft PR #168, with C3 implemented on a stacked Draft branch
 
 Last reviewed: 2026-09-11 during the user-authorized Project interaction and recovery revision
 
@@ -622,6 +623,10 @@ and edge-reconnection paths documented in the interaction contract. Existing
 identity, retry, and navigation protections still govern each operation.
 
 ### Phase 5C3 — Reading and responsive composition
+
+Implementation and browser evidence: `PROJECT_C3_ACCEPTANCE.md`. C3 keeps the
+existing desktop breakpoint lock, occurrence selection, commands and recovery
+controllers. This is an implementation record, not a merge or C4 completion.
 
 Owns:
 

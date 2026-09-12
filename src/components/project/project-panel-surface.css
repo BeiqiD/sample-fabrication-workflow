@@ -1,0 +1,51 @@
+.project-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(10 20 35 / 40%);
+}
+.project-panel-dialog {
+  --project-panel-gap: 0px;
+  --project-panel-padding: 16px;
+  width: min(100%, 600px);
+  min-width: 0;
+  max-height: calc(100dvh - max(24px, env(safe-area-inset-top)));
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -10px 40px var(--shadow);
+}
+.project-panel-dialog > .project-inspector,
+.project-panel-dialog > .project-reference-sidebar,
+.project-panel-dialog > .project-trash-panel {
+  position: static;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--project-panel-padding);
+}
+.project-panel-dialog .project-workspace-panel-toolbar {
+  top: 0;
+  margin-top: calc(-1 * var(--project-panel-padding));
+}
+.project-panel-dialog .project-panel-icon-button { min-width: 44px; min-height: 44px; }
+.project-panel-dialog .project-trash-panel .button { min-height: 44px; }
+.project-panel-dialog .project-trash-panel__header .button { min-width: 44px; }
+.project-panel-dialog .project-inspector-primary-actions > .button,
+.project-panel-dialog .project-inspector-relationship-link { min-height: 44px; }
+.project-panel-dialog .project-inspector-content { font-size: 0.875rem; }
+.project-panel-alert-backdrop { z-index: 1100; align-items: center; padding: 16px; }
+.project-panel-alert { border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.project-panel-alert .project-save-banner { margin: 0; padding: 0; display: grid; gap: 16px; background: transparent; color: var(--ink); }
+.project-panel-alert .project-navigation-actions { justify-content: flex-start; }

@@ -56,12 +56,15 @@ describe("Phase 3B2 source contract", () => {
     const page = read("./pages/ProjectPage.tsx");
     const desktopBranch = page.indexOf('{desktop ? <div className="project-desktop-workspace with-reference-sidebar"');
     const mapSurface = page.indexOf("<DesktopProjectMap", desktopBranch);
-    const readingBranch = page.indexOf("<ProjectReadingSurface", mapSurface);
+    const readingBranch = page.indexOf("</> : readingSurface", mapSurface);
     expect(desktopBranch).toBeGreaterThan(-1);
     expect(mapSurface).toBeGreaterThan(desktopBranch);
     expect(readingBranch).toBeGreaterThan(mapSurface);
     expect(page.slice(readingBranch)).not.toContain("<DesktopProjectMap");
-    expect(page).toContain('referencePanelOpen && (!desktop || desktopView !== "map")');
+    expect(page).toContain('const readingActive = !desktop || desktopView === "reading"');
+    expect(page).toContain('referencePanelOpen && readingActive');
+    expect(page).toContain('modal={!desktop} label="References"');
+    expect(page.match(/<ProjectReadingSurface\b/g)).toHaveLength(1);
     const reading = read("./components/project/ProjectReadingSurface.tsx");
     expect(reading).not.toContain("projectApi.createReferenceItem");
   });

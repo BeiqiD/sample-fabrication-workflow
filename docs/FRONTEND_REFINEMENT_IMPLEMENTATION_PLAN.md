@@ -1059,8 +1059,9 @@ Status: implemented; independent review, automated and cross-size Chrome browser
 acceptance recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`. The follow-up fixes
 unknown-result create/Trash settlement and phone-header overlap. Draft status and
 the documented native-device/export/import acceptance boundaries remain in effect.
-Remaining C3 work is contextual Reading details and modal mobile panels, reusing
-the implemented Reading shell, Add and editor; C4 integration review follows.
+The subsequent C3 slice implements contextual Reading details and modal mobile
+panels on a separate stacked Draft branch, reusing the Reading shell, Add and
+editor. See `PROJECT_C3_ACCEPTANCE.md`; C4 integration review remains next.
 
 The user requested a complete review of entry, edit, reference, connection,
 modification, removal, mouse gestures, and secondary-information density, then

@@ -384,18 +384,23 @@
   right: var(--project-panel-gap);
   width: var(--project-inspector-width);
 }
-.project-reference-sheet {
+.project-reading-panel {
   position: fixed;
-  inset: 100px 12px 12px auto;
+  inset: 132px 12px 12px auto;
   width: min(380px, calc(100vw - 24px));
   z-index: 45;
   --project-panel-gap: 0px;
   --project-panel-padding: 14px;
   --project-reference-width: 100%;
+  --project-inspector-width: 100%;
 }
-.project-reference-sheet .project-reference-sidebar {
+.project-reading-panel .project-reference-sidebar,
+.project-reading-panel .project-inspector {
   width: 100%;
   max-height: 100%;
+}
+.project-page.desktop.reading[data-reading-panel-open="true"] .project-desktop-workspace {
+  margin-right: 392px;
 }
 .project-inspector-item-more { margin-top: 12px; }
 .project-inspector-item-more > summary { cursor: pointer; color: var(--muted); padding: 8px 0; }

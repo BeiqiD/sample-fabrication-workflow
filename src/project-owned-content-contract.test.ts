@@ -116,7 +116,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
 
     expect(page).toContain('data-reference-open={desktopView === "map" && referencePanelOpen}');
     expect(page).toContain('data-inspector-open={desktopView === "map" && inspectorPanelOpen}');
-    expect(page).toContain('data-panel-presentation="floating"');
+    expect(page).toContain('data-panel-presentation={desktop ? "floating" : "modal"}');
     expect(page).toContain("contextCommands={contextCommands}");
     const workspaceOpening = page.match(/<div className="project-desktop-workspace[^>]+>/)?.[0];
     expect(workspaceOpening).toBeDefined();
