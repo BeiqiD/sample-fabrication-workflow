@@ -11,6 +11,7 @@ export interface ProjectMarkdownEditorProps {
   editor: ProjectMapMarkdownEditorState;
   ariaLabel?: string;
   compact?: boolean;
+  interactionDisabled?: boolean;
   onChange: (value: string) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -39,6 +40,7 @@ function ProjectMarkdownEditorBody({
   editor,
   ariaLabel,
   compact = false,
+  interactionDisabled = false,
   mode,
   onModeChange,
   onExpand,
@@ -60,7 +62,7 @@ function ProjectMarkdownEditorBody({
       event.stopPropagation();
       // Keep unresolved saves/conflicts open rather than letting the canvas or
       // Inspector consume Escape and silently abandon the recovery controls.
-      if (canEdit) onCancel();
+      if (canEdit && !interactionDisabled) onCancel();
     }}
   >
     <div className="project-rich-editor-toolbar">
@@ -85,7 +87,7 @@ function ProjectMarkdownEditorBody({
           }}
         >{tab === "write" ? "Write" : "Preview"}</button>)}
       </div>
-      {onExpand && <button type="button" className="button compact-button" onClick={(event) => {
+      {onExpand && <button type="button" className="button compact-button" disabled={interactionDisabled} onClick={(event) => {
         event.currentTarget.focus();
         onExpand();
       }}>Expand editor</button>}
@@ -112,7 +114,7 @@ function ProjectMarkdownEditorBody({
       {canSave && <button
         type="button"
         className="button primary compact-button"
-        disabled={editor.status === "saving" || !editor.value.trim()}
+        disabled={interactionDisabled || editor.status === "saving" || !editor.value.trim()}
         title="Save Markdown (Ctrl/Cmd+S)"
         onClick={onSave}
       >{editor.status === "saving"
@@ -123,7 +125,8 @@ function ProjectMarkdownEditorBody({
       {canCancel && <button
         type="button"
         className="button compact-button"
-        aria-keyshortcuts={canEdit ? "Escape" : undefined}
+        disabled={interactionDisabled}
+        aria-keyshortcuts={canEdit && !interactionDisabled ? "Escape" : undefined}
         onClick={onCancel}
       >{editor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
     </div>

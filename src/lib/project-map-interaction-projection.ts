@@ -4,12 +4,14 @@ import type { ProjectMapGeometry } from "../../shared/project-types";
 type ProjectInteractionProjectionData = {
   descriptor: { placementId: string };
   geometryInteractionDisabled: boolean;
+  resizeEnabled?: boolean;
   pendingReference: unknown;
   pendingAttachment: unknown;
   markdownEditor: unknown;
 };
 
-function canKeepInteraction(node: Node<ProjectInteractionProjectionData>) {
+function canKeepInteraction(node: Node<ProjectInteractionProjectionData>, resizing: boolean) {
+  if (resizing && node.data.resizeEnabled !== undefined) return node.data.resizeEnabled;
   return node.draggable !== false
     && !node.data.geometryInteractionDisabled
     && !node.data.pendingReference
@@ -42,8 +44,8 @@ export function projectMapInteractionProjection<T extends Node<ProjectInteractio
       : projected;
     const dragging = dragStarts.has(placementId);
     const resizing = resizeStarts.has(placementId);
-    if ((!dragging && !resizing) || !canKeepInteraction(projected)) return refreshed;
-    if (!current || !samePlacement || !canKeepInteraction(current)) {
+    if ((!dragging && !resizing) || !canKeepInteraction(projected, resizing)) return refreshed;
+    if (!current || !samePlacement || !canKeepInteraction(current, resizing)) {
       return refreshed;
     }
     const next = { ...refreshed, position: current.position };

@@ -29,7 +29,15 @@ describe("Project Map kernel boundaries", () => {
     expect(surfaceSource).toContain("onNodeDragStop");
     expect(surfaceSource).toContain("onResizeEnd");
     expect(surfaceSource).toContain('change.type !== "position" || change.dragging || !change.position');
-    expect(surfaceSource).toContain("onGeometryCommit({ placementId: descriptor.placementId, before, after });");
+    const resizeStart = surfaceSource.slice(surfaceSource.indexOf("const handleResizeStart ="), surfaceSource.indexOf("const handleResizeEnd ="));
+    const resizeEnd = surfaceSource.slice(surfaceSource.indexOf("const handleResizeEnd ="), surfaceSource.indexOf("// Node data stores"));
+    expect(resizeStart).toContain("interactionStarts.set(descriptor.placementId, descriptor.geometry)");
+    expect(resizeStart).not.toContain("onGeometryCommit(");
+    expect(resizeStart).not.toContain("onMarkdownResizeCommit");
+    expect(resizeEnd).toContain("const command = { placementId: descriptor.placementId, before, after }");
+    expect(resizeEnd).toContain("before && !cancelledGestureNodeIds.has(descriptor.itemId)");
+    expect(resizeEnd).toContain("if (editorResize) current.onMarkdownResizeCommit?.(command)");
+    expect(resizeEnd).toContain("else current.onGeometryCommit(command)");
     expect(surfaceSource).toContain("emitGeometryCommands(commands);");
     expect(surfaceSource).toContain("onGeometryBatchCommit");
     expect(surfaceSource).toContain("const PROJECT_NODE_TYPES");

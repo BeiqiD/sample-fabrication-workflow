@@ -50,7 +50,19 @@ describe("Phase 3B2 source contract", () => {
     expect(page).toContain("geometryInteractionDisabled={geometryInteractionDisabled}");
     expect(map).toContain("nodesDraggable={!geometryInteractionDisabled}");
     expect(map).toContain('change.type !== "position" && !(change.type === "dimensions" && change.resizing !== undefined)');
-    expect(map).toContain('return !geometryInteractionDisabled && !cancelledGestureNodeIds.has(change.id)');
+    const geometryChanges = map.slice(map.indexOf("const onNodesChange ="), map.indexOf("const selectionChanges =", map.indexOf("const onNodesChange =")));
+    expect(geometryChanges).toContain("if (cancelledGestureNodeIds.has(change.id)) return false");
+    expect(geometryChanges).toContain('change.type === "dimensions" ? Boolean(node?.data.resizeEnabled)');
+    expect(geometryChanges).toContain(": !geometryInteractionDisabled && !node?.data.markdownEditor");
+    // Only the owning Markdown editor can receive scoped resize permission;
+    // unresolved reference operations still block that path at the Page boundary.
+    const editorPermission = page.slice(page.indexOf("const canResizeMarkdown ="), page.indexOf("const commitGeometryBatch ="));
+    expect(editorPermission).toContain("projectReadyRef.current && editor");
+    expect(editorPermission).toContain('editor.status === "editing" || editor.status === "error"');
+    expect(editorPermission).toContain("!pendingReferenceRef.current && !pendingReferenceRemovalRef.current");
+    expect(page).toContain("markdownResizeItemId={canResizeMarkdown() ? markdownEditor?.itemId : null}");
+    expect(map).toContain("resizeEnabled: editorResizeEnabled || (!geometryInteractionDisabled && !editing)");
+    expect(map).toContain("markdownResizeItemId === descriptor.itemId");
   });
 
   it("shares reference placement with Reading while keeping the interactive Map desktop-only", () => {

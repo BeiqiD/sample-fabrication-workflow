@@ -96,6 +96,8 @@ type ProjectFlowNodeData = {
   pendingAttachment: ProjectPendingAttachmentPlacement | null;
   markdownEditor: ProjectMapMarkdownEditorState | null;
   geometryInteractionDisabled: boolean;
+  resizeEnabled: boolean;
+  markdownResizeActive: boolean;
   edgeInteractionDisabled: boolean;
   primarySelected: boolean;
   detailLevel: ProjectMapDetailLevel;
@@ -160,6 +162,11 @@ export interface ProjectMapSurfaceProps {
   focusedItemId?: string | null;
   selectedEdgeId?: string | null;
   geometryInteractionDisabled?: boolean;
+  /** Explicit permission for the active editor only; all other Canvas locks remain. */
+  markdownResizeItemId?: string | null;
+  markdownResizeActive?: boolean;
+  onMarkdownResizeActiveChange?: (active: boolean) => void;
+  onMarkdownResizeCommit?: (command: ProjectGeometryCommand) => void;
   edgeInteractionDisabled?: boolean;
   onSelect: (itemId: string | null) => boolean | void;
   onSelectionChange?: (selection: ProjectItemSelection) => boolean | void;
@@ -292,7 +299,6 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
     pendingReference,
     pendingAttachment,
     markdownEditor,
-    geometryInteractionDisabled,
     edgeInteractionDisabled,
   } = data;
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
@@ -302,13 +308,13 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
   resizeDataRef.current = data;
   const handleControlResizeStart = useCallback((_event: unknown, params: ResizeParams) => {
     const current = resizeDataRef.current;
-    if (!current.geometryInteractionDisabled && !current.markdownEditor) {
+    if (current.resizeEnabled) {
       current.onResizeStart(current.descriptor, params);
     }
   }, []);
   const handleControlResizeEnd = useCallback((_event: unknown, params: ResizeParams) => {
     const current = resizeDataRef.current;
-    if (!current.geometryInteractionDisabled && !current.markdownEditor) {
+    if (current.resizeEnabled) {
       current.onResizeEnd(current.descriptor, params);
     }
   }, []);
@@ -355,9 +361,9 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
     </article>;
   }
 
-  const canResize = !geometryInteractionDisabled && !editing;
+  const canResize = data.resizeEnabled;
   return <><article
-    className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : " resizable"}`}
+    className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}${!editing || canResize ? " resizable" : ""}`}
     data-detail-level={detailLevel}
     onMouseDownCapture={(event) => {
       // React Flow already filters nodrag descendants. Let their own handlers
@@ -381,6 +387,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
     {markdownEditor ? <div className="project-markdown-editor nodrag nopan nowheel">
       <Suspense fallback={<p role="status">Opening editor…</p>}><ProjectMarkdownEditor
         compact
+        interactionDisabled={data.markdownResizeActive}
         editor={markdownEditor}
         ariaLabel={markdownEditor.isNew ? "New Project Markdown" : "Edit Project Markdown"}
         onChange={data.onMarkdownChange}
@@ -457,7 +464,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
           if (!arrowKey && event.key !== "Enter" && event.key !== " ") return;
           // React Flow also handles descendant button keys as node movement/selection.
           event.stopPropagation();
-          if (!canResize || !arrowKey || event.altKey || event.ctrlKey || event.metaKey) return;
+          if (!canResize || data.markdownResizeActive || !arrowKey || event.altKey || event.ctrlKey || event.metaKey) return;
           event.preventDefault();
           const before = descriptor.geometry;
           const step = event.shiftKey ? 20 : 5;
@@ -597,6 +604,8 @@ function buildFlowNode(
   detailLevel: ProjectMapDetailLevel,
   markdownEditor: ProjectMapMarkdownEditorState | null,
   callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
+  editorResizeEnabled = false,
+  markdownResizeActive = false,
 ): ProjectFlowNode {
   const editing = Boolean(markdownEditor);
   return {
@@ -616,6 +625,8 @@ function buildFlowNode(
       pendingAttachment: null,
       markdownEditor,
       geometryInteractionDisabled,
+      resizeEnabled: editorResizeEnabled || (!geometryInteractionDisabled && !editing),
+      markdownResizeActive,
       edgeInteractionDisabled,
       primarySelected,
       detailLevel,
@@ -677,12 +688,14 @@ function buildPendingAttachmentFlowNode(
 
 function buildMarkdownDraftFlowNode(
   editor: ProjectMapMarkdownEditorState,
+  resizeEnabled: boolean,
+  resizeActive: boolean,
   callbacks: Pick<ProjectFlowNodeData, "onResizeStart" | "onResizeEnd" | "onMarkdownEditRequest" | "onMarkdownChange" | "onMarkdownSave" | "onMarkdownCancel">,
 ): ProjectFlowNode | null {
   if (!editor.isNew || !editor.geometry) return null;
   const descriptor = emptyDescriptor(editor.itemId, editor.itemId, "markdown", "New Markdown", editor.geometry);
   return {
-    ...buildFlowNode(descriptor, true, true, true, "full", editor, callbacks),
+    ...buildFlowNode(descriptor, true, true, true, "full", editor, callbacks, resizeEnabled, resizeActive),
     selectable: false,
   };
 }
@@ -722,6 +735,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   focusedItemId = null,
   selectedEdgeId = null,
   geometryInteractionDisabled = false,
+  markdownResizeItemId = null,
+  markdownResizeActive = false,
+  onMarkdownResizeActiveChange,
+  onMarkdownResizeCommit,
   edgeInteractionDisabled = false,
   onSelect,
   onSelectionChange,
@@ -832,20 +849,46 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     };
   }, [contextMenu, contextSubmenu]);
 
-  const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
-    if (geometryInteractionDisabled) return;
+  const resizeCallbacksRef = useRef({ geometryInteractionDisabled, markdownResizeItemId,
+    onMarkdownResizeActiveChange, onMarkdownResizeCommit, onGeometryCommit });
+  resizeCallbacksRef.current = { geometryInteractionDisabled, markdownResizeItemId,
+    onMarkdownResizeActiveChange, onMarkdownResizeCommit, onGeometryCommit };
+  const resizingEditorItemIdRef = useRef<string | null>(null);
+  const finishMarkdownResize = useCallback(() => {
+    if (resizingEditorItemIdRef.current === null) return;
+    resizingEditorItemIdRef.current = null;
+    resizeCallbacksRef.current.onMarkdownResizeActiveChange?.(false);
+  }, []);
+  const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, _params: ResizeParams) => {
+    const current = resizeCallbacksRef.current;
+    const editorResize = current.markdownResizeItemId === descriptor.itemId;
+    if (current.geometryInteractionDisabled && !editorResize) return;
     gestureGenerationRef.current += 1;
     cancelledGestureNodeIds.delete(descriptor.itemId);
-    interactionStarts.set(descriptor.placementId, geometryFromResize(descriptor, params));
-  }, [cancelledGestureNodeIds, geometryInteractionDisabled, interactionStarts]);
+    // Browser measurements round fractional CSS dimensions. History and the
+    // owning editor must compare against the precise local geometry, not those
+    // rounded resizer measurements; only the gesture's result comes from params.
+    interactionStarts.set(descriptor.placementId, descriptor.geometry);
+    if (editorResize) {
+      resizingEditorItemIdRef.current = descriptor.itemId;
+      current.onMarkdownResizeActiveChange?.(true);
+    }
+  }, [cancelledGestureNodeIds, interactionStarts]);
 
   const handleResizeEnd = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
+    const current = resizeCallbacksRef.current;
     const before = interactionStarts.get(descriptor.placementId);
+    const editorResize = resizingEditorItemIdRef.current === descriptor.itemId;
     interactionStarts.delete(descriptor.placementId);
-    if (geometryInteractionDisabled || !before || cancelledGestureNodeIds.has(descriptor.itemId)) return;
-    const after = geometryFromResize(descriptor, params);
-    onGeometryCommit({ placementId: descriptor.placementId, before, after });
-  }, [cancelledGestureNodeIds, geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
+    if (before && !cancelledGestureNodeIds.has(descriptor.itemId)
+      && (editorResize ? current.markdownResizeItemId === descriptor.itemId : !current.geometryInteractionDisabled)) {
+      const after = geometryFromResize(descriptor, params);
+      const command = { placementId: descriptor.placementId, before, after };
+      if (editorResize) current.onMarkdownResizeCommit?.(command);
+      else current.onGeometryCommit(command);
+    }
+    if (editorResize) finishMarkdownResize();
+  }, [cancelledGestureNodeIds, finishMarkdownResize, interactionStarts]);
 
   // Node data stores these callbacks. Route volatile parent identities through
   // stable dispatchers so selection-only parent renders cannot rebuild the full
@@ -900,8 +943,11 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       detailLevel,
       markdownEditor?.itemId === descriptor.itemId ? markdownEditor : null,
       callbacks,
+      markdownResizeItemId === descriptor.itemId,
+      markdownResizeActive && markdownResizeItemId === descriptor.itemId,
     ));
-    const draft = markdownEditor ? buildMarkdownDraftFlowNode(markdownEditor, callbacks) : null;
+    const draft = markdownEditor ? buildMarkdownDraftFlowNode(markdownEditor,
+      markdownResizeItemId === markdownEditor.itemId, markdownResizeActive, callbacks) : null;
     if (draft) active.push(draft);
     if (pendingReference) active.push(buildPendingReferenceFlowNode(pendingReference, callbacks));
     if (pendingAttachment) active.push(buildPendingAttachmentFlowNode(pendingAttachment, callbacks));
@@ -913,7 +959,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       ...node,
       style: { ...node.style, zIndex: editorZIndex },
     } : node);
-  }, [callbacks, descriptors, detailLevel, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
+  }, [callbacks, descriptors, detailLevel, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, markdownResizeActive, markdownResizeItemId, pendingAttachment, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
   const projectedNodesRef = useRef(projectedNodes);
@@ -932,12 +978,26 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     }
     dragStarts.clear();
     interactionStarts.clear();
+    finishMarkdownResize();
     clearAlignmentGuides();
     const next = applyAuthoritativeSelection(projectedNodesRef.current,
       selectedItemIdsRef.current, selectedItemIdRef.current);
     flowNodesRef.current = next;
     setFlowNodes(next);
-  }, [cancelledGestureNodeIds, clearAlignmentGuides, dragStarts, interactionStarts]);
+  }, [cancelledGestureNodeIds, clearAlignmentGuides, dragStarts, finishMarkdownResize, interactionStarts]);
+
+  useEffect(() => {
+    const abortEditorResize = () => {
+      if (resizingEditorItemIdRef.current !== null) cancelTrackedGestures();
+    };
+    window.addEventListener("blur", abortEditorResize);
+    window.addEventListener("pointercancel", abortEditorResize, true);
+    return () => {
+      window.removeEventListener("blur", abortEditorResize);
+      window.removeEventListener("pointercancel", abortEditorResize, true);
+      finishMarkdownResize();
+    };
+  }, [cancelTrackedGestures, finishMarkdownResize]);
 
   useEffect(() => {
     let mounted = true;
@@ -997,7 +1057,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         const placementId = node.data.descriptor.placementId;
         if (!dragStarts.has(placementId) && !interactionStarts.has(placementId)) continue;
         const projected = projectedById.get(node.id);
-        if (projected?.data.descriptor.placementId === placementId && projected.draggable !== false) continue;
+        if (projected?.data.descriptor.placementId === placementId
+          && (dragStarts.has(placementId) ? projected.draggable !== false : projected.data.resizeEnabled)) continue;
         dragStarts.delete(placementId);
         interactionStarts.delete(placementId);
         cancelledGestureNodeIds.add(node.id);
@@ -1011,6 +1072,12 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       return next;
     });
   }, [projectedNodes, cancelledGestureNodeIds, dragStarts, interactionStarts]);
+
+  useEffect(() => {
+    const itemId = resizingEditorItemIdRef.current;
+    if (itemId && (itemId !== markdownResizeItemId
+      || !projectedNodes.some((node) => node.id === itemId && node.data.resizeEnabled))) finishMarkdownResize();
+  }, [finishMarkdownResize, markdownResizeItemId, projectedNodes]);
 
   useEffect(() => {
     setFlowNodes((current) => {
@@ -1083,7 +1150,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const onNodesChange = useCallback((changes: NodeChange<ProjectFlowNode>[]) => {
     const effectiveChanges = changes.filter((change) => {
       if (change.type !== "position" && !(change.type === "dimensions" && change.resizing !== undefined)) return true;
-      return !geometryInteractionDisabled && !cancelledGestureNodeIds.has(change.id);
+      if (cancelledGestureNodeIds.has(change.id)) return false;
+      const node = flowNodesRef.current.find((candidate) => candidate.id === change.id);
+      return change.type === "dimensions" ? Boolean(node?.data.resizeEnabled)
+        : !geometryInteractionDisabled && !node?.data.markdownEditor;
     });
     const current = flowNodesRef.current;
     let next = applyNodeChanges(effectiveChanges, current);
