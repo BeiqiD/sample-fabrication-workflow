@@ -106,6 +106,7 @@ import {
 } from "../lib/project-edge-history";
 import { useProjectEdgeController } from "../lib/use-project-edge-controller";
 import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
+import { projectItemLifecycleRevisionHasAdvanced } from "../lib/project-item-lifecycle";
 import {
   projectAttachmentGeometryAtPoint,
   projectMarkdownGeometryAtPoint,
@@ -1197,12 +1198,26 @@ export function ProjectPage() {
     commitGeometryBatch([command]);
   }, [commitGeometryBatch]);
 
-  const undo = useCallback(() => {
+  const canApplyHistory = useCallback((direction: "undo" | "redo") => {
     if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
       || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || projectDeleteRequestRef.current
       || copyPaste.unsafeRef.current
-      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return false;
+    const currentTrash = trashControllerRef.current;
+    if (direction === "undo" && currentTrash?.undoPriority && currentTrash.canUndo) {
+      return saveStateRef.current === "saved" && pendingReferenceRef.current === null;
+    }
+    const command = (direction === "undo" ? undoStack : redoStack).at(-1);
+    if (!command) return false;
+    return command.kind === "geometry"
+      ? saveStateRef.current !== "saving"
+      : !edgeController.interactionDisabled;
+  }, [edgeController.interactionDisabled, edgeController.unsafeRef, ownedContentReloadPending, redoStack, undoStack]);
+
+  const undo = useCallback(() => {
+    if (!canApplyHistory("undo")) return;
     if (trashControllerRef.current?.undoPriority && trashControllerRef.current.canUndo) {
       trashControllerRef.current.undoRemoval();
       return;
@@ -1227,14 +1242,10 @@ export function ProjectPage() {
       setUndoStack((current) => current.slice(0, -1));
       setRedoStack((current) => [...current, command].slice(-100));
     });
-  }, [edgeController, ownedContentReloadPending, scheduleAutosave, undoStack, updateSaveState]);
+  }, [canApplyHistory, edgeController, scheduleAutosave, undoStack, updateSaveState]);
 
   const redo = useCallback(() => {
-    if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
-      || pendingReferenceRef.current?.status === "reconciling"
-      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
-      || copyPaste.unsafeRef.current
-      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    if (!canApplyHistory("redo")) return;
     const command = redoStack.at(-1);
     if (!command) return;
     if (command.kind === "geometry") {
@@ -1255,7 +1266,7 @@ export function ProjectPage() {
       setRedoStack((current) => current.slice(0, -1));
       setUndoStack((current) => [...current, command].slice(-100));
     });
-  }, [edgeController, ownedContentReloadPending, redoStack, scheduleAutosave, updateSaveState]);
+  }, [canApplyHistory, edgeController, redoStack, scheduleAutosave, updateSaveState]);
 
   const mergeReferenceInsertion = useCallback((
     result: ProjectItemMutationResponse,
@@ -1561,6 +1572,9 @@ export function ProjectPage() {
     input: ProjectItemLifecycleInput,
   ) => {
     if (!projectId || !referenceRemovalIsActive(generation)) return;
+    const previous = pendingReferenceRemovalRef.current;
+    const wasUncertain = previous?.status === "uncertain"
+      && previous.itemId === itemId && previous.input === input;
     updatePendingReferenceRemoval({ itemId, input, status: "removing", message: null });
     setReferenceActionError("");
     try {
@@ -1570,7 +1584,19 @@ export function ProjectPage() {
     } catch (caught) {
       if (!referenceRemovalIsActive(generation)) return;
       const message = caught instanceof Error ? caught.message : "The Project occurrence could not be removed";
-      if (projectReferenceRemovalNeedsReconciliation(caught)) {
+      // A later rejection describes this retry, not the earlier unacknowledged
+      // write. Keep its exact request until an acknowledgement or revision fence.
+      let rejectionSettled = !wasUncertain;
+      if (wasUncertain && caught instanceof ProjectApiError && caught.status === 409) {
+        try {
+          const fresh = await projectApi.readTrash(projectId);
+          if (!referenceRemovalIsActive(generation)) return;
+          rejectionSettled = projectItemLifecycleRevisionHasAdvanced(fresh, itemId, input, "remove");
+        } catch {
+          if (!referenceRemovalIsActive(generation)) return;
+        }
+      }
+      if (projectReferenceRemovalNeedsReconciliation(caught) && rejectionSettled) {
         await reconcileReferenceRemoval(generation, itemId, input, message);
         return;
       }
@@ -2735,6 +2761,15 @@ export function ProjectPage() {
         if (pasteCanvasSelection()) event.preventDefault();
         return;
       }
+      // History uses the same availability as the toolbar and execution guard.
+      // Edge history can proceed while independent placement writes are saving.
+      if (shortcut === "undo" || shortcut === "redo") {
+        if (!canApplyHistory(shortcut)) return;
+        event.preventDefault();
+        if (shortcut === "undo") undo();
+        else redo();
+        return;
+      }
 
       const operationBlocked = canvasCommandOperationBlocked();
       if (operationBlocked) return;
@@ -2746,23 +2781,11 @@ export function ProjectPage() {
         if (clearCanvasSelection()) event.preventDefault();
         return;
       }
-      if (shortcut === "undo") {
-        if (saveStateRef.current === "saving"
-          || (undoStack.length === 0 && !(trashControllerRef.current?.undoPriority && trashControllerRef.current.canUndo))) return;
-        event.preventDefault();
-        undo();
-        return;
-      }
-      if (shortcut === "redo") {
-        if (saveStateRef.current === "saving" || redoStack.length === 0) return;
-        event.preventDefault();
-        redo();
-        return;
-      }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [
+    canApplyHistory,
     canvasCommandOperationBlocked,
     clearCanvasSelection,
     copyCanvasSelection,
@@ -2770,10 +2793,8 @@ export function ProjectPage() {
     desktopView,
     pasteCanvasSelection,
     redo,
-    redoStack.length,
     selectAllCanvasItems,
     undo,
-    undoStack.length,
   ]);
 
   if (loading) return <div className="page project-page"><p className="muted">Loading Project…</p></div>;
@@ -2789,17 +2810,8 @@ export function ProjectPage() {
   const geometryInteractionDisabled = pendingReferenceRemoval !== null
     || pendingReference?.status === "reconciling"
     || workspaceOperationBusy;
-  const undoCommand = undoStack.at(-1) ?? null;
-  const redoCommand = redoStack.at(-1) ?? null;
-  const undoDisabled = !(trash.undoPriority && trash.canUndo) && (!undoCommand
-    || (undoCommand.kind === "geometry" && saveState === "saving")
-    || geometryInteractionDisabled
-    || (undoCommand.kind !== "geometry" && edgeController.interactionDisabled))
-    || geometryInteractionDisabled;
-  const redoDisabled = !redoCommand
-    || (redoCommand.kind === "geometry" && saveState === "saving")
-    || geometryInteractionDisabled
-    || (redoCommand.kind !== "geometry" && edgeController.interactionDisabled);
+  const undoDisabled = !canApplyHistory("undo");
+  const redoDisabled = !canApplyHistory("redo");
   const activeEditor = markdownEditor ?? attachmentEditor ?? edgeController.editor;
   const activeEditorName = markdownEditor ? "Markdown" : attachmentEditor ? "metadata" : "edge";
   const activeEditorChanged = markdownEditor

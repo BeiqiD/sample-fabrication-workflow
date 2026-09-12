@@ -7,6 +7,7 @@ import type {
   ProjectSnapshot,
 } from "../../shared/project-api";
 import { createProjectApiId, ProjectApiError, projectApi } from "./project-client";
+import { projectItemLifecycleRevisionHasAdvanced } from "./project-item-lifecycle";
 import {
   projectActiveTrashSnapshot,
   projectRecoverableEdges,
@@ -68,15 +69,7 @@ function taskRevisionHasAdvanced(snapshot: ProjectSnapshot, task: ItemTask | Edg
     const edge = snapshot.edges.find((candidate) => candidate.id === task.edgeId);
     return edge !== undefined && edge.revision > task.input.expectedRevision;
   }
-  const item = snapshot.items.find((candidate) => candidate.id === task.itemId);
-  if (!item) return false;
-  // Obtain the original removal acknowledgement so its Undo group is retained.
-  if (task.kind === "remove" && item.deletedAt !== null
-    && item.deletionOperationId === task.input.operationId) return false;
-  const content = snapshot.contents.find((candidate) => candidate.id === item.projectContentId);
-  return item.revision > task.input.expectedItemRevision
-    || (content !== undefined && task.input.expectedContentRevision !== undefined
-      && content.revision > task.input.expectedContentRevision);
+  return projectItemLifecycleRevisionHasAdvanced(snapshot, task.itemId, task.input, task.kind);
 }
 
 function recoveryStorageKey(projectId: string) {
