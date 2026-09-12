@@ -27,12 +27,23 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Mark verification pending
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFY_PUBLISH_STATUSES: "1"
+          STAGE_OUTCOME: pending
+          STATUS_CONTEXT: pre-pr/install
+        run: |
+          node scripts/publish-commit-status.mjs
+          node scripts/run-verification.mjs --mode ci --status pending
+
       - name: Install dependencies
         id: install
         run: npm ci
 
       - name: Record dependency status
-        if: ${{ always() && steps.install.outcome != 'skipped' }}
+        if: ${{ always() }}
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -42,234 +53,17 @@ jobs:
           STATUS_FAILURE_DESCRIPTION: npm ci failed
         run: node scripts/publish-commit-status.mjs
 
-      - name: Run blob lifecycle contract
-        id: blob_lifecycle
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:blob-lifecycle 2>&1 | tee blob-lifecycle.log
+      - name: Run shared verification checks
+        id: verification
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFY_PUBLISH_STATUSES: "1"
+        run: npm run verify:ci
 
-      - name: Record blob lifecycle status
-        if: ${{ always() && steps.blob_lifecycle.outcome != 'skipped' }}
+      - name: Close verification statuses when the gate did not run
+        if: ${{ always() && (steps.verification.outcome == 'skipped' || steps.verification.outcome == 'cancelled') }}
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.blob_lifecycle.outcome }}
-          STATUS_CONTEXT: pre-pr/blob-lifecycle
-          STATUS_SUCCESS_DESCRIPTION: blob lifecycle contract passed
-          STATUS_FAILURE_DESCRIPTION: blob lifecycle contract failed
-          STATUS_LOG_FILE: blob-lifecycle.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run reference foundation contract
-        id: reference_foundation
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run test:reference-foundation 2>&1 | tee reference-foundation.log
-          npm run verify:reference-worker 2>&1 | tee -a reference-foundation.log
-          npm run verify:reference-search-worker 2>&1 | tee -a reference-foundation.log
-
-      - name: Record reference foundation status
-        if: ${{ always() && steps.reference_foundation.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.reference_foundation.outcome }}
-          STATUS_CONTEXT: pre-pr/reference-foundation
-          STATUS_SUCCESS_DESCRIPTION: reference foundation passed
-          STATUS_FAILURE_DESCRIPTION: reference foundation failed
-          STATUS_LOG_FILE: reference-foundation.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project foundation contract
-        id: project_foundation
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run test:project-foundation 2>&1 | tee project-foundation.log
-
-      - name: Record Project foundation status
-        if: ${{ always() && steps.project_foundation.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_foundation.outcome }}
-          STATUS_CONTEXT: pre-pr/project-foundation
-          STATUS_SUCCESS_DESCRIPTION: Project foundation passed
-          STATUS_FAILURE_DESCRIPTION: Project foundation failed
-          STATUS_LOG_FILE: project-foundation.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project persistence contract
-        id: project_persistence
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-persistence 2>&1 | tee project-persistence.log
-
-      - name: Record Project persistence status
-        if: ${{ always() && steps.project_persistence.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_persistence.outcome }}
-          STATUS_CONTEXT: pre-pr/project-persistence
-          STATUS_SUCCESS_DESCRIPTION: Project persistence passed
-          STATUS_FAILURE_DESCRIPTION: Project persistence failed
-          STATUS_LOG_FILE: project-persistence.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project Map contract
-        id: project_map
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-map 2>&1 | tee project-map.log
-
-      - name: Record Project Map status
-        if: ${{ always() && steps.project_map.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_map.outcome }}
-          STATUS_CONTEXT: pre-pr/project-map
-          STATUS_SUCCESS_DESCRIPTION: Project Map contract passed
-          STATUS_FAILURE_DESCRIPTION: Project Map contract failed
-          STATUS_LOG_FILE: project-map.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project Canvas productivity contract
-        id: project_canvas_productivity
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-canvas-productivity 2>&1 | tee project-canvas-productivity.log
-
-      - name: Record Project Canvas productivity status
-        if: ${{ always() && steps.project_canvas_productivity.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_canvas_productivity.outcome }}
-          STATUS_CONTEXT: pre-pr/project-canvas-productivity
-          STATUS_SUCCESS_DESCRIPTION: Project Canvas productivity passed
-          STATUS_FAILURE_DESCRIPTION: Project Canvas productivity failed
-          STATUS_LOG_FILE: project-canvas-productivity.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project reference placement contract
-        id: project_reference_placement
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-reference-placement 2>&1 | tee project-reference-placement.log
-
-      - name: Record Project reference placement status
-        if: ${{ always() && steps.project_reference_placement.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_reference_placement.outcome }}
-          STATUS_CONTEXT: pre-pr/project-reference-placement
-          STATUS_SUCCESS_DESCRIPTION: Project reference placement passed
-          STATUS_FAILURE_DESCRIPTION: Project reference placement failed
-          STATUS_LOG_FILE: project-reference-placement.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project owned content contract
-        id: project_owned_content
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-owned-content 2>&1 | tee project-owned-content.log
-
-      - name: Record Project owned content status
-        if: ${{ always() && steps.project_owned_content.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_owned_content.outcome }}
-          STATUS_CONTEXT: pre-pr/project-owned-content
-          STATUS_SUCCESS_DESCRIPTION: Project owned content passed
-          STATUS_FAILURE_DESCRIPTION: Project owned content failed
-          STATUS_LOG_FILE: project-owned-content.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project edges contract
-        id: project_edges
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-edges 2>&1 | tee project-edges.log
-
-      - name: Record Project edges status
-        if: ${{ always() && steps.project_edges.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_edges.outcome }}
-          STATUS_CONTEXT: pre-pr/project-edges
-          STATUS_SUCCESS_DESCRIPTION: Project edges passed
-          STATUS_FAILURE_DESCRIPTION: Project edges failed
-          STATUS_LOG_FILE: project-edges.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run Project Reading contract
-        id: project_reading
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify:project-reading 2>&1 | tee project-reading.log
-
-      - name: Record Project Reading status
-        if: ${{ always() && steps.project_reading.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.project_reading.outcome }}
-          STATUS_CONTEXT: pre-pr/project-reading
-          STATUS_SUCCESS_DESCRIPTION: Project Reading passed
-          STATUS_FAILURE_DESCRIPTION: Project Reading failed
-          STATUS_LOG_FILE: project-reading.log
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run tests
-        id: tests
-        shell: bash
-        run: |
-          set -o pipefail
-          npm test 2>&1 | tee test.log
-
-      - name: Record test status
-        if: ${{ always() && steps.tests.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.tests.outcome }}
-          STATUS_CONTEXT: pre-pr/tests
-          STATUS_SUCCESS_DESCRIPTION: npm test passed
-          STATUS_FAILURE_DESCRIPTION: npm test failed
-          STATUS_LOG_FILE: test.log
-          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
-        run: node scripts/publish-commit-status.mjs
-
-      - name: Run production build
-        id: build
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run build 2>&1 | tee build.log
-
-      - name: Record build status
-        if: ${{ always() && steps.build.outcome != 'skipped' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE_OUTCOME: ${{ steps.build.outcome }}
-          STATUS_CONTEXT: pre-pr/build
-          STATUS_SUCCESS_DESCRIPTION: npm run build passed
-          STATUS_FAILURE_DESCRIPTION: npm run build failed
-          STATUS_LOG_FILE: build.log
-          STATUS_DYNAMIC_FAILURE_CONTEXT: "1"
-        run: node scripts/publish-commit-status.mjs
+          VERIFY_PUBLISH_STATUSES: "1"
+        run: node scripts/run-verification.mjs --mode ci --status skipped

@@ -1,33 +1,68 @@
-import { readdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import assert from "node:assert/strict";
+import { readdir, readFile } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseAst } from "rolldown/parseAst";
 
-const assetsDirectory = fileURLToPath(new URL("../dist/client/assets/", import.meta.url));
-const filenames = await readdir(assetsDirectory);
-const mapChunks = filenames.filter((filename) => /^ProjectMapSurface-.*\.js$/.test(filename));
-if (mapChunks.length !== 1) {
-  throw new Error(`Expected one lazy ProjectMapSurface JavaScript chunk, found ${mapChunks.length}`);
+const runtimeMarker = /react-flow__|xyflow|ReactFlow/;
+
+export function staticImports(source) {
+  return parseAst(source).body.flatMap((node) => (
+    ["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration"].includes(node.type) && node.source
+      ? [node.source.value] : []
+  ));
 }
 
-const mapChunkPath = join(assetsDirectory, mapChunks[0]);
-const mapChunkStat = await stat(mapChunkPath);
-if (mapChunkStat.size < 50_000) {
-  throw new Error("ProjectMapSurface chunk is unexpectedly small; React Flow may not be owned by it");
+function localFile(clientDirectory, importer, specifier) {
+  assert(specifier.startsWith(".") || specifier.startsWith("/"), `Unexpected external static import: ${specifier}`);
+  const pathname = specifier.split(/[?#]/)[0];
+  const filename = pathname.startsWith("/")
+    ? resolve(clientDirectory, `.${pathname}`)
+    : resolve(dirname(importer), pathname);
+  const within = relative(clientDirectory, filename);
+  assert(!within.startsWith("..") && !isAbsolute(within), `Import escapes client assets: ${specifier}`);
+  return filename;
 }
 
-const entryChunks = filenames.filter((filename) => /^index-.*\.js$/.test(filename));
-if (!entryChunks.length) throw new Error("Client entry chunk was not found");
-
-for (const filename of entryChunks) {
-  const source = await readFile(join(assetsDirectory, filename), "utf8");
-  if (/react-flow__|xyflow|ReactFlow/.test(source)) {
-    throw new Error(`React Flow leaked into initial client entry ${filename}`);
+export async function staticClosure(entries, readSource, resolveImport) {
+  const visited = new Map();
+  async function visit(filename) {
+    if (visited.has(filename)) return;
+    const source = await readSource(filename);
+    visited.set(filename, source);
+    for (const specifier of staticImports(source)) await visit(resolveImport(filename, specifier));
   }
+  for (const filename of entries) await visit(filename);
+  return visited;
 }
 
-const mapSource = await readFile(mapChunkPath, "utf8");
-if (!/react-flow__|ReactFlow/.test(mapSource)) {
-  throw new Error("The lazy ProjectMapSurface chunk does not contain the expected React Flow runtime");
+export async function verifyProjectMapBundle(clientDirectory) {
+  const assetsDirectory = resolve(clientDirectory, "assets");
+  const filenames = await readdir(assetsDirectory);
+  const mapChunks = filenames.filter((filename) => /^ProjectMapSurface-.*\.js$/.test(filename));
+  assert.equal(mapChunks.length, 1, `Expected one lazy ProjectMapSurface chunk, found ${mapChunks.length}`);
+  const html = await readFile(resolve(clientDirectory, "index.html"), "utf8");
+  const entries = [];
+  for (const tag of html.match(/<(?:script|link)\b[^>]*>/gi) ?? []) {
+    const attributes = Object.fromEntries([...tag.matchAll(/([\w-]+)\s*=\s*["']([^"']*)["']/g)].map((match) => [match[1], match[2]]));
+    if (attributes.type === "module" && attributes.src) entries.push(attributes.src);
+    if (attributes.rel === "modulepreload" && attributes.href) entries.push(attributes.href);
+  }
+  assert(entries.length > 0, "Client HTML has no module entry");
+  const htmlPath = resolve(clientDirectory, "index.html");
+  const load = (filename) => readFile(filename, "utf8");
+  const importedFile = (importer, specifier) => localFile(clientDirectory, importer, specifier);
+  const initial = await staticClosure(entries.map((entry) => importedFile(htmlPath, entry)), load, importedFile);
+  const mapPath = resolve(assetsDirectory, mapChunks[0]);
+  assert(!initial.has(mapPath), "ProjectMapSurface is statically reachable from the initial client entry");
+  for (const [filename, source] of initial) {
+    assert(!runtimeMarker.test(source), `React Flow leaked into the initial static dependency graph: ${relative(clientDirectory, filename)}`);
+  }
+  const map = await staticClosure([mapPath], load, importedFile);
+  assert([...map.values()].some((source) => runtimeMarker.test(source)), "The lazy Map dependency graph does not contain React Flow");
+  console.log(`Verified lazy React Flow ownership across ${initial.size} initial and ${map.size} Map chunks`);
 }
 
-console.log(`Verified desktop-only React Flow ownership in ${mapChunks[0]}`);
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  await verifyProjectMapBundle(fileURLToPath(new URL("../dist/client/", import.meta.url)));
+}

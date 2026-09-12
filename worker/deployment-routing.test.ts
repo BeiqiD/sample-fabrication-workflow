@@ -112,9 +112,12 @@ describe("deployment routing", () => {
     const internalMigrate = packageConfiguration.scripts?.["internal:db:migrate:remote"];
     const gate = packageConfiguration.scripts?.["verify:v3-deployment"];
 
-    expect(gate).toBe(
-      "npm run test:blob-lifecycle && npm run test:storage-integrity && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-map-performance && npm run verify:project-canvas-productivity && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:project-edges && npm run verify:project-reading && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
+    expect(gate).toBe("node scripts/run-verification.mjs --mode deploy");
+    expect(packageConfiguration.scripts?.["verify:ci"]).toBe(
+      "node scripts/run-verification.mjs --mode ci",
     );
+    // Coverage and configuration parity are exercised by verification.test.mjs;
+    // this route contract preserves the ordering before any remote side effect.
     expect(migrateCommand).toBe(
       "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
     );
