@@ -135,3 +135,34 @@ preconditions. The clipboard error assertions remain unchanged.
 - Deployment of endpoint reconnection requires migration
   `0036_project_edge_reconnection.sql` before serving the new Worker. Only the
   local QA database was migrated in this pass. PR remains Draft.
+
+## Extended pre-merge review — 2026-09-12
+
+The user authorized merging #168 and #169 after this additional review. This pass
+extends the earlier happy-path and responsive checks to delayed writes, route
+reuse, commands beneath modals, and malformed input at larger sizes.
+
+- A real SQLite service/controller regression reproduces a reconnect whose first
+  response is lost, whose retry encounters a temporary duplicate relationship,
+  and whose original request can still commit later. A generic 409 now retains
+  the exact request and its lock. Only an authoritative rejection or advancement
+  of a revision actually compared by that request permits conflict recovery.
+  Missing rows, unchanged revisions and failed reads do not prove settlement.
+- Project switches and authoritative reloads reject commands using an old
+  snapshot. Read generations, Project identity checks and placement-save session
+  invalidation prevent stale work from being installed into the next session.
+  Existing dirty geometry can still finish saving before a conflict reload starts.
+- Canvas shortcuts no longer reach behind a modal, and the Project deletion
+  confirmation blocks the workspace Save shortcut. Expanded Markdown retains its
+  own Ctrl/Cmd+S behavior.
+- The shared math review additionally checked hostile TeX/MathML, URL and HTML
+  attribute input, recursive macros, and the locked Temml lexer transform. No new
+  injection regression was found. A pre-existing repeated-unclosed-delimiter
+  rendering slowdown was reproduced and addressed during this pass. Duplicate
+  scans are reduced, and each document has a cumulative math-scan budget. When
+  pathological input exhausts it, the existing escaped-source fallback preserves
+  the complete text instead of continuing expensive parsing.
+
+These findings have permanent regression coverage. The earlier browser evidence
+above remains dated to its original run; this extension uses automated component,
+service, and build checks and does not claim a new native-device/browser run.

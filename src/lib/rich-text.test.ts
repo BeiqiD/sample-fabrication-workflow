@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   renderRichText,
+  escapeRichTextHtml,
   richTextSafeHref,
   richTextSafeImageSrc,
   richTextStartsWithHeading,
@@ -121,6 +122,49 @@ Second line`, "comment");
     expect(html).toContain("\\frac{1}{");
     expect(html).not.toContain("ParseError");
     expect(html).not.toContain("temml-error");
+  });
+
+  it.each(["document", "comment"] as const)("keeps large unmatched display markers readable in %s", (mode) => {
+    const source = `Before\n${"\\[\n".repeat(16_000)}`;
+    const html = renderRichText(source, mode);
+    expect(html).not.toContain("rich-text-fallback");
+    expect(html).not.toContain("<math");
+    expect(html.match(/\[/g)).toHaveLength(16_000);
+  });
+
+  it.each(["document", "comment"] as const)("bounds repeated unsuccessful delimiter scans with escaped source fallback in %s", (mode) => {
+    // Check the deterministic fallback instead of imposing a machine-dependent
+    // deadline. These cases used to rescan each remaining suffix synchronously.
+    for (const marker of ["\\(\n", "\\(missing\\\\)\n", "$$ x ", "\\[\n# Heading\n"]) {
+      const source = `Before <script>alert(1)</script>\n${marker.repeat(4_000)}`;
+      expect(renderRichText(source, mode))
+        .toBe(`<pre class="rich-text-fallback"><code>${escapeRichTextHtml(source)}</code></pre>`);
+    }
+    // An exhausted lexer must not affect another comment/document render.
+    expect(renderRichText("$x^2$", mode)).toContain("<msup>");
+  });
+
+  it.each(["document", "comment"] as const)("preserves later complete math across Markdown and newline boundaries in %s", (mode) => {
+    for (const source of [
+      "$unclosed\n$x^2$",
+      "> \\(missing\n\nParagraph \\( y^2 \\)",
+      "- \\[missing\n\nParagraph\n\\[z^2\\]",
+    ]) {
+      const html = renderRichText(source, mode);
+      expect(html).toContain("<msup>");
+      expect(html).not.toContain("rich-text-fallback");
+    }
+  });
+
+  it.each(["document", "comment"] as const)("retains long documents containing many legitimate formulas in %s", (mode) => {
+    const section = `${"Ordinary text ".repeat(16)}$\\frac{1}{1+x_0^2}$.\n\n\\[x^2+y^2=z^2\\]\n\n`;
+    const source = section.repeat(600);
+    expect(source.length).toBeGreaterThan(150_000);
+    const html = renderRichText(source, mode);
+    expect(html).not.toContain("rich-text-fallback");
+    expect(html).not.toContain("rich-text-math-error");
+    expect(html.match(/<mfrac>/g)).toHaveLength(600);
+    expect(html.match(/rich-text-math-block/g)).toHaveLength(600);
   });
 
 });

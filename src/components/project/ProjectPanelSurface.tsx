@@ -26,6 +26,7 @@ export function ProjectPanelSurface({
   alert?: boolean;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const backdropPointerRef = useRef<{ id: number; outside: boolean; released: boolean } | null>(null);
   const { requestClose } = useModalDialog({
     dialogRef,
     initialFocusRef,
@@ -39,8 +40,28 @@ export function ProjectPanelSurface({
   if (!modal) return className ? <div className={className}>{children}</div> : <>{children}</>;
   return createPortal(<div
     className={`project-panel-backdrop${alert ? " project-panel-alert-backdrop" : ""}`}
+    onPointerDownCapture={(event) => {
+      backdropPointerRef.current = {
+        id: event.pointerId,
+        outside: event.isPrimary && event.button === 0 && event.target === event.currentTarget,
+        released: false,
+      };
+    }}
+    onPointerUpCapture={(event) => {
+      const pointer = backdropPointerRef.current;
+      if (!pointer) return;
+      pointer.released = pointer.id === event.pointerId && event.isPrimary && event.button === 0;
+      pointer.outside = pointer.outside && event.target === event.currentTarget;
+    }}
+    onPointerCancelCapture={() => { backdropPointerRef.current = null; }}
     onClick={(event) => {
-      if (event.target === event.currentTarget) requestClose();
+      const pointer = backdropPointerRef.current;
+      backdropPointerRef.current = null;
+      // A click can target the common ancestor of an inside press and outside
+      // release. Require both ends on the backdrop; detail=0 keeps non-pointer
+      // activation available to assistive technology.
+      if (event.target === event.currentTarget && event.button === 0
+        && (event.detail === 0 || (pointer?.outside && pointer.released))) requestClose();
     }}
   >
     <div

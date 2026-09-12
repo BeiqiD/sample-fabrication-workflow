@@ -1,8 +1,9 @@
 # Phase 5C3 Reading details and responsive panels
 
-Status: implemented and independently reviewed on `feat/project-reading-responsive-details`,
-stacked on Draft PR #168 (`43539e61114022046df7c23c671f4570d2e485d3`).
-No merge, deployment, or C4 completion is implied. Reviewed 2026-09-11.
+Status: implemented on `feat/project-reading-responsive-details`, originally
+stacked on PR #168 (`43539e61114022046df7c23c671f4570d2e485d3`). Initial review:
+2026-09-11; extended pre-merge review: 2026-09-12. The user authorized merging both
+PRs after verification. Deployment and full C4 completion remain separate work.
 
 ## Behavior
 
@@ -72,3 +73,23 @@ viewport, not native phone emulation. The harness is excluded from source and
 build artifacts. Native touch, soft-keyboard/visual-viewport behavior, safe-area
 hardware and other browser engines remain device acceptance work. Full C4 review
 across directory entry, empty/normal/large Projects and themes remains next.
+
+## Extended pre-merge review — 2026-09-12
+
+The additional review covers legacy inline confirmations stacked on mobile
+panels, unmounting a lower editor while a leave confirmation remains open,
+StrictMode route replacement, and restoration of existing inert/scroll state.
+
+A pointer gesture crossing between the panel and its backdrop could dismiss the
+panel because click dispatch uses the press/release targets' common ancestor.
+The backdrop now requires the same primary pointer to start and finish on the
+backdrop. Cancelled gestures and non-primary buttons cannot dismiss it; non-pointer
+assistive activation and existing top-modal/pending guards remain supported.
+See [Pointer Events click dispatch](https://www.w3.org/TR/pointerevents3/#event-dispatch).
+
+The new `project-modal-boundaries.mount.test.tsx` records those integration and
+specification-driven gesture sequences. Three gesture regressions failed against
+the original implementation and passed after the fix. This is mounted event
+evidence, not a new native pointer/browser session. The final integrated branch
+also includes #168's loading/command and uncertain reconnect fixes, documented in
+`PROJECT_UX_REPAIR_ACCEPTANCE.md`.

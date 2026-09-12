@@ -94,6 +94,27 @@ function edgeFailureStatus(caught: unknown): Exclude<ProjectEdgeMutationStatus, 
   return "uncertain";
 }
 
+/** Only a revision compared by the frozen write can prevent its later commit. */
+function edgeMutationRevisionHasAdvanced(
+  snapshot: ProjectSnapshot,
+  mutation: ProjectPendingEdgeMutation,
+) {
+  if (mutation.kind !== "create") {
+    const edge = snapshot.edges.find((candidate) => candidate.id === mutation.edgeId);
+    if (edge && edge.revision > mutation.input.expectedRevision) return true;
+  }
+  // Metadata and lifecycle writes do not compare endpoint revisions. Temporary
+  // endpoint deletion (or a duplicate relationship) cannot settle those writes.
+  if (mutation.kind !== "create" && mutation.kind !== "update") return false;
+  const input = mutation.input;
+  return snapshot.items.some((item) => (
+    (item.id === input.sourceItemId && input.expectedSourceItemRevision !== undefined
+      && item.revision > input.expectedSourceItemRevision)
+    || (item.id === input.targetItemId && input.expectedTargetItemRevision !== undefined
+      && item.revision > input.expectedTargetItemRevision)
+  ));
+}
+
 function mergeActiveEdge(
   setSnapshot: Dispatch<SetStateAction<ProjectSnapshot | null>>,
   edge: ProjectEdgeRecord,
@@ -231,8 +252,27 @@ export function useProjectEdgeController({
     } catch (caught) {
       if (!activeRef.current) return;
       const failureStatus = edgeFailureStatus(caught);
-      const status = mutation.status === "uncertain" && failureStatus === "error"
-        ? "uncertain" : failureStatus;
+      let status = failureStatus;
+      if (mutation.status === "uncertain") {
+        // A retry's rejection says nothing about an earlier request whose
+        // response was lost. Preserve that exact request until a durable fence
+        // proves it can no longer commit, or an exact retry acknowledges it.
+        status = "uncertain";
+        if (caught instanceof ProjectApiError && failureStatus === "conflict") {
+          let settled = caught.mutationDisposition === "authoritative-rejection";
+          if (!settled) {
+            try {
+              const fresh = await projectApi.readTrash(projectId);
+              if (!activeRef.current || pendingRef.current !== saving) return;
+              settled = fresh.project.id === projectId && edgeMutationRevisionHasAdvanced(fresh, saving);
+            } catch {
+              // A failed read or a missing row is not evidence of settlement.
+              if (!activeRef.current || pendingRef.current !== saving) return;
+            }
+          }
+          if (settled) status = "conflict";
+        }
+      }
       const message = caught instanceof Error ? caught.message : "The Project edge operation failed";
       const failed = { ...saving, status, message } as ProjectPendingEdgeMutation;
       updatePending(failed);

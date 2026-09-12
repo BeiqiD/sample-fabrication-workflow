@@ -318,6 +318,12 @@ export function ProjectPage() {
   const [projectDeleteUncertain, setProjectDeleteUncertain] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
 
+  // Route reuse keeps the previous snapshot until the new read finishes. Commands
+  // must never combine that snapshot/history with the destination Project ID.
+  const projectReadyRef = useRef(false);
+  projectReadyRef.current = !loading && !loadError && snapshot?.project.id === projectId;
+  const loadGenerationRef = useRef(0);
+
   const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
   const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
   const pendingMutationRef = useRef<Record<string, UpdateProjectPlacementInput>>({});
@@ -810,17 +816,31 @@ export function ProjectPage() {
 
   const loadProject = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
+    const generation = ++loadGenerationRef.current;
+    const requestIsCurrent = () => pageActiveRef.current && !signal?.aborted
+      && projectIdRef.current === projectId && loadGenerationRef.current === generation;
+    projectReadyRef.current = false;
+    saveSessionGenerationRef.current += 1;
+    savingRef.current = false;
+    saveAgainRef.current = false;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     setLoading(true);
     try {
       const next = await projectApi.read(projectId, signal);
+      if (!requestIsCurrent()) return;
+      if (next.project.id !== projectId) throw new Error("The requested Project could not be verified");
       installSnapshot(next);
       setLoadError("");
     } catch (caught) {
+      if (!requestIsCurrent()) return;
       if (caught instanceof DOMException && caught.name === "AbortError") return;
       if (caught instanceof Error && caught.name === "AbortError") return;
       setLoadError(caught instanceof Error ? caught.message : "The Project could not be opened");
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (requestIsCurrent()) setLoading(false);
     }
   }, [installSnapshot, projectId]);
 
@@ -1000,7 +1020,7 @@ export function ProjectPage() {
 
   const flushSave = useCallback(async () => {
     const generation = saveSessionGenerationRef.current;
-    if (!saveSessionIsActive(generation) || !projectId || saveStateRef.current === "conflict") return;
+    if (!projectReadyRef.current || !saveSessionIsActive(generation) || !projectId || saveStateRef.current === "conflict") return;
     if (savingRef.current) {
       saveAgainRef.current = true;
       return;
@@ -1123,7 +1143,7 @@ export function ProjectPage() {
   }, [trash.pending, attachmentEditor, blocker, copyPaste.unsafe, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
 
   const commitGeometryBatch = useCallback((commands: readonly ProjectGeometryCommand[]) => {
-    if (pendingReferenceRemovalRef.current
+    if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
       || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current
       || pendingAttachmentRef.current
@@ -1147,14 +1167,15 @@ export function ProjectPage() {
       updateSaveState("unsaved");
       scheduleAutosave();
     }
-  }, [scheduleAutosave, updateSaveState]);
+  }, [ownedContentReloadPending, scheduleAutosave, updateSaveState]);
 
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
     commitGeometryBatch([command]);
   }, [commitGeometryBatch]);
 
   const undo = useCallback(() => {
-    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
+    if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
+      || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
@@ -1182,10 +1203,11 @@ export function ProjectPage() {
       setUndoStack((current) => current.slice(0, -1));
       setRedoStack((current) => [...current, command].slice(-100));
     });
-  }, [edgeController, scheduleAutosave, undoStack, updateSaveState]);
+  }, [edgeController, ownedContentReloadPending, scheduleAutosave, undoStack, updateSaveState]);
 
   const redo = useCallback(() => {
-    if (pendingReferenceRemovalRef.current || pendingReferenceRef.current?.status === "reconciling"
+    if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
+      || pendingReferenceRef.current?.status === "reconciling"
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
@@ -1209,7 +1231,7 @@ export function ProjectPage() {
       setRedoStack((current) => current.slice(0, -1));
       setUndoStack((current) => [...current, command].slice(-100));
     });
-  }, [edgeController, redoStack, scheduleAutosave, updateSaveState]);
+  }, [edgeController, ownedContentReloadPending, redoStack, scheduleAutosave, updateSaveState]);
 
   const mergeReferenceInsertion = useCallback((
     result: ProjectItemMutationResponse,
@@ -2379,7 +2401,8 @@ export function ProjectPage() {
   }, [snapshot, startReferenceRemoval]);
 
   const canvasCommandOperationBlocked = useCallback(() => Boolean(
-    pendingReferenceRef.current
+    !projectReadyRef.current || ownedContentReloadPending
+    || pendingReferenceRef.current
     || pendingReferenceRemovalRef.current
     || markdownEditorRef.current
     || pendingAttachmentRef.current
@@ -2387,7 +2410,7 @@ export function ProjectPage() {
     || projectDeleteRequestRef.current
     || copyPaste.unsafeRef.current
     || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)
-  ), [copyPaste.unsafeRef, edgeController.unsafeRef]);
+  ), [copyPaste.unsafeRef, edgeController.unsafeRef, ownedContentReloadPending]);
 
   const copyCanvasSelection = useCallback(() => {
     if (canvasCommandOperationBlocked() || saveStateRef.current !== "saved"
@@ -2528,6 +2551,7 @@ export function ProjectPage() {
   }, [focusInspectorPanel]);
 
   const saveCurrentChanges = useCallback(() => {
+    if (!projectReadyRef.current || confirmingProjectDeletion) return;
     if (markdownEditorRef.current) {
       void saveMarkdown();
       return;
@@ -2551,7 +2575,7 @@ export function ProjectPage() {
     if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = null;
     void flushSaveRef.current();
-  }, [edgeController.editor, edgeController.retryExact, edgeController.saveEdit, saveAttachmentMetadata, saveMarkdown]);
+  }, [confirmingProjectDeletion, edgeController.editor, edgeController.retryExact, edgeController.saveEdit, saveAttachmentMetadata, saveMarkdown]);
 
   // Save belongs to the active editor in either projection, including inputs.
   // Keep this separate from Canvas-only shortcuts that respect native text editing.
@@ -2571,7 +2595,9 @@ export function ProjectPage() {
   useLayoutEffect(() => {
     if (!desktop || desktopView !== "map") return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)) return;
+      // Modal controls own keyboard input even when they are not text fields.
+      if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)
+        || (event.target instanceof Element && event.target.closest('[aria-modal="true"]'))) return;
       const shortcut = projectCanvasKeyboardShortcutFromEvent(event);
       if (!shortcut || shortcut === "save") return;
       // Text selection/copy and native reading shortcuts must not mutate the Map.
