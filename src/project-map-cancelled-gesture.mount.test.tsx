@@ -225,6 +225,56 @@ describe("Project Map cancelled pointer gestures", () => {
     },
   );
 
+  it.each(["second-touch", "touchcancel"] as const)(
+    "restores an unselected card after a %s resize and permits the next corner adjustment", async (scenario) => {
+      const onGeometryCommit = vi.fn();
+      const onSelect = vi.fn();
+      const { container } = render(<div style={{ width: 800, height: 600 }}>
+        <ProjectMapSurface nodes={projectMapNodes(projectTestSnapshot())} selectedItemId="item-reference"
+          onSelect={onSelect} onGeometryCommit={onGeometryCommit} />
+      </div>);
+      const card = await waitFor(() => {
+        const value = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+        expect(value).toBeTruthy();
+        expect(value.style.visibility).not.toBe("hidden");
+        return value;
+      });
+      await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
+        .not.toMatch(/^translate\(0px,\s*0px\)/));
+      const target = within(card).getByRole("button", { name: "Resize card" });
+      touch(target, "touchstart", 100, 100);
+      touch(target, "touchmove", 110, 110);
+      touch(target, "touchmove", 170, 170);
+      expect(card.style.width).toBe("320px");
+      const point = touchPoint(target, 1, 170, 170);
+      if (scenario === "second-touch") {
+        const second = touchPoint(target, 2, 220, 220);
+        act(() => { target.dispatchEvent(new TouchEvent("touchmove", {
+          touches: [point, second], changedTouches: [point, second], bubbles: true, cancelable: true,
+        })); });
+        touch(target, "touchend", 170, 170);
+      } else {
+        act(() => { target.dispatchEvent(new TouchEvent("touchcancel", {
+          touches: [], changedTouches: [point], bubbles: true, cancelable: true,
+        })); });
+      }
+      await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 0)); });
+      expect(card.style.transform).toBe("translate(20px,40px)");
+      expect(card.style.width).toBe("250px");
+      expect(card.style.height).toBe("180px");
+      expect(card.classList.contains("selected")).toBe(false);
+      expect(onGeometryCommit).not.toHaveBeenCalled();
+      expect(onSelect).not.toHaveBeenCalled();
+      fireEvent.keyDown(within(card).getByRole("button", { name: "Resize card" }), { key: "ArrowRight", code: "ArrowRight" });
+      await waitFor(() => expect(onGeometryCommit).toHaveBeenCalledTimes(1));
+      expect(onGeometryCommit.mock.calls[0][0]).toMatchObject({
+        placementId: "placement-note",
+        before: { x: 20, y: 40, width: 250, height: 180 },
+        after: { x: 20, y: 40, width: 255, height: 180 },
+      });
+    },
+  );
+
   it.each(["deleted-and-restored", "replaced"] as const)(
     "does not carry an old drag into a %s placement", async (scenario) => {
       const onGeometryCommit = vi.fn();

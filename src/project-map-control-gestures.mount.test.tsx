@@ -6,7 +6,7 @@ import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
 import { projectMapNodes } from "./lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content";
 import { ProjectPage } from "./pages/ProjectPage";
-import { projectTestSnapshot } from "./project-test-fixture";
+import { projectTestSnapshot, projectTestSnapshotWithAttachment } from "./project-test-fixture";
 
 class TestResizeObserver {
   private callback: ResizeObserverCallback;
@@ -99,22 +99,38 @@ describe("Project Map native card controls", () => {
     }
   });
 
-  it.each(["mouse", "touch"] as const)("resizes through the real bottom-right %s control without moving the card", async (input) => {
+  it.each([
+    ["mouse", "none"], ["touch", "none"],
+    ["mouse", "another"], ["touch", "another"],
+    ["mouse", "secondary"], ["touch", "secondary"],
+    ["mouse", "primary"], ["touch", "primary"],
+  ] as const)("resizes from the corner with %s when selection is %s, without selecting or moving cards", async (input, selection) => {
     const onGeometryCommit = vi.fn();
+    const onGeometryBatchCommit = vi.fn();
+    const onSelect = vi.fn();
+    const onSelectionChange = vi.fn();
     const nodes = projectMapNodes(projectTestSnapshot());
-    const { container, rerender } = render(<div style={{ width: 800, height: 600 }}>
-      <ProjectMapSurface nodes={nodes}
-        selectedItemId="item-note" onSelect={() => undefined} onGeometryCommit={onGeometryCommit} />
-    </div>);
-    const control = await waitFor(() => {
-      const value = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"] .react-flow__resize-control.bottom.right.handle');
+    const selectedItemId = selection === "none" ? null : selection === "primary" ? "item-note" : "item-reference";
+    const selectedItemIds = selection === "secondary" ? ["item-reference", "item-note"] : selectedItemId ? [selectedItemId] : [];
+    const surface = (refresh = false) => <div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface nodes={nodes} selectedItemId={selectedItemId} selectedItemIds={selectedItemIds}
+        onSelect={onSelect} onSelectionChange={onSelectionChange} onGeometryBatchCommit={onGeometryBatchCommit}
+        onGeometryCommit={refresh ? (command) => { onGeometryCommit(command); } : onGeometryCommit} />
+    </div>;
+    const { container, rerender } = render(surface());
+    const card = await waitFor(() => {
+      const value = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
       expect(value).toBeTruthy();
-      expect(value!.closest<HTMLElement>(".react-flow__node")!.style.visibility).not.toBe("hidden");
-      return within(value!).getByRole("button", { name: "Resize card" });
+      expect(value!.style.visibility).not.toBe("hidden");
+      return value!;
     });
+    const control = within(card).getByRole("button", { name: "Resize card" });
+    const otherCard = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-reference"]')!;
     // The initial fit is asynchronous; begin resizing after its viewport update.
     await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
       .not.toMatch(/^translate\(0px,\s*0px\)/));
+    const otherStyle = otherCard.getAttribute("style");
+    const initialSelection = [...container.querySelectorAll(".react-flow__node.selected")].map((node) => node.getAttribute("data-id"));
     if (input === "mouse") {
       mouse(control, "mousedown", 300, 250);
       mouse(window, "mousemove", 310, 260);
@@ -123,14 +139,12 @@ describe("Project Map native card controls", () => {
     } else {
       touch(control, "touchstart", 300, 250);
       touch(control, "touchmove", 310, 260);
-      expect(control.closest<HTMLElement>(".react-flow__node")!.style.width).toBe("260px");
+      expect(card.style.width).toBe("260px");
       // A parent refresh must not replace D3's active touch listeners between moves.
-      rerender(<div style={{ width: 800, height: 600 }}>
-        <ProjectMapSurface nodes={nodes} selectedItemId="item-note" onSelect={() => undefined}
-          onGeometryCommit={(command) => { onGeometryCommit(command); }} />
-      </div>);
+      rerender(surface(true));
+      expect(within(card).getByRole("button", { name: "Resize card" })).toBe(control);
       touch(control, "touchmove", 360, 290);
-      expect(control.closest<HTMLElement>(".react-flow__node")!.style.width).toBe("310px");
+      expect(card.style.width).toBe("310px");
       touch(control, "touchend", 360, 290);
     }
     await waitFor(() => expect(onGeometryCommit).toHaveBeenCalledTimes(1));
@@ -139,10 +153,17 @@ describe("Project Map native card controls", () => {
       before: { x: 20, y: 40, width: 250, height: 180, zIndex: 0 },
       after: { x: 20, y: 40, width: 310, height: 220, zIndex: 0 },
     });
+    expect(card.style.transform).toBe("translate(20px,40px)");
+    expect(otherCard.getAttribute("style")).toBe(otherStyle);
+    expect([...container.querySelectorAll(".react-flow__node.selected")].map((node) => node.getAttribute("data-id")))
+      .toEqual(initialSelection);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onGeometryBatchCommit).not.toHaveBeenCalled();
   });
 
-  it("shows one corner grip outside the card body only for the primary selected, unlocked, non-editing card", async () => {
-    const nodes = projectMapNodes(projectTestSnapshot());
+  it("shows one corner per saved card before selection, including primary and secondary selections, and hides only unavailable controls", async () => {
+    const nodes = projectMapNodes(projectTestSnapshotWithAttachment());
     const onGeometryCommit = vi.fn();
     const surface = (selectedItemId: string | null, disabled = false, editor: ProjectMapMarkdownEditorState | null = null) =>
       <div style={{ width: 800, height: 600 }}>
@@ -151,30 +172,60 @@ describe("Project Map native card controls", () => {
           geometryInteractionDisabled={disabled} markdownEditor={editor}
           onSelect={() => undefined} onGeometryCommit={onGeometryCommit} />
       </div>;
-    const { container, rerender } = render(surface("item-note"));
-    const grip = await screen.findByRole("button", { name: "Resize card" });
-    expect(grip.closest(".react-flow__node")?.getAttribute("data-id")).toBe("item-note");
-    expect(grip.closest("article")).toBeNull();
-    expect(container.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
-    expect(grip.closest(".react-flow__resize-control.bottom.right.handle")).toBeTruthy();
-    expect(container.querySelector(".react-flow__resize-control.line")).toBeNull();
+    const { container, rerender } = render(surface(null));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Resize card" })).toHaveLength(3));
+    const expectSavedCardGrips = () => {
+      for (const node of container.querySelectorAll<HTMLElement>(".react-flow__node")) {
+        const grip = within(node).getByRole("button", { name: "Resize card" });
+        expect(node.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
+        expect(grip.closest(".react-flow__resize-control.bottom.right.handle")).toBeTruthy();
+      }
+      expect(container.querySelector(".react-flow__resize-control.line")).toBeNull();
+    };
+    expectSavedCardGrips();
+    rerender(surface("item-note"));
+    expectSavedCardGrips();
     rerender(surface("item-reference"));
-    expect(screen.getByRole("button", { name: "Resize card" }).closest(".react-flow__node")?.getAttribute("data-id"))
-      .toBe("item-reference");
-    expect(container.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
+    expectSavedCardGrips();
     rerender(surface(null));
-    expect(screen.queryByRole("button", { name: "Resize card" })).toBeNull();
+    expectSavedCardGrips();
     rerender(surface("item-note", true));
-    expect(container.querySelector(".react-flow__resize-control")).toBeNull();
-    // The editor itself hides the grip, even when the caller has not globally locked geometry.
+    expect(screen.queryByRole("button", { name: "Resize card" })).toBeNull();
+    // The editor itself hides its own grip even when the caller has not globally locked geometry.
     rerender(surface("item-note", false, {
       itemId: "item-note", value: "# Draft", isNew: false,
       geometry: null, status: "editing", message: null,
     }));
-    expect(container.querySelector(".react-flow__resize-control")).toBeNull();
+    const editingCard = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+    expect(within(editingCard).queryByRole("button", { name: "Resize card" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Resize card" })).toHaveLength(2);
     rerender(surface("item-note"));
-    expect(screen.getAllByRole("button", { name: "Resize card" })).toHaveLength(1);
+    expectSavedCardGrips();
     expect(onGeometryCommit).not.toHaveBeenCalled();
+  });
+
+  it("never offers resizing for pending references, attachments, or new Markdown drafts", async () => {
+    const nodes = projectMapNodes(projectTestSnapshot());
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface nodes={nodes} selectedItemId={null}
+        onSelect={() => undefined} onGeometryCommit={vi.fn()}
+        pendingReference={{
+          localId: "pending-reference", target: { type: "sample", id: "sample-b" },
+          preview: { title: "Pending sample", subtitle: null, excerpt: null,
+            referenceUrl: "/references/sample/r1_sample-b", openSourceUrl: null },
+          geometry: { x: 0, y: 250, width: 300, height: 180, zIndex: 2 }, status: "placing", message: null,
+        }}
+        pendingAttachment={{ localId: "pending-attachment", filename: "Pending.pdf", mimeType: "application/pdf",
+          geometry: { x: 350, y: 250, width: 300, height: 180, zIndex: 3 }, status: "uploading", message: null }}
+        markdownEditor={{ itemId: "new-note", value: "# Draft", isNew: true,
+          geometry: { x: 0, y: 500, width: 300, height: 180, zIndex: 4 }, status: "editing", message: null }} />
+    </div>);
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__node")).toHaveLength(5));
+    for (const id of ["pending-reference", "pending-attachment", "new-note"]) {
+      const card = container.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`)!;
+      expect(within(card).queryByRole("button", { name: "Resize card" })).toBeNull();
+    }
+    expect(screen.getAllByRole("button", { name: "Resize card" })).toHaveLength(2);
   });
 
   it.each([
@@ -182,14 +233,21 @@ describe("Project Map native card controls", () => {
     ["ArrowDown", false, 250, 185], ["ArrowUp", false, 250, 175],
     ["ArrowRight", true, 270, 180], ["ArrowLeft", true, 230, 180],
     ["ArrowDown", true, 250, 200], ["ArrowUp", true, 250, 160],
-  ] as const)("resizes with %s (Shift: %s) without moving the card or bubbling the key", async (key, shiftKey, width, height) => {
+  ] as const)("resizes an unselected card with %s (Shift: %s) without changing selection or bubbling the key", async (key, shiftKey, width, height) => {
     const onGeometryCommit = vi.fn();
     const onOuterKeyDown = vi.fn();
+    const onSelect = vi.fn();
+    const onSelectionChange = vi.fn();
     const { container } = render(<div style={{ width: 800, height: 600 }} onKeyDown={onOuterKeyDown}>
       <ProjectMapSurface nodes={projectMapNodes(projectTestSnapshot())}
-        selectedItemId="item-note" onSelect={() => undefined} onGeometryCommit={onGeometryCommit} />
+        selectedItemId="item-reference" onSelect={onSelect} onSelectionChange={onSelectionChange}
+        onGeometryCommit={onGeometryCommit} />
     </div>);
-    const grip = await screen.findByRole("button", { name: "Resize card" });
+    const grip = await waitFor(() => {
+      const note = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+      expect(note).toBeTruthy();
+      return within(note).getByRole("button", { name: "Resize card" });
+    });
     const card = grip.closest<HTMLElement>(".react-flow__node")!;
     await waitFor(() => expect(card.style.visibility).not.toBe("hidden"));
     const initialTransform = card.style.transform;
@@ -202,8 +260,12 @@ describe("Project Map native card controls", () => {
       after: { x: 20, y: 40, width, height, zIndex: 0 },
     });
     expect(onOuterKeyDown).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(card.classList.contains("selected")).toBe(false);
+    expect(container.querySelector<HTMLElement>('.react-flow__node[data-id="item-reference"]')!.classList.contains("selected")).toBe(true);
     expect(card.style.transform).toBe(initialTransform);
-    expect(container.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
+    expect(card.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
   });
 
   it.each([
@@ -220,8 +282,12 @@ describe("Project Map native card controls", () => {
       <ProjectMapSurface nodes={currentNodes} selectedItemId="item-note"
         onSelect={() => undefined} onGeometryCommit={onGeometryCommit} />
     </div>;
-    const { rerender } = render(surface(nodes));
-    const grip = await screen.findByRole("button", { name: "Resize card" });
+    const { container, rerender } = render(surface(nodes));
+    const grip = await waitFor(() => {
+      const note = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+      expect(note).toBeTruthy();
+      return within(note).getByRole("button", { name: "Resize card" });
+    });
     fireEvent.keyDown(grip, { key, code: key, shiftKey: true });
     await waitFor(() => expect(onGeometryCommit).toHaveBeenCalledTimes(1));
     const command = onGeometryCommit.mock.calls[0][0];
@@ -231,22 +297,29 @@ describe("Project Map native card controls", () => {
       after: { x: 20, y: 40, width: nextWidth, height: nextHeight, zIndex: 0 },
     });
     rerender(surface(nodes.map((node) => node.itemId !== "item-note" ? node : { ...node, geometry: command.after })));
-    fireEvent.keyDown(screen.getByRole("button", { name: "Resize card" }), { key, code: key, shiftKey: true });
+    fireEvent.keyDown(within(container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!).getByRole("button", { name: "Resize card" }), { key, code: key, shiftKey: true });
     expect(onGeometryCommit).toHaveBeenCalledTimes(1);
   });
 
-  it("leaves modifier arrows and activation keys to their native behavior without changing geometry", async () => {
+  it("keeps grip activation and modifier arrows from selecting, editing, or moving the card", async () => {
     const onGeometryCommit = vi.fn();
     const onSelect = vi.fn();
+    const onMarkdownEditRequest = vi.fn();
     const { container } = render(<div style={{ width: 800, height: 600 }}>
       <ProjectMapSurface nodes={projectMapNodes(projectTestSnapshot())}
-        selectedItemId="item-note" onSelect={onSelect} onGeometryCommit={onGeometryCommit} />
+        selectedItemId="item-reference" onSelect={onSelect} onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest} />
     </div>);
-    const grip = await screen.findByRole("button", { name: "Resize card" });
+    const grip = await waitFor(() => {
+      const note = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]')!;
+      expect(note).toBeTruthy();
+      return within(note).getByRole("button", { name: "Resize card" });
+    });
     const card = grip.closest<HTMLElement>(".react-flow__node")!;
     await waitFor(() => expect(card.style.visibility).not.toBe("hidden"));
     act(() => { grip.focus(); });
-    onSelect.mockClear();
+    fireEvent.click(grip);
+    fireEvent.doubleClick(grip);
     for (const modifier of [{ ctrlKey: true }, { altKey: true }, { metaKey: true }]) {
       expect(fireEvent.keyDown(grip, { key: "ArrowRight", code: "ArrowRight", ...modifier })).toBe(true);
     }
@@ -254,11 +327,12 @@ describe("Project Map native card controls", () => {
     fireEvent.keyDown(grip, { key: " ", code: "Space" });
     expect(onGeometryCommit).not.toHaveBeenCalled();
     expect(onSelect).not.toHaveBeenCalled();
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
     expect(card.style.transform).toBe("translate(20px,40px)");
-    expect(container.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
+    expect(card.querySelectorAll(".react-flow__resize-control")).toHaveLength(1);
   });
 
-  it("saves keyboard resizing through the real Page and restores dimensions with Undo and Redo", async () => {
+  it("saves resizing an unselected card through the real Page and restores dimensions with Undo and Redo", async () => {
     const snapshot = projectTestSnapshot();
     let placement = snapshot.placements.find((candidate) => candidate.id === "placement-note")!;
     const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
@@ -286,7 +360,11 @@ describe("Project Map native card controls", () => {
       expect(card!.style.visibility).not.toBe("hidden");
       return card!;
     });
-    fireEvent.click(note.querySelector("header")!);
+    const reference = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-reference"]')!;
+    fireEvent.click(reference.querySelector("header")!);
+    const referenceStyle = reference.getAttribute("style");
+    expect(reference.classList.contains("selected")).toBe(true);
+    expect(note.classList.contains("selected")).toBe(false);
     const grip = await within(note).findByRole("button", { name: "Resize card" });
     act(() => { grip.focus(); });
     fireEvent.keyDown(grip, { key: "ArrowRight", code: "ArrowRight", shiftKey: true });
@@ -294,6 +372,9 @@ describe("Project Map native card controls", () => {
     fireEvent.keyDown(grip, { key: "ArrowDown", code: "ArrowDown" });
     await waitFor(() => expect(note.style.height).toBe("185px"));
     expect(note.style.transform).toBe("translate(20px,40px)");
+    expect(reference.getAttribute("style")).toBe(referenceStyle);
+    expect(reference.classList.contains("selected")).toBe(true);
+    expect(note.classList.contains("selected")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Saved"));
     const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH");

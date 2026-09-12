@@ -266,7 +266,7 @@ function pendingLabel(status: string) {
   return status;
 }
 
-const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodeProps<ProjectFlowNode>) {
+const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<ProjectFlowNode>) {
   const {
     descriptor,
     pendingReference,
@@ -335,9 +335,9 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
     </article>;
   }
 
-  const canResize = selected && data.primarySelected && !geometryInteractionDisabled && !editing;
+  const canResize = !geometryInteractionDisabled && !editing;
   return <><article
-    className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}`}
+    className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : " resizable"}`}
     data-detail-level={detailLevel}
     onMouseDownCapture={(event) => {
       // React Flow already filters nodrag descendants. Let their own handlers
@@ -420,7 +420,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
       minHeight={110}
       maxWidth={1_200}
       maxHeight={1_000}
-      autoScale
+      autoScale={false}
       className="project-node-resize-handle nodrag nopan"
       onResizeStart={handleControlResizeStart}
       onResizeEnd={handleControlResizeEnd}
@@ -431,6 +431,8 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         aria-label="Resize card"
         aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
         title="Drag to resize · Arrow keys adjust size · Shift for larger steps"
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
           const arrowKey = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key);
           if (!arrowKey && event.key !== "Enter" && event.key !== " ") return;
@@ -452,9 +454,9 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
           data.onResizeEnd(descriptor, after);
         }}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4 20 20 4v16Z" fill="currentColor" />
-          <path d="m12 18 6-6m-1 6 1-1" fill="none" stroke="var(--paper)" strokeWidth="1.8" strokeLinecap="round" />
+        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+          <path className="project-node-resize-corner" d="M1 35 35 1v34Z" />
+          <path d="m19 29 10-10m-3 10 3-3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       </button>
     </NodeResizeControl>}

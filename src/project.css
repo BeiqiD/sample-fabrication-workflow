@@ -68,7 +68,7 @@
 .project-directory-head,
 .project-directory-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 90px 180px;
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(160px, 180px));
   align-items: center;
   gap: 18px;
 }
@@ -83,7 +83,15 @@
 .project-directory-row small,
 .project-directory-row span,
 .project-directory-row time { color: var(--muted); font-size: 12px; }
-.project-directory-row time { text-align: right; }
+.project-directory-row time { text-align: left; overflow-wrap: anywhere; }
+.project-directory-date-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 .project-page { min-width: 0; }
 .project-page.desktop { width: 100%; margin: 0; padding: 0; }
@@ -600,8 +608,9 @@
   .project-create-form { grid-template-columns: 1fr; }
   .project-create-form-heading { flex-direction: column; gap: 8px; }
   .project-directory-head { display: none; }
-  .project-directory-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .project-directory-row time { grid-column: 1 / -1; text-align: left; }
+  .project-directory-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+  .project-directory-identity { grid-column: 1 / -1; }
+  .project-directory-date-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; font-weight: 650; }
   .project-directory-state { align-items: flex-start; flex-direction: column; }
   .project-directory-state.empty { align-items: center; }
   .project-save-banner { align-items: stretch; flex-direction: column; }
@@ -625,8 +634,7 @@
   }
   .project-page.mobile .project-save-state::before { display: none; }
   .project-directory-section-heading { align-items: flex-start; flex-direction: column; }
-  .project-directory-row { grid-template-columns: 1fr; gap: 6px; }
-  .project-directory-row time { grid-column: auto; }
+  .project-directory-row { gap: 10px 12px; }
   .project-create-form .form-actions { justify-content: stretch; }
   .project-create-form .form-actions .button { flex: 1 1 0; }
 }
