@@ -18,7 +18,7 @@
     "db:migrate:local": "npm run config:local && wrangler d1 migrations apply DB --local --config .wrangler/deploy.jsonc --persist-to .wrangler/state",
     "db:migrate:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
     "internal:db:migrate:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
-    "test": "vitest run && npm run test:reference-mounted && npm run test:rich-text-bundle",
+    "test": "vitest run && npm run test:reference-mounted && npm run test:rich-text-bundle && npm run test:verification-scripts",
     "test:rich-text-bundle": "node scripts/verify-rich-text-bundle.mjs",
     "test:comment-rich-text": "vitest run src/lib/rich-text.test.ts src/lib/project-markdown.test.ts src/comment-rich-text-contract.test.ts",
     "test:comment-rich-text-mounted": "vitest run --config vitest.mounted.config.ts src/comment-rich-text.mount.test.tsx",
@@ -56,10 +56,15 @@
     "verify:project-owned-content": "npm run test:project-owned-content && npm run test:project-owned-content-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs",
     "verify:project-edges": "npm run test:project-edges && npm run test:project-edges-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs",
     "verify:project-reading": "npm run test:project-reading && npm run test:project-reading-mounted && npm run verify:project-worker && npm run build && node scripts/verify-project-map-bundle.mjs",
-    "verify:v3-deployment": "npm run test:blob-lifecycle && npm run test:storage-integrity && npm run test:reference-foundation && npm run test:project-foundation && npm run verify:project-persistence && npm run verify:project-map && npm run verify:project-map-performance && npm run verify:project-canvas-productivity && npm run verify:project-reference-placement && npm run verify:project-owned-content && npm run verify:project-edges && npm run verify:project-reading && npm run verify:d1-migrations && npm run verify:reference-worker && npm run verify:reference-search-worker && npm test && npm run build:deploy",
+    "verify:v3-deployment": "node scripts/run-verification.mjs --mode deploy",
     "test:project-map-performance": "vitest run src/lib/project-map-performance.test.ts src/project-map-kernel.test.ts",
     "test:project-map-performance-mounted": "vitest run --config vitest.mounted.config.ts src/project-map-performance.mount.test.tsx",
-    "verify:project-map-performance": "npm run test:project-map-performance && npm run test:project-map-performance-mounted && npm run build && node scripts/verify-project-map-bundle.mjs"
+    "verify:project-map-performance": "npm run test:project-map-performance && npm run test:project-map-performance-mounted && npm run build && node scripts/verify-project-map-bundle.mjs",
+    "test:source": "vitest run",
+    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs",
+    "test:project-map-bundle": "node scripts/verify-project-map-bundle.mjs",
+    "verify:project-worker-artifact": "node scripts/verify-project-worker.mjs --production-artifact",
+    "verify:ci": "node scripts/run-verification.mjs --mode ci"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
@@ -87,6 +92,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
-    "wrangler": "^4.112.0"
+    "wrangler": "^4.112.0",
+    "rolldown": "1.1.5"
   }
 }

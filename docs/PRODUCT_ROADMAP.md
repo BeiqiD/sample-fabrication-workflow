@@ -5,6 +5,8 @@ Status: canonical product direction and active implementation roadmap
 Last reviewed: 2026-09-12 after C2b.2/C2b.3 merged in PR #168, C3 merged in
 PR #169, and the card-gesture and mathematical-reference follow-up merged in
 PR #170. C4 integration acceptance is in progress in `PROJECT_C4_ACCEPTANCE.md`.
+The 2026-09-12 repository audit repair scope and deferred ownership work are
+recorded in `ARCHITECTURE_AUDIT_REMEDIATION.md`.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -66,7 +68,7 @@ Project
 │  ├─ render the same occurrences in one linear order
 │  ├─ edit existing Project-owned Markdown
 │  ├─ edit allowed attachment metadata
-│  └─ follow immutable insertion order and create no new items
+│  └─ add occurrences through Add and follow immutable insertion order
 └─ Inspector
    └─ detail, source hierarchy, exact navigation, and local actions
 ```
@@ -622,13 +624,15 @@ one clean V3 migration baseline before persistent V3 activation.
 **Scope:**
 
 - characterize the post-Phase-5 dependency, route, SQL, compatibility-field, and
-  migration boundaries;
+  migration boundaries, including Project command/journal/snapshot ownership;
 - extract remaining Sample, Execution, Process-definition, import, export, and
   asset routes from `worker/index.ts` through behavior-preserving PRs;
 - separate stable contracts and pure shared algorithms without requiring a
   repository-wide monorepo conversion;
 - remove only explicitly verified compatibility fields;
 - build and verify `0001_v3_baseline.sql` against the expected final schema;
+- distinguish disposable integration-test databases from retained-data targets,
+  and verify the appropriate rebuild/recovery or upgrade path for each;
 - update migration, export, deployment, backup, and recovery gates without remote
   side effects.
 

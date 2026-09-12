@@ -3,7 +3,7 @@
 Status: planned pre-release phase; planning may complete during Phase 5, while
 implementation starts only after Phase 5F
 
-Last reviewed: 2026-09-03 after Phase 5C2a merged in PR #163
+Last reviewed: 2026-09-12 after the repository architecture audit
 
 This document defines the bounded architecture and schema stabilization work that
 must sit between the completed Phase 5 frontend refinement sequence and final v1
@@ -210,6 +210,12 @@ This document and its roadmap links complete the planning gate. It records:
 Merging the planning gate does not start Phase 6A implementation while Phase 5
 remains active.
 
+The 2026-09-12 audit repair work is tracked in
+[Architecture audit remediation](./ARCHITECTURE_AUDIT_REMEDIATION.md). The
+user-authorized correctness fixes and verification repairs are separate from
+the behavior-preserving extraction sequence below. They do not start a schema
+baseline replacement or complete Phase 5 browser acceptance.
+
 ### 6A1 — exact inventory and characterization gate
 
 Re-measure the post-Phase-5 repository rather than treating current counts as a
@@ -222,10 +228,25 @@ future contract:
   algorithm, or accidental shared implementation;
 - every read/write dependency on compatibility fields;
 - Trigger-owned invariants and every application path that relies on them;
-- current fresh-migration, export, Worker/D1, and representative behavior gates.
+- current fresh-migration, export, Worker/D1, and representative behavior gates;
+- Project command availability across buttons, menus, keyboard handlers and
+  execution guards, including independently versioned geometry and edges;
+- single-item, bulk-item and insertion-cancellation lifecycle protocols, with
+  their exact-request journals, settlement proofs and navigation protection;
+- snapshot, working geometry, hydration and mutation-acknowledgement write
+  ownership, including stale responses after Project identity changes;
+- entity-bound source-page drafts, detail-loader generations and Comment
+  submission/recovery state ownership;
+- the shared CI/deployment leaf-check inventory and the actual production
+  artifacts covered by each smoke test.
 
 Add characterization coverage only where an extraction would otherwise rely on
 unstated behavior. This slice changes no production behavior or schema.
+Prefer mounted/API behavior coverage for extraction boundaries; replace fragile
+source-variable or callback-string assertions only in the affected area. Use
+static import rules for dependency direction, and keep browser checks for hit
+testing and layout. Moving mounted tests into feature directories must update
+the test-discovery pattern so the tests continue to run.
 
 ### 6A2 — behavior-preserving Worker extraction
 
@@ -242,6 +263,29 @@ The expected order is:
 Comment, Project, Reference, blob-lifecycle, and existing storage modules are
 preserved and adjusted only where the dependency review proves a concrete
 ownership violation.
+
+The audit identified these bounded ownership follow-ups:
+
+- Evidence owns both active legacy Comment commands and canonical submission
+  commands. Inventory consumers before consolidating target policies; readable
+  common evidence and whole-operation mutation have different visibility rules.
+- Project application operations own execution, replay and settlement queries.
+  HTTP maps their structured mutation disposition to headers/status; a failed
+  proof must continue to mean uncertain.
+- Export owns the complete catalog, manifest and delivery route. Move the
+  all-system export out of the Project aggregate while preserving its single
+  D1 batch snapshot boundary.
+- Scheduled maintenance coordinates import recovery, Evidence retry-window
+  closure and physical blob GC in the existing order. Keep domain timeout SQL
+  with Evidence and retain atomic guards; no new Worker or queue is required.
+
+Frontend ownership work follows the same small-slice discipline after Phase 5F:
+first converge ordinary single/bulk item lifecycle execution, then use one
+command-availability boundary, then introduce narrow acknowledgement reducers
+and a dedicated placement-save queue. Preserve special insertion-cancellation
+continuations and independent revision domains. Extract shared media display
+from the Execution grid before moving larger UI modules. These are ownership
+changes, not a requirement to move all of `src/` or create one large page hook.
 
 Each extraction PR must preserve:
 
@@ -273,6 +317,12 @@ The first implementation remains within `shared/contracts` and `shared/domain`
 unless an independent build or distribution requirement later justifies
 `packages/contracts`.
 
+Template request/response DTOs are a concrete first candidate: constrain Worker
+serializers with the shared response contract rather than keeping independent
+client-only types. A small common HTTP error may preserve status and cause;
+Project-specific mutation disposition remains owned by Project. Do not turn
+that transport error into a universal cross-domain retry policy.
+
 ### 6A4 — compatibility cleanup and vocabulary decision
 
 Only explicitly identified compatibility state is release-critical by default.
@@ -298,6 +348,9 @@ The following are audits, not pre-authorized schema changes:
 
 Every compatibility removal first converts all reads and writes, then proves
 behavior through tests, and only then changes the schema.
+The Execution grid still selects legacy Comment/asset deletion for records
+without a canonical submission ID. Absence of UI calls to the old creation
+endpoint alone does not prove that the old command family can be removed.
 
 ### 6A5 — clean V3 baseline and migration gate
 
@@ -305,6 +358,15 @@ After the final authorized schema cleanup, create `0001_v3_baseline.sql` as the
 only active pre-release V3 migration. The old chain remains recoverable from Git
 history and may be documented outside `migrations/`; Wrangler must not scan an
 archive as active migrations.
+
+Record baseline eligibility per target database. A deployed disposable
+integration-test database is not production activation, but it can already have
+an applied-migration ledger. Do not apply the new full baseline as an ordinary
+increment to that ledger. Disposable test resources can be rebuilt in isolation;
+if any data is retained, rehearse recovery into the new database or retain a
+verified upgrade path. In that case verification also includes a copy of the
+existing database, not only two empty databases. No remote data is reset by the
+inventory or baseline comparison itself.
 
 Baseline verification must:
 
@@ -317,11 +379,14 @@ Baseline verification must:
 6. run host SQLite and Wrangler local D1/workerd migration verification;
 7. run complete blob, Reference, Project, import, export, Worker, frontend, and
    production-build gates against a database created only from the baseline;
-8. verify that complete export enumerates the final canonical table/view set;
+8. compare the actual migrated schema with the complete export catalog; every
+   business table and public export view must be covered, and every excluded
+   internal view must have an explicit reconstruction rationale;
 9. update schema, architecture, deployment, backup, and recovery documentation.
 
-No remote V3 D1 migration or Worker deployment is allowed before this gate and
-the existing isolated-resource requirements both pass. Once the baseline is
+Activating the replacement baseline on a remote V3 D1 database or deploying its
+Worker requires this gate and the existing isolated-resource requirements to
+pass. Once the baseline is
 released or any persistent V3 database depends on it, it becomes immutable and
 future changes resume as `0002_...`, `0003_...`, and later migrations.
 
@@ -372,6 +437,20 @@ Phase 6B then owns:
 - isolated deployment and upgrade/runbook verification;
 - accessibility and security review;
 - release-blocking corrections without reopening optional feature development.
+
+The representative-data rehearsal includes a 250/500-node Project's multi-card
+move through the final save acknowledgement, measuring request count, elapsed
+time and React commits. jsdom scale checks do not establish browser frame rate.
+Measure before changing sequential writes or adding a bulk API.
+
+Backup qualification includes an archive-to-isolated-database/provider round
+trip, comparing stable IDs, normalized rows, deleted state, Reference targets,
+retention, quarantine, derivatives and file hashes. Record schema/build identity,
+restore order and unavailable-byte outcomes. Add visible export results and
+cancellation in the planned source-page refinement; measure browser ZIP memory
+before choosing a streaming or desktop export implementation. Direct provenance
+keys remain conservatively retained until a separate metadata migration is
+justified by restore or storage-volume requirements.
 
 Frontend-wide file relocation, a Sample-record/audit split, broader concurrency
 normalization, Docker distribution, permanent delete, semantic/LLM features, and

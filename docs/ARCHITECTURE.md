@@ -153,13 +153,13 @@ Containers, or a second Worker.
 ## Platform limits
 
 - Bulk inserts keep each statement below D1's 100-bound-parameter limit.
-- Resolver IDs are passed through `json_each(?)`; the domain batch is capped at 200 without consuming one binding per target.
+- Resolver IDs are passed through `json_each(?)`; each resolver call is capped at 200 without consuming one binding per target. Project snapshots resolve their distinct targets in sequential batches, including deleted occurrences when requested, so this per-call limit does not become a Project capacity limit.
 - Deterministic search accepts at most 200 Unicode code points, eight tokens, and 50 returned results; it caps each type's candidate output and revalidates at most 200 candidates. Query count grows with selected target types, while source-scan row examination still grows with table size until a derived FTS5 backend is introduced.
 - D1 migrations pass both host SQLite tests and Wrangler local D1/workerd verification. Resolver services remain host-tested for detailed behavior, while all nine v1 adapters, the unified middleware path, and a 200-target request also execute through the real Worker endpoint against Wrangler local D1 in Miniflare/workerd. Oversized compound `SELECT` chains are not accepted merely because host SQLite permits them.
 - A confirmed import is capped at 180 steps and 180 images, uses at most five concurrent R2 writes, and divides persistence into bounded batches behind the pending-import visibility gate.
 - Scheduled blob cleanup uses bounded discovery/deletion batches; a large backlog may require repeated daily runs rather than one unbounded execution.
 - Full export downloads blobs sequentially but builds the ZIP in browser memory with JSZip. Missing blobs are non-fatal, but a sufficiently large valid archive can still exceed browser memory or Blob limits. A streaming/server-side or desktop export path is a later scalability slice.
-- The first deduplication implementation checks metadata and GC claim state but does not perform provider `HEAD`/`stat` before every reuse. Missing-provider self-healing is deferred to storage-integrity maintenance.
+- Deduplication checks metadata and GC claim state, then verifies the candidate through provider `stat` before reuse. Missing or size-mismatched objects are quarantined; provider unavailability fails closed. Explicit integrity maintenance owns recovery of quarantined bytes.
 
 See [the blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md) for normative blob rules, [blob lifecycle activation and operations](./BLOB_LIFECYCLE_OPERATIONS.md) for monitoring and incident handling, and [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md) for the current reference boundary.
 

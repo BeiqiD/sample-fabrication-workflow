@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
+import { productionWorkerArtifact } from "./production-worker-artifact.mjs";
 
 const root = process.cwd();
 const scratchRoot = resolve(root, ".wrangler");
@@ -77,7 +78,8 @@ try {
   runWrangler(["d1", "execute", "DB", "--file", fixturePath, "--yes", ...localDatabaseArgs]);
   await delay(500);
 
-  await build({
+  const artifact = process.argv.includes("--production-artifact") ? await productionWorkerArtifact(root) : null;
+  if (!artifact) await build({
     entryPoints: [resolve(root, "worker/index.ts")],
     outfile: bundlePath,
     bundle: true,
@@ -88,7 +90,7 @@ try {
     logLevel: "silent",
   });
 
-  miniflare = new Miniflare({
+  const miniflareOptions = {
     compatibilityDate: "2026-07-20",
     modules: true,
     scriptPath: bundlePath,
@@ -97,7 +99,24 @@ try {
     d1Persist: resolve(persistPath, "v3/d1"),
     r2Buckets: ["ASSETS"],
     log: new Log(LogLevel.ERROR),
-  });
+    ...(artifact ?? {}),
+  };
+  miniflare = new Miniflare(miniflareOptions);
+
+  if (artifact) {
+    const health = await miniflare.dispatchFetch("https://app.test/api/health");
+    assert.equal(health.status, 200);
+    assert.deepEqual(await health.json(), { ok: true });
+    const html = await readFile(resolve(artifact.assets.directory, "index.html"), "utf8");
+    const spa = await miniflare.dispatchFetch("https://app.test/projects/artifact-smoke", { headers: { accept: "text/html" } });
+    assert.equal(spa.status, 200);
+    assert.equal(await spa.text(), html);
+    const entry = html.match(/<script[^>]+src="([^"]+)"/)?.[1];
+    assert(entry, "The production HTML must name a JavaScript entry");
+    const javascript = await miniflare.dispatchFetch(new URL(entry, "https://app.test").href);
+    assert.equal(javascript.status, 200);
+    assert.match(javascript.headers.get("content-type") ?? "", /javascript/);
+  }
 
   const bytes = Uint8Array.from([1, 2, 3, 4]);
   const blankAsset = await miniflare.dispatchFetch("https://app.test/api/project-assets", {
@@ -336,6 +355,46 @@ try {
   );
   assert.equal(restored.response.status, 200, JSON.stringify(restored.payload));
   assert.equal(restored.payload.project.revision, 6);
+
+  // Exercise aggregation past the public resolver batch limit through the real
+  // Worker endpoint. Seed only source rows; create Project occurrences via HTTP.
+  const scaleProject = await jsonRequest(miniflare, "/api/projects", "POST", {
+    id: "project-scale-smoke", title: "Reference scale smoke", operationId: "create-scale-smoke",
+  });
+  assert.equal(scaleProject.response.status, 201, JSON.stringify(scaleProject.payload));
+  const database = await miniflare.getD1Database("DB");
+  await database.batch(Array.from({ length: 201 }, (_, index) => database.prepare(
+    `INSERT INTO samples (id, code, title, status, created_at, updated_at)
+     VALUES (?, ?, ?, 'stored', '2026-09-12T00:00:00.000Z', '2026-09-12T00:00:00.000Z')`,
+  ).bind(`scale-sample-${index}`, `SCALE-${index}`, `Scale sample ${index}`)));
+  for (let index = 0; index < 201; index += 1) {
+    const inserted = await jsonRequest(miniflare, "/api/projects/project-scale-smoke/items/reference", "POST", {
+      itemId: `scale-item-${index}`,
+      placementId: `scale-placement-${index}`,
+      target: { type: "sample", id: `scale-sample-${index}` },
+      geometry: { ...geometry, x: index * 340 },
+      expectedProjectRevision: index + 1,
+      operationId: `scale-insert-${index}`,
+    });
+    assert.equal(inserted.response.status, 201, JSON.stringify(inserted.payload));
+  }
+  const scaleResponse = await miniflare.dispatchFetch("https://app.test/api/projects/project-scale-smoke");
+  const scaleSnapshot = await scaleResponse.json();
+  assert.equal(scaleResponse.status, 200, JSON.stringify(scaleSnapshot));
+  assert.equal(scaleSnapshot.items.length, 201);
+  assert.equal(scaleSnapshot.references.length, 201);
+  assert(scaleSnapshot.references.every((reference) => reference.resolution.resolution === "resolved"));
+
+  if (artifact) {
+    // Runtime bindings are deliberately local; never reuse deployment secrets or
+    // resource IDs. Verify the built API still enforces the Access boundary.
+    await miniflare.setOptions({ ...miniflareOptions, bindings: {
+      AUTH_MODE: "access", ACCESS_TEAM_DOMAIN: "https://access.invalid", ACCESS_AUD: "artifact-smoke",
+    } });
+    const unauthenticated = await miniflare.dispatchFetch("https://app.test/api/projects/project-scale-smoke");
+    assert.equal(unauthenticated.status, 403);
+    console.log("Production Worker + assets passed: API health, SPA fallback, JavaScript asset, Access rejection, and 201 distinct references.");
+  }
 
   console.log("Project Worker/D1 smoke passed: middleware, generic asset upload/deduplication, retry idempotency, rollback, reference registration, attachment media, snapshot, conflict, and lifecycle.");
 } finally {

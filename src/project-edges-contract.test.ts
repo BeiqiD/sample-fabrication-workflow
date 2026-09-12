@@ -53,7 +53,7 @@ describe("Phase 3B4 edge contract", () => {
     expect(css).not.toMatch(/--xy-edge-[^:]+:\s*#[0-9a-f]/i);
   });
 
-  it("keeps Phase 3B4 in the permanent fail-closed verification chain", () => {
+  it("keeps Phase 3B4 in the permanent fail-closed verification chain", async () => {
     const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
     const workflow = fs.readFileSync(".github/workflows/verify.yml", "utf8");
     const statusPublisher = fs.readFileSync("scripts/publish-commit-status.mjs", "utf8");
@@ -62,11 +62,17 @@ describe("Phase 3B4 edge contract", () => {
     expect(pkg.scripts["test:project-edges-mounted"]).toContain("src/project-edge-surface.mount.test.tsx");
     expect(pkg.scripts["verify:project-edges"]).toContain("verify:project-worker");
     expect(pkg.scripts["verify:project-edges"]).toContain("verify-project-map-bundle.mjs");
-    expect(pkg.scripts["verify:v3-deployment"]).toContain("verify:project-edges");
-    expect(workflow).toContain("Run Project edges contract");
-    expect(workflow).toContain("STATUS_CONTEXT: pre-pr/project-edges");
-    expect(workflow).toContain("scripts/publish-commit-status.mjs");
-    expect(workflow).toContain("continue-on-error: true");
-    expect(statusPublisher).toContain("AbortSignal.timeout(requestTimeoutMs)");
+    expect(pkg.scripts["verify:v3-deployment"]).toContain("run-verification.mjs --mode deploy");
+    expect(workflow).toContain("npm run verify:ci");
+    expect(workflow).toContain('VERIFY_PUBLISH_STATUSES: "1"');
+    // The shared plan owns domain status dependencies; its executable tests
+    // enforce coverage/configuration parity without fixing workflow formatting.
+    const { verificationPlan } = await import("../scripts/verification-plan.mjs");
+    for (const mode of ["ci", "deploy"]) {
+      expect(verificationPlan(mode).contexts["pre-pr/project-edges"]).toEqual(
+        expect.arrayContaining(["source", "mounted", "build", "map-bundle", "project-worker"]),
+      );
+    }
+    expect(statusPublisher).not.toContain("`${baseContext}/${slug}`");
   });
 });

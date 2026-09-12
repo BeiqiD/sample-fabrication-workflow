@@ -94,8 +94,26 @@ The repository now provides dedicated focused checks:
 ```text
 npm run verify:blob-lifecycle
 npm run verify:reference-foundation
+npm run verify:ci
 npm run verify:v3-deployment
 ```
+
+The complete CI and deployment gates use the same leaf-check inventory in
+`scripts/verification-plan.mjs`. Each runs the source and mounted suites, export
+type contract, migrations, required Worker smokes and one production build. The
+deployment profile selects `build:deploy`; its final Project smoke consumes that
+built Worker and client assets with isolated local D1/R2 and test authentication.
+It does not rebuild using local deployment bindings or contact remote storage.
+The Map bundle check follows the initial static import graph, including indirect
+imports and module preloads. Focused domain commands remain available for local
+iteration and may each build their own artifacts.
+
+Use `node scripts/run-verification.mjs --mode ci --list` (or `--mode deploy`) to
+inspect the exact checks without executing them. The independent Map performance
+workflow retains its focused checks and its own build; main-job deduplication
+does not imply artifact sharing across workflow jobs. Custom commit-status
+contexts retain fixed names across pending, success, failure and unexecuted
+checks, with details and timing in the workflow log/summary.
 
 The reference gate combines detailed host-SQLite tests, the ordered Wrangler
 local D1 migration check, and a Miniflare/workerd smoke that invokes the unified
