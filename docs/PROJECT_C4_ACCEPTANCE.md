@@ -1,12 +1,70 @@
 # Project C4 integration acceptance
 
-Status: in progress; the integrated desktop workflow was exercised against the
-real backend. This change fixes an editor overlap defect and a test-observer
-defect found during acceptance. It does not complete device or release acceptance.
+Status: in progress. PRs #175–#178 are merged and the final integration commit's
+CI passed, but the inspected deployment does not expose the new shortcut UI.
+Browser acceptance of that integrated build remains open; Phase 5D has not started.
 
 Reviewed: 2026-09-12.
 
-## Baseline and environment
+## Current integration check — 2026-09-12
+
+- Branch: `v2/backend-foundation`; final merge commit
+  [`791f00073ee69f4ce2c59a377705fe3faee61423`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/791f00073ee69f4ce2c59a377705fe3faee61423),
+  tree `a4279e14d400f6178d4e5e8b93d9d239858de3bc`.
+- Both jobs checked out that commit and passed:
+  [Verify](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/34710705610/job/103598858710)
+  and [Project Map performance](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/34710705597/job/103598858669).
+  Both production builds emitted `index-CAh5QSPs.js`,
+  `ProjectPage-CEKAkFht.js`, and `ProjectMapSurface-BxPAFhhU.js`.
+- An authenticated browser reloaded the existing synthetic QA Project at
+  `1363 × 936` on `https://sample-workflow-v3.clannadas.workers.dev`.
+  It still served `index-BkL0387N.js`; the Keyboard shortcuts button count was
+  zero. Double-clicking `QA · Diffusion hypothesis` opened the read-only
+  Inspector, where the old `Edit Markdown` button measured `310 × 42px` inside
+  a `340px` Inspector. The merged UI instead places pencil-and-Edit in the type
+  row. This session cannot establish acceptance of those merged UI changes.
+- This check used inspection and reload only. It changed no application data and
+  performed no deployment, configuration change, or migration. The observations
+  do not identify the exact older deployed commit or explain the deployment gap.
+  Inspector was closed afterward; Saved remained visible and Undo, Redo, and
+  Save remained disabled throughout. No editor was entered.
+
+### Resume acceptance
+
+The served-build mismatch is the current blocker. Establish which commit and
+production assets the deployment serves, then confirm the new shortcut control
+is present. Reuse the existing CI and historical workflow evidence within its
+recorded scope; the remaining browser checks are:
+
+| Priority | Integrated browser check | Required observation |
+| --- | --- | --- |
+| P0 | Overlapping Markdown editor and higher-layer reference | Cancel and Save centers hit their own controls and real clicks work; leaving the editor restores the original display layer without a placement write. |
+| P0 | Markdown, reference, and edge interaction | Single-click selection, double-click Inspector, and explicit Edit remain consistent; an unchanged editor yields to the next Canvas operation, while a dirty draft remains protected. |
+| P0 | Keyboard help over an active draft | Ctrl/Cmd+S does not save the background draft; Escape closes only help, returns focus to its trigger, and retains the draft. |
+| P0 | Keyboard ownership in Inspector and Reading | Native text selection/copy remain available; Delete and other Canvas commands do not mutate the background. Canvas commands resume when focus returns to the Canvas. |
+| P0 | Compact Inspector actions | The permanent Edit action is discoverable beside the type, content remains visually primary, direction is readable, and edge deletion is reachable through the initially closed More actions. |
+
+Check ordinary and long-title content at `1440 × 900`, `1024 × 600`,
+`390 × 600`, and `360 × 600`, including light/night themes, header alignment,
+independently scrolling help content, and focus restoration. Use adjacent widths
+`480/481`, `560/561`, `859/860`, and `1180/1181` for the changed Help layout,
+mobile header, panel modality, and desktop panel/control sizing respectively.
+Recheck the connection ports, resize grip, and bottom-centered source action at
+normal and reduced Canvas zoom. Reuse the existing named QA fixtures.
+
+Responsive browser or controlled CSS-viewport evidence must remain separate from
+physical touch, multi-finger cancellation, soft-keyboard/visual-viewport,
+safe-area, and native mobile browser acceptance. A successful ordinary save does
+not exercise response loss, uncertain/reconciling outcomes, or a save response
+arriving during another gesture; those require controlled fault/timing injection.
+Existing mounted large-Project fixtures also do not establish a new real-backend
+large-Project browser or frame-rate result. Export/import, attachment lifecycle,
+and deployment/recovery qualification retain their separate acceptance scope.
+
+## Historical baseline and environment — PR #170, 2026-09-12
+
+The following workflow, defect, and local-validation record predates the current
+integration check. It does not establish acceptance of PRs #175–#178.
 
 - Integration branch: `v2/backend-foundation`, starting at PR #170 merge commit
   `2f515ef6e348fb5067d187632cd85e2da377980d`.
@@ -119,7 +177,7 @@ not a claim of improved real-browser frame rate.
   no blocking issue. Remote checks on the submitted commit remain authoritative;
   their results belong to the PR checks rather than this pre-submission record.
 
-## Remaining acceptance boundaries
+## Historical remaining acceptance boundaries
 
 1. Load the fixed editor build in a browser and repeat Cancel and Save pointer
    hit tests with an overlapping higher-layer reference. Keep C4 in progress
