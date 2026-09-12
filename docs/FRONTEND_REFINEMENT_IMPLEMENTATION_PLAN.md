@@ -2,10 +2,11 @@
 
 Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163; Phase 5C2b.1 is complete in PR #166,
-and Phase 5C2b.2 is active
+and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
+C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
+C4 integration acceptance is in progress.
 
-Last reviewed: 2026-09-11
+Last reviewed: 2026-09-12
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
@@ -19,7 +20,9 @@ functional exception to the original presentation-only scope. Completed slice
 records retain their historical scope and acceptance statements; the active
 revision governs the newly authorized behavior. Integrated test and desktop
 browser results, plus remaining acceptance boundaries, are recorded in
-`PROJECT_UX_REPAIR_ACCEPTANCE.md`.
+`PROJECT_UX_REPAIR_ACCEPTANCE.md`, `PROJECT_C3_ACCEPTANCE.md`, and
+`PROJECT_CARD_GESTURE_ACCEPTANCE.md`. The current integrated review and remaining
+acceptance limits are recorded in `PROJECT_C4_ACCEPTANCE.md`.
 
 The governing principle remains the one frozen in
 [Frontend interface guidelines](./FRONTEND_GUIDELINES.md):
@@ -221,8 +224,9 @@ in PRs #158/#159/#160; no additional B4 content-language defect is currently
 justified. The larger Project composition gap is intentionally tracked as the
 separate Phase 5C layout and control rebuild. Its C0 contract is complete in PR
 #161, its C1 viewport-frame implementation is complete in PR #162, and its C2a
-floating-panel/context-command implementation is complete in PR #163. C2b is
-active.
+floating-panel/context-command implementation is complete in PR #163. C2b merged
+through PRs #166/#168 and C3 merged in PR #169; PR #170 supplies the subsequent
+gesture and mathematical-reference repairs. C4 integration acceptance is active.
 
 ### Phase 5A — Project workspace shell and state hierarchy
 
@@ -296,7 +300,9 @@ forcing those projections into identical layouts.
 ### Phase 5C — Project workspace layout and control architecture
 
 Status: Phase 5C0 is complete in PR #161; Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163. Phase 5C2b is active.
+and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 merged through
+PRs #166/#168/#169, with the gesture/reference follow-up in PR #170. C4 integration
+acceptance is in progress in `PROJECT_C4_ACCEPTANCE.md`.
 
 Goal: rebuild Project as a workspace-first interface whose Map, Reading,
 References, Inspector, and controls use deliberate composition rather than a
@@ -307,7 +313,7 @@ The detailed anatomy, panel modality, scroll ownership, and slice boundaries are
 frozen in the
 [Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
 
-Current evidence:
+Historical evidence motivating C0–C3:
 
 - the shell is constrained to a centered `1600px` page, uses a large document
   heading, and places the desktop workspace inside a second framed surface;
@@ -406,6 +412,17 @@ Exit: Project reads as one purpose-built workspace at desktop, intermediate, and
 mobile widths; controls communicate role and priority before color or proximity;
 and every existing mutation, navigation, accessibility, and performance contract
 remains authoritative.
+
+### Phase 5C4 — integrated acceptance status
+
+Status: in progress after merged PRs #168/#169/#170, starting from integration
+commit `2f515ef6e348fb5067d187632cd85e2da377980d`.
+
+Record the served version, real-backend workflow checks, directory/workspace
+transitions, cross-mode commands and focus, representative content and viewport
+coverage in `PROJECT_C4_ACCEPTANCE.md`. Repair only demonstrated integration gaps
+and keep untested device or workflow boundaries explicit. The merged slice
+evidence does not itself complete C4; Phase 5D remains subsequent work.
 
 ### Phase 5D — attachment and media surfaces
 
@@ -997,15 +1014,16 @@ metadata.
   owned-content, edge, Map, full mounted, production-build, bundle, and Map-performance
   gates pass on the exact head.
 
-#### Exit and remaining C2b work
+#### Historical C2b.1 exit and subsequent work
 
 Reference discovery works before search and Inspector reads in action-first priority
-without changing authoritative behavior. C2b remains open for its separately bounded
-Add/overflow, quick-toolbar, button-family, and Map sequence-display slice.
+without changing authoritative behavior. At the C2b.1 exit, the separately bounded
+Add/overflow, quick-toolbar, button-family, and Map sequence-display slice remained
+open; that subsequent work merged through PR #168.
 
 ### Phase 5C2b.2 — Add entry and workspace control roles
 
-Status: active bounded second slice of C2b.
+Status: merged through PR #168, including the authorized C2b.3 follow-up below.
 
 The desktop Map needs an explicit creation entry after Project-owned content moved
 out of References. Add exposes Note / Markdown, Attachment, and Reference from
@@ -1050,18 +1068,22 @@ and discoverability; no unsupported editor tools are introduced.
 
 The 2026-09-11 authorized follow-up below now includes the previously separate
 C2b.3 quick-toolbar work and directly related Reading/mobile interaction repairs.
-Its placement, focus, recovery, and performance acceptance remains required. This
-does not declare C2b or C3 complete or erase the earlier slice boundaries.
+Its placement, focus, recovery, and performance acceptance remains required.
+PRs #168/#169 merged those implementations without erasing the earlier slice
+boundaries; C4 owns their integrated acceptance.
 
 ### User-authorized Project UX repair revision — 2026-09-11
 
-Status: implemented; independent review, automated and cross-size Chrome browser
+Status: merged in PR #168; independent review, automated and cross-size Chrome browser
 acceptance recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`. The follow-up fixes
-unknown-result create/Trash settlement and phone-header overlap. Draft status and
-the documented native-device/export/import acceptance boundaries remain in effect.
-The subsequent C3 slice implements contextual Reading details and modal mobile
-panels on a separate stacked Draft branch, reusing the Reading shell, Add and
-editor. See `PROJECT_C3_ACCEPTANCE.md`; C4 integration review remains next.
+unknown-result create/Trash settlement and phone-header overlap. The documented
+native-device/export/import acceptance boundaries remain in effect.
+The subsequent C3 slice merged in PR #169, adding contextual Reading details and
+modal mobile panels while reusing the Reading shell, Add and editor. PR #170
+merged the gesture and mathematical-reference follow-up; its interaction contract
+supersedes the historical body/title double-click distinction below. See
+`PROJECT_C3_ACCEPTANCE.md` and `PROJECT_CARD_GESTURE_ACCEPTANCE.md`.
+C4 integration review is in progress in `PROJECT_C4_ACCEPTANCE.md`.
 
 The user requested a complete review of entry, edit, reference, connection,
 modification, removal, mouse gestures, and secondary-information density, then
@@ -1114,7 +1136,8 @@ Required acceptance before readiness or merge:
 - full Verify, build/bundled-math checks, and the permanent Map performance gate on
   the final integrated head, with actual results recorded separately from this plan.
 
-No final-pass or merge-readiness claim is made by this document update.
+The historical repair scope above does not establish C4 completion or a release
+acceptance claim.
 
 ## Documentation and review discipline
 

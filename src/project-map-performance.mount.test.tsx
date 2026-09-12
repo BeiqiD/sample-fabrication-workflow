@@ -25,18 +25,50 @@ function contentRect(target: Element): DOMRectReadOnly {
 }
 
 class TestResizeObserver {
+  private readonly observedTargets = new Set<Element>();
+  private readonly pendingTargets = new Set<Element>();
+  private deliveryTimer: number | null = null;
+
   constructor(private readonly callback: ResizeObserverCallback) {}
+
   observe(target: Element) {
-    window.setTimeout(() => this.callback([{
-      target,
-      contentRect: contentRect(target),
-      borderBoxSize: [],
-      contentBoxSize: [],
-      devicePixelContentBoxSize: [],
-    } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver), 0);
+    if (this.observedTargets.has(target)) return;
+    this.observedTargets.add(target);
+    this.pendingTargets.add(target);
+    if (this.deliveryTimer !== null) return;
+    // A browser delivers all changed elements together. One callback per node
+    // forces React Flow to recompute the entire graph hundreds of extra times.
+    this.deliveryTimer = window.setTimeout(() => {
+      this.deliveryTimer = null;
+      const targets = [...this.pendingTargets];
+      this.pendingTargets.clear();
+      if (targets.length === 0) return;
+      this.callback(targets.map((element) => ({
+        target: element,
+        contentRect: contentRect(element),
+        borderBoxSize: [],
+        contentBoxSize: [],
+        devicePixelContentBoxSize: [],
+      } as unknown as ResizeObserverEntry)), this as unknown as ResizeObserver);
+    }, 0);
   }
-  unobserve() {}
-  disconnect() {}
+
+  unobserve(target: Element) {
+    this.observedTargets.delete(target);
+    this.pendingTargets.delete(target);
+    if (this.pendingTargets.size === 0) this.cancelDelivery();
+  }
+
+  disconnect() {
+    this.observedTargets.clear();
+    this.pendingTargets.clear();
+    this.cancelDelivery();
+  }
+
+  private cancelDelivery() {
+    if (this.deliveryTimer !== null) window.clearTimeout(this.deliveryTimer);
+    this.deliveryTimer = null;
+  }
 }
 
 class TestDOMMatrixReadOnly {
@@ -267,11 +299,20 @@ describe("Project Map representative-scale contract", () => {
         onGeometryCommit={() => undefined}
       />
     </div>);
-    const canvas = await waitFor(() => container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]"));
+    const canvas = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    // The initial compact state is not proof that fitView has completed. Wait
+    // for the actual overview before exercising zoom controls or lazy previews.
+    await waitFor(() => expect(canvas.dataset.projectMapDetail).toBe("overview"));
     expect(canvas?.dataset.projectMapScale).toBe("target");
     expect(canvas?.dataset.projectMapCulling).toBe("visible-elements");
     expect(canvas?.dataset.projectMapNodeCount).toBe("250");
     expect(canvas?.dataset.projectMapEdgeCount).toBe("400");
+    await waitFor(() => expect(container.querySelectorAll(".react-flow__edge")).toHaveLength(400));
+    expect(container.querySelectorAll(".react-flow__node-projectItem")).toHaveLength(250);
     expect(container.querySelector(".project-node-excerpt")).toBeNull();
     expect(container.querySelector(".project-node-markdown")).toBeNull();
 
@@ -281,6 +322,12 @@ describe("Project Map representative-scale contract", () => {
     expect(zoomOut).toBeTruthy();
     for (let index = 0; index < 12; index += 1) fireEvent.click(zoomIn!);
     await waitFor(() => expect(canvas?.dataset.projectMapDetail).toBe("full"));
+    await waitFor(() => {
+      const visibleNodes = container.querySelectorAll(".react-flow__node-projectItem").length;
+      expect(visibleNodes).toBeGreaterThan(0);
+      expect(visibleNodes).toBeLessThan(250);
+      expect(container.querySelector(".project-node-excerpt")).toBeTruthy();
+    });
     for (let index = 0; index < 12; index += 1) fireEvent.click(zoomOut!);
     await waitFor(() => expect(canvas?.dataset.projectMapDetail).toBe("overview"));
   }, 20_000);
@@ -295,10 +342,17 @@ describe("Project Map representative-scale contract", () => {
         onGeometryCommit={() => undefined}
       />
     </div>);
-    const canvas = await waitFor(() => container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]"));
+    const canvas = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>("[data-testid=project-flow-canvas]");
+      expect(candidate).toBeTruthy();
+      return candidate!;
+    });
+    // The initial compact state is not proof that fitView has completed. Wait
+    // for the actual overview before exercising zoom controls or lazy previews.
+    await waitFor(() => expect(canvas.dataset.projectMapDetail).toBe("overview"));
     expect(canvas?.dataset.projectMapScale).toBe("envelope");
     expect(canvas?.dataset.projectMapCulling).toBe("visible-elements");
-    expect(canvas?.dataset.projectMapDetail).not.toBe("full");
+    expect(canvas?.dataset.projectMapDetail).toBe("overview");
     expect(container.querySelector("img.project-node-image")).toBeNull();
   }, 20_000);
 });

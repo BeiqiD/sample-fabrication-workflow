@@ -2,9 +2,9 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-11 with Phase 5C2b.1 complete in PR #166, C2b.2/C2b.3
-implemented and under acceptance in Draft PR #168, and C3 implemented on a separate
-stacked Draft branch with acceptance in `PROJECT_C3_ACCEPTANCE.md`
+Last reviewed: 2026-09-12 after C2b.2/C2b.3 merged in PR #168, C3 merged in
+PR #169, and the card-gesture and mathematical-reference follow-up merged in
+PR #170. C4 integration acceptance is in progress in `PROJECT_C4_ACCEPTANCE.md`.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -203,11 +203,17 @@ The materially larger Project composition gap is authorized as Phase 5C. Its C0
 contract is complete in PR #161, and its C1 viewport-frame implementation is
 complete in PR #162. Phase 5C2a floating panels and context-aware Canvas commands
 are complete in PR #163; Phase 5C2b.1 Reference discovery and Inspector hierarchy
-is complete in PR #166. C2b.2 Add/workspace controls and C2b.3 quick actions are
-implemented in Draft PR #168, which also incorporates the user-authorized
+is complete in PR #166. C2b.2 Add/workspace controls and C2b.3 quick actions merged
+in PR #168, which also incorporates the user-authorized
 Markdown/math, editing, placement, reconnection and Trash recovery repairs.
-Implementation is not a merge or release milestone. Current evidence and remaining
-acceptance limits are in [Project interaction repair acceptance](./PROJECT_UX_REPAIR_ACCEPTANCE.md).
+C3 Reading details and responsive panels merged in PR #169. PR #170 merged the
+whole-card gesture, interrupted-interaction, mathematical-reference preview and
+first-activation repairs. Historical evidence remains in
+[Project interaction repair acceptance](./PROJECT_UX_REPAIR_ACCEPTANCE.md),
+[C3 acceptance](./PROJECT_C3_ACCEPTANCE.md), and
+[card gesture acceptance](./PROJECT_CARD_GESTURE_ACCEPTANCE.md).
+[C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md) is now in progress;
+these merges do not complete C4 or establish a release milestone.
 Storage, lifecycle,
 Reference, and rich-content foundations return to correctness maintenance rather
 than continuing as independent feature tracks.
@@ -545,9 +551,9 @@ After the freeze:
 
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163. Phase 5C2b implementation is under acceptance
-in Draft PR #168; C3 is implemented on a separate stacked Draft branch, and C4
-integration acceptance remains open.
+and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 have merged through
+PRs #166/#168/#169, with the gesture and mathematical-reference follow-up in
+PR #170. C4 integration acceptance is in progress.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -575,7 +581,7 @@ still changing.
 - cross-page visual review so old and new UI conventions cannot coexist unnoticed.
 
 **Current Project priority:** Phase 5C is a deliberate Project-scoped layout and
-control rebuild, not a functional feature phase. It will replace the current
+control rebuild, not a functional feature phase. The merged slices replace the
 centered page-within-a-card composition with a workspace-first shell, give Map
 the complete desktop workspace below Project chrome, give Reading an independent
 document layout, and float References/Inspector above the Canvas without resizing
@@ -587,10 +593,12 @@ prioritize Inspector content and give mode, toolbar, panel, content, destructive
 and overflow actions explicit roles. The 2026-09-11 user-authorized repair amendment
 extends that slice to safe editing, placement, endpoint reconnection and recovery;
 see the implementation plan for its bounded exceptions to the earlier freeze.
-C3 now implements Reading detail composition and modal mobile panels; its
-automated and browser evidence is recorded in `PROJECT_C3_ACCEPTANCE.md`. C4
-integration acceptance follows. Existing identity, source hierarchy and performance
-contracts continue to govern both.
+C3 implements Reading detail composition and modal mobile panels; its automated
+and browser evidence is recorded in `PROJECT_C3_ACCEPTANCE.md`. The PR #170
+follow-up is recorded in `PROJECT_CARD_GESTURE_ACCEPTANCE.md`. C4 is now checking
+the integrated Project workflow and served version, with results and remaining
+limits in `PROJECT_C4_ACCEPTANCE.md`. Existing identity, source hierarchy and
+performance contracts continue to govern this review.
 
 The previously planned attachment/media, source-record/directory, and
 cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
@@ -765,26 +773,22 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Finish review and acceptance of **Draft PR #168**. C2b.2 Add/control roles and
-   C2b.3 node/edge/multi-selection actions are implemented; do not recreate them in
-   a new slice. Preserve Draft status until an explicit merge decision.
-2. Review the separate stacked **Phase 5C3 — Reading detail and mobile panel composition**
-   Draft. Contextual Reading details, mobile References/Inspector/Trash, keyboard
-   containment, navigation confirmation and search-draft continuity are implemented.
-   Preserve non-modal desktop Map panels and the existing request controllers.
-   Then run **Phase 5C4 Project integration review**
-   across directory entry, commands, focus, empty/normal/large Projects and themes.
-3. Complete **Phase 5D — attachment and media surfaces** without changing preview
-   trust or owner lifecycle.
-4. Complete **Phase 5E — source-record and directory coherence**.
-5. Run **Phase 5F — cross-product integration review** and update the measured
+1. Complete the in-progress **Phase 5C4 Project integration review** after merged
+   PRs #168/#169/#170. Verify the served version and review directory entry,
+   commands, focus, empty/normal/large Projects and themes. Record evidence and
+   remaining limits in `PROJECT_C4_ACCEPTANCE.md`; preserve non-modal desktop Map
+   panels and the existing request controllers.
+2. After C4 acceptance, complete **Phase 5D — attachment and media surfaces**
+   without changing preview trust or owner lifecycle.
+3. Complete **Phase 5E — source-record and directory coherence**.
+4. Run **Phase 5F — cross-product integration review** and update the measured
    frontend baseline.
-6. Introduce a trusted server-side derivative producer only as a separately
+5. Introduce a trusted server-side derivative producer only as a separately
    reviewed follow-up if it remains justified. Any required schema change must
    finish before the final V3 baseline or resume later as an ordinary migration.
-7. Run **Phase 6A V3 architecture stabilization** through bounded,
+6. Run **Phase 6A V3 architecture stabilization** through bounded,
    behavior-preserving PRs.
-8. Run **Phase 6B release validation and operational rehearsal**.
+7. Run **Phase 6B release validation and operational rehearsal**.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

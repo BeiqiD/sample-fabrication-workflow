@@ -2,9 +2,10 @@
 
 Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
 merged PR #162, C2a complete in PR #163, C2b.1 complete in PR #166; C2b.2/C2b.3
-are under acceptance in Draft PR #168, with C3 implemented on a stacked Draft branch
+merged in PR #168, C3 merged in PR #169, and the gesture/reference follow-up merged
+in PR #170. C4 integration acceptance is in progress.
 
-Last reviewed: 2026-09-11 during the user-authorized Project interaction and recovery revision
+Last reviewed: 2026-09-12 after PRs #168/#169/#170 merged and C4 review began
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in
@@ -22,8 +23,10 @@ whole-workflow UX review, beyond the original PR's presentation scope. The activ
 revision below therefore also covers shared editor/save behavior, Reading/mobile
 Add, recoverable bulk removal, and edge reconnection. These changes preserve
 identity, revision, exact-retry, and storage guarantees. Integrated verification
-and remaining acceptance boundaries are recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`.
-They do not declare C2b or C3 complete.
+and historical acceptance boundaries are recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`,
+`PROJECT_C3_ACCEPTANCE.md`, and `PROJECT_CARD_GESTURE_ACCEPTANCE.md`.
+The merged slices remain subject to integrated C4 review, now in progress in
+`PROJECT_C4_ACCEPTANCE.md`.
 
 ## Baseline that motivated the Phase 5C composition
 
@@ -624,9 +627,10 @@ identity, retry, and navigation protections still govern each operation.
 
 ### Phase 5C3 — Reading and responsive composition
 
-Implementation and browser evidence: `PROJECT_C3_ACCEPTANCE.md`. C3 keeps the
+Merged in PR #169; implementation and browser evidence:
+`PROJECT_C3_ACCEPTANCE.md`. C3 keeps the
 existing desktop breakpoint lock, occurrence selection, commands and recovery
-controllers. This is an implementation record, not a merge or C4 completion.
+controllers. Its merge does not complete C4 integration acceptance.
 
 Owns:
 
@@ -645,6 +649,9 @@ those C2 contracts at adjacent desktop widths and the mobile boundary. It
 does not add custom Reading order or mobile Canvas editing.
 
 ### Phase 5C4 — Project integration review
+
+Status: in progress after merged PRs #168/#169/#170. Current evidence and remaining
+acceptance limits are recorded in `PROJECT_C4_ACCEPTANCE.md`.
 
 Owns only evidenced gaps after C1–C3:
 
