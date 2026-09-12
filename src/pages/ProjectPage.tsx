@@ -3118,6 +3118,11 @@ export function ProjectPage() {
         aria-label="Reference search and placement"
         tabIndex={-1}
         data-panel-presentation={desktop ? "floating" : "modal"}
+        onKeyDown={(event) => {
+          // Keep native panel activation and scrolling ahead of XYFlow's
+          // window-level Space-to-pan listener, without cancelling the key.
+          if (event.code === "Space" || event.key === " ") event.stopPropagation();
+        }}
       >
         <div className="project-workspace-panel-toolbar">
           <p className="card-label"><NavigationIcon name="search" />References</p>
@@ -3180,6 +3185,9 @@ export function ProjectPage() {
         aria-label="Project Inspector"
         tabIndex={-1}
         data-panel-presentation={desktop ? "floating" : "modal"}
+        onKeyDown={(event) => {
+          if (event.code === "Space" || event.key === " ") event.stopPropagation();
+        }}
       >
         <div className="project-workspace-panel-toolbar">
           <p className="card-label"><ActionIcon name="inspector" />Inspector</p>
