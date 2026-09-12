@@ -265,10 +265,14 @@ references found through the sidebar.
 
 - click node body: select and expose local quick actions; update Inspector if it
   is already open, without opening or pinning it implicitly;
-- drag node handle/body non-interactive area: move;
+- press and drag any non-interactive card area, including rendered Markdown,
+  reference excerpts and attachment previews: move without a prior selection click;
 - drag resize border: resize;
 - double-click empty space: create Markdown;
-- Markdown title/chrome double-click or explicit Edit: edit; body double-click: select text;
+- Markdown body/title/chrome double-click or explicit Edit: edit;
+- reference/attachment body/title/chrome double-click: open Details;
+- Reading and Inspector content retain native text selection/copy; Map card
+  previews use selection/copy/delete shortcuts for cards and retain scrolling;
 - edit attachment caption/source URL through an explicit metadata action;
 - click hover/selected/focused `Open reference`: navigate to source;
 - drag one of four connection handles: create an edge;
@@ -277,6 +281,10 @@ references found through the sidebar.
   entries and destination-accurate Open source / Open attachment labels.
 
 Interactive controls and editor regions must not initiate node dragging.
+Links, scrollbars, resize borders and connection handles retain their own gestures.
+An acknowledgement for another card must not replace the position or dimensions
+of a card while its pointer drag or resize is still active. Fresh content and
+selection still apply; deleted/replaced/locked cards must not be resurrected.
 
 Phase 4B multi-selection uses only Project item occurrence IDs:
 

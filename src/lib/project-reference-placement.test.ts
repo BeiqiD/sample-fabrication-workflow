@@ -9,6 +9,7 @@ import {
   projectReferenceDragPayloadFromResolution,
   projectReferenceDragPayloadFromResult,
   projectReferenceGeometryAtPoint,
+  projectReferenceRecordFromPreview,
   readProjectReferenceDragPayload,
   writeProjectReferenceDragPayload,
 } from "./project-reference-placement";
@@ -84,6 +85,32 @@ describe("Project reference placement client contract", () => {
     const searchResult = result();
     expect(projectReferenceDragPayloadFromResolution(searchResult.resolution))
       .toEqual(projectReferenceDragPayloadFromResult(searchResult));
+  });
+
+  it("keeps Markdown preview format and paragraph boundaries through drag and optimistic placement", () => {
+    const searchResult = result();
+    const source = String.raw`Diffusion $L=\sqrt{2Dt}$.
+
+$$
+D=D_0 e^{-E_a/(k_B T)}
+$$`;
+    searchResult.resolution.source!.excerpt = source;
+    searchResult.resolution.source!.excerptFormat = "markdown";
+    const transfer = new TestDataTransfer() as unknown as DataTransfer;
+    writeProjectReferenceDragPayload(transfer, searchResult);
+    const payload = readProjectReferenceDragPayload(transfer)!;
+    expect(payload.preview).toMatchObject({ excerpt: source, excerptFormat: "markdown" });
+    expect(projectReferenceRecordFromPreview("registry-comment", payload).resolution.source)
+      .toMatchObject({ excerpt: source, excerptFormat: "markdown" });
+    expect(isProjectReferenceDragPayload({ ...payload, preview: { ...payload.preview, excerptFormat: "html" } })).toBe(false);
+  });
+
+  it("does not truncate Markdown source if an oversized external resolution reaches placement preview", () => {
+    const searchResult = result();
+    searchResult.resolution.source!.excerpt = `Context.\n\n$$\na=1\n\n${"x + ".repeat(300)}z\n$$`;
+    searchResult.resolution.source!.excerptFormat = "markdown";
+    expect(projectReferenceDragPayloadFromResult(searchResult).preview)
+      .toMatchObject({ excerpt: "Context.", excerptFormat: "markdown" });
   });
 
   it("round-trips the versioned custom drag payload and rejects malformed input", () => {

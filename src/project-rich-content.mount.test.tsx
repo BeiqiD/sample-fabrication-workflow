@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectNodeDescriptor } from "./lib/project-map-model";
 import { ProjectReadingSurface } from "./components/project/ProjectReadingSurface";
 
@@ -41,6 +41,30 @@ describe("Phase 3D rich Reading projection", () => {
     expect(document.querySelector(".rich-text-math-inline math")).not.toBeNull();
     expect(document.querySelector(".project-reading-markdown-source")?.textContent)
       .not.toContain("# Research note");
+  });
+
+  it("preserves native Reading text selection and reserves editing for the explicit Edit action", () => {
+    const onMarkdownEditRequest = vi.fn();
+    render(<MemoryRouter><ProjectReadingSurface onMarkdownEditRequest={onMarkdownEditRequest} nodes={[node({
+      itemId: "markdown-a",
+      kind: "markdown",
+      title: "Research note",
+      createdSequence: 1,
+      markdownSource: "Select this observation for copying.",
+    })]} /></MemoryRouter>);
+    const paragraph = screen.getByText("Select this observation for copying.");
+    const range = document.createRange();
+    range.selectNodeContents(paragraph);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    fireEvent.mouseDown(paragraph, { button: 0 });
+    fireEvent.doubleClick(paragraph);
+    expect(selection.toString()).toBe("Select this observation for copying.");
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Edit Markdown" }));
+    expect(onMarkdownEditRequest).toHaveBeenCalledExactlyOnceWith("markdown-a");
+    selection.removeAllRanges();
   });
 
   it("does not mistake an indented code block for a leading heading", () => {

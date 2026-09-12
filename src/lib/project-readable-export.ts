@@ -92,8 +92,9 @@ function orderedNodes(nodes: ProjectNodeDescriptor[]) {
 }
 
 function referenceMarkdown(node: ProjectNodeDescriptor) {
-  const lines = [node.excerpt
-    ? `> ${markdownText(node.excerpt).replace(/\n/g, "\n> ")}`
+  const excerpt = node.excerptFormat === "markdown" ? node.excerpt : node.excerpt && markdownText(node.excerpt);
+  const lines = [excerpt
+    ? `> ${excerpt.replace(/\n/g, "\n> ")}`
     : "> Referenced source record."];
   const safeUrl = node.openReferenceUrl ? projectMarkdownSafeHref(node.openReferenceUrl) : null;
   if (safeUrl) lines.push("", `[Open reference](${markdownUrlDestination(safeUrl)})`);

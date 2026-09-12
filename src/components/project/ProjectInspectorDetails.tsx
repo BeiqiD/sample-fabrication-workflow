@@ -9,6 +9,7 @@ import {
   type ProjectInspectorContext,
 } from "../../lib/project-inspector-model";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
+import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import "./project-inspector-details.css";
 
@@ -109,7 +110,11 @@ export function ProjectInspectorDetails({
           onClick={() => setExpandedItemId(previewExpanded ? null : descriptor.itemId)}
         >{previewExpanded ? "Collapse note" : "Expand note"}</button>
       </div>
-      : projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
+      : <ReferenceExcerpt
+        source={projection.excerpt}
+        format={descriptor.excerptFormat}
+        className="project-inspector-excerpt"
+      />}
 
     {media && <img
       className="project-inspector-media"

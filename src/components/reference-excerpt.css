@@ -1,0 +1,6 @@
+.reference-rich-excerpt,
+.reference-rich-excerpt .rich-text { min-width: 0; white-space: normal; }
+.reference-rich-excerpt .rich-text { font-size: inherit; line-height: inherit; }
+.reference-rich-excerpt .rich-text > :first-child { margin-top: 0; }
+.reference-rich-excerpt .rich-text > :last-child { margin-bottom: 0; }
+div.reference-rich-excerpt .rich-text p { white-space: normal; }

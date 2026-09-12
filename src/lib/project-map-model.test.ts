@@ -127,6 +127,18 @@ function snapshot(): ProjectSnapshot {
 }
 
 describe("Project Map projection", () => {
+  it("preserves complete Markdown reference excerpts without a second text truncation", () => {
+    const fixture = snapshot();
+    const source = fixture.references[0].resolution!.source!;
+    const excerpt = "QA observation\n\n$$\n" + "x + ".repeat(52) + "y\n$$";
+    expect(excerpt.length).toBeGreaterThan(220);
+    source.excerpt = excerpt;
+    source.excerptFormat = "markdown";
+    const reference = projectMapNodes(fixture).find((node) => node.kind === "reference")!;
+    expect(reference.excerpt).toBe(excerpt);
+    expect(reference.excerptFormat).toBe("markdown");
+  });
+
   it("keeps Project item occurrence identity separate from placement and source identity", () => {
     const nodes = projectMapNodes(snapshot());
     expect(nodes.map((node) => ({

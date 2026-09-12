@@ -50,6 +50,7 @@ export interface ResolvedReferenceSource {
   title: string;
   subtitle: string | null;
   excerpt: string | null;
+  excerptFormat?: "plain" | "markdown";
   kind: string | null;
   state: string | null;
   updatedAt: string | null;

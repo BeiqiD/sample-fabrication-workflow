@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ProjectNodeDescriptor } from "./project-map-model";
 import { buildProjectReadableArchive } from "./project-readable-export";
+import { renderRichText } from "./rich-text";
 
 const geometry = { x: 0, y: 0, width: 320, height: 180, zIndex: 0 };
 
@@ -23,6 +24,30 @@ function node(input: Partial<ProjectNodeDescriptor> & Pick<ProjectNodeDescriptor
 }
 
 describe("Project readable export", () => {
+  it("keeps explicit Reference Markdown formulas valid in the exported archive", async () => {
+    const source = String.raw`Diffusion: $L=\sqrt{2Dt}$.
+
+$$
+\frac{\partial C}{\partial t}=D\frac{\partial^2 C}{\partial x^2}
+$$`;
+    const result = await buildProjectReadableArchive([
+      node({ itemId: "math-reference", kind: "reference", title: "Observation", createdSequence: 1,
+        excerpt: source, excerptFormat: "markdown", openReferenceUrl: "/references/comment/qa" }),
+      node({ itemId: "plain-reference", kind: "reference", title: "Sample", createdSequence: 2,
+        excerpt: "**Literal description**", excerptFormat: "plain" }),
+    ]);
+    const { default: JSZip } = await import("jszip");
+    const zip = await JSZip.loadAsync(result.archive);
+    const reading = await zip.file("reading.md")!.async("string");
+    expect(reading).toContain(`> ${source.replace(/\n/g, "\n> ")}`);
+    expect(reading).toContain("> \\*\\*Literal description\\*\\*");
+    const html = renderRichText(reading, "document");
+    expect(html.match(/<math\b/g)).toHaveLength(2);
+    expect(html).toContain("<mfrac>");
+    expect(html).not.toMatch(/rich-text-math-error|temml-error/);
+    expect(html).toContain('href="/references/comment/qa"');
+  });
+
   it("writes insertion-order Markdown, a manifest, and relative attachment paths", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), {
       status: 200,

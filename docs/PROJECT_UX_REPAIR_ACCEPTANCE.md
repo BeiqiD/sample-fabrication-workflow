@@ -4,6 +4,11 @@ Date: 2026-09-11. Follow-up to the user's review of entry, editing, references,
 connections, removal, mouse gestures and information density. This extends Draft
 PR #168 beyond its original rendering scope. No merge or production deployment.
 
+The historical Map body-selection rule below is superseded by the 2026-09-12
+[card gesture acceptance](./PROJECT_CARD_GESTURE_ACCEPTANCE.md): Map previews
+drag from their non-interactive body and double-click opens editing or Details.
+Reading and Inspector retain text selection.
+
 ## Implemented behavior
 
 | Task | Result |

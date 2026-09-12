@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "rea
 import { Link } from "react-router-dom";
 import { isProjectAttachmentSourceUrl } from "../../../shared/project-api";
 import { EmptyState } from "../EmptyState";
+import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
@@ -344,7 +345,7 @@ export function ProjectReadingSurface({
         </>}
 
         {node.kind === "reference" && <>
-          {node.excerpt && <p className="project-reading-excerpt">{node.excerpt}</p>}
+          <ReferenceExcerpt source={node.excerpt} format={node.excerptFormat} className="project-reading-excerpt" />
         </>}
       </article>;
     }) : !markdownEditor?.isNew && <EmptyState title="This Project is empty">

@@ -37,6 +37,7 @@ import { ActionIcon } from "./ActionIcon";
 import { NavigationIcon } from "./NavigationIcon";
 import { DialogCloseIcon } from "./DialogCloseIcon";
 import { EmptyState } from "./EmptyState";
+import { ReferenceExcerpt } from "./ReferenceExcerpt";
 
 type ReferenceSearchSurfaceCommonProps = {
   value: ReferenceSearchUiState;
@@ -212,7 +213,7 @@ function ReferencePlacementCard({
         <div className="reference-placement-card-details">
           <p>{supportingLabel}</p>
           {resolution.source?.subtitle && <p>{resolution.source.subtitle}</p>}
-          {resolution.source?.excerpt && <p>{resolution.source.excerpt}</p>}
+          <ReferenceExcerpt source={resolution.source?.excerpt} format={resolution.source?.excerptFormat} />
           {openUrl !== resolution.destination.referenceUrl && <Link
             to={resolution.destination.referenceUrl}
             draggable={false}
@@ -288,7 +289,11 @@ function ReferenceSearchResultCard({
       </div>
     </div>
 
-    {source?.excerpt && <p className="reference-search-result-excerpt">{source.excerpt}</p>}
+    <ReferenceExcerpt
+      source={source?.excerpt}
+      format={source?.excerptFormat}
+      className="reference-search-result-excerpt"
+    />
 
     <div className="reference-search-result-footer">
       <code>{result.target.id}</code>

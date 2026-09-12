@@ -5,6 +5,7 @@ import type {
   ResolvedReferenceSource,
 } from "../../shared/reference-types";
 import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
+import { referenceCommentExcerpt, referenceCommentTitle } from "../../shared/reference-comment-preview";
 
 export interface ResolvedReferenceRecord {
   source: ResolvedReferenceSource;
@@ -293,9 +294,10 @@ const commentAdapter: ReferenceAdapter = async (db, ids) => {
     const contexts = contextResult.contexts.get(id) ?? [];
     return [id, {
       source: {
-        title: excerpt(row.body, 80) ?? "Comment",
+        title: referenceCommentTitle(row.body),
         subtitle: text(row.scope),
-        excerpt: excerpt(row.body),
+        excerpt: referenceCommentExcerpt(row.body),
+        excerptFormat: "markdown",
         kind: text(row.context_kind),
         state: text(row.status),
         updatedAt: text(row.updated_at),
@@ -334,9 +336,10 @@ const commentOccurrenceAdapter: ReferenceAdapter = async (db, ids) => {
     const context = executionContext(row);
     return [id, {
       source: {
-        title: excerpt(row.body, 80) ?? "Step Comment",
+        title: referenceCommentTitle(row.body, "Step Comment"),
         subtitle: text(row.scope),
-        excerpt: excerpt(row.body),
+        excerpt: referenceCommentExcerpt(row.body),
+        excerptFormat: "markdown",
         kind: "comment_occurrence",
         state: text(row.comment_state),
         updatedAt: text(row.updated_at),

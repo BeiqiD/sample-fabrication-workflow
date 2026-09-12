@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ActionIcon } from "../ActionIcon";
+import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import {
   Background,
   ConnectionMode,
@@ -69,12 +70,14 @@ import {
 import type { ProjectEdgeEditorState } from "../../lib/use-project-edge-controller";
 import type { ProjectEdgeConnection } from "../../lib/project-edge-history";
 import { projectEdgeToolbarPosition } from "../../lib/project-edge-toolbar";
+import { projectMapInteractionProjection } from "../../lib/project-map-interaction-projection";
 import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import {
   normalizeProjectItemSelection,
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
   projectCanvasAlignmentGuides,
   projectCanvasKeyboardShortcutFromEvent,
+  projectCanvasKeyboardTargetIsReading,
   type ProjectCanvasAlignment,
   type ProjectCanvasAlignmentGuides,
   type ProjectCanvasZOrderAction,
@@ -210,6 +213,24 @@ const PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR = [
   "[role='textbox']",
 ].join(",");
 
+const PROJECT_CARD_INTERACTIVE_SELECTOR = `${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR},.nodrag,[role='button'],[role='link'],summary`;
+
+function cardTargetIsInteractive(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest(PROJECT_CARD_INTERACTIVE_SELECTOR));
+}
+
+function cardPointerIsOnScrollbar(target: EventTarget | null, clientX: number, clientY: number) {
+  if (!(target instanceof HTMLElement) || !target.closest("[data-project-card-content]")) return false;
+  const rect = target.getBoundingClientRect();
+  // Use the rendered scale so the scrollbar still owns its gutter when zoomed.
+  const scaleX = target.offsetWidth ? rect.width / target.offsetWidth : 1;
+  const scaleY = target.offsetHeight ? rect.height / target.offsetHeight : 1;
+  return (target.clientWidth > 0 && target.offsetWidth > target.clientWidth
+      && clientX >= rect.left + target.clientWidth * scaleX)
+    || (target.clientHeight > 0 && target.offsetHeight > target.clientHeight
+      && clientY >= rect.top + target.clientHeight * scaleY);
+}
+
 function nodeGeometry(node: ProjectFlowNode): ProjectMapGeometry {
   const fallback = node.data.descriptor.geometry;
   const width = node.measured?.width ?? node.width ?? fallback.width;
@@ -301,6 +322,17 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
   return <article
     className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}`}
     data-detail-level={detailLevel}
+    onMouseDownCapture={(event) => {
+      // React Flow already filters nodrag descendants. Let their own handlers
+      // receive the event (especially resize handles, connections and editors).
+      if (event.target instanceof Element && event.target.closest(".nodrag")) return;
+      if (cardTargetIsInteractive(event.target)
+        || cardPointerIsOnScrollbar(event.target, event.clientX, event.clientY)) event.stopPropagation();
+    }}
+    onTouchStartCapture={(event) => {
+      if (event.target instanceof Element && event.target.closest(".nodrag")) return;
+      if (cardTargetIsInteractive(event.target)) event.stopPropagation();
+    }}
   >
     <>
       <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
@@ -325,11 +357,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
     />
     <header
       className="project-node-drag-handle"
-      title={descriptor.kind === "markdown" && !editing ? "Double-click to edit Markdown" : "Drag to move card"}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        if (descriptor.kind === "markdown" && !editing) data.onMarkdownEditRequest(descriptor.itemId);
-      }}
+      title={descriptor.kind === "markdown" ? "Drag to move · Double-click to edit Markdown" : "Drag to move · Double-click for details"}
     >
       <span><ActionIcon name={descriptor.kind === "reference" ? "link" : descriptor.kind === "markdown" ? "note" : "attachment"} />{projectNodeKindLabel(descriptor.kind)}</span>
       {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
@@ -344,15 +372,13 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         onCancel={data.onMarkdownCancel}
       /></Suspense>
     </div> : <>
-      {!(showRichContent && descriptor.kind === "markdown") && <h2 className="project-node-drag-handle" title={descriptor.title} onDoubleClick={(event) => {
-        event.stopPropagation();
-        if (descriptor.kind === "markdown") data.onMarkdownEditRequest(descriptor.itemId);
-      }}>{descriptor.title}</h2>}
+      {!(showRichContent && descriptor.kind === "markdown") && <h2 title={descriptor.title}>{descriptor.title}</h2>}
       {showSubtitle && descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
       {previewUrl && <img
         className="project-node-image"
         src={previewUrl}
         alt={descriptor.attachmentCaption || descriptor.title}
+        draggable={false}
         onError={() => setFailedPreviewUrl(previewUrl)}
       />}
       {showAction && descriptor.kind === "attachment" && descriptor.fileUrl && !previewUrl && <a
@@ -362,8 +388,8 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         onClick={(event) => event.stopPropagation()}
       >Open attachment</a>}
       {showRichContent && (descriptor.kind === "markdown" ? <div
-        className="project-node-markdown nodrag nopan nowheel"
-        data-project-reading-content="true"
+        className="project-node-markdown nopan nowheel"
+        data-project-card-content="true"
         tabIndex={0}
         role="region"
         aria-label="Markdown content"
@@ -373,10 +399,11 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
             event.stopPropagation();
           }
         }}
-        onDoubleClick={(event) => event.stopPropagation()}
       >
         <ProjectMarkdownPreview source={descriptor.markdownSource || ""} />
-      </div> : descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>)}
+      </div> : descriptor.excerpt && <div className="project-node-excerpt" data-project-card-content="true">
+        <ReferenceExcerpt source={descriptor.excerpt} format={descriptor.excerptFormat} />
+      </div>)}
       {showAction && (descriptor.openSourceUrl || descriptor.openReferenceUrl) && <a
         className="project-node-open-reference nodrag nopan"
         href={descriptor.openSourceUrl ?? descriptor.openReferenceUrl!}
@@ -527,7 +554,7 @@ function buildFlowNode(
       ...callbacks,
     },
     draggable: !geometryInteractionDisabled && !editing,
-    dragHandle: ".project-node-drag-handle",
+    dragHandle: ".project-map-node",
     selectable: true,
     connectable: !edgeInteractionDisabled && !editing,
     deletable: false,
@@ -830,16 +857,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   // Ordinary selection changes reuse every untouched React Flow node object instead
   // of rebuilding the full large-map projection.
   useEffect(() => {
-    setFlowNodes(() => {
+    setFlowNodes((current) => {
       const next = applyAuthoritativeSelection(
-        projectedNodes,
+        projectMapInteractionProjection(projectedNodes, current, dragStarts, interactionStarts),
         selectedItemIdsRef.current,
         selectedItemIdRef.current,
       );
       flowNodesRef.current = next;
       return next;
     });
-  }, [projectedNodes]);
+  }, [projectedNodes, dragStarts, interactionStarts]);
 
   useEffect(() => {
     setFlowNodes((current) => {
@@ -1610,7 +1637,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (!contextCommands || event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey
         || (event.key !== "Delete" && event.key !== "Backspace")) return;
       const target = event.target;
-      if (target instanceof Element && target.closest(`${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR}, [data-project-reading-content], [data-rich-text], [role='menu'], [role='dialog']`)) return;
+      if (projectCanvasKeyboardTargetIsReading(target)
+        || (target instanceof Element && target.closest(`${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR}, [role='menu'], [role='dialog']`))) return;
       if (selectedEdgeId && !contextCommands.edgeDeleteDisabled) {
         event.preventDefault(); event.stopPropagation(); contextCommands.deleteEdge();
       } else if (selectedItemIds.length && !(contextCommands.removeSelectionDisabled ?? contextCommands.removeDisabled)) {
@@ -1636,6 +1664,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onNodesChange={onNodesChange}
       onEdgesChange={handleEdgesChange}
       onNodeClick={handleElementClick}
+      onNodeDoubleClick={(event, node) => {
+        event.stopPropagation();
+        if (cardTargetIsInteractive(event.target) || node.data.markdownEditor
+          || node.data.pendingReference || node.data.pendingAttachment) return;
+        if (node.data.descriptor.kind === "markdown") {
+          if (!geometryInteractionDisabled) onMarkdownEditRequest(node.id);
+        } else if (contextCommands && !contextCommands.panelCommandsDisabled) {
+          contextCommands.inspectItem(node.id);
+        }
+      }}
       onEdgeClick={handleElementClick}
       onNodeContextMenu={handleNodeContextMenu}
       onEdgeContextMenu={handleEdgeContextMenu}

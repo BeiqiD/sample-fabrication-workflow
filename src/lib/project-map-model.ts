@@ -27,6 +27,7 @@ export interface ProjectNodeDescriptor {
   title: string;
   subtitle: string | null;
   excerpt: string | null;
+  excerptFormat?: "plain" | "markdown";
   geometry: ProjectMapGeometry;
   createdSequence: number;
   contentId: string | null;
@@ -149,7 +150,10 @@ function referenceNode(
     title: resolution?.source?.title || target?.id || item.referenceTargetId || "Reference",
     subtitle: resolution?.source?.subtitle
       || (target ? `${target.type.replaceAll("_", " ")} · ${resolution.resolution}` : "Reference unavailable"),
-    excerpt: boundedExcerpt(resolution?.source?.excerpt ?? null),
+    excerpt: resolution?.source?.excerptFormat === "markdown"
+      ? resolution.source.excerpt
+      : boundedExcerpt(resolution?.source?.excerpt ?? null),
+    excerptFormat: resolution?.source?.excerptFormat,
     geometry: geometryFromPlacement(placement),
     createdSequence: item.createdSequence,
     contentId: null,
