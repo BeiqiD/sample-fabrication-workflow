@@ -51,6 +51,7 @@ import { ProjectNavigationDialog } from "../components/project/ProjectNavigation
 import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
 import { ProjectInspectorDisclosure } from "../components/project/ProjectInspectorDisclosure";
 import { useProjectInspectorPreferences } from "../lib/use-project-inspector-preferences";
+import { useProjectWorkspacePanels } from "../lib/use-project-workspace-panels";
 import { ProjectKeyboardShortcuts } from "../components/project/ProjectKeyboardShortcuts";
 import { ProjectTrashPanel, ProjectTrashStatus } from "../components/project/ProjectTrashPanel";
 import { useProjectItemTrash, type ProjectItemTrashController } from "../lib/use-project-item-trash";
@@ -120,7 +121,6 @@ import {
 } from "../lib/project-owned-content";
 import {
   defaultReferenceSearchUiState,
-  type ReferenceSearchUiState,
 } from "../lib/reference-search-ui";
 import {
   projectItemFocusAbsoluteUrl,
@@ -309,8 +309,6 @@ export function ProjectPage() {
   const [redoStack, setRedoStack] = useState<ProjectSessionHistoryCommand[]>([]);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [saveError, setSaveError] = useState("");
-  const [referenceSearch, setReferenceSearch] = useState<ReferenceSearchUiState>(() => defaultReferenceSearchUiState());
-  const [referenceSearchDraft, setReferenceSearchDraft] = useState<ReferenceSearchUiState>(() => defaultReferenceSearchUiState());
   const [pendingReference, setPendingReferenceState] = useState<ProjectPendingReferencePlacement | null>(null);
   const [pendingReferenceRemoval, setPendingReferenceRemovalState] = useState<PendingReferenceRemoval | null>(null);
   const [referenceActionError, setReferenceActionError] = useState("");
@@ -321,19 +319,7 @@ export function ProjectPage() {
   const [ownedContentActionError, setOwnedContentActionError] = useState("");
   const [ownedContentReloadPending, setOwnedContentReloadPending] = useState(false);
   const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
-  const [referencePanelOpen, setReferencePanelOpen] = useState(false);
   const { preferences: inspectorPreferences, setPreference: setInspectorPreference } = useProjectInspectorPreferences(projectId);
-  const [inspectorVisibility, setInspectorVisibility] = useState({ projectId, open: false });
-  const inspectorPanelOpen = inspectorVisibility.projectId === projectId && inspectorVisibility.open;
-  const inspectorPinned = inspectorPreferences.pinned;
-  const setInspectorPanelVisible = useCallback((open: boolean) => {
-    setInspectorVisibility((current) => current.projectId === projectId && current.open === open
-      ? current : { projectId, open });
-  }, [projectId]);
-  const setInspectorPanelOpen = useCallback((open: boolean) => {
-    setInspectorPreference("panelOpen", open);
-    setInspectorPanelVisible(open);
-  }, [setInspectorPanelVisible, setInspectorPreference]);
   const [projectActionsOpen, setProjectActionsOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
@@ -388,10 +374,9 @@ export function ProjectPage() {
   const editorReturnFocusRef = useRef<HTMLElement | null>(null);
   const inspectorWasEditingRef = useRef(false);
   const canvasEditorHandoffRef = useRef(false);
-  const inspectorFocusRequestRef = useRef(0);
+  const panelFocusRequestRef = useRef(0);
   const referencePanelTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const inspectorHadTargetRef = useRef(false);
   const readingDetailsTriggerRef = useRef<HTMLElement | null>(null);
   const projectActionsRef = useRef<HTMLDivElement | null>(null);
   const projectActionsTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -603,6 +588,38 @@ export function ProjectPage() {
   ));
   const readingActive = !desktop || desktopView === "reading";
   const mapViewportActive = desktop && desktopView === "map" && snapshot !== null;
+  const {
+    referenceOpen: referencePanelOpen, inspectorOpen: inspectorPanelOpen,
+    referencePinned, inspectorPinned,
+    referenceSearch, referenceSearchDraft, setReferenceSearch, setReferenceSearchDraft,
+    open: openWorkspacePanel, close: closeWorkspacePanel, hide: hideWorkspacePanel,
+    setPinned: setWorkspacePanelPinned,
+  } = useProjectWorkspacePanels(projectId, {
+    hasSelection: selectedItemIds.length > 0 || edgeController.selectedEdgeId !== null,
+    reading: readingActive,
+    readingInspectorAvailable: selectedItemIds.length === 1 && !edgeController.selectedEdgeId,
+    ready: projectReadyRef.current,
+    trashOpen: trash.isOpen,
+    forcedPanel: pendingReference ? "reference"
+      : attachmentEditor?.host === "inspector" || markdownEditor?.host === "inspector" || edgeController.editor
+        ? "inspector" : null,
+  });
+  const setReferencePanelOpen = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("reference");
+    else closeWorkspacePanel("reference");
+  }, [openWorkspacePanel, closeWorkspacePanel]);
+  const setReferencePanelVisible = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("reference");
+    else hideWorkspacePanel("reference");
+  }, [openWorkspacePanel, hideWorkspacePanel]);
+  const setInspectorPanelOpen = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("inspector");
+    else closeWorkspacePanel("inspector");
+  }, [openWorkspacePanel, closeWorkspacePanel]);
+  const setInspectorPanelVisible = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("inspector");
+    else hideWorkspacePanel("inspector");
+  }, [openWorkspacePanel, hideWorkspacePanel]);
 
   const restoreInspectorFocus = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -626,17 +643,14 @@ export function ProjectPage() {
     if (pendingReferenceRef.current) return;
     setReferencePanelOpen(false);
     window.requestAnimationFrame(() => (referencePanelTriggerRef.current ?? addMenuTriggerRef.current)?.focus());
-  }, []);
+  }, [setReferencePanelOpen]);
 
   useLayoutEffect(() => {
-    if (!readingActive) return;
-    // Reading has one contextual panel, including after a clean breakpoint change.
-    // Reconcile the committed selection before newly visible Details controls
-    // can open a panel; a stale passive close must not overwrite that action.
-    if (referencePanelOpen || trash.isOpen) setInspectorPanelVisible(false);
-    if (trash.isOpen && !pendingReference) setReferencePanelOpen(false);
-    if (selectedItemIds.length !== 1 || edgeController.selectedEdgeId) setInspectorPanelVisible(false);
-  }, [readingActive, referencePanelOpen, trash.isOpen, pendingReference, selectedItemIds, edgeController.selectedEdgeId, setInspectorPanelVisible]);
+    if (readingActive && trash.isOpen && !pendingReference) {
+      setReferencePanelVisible(false);
+      setInspectorPanelVisible(false);
+    }
+  }, [readingActive, trash.isOpen, pendingReference, setReferencePanelVisible, setInspectorPanelVisible]);
 
   useEffect(() => {
     const className = "project-map-viewport";
@@ -645,57 +659,17 @@ export function ProjectPage() {
     return () => document.documentElement.classList.remove(className);
   }, [mapViewportActive]);
 
+  const previousPanelVisibilityRef = useRef({ reference: false, inspector: false });
   useLayoutEffect(() => {
-    if (pendingReference) setReferencePanelOpen(true);
-    const hasInspectorTarget = selectedItemIds.length > 0
-      || edgeController.selectedEdgeId !== null
-      || attachmentEditor !== null
-      || edgeController.editor !== null;
-    const hadInspectorTarget = inspectorHadTargetRef.current;
-    inspectorHadTargetRef.current = hasInspectorTarget;
-    // Selection stays lightweight. Explicit Details and attachment editing open
-    // the panel; a pinned panel follows the selection without taking more space.
-    if (attachmentEditor?.host === "inspector" || markdownEditor?.host === "inspector") {
-      setInspectorPanelOpen(true);
-      if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
-    } else if (!hasInspectorTarget && (readingActive || !inspectorPinned) && (hadInspectorTarget || readingActive)) {
-      const activeElement = document.activeElement;
-      const restoreFocus = hadInspectorTarget && (
-        !activeElement
-        || activeElement === document.body
-        || !document.contains(activeElement)
-        || Boolean(inspectorPanelRef.current?.contains(activeElement))
-      );
-      setInspectorPanelVisible(false);
-      if (restoreFocus) {
-        restoreInspectorFocus();
-      }
-    } else if (!readingActive && (hasInspectorTarget || inspectorPinned) && projectReadyRef.current && inspectorPreferences.panelOpen
-      && (!referencePanelOpen || inspectorPinned || !window.matchMedia("(max-width: 1180px)").matches)) {
-      // Restore an already-open Inspector after a temporary empty selection or
-      // Reading/References presentation. Selection never opens an explicitly
-      // closed panel, and Reading does not summon a modal without Details.
-      setInspectorPanelVisible(true);
+    const previous = previousPanelVisibilityRef.current;
+    previousPanelVisibilityRef.current = { reference: referencePanelOpen, inspector: inspectorPanelOpen };
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement !== document.body && document.contains(activeElement)) return;
+    if (previous.inspector && !inspectorPanelOpen && !referencePanelOpen) restoreInspectorFocus();
+    else if (previous.reference && !referencePanelOpen && !inspectorPanelOpen) {
+      window.requestAnimationFrame(() => (referencePanelTriggerRef.current ?? addMenuTriggerRef.current)?.focus());
     }
-  }, [
-    attachmentEditor,
-    markdownEditor,
-    desktop,
-    desktopView,
-    readingActive,
-    restoreInspectorFocus,
-    edgeController.editor,
-    edgeController.selectedEdgeId,
-    pendingReference,
-    selectedItemIds,
-    referencePanelOpen,
-    inspectorPinned,
-    inspectorPreferences.panelOpen,
-    loading,
-    snapshot?.project.id,
-    setInspectorPanelOpen,
-    setInspectorPanelVisible,
-  ]);
+  }, [referencePanelOpen, inspectorPanelOpen, restoreInspectorFocus]);
 
   useEffect(() => {
     const closePanelOnEscape = (event: KeyboardEvent) => {
@@ -1900,12 +1874,12 @@ export function ProjectPage() {
     if (ownedContentReloadPending || !snapshot || saveStateRef.current === "conflict"
       || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
-      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return false;
     const item = snapshot.items.find((candidate) => candidate.id === itemId);
     const content = item?.projectContentId
       ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
       : null;
-    if (!item || !content || content.contentType !== "markdown") return;
+    if (!item || !content || content.contentType !== "markdown") return false;
     editorReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     ownedContentGenerationRef.current += 1;
     markdownCreateInputRef.current = null;
@@ -1923,6 +1897,7 @@ export function ProjectPage() {
       message: null,
     });
     setSelectedItemIds([itemId]);
+    return true;
   }, [ownedContentReloadPending, snapshot, updateMarkdownEditor]);
 
   const changeMarkdown = useCallback((value: string) => {
@@ -2600,13 +2575,16 @@ export function ProjectPage() {
   ]);
 
   const focusReferencePanel = useCallback(() => {
-    window.requestAnimationFrame(() => referencePanelRef.current?.focus());
+    const request = ++panelFocusRequestRef.current;
+    window.requestAnimationFrame(() => {
+      if (request === panelFocusRequestRef.current) referencePanelRef.current?.focus();
+    });
   }, []);
 
   const focusInspectorPanel = useCallback(() => {
-    const request = ++inspectorFocusRequestRef.current;
+    const request = ++panelFocusRequestRef.current;
     window.requestAnimationFrame(() => {
-      if (request !== inspectorFocusRequestRef.current) return;
+      if (request !== panelFocusRequestRef.current) return;
       const panel = inspectorPanelRef.current;
       const field = panel?.matches(".editing") ? panel.querySelector<HTMLElement>("textarea:not(:disabled), input:not(:disabled)") : null;
       (field ?? panel)?.focus({ preventScroll: true });
@@ -2616,7 +2594,6 @@ export function ProjectPage() {
   const inspectContextItem = useCallback((itemId: string) => {
     if (selectProjectItem(itemId) === false) return;
     setInspectorPanelOpen(true);
-    if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     focusInspectorPanel();
   }, [focusInspectorPanel, selectProjectItem, setInspectorPanelOpen]);
 
@@ -2630,6 +2607,14 @@ export function ProjectPage() {
       focusInspectorPanel();
     }
   }, [descriptors, focusInspectorPanel, startAttachmentEdit, startMarkdownEdit, setInspectorPanelOpen]);
+
+  const editAndInspectMarkdown = useCallback((itemId: string) => {
+    if (selectProjectItem(itemId) === false || !startMarkdownEdit(itemId)) return;
+    // The card editor owns focus. Cancel any earlier panel focus request
+    // rather than moving the caret into the Inspector as it opens alongside it.
+    panelFocusRequestRef.current += 1;
+    setInspectorPanelOpen(true);
+  }, [selectProjectItem, setInspectorPanelOpen, startMarkdownEdit]);
 
   const removeContextItem = useCallback((itemId: string) => {
     const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
@@ -2647,7 +2632,6 @@ export function ProjectPage() {
   const inspectContextEdge = useCallback((edgeId: string) => {
     if (selectProjectEdge(edgeId) === false) return;
     setInspectorPanelOpen(true);
-    if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     focusInspectorPanel();
   }, [focusInspectorPanel, selectProjectEdge, setInspectorPanelOpen]);
 
@@ -2656,18 +2640,17 @@ export function ProjectPage() {
       || edgeController.editor) return;
     if (readingActive) trash.close();
     setReferencePanelOpen(true);
-    if (readingActive || (!inspectorPinned && window.matchMedia("(max-width: 1180px)").matches)) setInspectorPanelVisible(false);
     focusReferencePanel();
-  }, [edgeController.editor, focusReferencePanel, inspectorPinned, readingActive, trash.close, setInspectorPanelVisible]);
+  }, [edgeController.editor, focusReferencePanel, readingActive, trash.close, setReferencePanelOpen]);
 
   const inspectReadingItem = useCallback((itemId: string) => {
     if (selectProjectItem(itemId) === false) return;
     trash.close();
     readingDetailsTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setReferencePanelOpen(false);
+    setReferencePanelVisible(false);
     setInspectorPanelOpen(true);
     focusInspectorPanel();
-  }, [focusInspectorPanel, selectProjectItem, trash.close, setInspectorPanelOpen]);
+  }, [focusInspectorPanel, selectProjectItem, trash.close, setInspectorPanelOpen, setReferencePanelVisible]);
 
   const focusReadingItem = useCallback((itemId: string) => {
     if (selectProjectItem(itemId) === false) return;
@@ -2678,7 +2661,6 @@ export function ProjectPage() {
 
   const openInspectorPanel = useCallback(() => {
     setInspectorPanelOpen(true);
-    if (window.matchMedia("(max-width: 1180px)").matches) setReferencePanelOpen(false);
     focusInspectorPanel();
   }, [focusInspectorPanel, setInspectorPanelOpen]);
 
@@ -2783,7 +2765,7 @@ export function ProjectPage() {
     // original gesture sees unlocked nodes, refs and geometry commit guards.
     // Focus stays with the new canvas action, not the removed editor's trigger.
     canvasEditorHandoffRef.current = inspectorEditing;
-    inspectorFocusRequestRef.current += 1;
+    panelFocusRequestRef.current += 1;
     canvas.focus({ preventScroll: true });
     flushSync(cancelActiveEditor);
   }, [
@@ -2969,6 +2951,7 @@ export function ProjectPage() {
     zOrderDisabled: zOrderActionDisabled,
     inspectItem: inspectContextItem,
     editItem: editContextItem,
+    editAndInspectMarkdown,
     copyItemLink: copyProjectItemLink,
     copySelection: copyCanvasSelection,
     pasteSelection: pasteCanvasSelection,
@@ -3111,6 +3094,21 @@ export function ProjectPage() {
                 ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
                 : "Saving placement changes before leaving this Project…";
 
+  const panelPinControl = (panel: "reference" | "inspector", pinned: boolean) => !readingActive && <button
+    type="button"
+    className="button compact-button project-panel-icon-button"
+    aria-label={pinned ? "Unpin" : "Pin"}
+    title={pinned ? `Unpin ${panel === "reference" ? "References" : "Inspector"}` : `Keep ${panel === "reference" ? "References" : "Inspector"} open`}
+    aria-pressed={pinned}
+    disabled={viewSwitchDisabled}
+    onClick={() => {
+      setWorkspacePanelPinned(panel, !pinned);
+      if (pinned && selectedItemIds.length === 0 && !edgeController.selectedEdgeId) {
+        window.requestAnimationFrame(() => (panel === "reference" ? referencePanelTriggerRef.current : inspectorPanelTriggerRef.current)?.focus());
+      }
+    }}
+  ><ActionIcon name="pin" /></button>;
+
   const referencePanel = <aside
         ref={referencePanelRef}
         id="project-reference-panel"
@@ -3126,6 +3124,8 @@ export function ProjectPage() {
       >
         <div className="project-workspace-panel-toolbar">
           <p className="card-label"><NavigationIcon name="search" />References</p>
+          <div className="project-workspace-panel-actions">
+          {panelPinControl("reference", referencePinned)}
           <button
             type="button"
             className="button compact-button project-panel-icon-button"
@@ -3135,6 +3135,7 @@ export function ProjectPage() {
             disabled={pendingReference !== null}
             onClick={closeReferencePanel}
           ><DialogCloseIcon /></button>
+          </div>
         </div>
         {pendingReference && <div className={`project-reference-pending ${pendingReference.status}`}>
           <strong>{pendingReference.preview.title}</strong>
@@ -3192,22 +3193,7 @@ export function ProjectPage() {
         <div className="project-workspace-panel-toolbar">
           <p className="card-label"><ActionIcon name="inspector" />Inspector</p>
           <div className="project-workspace-panel-actions">
-            {!readingActive && <button
-              type="button"
-              className="button compact-button project-panel-icon-button"
-              aria-label={inspectorPinned ? "Unpin" : "Pin"}
-              title={inspectorPinned ? "Unpin Inspector" : "Keep Inspector open"}
-              aria-pressed={inspectorPinned}
-              disabled={viewSwitchDisabled}
-              onClick={() => {
-                const nextPinned = !inspectorPinned;
-                setInspectorPreference("pinned", nextPinned);
-                if (!nextPinned && selectedItemIds.length === 0 && !edgeController.selectedEdgeId) {
-                  setInspectorPanelVisible(false);
-                  window.requestAnimationFrame(() => inspectorPanelTriggerRef.current?.focus());
-                }
-              }}
-            ><ActionIcon name="pin" /></button>}
+            {panelPinControl("inspector", inspectorPinned)}
             <button
               type="button"
               className="button compact-button project-panel-icon-button"
@@ -3561,7 +3547,7 @@ export function ProjectPage() {
             aria-label="References"
             title={inspectorEditing ? "Finish editing before opening References" : "References"}
             disabled={(pendingReference !== null && referencePanelOpen) || inspectorEditing || edgeController.editor !== null}
-            onClick={() => referencePanelOpen ? setReferencePanelOpen(false) : openReferencePanel()}
+            onClick={() => referencePanelOpen ? closeReferencePanel() : openReferencePanel()}
           >
             <NavigationIcon name="search" />
             <span className="project-control-label-full">References</span>

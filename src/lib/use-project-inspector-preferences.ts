@@ -1,8 +1,6 @@
 import { useCallback, useState } from "react";
 
 export interface ProjectInspectorPreferences {
-  panelOpen: boolean;
-  pinned: boolean;
   detailsOpen: boolean;
   previewExpanded: boolean;
   moreActionsOpen: boolean;
@@ -10,8 +8,6 @@ export interface ProjectInspectorPreferences {
 }
 
 const defaultPreferences: ProjectInspectorPreferences = {
-  panelOpen: false,
-  pinned: false,
   detailsOpen: false,
   previewExpanded: false,
   moreActionsOpen: false,

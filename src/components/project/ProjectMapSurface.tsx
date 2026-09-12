@@ -132,6 +132,8 @@ export interface ProjectMapContextCommands {
   alignmentDisabled: (alignment: ProjectCanvasAlignment) => boolean;
   zOrderDisabled: (action: ProjectCanvasZOrderAction) => boolean;
   inspectItem: (itemId: string) => void;
+  /** Open Markdown in its card and show Inspector without moving editor focus. */
+  editAndInspectMarkdown?: (itemId: string) => void;
   editItem: (itemId: string) => void;
   copyItemLink: (itemId: string) => void | Promise<void>;
   copySelection: () => void;
@@ -379,7 +381,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
   >
     <header
       className="project-node-drag-handle"
-      title="Drag to move · Double-click for details"
+      title={descriptor.kind === "markdown" ? "Drag to move · Double-click to edit" : "Drag to move · Double-click for details"}
     >
       <span><ActionIcon name={descriptor.kind === "reference" ? "link" : descriptor.kind === "markdown" ? "note" : "attachment"} />{projectNodeKindLabel(descriptor.kind)}</span>
       {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
@@ -1933,6 +1935,11 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         if (event.button !== 0 || cardTargetIsInteractive(event.target) || node.data.markdownEditor
           || node.data.pendingReference || node.data.pendingAttachment) return;
         if (contextCommands && !contextCommands.panelCommandsDisabled) {
+          if (node.data.descriptor.kind === "markdown" && contextCommands.editAndInspectMarkdown) {
+            if (contextCommands.editDisabled || geometryInteractionDisabled) return;
+            contextCommands.editAndInspectMarkdown(node.id);
+            return;
+          }
           contextCommands.inspectItem(node.id);
         }
       }}

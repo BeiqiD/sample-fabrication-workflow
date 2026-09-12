@@ -438,7 +438,9 @@ describe("Project Map native card controls", () => {
     await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
       .not.toMatch(/^translate\(0px,\s*0px\)/));
     if (host === "inspector") {
-      fireEvent.doubleClick(note.querySelector("header")!);
+      fireEvent.click(note);
+      fireEvent.click(within(await screen.findByRole("toolbar", { name: "Selected card actions" }))
+        .getByRole("button", { name: "Details" }));
       fireEvent.click(await screen.findByRole("button", { name: "Edit Markdown" }));
     } else {
       fireEvent.click(note);
