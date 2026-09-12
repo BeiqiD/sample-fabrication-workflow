@@ -285,8 +285,9 @@ references found through the sidebar.
 
 Interactive controls and editor regions must not initiate node dragging.
 Links, scrollbars, the resize grip and connection handles retain their own gestures.
-Every committed card displays a 36-unit triangular resize corner integrated into
-its border. It scales with the card, with reserved content clearance and the
+Every committed card displays an 18-unit triangular resize corner integrated into
+its border, following the card's 12-unit outer radius in both paint and hit area.
+It scales with the card, with reserved content clearance and the
 source link offset away from the corner. Resizing only affects that card's
 dimensions and preserves the existing selection. Editing or a geometry lock
 hides the control without reclaiming its content clearance during a lock.

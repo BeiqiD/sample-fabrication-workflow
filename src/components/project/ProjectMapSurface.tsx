@@ -454,9 +454,9 @@ const ProjectItemNode = memo(function ProjectItemNode({ data }: NodeProps<Projec
           data.onResizeEnd(descriptor, after);
         }}
       >
-        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false">
-          <path className="project-node-resize-corner" d="M1 35 35 1v34Z" />
-          <path d="m19 29 10-10m-3 10 3-3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+          <path className="project-node-resize-corner" d="M.5 17.5 17.5 .5V6A11.5 11.5 0 0 1 6 17.5Z" />
+          <path d="M8.5 13 13 8.5M11 14 14 11" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       </button>
     </NodeResizeControl>}

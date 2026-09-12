@@ -73,7 +73,6 @@
 }
 
 .project-flow-canvas .react-flow__node-projectItem:has(:where(.project-map-node.resizable)) {
-  border-bottom-right-radius: 0;
   box-shadow: 0 4px 14px var(--shadow);
 }
 
@@ -176,7 +175,7 @@
 
 .project-node-open-reference {
   position: absolute;
-  right: 44px;
+  right: 26px;
   bottom: 10px;
   z-index: 2;
   display: inline-flex;
@@ -215,20 +214,20 @@
 /* The diagonal grip is part of every editable card's lower-right border.
    Scale it with the card so zooming out cannot cover its content or scrollbar. */
 .project-map-node.resizable {
-  padding-bottom: 26px;
-  border-bottom-right-radius: 0;
+  padding-bottom: 14px;
   /* Even a minimum-height card with a long title cannot paint into the grip. */
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 36px), calc(100% - 36px) 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
 }
 
 .project-flow-canvas .react-flow__resize-control.project-node-resize-handle {
-  width: 36px;
-  height: 36px;
+  width: 18px;
+  height: 18px;
   border: 0;
   border-radius: 0;
   background: transparent;
   translate: -100% -100%;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  /* Match the card's 12px outer radius for both paint and pointer targeting. */
+  clip-path: path("M0 18 18 0V6A12 12 0 0 1 6 18Z");
   z-index: 6;
 }
 
@@ -423,7 +422,7 @@
 }
 
 .project-flow-canvas[data-project-map-detail="overview"] .project-map-node.resizable {
-  padding-bottom: 26px;
+  padding-bottom: 14px;
 }
 
 .project-flow-canvas[data-project-map-detail="overview"] .project-map-node > h2 {
