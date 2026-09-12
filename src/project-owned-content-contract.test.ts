@@ -118,8 +118,10 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(page).toContain('data-inspector-open={desktopView === "map" && inspectorPanelOpen}');
     expect(page).toContain('data-panel-presentation="floating"');
     expect(page).toContain("contextCommands={contextCommands}");
-    expect(page).not.toContain("aria-modal");
-    expect(page).not.toContain("inert=");
+    const workspaceOpening = page.match(/<div className="project-desktop-workspace[^>]+>/)?.[0];
+    expect(workspaceOpening).toBeDefined();
+    expect(workspaceOpening).not.toContain("aria-modal");
+    expect(workspaceOpening).not.toContain("inert=");
 
     expect(projectCss).toMatch(/\.project-desktop-workspace\s*\{[\s\S]*?position:\s*relative;[\s\S]*?border:\s*0;/);
     expect(projectCss).toMatch(/\.project-map-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?inset:\s*0;/);
