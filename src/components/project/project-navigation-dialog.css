@@ -1,0 +1,72 @@
+.project-navigation-dialog {
+  min-width: 0;
+  color: var(--ink);
+  background: var(--paper);
+}
+.project-navigation-dialog__header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.project-navigation-dialog__header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.project-navigation-dialog__message {
+  margin: 16px 0 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.project-navigation-dialog__footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.project-navigation-dialog__secondary-actions,
+.project-navigation-dialog__primary-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.project-navigation-dialog__primary-actions { margin-left: auto; }
+.project-navigation-dialog__secondary-actions:empty,
+.project-navigation-dialog__primary-actions:empty { display: none; }
+.project-navigation-dialog .button {
+  min-height: 38px;
+  max-width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: center;
+}
+.project-navigation-dialog__secondary-actions .button {
+  color: var(--danger);
+  background: transparent;
+  border-color: transparent;
+}
+.project-navigation-dialog__secondary-actions .button:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: transparent;
+}
+@media (max-width: 600px) {
+  .project-navigation-dialog__footer { align-items: stretch; }
+  .project-navigation-dialog__stay,
+  .project-navigation-dialog__secondary-actions,
+  .project-navigation-dialog__primary-actions { width: 100%; }
+  .project-navigation-dialog__primary-actions { margin-left: 0; }
+  .project-navigation-dialog__secondary-actions > .button,
+  .project-navigation-dialog__primary-actions > .button { width: 100%; }
+}
+@media (pointer: coarse) {
+  .project-navigation-dialog .button { min-height: 44px; }
+}

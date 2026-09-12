@@ -11,6 +11,7 @@ import {
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
+import { ProjectInspectorDisclosure } from "./ProjectInspectorDisclosure";
 import "./project-inspector-details.css";
 
 export interface ProjectInspectorDetailsProps {
@@ -21,6 +22,10 @@ export interface ProjectInspectorDetailsProps {
   editing?: boolean;
   relatedContent?: ReactNode;
   onFocusItem?: (itemId: string) => void;
+  detailsOpen?: boolean;
+  onDetailsOpenChange?: (open: boolean) => void;
+  previewExpanded?: boolean;
+  onPreviewExpandedChange?: (expanded: boolean) => void;
 }
 
 function ProjectInspectorActionLink({
@@ -66,12 +71,16 @@ export function ProjectInspectorDetails({
   editing = false,
   relatedContent,
   onFocusItem,
+  detailsOpen,
+  onDetailsOpenChange,
+  previewExpanded: controlledPreviewExpanded,
+  onPreviewExpandedChange,
 }: ProjectInspectorDetailsProps) {
   const projection = projectInspectorProjection(snapshot, descriptor);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [localPreviewExpanded, setLocalPreviewExpanded] = useState(false);
   const previewId = useId();
-  const previewExpanded = expandedItemId === descriptor.itemId;
+  const previewExpanded = controlledPreviewExpanded ?? localPreviewExpanded;
   if (!projection) {
     return <>
       <span className="meta-badge">{projectNodeKindLabel(descriptor.kind)}</span>
@@ -120,7 +129,7 @@ export function ProjectInspectorDetails({
           className="button compact-button"
           aria-controls={previewId}
           aria-expanded={previewExpanded}
-          onClick={() => setExpandedItemId(previewExpanded ? null : descriptor.itemId)}
+          onClick={() => (onPreviewExpandedChange ?? setLocalPreviewExpanded)(!previewExpanded)}
         >{previewExpanded ? "Collapse note" : "Expand note"}</button>
       </div>
       : <ReferenceExcerpt
@@ -173,8 +182,12 @@ export function ProjectInspectorDetails({
 
     {relatedContent}
 
-    <details className="project-inspector-disclosure project-inspector-technical-details" key={descriptor.itemId}>
-      <summary>Details</summary>
+    <ProjectInspectorDisclosure
+      className="project-inspector-disclosure project-inspector-technical-details"
+      title="Details"
+      open={detailsOpen}
+      onOpenChange={onDetailsOpenChange}
+    >
       {projection.contexts.length > 0 && <section>
       <h4>Source hierarchy</h4>
       <ol className="project-inspector-contexts">
@@ -217,7 +230,7 @@ export function ProjectInspectorDetails({
         </div>)}
       </dl>
       </section>
-    </details>
+    </ProjectInspectorDisclosure>
     </>}
   </>;
 }

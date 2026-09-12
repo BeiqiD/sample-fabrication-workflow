@@ -511,7 +511,16 @@ describe("Project Map native card controls", () => {
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], { initialEntries: ["/projects/project-a"] });
     const { container } = render(<RouterProvider router={router} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Add" }));
+    await screen.findByRole("button", { name: "Add" });
+    // Adding at the center needs XYFlow's initialized viewport. The toolbar
+    // renders before the lazy Map has an instance; an earlier click correctly
+    // asks the user to retry and does not create a draft to resize.
+    await waitFor(() => {
+      const viewport = container.querySelector<HTMLElement>(".react-flow__viewport");
+      expect(viewport).toBeTruthy();
+      expect(viewport!.style.transform).not.toMatch(/^translate\(0px,\s*0px\)/);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
     fireEvent.click(screen.getByRole("button", { name: "Note / Markdown" }));
     const field = await screen.findByRole("textbox", { name: "New Project Markdown" });
     const note = field.closest<HTMLElement>(".react-flow__node")!;
