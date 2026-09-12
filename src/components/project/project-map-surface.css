@@ -276,8 +276,10 @@
 .project-markdown-editor {
   min-height: 0;
   flex: 1 1 auto;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  display: flex;
+  flex-direction: column;
+  /* Small cards scroll the form; large cards give spare height to its panel. */
+  overflow: auto;
   gap: 8px;
 }
 

@@ -67,11 +67,11 @@ describe("Project Map native card controls", () => {
     Object.defineProperties(HTMLElement.prototype, {
       offsetWidth: { configurable: true, get() {
         return this.classList.contains("react-flow__handle") ? 10
-          : /^\d+(?:\.\d+)?px$/.test(this.style.width) ? Number.parseFloat(this.style.width) : 800;
+          : /^\d+(?:\.\d+)?px$/.test(this.style.width) ? Math.round(Number.parseFloat(this.style.width)) : 800;
       } },
       offsetHeight: { configurable: true, get() {
         return this.classList.contains("react-flow__handle") ? 10
-          : /^\d+(?:\.\d+)?px$/.test(this.style.height) ? Number.parseFloat(this.style.height) : 600;
+          : /^\d+(?:\.\d+)?px$/.test(this.style.height) ? Math.round(Number.parseFloat(this.style.height)) : 600;
       } },
     });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
@@ -162,7 +162,7 @@ describe("Project Map native card controls", () => {
     expect(onGeometryBatchCommit).not.toHaveBeenCalled();
   });
 
-  it("shows one corner per saved card before selection, including primary and secondary selections, and hides only unavailable controls", async () => {
+  it("shows one corner per saved card and requires explicit permission to resize an editor", async () => {
     const nodes = projectMapNodes(projectTestSnapshotWithAttachment());
     const onGeometryCommit = vi.fn();
     const surface = (selectedItemId: string | null, disabled = false, editor: ProjectMapMarkdownEditorState | null = null) =>
@@ -191,7 +191,7 @@ describe("Project Map native card controls", () => {
     expectSavedCardGrips();
     rerender(surface("item-note", true));
     expect(screen.queryByRole("button", { name: "Resize card" })).toBeNull();
-    // The editor itself hides its own grip even when the caller has not globally locked geometry.
+    // Editor resize requires explicit scoped permission even without a global geometry lock.
     rerender(surface("item-note", false, {
       itemId: "item-note", value: "# Draft", isNew: false,
       geometry: null, status: "editing", message: null,
@@ -204,7 +204,7 @@ describe("Project Map native card controls", () => {
     expect(onGeometryCommit).not.toHaveBeenCalled();
   });
 
-  it("never offers resizing for pending references, attachments, or new Markdown drafts", async () => {
+  it("never implicitly offers resizing for pending references, attachments, or new Markdown drafts", async () => {
     const nodes = projectMapNodes(projectTestSnapshot());
     const { container } = render(<div style={{ width: 800, height: 600 }}>
       <ProjectMapSurface nodes={nodes} selectedItemId={null}
@@ -397,6 +397,286 @@ describe("Project Map native card controls", () => {
     await waitFor(() => expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Saved"));
     expect(writes()).toHaveLength(3);
     expect(JSON.parse(String(writes()[2][1]?.body)).geometry).toEqual({ x: 20, y: 40, width: 270, height: 185, zIndex: 0 });
+  });
+
+  it.each([
+    ["surface", "Save Markdown", false], ["surface", "Cancel", false],
+    ["inspector", "Save Markdown", false], ["inspector", "Cancel", false],
+    ["surface", "Cancel", true],
+  ] as const)("keeps a dirty %s note during native resize and preserves placement history after %s (fractional: %s)", async (host, finish, fractional) => {
+    const snapshot = projectTestSnapshot();
+    const beforeWidth = fractional ? 250.5 : 250;
+    const beforeHeight = fractional ? 180.25 : 180;
+    const afterWidth = Math.round(beforeWidth) + 60;
+    const afterHeight = Math.round(beforeHeight) + 40;
+    Object.assign(snapshot.placements.find((entry) => entry.id === "placement-note")!, { width: beforeWidth, height: beforeHeight });
+    let placement = snapshot.placements.find((entry) => entry.id === "placement-note")!;
+    const content = snapshot.contents.find((entry) => entry.id === "content-note")!;
+    const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return new Response(JSON.stringify(snapshot));
+      if (String(path) === "/api/projects/project-a/placements/placement-note" && init?.method === "PATCH") {
+        const input = JSON.parse(String(init.body));
+        placement = { ...placement, ...input.geometry, revision: placement.revision + 1 };
+        return new Response(JSON.stringify({ value: placement, replayed: false }));
+      }
+      if (String(path) === "/api/projects/project-a/contents/content-note/markdown" && init?.method === "PATCH") {
+        const input = JSON.parse(String(init.body));
+        return new Response(JSON.stringify({ value: { ...content, markdownSource: input.markdownSource, revision: content.revision + 1 }, replayed: false }));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], { initialEntries: ["/projects/project-a"] });
+    const { container } = render(<RouterProvider router={router} />);
+    const note = await waitFor(() => {
+      const node = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
+      expect(node).toBeTruthy();
+      expect(node!.style.visibility).not.toBe("hidden");
+      return node!;
+    });
+    await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
+      .not.toMatch(/^translate\(0px,\s*0px\)/));
+    if (host === "inspector") {
+      fireEvent.doubleClick(note.querySelector("header")!);
+      fireEvent.click(await screen.findByRole("button", { name: "Edit Markdown" }));
+    } else {
+      fireEvent.click(note);
+      fireEvent.click(within(await screen.findByRole("toolbar", { name: "Selected card actions" })).getByRole("button", { name: "Edit" }));
+    }
+    const editorLabel = host === "inspector" ? "Inspector Markdown editor" : "Edit Project Markdown";
+    const field = await screen.findByRole("textbox", { name: editorLabel });
+    fireEvent.change(field, { target: { value: "# Resized draft" } });
+    const grip = within(note).getByRole("button", { name: "Resize card" });
+    const reference = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-reference"]')!;
+    expect(within(reference).queryByRole("button", { name: "Resize card" })).toBeNull();
+    mouse(grip, "mousedown", 300, 250);
+    mouse(window, "mousemove", 310, 260);
+    expect(note.style.width).toBe(`${Math.round(beforeWidth) + 10}px`);
+    expect((screen.getByRole("button", { name: "Save Markdown" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(field, { key: "Escape", code: "Escape" });
+    fireEvent.keyDown(field, { key: "s", code: "KeyS", ctrlKey: true });
+    expect(screen.getByRole("textbox", { name: editorLabel })).toBe(field);
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method)).toHaveLength(0);
+    // Typing forces a parent projection update while XYFlow keeps the same active resizer.
+    fireEvent.change(field, { target: { value: "# Resized draft, still editing" } });
+    expect(within(note).getByRole("button", { name: "Resize card" })).toBe(grip);
+    mouse(window, "mousemove", 360, 290);
+    expect(note.style.width).toBe(`${afterWidth}px`);
+    mouse(window, "mouseup", 360, 290);
+    await waitFor(() => expect((screen.getByRole("button", { name: "Save Markdown" }) as HTMLButtonElement).disabled).toBe(false));
+    expect((field as HTMLTextAreaElement).value).toBe("# Resized draft, still editing");
+    expect(note.style.height).toBe(`${afterHeight}px`);
+    expect(note.style.transform).toBe("translate(20px,40px)");
+    expect((screen.getByRole("button", { name: "Undo" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: finish }));
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: editorLabel })).toBeNull());
+    expect(note.style.width).toBe(`${afterWidth}px`);
+    expect(note.style.height).toBe(`${afterHeight}px`);
+    expect(note.style.zIndex).toBe("0");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Saved"));
+    const placementWrites = () => fetchMock.mock.calls.filter(([path, init]) => String(path).includes("/placements/") && init?.method === "PATCH");
+    expect(JSON.parse(String(placementWrites()[0][1]?.body)).geometry).toEqual({ x: 20, y: 40, width: afterWidth, height: afterHeight, zIndex: 0 });
+    const contentWrites = fetchMock.mock.calls.filter(([path, init]) => String(path).includes("/contents/") && init?.method === "PATCH");
+    expect(contentWrites).toHaveLength(finish === "Save Markdown" ? 1 : 0);
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(note.style.width).toBe(`${beforeWidth}px`));
+    expect(note.style.height).toBe(`${beforeHeight}px`);
+    expect(note.textContent).toContain(finish === "Save Markdown" ? "Resized draft, still editing" : "Preserve the occurrence identity.");
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    await waitFor(() => expect(note.style.width).toBe(`${afterWidth}px`));
+    expect(note.style.height).toBe(`${afterHeight}px`);
+  });
+
+  it.each(["Save Markdown", "Cancel"] as const)("keeps new-note resize local until %s without phantom placements or Undo", async (finish) => {
+    const snapshot = projectTestSnapshot();
+    let created: Record<string, any> | null = null;
+    const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return new Response(JSON.stringify(snapshot));
+      if (String(path) === "/api/projects/project-a/items/markdown" && init?.method === "POST") {
+        const input = JSON.parse(String(init.body));
+        created = input;
+        return new Response(JSON.stringify({
+          project: { ...snapshot.project, revision: snapshot.project.revision + 1, nextCreatedSequence: snapshot.project.nextCreatedSequence + 1 },
+          item: { ...snapshot.items[0], id: input.itemId, projectContentId: input.contentId, createdSequence: snapshot.project.nextCreatedSequence },
+          content: { ...snapshot.contents[0], id: input.contentId, markdownSource: input.markdownSource },
+          placement: { ...snapshot.placements[0], id: input.placementId, projectItemId: input.itemId, ...input.geometry },
+          attachment: null, replayed: false,
+        }));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], { initialEntries: ["/projects/project-a"] });
+    const { container } = render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Note / Markdown" }));
+    const field = await screen.findByRole("textbox", { name: "New Project Markdown" });
+    const note = field.closest<HTMLElement>(".react-flow__node")!;
+    fireEvent.change(field, { target: { value: "# Local resized draft" } });
+    await waitFor(() => expect(note.style.visibility).not.toBe("hidden"));
+    const initialTransform = note.style.transform;
+    const grip = within(note).getByRole("button", { name: "Resize card" });
+    fireEvent.keyDown(grip, { key: "ArrowRight", code: "ArrowRight", shiftKey: true });
+    await waitFor(() => expect(note.style.width).toBe("380px"));
+    mouse(grip, "mousedown", 300, 250);
+    mouse(window, "mousemove", 340, 280);
+    mouse(window, "mouseup", 340, 280);
+    await waitFor(() => expect(note.style.width).toBe("420px"));
+    expect(note.style.height).toBe("250px");
+    expect(note.style.transform).toBe(initialTransform);
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method)).toHaveLength(0);
+    expect((field as HTMLTextAreaElement).value).toBe("# Local resized draft");
+    fireEvent.click(screen.getByRole("button", { name: finish }));
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "New Project Markdown" })).toBeNull());
+    expect((screen.getByRole("button", { name: "Undo" }) as HTMLButtonElement).disabled).toBe(true);
+    if (finish === "Save Markdown") {
+      expect(created).toMatchObject({ geometry: { width: 420, height: 250 }, markdownSource: "# Local resized draft" });
+      expect(container.querySelectorAll(".react-flow__node")).toHaveLength(3);
+      expect(note.style.width).toBe("420px");
+    } else {
+      expect(created).toBeNull();
+      expect(container.querySelectorAll(".react-flow__node")).toHaveLength(2);
+    }
+    expect(fetchMock.mock.calls.filter(([path]) => String(path).includes("/placements/"))).toHaveLength(0);
+  });
+
+  it.each(["saved", "new draft"] as const)("uses precise fractional %s geometry as the resize command's before value", async (kind) => {
+    const geometry = { x: 20.25, y: 40.5, width: 250.5, height: 180.25, zIndex: 0 };
+    const nodes = projectMapNodes(projectTestSnapshot()).map((node) => node.itemId === "item-note" ? { ...node, geometry } : node);
+    const editor: ProjectMapMarkdownEditorState | null = kind === "new draft" ? {
+      itemId: "draft-fractional", value: "# Fractional draft", isNew: true, geometry, status: "editing", message: null,
+    } : null;
+    const commit = vi.fn();
+    const { container } = render(<ProjectMapSurface nodes={nodes} markdownEditor={editor}
+      markdownResizeItemId={editor?.itemId} geometryInteractionDisabled={Boolean(editor)}
+      selectedItemId={null} onSelect={() => undefined} onGeometryCommit={commit} onMarkdownResizeCommit={commit} />);
+    const note = await waitFor(() => {
+      const card = container.querySelector<HTMLElement>(`.react-flow__node[data-id="${editor?.itemId ?? "item-note"}"]`)!;
+      expect(card).toBeTruthy();
+      expect(card.style.visibility).not.toBe("hidden");
+      return card;
+    });
+    await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
+      .not.toMatch(/^translate\(0px,\s*0px\)/));
+    // offsetWidth/offsetHeight are integers in a browser even with fractional CSS sizes.
+    expect(note.offsetWidth).toBe(251);
+    expect(note.offsetHeight).toBe(180);
+    const grip = within(note).getByRole("button", { name: "Resize card" });
+    mouse(grip, "mousedown", 300, 250);
+    mouse(window, "mousemove", 360, 290);
+    mouse(window, "mouseup", 360, 290);
+    expect(commit).toHaveBeenCalledExactlyOnceWith({
+      placementId: editor?.itemId ?? "placement-note",
+      before: geometry,
+      after: { ...geometry, width: 311, height: 220 },
+    });
+  });
+
+  it("preserves a clean editor and live touch resize across a placement ACK, then locks an uncertain content save", async () => {
+    const snapshot = projectTestSnapshot();
+    let placement = snapshot.placements.find((entry) => entry.id === "placement-note")!;
+    let acknowledgePlacement: (() => void) | undefined;
+    let rejectMarkdown: (() => void) | undefined;
+    const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return new Response(JSON.stringify(snapshot));
+      if (String(path).endsWith("/placements/placement-note") && init?.method === "PATCH") {
+        const input = JSON.parse(String(init.body));
+        if (!acknowledgePlacement) await new Promise<void>((resolve) => { acknowledgePlacement = resolve; });
+        placement = { ...placement, ...input.geometry, revision: placement.revision + 1 };
+        return new Response(JSON.stringify({ value: placement, replayed: false }));
+      }
+      if (String(path).endsWith("/contents/content-note/markdown") && init?.method === "PATCH") {
+        await new Promise<void>((resolve) => { rejectMarkdown = resolve; });
+        return new Response(JSON.stringify({ error: "Save response was lost" }), { status: 503 });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const router = createMemoryRouter([{ path: "/projects/:projectId", element: <ProjectPage /> }], { initialEntries: ["/projects/project-a"] });
+    const { container } = render(<RouterProvider router={router} />);
+    const note = await waitFor(() => {
+      const node = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
+      expect(node).toBeTruthy();
+      expect(node!.style.visibility).not.toBe("hidden");
+      return node!;
+    });
+    fireEvent.click(note);
+    fireEvent.click(within(await screen.findByRole("toolbar", { name: "Selected card actions" })).getByRole("button", { name: "Edit" }));
+    const field = await screen.findByRole("textbox", { name: "Edit Project Markdown" });
+    const grip = within(note).getByRole("button", { name: "Resize card" });
+    // A clean note must stay in its editor when the triangle's padding is touched.
+    const control = grip.closest(".project-node-resize-handle")!;
+    touch(control, "touchstart", 300, 250);
+    touch(control, "touchmove", 320, 260);
+    touch(control, "touchend", 320, 260);
+    expect(screen.getByRole("textbox", { name: "Edit Project Markdown" })).toBe(field);
+    await waitFor(() => expect(note.style.width).toBe("270px"));
+    await waitFor(() => expect(acknowledgePlacement).toBeTypeOf("function"), { timeout: 2_500 });
+    touch(control, "touchstart", 300, 250);
+    touch(control, "touchmove", 310, 260);
+    expect(note.style.width).toBe("280px");
+    await act(async () => { acknowledgePlacement!(); });
+    expect(note.style.width).toBe("280px");
+    expect(screen.getByRole("textbox", { name: "Edit Project Markdown" })).toBe(field);
+    expect((screen.getByRole("button", { name: "Save Markdown" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(field, { target: { value: "# Draft survives the earlier ACK" } });
+    touch(control, "touchmove", 340, 280);
+    touch(control, "touchend", 340, 280);
+    await waitFor(() => expect(note.style.width).toBe("310px"));
+    expect(note.style.height).toBe("220px");
+    fireEvent.click(screen.getByRole("button", { name: "Save Markdown" }));
+    await waitFor(() => expect(rejectMarkdown).toBeTypeOf("function"));
+    expect(within(note).queryByRole("button", { name: "Resize card" })).toBeNull();
+    await act(async () => { rejectMarkdown!(); });
+    await screen.findByRole("button", { name: "Retry exact save" });
+    expect(within(note).queryByRole("button", { name: "Resize card" })).toBeNull();
+    expect((field as HTMLTextAreaElement).value).toBe("# Draft survives the earlier ACK");
+    expect(note.style.width).toBe("310px");
+    expect((screen.getByRole("button", { name: "Undo" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it.each(["blur", "pointercancel", "touchcancel", "unmount", "owner removed"] as const)("releases the editor resize lock after %s without committing an unfinished size", async (interruption) => {
+    const onActiveChange = vi.fn();
+    const onCommit = vi.fn();
+    const nodes = projectMapNodes(projectTestSnapshot());
+    const editor: ProjectMapMarkdownEditorState = {
+      itemId: "item-note", value: "# Retained draft", isNew: false, geometry: null, status: "editing", message: null,
+    };
+    const surface = (hasOwner = true) => <ProjectMapSurface
+      nodes={hasOwner ? nodes : nodes.filter((node) => node.itemId !== editor.itemId)}
+      markdownEditor={hasOwner ? editor : null} markdownResizeItemId={hasOwner ? editor.itemId : null}
+      geometryInteractionDisabled selectedItemId="item-note" onSelect={() => undefined}
+      onGeometryCommit={onCommit} onMarkdownResizeCommit={onCommit} onMarkdownResizeActiveChange={onActiveChange} />;
+    const { container, rerender, unmount } = render(surface());
+    const grip = await screen.findByRole("button", { name: "Resize card" });
+    const note = grip.closest<HTMLElement>(".react-flow__node")!;
+    await waitFor(() => expect(note.style.visibility).not.toBe("hidden"));
+    await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
+      .not.toMatch(/^translate\(0px,\s*0px\)/));
+    if (interruption === "touchcancel") {
+      touch(grip, "touchstart", 300, 250);
+      touch(grip, "touchmove", 320, 280);
+    } else {
+      mouse(grip, "mousedown", 300, 250);
+      mouse(window, "mousemove", 320, 280);
+    }
+    expect(onActiveChange).toHaveBeenLastCalledWith(true);
+    expect(note.style.width).toBe("270px");
+    if (interruption === "unmount") unmount();
+    else if (interruption === "owner removed") rerender(surface(false));
+    else if (interruption === "touchcancel") act(() => { grip.dispatchEvent(new TouchEvent("touchcancel", { bubbles: true, touches: [], changedTouches: [] })); });
+    else fireEvent(window, new Event(interruption));
+    await waitFor(() => expect(onActiveChange).toHaveBeenLastCalledWith(false));
+    mouse(window, "mouseup", 320, 280);
+    expect(onCommit).not.toHaveBeenCalled();
+    if (!["unmount", "owner removed"].includes(interruption)) {
+      expect(note.style.width).toBe("250px");
+      expect((await screen.findByRole("textbox", { name: "Edit Project Markdown" }) as HTMLTextAreaElement).value).toBe("# Retained draft");
+    }
   });
 
   it.each(["mouse", "touch"] as const)("starts and completes a %s connection without dragging either card", async (input) => {

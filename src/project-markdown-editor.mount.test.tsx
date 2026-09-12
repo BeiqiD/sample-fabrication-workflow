@@ -8,6 +8,37 @@ import ProjectMarkdownEditor from "./components/project/ProjectMarkdownEditor";
 afterEach(cleanup);
 
 describe("Expanded Markdown editor", () => {
+  it("keeps typing available but defers Save and Cancel until a card resize ends", () => {
+    const onSave = vi.fn();
+    const onCancel = vi.fn();
+    const onChange = vi.fn();
+    const editor: ProjectMapMarkdownEditorState = {
+      itemId: "note", value: "Unsaved note", isNew: false, geometry: null,
+      status: "editing", message: null,
+    };
+    const props = { editor, compact: true, ariaLabel: "Resizing draft", onSave, onCancel, onChange };
+    const { rerender } = render(<ProjectMarkdownEditor {...props} interactionDisabled />);
+    const input = screen.getByLabelText("Resizing draft") as HTMLTextAreaElement;
+    expect(input.disabled).toBe(false);
+    fireEvent.change(input, { target: { value: "Still editable during resize" } });
+    expect(onChange).toHaveBeenCalledWith("Still editable during resize");
+    fireEvent.click(screen.getByRole("button", { name: "Save Markdown" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Expand editor" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const escape = createEvent.keyDown(input, { key: "Escape" });
+    fireEvent(input, escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+
+    rerender(<ProjectMarkdownEditor {...props} interactionDisabled={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save Markdown" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     { isNew: true, value: "", status: "editing" as const, cancels: true },
     { isNew: true, value: "Local draft", status: "editing" as const, cancels: true },

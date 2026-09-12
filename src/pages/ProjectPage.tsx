@@ -35,6 +35,7 @@ import type {
   UpdateProjectMarkdownInput,
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
+import { isProjectMapGeometry } from "../../shared/project-types";
 import type {
   ProjectMapGeometry,
 } from "../../shared/project-types";
@@ -311,6 +312,7 @@ export function ProjectPage() {
   const [pendingReferenceRemoval, setPendingReferenceRemovalState] = useState<PendingReferenceRemoval | null>(null);
   const [referenceActionError, setReferenceActionError] = useState("");
   const [markdownEditor, setMarkdownEditorState] = useState<MarkdownEditorState | null>(null);
+  const [markdownResizeActive, setMarkdownResizeActive] = useState(false);
   const [pendingAttachment, setPendingAttachmentState] = useState<ProjectPendingAttachmentPlacement | null>(null);
   const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
   const [ownedContentActionError, setOwnedContentActionError] = useState("");
@@ -353,6 +355,7 @@ export function ProjectPage() {
   const pendingReferenceCancellationRemovalRef = useRef<PendingReferenceCancellationRemoval | null>(null);
   const referenceRemovalGenerationRef = useRef(0);
   const markdownEditorRef = useRef<MarkdownEditorState | null>(null);
+  const markdownResizeActiveRef = useRef(false);
   const markdownCreateInputRef = useRef<CreateMarkdownProjectItemInput | null>(null);
   const markdownUpdateInputRef = useRef<UpdateProjectMarkdownInput | null>(null);
   const pendingAttachmentRef = useRef<ProjectPendingAttachmentPlacement | null>(null);
@@ -398,10 +401,16 @@ export function ProjectPage() {
     setPendingReferenceRemovalState(next);
   }, []);
 
+  const updateMarkdownResizeActive = useCallback((active: boolean) => {
+    markdownResizeActiveRef.current = active;
+    setMarkdownResizeActive(active);
+  }, []);
+
   const updateMarkdownEditor = useCallback((next: MarkdownEditorState | null) => {
+    if (next?.itemId !== markdownEditorRef.current?.itemId) updateMarkdownResizeActive(false);
     markdownEditorRef.current = next;
     setMarkdownEditorState(next);
-  }, []);
+  }, [updateMarkdownResizeActive]);
 
   const updatePendingAttachment = useCallback((next: ProjectPendingAttachmentPlacement | null) => {
     pendingAttachmentRef.current = next;
@@ -1015,6 +1024,7 @@ export function ProjectPage() {
       pendingReferenceRemovalRef.current = null;
       pendingReferenceCancellationRemovalRef.current = null;
       markdownEditorRef.current = null;
+      markdownResizeActiveRef.current = false;
       markdownCreateInputRef.current = null;
       markdownUpdateInputRef.current = null;
       pendingAttachmentRef.current = null;
@@ -1167,16 +1177,38 @@ export function ProjectPage() {
     }
   }, [trash.pending, attachmentEditor, blocker, copyPaste.unsafe, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
 
-  const commitGeometryBatch = useCallback((commands: readonly ProjectGeometryCommand[]) => {
+  const canResizeMarkdown = useCallback(() => {
+    const editor = markdownEditorRef.current;
+    return Boolean(projectReadyRef.current && editor
+      && (editor.status === "editing" || editor.status === "error")
+      && !ownedContentReloadPending && !pendingReferenceRef.current && !pendingReferenceRemovalRef.current
+      && !pendingAttachmentRef.current && !attachmentEditorRef.current
+      && !copyPaste.unsafeRef.current && !edgeController.unsafeRef.current && !trashControllerRef.current?.unsafeRef.current
+      && !confirmingProjectDeletion && !deletingProject && !projectDeleteUncertain
+      && blocker.state !== "blocked" && saveStateRef.current !== "conflict" && saveStateRef.current !== "error");
+  }, [blocker.state, confirmingProjectDeletion, copyPaste.unsafeRef, deletingProject,
+    edgeController.unsafeRef, ownedContentReloadPending, projectDeleteUncertain]);
+
+  const commitGeometryBatch = useCallback((commands: readonly ProjectGeometryCommand[], editorResize = false) => {
     if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
       || pendingReferenceRef.current?.status === "reconciling"
-      || markdownEditorRef.current
+      || (markdownEditorRef.current && !editorResize)
       || pendingAttachmentRef.current
       || attachmentEditorRef.current
       || copyPaste.unsafeRef.current
       || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
     const normalized = normalizeProjectGeometryCommands(commands);
     if (normalized.length === 0) return;
+    if (editorResize) {
+      const editor = markdownEditorRef.current;
+      const command = normalized[0];
+      const placement = snapshot?.placements.find((entry) => entry.projectItemId === editor?.itemId);
+      if (!canResizeMarkdown() || editor?.isNew || normalized.length !== 1 || !placement
+        || placement.id !== command.placementId || !isProjectMapGeometry(command.after)
+        || !projectGeometryEquals(geometryRef.current[placement.id], command.before)
+        || command.before.x !== command.after.x || command.before.y !== command.after.y
+        || command.before.zIndex !== command.after.zIndex) return;
+    }
     const next = { ...geometryRef.current };
     for (const command of normalized) next[command.placementId] = command.after;
     geometryRef.current = next;
@@ -1192,11 +1224,26 @@ export function ProjectPage() {
       updateSaveState("unsaved");
       scheduleAutosave();
     }
-  }, [ownedContentReloadPending, scheduleAutosave, updateSaveState]);
+  }, [canResizeMarkdown, ownedContentReloadPending, scheduleAutosave, snapshot, updateSaveState]);
 
   const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
     commitGeometryBatch([command]);
   }, [commitGeometryBatch]);
+
+  const commitMarkdownResize = useCallback((command: ProjectGeometryCommand) => {
+    const editor = markdownEditorRef.current;
+    if (!canResizeMarkdown() || !editor || !isProjectMapGeometry(command.after)
+      || command.before.x !== command.after.x || command.before.y !== command.after.y
+      || command.before.zIndex !== command.after.zIndex) return;
+    if (!editor.isNew) {
+      commitGeometryBatch([command], true);
+      return;
+    }
+    // A new note has no persisted placement and creates no Canvas history until saved.
+    if (!editor.geometry || command.placementId !== editor.itemId
+      || !projectGeometryEquals(editor.geometry, command.before)) return;
+    updateMarkdownEditor({ ...editor, geometry: command.after });
+  }, [canResizeMarkdown, commitGeometryBatch, updateMarkdownEditor]);
 
   const canApplyHistory = useCallback((direction: "undo" | "redo") => {
     if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
@@ -1863,7 +1910,7 @@ export function ProjectPage() {
 
   const cancelMarkdown = useCallback((leave = false) => {
     const current = markdownEditorRef.current;
-    if (!current || current.status === "saving" || current.status === "uncertain") return;
+    if (!current || markdownResizeActiveRef.current || current.status === "saving" || current.status === "uncertain") return;
     markdownCreateInputRef.current = null;
     markdownUpdateInputRef.current = null;
     ownedContentGenerationRef.current += 1;
@@ -1876,7 +1923,7 @@ export function ProjectPage() {
 
   const saveMarkdown = useCallback(async () => {
     const current = markdownEditorRef.current;
-    if (!projectId || !snapshot || !current || (current.status !== "editing" && current.status !== "error" && current.status !== "uncertain") || !current.value.trim()) return;
+    if (!projectId || !snapshot || !current || markdownResizeActiveRef.current || (current.status !== "editing" && current.status !== "error" && current.status !== "uncertain") || !current.value.trim()) return;
     const generation = ownedContentGenerationRef.current;
     updateMarkdownEditor({ ...current, status: "saving", message: null });
     setOwnedContentActionError("");
@@ -2679,14 +2726,14 @@ export function ProjectPage() {
     || (inspectorPanelOpen && edgeController.editor !== null);
 
   const prepareCanvasInteraction = useCallback((target: EventTarget | null) => {
-    if (!(target instanceof Element) || !projectReadyRef.current || !snapshot
+    if (!(target instanceof Element) || !projectReadyRef.current || !snapshot || markdownResizeActiveRef.current
       || ownedContentReloadPending || confirmingProjectDeletion || deletingProject || projectDeleteUncertain
       || blocker.state === "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || pendingAttachmentRef.current || copyPaste.unsafeRef.current || trashControllerRef.current?.unsafeRef.current
       || edgeController.pending) return;
     const canvas = target.closest<HTMLElement>(".project-flow-canvas");
     if (!canvas || target.closest([
-      ".project-markdown-editor", ".project-markdown-editor-shell", ".project-edge-toolbar",
+      ".project-markdown-editor", ".project-markdown-editor-shell", ".project-edge-toolbar", ".project-node-resize-handle",
       "input", "textarea", "select", "button", "a", "[contenteditable=true]",
       "[role=menu]", "[role=dialog]", "[inert]",
     ].join(","))) return;
@@ -2825,7 +2872,7 @@ export function ProjectPage() {
         ? edgeController.editor.label !== (edgeController.selectedEdge.label ?? "")
           || edgeController.editor.direction !== projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)
         : false;
-  const activeEditorCanSave = Boolean(activeEditor
+  const activeEditorCanSave = Boolean(activeEditor && !markdownResizeActive
     && (activeEditor.status === "editing" || activeEditor.status === "error" || activeEditor.status === "uncertain")
     && (!markdownEditor || markdownEditor.value.trim()));
   const displayedSaveState = activeEditor
@@ -3132,7 +3179,7 @@ export function ProjectPage() {
               title={inspectorEditing ? "Cancel editing (Esc)" : "Close Inspector (Esc)"}
               aria-label={inspectorEditing ? "Cancel editing" : "Close Inspector"}
               aria-keyshortcuts="Escape"
-              disabled={inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error"}
+              disabled={markdownResizeActive || (inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error")}
               onClick={closeInspectorPanel}
             ><DialogCloseIcon /></button>
           </div>
@@ -3146,6 +3193,7 @@ export function ProjectPage() {
           <h2>Edit Markdown</h2>
           <Suspense fallback={<p role="status">Opening editor…</p>}><ProjectMarkdownEditor
             editor={markdownEditor}
+            interactionDisabled={markdownResizeActive}
             ariaLabel="Inspector Markdown editor"
             onChange={changeMarkdown}
             onSave={() => void saveMarkdown()}
@@ -3476,7 +3524,7 @@ export function ProjectPage() {
             aria-pressed={inspectorPanelOpen}
             aria-label="Inspector"
             title={inspectorEditing ? "Cancel editing (Esc)" : "Inspector"}
-            disabled={inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error"}
+            disabled={markdownResizeActive || (inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error")}
             onClick={() => {
               if (inspectorPanelOpen) {
                 closeInspectorPanel();
@@ -3686,7 +3734,7 @@ export function ProjectPage() {
         {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
         {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
         {pendingAttachment?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
-        {markdownEditor && (markdownEditor.status === "editing" || markdownEditor.status === "error") && <button type="button" className="button primary compact-button" disabled={!markdownEditor.value.trim()} onClick={() => void saveMarkdown()}>Save Markdown and leave</button>}
+        {markdownEditor && (markdownEditor.status === "editing" || markdownEditor.status === "error") && <button type="button" className="button primary compact-button" disabled={markdownResizeActive || !markdownEditor.value.trim()} onClick={() => void saveMarkdown()}>Save Markdown and leave</button>}
         {markdownEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
         {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
         {attachmentEditor && (attachmentEditor.status === "editing" || attachmentEditor.status === "error") && <button type="button" className="button primary compact-button" onClick={() => void saveAttachmentMetadata()}>Save metadata and leave</button>}
@@ -3754,6 +3802,10 @@ export function ProjectPage() {
             focusedItemId={navigationFocusItemId}
             selectedEdgeId={edgeController.selectedEdgeId}
             geometryInteractionDisabled={geometryInteractionDisabled}
+            markdownResizeItemId={canResizeMarkdown() ? markdownEditor?.itemId : null}
+            markdownResizeActive={markdownResizeActive}
+            onMarkdownResizeActiveChange={updateMarkdownResizeActive}
+            onMarkdownResizeCommit={commitMarkdownResize}
             edgeInteractionDisabled={edgeController.interactionDisabled}
             contextCommands={contextCommands}
             onSelect={selectProjectItem}

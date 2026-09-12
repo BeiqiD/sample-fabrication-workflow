@@ -34,9 +34,20 @@ discarded the marker and restored Saved. A final reload confirmed four cards,
 Saved, the matching entry asset, and no marker; no application content change
 was persisted. macOS Command+S was not exercised.
 
-These observations confirm the new controls are deployed, help retains an active
-draft, and desktop Control+S cannot save through it. Full interaction and device
-acceptance remains open: Phase 5C4 is in progress and Phase 5D has not started.
+The subsequent desktop continuation verified Markdown/reference/edge Inspector
+entry, clean-editor handoff, dirty-edge draft protection, keyboard activation of
+More actions, native Inspector and Reading copying, and background isolation for
+Delete and help's Control+A. Overlapping inline Save/Cancel and display-mode
+resizing also passed pointer checks. The compact result table and observed
+placement-conflict recovery are recorded in the
+[C4 desktop browser results](./PROJECT_C4_ACCEPTANCE.md#desktop-browser-results).
+
+The user additionally requested resizing the current card while editing and
+letting large-card textarea/Preview areas use the available height. The code now
+supports both; existing-card size uses placement history, while new-note size
+stays local until creation. The refinement is not yet deployed or browser-accepted.
+Full interaction and device acceptance
+remains open: Phase 5C4 is in progress and Phase 5D has not started.
 No manual deployment, migration, or remote configuration change was performed.
 
 ## Product changes
@@ -85,10 +96,11 @@ or geometry write was needed for this inspection.
 
 ## Remaining browser acceptance
 
-Continue checking compact Markdown/edge Edit controls and More actions, native
-text selection and keyboard ownership, and Canvas commands under help. The
-desktop draft/Control+S/Escape/Cancel sequence passed above; macOS Command+S
-and other Canvas commands under help remain unverified in the browser.
+Validate the new editing-state resize and large-card editor layout after its
+deployment. The desktop draft/Control+S/Escape/Cancel,
+Control+A/Delete isolation, native copying, and More actions checks passed
+above; macOS Command shortcuts and the remaining Canvas commands under help
+are still unverified in the browser.
 
 Check header alignment and light/night contrast at narrow and wide sizes, help
 scrolling at short heights, and the adjacent `480/481`, `560/561`, `859/860`, and

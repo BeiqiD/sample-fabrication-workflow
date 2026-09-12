@@ -1,14 +1,14 @@
 # Project C4 integration acceptance
 
-Status: in progress. PRs #175–#178 are merged, the final integration commit's
-CI passed, and the deployed page now exposes the new shortcut and Inspector UI.
-Browser/device acceptance remains incomplete; Phase 5D has not started.
+Status: in progress. The deployed Inspector and shortcut changes passed the
+desktop checks below. Editor resizing and space use are being refined;
+browser/device acceptance remains incomplete and Phase 5D has not started.
 
 Reviewed: 2026-09-12.
 
 ## Current integration check — 2026-09-12
 
-- Branch: `v2/backend-foundation`; final merge commit
+- Deployed code baseline: `v2/backend-foundation` merge commit
   [`791f00073ee69f4ce2c59a377705fe3faee61423`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/791f00073ee69f4ce2c59a377705fe3faee61423),
   tree `a4279e14d400f6178d4e5e8b93d9d239858de3bc`.
 - Both jobs checked out that commit and passed:
@@ -16,59 +16,108 @@ Reviewed: 2026-09-12.
   and [Project Map performance](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/34710705597/job/103598858669).
   Both production builds emitted `index-CAh5QSPs.js`,
   `ProjectPage-CEKAkFht.js`, and `ProjectMapSurface-BxPAFhhU.js`.
-- Earlier observation: an authenticated browser reloaded the synthetic QA Project at
-  `1363 × 936` on `https://sample-workflow-v3.clannadas.workers.dev`.
-  It still served `index-BkL0387N.js`; the Keyboard shortcuts button count was
-  zero. Double-clicking `QA · Diffusion hypothesis` opened the read-only
-  Inspector, where the old `Edit Markdown` button measured `310 × 42px` inside
-  a `340px` Inspector. The merged UI instead places pencil-and-Edit in the type
-  row. That earlier session could not establish acceptance of those merged UI changes.
-- That earlier check used inspection and reload only. It changed no application data and
-  performed no deployment, configuration change, or migration. The observations
-  do not identify the exact older deployed commit or explain the deployment gap.
-  Inspector was closed afterward; Saved remained visible and Undo, Redo, and
-  Save remained disabled throughout. No editor was entered.
-- Follow-up: the integration commit's
+- The integration commit's
   [Workers Builds: sample-workflow-v3 check](https://github.com/BeiqiD/sample-fabrication-workflow/runs/103601517189)
   completed successfully. An ordinary browser reload then served
   `index-CAh5QSPs.js`, matching the CI entry asset, and exposed one Keyboard
-  shortcuts button. The previously observed served-build mismatch is resolved.
-- At the same `1363 × 936` desktop viewport, opening Keyboard shortcuts displayed
-  Workspace and Map canvas instructions. Escape closed help and returned focus
-  to its trigger. Double-clicking the Markdown card opened Inspector; the visible
-  action text was `Edit`, measuring `64 × 34px` inside the unchanged `340px`
-  Inspector. These are direct observations of the new deployed controls.
-- A temporary QA marker was appended in the Inspector's native Markdown
-  textarea, producing Unsaved Markdown. With help open, Control+S left help
-  open, retained the temporary marker in the draft and Unsaved Markdown state,
-  and did not put the marker on the card. Escape closed only help, returned focus to Keyboard
-  shortcuts, and preserved the draft. Plain-text Cancel then restored Saved and
-  removed the marker. After closing Inspector and reloading, the matching entry,
-  four cards, Saved state, and absence of the marker were confirmed. No content
-  change was persisted. This exercised desktop Control+S, not macOS Command+S.
+  shortcuts button. An earlier inspection had served `index-BkL0387N.js` and
+  shown the old `310 × 42px` Edit Markdown button. That mismatch is resolved;
+  the earlier observation did not establish its cause or the older deployed commit.
+- [PR #179](https://github.com/BeiqiD/sample-fabrication-workflow/pull/179) merged
+  the preceding acceptance record as `93d540ac302764a9d0c675911d79069bb9a121e3`,
+  tree `fff2d196ee1c230be6fd8b9a638b990f1c6c107c`. This documentation-only merge
+  preserves the tested code baseline.
+- The following checks used the authenticated synthetic QA Project at
+  `1363 × 936` on `https://sample-workflow-v3.clannadas.workers.dev`, serving
+  `index-CAh5QSPs.js`. They do not exercise the new editor-resizing work below.
 - No manual deployment, migration, or remote configuration change was performed.
 
-### Resume acceptance
+### Desktop browser results
 
-The entry-asset match and new controls allow integrated browser acceptance to
-continue. Reuse the existing CI and historical workflow evidence within its
-recorded scope; the remaining browser checks are:
+| Check | Direct observation |
+| --- | --- |
+| Markdown and reference entry | Markdown single-click selected it; double-click opened Inspector. Reference double-click also opened Inspector. Clicking a reference from an unchanged Markdown editor exited editing and left Saved. |
+| Compact Inspector actions | Markdown's permanent `Edit` measured `64 × 34px` inside the `340px` Inspector. Edge direction read Source → target; Enter opened and closed More actions, exposing Delete edge when open. |
+| Edge editing | Single-click selected the edge without opening Inspector; double-click opened Inspector. An unchanged edge editor yielded to a card click. With a temporary label, the same click retained the draft and prompted Save or Cancel; Cancel preserved the original label. |
+| Native text and panel ownership | A selected word in the reference Inspector copied with Control+C and matched the actual clipboard. Delete with an Inspector button focused did not remove a card. In Reading, selecting and copying `Synthetic` matched the clipboard; Delete left all four articles intact. The first Details activation opened Inspector. |
+| Help and keyboard ownership | Help displayed Workspace and Map canvas instructions. With a temporary Markdown draft, Control+S left help open and the marker unsaved; Escape closed only help, returned focus to its trigger, and retained the draft. Plain Cancel discarded it. Control+A and Delete under help preserved the background single-card selection and all four cards. |
+| Overlapping editor controls | The comment reference at layer `3` was moved over both inline Save and Cancel centers. While editing, the note used display layer `5`; both centers lay within the reference bounds but `elementFromPoint` hit their own controls. Actual Cancel and Save clicks (without a text change) exited editing and returned the note to layer `1`. Undo restored the reference's exact original DOM style. |
+| Display-mode resizing | An interior point at 70% of the visible corner triangle hit the resize control. Pointer resizing changed the reference from `445 × 239` to `505 × 284`; Undo restored its exact original geometry. |
+| Reference controls | All four connection-port centers hit their own handles and their parent allowed visible overflow. On hover, Open source was horizontally centered at the card bottom, separate from the resize corner. This checks presentation and hit targets, not creating a new connection. |
 
-| Priority | Integrated browser check | Required observation |
-| --- | --- | --- |
-| P0 | Overlapping Markdown editor and higher-layer reference | Cancel and Save centers hit their own controls and real clicks work; leaving the editor restores the original display layer without a placement write. |
-| P0 | Markdown, reference, and edge interaction | Single-click selection, double-click Inspector, and explicit Edit remain consistent; an unchanged editor yields to the next Canvas operation, while a dirty draft remains protected. |
-| P0 | Keyboard help over an active draft | Desktop Control+S isolation, Escape focus/draft retention, and subsequent Cancel passed above. macOS Command+S and other Canvas commands under help remain unverified in the browser. |
-| P0 | Keyboard ownership in Inspector and Reading | Native text selection/copy remain available; Delete and other Canvas commands do not mutate the background. Canvas commands resume when focus returns to the Canvas. |
-| P0 | Compact Inspector actions | The permanent Edit action is discoverable beside the type, content remains visually primary, direction is readable, and edge deletion is reachable through the initially closed More actions. |
+During the first overlap-positioning attempt, the UI reported Placement revision
+conflict and stopped saving. Reloading the authoritative Project recovered the
+workspace, and a fresh drag saved successfully. The observation and read-only
+code review did not establish the cause; it is not attributed to another writer
+or recorded as a confirmed unresolved defect. This was not controlled conflict
+injection and does not qualify all reconciliation paths.
+
+The QA Project was returned to four cards and Saved with the tested geometry
+changes undone. No temporary text or edge label was persisted. A final reload
+confirmed four cards, Saved, no temporary marker, and the comment reference's
+restored `445 × 239` size and original position/layer.
+
+### New editor requirement — implemented, deployed acceptance pending
+
+The user requested that the current card retain its bottom-right resize control
+while editing. For large Markdown cards, the textarea and Preview should expand
+with the card instead of remaining capped at `360px` and leaving a large unused
+gap. The implementation now permits resizing only the active Markdown card in
+Canvas or Inspector editing. Existing cards save size through normal placement
+history: Cancel discards the content draft, while Undo after editing restores the
+size. New notes keep their size locally until creation. Save, Cancel, and Expand
+wait for an active resize to finish; interrupted gestures release that lock.
+
+The compact textarea and Preview no longer have the `360px` height cap. They fill
+the available card height, with actions below and form scrolling for very small
+cards. Deployed browser measurements remain pending and are required before
+treating the new resizing and layout behavior as accepted.
+
+Regression coverage exercises actual ReactFlow resize controls in Canvas and
+Inspector editing, draft preservation, placement saves and Undo/Redo, new-note
+creation/cancellation, a placement response arriving during a later gesture,
+uncertain outcomes, and cancelled/unmounted gestures. The full regression run
+also exposed an edge-toolbar test that compared positions before and after
+initial fit; that test now waits for fit before recording its baseline and keeps
+its original selection and position assertions.
+
+Independent review also caught a fractional-size boundary: browser node
+measurements round saved dimensions, so resize commands must retain descriptor
+geometry as their original state. Three regressions reproduced the failure with
+integer DOM measurements for an existing editor, an ordinary card, and a new
+draft descriptor; the resize result still uses the native gesture dimensions.
+
+Local source tests passed in 183 files / 992 tests; mounted interaction tests
+passed in 57 files / 430 tests. Bundled development and production formulas also
+passed. Independent review confirmed the fractional-size correction and found
+no remaining blocker in the reviewed resize and editor-layout changes.
+The complete `npm run verify:ci` gate passed, including TypeScript/export
+contracts, local migrations, Reference and search Worker smoke checks,
+production build, lazy Map bundle ownership, and production Project Worker plus
+assets. The local build emitted `index-BwVQjoze.js`, `ProjectPage-49wfw6sZ.js`,
+and `ProjectMapSurface-CVR8I2pQ.js`; these names are a comparison baseline for the
+pending deployed check, not deployment evidence.
+
+The deployed reproduction used a `1200 × 1000` Markdown card. Its textarea had
+computed height and max-height of `360px`, leaving about `197.2` screen pixels
+before Save at the fitted Canvas zoom; editing exposed no Resize card button.
+
+### Remaining acceptance
+
+The desktop results cover the actions named above. macOS Command shortcuts,
+other Canvas commands under help, and returning keyboard ownership to the Canvas
+still need their applicable browser checks. Reuse the existing CI and historical
+evidence within its recorded scope.
 
 Check ordinary and long-title content at `1440 × 900`, `1024 × 600`,
 `390 × 600`, and `360 × 600`, including light/night themes, header alignment,
 independently scrolling help content, and focus restoration. Use adjacent widths
 `480/481`, `560/561`, `859/860`, and `1180/1181` for the changed Help layout,
 mobile header, panel modality, and desktop panel/control sizing respectively.
-Recheck the connection ports, resize grip, and bottom-centered source action at
-normal and reduced Canvas zoom. Reuse the existing named QA fixtures.
+Recheck the connection ports, editor resize grip, and bottom-centered source
+action at normal and reduced Canvas zoom. Reuse the existing named QA fixtures.
+Native Control+plus/equals did not change the browser viewport in this session;
+no narrow-screen result is claimed from that attempt.
 
 Responsive browser or controlled CSS-viewport evidence must remain separate from
 physical touch, multi-finger cancellation, soft-keyboard/visual-viewport,

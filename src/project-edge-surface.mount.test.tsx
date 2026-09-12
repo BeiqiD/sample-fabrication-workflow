@@ -231,6 +231,8 @@ describe("real Project edge surface", () => {
     const canvas = view.getByTestId("project-flow-canvas");
     vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 700, width: 1000, height: 700, toJSON: () => ({}) });
     await waitFor(() => expect(edge()).toBeTruthy());
+    // Compare anchors in the same viewport, after the asynchronous initial fit.
+    await waitFor(() => expect(view.container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform).not.toContain("scale(1)"));
     fireEvent.keyDown(edge(), { key: "Enter" });
     const firstToolbar = await view.findByRole("toolbar", { name: "Selected edge actions" });
     const keyboardPosition = firstToolbar.style.transform;
