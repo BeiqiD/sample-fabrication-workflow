@@ -835,7 +835,14 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     if (draft) active.push(draft);
     if (pendingReference) active.push(buildPendingReferenceFlowNode(pendingReference, callbacks));
     if (pendingAttachment) active.push(buildPendingAttachmentFlowNode(pendingAttachment, callbacks));
-    return active;
+    if (!markdownEditor) return active;
+    // Keep the active editor's controls reachable across overlapping cards. This
+    // is a visual lift only: descriptor geometry retains the user's saved order.
+    const editorZIndex = active.reduce((highest, node) => Math.max(highest, node.data.descriptor.geometry.zIndex), 0) + 1;
+    return active.map((node) => node.data.markdownEditor ? {
+      ...node,
+      style: { ...node.style, zIndex: editorZIndex },
+    } : node);
   }, [callbacks, descriptors, detailLevel, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
