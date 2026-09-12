@@ -64,10 +64,17 @@ describe("Project Canvas productivity contracts", () => {
     expect(shortcut("z", { ctrlKey: true })).toBe("undo");
     expect(shortcut("z", { metaKey: true, shiftKey: true })).toBe("redo");
     expect(shortcut("y", { ctrlKey: true })).toBe("redo");
+    expect(shortcut("y", { metaKey: true })).toBeNull();
     expect(shortcut("Escape")).toBe("clear-selection");
     expect(shortcut("a")).toBeNull();
     expect(shortcut("s", { ctrlKey: true, altKey: true })).toBeNull();
     expect(shortcut("z", { ctrlKey: true, isComposing: true })).toBeNull();
+    for (const key of ["a", "c", "v", "s", "z", "y"]) {
+      expect(shortcut(key, { ctrlKey: true, metaKey: true })).toBeNull();
+    }
+    for (const modifier of ["altKey", "ctrlKey", "metaKey", "shiftKey", "isComposing"] as const) {
+      expect(shortcut("Escape", { [modifier]: true })).toBeNull();
+    }
   });
 
   it("leaves native editing shortcuts inside editable controls", () => {

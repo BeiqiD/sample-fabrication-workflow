@@ -362,7 +362,7 @@ Phase 4B multi-selection uses only Project item occurrence IDs:
   authoritative selection immediately instead of retaining a visual-only selection.
 
 `Ctrl/Command+A` selects all committed Map occurrences, `Escape` clears selection,
-`Ctrl/Command+Z` undoes, `Ctrl/Command+Shift+Z` or `Ctrl/Command+Y` redoes, and
+`Ctrl/Command+Z` undoes, `Ctrl/Command+Shift+Z` or `Ctrl+Y` redoes, and
 `Ctrl/Command+S` saves the active editor first, otherwise flushes placement saves.
 Canvas selection, movement, history, clipboard, and Delete/Backspace shortcuts do
 not take over inputs, textareas, selects, contenteditable regions, textbox roles,
@@ -371,6 +371,26 @@ inside the active Project editor. It is still consumed when Save is
 disabled by saved/saving/conflict or another active operation, so it becomes a
 safe Project no-op rather than opening the browser Save Page dialog. Selection is
 never persisted or exported.
+
+The keyboard icon beside Save opens a focused, scrollable shortcut reference.
+It lists the existing Save, Escape, history, card copy/paste, select-all, and
+removal commands; it does not introduce single-letter tools or an open-help
+shortcut. `Command+Y` remains available to the browser. Chords accept exactly one
+of Control or Command, with Shift only for the documented redo combination.
+
+Canvas commands do not run while focus belongs to References, Inspector,
+Add/Project actions, Trash, or the shortcut reference. Inputs and rendered reading
+text keep native text operations. Save still belongs to the active editor, including
+its expanded presentation; the help dialog isolates background Save as well as
+Canvas commands, retaining the underlying draft. Closing help restores its trigger.
+
+Only plain Escape dismisses a layer. Modified Escape and IME composition must not
+close menus, panels, or editors or alter selection. Escape handles one current
+layer at a time; saving, uncertain and conflict states retain their existing
+protection. Only unmodified Delete/Backspace removes a selection. React Flow's
+node and multi-selection keyboard handlers must not move cards on Control,
+Command, Alt, or composing arrow keys. Ordinary arrows and Shift-arrow movement
+and focused control navigation retain their current behavior.
 
 A Project-local occurrence removal is a mutation boundary. It starts only from a
 safely saved placement state, retains one exact lifecycle request and operation

@@ -190,6 +190,75 @@ describe("mounted Phase 4B Canvas productivity", () => {
     expect(screen.getByRole("heading", { name: "2 items selected" })).toBeTruthy();
   });
 
+  it.each(["Add", "Project actions", "Inspector", "References", "Trash"] as const)(
+    "keeps %s controls from changing the Canvas selection, clipboard or history",
+    async (surface) => {
+      fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
+      renderProjectPage();
+      fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+      fireEvent.keyDown(document, { key: "c", ctrlKey: true });
+      await screen.findByText("1 copied");
+      if (surface === "Trash") {
+        fireEvent.click(screen.getByRole("button", { name: "Project actions" }));
+        fireEvent.click(screen.getByRole("button", { name: "Project trash" }));
+        await screen.findByText("Trash is empty.");
+      } else fireEvent.click(screen.getByRole("button", { name: surface }));
+      const target = surface === "Add" ? screen.getByRole("button", { name: "Note / Markdown" })
+        : surface === "Project actions" ? screen.getByRole("button", { name: "Project trash" })
+        : surface === "Trash" ? screen.getByRole("button", { name: "Close Project trash" })
+        : screen.getByRole("button", { name: `Close ${surface}` });
+      target.focus();
+      for (const modifier of ["ctrlKey", "metaKey"] as const) {
+        for (const key of ["a", "c", "v", "z", "y"]) {
+          const event = new KeyboardEvent("keydown", {
+            key, [modifier]: true, bubbles: true, cancelable: true,
+          });
+          fireEvent(target, event);
+          expect(event.defaultPrevented).toBe(false);
+        }
+      }
+      expect(screen.queryByText("2 selected")).toBeNull();
+      expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === "GET")).toBe(true);
+
+      fireEvent.click(screen.getByRole("button", { name: "Move selected items" }));
+      expect(screen.getByText("Note x: 60")).toBeTruthy();
+      fireEvent.keyDown(target, { key: "z", ctrlKey: true });
+      expect(screen.getByText("Note x: 60")).toBeTruthy();
+      // Returning to the Canvas restores the same history command.
+      fireEvent.keyDown(document, { key: "z", ctrlKey: true });
+      expect(screen.getByText("Note x: 20")).toBeTruthy();
+    },
+  );
+
+  it.each(["Add", "Project actions", "Inspector", "References", "Trash"] as const)(
+    "reserves plain Escape for the %s layer",
+    async (surface) => {
+      fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
+      renderProjectPage();
+      fireEvent.click(await screen.findByRole("button", { name: "Select note" }));
+      if (surface === "Trash") {
+        fireEvent.click(screen.getByRole("button", { name: "Project actions" }));
+        fireEvent.click(screen.getByRole("button", { name: "Project trash" }));
+      } else fireEvent.click(screen.getByRole("button", { name: surface }));
+      const target = surface === "Add" ? screen.getByRole("button", { name: "Note / Markdown" })
+        : surface === "Project actions" ? screen.getByRole("button", { name: "Project trash" })
+        : surface === "Trash" ? screen.getByRole("button", { name: "Close Project trash" })
+        : screen.getByRole("button", { name: `Close ${surface}` });
+      for (const modifier of ["altKey", "ctrlKey", "metaKey", "shiftKey", "isComposing"] as const) {
+        const event = new KeyboardEvent("keydown", {
+          key: "Escape", [modifier]: true, bubbles: true, cancelable: true,
+        });
+        fireEvent(target, event);
+        expect(event.defaultPrevented).toBe(false);
+        expect(target.isConnected).toBe(true);
+      }
+      fireEvent.keyDown(target, { key: "Escape" });
+      await waitFor(() => expect(target.isConnected).toBe(false));
+      openInspector();
+      expect(await screen.findByRole("region", { name: "Inspector Markdown content" })).toBeTruthy();
+    },
+  );
+
   it("records grouped movement as one Undo/Redo history command", async () => {
     fetchMock.mockImplementation(() => jsonResponse(projectTestSnapshot()));
     renderProjectPage();

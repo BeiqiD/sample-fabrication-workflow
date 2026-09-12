@@ -1,7 +1,8 @@
 export type ActionIconName = "actions" | "delete" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun"
-  | "plus" | "chevron-down" | "arrow-left" | "undo" | "redo" | "more" | "attachment" | "pin" | "save" | "grip" | "open" | "inspector" | "note" | "link";
+  | "plus" | "chevron-down" | "arrow-left" | "undo" | "redo" | "more" | "attachment" | "pin" | "save" | "grip" | "open" | "inspector" | "note" | "link" | "edit";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
+  edit: <><path d="m15 4 5 5-10 10-6 1 1-6zM13 6l5 5" /><path d="m15 4 1.5-1.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L20 9" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   "arrow-left": <path d="M20 12H4m6-6-6 6 6 6" />,

@@ -414,8 +414,6 @@
   border-top: 1px solid var(--line);
 }
 .project-inspector-direction { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; }
-.project-inspector kbd,
-.project-edge-toolbar kbd { font: inherit; font-size: 10px; opacity: .65; }
 .project-reading-panel {
   position: fixed;
   inset: 132px 12px 12px auto;

@@ -494,6 +494,20 @@ Presentation changes instead:
 
 ### Inspector
 
+- Reading the selected content and its relationships is the default task. A
+  persistent, compact pencil-and-Edit control sits at the right of the occurrence
+  type row, with an explicit accessible name for Markdown, attachment metadata,
+  or edge editing. It is not a full-width primary action or a hover-only icon.
+- Content, named relationship endpoints and readable direction follow the summary.
+  Source navigation remains explicit and compact. Technical identity stays in
+  Details; infrequent removal stays under More actions, including edge deletion.
+- Save is visually primary only while editing. Cancel has a plain visible label;
+  its Escape behavior remains available through keyboard metadata and the shared
+  help reference, rather than text appended to the button.
+- The keyboard icon beside Save opens shortcut help without replacing selection,
+  changing an editor draft, or enabling commands behind the dialog. The reference
+  separates workspace Save/Escape from Canvas-only commands and explains native
+  text-editor ownership. It stays usable in Reading and on short/narrow screens.
 - immutable insertion sequence may remain visible in an advanced Project
   occurrence section because there it is correctly labeled as technical ordering
   metadata rather than a reader-facing ordinal.
