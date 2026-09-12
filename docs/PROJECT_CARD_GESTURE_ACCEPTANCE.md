@@ -11,7 +11,7 @@ user's request for intuitive selection, dragging, editing and realistic records.
 | Press and move | Drag from any non-interactive area, including Markdown text, mathematical content, blank space, reference excerpts and attachment images. No preliminary selection click is needed. |
 | Double-click Markdown | Open the existing editor from its body, formula, heading or header. |
 | Double-click a reference or attachment | Open Details, subject to the existing panel lock. |
-| Selected card's bottom-right triangular grip | Drag to resize. The target stays at least 32 screen pixels when zoomed out; other corners and edges do not resize. Only the primary selection exposes the grip, outside editing and geometry locks. |
+| Any committed card's bottom-right corner | Drag the always-visible triangular border corner to resize directly, without selecting first. The 36-unit corner scales with the card and stays clear of content/source links. Only that card resizes; selection is preserved. Editing and geometry locks disable this operation. |
 | Arrow keys with the resize grip focused | Adjust width/height by 5 canvas units, or 20 with Shift. Preserve position and layer, respect existing dimension limits, and retain Save/Undo/Redo. |
 | Link, editor, resize grip or connection handle | Keep its own operation; do not start card movement or double-click editing. |
 | Scroll a long note | Scroll its contents. Arrow/Page/Home/End keys retain scrolling when its reading region has focus. |
@@ -73,15 +73,24 @@ deployment gate and activation requirements still apply.
 
 The authenticated Cloudflare page reproduced the resizing difficulty: selected
 cards exposed four 9px corner targets, partly clipped by the card, alongside
-thin edge targets. The replacement uses one bottom-right triangular grip with a
-32px target outside that clipping boundary. It remains visible when the canvas
-is zoomed out and does not cover the card's source link or scrolling content.
+thin edge targets. PR #172 replaced these with a selected-card floating grip.
+The user's follow-up clarified that the corner must always be present as part
+of the border. The revised control is a 36-unit triangle within every committed
+card's bottom-right corner, without a floating square or preliminary selection.
+It scales with the card and uses a triangular hit area, reserved bottom padding,
+and an offset source link to keep its operation clear of content and scrolling.
 
 Mounted regressions exercise native mouse and multi-step touch resizing from
-the button itself, single-primary visibility, editing/lock cancellation, arrow
+the button itself, unselected/primary/secondary cards, editing/lock cancellation, arrow
 and Shift-arrow adjustments, dimension limits, modifier/activation key ownership,
 and real-Page Save/Undo/Redo persistence. Stable resize callbacks prevent live
-dimension updates from restarting the native touch listener mid-gesture.
+dimension updates from restarting the native touch listener mid-gesture. Direct
+resize, click and double-click preserve the existing selection. Touch cancellation
+and a second finger discard transient dimensions without a geometry write.
+
+The Projects directory displays Created from `createdAt` and Updated from
+`updatedAt`, in equal-width, left-aligned date columns. Small screens show a
+label with each date. Revision remains an internal concurrency parameter.
 
 Browser evidence for this follow-up currently covers reproduction on the
 existing deployment. The new grip still requires post-deployment browser

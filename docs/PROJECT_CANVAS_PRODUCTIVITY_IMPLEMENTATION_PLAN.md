@@ -13,7 +13,7 @@ The authoritative Phase 4B2 identity, attachment-authorization, ordered-journal,
 ## Architectural invariants
 
 1. Multi-selection is client-session UI state. It is not persisted, exported, assigned a revision, or encoded into `project_items`.
-2. One selected occurrence may be the primary occurrence for Inspector and resize presentation, but primary selection is not a new persistent identity.
+2. One selected occurrence may be the primary occurrence for Inspector, but primary selection is not a new persistent identity. Every committed card exposes its own resize corner without a preliminary selection click.
 3. Every selected item remains an independent Project occurrence with its existing placement row. Group movement never creates a group row or shared geometry document.
 4. One grouped drag or keyboard movement is one client-session history command containing several placement commands. Explicit Save and autosave still use the existing per-placement revision and exact-retry protocol.
 5. A grouped operation must not introduce a bulk backend endpoint merely to mirror a transient UI gesture.
@@ -39,7 +39,7 @@ Delivered:
 - controlled multi-selection in `ProjectPage`, with occurrence IDs remaining the selection identity;
 - Shift drag-box selection and Shift/Ctrl/Command additive selection through React Flow's supported selection contract;
 - immediate rollback to the parent-authoritative selection when an editor lock or unsafe edge operation rejects React Flow's proposed selection;
-- one primary selected occurrence for Inspector/resize presentation while all selected nodes retain selected styling;
+- one primary selected occurrence for Inspector while all selected nodes retain selected styling; each card's resize corner changes only that occurrence and preserves the selection;
 - grouped drag and arrow-key movement emitted as one normalized local geometry-history command;
 - atomic Undo/Redo of the whole grouped geometry command;
 - ordinary per-placement Save/autosave after grouped movement, preserving existing placement revisions and operation IDs;

@@ -267,8 +267,8 @@ references found through the sidebar.
   is already open, without opening or pinning it implicitly;
 - press and drag any non-interactive card area, including rendered Markdown,
   reference excerpts and attachment previews: move without a prior selection click;
-- select a card, then drag its bottom-right triangular grip: resize; edges and
-  other corners do not resize;
+- drag any committed card's always-visible bottom-right corner: resize directly,
+  without a preliminary selection click; edges and other corners do not resize;
 - focus the resize grip and use arrow keys: adjust the corresponding dimension
   by 5 canvas units, or 20 with Shift, without moving the card;
 - double-click empty space: create Markdown;
@@ -285,9 +285,12 @@ references found through the sidebar.
 
 Interactive controls and editor regions must not initiate node dragging.
 Links, scrollbars, the resize grip and connection handles retain their own gestures.
-Only the primary selected card displays a resize grip. Its target stays at least
-32 screen pixels when zoomed out and sits outside the card's clipped content.
-Editing or a geometry lock hides it. Resize retains the existing 180–1200 width
+Every committed card displays a 36-unit triangular resize corner integrated into
+its border. It scales with the card, with reserved content clearance and the
+source link offset away from the corner. Resizing only affects that card's
+dimensions and preserves the existing selection. Editing or a geometry lock
+hides the control without reclaiming its content clearance during a lock.
+Resize retains the existing 180–1200 width
 and 110–1000 height limits, Save, Undo and Redo behavior, and stored position/layer.
 An acknowledgement for another card must not replace the position or dimensions
 of a card while its pointer drag or resize is still active. Fresh content and
@@ -297,8 +300,8 @@ Phase 4B multi-selection uses only Project item occurrence IDs:
 
 - Shift drag creates a partial-intersection selection box;
 - Shift, Control, or Command click adds to or removes from the current selection;
-- the most recently selected occurrence is the primary selection for Inspector and
-  resize presentation, but that primary role is transient UI state;
+- the most recently selected occurrence is the primary selection for Inspector,
+  but that primary role is transient UI state;
 - dragging any selected node or using an arrow key moves all selected committed
   occurrences together;
 - one grouped movement becomes one client-session geometry history command;

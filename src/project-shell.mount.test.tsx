@@ -112,9 +112,20 @@ describe("Phase 5A1 Project directory shell", () => {
 
     const directory = await screen.findByRole("list", { name: "Active Projects" });
     expect(within(directory).getAllByRole("listitem")).toHaveLength(1);
-    expect(within(directory).getByRole("link", {
+    const projectLink = within(directory).getByRole("link", {
       name: /A deliberately long Project title for shell hierarchy verification/,
-    })).toBeTruthy();
+    });
+    expect(within(projectLink).getByText("Created")).toBeTruthy();
+    expect(within(projectLink).getByText("Updated")).toBeTruthy();
+    const dates = projectLink.querySelectorAll("time");
+    expect(Array.from(dates, (date) => date.dateTime)).toEqual([
+      "2026-08-25T08:00:00.000Z",
+      "2026-08-26T06:00:00.000Z",
+    ]);
+    expect(dates[0]?.textContent).toBe(new Date("2026-08-25T08:00:00.000Z").toLocaleString());
+    expect(dates[1]?.textContent).toBe(new Date("2026-08-26T06:00:00.000Z").toLocaleString());
+    expect(screen.queryByText("Revision")).toBeNull();
+    expect(within(projectLink).queryByText("v4")).toBeNull();
     expect(screen.getByText("1 Project")).toBeTruthy();
     expect(screen.queryByText("No Projects yet")).toBeNull();
   });

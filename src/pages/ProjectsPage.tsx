@@ -142,7 +142,7 @@ export function ProjectsPage() {
         <button type="button" className="button" onClick={() => void loadProjects()}>Retry loading Projects</button>
       </div> : projects.length > 0 ? <div className="project-directory">
         <div className="project-directory-head" aria-hidden="true">
-          <span>Project</span><span>Revision</span><span>Updated</span>
+          <span>Project</span><span>Created</span><span>Updated</span>
         </div>
         <div className="project-directory-list" role="list" aria-label="Active Projects">
           {projects.map((project) => <div key={project.id} role="listitem">
@@ -150,12 +150,18 @@ export function ProjectsPage() {
               className="project-directory-row"
               to={`/projects/${project.id}`}
             >
-              <div>
+              <div className="project-directory-identity">
                 <strong>{project.title}</strong>
                 <small>{project.id}</small>
               </div>
-              <span>v{project.revision}</span>
-              <time dateTime={project.updatedAt}>{new Date(project.updatedAt).toLocaleString()}</time>
+              <div className="project-directory-date">
+                <span className="project-directory-date-label">Created </span>
+                <time dateTime={project.createdAt}>{new Date(project.createdAt).toLocaleString()}</time>
+              </div>
+              <div className="project-directory-date">
+                <span className="project-directory-date-label">Updated </span>
+                <time dateTime={project.updatedAt}>{new Date(project.updatedAt).toLocaleString()}</time>
+              </div>
             </Link>
           </div>)}
         </div>
