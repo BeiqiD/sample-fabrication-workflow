@@ -120,6 +120,8 @@
   position: relative;
   z-index: 4;
 }
+/* Reading menus clear floating panels while staying below the global header (10). */
+.project-page.desktop.reading .project-workspace-header { z-index: 9; }
 .project-page.desktop .project-workspace-header {
   grid-template-columns: minmax(120px, 1fr) auto auto;
   grid-template-areas: "identity view actions";
@@ -424,7 +426,7 @@
   position: fixed;
   inset: 132px 12px 12px auto;
   width: min(380px, calc(100vw - 24px));
-  z-index: 45;
+  z-index: 8;
   --project-panel-gap: 0px;
   --project-panel-padding: 14px;
   --project-reference-width: 100%;

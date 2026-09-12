@@ -45,3 +45,24 @@ coverage exercises the unchanged navigation guards.
 Local gate results, independent review, exact integration build and deployed
 browser acceptance are recorded on the associated PR. Browser checks use only
 the named synthetic QA Project and discard temporary drafts.
+
+## Browser follow-up after PR #182
+
+The deployed dialog passed light/dark visual checks, initial focus and
+Stay/Escape draft preservation. Panel sizes were 320px for References and 340px
+for Inspector, with no horizontal overflow. Peer disclosure headings measured
+13px, metadata labels 12px and values 13px. Expanded choices survived card
+switches, explicit close/reopen and Reading replacement; explicit Close did not
+reopen on single selection.
+
+Two interaction issues were found and corrected in the follow-up:
+
+- XYFlow's window-level Space-to-pan listener cancelled native summary
+  activation in both panels. Their boundaries now stop only Space keydown
+  propagation, retaining the native default, keyup and other shortcuts. Two
+  real Page/Flow regressions failed before this correction; they also check
+  that Canvas Space still pans and panel activation makes no Project write.
+- Reading's floating Inspector covered the Add menu. At the Reference entry's
+  center, browser hit testing reached Inspector instead of the menu button.
+  Reading uses panel layer 8 and toolbar layer 9, below the global header 10
+  and modal backdrop 46. The content workspace remains isolated underneath.
