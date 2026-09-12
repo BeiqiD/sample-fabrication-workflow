@@ -520,4 +520,38 @@ describe("Project mutation settlement disposition", () => {
     });
     database.close();
   });
+
+  it("keeps endpoint-unavailable edge restoration reversible at the same edge revision", async () => {
+    const { app, env, database } = fixture();
+    const projectId = "project-trash-endpoint";
+    await createProject(app, env, projectId);
+    expect((await createMarkdown(app, env, projectId, "trash-a", 1)).status).toBe(201);
+    expect((await createMarkdown(app, env, projectId, "trash-b", 2)).status).toBe(201);
+    const created = await jsonRequest(app, env, `/projects/${projectId}/edges`, "POST", {
+      edgeId: "edge-trash", sourceItemId: "item-trash-a", targetItemId: "item-trash-b",
+      sourceHandle: "right", targetHandle: "left", markerStart: "none", markerEnd: "arrow",
+      label: null, expectedSourceItemRevision: 1, expectedTargetItemRevision: 1,
+      operationId: "create-edge-trash",
+    });
+    expect(created.status).toBe(201);
+    const removed = await jsonRequest(app, env, `/projects/${projectId}/items/item-trash-a`, "DELETE", {
+      expectedItemRevision: 1, expectedContentRevision: 1, operationId: "remove-item-trash-a",
+    });
+    expect(removed.status).toBe(200);
+    const frozen = { expectedRevision: 2, operationId: "restore-edge-trash" };
+    const blocked = await jsonRequest(app, env, `/projects/${projectId}/edges/edge-trash/restore`, "POST", frozen);
+    expect(blocked.status).toBe(409);
+    expect(disposition(blocked)).toBeNull();
+    expect(await blocked.json()).toEqual({ error: "Edge endpoints are no longer available" });
+    expect(database.prepare("SELECT revision FROM project_edges WHERE id = 'edge-trash'").get()).toEqual({ revision: 2 });
+    const restoredItem = await jsonRequest(app, env, `/projects/${projectId}/items/item-trash-a/restore`, "POST", {
+      expectedItemRevision: 2, expectedContentRevision: 2, operationId: "restore-item-trash-a",
+    });
+    expect(restoredItem.status).toBe(200);
+    const restoredEdge = await jsonRequest(app, env, `/projects/${projectId}/edges/edge-trash/restore`, "POST", frozen);
+    expect(restoredEdge.status).toBe(200);
+    expect(await restoredEdge.json()).toMatchObject({ value: { revision: 3, deletedAt: null } });
+    database.close();
+  });
+
 });

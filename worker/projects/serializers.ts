@@ -177,6 +177,7 @@ export function serializeProjectItem(row: ProjectItemRow): ProjectItemRecord {
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
     deletedBy: row.deleted_by,
+    ...(row.deleted_at !== null ? { deletionOperationId: row.deletion_operation_id } : {}),
   };
 }
 
@@ -217,5 +218,6 @@ export function serializeProjectEdge(row: ProjectEdgeRow): ProjectEdgeRecord {
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
     deletedBy: row.deleted_by,
+    ...(row.deleted_at !== null ? { deletionOperationId: row.deletion_operation_id } : {}),
   };
 }

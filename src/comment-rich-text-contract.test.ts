@@ -31,7 +31,7 @@ describe("shared Comment Markdown and TeX contract", () => {
 
     expect(sample).toContain('{note.status === "ready" ? <CommentBody source={note.body} /> : <p>{note.body}</p>}');
     expect(grid).toContain("<CommentBody source={comment.body} />");
-    expect(timeline).toContain('? <CommentBody source={event.body} />');
+    expect(timeline).toContain('? <CommentBody source={event.body} scrollable={compact} />');
     expect(grid).not.toContain("<p>{comment.body}</p>");
     expect(composer).toContain("<textarea");
     expect(composer).toContain("prepareCommentImage");

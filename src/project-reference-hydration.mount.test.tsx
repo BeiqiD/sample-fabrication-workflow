@@ -125,9 +125,11 @@ describe("Project reference resolution after placement", () => {
   }
 
   async function place(id = "sample-a") {
+    const references = await screen.findByRole("button", { name: "References" });
+    if (references.getAttribute("aria-pressed") !== "true") fireEvent.click(references);
     fireEvent.change(await screen.findByPlaceholderText("Search records…"), { target: { value: id } });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    fireEvent.click(await screen.findByRole("button", { name: `Place ${id} at Map center` }));
+    fireEvent.click(await screen.findByRole("button", { name: `Place ${id} on Map` }));
     await screen.findByRole("button", { name: `Select ${id}` });
   }
 
@@ -223,7 +225,7 @@ describe("Project reference resolution after placement", () => {
       ? Promise.resolve(response({ error: "Project changed" }, 409)) : ordinaryFetch(path, init));
     fireEvent.change(screen.getByPlaceholderText("Search records…"), { target: { value: "sample-b" } });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Place sample-b at Map center" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Place sample-b on Map" }));
     snapshots["project-a"].references[0].resolution.source!.title = "Authoritative A";
     fireEvent.click((await screen.findAllByRole("button", { name: "Reload Project" }))[0]);
     await screen.findByRole("button", { name: "Select Authoritative A" });
@@ -252,7 +254,7 @@ describe("Project reference resolution after placement", () => {
     await screen.findByText("Map nodes: 1");
     await place();
     await waitFor(() => expect(readCalls("/api/references/resolve")).toHaveLength(1));
-    fireEvent.click(screen.getByRole("button", { name: "Place sample-a at Map center" }));
+    fireEvent.click(screen.getByRole("button", { name: "Place sample-a on Map" }));
     await screen.findByText("Map nodes: 3");
     expect(readCalls("/api/references/resolve")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Clear search" }));

@@ -60,16 +60,30 @@ describe("mounted mobile Project occurrence projection", () => {
     expect(screen.getByRole("button", { name: "Edit Markdown" })).toBeTruthy();
     expect(screen.queryByText("Add references")).toBeNull();
     expect(screen.queryByText("Add attachment")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/projects/project-a");
+  });
+
+  it("opens a local note draft from mobile Add without loading the Map or writing until Save", async () => {
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Note / Markdown" }));
+    const draft = await screen.findByLabelText("New Markdown editor");
+    fireEvent.change(draft, { target: { value: "Mobile note $x^2$" } });
+    expect(screen.queryByTestId("project-flow-canvas")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("New Markdown editor")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Design note" })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("keeps source navigation explicit on a reference occurrence", async () => {
     renderProjectPage();
 
-    const link = await screen.findByRole("link", { name: "Open reference" });
-    expect(link.getAttribute("href")).toBe("/references/sample/r1_sample-a");
+    const link = await screen.findByRole("link", { name: "Open source" });
+    expect(link.getAttribute("href")).toBe("/samples/sample-a");
   });
 
   it("moves existing Markdown to trash from mobile Reading with both revision guards", async () => {
@@ -121,7 +135,8 @@ describe("mounted mobile Project occurrence projection", () => {
     });
 
     renderProjectPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Move Markdown to trash" }));
+    fireEvent.click(await screen.findByLabelText("More actions for Design note"));
+    fireEvent.click(screen.getByRole("button", { name: "Move Markdown to trash" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const request = fetchMock.mock.calls[1];

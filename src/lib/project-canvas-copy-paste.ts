@@ -1,3 +1,4 @@
+import { createUuid } from "./uuid";
 import type {
   CreateMarkdownProjectItemInput,
   CreateProjectEdgeInput,
@@ -117,6 +118,8 @@ export type ProjectCanvasPasteIdentityFactory = (
 
 export interface CreateProjectCanvasPasteJournalOptions {
   pasteOrdinal?: number;
+  /** Anchor the top-left of the copied group at a canvas point. */
+  point?: { x: number; y: number };
   createIdentity?: ProjectCanvasPasteIdentityFactory;
 }
 
@@ -293,7 +296,7 @@ export function buildProjectCanvasClipboard(
 }
 
 function defaultIdentity(kind: ProjectCanvasPasteIdentityKind) {
-  return `${kind}-${crypto.randomUUID()}`;
+  return `${kind}-${createUuid()}`;
 }
 
 function clampedTranslation(
@@ -348,13 +351,18 @@ export function createProjectCanvasPasteJournal(
   const sourceX = clipboard.items.map((item) => item.geometry.x);
   const sourceY = clipboard.items.map((item) => item.geometry.y);
   const sourceZ = clipboard.items.map((item) => item.geometry.zIndex);
+  if (options.point && (!Number.isFinite(options.point.x) || !Number.isFinite(options.point.y))) {
+    throw new Error("Paste position must be a finite canvas coordinate");
+  }
+  const desiredX = options.point ? options.point.x - Math.min(...sourceX) : desiredOffset;
+  const desiredY = options.point ? options.point.y - Math.min(...sourceY) : desiredOffset;
   const deltaX = clampedTranslation(
-    desiredOffset,
+    desiredX,
     sourceX,
     MAX_PROJECT_MAP_COORDINATE_ABS,
   );
   const deltaY = clampedTranslation(
-    desiredOffset,
+    desiredY,
     sourceY,
     MAX_PROJECT_MAP_COORDINATE_ABS,
   );

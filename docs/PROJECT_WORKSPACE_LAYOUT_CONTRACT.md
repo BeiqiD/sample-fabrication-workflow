@@ -3,7 +3,7 @@
 Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
 merged PR #162, C2a complete in PR #163, C2b.1 complete in PR #166, and C2b.2 active
 
-Last reviewed: 2026-09-11 during Phase 5C2b.2 Add and top-bar control implementation
+Last reviewed: 2026-09-11 during the user-authorized Project interaction and recovery revision
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in
@@ -15,12 +15,18 @@ behavior remains in
 [Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
 
 Where this document changes presentation but not behavior, the existing
-functional contract remains authoritative. Phase 5C is a workspace-composition
-rewrite, not a Project feature expansion.
+functional contract remains authoritative. The completed Phase 5 slices remain
+historical records. On 2026-09-11 the user explicitly authorized repairs from the
+whole-workflow UX review, beyond the original PR's presentation scope. The active
+revision below therefore also covers shared editor/save behavior, Reading/mobile
+Add, recoverable bulk removal, and edge reconnection. These changes preserve
+identity, revision, exact-retry, and storage guarantees. Integrated verification
+and remaining acceptance boundaries are recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`.
+They do not declare C2b or C3 complete.
 
-## Why the current composition is insufficient
+## Baseline that motivated the Phase 5C composition
 
-The current desktop Project is structurally a centered document page containing
+The pre-Phase-5C desktop Project is structurally a centered document page containing
 a second framed three-column workspace. The shell has four concrete problems:
 
 1. the page is constrained by a centered maximum width and large document-style
@@ -105,7 +111,10 @@ unchanged.
 
 - save state remains visible;
 - Undo and Redo remain explicit workspace-history actions;
-- Save remains available under the existing save-state rules;
+- Save applies to the active content/edge editor first, otherwise it flushes
+  placement deltas; the visible status must include an unsaved editor draft;
+- correctable input rejection keeps the draft editable; conflict and uncertain
+  outcomes retain their distinct reconciliation or exact-retry paths;
 - low-frequency Project actions move into a Project overflow menu;
 - `Move to trash` is not a permanently exposed red header button and remains a
   guarded lifecycle action through the existing confirmation flow.
@@ -143,12 +152,18 @@ Behavior remains the existing behavior expressed through a clearer entry point:
 - double-click empty Map space continues to create Markdown at the pointer;
 - Map context-menu insertion continues to support exact-position insertion.
 
-No new content type or creation transaction is introduced.
+No new content type or creation transaction is introduced. Add is also available
+in desktop Reading and mobile Reading. Those entries reuse the same route-owned
+Markdown, upload, and reference-placement operations with a deterministic default
+Map placement; they do not mount an editable mobile Canvas. Expanding an editor
+moves the same draft into the larger editing surface, with no replacement draft,
+second save controller, or additional content identity.
 
 ## Research-record / Reference panel
 
-Reference discovery becomes an explicit floating source panel opened from the
-Project top bar or a context-aware Canvas command. Its starting width target is
+Reference discovery is closed by default and opens explicitly from the Project
+top bar, Add > Reference, related-record entry, or a context-aware Canvas command.
+Note selection and attachment upload do not implicitly open References. Its starting width target is
 approximately `300–320px`; Phase 5C2/C3 measure the final size against real
 search results without shrinking the underlying Canvas.
 
@@ -196,8 +211,18 @@ Suggested and searched placement results share one compact card hierarchy:
 - stable type and title;
 - match or suggestion reason and active `On Map` count;
 - short subtitle/excerpt/context where available;
-- one compact drag affordance and one primary `Place` action;
-- secondary Open/Details destinations.
+- a generous draggable non-interactive card area and one primary `Place` action;
+- explicit Open source, with provenance/detail destinations behind More.
+
+Apply the selected type scope before the bounded presentation cap. Child queries
+remain bounded; a truncated or partially failed hierarchy read must be described
+as incomplete, not as proof that no matching records exist. Preserve successful
+seed results and provide search as the route to further matches.
+
+A click-based placement uses a deterministic free position near the visible
+viewport center, avoiding overlap with existing or pending cards where bounded
+space allows. Exact pointer placement remains exact. This is an insertion default,
+not automatic rearrangement of existing Project geometry.
 
 It does not permanently own:
 
@@ -221,10 +246,12 @@ is measured in Phase 5C2/C3 without creating a Canvas layout track.
 
 - no selected occurrence/edge and no pin: Inspector is closed and consumes no
   Canvas width;
-- selecting one occurrence or edge opens the Inspector as temporary selection
-  context;
+- selecting an occurrence or edge selects it and exposes a compact local toolbar;
+  it updates an already open Inspector but does not open a closed Inspector;
+- Details, an explicit Inspector trigger, or a multi-field editor opens Inspector;
 - clearing selection closes an unpinned Inspector;
-- a user may pin the Inspector open;
+- opening Inspector does not pin it; only the explicit Pin control changes pin
+  preference;
 - panel open/pin state is interface preference only and must not mutate the
   Project, Project revision, placement rows, or export.
 
@@ -241,17 +268,24 @@ Existing Inspector capability is preserved but reorganized by priority:
 
 1. selected type and title;
 2. primary item action such as Open reference, Edit Markdown, or Open attachment;
-3. ordinary summary/preview, relationships, and on-demand related records;
-4. collapsed source hierarchy and source/provenance identity;
-5. collapsed Project-local technical metadata such as occurrence ID, revision,
-   geometry, and immutable insertion sequence;
-6. low-frequency Map arrangement and stable-link utilities below detail;
-7. destructive occurrence/edge actions in a visually separate final region.
+3. a bounded, internally scrollable preview and clickable relationships that focus
+   the related card; Expand note reveals the complete Markdown without text or
+   formula truncation;
+4. a related-record entry that opens References in the selected source context,
+   rather than rendering a second result browser inside Inspector;
+5. one collapsed Details group containing source hierarchy, provenance, occurrence
+   identity, revision, geometry, and immutable insertion sequence;
+6. More actions containing low-frequency Map arrangement, stable-link utilities,
+   and clearly separated recoverable removal commands.
+
+The collapsed preview retains complete rendered mathematical structures. Do not
+cut Markdown source, MathML, or a formula with line-clamping or text ellipsis.
+Short or empty Inspector content must not force a full-height information column.
 
 An active editor replaces or follows the primary action at the top of the content
 hierarchy. It must not be stranded beneath provenance and geometry. Edge inspection
 uses the same hierarchy: title, Edit, connection summary, collapsed technical
-handles/identity, then Delete.
+handles/identity, with Delete under More.
 
 The Inspector remains read-only for external source records.
 
@@ -269,8 +303,8 @@ Desktop Map overlays must:
 - allow focus to move between panel controls and the Canvas through the existing
   keyboard paths;
 - preserve drag of a Reference result across the panel boundary to an exact
-  visible Map coordinate; `Place at Map center` remains the keyboard-equivalent
-  path and is not a replacement for exact pointer placement;
+  visible Map coordinate; click/keyboard Place uses the bounded free-position
+  default near the viewport center and does not replace exact pointer placement;
 - allow a user to select a different node or edge while Inspector remains open,
   updating the same temporary/pinned Inspector rather than requiring close and
   reopen;
@@ -283,10 +317,13 @@ Panel state is independent from the responsive mobile presentation boundary:
 - Research-record state is closed/open and Inspector state is
   closed/temporary/pinned;
 - desktop presentation is always floating/non-modal; mobile Reading-first
-  presentation may become a modal sheet only in C3;
-- changing available width may adjust floating panel size but must not silently
-  clear open/pin state, selection, search input, pending placement, or
-  reconciliation;
+  pickers and expanded editors use the ordinary modal contract when presented
+  as a sheet or dialog;
+- narrower editable desktop widths prefer one visible panel: explicitly opening
+  References hides an unpinned Inspector, and opening Inspector hides References;
+  an explicitly pinned Inspector remains respected;
+- resizing or changing presentation must preserve selection, pin preference,
+  search/draft input, pending placement, and reconciliation state;
 - presentation changes never alter Project persistence or mutation identity.
 
 Only mobile/Reading-first sheets and drawers use the ordinary modal contract,
@@ -337,12 +374,12 @@ rather than being promoted into the Project top bar.
 
 ### Single occurrence
 
-A small selection toolbar may expose only the highest-frequency actions, for
-example:
+A small selection toolbar exposes the highest-frequency actions and a More
+entry. It uses the same route-owned commands as the context menu, for example:
 
 - Markdown: Edit, More;
 - Attachment: Open, Edit metadata, More;
-- Reference: Open reference, More.
+- Reference: Open source, More; unavailable sources retain their reference-record fallback.
 
 The complete command set remains available through the Inspector and/or a More
 menu. Identity, provenance, geometry, stable-link detail, and low-frequency
@@ -350,14 +387,16 @@ commands do not belong in the small toolbar.
 
 ### Multi-selection
 
-Alignment, z-order, and other existing bulk Canvas commands belong to a bounded
-selection toolbar or selection Inspector context. They remain transient UI state
-and do not introduce a new selection persistence model.
+Bulk removal and other Canvas commands belong to one bounded selection toolbar.
+Alignment and z-order use grouped secondary entries instead of ten permanent
+flat menu rows. Selection remains transient UI state. A bulk removal is a journal
+of independently acknowledged lifecycle operations, not an atomic bulk API.
 
 ### Edge selection
 
-Edit/Delete/More may appear at a bounded toolbar near the selected edge while
-full edge detail remains available in Inspector.
+Edit and More appear near the selected edge while full edge detail remains in
+Inspector. Dragging an endpoint or handle reconnects the same edge through its
+revisioned update operation; double-clicking a line/label opens its editor.
 
 ## Unified command model
 
@@ -391,14 +430,16 @@ The following placement rules are frozen for Phase 5C implementation:
 | Project overflow | Project-level low-frequency actions, export, lifecycle | below/end-aligned to the top-bar overflow control |
 | Add | Markdown, attachment, research-record entry | top-bar Add menu or exact-position blank-Canvas context menu |
 | References top-bar/context entry | search/discovery surface | left floating desktop non-modal panel |
-| Node body click | inspection | Inspector; body click itself does not navigate |
+| Node body click | selection | local quick actions; update Inspector only if already open |
+| Markdown title double-click | edit | shared draft editor; body double-click remains text selection |
 | Selected node quick actions | frequent item commands | bounded toolbar above/adjacent to the selected node |
 | Blank Canvas context menu | exact-position creation, paste, select/fit, panel entry | pointer position clamped inside Canvas |
 | Node More / context menu | inspect/edit/open/copy/layer/remove as applicable | anchored to More or the pointer position |
 | Selected edge | frequent edge commands | bounded toolbar near the edge midpoint |
 | Multi-selection | alignment/z-order/bulk commands | one toolbar for the selection, not per-node duplicate toolbars |
 | Multi-field editing | editor/detail workflow | Inspector or dedicated editor, not a tiny popover |
-| Destructive confirmation | guarded confirmation | existing modal/dialog pattern |
+| Recoverable item removal | removal and recovery | More/context/selection command; Undo or Trash restore |
+| Project lifecycle confirmation | guarded confirmation | existing modal/dialog pattern |
 | Mobile detail/action | selection/detail operations | accessible bottom sheet/drawer |
 
 Menus, panels, drawers, and toolbars must restore focus to a sensible originating
@@ -454,17 +495,19 @@ The starting desktop content-width target is approximately `760–840px`; Phase
   unnecessarily heavy nested cards;
 - attachments and references remain structured occurrence blocks where their
   different semantics require it;
-- item-local actions appear on hover/focus/More or in Inspector instead of
-  permanently competing with body content;
+- frequent Edit/Open actions sit at the card header so long text cannot push them
+  below the fold; low-frequency removal and export stay behind More;
 - readable export remains available but may move to Reading or Project overflow
   chrome;
 - clicking/focusing a Reading occurrence may open the same Inspector projection
   used by Map without changing occurrence identity;
 - Reading order and content ownership remain unchanged.
 
-Mobile stays Reading-first. Operations that are already permitted on mobile may
-use accessible modal sheets/drawers, but this contract does not authorize mobile
-Map editing or new mobile mutations.
+Mobile stays Reading-first. Add, existing-content edits, recoverable removal,
+and restoration reuse the same authoritative operations as desktop. Sheets or
+larger editors use the ordinary accessible modal pattern when applicable. This
+revision authorizes those entry points, not touch Map placement, resize, or edge
+editing on a compressed mobile Canvas.
 
 ## Vertical viewport and scroll ownership
 
@@ -505,10 +548,11 @@ The intended transformation is:
 
 - wide desktop: both side panels may float above the full Canvas simultaneously;
 - medium and narrower desktop above the functional Map boundary: panels remain
-  floating/non-modal, may use measured narrower widths, and never resize Canvas;
-- below the existing functional desktop-Map boundary: preserve Reading-first
-  mobile behavior and use ordinary modal sheets only when C3 implements them,
-  unless a separate functional proposal changes that boundary.
+  floating/non-modal and never resize Canvas; explicit panel opening prefers one
+  visible panel unless Inspector is explicitly pinned;
+- below the existing functional desktop-Map boundary: use Reading and its Add /
+  edit / recovery entries, with ordinary modal containment for sheets and expanded
+  editing; no mobile Map is introduced.
 
 The current `560px`, `860px`, and `1180px` Project thresholds are starting
 baselines, not presumed final layout thresholds. Every changed threshold requires
@@ -551,7 +595,7 @@ C2a owns:
 - close/Escape/focus behavior, internal scrolling, selection continuity, and
   simultaneous-panel operation without backdrop, inertness, or focus trap;
 - exact Reference drag from a floating panel to visible Canvas coordinates, with
-  `Place at Map center` retained as the keyboard-equivalent path;
+  a click/keyboard Place path retained alongside exact pointer placement;
 - one route-owned command adapter shared by keyboard, top-bar, Inspector, and
   target-aware blank/node/selection/edge context menus;
 - keeping exact-position Markdown/attachment creation and hidden file input
@@ -571,10 +615,11 @@ C2b owns:
 - node, edge, and multi-selection quick-toolbar placement;
 - removal of visible immutable `#created_sequence` from Map nodes.
 
-C2a must directly mount and verify both panels open simultaneously, each context
-target, menu keyboard/focus behavior, and preserved Canvas interaction. C2 does
-not change the underlying creation, selection, edge, removal, save, or navigation
-protocols.
+C2a's completed verification covered simultaneous panels and context targets.
+The current authorized follow-up additionally verifies explicit panel opening,
+narrow-width single-panel preference, and the shared editor, removal-recovery,
+and edge-reconnection paths documented in the interaction contract. Existing
+identity, retry, and navigation protections still govern each operation.
 
 ### Phase 5C3 — Reading and responsive composition
 
@@ -607,15 +652,18 @@ It must not become a catch-all visual mega-PR.
 
 ## Protected behavior and data boundaries
 
-Phase 5C does not change:
+The original layout-only slices did not change the following boundaries. The
+2026-09-11 user-authorized UX follow-up adds only the explicit exceptions below;
+all other guarantees remain protected:
 
 - Project, content, item, placement, reference-target, edge, or attachment
   identity;
 - authoritative creation/removal/update transaction boundaries;
 - expected revisions, idempotent operation IDs, exact retry, uncertain outcome,
   reconciliation, conflict, or navigation blocking;
-- stored node coordinates, dimensions, z-order, edge endpoints, marker direction,
-  or Reading sort semantics;
+- stored node coordinates, dimensions, z-order, or Reading sort semantics through
+  presentation alone; reconnection may change edge endpoints only through the
+  guarded update contract and migration `0036_project_edge_reconnection.sql`;
 - repeated-reference behavior;
 - stable focus links;
 - attachment trust/lifecycle/storage/export contracts;
@@ -623,8 +671,9 @@ Phase 5C does not change:
   separately measured correctness/performance defect;
 - source mutation boundaries;
 - mobile Map-editing boundary;
-- backend, schema, migration, export version, or external dependency set merely
-  for layout.
+- backend, schema, export version, or external dependency set merely for layout;
+  migration 0036 is the separately authorized functional edge-reconnection change,
+  not permission to weaken identity or lifecycle guards.
 
 ## Acceptance matrix
 
@@ -639,9 +688,14 @@ Every Phase 5C implementation head must cover the relevant subset of:
 - References closed/open and Inspector closed/temporary/pinned where applicable;
 - desktop Map page-scroll suppression, internal panel/status scrolling, and
   ordinary Reading/mobile document scrolling;
-- exact Reference drag from a desktop non-modal overlay to visible Canvas,
-  `Place at Map center`, and Inspector selection changes while its overlay stays
-  open;
+- exact Reference drag, collision-aware click placement, and type filtering before
+  the display cap with honest truncated/partial-result feedback;
+- explicit panel opening, separate Pin, narrow-panel preference, local toolbars,
+  body text selection, and title-triggered editing;
+- shared expanded drafts, active-editor Save, correctable metadata failure,
+  uncertain exact retry, and Reading/mobile Add;
+- single/bulk removal, partial/uncertain acknowledgement, Undo and Trash restore,
+  edge reconnection, and pointer-anchored Paste here;
 - absence of desktop overlay backdrop, Canvas `inert`, modal focus trap, and
   document scroll lock; modal containment remains verified for mobile sheets;
 - saved, unsaved, saving, uncertain, reconciling, error, conflict, and

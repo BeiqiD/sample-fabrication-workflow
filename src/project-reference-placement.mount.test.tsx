@@ -210,6 +210,9 @@ describe("mounted Project reference placement", () => {
 
     renderProjectPage();
     await waitForMapReady();
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -219,7 +222,7 @@ describe("mounted Project reference placement", () => {
     const input = JSON.parse(String(init?.body)) as CreateReferenceProjectItemInput;
     expect(input.target).toEqual({ type: "sample", id: "sample-new" });
     expect(input.expectedProjectRevision).toBe(2);
-    expect(input.geometry).toEqual({ x: 350, y: 210, width: 300, height: 180, zIndex: 2 });
+    expect(input.geometry).toEqual({ x: 350, y: 214, width: 300, height: 180, zIndex: 2 });
     expect(screen.getByText("Pending ghost: placing · Sample New")).toBeTruthy();
     expect(screen.getByText("Map node count: 2")).toBeTruthy();
 
@@ -246,6 +249,9 @@ describe("mounted Project reference placement", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
     expect(screen.getByText("Unsaved")).toBeTruthy();
     expect(screen.getByText("Note x: 100")).toBeTruthy();
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
 
     await waitFor(() => expect(screen.getByText("Map node count: 3")).toBeTruthy());
@@ -265,6 +271,9 @@ describe("mounted Project reference placement", () => {
 
     renderProjectPage();
     await waitForMapReady();
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
     const first = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
@@ -272,6 +281,34 @@ describe("mounted Project reference placement", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toEqual(first);
     await waitFor(() => expect(screen.getByText("Map node count: 3")).toBeTruthy());
+  });
+
+  it.each([403, 409])("keeps an uncertain reference frozen after non-authoritative %s retry", async (retryStatus) => {
+    const inputs: CreateReferenceProjectItemInput[] = [];
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(projectTestSnapshot());
+      if (String(path) === "/api/references/resolve") return jsonResponse({ results: [searchResult.resolution] });
+      const input = JSON.parse(String(init?.body)) as CreateReferenceProjectItemInput;
+      inputs.push(input);
+      if (inputs.length === 1) return jsonResponse({ error: "Reference create response unavailable" }, 503);
+      if (inputs.length === 2) return jsonResponse({ error: "Reference retry rejected" }, retryStatus);
+      return jsonResponse({ ...insertionResponse(input), replayed: true }, 201);
+    });
+    renderProjectPage();
+    await waitForMapReady();
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
+    await screen.findByText("Reference create response unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await screen.findByText("Reference retry rejected");
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect(screen.getByText("Pending ghost: uncertain · Sample New")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Place fixture at center" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await screen.findByText("Map node count: 3");
+    expect(inputs).toHaveLength(3);
+    expect(inputs[1]).toEqual(inputs[0]);
+    expect(inputs[2]).toEqual(inputs[0]);
   });
 
   it("allows the same stable target to become two distinct Project occurrences", async () => {
@@ -287,8 +324,14 @@ describe("mounted Project reference placement", () => {
 
     renderProjectPage();
     await waitForMapReady();
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     await waitFor(() => expect(screen.getByText("Map node count: 3")).toBeTruthy());
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     await waitFor(() => expect(screen.getByText("Map node count: 4")).toBeTruthy());
 
@@ -301,6 +344,10 @@ describe("mounted Project reference placement", () => {
     expect(first.itemId).not.toBe(second.itemId);
     expect(first.placementId).not.toBe(second.placementId);
     expect(first.operationId).not.toBe(second.operationId);
+    expect(first.geometry.x + first.geometry.width <= second.geometry.x
+      || second.geometry.x + second.geometry.width <= first.geometry.x
+      || first.geometry.y + first.geometry.height <= second.geometry.y
+      || second.geometry.y + second.geometry.height <= first.geometry.y).toBe(true);
     expect(second.expectedProjectRevision).toBe(3);
   });
 
@@ -312,6 +359,13 @@ describe("mounted Project reference placement", () => {
     renderProjectPage();
     await waitForMapReady();
     fireEvent.click(screen.getByRole("button", { name: "Select existing reference" }));
+    if (screen.getByRole("button", { name: "Inspector" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    }
+    {
+      const moreActions = screen.getByText("More actions", { selector: "summary" });
+      if (!moreActions.closest("details")?.open) fireEvent.click(moreActions);
+    }
     fireEvent.click(screen.getByRole("button", { name: "Remove from Project" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));

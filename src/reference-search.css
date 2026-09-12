@@ -376,8 +376,8 @@
 .reference-placement-card {
   min-width: 0;
   display: grid;
-  gap: 8px;
-  padding: 11px;
+  gap: 6px;
+  padding: 9px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--paper);
@@ -391,10 +391,17 @@
 .reference-placement-card-main {
   min-width: 0;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px;
   align-items: start;
+  padding-block: 3px;
+  cursor: grab;
 }
+
+.reference-placement-card-main:active { cursor: grabbing; }
+.reference-placement-card-main.disabled { cursor: default; }
+.reference-placement-card-grip { color: var(--muted); padding-top: 2px; }
+.reference-placement-card-grip svg { width: 16px; height: 16px; }
 
 .reference-placement-card-copy {
   min-width: 0;
@@ -446,7 +453,7 @@
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -473,10 +480,37 @@
 
 .reference-placement-card-footer {
   min-width: 0;
+  position: relative;
+}
+
+.reference-placement-card-more > summary {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  padding-inline: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.reference-placement-card-more > summary:hover { color: var(--accent); }
+.reference-placement-card-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reference-placement-card-more[open] > summary { color: var(--accent); }
+.reference-placement-card-details {
   display: grid;
-  gap: 8px;
-  padding-top: 6px;
+  gap: 6px;
+  margin-top: 7px;
+  padding-top: 7px;
   border-top: 1px solid var(--line);
+}
+.reference-placement-card-footer .reference-placement-card-details p {
+  overflow: visible;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .reference-placement-card-footer p {
@@ -494,6 +528,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding-inline-end: 46px;
 }
 
 .reference-placement-card-links { display: flex; align-items: center; gap: 10px; }

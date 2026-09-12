@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { ProjectSnapshot } from "../../../shared/project-api";
 import {
@@ -9,6 +9,7 @@ import {
   type ProjectInspectorContext,
 } from "../../lib/project-inspector-model";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
+import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import "./project-inspector-details.css";
 
 export interface ProjectInspectorDetailsProps {
@@ -16,6 +17,7 @@ export interface ProjectInspectorDetailsProps {
   descriptor: ProjectNodeDescriptor;
   primaryContent?: ReactNode;
   relatedContent?: ReactNode;
+  onFocusItem?: (itemId: string) => void;
 }
 
 function ProjectInspectorActionLink({
@@ -58,9 +60,13 @@ export function ProjectInspectorDetails({
   descriptor,
   primaryContent,
   relatedContent,
+  onFocusItem,
 }: ProjectInspectorDetailsProps) {
   const projection = projectInspectorProjection(snapshot, descriptor);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const previewId = useId();
+  const previewExpanded = expandedItemId === descriptor.itemId;
   if (!projection) {
     return <>
       <span className="meta-badge">{projectNodeKindLabel(descriptor.kind)}</span>
@@ -73,7 +79,7 @@ export function ProjectInspectorDetails({
   return <>
     <header className="project-inspector-summary">
       <span className="meta-badge">{projection.kindLabel}</span>
-      <h2>{projection.title}</h2>
+      {descriptor.kind !== "markdown" && <h2>{projection.title}</h2>}
       {projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
     </header>
 
@@ -85,7 +91,25 @@ export function ProjectInspectorDetails({
       {primaryContent}
     </div>}
 
-    {projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
+    {descriptor.kind === "markdown"
+      ? <div className="project-inspector-preview">
+        <div
+          id={previewId}
+          className={`project-inspector-markdown${previewExpanded ? " expanded" : ""}`}
+          data-project-reading-content="true"
+          tabIndex={0}
+          role="region"
+          aria-label="Inspector Markdown content"
+        ><ProjectMarkdownPreview source={descriptor.markdownSource || ""} /></div>
+        <button
+          type="button"
+          className="button compact-button"
+          aria-controls={previewId}
+          aria-expanded={previewExpanded}
+          onClick={() => setExpandedItemId(previewExpanded ? null : descriptor.itemId)}
+        >{previewExpanded ? "Collapse note" : "Expand note"}</button>
+      </div>
+      : projection.excerpt && <p className="project-inspector-excerpt">{projection.excerpt}</p>}
 
     {media && <img
       className="project-inspector-media"
@@ -105,19 +129,35 @@ export function ProjectInspectorDetails({
       <ul className="project-inspector-relationships">
         {projection.relationships.map((relationship) => <li
           key={relationship.edgeId}
-          aria-label={projectInspectorRelationshipAriaLabel(relationship)}
         >
-          <span>{projectInspectorEdgeDirectionLabel(relationship)}</span>
-          <strong>{relationship.relatedTitle}</strong>
-          <small>{relationship.label}</small>
+          {onFocusItem ? <button
+            type="button"
+            className="project-inspector-relationship-link"
+            aria-label={projectInspectorRelationshipAriaLabel(relationship)}
+            onClick={() => onFocusItem(relationship.relatedItemId)}
+          >
+            <span>{projectInspectorEdgeDirectionLabel(relationship)}</span>
+            <strong>{relationship.relatedTitle}</strong>
+            <small>{relationship.label}</small>
+          </button> : <Link
+            className="project-inspector-relationship-link"
+            aria-label={projectInspectorRelationshipAriaLabel(relationship)}
+            to={`/projects/${encodeURIComponent(snapshot.project.id)}?focus=${encodeURIComponent(relationship.relatedItemId)}`}
+          >
+            <span>{projectInspectorEdgeDirectionLabel(relationship)}</span>
+            <strong>{relationship.relatedTitle}</strong>
+            <small>{relationship.label}</small>
+          </Link>}
         </li>)}
       </ul>
     </section>}
 
     {relatedContent}
 
-    {projection.contexts.length > 0 && <details className="project-inspector-disclosure">
-      <summary>Source hierarchy</summary>
+    <details className="project-inspector-disclosure project-inspector-technical-details" key={descriptor.itemId}>
+      <summary>Details</summary>
+      {projection.contexts.length > 0 && <section>
+      <h4>Source hierarchy</h4>
       <ol className="project-inspector-contexts">
         {projection.contexts.map((context, contextIndex) => <li
           key={`${context.label}-${contextIndex}`}
@@ -135,10 +175,10 @@ export function ProjectInspectorDetails({
           <ContextLink context={context} />
         </li>)}
       </ol>
-    </details>}
+      </section>}
 
-    <details className="project-inspector-disclosure">
-      <summary>{projection.identityHeading}</summary>
+      <section>
+      <h4>{projection.identityHeading}</h4>
       <dl>
         {[...projection.identityFields, ...projection.detailFields].map((field, index) => <div
           key={`${field.label}-${index}`}
@@ -147,16 +187,17 @@ export function ProjectInspectorDetails({
           <dd>{field.value}</dd>
         </div>)}
       </dl>
-    </details>
+      </section>
 
-    <details className="project-inspector-disclosure">
-      <summary>Project details</summary>
+      <section>
+      <h4>Project details</h4>
       <dl>
         {projection.occurrenceFields.map((field) => <div key={field.label}>
           <dt>{field.label}</dt>
           <dd>{field.value}</dd>
         </div>)}
       </dl>
+      </section>
     </details>
   </>;
 }

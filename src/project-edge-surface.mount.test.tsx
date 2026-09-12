@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectEdgeRecord } from "../shared/project-api";
-import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
+import { ProjectMapSurface, type ProjectMapContextCommands } from "./components/project/ProjectMapSurface";
 import { projectMapNodes } from "./lib/project-map-model";
 import { projectTestSnapshot } from "./project-test-fixture";
 
@@ -108,6 +108,20 @@ function edgeRecord(overrides: Partial<ProjectEdgeRecord> = {}): ProjectEdgeReco
     deletedAt: null,
     deletedBy: null,
     ...overrides,
+  };
+}
+
+function availableContextCommands(): ProjectMapContextCommands {
+  const noop = () => undefined;
+  return {
+    createDisabled: false, selectAllDisabled: false, clearSelectionDisabled: false,
+    copyDisabled: false, pasteDisabled: false, editDisabled: false, removeDisabled: false,
+    edgeInspectDisabled: false, edgeEditDisabled: false, edgeDeleteDisabled: false,
+    panelCommandsDisabled: false, alignmentDisabled: () => false, zOrderDisabled: () => false,
+    inspectItem: noop, editItem: noop, copyItemLink: noop, copySelection: noop,
+    pasteSelection: noop, selectAll: noop, clearSelection: noop, alignSelection: noop,
+    changeZOrder: noop, removeItem: noop, inspectEdge: noop, editEdge: noop, deleteEdge: noop,
+    openReferences: noop, openInspector: noop,
   };
 }
 
@@ -489,6 +503,105 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(edgeSelections).toHaveLength(edgeSelectionCount);
   });
 
+  it("exposes reconnect anchors and edits a selected edge beside the canvas", async () => {
+    const snapshot = projectTestSnapshot();
+    const edge = edgeRecord();
+    const reconnect = vi.fn();
+    const changeEdit = vi.fn();
+    const saveEdit = vi.fn();
+    const editEdge = vi.fn();
+    const noop = () => undefined;
+    const commands = {
+      createDisabled: false, selectAllDisabled: false, clearSelectionDisabled: false,
+      copyDisabled: true, pasteDisabled: true, editDisabled: true, removeDisabled: true,
+      edgeInspectDisabled: false, edgeEditDisabled: false, edgeDeleteDisabled: false, panelCommandsDisabled: false,
+      alignmentDisabled: () => true, zOrderDisabled: () => true,
+      inspectItem: noop, editItem: noop, copyItemLink: noop, copySelection: noop,
+      pasteSelection: noop, selectAll: noop, clearSelection: noop, alignSelection: noop,
+      changeZOrder: noop, removeItem: noop, inspectEdge: noop, editEdge, deleteEdge: noop,
+      openReferences: noop, openInspector: noop,
+    };
+    const props = {
+      nodes: projectMapNodes(snapshot), edges: [edge], selectedItemId: null, selectedEdgeId: edge.id,
+      onSelect: noop, onGeometryCommit: noop, onEdgeReconnect: reconnect, contextCommands: commands,
+    };
+    const view = render(<div style={{ width: 900, height: 700 }}><ProjectMapSurface {...props} /></div>);
+    await waitFor(() => expect(view.container.querySelectorAll(".react-flow__edgeupdater")).toHaveLength(2));
+    fireEvent.click(view.getByRole("button", { name: "Edit label / direction" }));
+    expect(editEdge).toHaveBeenCalledOnce();
+    view.rerender(<div style={{ width: 900, height: 700 }}><ProjectMapSurface {...props}
+      edgeInteractionDisabled
+      edgeEditor={{ edgeId: edge.id, direction: "forward", label: "feeds", status: "editing", message: null }}
+      onEdgeEditChange={changeEdit} onEdgeEditSave={saveEdit} onEdgeEditCancel={noop}
+    /></div>);
+    expect(view.container.querySelectorAll(".react-flow__edgeupdater")).toHaveLength(0);
+    expect(view.getByRole("group", { name: "Edit selected edge" })).toBeTruthy();
+    fireEvent.change(view.getByRole("textbox", { name: "Edge label" }), { target: { value: "measured by" } });
+    fireEvent.change(view.getByRole("combobox", { name: "Edge direction" }), { target: { value: "bidirectional" } });
+    expect(changeEdit).toHaveBeenCalledWith("label", "measured by");
+    expect(changeEdit).toHaveBeenCalledWith("direction", "bidirectional");
+    fireEvent.keyDown(view.getByRole("textbox", { name: "Edge label" }), { key: "s", ctrlKey: true });
+    expect(saveEdit).toHaveBeenCalledOnce();
+  });
+
+  it("shows only the edge toolbar when a newly selected edge retains its source card selection", async () => {
+    const edge = edgeRecord();
+    const props = {
+      nodes: projectMapNodes(projectTestSnapshot()), edges: [edge],
+      selectedItemId: "item-note", selectedItemIds: ["item-note"],
+      onSelect: () => undefined, onGeometryCommit: () => undefined,
+      contextCommands: availableContextCommands(),
+    };
+    const view = render(<div style={{ width: 900, height: 700 }}><ProjectMapSurface {...props} /></div>);
+    await view.findByRole("toolbar", { name: "Selected card actions" });
+    view.rerender(<div style={{ width: 900, height: 700 }}><ProjectMapSurface {...props} selectedEdgeId={edge.id} /></div>);
+    await view.findByRole("toolbar", { name: "Selected edge actions" });
+    expect(view.queryByRole("toolbar", { name: "Selected card actions" })).toBeNull();
+    expect(view.queryByRole("button", { name: "More card actions" })).toBeNull();
+    view.rerender(<div style={{ width: 900, height: 700 }}><ProjectMapSurface {...props} selectedEdgeId={null} /></div>);
+    await view.findByRole("toolbar", { name: "Selected card actions" });
+    expect(view.queryByRole("toolbar", { name: "Selected edge actions" })).toBeNull();
+  });
+
+  it.each(["editing", "error", "uncertain"] as const)(
+    "dispatches button and Ctrl/Cmd+S through the supplied edge-save action in %s state",
+    async (status) => {
+      const edge = edgeRecord();
+      const save = vi.fn();
+      const view = render(<div style={{ width: 900, height: 700 }}><ProjectMapSurface
+        nodes={projectMapNodes(projectTestSnapshot())} edges={[edge]}
+        selectedItemId={null} selectedEdgeId={edge.id} edgeInteractionDisabled
+        onSelect={() => undefined} onGeometryCommit={() => undefined}
+        contextCommands={availableContextCommands()}
+        edgeEditor={{ edgeId: edge.id, direction: "forward", label: "feeds", status, message: null }}
+        onEdgeEditSave={save}
+      /></div>);
+      const saveButton = await view.findByRole("button", { name: status === "uncertain" ? "Retry exact save" : "Save edge" });
+      expect(saveButton.hasAttribute("disabled")).toBe(false);
+      const input = view.getByRole("textbox", { name: "Edge label" });
+      expect(input.hasAttribute("disabled")).toBe(status === "uncertain");
+      fireEvent.click(saveButton);
+      expect(save).toHaveBeenCalledTimes(1);
+      // An uncertain request remains immutable; its enabled retry button can own keyboard focus.
+      const focusTarget = status === "uncertain" ? saveButton : input;
+      focusTarget.focus();
+      expect(document.activeElement).toBe(focusTarget);
+      const escapedShortcut = vi.fn();
+      document.addEventListener("keydown", escapedShortcut);
+      try {
+        for (const modifier of ["ctrlKey", "metaKey"] as const) {
+          const event = new KeyboardEvent("keydown", { key: "s", [modifier]: true, bubbles: true, cancelable: true });
+          fireEvent(document.activeElement!, event);
+          expect(event.defaultPrevented).toBe(true);
+        }
+      } finally {
+        document.removeEventListener("keydown", escapedShortcut);
+      }
+      expect(save).toHaveBeenCalledTimes(3);
+      expect(escapedShortcut).not.toHaveBeenCalled();
+    },
+  );
+
   it("projects context-aware commands above panels with exact links, availability, and focus", async () => {
     const snapshot = projectTestSnapshot();
     const baseNodes = projectMapNodes(snapshot);
@@ -525,6 +638,7 @@ it("keeps edge selection and connection handles stable after local geometry move
     const alignSelection = vi.fn();
     const changeZOrder = vi.fn();
     const removeItem = vi.fn();
+    const removeSelection = vi.fn();
     const editItem = vi.fn();
     const editEdge = vi.fn();
     const deleteEdge = vi.fn();
@@ -592,6 +706,7 @@ it("keeps edge selection and connection handles stable after local geometry move
               alignSelection,
               changeZOrder,
               removeItem,
+              removeSelection,
               inspectEdge,
               editEdge,
               deleteEdge,
@@ -620,7 +735,7 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(menu().parentElement).toBe(workspace());
     expect(container.querySelector(".project-map-panel .project-map-context-menu")).toBeNull();
     expect(view.getByRole("menuitem", { name: "Add Markdown here" })).toBeTruthy();
-    expect(view.getByRole("menuitem", { name: "Paste copied selection" })).toBeTruthy();
+    expect(view.getByRole("menuitem", { name: "Paste here" })).toBeTruthy();
     expect(view.getByRole("menuitem", { name: "Open References" })).toBeTruthy();
     fireEvent.click(view.getByRole("menuitem", { name: "Add Markdown here" }));
     expect(addMarkdown).toHaveBeenCalledTimes(1);
@@ -631,6 +746,12 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(view.getByRole("menuitem", { name: "Edit Markdown" })).toBeTruthy();
     fireEvent.click(view.getByRole("menuitem", { name: "Inspect occurrence" }));
     expect(inspectItem).toHaveBeenCalledWith("item-note");
+    const moreCardActions = view.getByRole("button", { name: "More card actions" });
+    fireEvent.click(moreCardActions);
+    expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy();
+    fireEvent.keyDown(menu(), { key: "Delete" });
+    expect(removeSelection).not.toHaveBeenCalled();
+    fireEvent.keyDown(menu(), { key: "Escape" });
 
     fireEvent.contextMenu(attachment(), { clientX: 680, clientY: 180 });
     await waitFor(() => expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy());
@@ -643,8 +764,18 @@ it("keeps edge selection and connection handles stable after local geometry move
     await waitFor(() => expect(note().classList.contains("selected")).toBe(true));
     fireEvent.contextMenu(note(), { clientX: 250, clientY: 200 });
     await waitFor(() => expect(view.getByRole("menu", { name: "Selection actions" })).toBeTruthy());
+    expect(view.queryByRole("menuitem", { name: "Align left" })).toBeNull();
+    const alignMenu = view.getByRole("menuitem", { name: "Align" });
+    alignMenu.focus();
+    fireEvent.keyDown(alignMenu, { key: "ArrowRight" });
+    expect(view.getByRole("menu", { name: "Align actions" })).toBeTruthy();
     expect(view.getByRole("menuitem", { name: "Align left" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.keyDown(menu(), { key: "ArrowLeft" });
+    await waitFor(() => expect(document.activeElement).toBe(view.getByRole("menuitem", { name: "Align" })));
+    fireEvent.click(view.getByRole("menuitem", { name: "Layer" }));
     expect(view.getByRole("menuitem", { name: "Bring to front" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(view.getByRole("menuitem", { name: "Back to actions" }));
+    fireEvent.click(view.getByRole("menuitem", { name: "Align" }));
     fireEvent.click(view.getByRole("menuitem", { name: "Align right" }));
     expect(alignSelection).toHaveBeenCalledWith("right");
     await waitFor(() => expect(document.activeElement).toBe(canvas()));
@@ -664,6 +795,21 @@ it("keeps edge selection and connection handles stable after local geometry move
     fireEvent.keyDown(menu(), { key: "Escape" });
     await waitFor(() => expect(container.querySelector(".project-map-context-menu")).toBeNull());
     expect(document.activeElement).toBe(canvas());
+
+    fireEvent.contextMenu(pane(), { clientX: 380, clientY: 300 });
+    fireEvent.click(view.getByRole("menuitem", { name: "Paste here" }));
+    expect(pasteSelection).toHaveBeenCalledWith({ x: expect.any(Number), y: expect.any(Number) });
+    const pastePoint = pasteSelection.mock.calls[0][0];
+    fireEvent.contextMenu(pane(), { clientX: 380, clientY: 300 });
+    fireEvent.click(view.getByRole("menuitem", { name: "Add Markdown here" }));
+    expect(addMarkdown).toHaveBeenLastCalledWith(pastePoint);
+
+    fireEvent.click(view.getByRole("button", { name: "Select both for test" }));
+    fireEvent.keyDown(note().querySelector("[data-project-reading-content]")!, { key: "Backspace" });
+    expect(removeSelection).not.toHaveBeenCalled();
+    fireEvent.keyDown(canvas(), { key: "Delete" });
+    expect(removeSelection).toHaveBeenCalledTimes(1);
+    expect(removeItem).not.toHaveBeenCalled();
 
     fireEvent.click(view.getByRole("button", { name: "Reject edge selection for test" }));
     await waitFor(() => expect(edge()).toBeTruthy());
@@ -691,7 +837,7 @@ it("keeps edge selection and connection handles stable after local geometry move
     fireEvent.contextMenu(reference, { clientX: 420, clientY: 180 });
     await waitFor(() => expect(view.getByRole("menu", { name: "Occurrence actions" })).toBeTruthy());
     await waitFor(() => expect(document.activeElement).toBe(
-      view.getByRole("menuitem", { name: "Open Reference" }),
+      view.getByRole("menuitem", { name: /Open source|Reference details/ }),
     ));
 
     const leakedSelectAll = vi.fn();

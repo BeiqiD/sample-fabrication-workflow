@@ -8,7 +8,10 @@ import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content"
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
 
-const mapViewport = vi.hoisted(() => ({ center: { x: 400, y: 300 } as { x: number; y: number } | null }));
+const mapViewport = vi.hoisted(() => ({
+  center: { x: 400, y: 300 } as { x: number; y: number } | null,
+  reveal: vi.fn(),
+}));
 
 vi.mock("./components/ReferenceSearchSurface", () => ({
   ReferenceSearchSurface: () => null,
@@ -25,7 +28,10 @@ vi.mock("./components/project/ProjectMapSurface", async () => {
       onMarkdownCancel?: () => void;
       onAttachmentRequest?: (point: { x: number; y: number }) => void;
     }, ref: React.ForwardedRef<{ getViewportCenter: () => { x: number; y: number } | null }>) => {
-      React.useImperativeHandle(ref, () => ({ getViewportCenter: () => mapViewport.center }));
+      React.useImperativeHandle(ref, () => ({
+        getViewportCenter: () => mapViewport.center,
+        ensureGeometryVisible: mapViewport.reveal,
+      }));
       return <div>
         <button type="button" onClick={() => props.onMarkdownCreateRequest?.({ x: 100, y: 200 })}>Simulate Markdown double click</button>
         <button type="button" onClick={() => props.onAttachmentRequest?.({ x: 300, y: 240 })}>Simulate attachment request</button>
@@ -125,6 +131,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
 
   beforeEach(() => {
     mapViewport.center = { x: 400, y: 300 };
+    mapViewport.reveal.mockClear();
     vi.stubGlobal("matchMedia", desktopMatchMedia());
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -162,14 +169,24 @@ describe("mounted Phase 3B3 Project-owned content", () => {
       markdownSource: "# New idea", expectedProjectRevision: 2,
       geometry: { x: 420, y: 428, width: 360, height: 220 },
     });
+    expect(mapViewport.reveal).toHaveBeenCalledWith(expect.objectContaining({ x: 420, y: 428, width: 360, height: 220 }));
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: "Create temporarily conflicts" }), {
+      status: 409,
+      headers: { "content-type": "application/json" },
+    }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact Markdown save" }));
+    await screen.findByText("Create temporarily conflicts");
+    expect(screen.queryByRole("button", { name: "Cancel Markdown" })).toBeNull();
+    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toEqual(firstBody);
 
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(mutationResponse(firstBody, "markdown")), {
       status: 200,
       headers: { "content-type": "application/json" },
     }));
     fireEvent.click(screen.getByRole("button", { name: "Retry exact Markdown save" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body))).toEqual(firstBody);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual(firstBody);
     await waitFor(() => expect(screen.queryByLabelText("Mock Markdown editor")).toBeNull());
   });
 
@@ -194,7 +211,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
 
     renderProjectPage();
     await screen.findByRole("button", { name: "Add" });
-    fireEvent.click(screen.getByRole("button", { name: "Close References" }));
+    expect(screen.queryByRole("complementary", { name: "Reference search and placement" })).toBeNull();
     const chooseFile = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => undefined);
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     fireEvent.click(screen.getByRole("button", { name: "Attachment" }));
@@ -220,8 +237,42 @@ describe("mounted Phase 3B3 Project-owned content", () => {
       caption: null,
       sourceUrl: null,
       expectedProjectRevision: 2,
-      geometry: { x: 230, y: 300 - 170 / 3, width: 340, height: 170 },
+      geometry: { x: 230, width: 340, height: 170 },
     });
+    expect(createBody.geometry.y).toBeCloseTo(244, 8);
+  });
+
+  it.each([403, 409])("keeps an uncertain attachment occurrence frozen after non-authoritative %s retry", async (retryStatus) => {
+    const file = new File(["pdf"], "frozen.pdf", { type: "application/pdf" });
+    const inputs: Record<string, any>[] = [];
+    fetchMock.mockImplementation(async (path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) {
+        return new Response(JSON.stringify(projectTestSnapshot()), { headers: { "content-type": "application/json" } });
+      }
+      if (String(path) === "/api/project-assets") {
+        return new Response(JSON.stringify({ id: "asset-frozen" }), { headers: { "content-type": "application/json" } });
+      }
+      const input = JSON.parse(String(init?.body));
+      inputs.push(input);
+      if (inputs.length === 1) return new Response(JSON.stringify({ error: "Attachment create response unavailable" }), { status: 503, headers: { "content-type": "application/json" } });
+      if (inputs.length === 2) return new Response(JSON.stringify({ error: "Attachment retry rejected" }), { status: retryStatus, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ ...mutationResponse(input, "attachment", file), replayed: true }), { headers: { "content-type": "application/json" } });
+    });
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate attachment request" }));
+    fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
+    await screen.findByText("Attachment create response unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact attachment" }));
+    await screen.findByText("Attachment retry rejected");
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect((screen.getByRole("button", { name: "Attachment" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact attachment" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Retry exact attachment" })).toBeNull());
+    expect(inputs).toHaveLength(3);
+    expect(inputs[1]).toEqual(inputs[0]);
+    expect(inputs[2]).toEqual(inputs[0]);
+    expect(fetchMock.mock.calls.filter(([path]) => String(path) === "/api/project-assets")).toHaveLength(1);
   });
 
   it.each(["Note / Markdown", "Attachment"])("reports an unready viewport for %s without starting a write", async (action) => {
@@ -243,7 +294,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(projectTestSnapshot())));
     renderProjectPage();
     fireEvent.click(await screen.findByRole("button", { name: "Simulate Markdown double click" }));
-    fireEvent.click(screen.getByRole("button", { name: "Close References" }));
+    expect(screen.queryByRole("complementary", { name: "Reference search and placement" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     const menu = screen.getByRole("group", { name: "Add to Project" });
     expect((within(menu).getByRole("button", { name: "Note / Markdown" }) as HTMLButtonElement).disabled).toBe(true);
@@ -256,4 +307,83 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("avoids every existing card when Reading repeatedly adds notes and mixed-size attachments", async () => {
+    const created: Array<Record<string, any>> = [];
+    const files = [new File(["pdf"], "result.pdf", { type: "application/pdf" }),
+      new File(["image"], "image.png", { type: "image/png" })];
+    const json = (payload: unknown) => Promise.resolve(new Response(JSON.stringify(payload), {
+      headers: { "content-type": "application/json" },
+    }));
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a") return json(projectTestSnapshot());
+      if (String(path) === "/api/project-assets") return json({ id: `asset-${created.length}` });
+      if (String(path).endsWith("/items/markdown") || String(path).endsWith("/items/attachment")) {
+        const input = JSON.parse(String(init?.body));
+        const kind = String(path).endsWith("/markdown") ? "markdown" : "attachment";
+        created.push(input);
+        const result = mutationResponse(input, kind, files.find((file) => file.name === input.presentation?.originalName));
+        result.project.revision = 2 + created.length;
+        result.project.nextCreatedSequence = 3 + created.length;
+        result.item.createdSequence = 2 + created.length;
+        return json(result);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => undefined);
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Reading" }));
+    for (let index = 0; index < 2; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+      fireEvent.click(screen.getByRole("button", { name: "Note / Markdown" }));
+      fireEvent.change(await screen.findByLabelText("New Markdown editor"), { target: { value: `# Added note ${index}` } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Markdown" }));
+      await waitFor(() => expect(created).toHaveLength(index + 1));
+      await waitFor(() => expect(screen.queryByLabelText("New Markdown editor")).toBeNull());
+    }
+    for (const [index, file] of files.entries()) {
+      fireEvent.click(screen.getByRole("button", { name: "Add" }));
+      fireEvent.click(screen.getByRole("button", { name: "Attachment" }));
+      fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
+      await waitFor(() => expect(created).toHaveLength(3 + index));
+      await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
+    }
+    const occupied = [...projectTestSnapshot().placements];
+    for (const [index, input] of created.entries()) {
+      const geometry = input.geometry;
+      expect(geometry.width).toBe(index === 2 ? 340 : 360);
+      expect(geometry.height).toBe(index < 2 ? 220 : index === 2 ? 170 : 300);
+      for (const previous of occupied) {
+        expect(geometry.x + geometry.width <= previous.x
+          || previous.x + previous.width <= geometry.x
+          || geometry.y + geometry.height <= previous.y
+          || previous.y + previous.height <= geometry.y).toBe(true);
+      }
+      occupied.push(geometry);
+    }
+    expect(mapViewport.reveal).not.toHaveBeenCalled();
+  });
+
+  it("keeps explicit attachment coordinates even when they overlap another card", async () => {
+    const file = new File(["image"], "exact.png", { type: "image/png" });
+    let created: Record<string, any> | null = null;
+    fetchMock.mockImplementation(async (path, init) => {
+      const payload = String(path) === "/api/projects/project-a" ? projectTestSnapshot()
+        : String(path) === "/api/project-assets" ? { id: "exact-asset" }
+        : (() => {
+          created = JSON.parse(String(init?.body));
+          return mutationResponse(created!, "attachment", file);
+        })();
+      return new Response(JSON.stringify(payload), { headers: { "content-type": "application/json" } });
+    });
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate attachment request" }));
+    fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
+    await waitFor(() => expect(created).not.toBeNull());
+    expect((created as unknown as Record<string, any>).geometry).toMatchObject({
+      x: 120, y: 168, width: 360, height: 300,
+    });
+    expect(mapViewport.reveal).not.toHaveBeenCalled();
+  });
+
 });

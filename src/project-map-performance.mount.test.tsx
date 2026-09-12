@@ -273,6 +273,7 @@ describe("Project Map representative-scale contract", () => {
     expect(canvas?.dataset.projectMapNodeCount).toBe("250");
     expect(canvas?.dataset.projectMapEdgeCount).toBe("400");
     expect(container.querySelector(".project-node-excerpt")).toBeNull();
+    expect(container.querySelector(".project-node-markdown")).toBeNull();
 
     const zoomIn = container.querySelector<HTMLButtonElement>(".react-flow__controls-zoomin");
     const zoomOut = container.querySelector<HTMLButtonElement>(".react-flow__controls-zoomout");

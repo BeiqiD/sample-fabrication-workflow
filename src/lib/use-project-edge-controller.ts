@@ -16,7 +16,7 @@ import type {
 } from "../../shared/project-api";
 import type { ProjectEdgeHandle } from "../../shared/project-types";
 import { ProjectApiError, createProjectApiId, projectApi } from "./project-client";
-import type { ProjectEdgeHistoryCommand } from "./project-edge-history";
+import type { ProjectEdgeConnection, ProjectEdgeHistoryCommand } from "./project-edge-history";
 import {
   projectEdgeDirection,
   projectEdgeMarkers,
@@ -54,6 +54,8 @@ type PendingUpdate = {
   input: UpdateProjectEdgeInput;
   before: ProjectEdgeMetadataShape;
   after: ProjectEdgeMetadataShape;
+  endpointsBefore?: ProjectEdgeConnection;
+  endpointsAfter?: ProjectEdgeConnection;
   sourceItemId: string;
   targetItemId: string;
   status: ProjectEdgeMutationStatus;
@@ -90,6 +92,27 @@ function edgeFailureStatus(caught: unknown): Exclude<ProjectEdgeMutationStatus, 
     }
   }
   return "uncertain";
+}
+
+/** Only a revision compared by the frozen write can prevent its later commit. */
+function edgeMutationRevisionHasAdvanced(
+  snapshot: ProjectSnapshot,
+  mutation: ProjectPendingEdgeMutation,
+) {
+  if (mutation.kind !== "create") {
+    const edge = snapshot.edges.find((candidate) => candidate.id === mutation.edgeId);
+    if (edge && edge.revision > mutation.input.expectedRevision) return true;
+  }
+  // Metadata and lifecycle writes do not compare endpoint revisions. Temporary
+  // endpoint deletion (or a duplicate relationship) cannot settle those writes.
+  if (mutation.kind !== "create" && mutation.kind !== "update") return false;
+  const input = mutation.input;
+  return snapshot.items.some((item) => (
+    (item.id === input.sourceItemId && input.expectedSourceItemRevision !== undefined
+      && item.revision > input.expectedSourceItemRevision)
+    || (item.id === input.targetItemId && input.expectedTargetItemRevision !== undefined
+      && item.revision > input.expectedTargetItemRevision)
+  ));
 }
 
 function mergeActiveEdge(
@@ -192,14 +215,18 @@ export function useProjectEdgeController({
         const result = await projectApi.updateEdge(projectId, saving.edgeId, saving.input);
         if (!activeRef.current) return;
         mergeActiveEdge(setSnapshot, result.value);
-        if (saving.recordHistory) onHistory({
-          kind: "edge-update",
-          edgeId: result.value.id,
-          sourceItemId: result.value.sourceItemId,
-          targetItemId: result.value.targetItemId,
-          before: saving.before,
-          after: saving.after,
-        });
+        if (saving.recordHistory) {
+          const identity = {
+            edgeId: result.value.id,
+            sourceItemId: result.value.sourceItemId,
+            targetItemId: result.value.targetItemId,
+          };
+          if (saving.endpointsBefore && saving.endpointsAfter) onHistory({
+            ...identity, kind: "edge-reconnect",
+            before: saving.endpointsBefore, after: saving.endpointsAfter,
+          });
+          else onHistory({ ...identity, kind: "edge-update", before: saving.before, after: saving.after });
+        }
         if (editorRef.current?.edgeId === saving.edgeId) updateEditor(null);
       } else if (saving.kind === "delete") {
         const result = await projectApi.deleteEdge(projectId, saving.edgeId, saving.input);
@@ -224,7 +251,28 @@ export function useProjectEdgeController({
       finishTransition();
     } catch (caught) {
       if (!activeRef.current) return;
-      const status = edgeFailureStatus(caught);
+      const failureStatus = edgeFailureStatus(caught);
+      let status = failureStatus;
+      if (mutation.status === "uncertain") {
+        // A retry's rejection says nothing about an earlier request whose
+        // response was lost. Preserve that exact request until a durable fence
+        // proves it can no longer commit, or an exact retry acknowledges it.
+        status = "uncertain";
+        if (caught instanceof ProjectApiError && failureStatus === "conflict") {
+          let settled = caught.mutationDisposition === "authoritative-rejection";
+          if (!settled) {
+            try {
+              const fresh = await projectApi.readTrash(projectId);
+              if (!activeRef.current || pendingRef.current !== saving) return;
+              settled = fresh.project.id === projectId && edgeMutationRevisionHasAdvanced(fresh, saving);
+            } catch {
+              // A failed read or a missing row is not evidence of settlement.
+              if (!activeRef.current || pendingRef.current !== saving) return;
+            }
+          }
+          if (settled) status = "conflict";
+        }
+      }
       const message = caught instanceof Error ? caught.message : "The Project edge operation failed";
       const failed = { ...saving, status, message } as ProjectPendingEdgeMutation;
       updatePending(failed);
@@ -275,6 +323,49 @@ export function useProjectEdgeController({
       operationId: createProjectApiId("operation"),
     };
     void runMutation({ kind: "create", input, status: "saving", message: null, recordHistory: true });
+  }, [runMutation]);
+
+  const reconnect = useCallback((edgeId: string, connection: ProjectEdgeConnection) => {
+    const current = snapshotRef.current;
+    if (!current || externalBusyRef.current || pendingRef.current || editorRef.current) return false;
+    const edge = current.edges.find((candidate) => candidate.id === edgeId);
+    if (!edge) return false;
+    if (connection.sourceItemId === connection.targetItemId) {
+      setActionError("Project edges cannot connect an item occurrence to itself");
+      return false;
+    }
+    const before: ProjectEdgeConnection = {
+      sourceItemId: edge.sourceItemId, targetItemId: edge.targetItemId,
+      sourceHandle: edge.sourceHandle, targetHandle: edge.targetHandle,
+    };
+    if (before.sourceItemId === connection.sourceItemId && before.targetItemId === connection.targetItemId
+      && before.sourceHandle === connection.sourceHandle && before.targetHandle === connection.targetHandle) return false;
+    if (projectEdgeWouldDuplicate(current.edges, { ...connection, ...projectEdgeMetadata(edge) }, edge.id)) {
+      setActionError("This exact Project edge already exists");
+      return false;
+    }
+    const revisions = projectItemRevisionIndex(current);
+    const sourceRevision = revisions[connection.sourceItemId];
+    const targetRevision = revisions[connection.targetItemId];
+    if (!Number.isInteger(sourceRevision) || !Number.isInteger(targetRevision)) {
+      setActionError("The Project edge endpoints are no longer available");
+      return false;
+    }
+    const metadata = projectEdgeMetadata(edge);
+    setSelectedEdgeId(edge.id);
+    void runMutation({
+      kind: "update", edgeId: edge.id,
+      input: {
+        ...metadata, ...connection, expectedRevision: edge.revision,
+        expectedSourceItemRevision: sourceRevision, expectedTargetItemRevision: targetRevision,
+        operationId: createProjectApiId("operation"),
+      },
+      before: metadata, after: metadata,
+      endpointsBefore: before, endpointsAfter: { ...connection },
+      sourceItemId: connection.sourceItemId, targetItemId: connection.targetItemId,
+      status: "saving", message: null, recordHistory: true,
+    });
+    return true;
   }, [runMutation]);
 
   const selectEdge = useCallback((edgeId: string | null) => {
@@ -332,7 +423,17 @@ export function useProjectEdgeController({
   const saveEdit = useCallback(() => {
     const currentSnapshot = snapshotRef.current;
     const currentEditor = editorRef.current;
-    if (!currentSnapshot || !currentEditor || currentEditor.status !== "editing" || pendingRef.current) return;
+    if (!currentSnapshot || !currentEditor
+      || (currentEditor.status !== "editing" && currentEditor.status !== "error")) return;
+    const rejected = pendingRef.current;
+    if (rejected) {
+      // A determined rejection permits a new request. An uncertain operation
+      // retains its frozen payload and remains exclusive to retryExact.
+      if (currentEditor.status !== "error" || rejected.kind !== "update"
+        || rejected.edgeId !== currentEditor.edgeId || rejected.status !== "error") return;
+      updatePending(null);
+    }
+    setActionError("");
     const edge = currentSnapshot.edges.find((candidate) => candidate.id === currentEditor.edgeId);
     if (!edge) return;
     const label = currentEditor.label.trim() === "" ? null : currentEditor.label;
@@ -379,7 +480,7 @@ export function useProjectEdgeController({
       message: null,
       recordHistory: true,
     });
-  }, [runMutation, updateEditor]);
+  }, [runMutation, updateEditor, updatePending]);
 
   const deleteSelected = useCallback(() => {
     const current = snapshotRef.current;
@@ -433,7 +534,31 @@ export function useProjectEdgeController({
     const current = snapshotRef.current;
     if (!current || externalBusyRef.current || pendingRef.current || editorRef.current) return false;
     let mutation: ProjectPendingEdgeMutation | null = null;
-    if (command.kind === "edge-update") {
+    if (command.kind === "edge-reconnect") {
+      const edge = current.edges.find((candidate) => candidate.id === command.edgeId);
+      if (!edge) return false;
+      const target = direction === "undo" ? command.before : command.after;
+      const revisions = projectItemRevisionIndex(current);
+      const sourceRevision = revisions[target.sourceItemId];
+      const targetRevision = revisions[target.targetItemId];
+      if (!Number.isInteger(sourceRevision) || !Number.isInteger(targetRevision)) return false;
+      const metadata = projectEdgeMetadata(edge);
+      if (projectEdgeWouldDuplicate(current.edges, { ...target, ...metadata }, edge.id)) {
+        setActionError("Restoring these endpoints would duplicate an existing Project edge");
+        return false;
+      }
+      mutation = {
+        kind: "update", edgeId: edge.id,
+        input: {
+          ...metadata, ...target, expectedRevision: edge.revision,
+          expectedSourceItemRevision: sourceRevision, expectedTargetItemRevision: targetRevision,
+          operationId: createProjectApiId("operation"),
+        },
+        before: metadata, after: metadata,
+        sourceItemId: target.sourceItemId, targetItemId: target.targetItemId,
+        status: "saving", message: null, recordHistory: false,
+      };
+    } else if (command.kind === "edge-update") {
       const edge = current.edges.find((candidate) => candidate.id === command.edgeId);
       if (!edge) return false;
       const target = direction === "undo" ? command.before : command.after;
@@ -484,6 +609,7 @@ export function useProjectEdgeController({
         };
       }
     }
+    if (!mutation) return false;
     transitionRef.current = onSuccess;
     void runMutation(mutation);
     return true;
@@ -520,6 +646,7 @@ export function useProjectEdgeController({
     unsafe: editor !== null || pending !== null,
     interactionDisabled: externalBusy || editor !== null || pending !== null,
     connect,
+    reconnect,
     selectEdge,
     startEdit,
     changeEdit,

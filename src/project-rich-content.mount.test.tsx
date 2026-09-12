@@ -52,7 +52,7 @@ describe("Phase 3D rich Reading projection", () => {
       markdownSource: "    # shell comment",
     })]} /></MemoryRouter>);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Research note" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { level: 2, name: "Research note" })).toBeNull();
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
     expect(screen.getByText("# shell comment")).toBeTruthy();
   });
@@ -72,7 +72,7 @@ describe("Phase 3D rich Reading projection", () => {
 
 
   it("uses the shared modal contract for image previews", () => {
-    render(<MemoryRouter><ProjectReadingSurface nodes={[node({
+    render(<MemoryRouter><ProjectReadingSurface onAttachmentEditRequest={() => {}} nodes={[node({
       itemId: "image-a",
       kind: "attachment",
       title: "surface.png",

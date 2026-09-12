@@ -196,6 +196,27 @@ describe("authoritative Project Canvas copy/paste", () => {
     expect(shortcut("c", { ctrlKey: true, isComposing: true })).toBeNull();
   });
 
+  it("anchors context-menu paste at the requested point without changing internal layout", () => {
+    const snapshot = copyPasteSnapshot();
+    const clipboard = buildProjectCanvasClipboard(snapshot, ["item-note", "item-reference", "item-attachment"])!;
+    const journal = createProjectCanvasPasteJournal(snapshot, clipboard, {
+      pasteOrdinal: 4,
+      point: { x: -500, y: 870 },
+      createIdentity: deterministicIdentity,
+    });
+    expect(Math.min(...journal.itemSteps.map((step) => step.input.geometry.x))).toBe(-500);
+    expect(Math.min(...journal.itemSteps.map((step) => step.input.geometry.y))).toBe(870);
+    for (let index = 1; index < clipboard.items.length; index += 1) {
+      expect(journal.itemSteps[index].input.geometry.x - journal.itemSteps[0].input.geometry.x)
+        .toBe(clipboard.items[index].geometry.x - clipboard.items[0].geometry.x);
+      expect(journal.itemSteps[index].input.geometry.y - journal.itemSteps[0].input.geometry.y)
+        .toBe(clipboard.items[index].geometry.y - clipboard.items[0].geometry.y);
+    }
+    expect(journal.edgeSteps).toHaveLength(2);
+    expect(() => createProjectCanvasPasteJournal(snapshot, clipboard, { point: { x: NaN, y: 0 } }))
+      .toThrow("finite canvas coordinate");
+  });
+
   it("freezes authoritative payloads and copies only edges internal to the selection", () => {
     const snapshot = copyPasteSnapshot();
     const clipboard = buildProjectCanvasClipboard(snapshot, [

@@ -171,6 +171,56 @@ describe("real Project Map surface keyboard behavior", () => {
     }
   });
 
+
+  it("renders complete Markdown math in a scrollable card without moving the node on reading keys", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.contents[0].markdownSource = String.raw`# Research note
+
+` + "A long observation. ".repeat(30) + String.raw`
+
+\[
+\begin{pmatrix} a & b \\ c & d \end{pmatrix}
+\]
+
+The ratio is $\frac{1}{1+x_0^2}$.
+
+[Source](https://example.com/research)`;
+    const onGeometryCommit = vi.fn();
+    const onMarkdownEditRequest = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        selectedItemId="item-note"
+        onSelect={() => undefined}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest}
+      />
+    </div>);
+    const note = await waitFor(() => {
+      const candidate = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"]');
+      expect(candidate).toBeTruthy();
+      expect(candidate!.querySelector("mtable")).not.toBeNull();
+      return candidate!;
+    });
+    expect(note.querySelector("mfrac")).not.toBeNull();
+    expect(within(note).getAllByRole("heading", { name: "Research note" })).toHaveLength(1);
+    expect(note.querySelector(".project-node-excerpt")).toBeNull();
+    const body = within(note).getByRole("region", { name: "Markdown content" });
+    body.focus();
+    expect(document.activeElement).toBe(body);
+    fireEvent.keyDown(body, { key: "ArrowRight" });
+    fireEvent.keyDown(body, { key: "PageDown" });
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    const link = within(body).getByRole("link", { name: "Source" });
+    expect(link.getAttribute("rel")).toContain("noopener");
+    fireEvent.doubleClick(link);
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    fireEvent.doubleClick(body);
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    fireEvent.doubleClick(note.querySelector("header")!);
+    expect(onMarkdownEditRequest).toHaveBeenCalledWith("item-note");
+  });
+
   it("keeps Shift-click multi-selection controlled by the parent selection model", async () => {
     const onSelectionChange = vi.fn();
     const descriptors = projectMapNodes(projectTestSnapshot());
@@ -301,7 +351,7 @@ describe("real Project Map surface keyboard behavior", () => {
       target.dispatchEvent(event);
     };
 
-    dispatchMouse(note, "mousedown", {
+    dispatchMouse(note.querySelector("header")!, "mousedown", {
       button: 0,
       buttons: 1,
       clientX: 100,
@@ -558,7 +608,7 @@ describe("real Project Map surface keyboard behavior", () => {
     expect(feedback.getAttribute("role")).toBe("status");
     expect(feedback.classList.contains("warning")).toBe(true);
     expect(feedback.classList.contains("danger")).toBe(false);
-    expect(feedback.classList.contains("project-markdown-editor-feedback")).toBe(true);
+    expect(feedback.closest(".project-markdown-editor")).not.toBeNull();
   });
 
 

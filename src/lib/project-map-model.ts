@@ -37,6 +37,7 @@ export interface ProjectNodeDescriptor {
   attachmentByteSize: number | null;
   fileUrl: string | null;
   openReferenceUrl: string | null;
+  openSourceUrl?: string | null;
 }
 
 export interface ProjectGeometryCommand {
@@ -159,6 +160,7 @@ function referenceNode(
     attachmentByteSize: null,
     fileUrl: null,
     openReferenceUrl: resolution?.destination.referenceUrl ?? null,
+    openSourceUrl: resolution?.destination.openSourceUrl ?? null,
   };
 }
 

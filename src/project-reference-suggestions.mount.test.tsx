@@ -145,7 +145,7 @@ describe("Project suggested references", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/api/references/children");
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       parent: { type: "sample", id: "sample-a" },
-      limit: 12,
+      limit: 100,
     });
 
     const transfer = new TestDataTransfer();
@@ -158,7 +158,7 @@ describe("Project suggested references", () => {
       preview: { title: "Etch run" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Place Etch run at Map center" }));
+    fireEvent.click(screen.getByRole("button", { name: "Place Etch run on Map" }));
     expect(onPlace).toHaveBeenCalledWith(child);
 
     fireEvent.click(screen.getByRole("button", { name: "Files & data" }));
@@ -326,4 +326,66 @@ describe("Project suggested references", () => {
     expect(signals[0].aborted).toBe(true);
     expect(signals[1].aborted).toBe(false);
   });
+
+  it("filters the complete bounded preview before limiting visible suggestions", async () => {
+    const runs = Array.from({ length: 24 }, (_, index): ReferenceResolution => ({
+      ...child,
+      target: { type: "run", id: `run-${index}` },
+      source: { ...child.source!, title: `Run ${index}` },
+    }));
+    const file: ReferenceResolution = {
+      ...child,
+      target: { type: "comment_attachment", id: "file-after-runs" },
+      source: { ...child.source!, title: "Inspection image" },
+    };
+    fetchMock.mockImplementation(() => jsonResponse({
+      ...childrenResponse, children: [...runs, file],
+    }));
+    function Harness() {
+      const [value, setValue] = useState(defaultReferenceSearchUiState());
+      return <ReferenceSearchSurface mode="place" value={value} onChange={setValue}
+        onPlaceAtCenter={vi.fn()}
+        suggestionSeeds={[{ target: { type: "sample", id: "sample-a" }, title: "Sample A", origin: "project" }]} />;
+    }
+    render(<MemoryRouter><Harness /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Run 0" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Inspection image" })).toBeNull();
+    expect(screen.getByText(/Showing a limited preview/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Files & data" }));
+    expect(await screen.findByRole("heading", { name: "Inspection image" })).toBeTruthy();
+    expect(screen.queryByText(/No suggested records match/)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).limit).toBe(100);
+  });
+
+  it("does not claim a filtered type is absent when the server preview is truncated", async () => {
+    fetchMock.mockImplementation(() => jsonResponse({ ...childrenResponse, truncated: true }));
+    render(<MemoryRouter><ReferenceSearchSurface mode="place"
+      value={{ ...defaultReferenceSearchUiState(), types: ["comment_attachment"] }}
+      onChange={vi.fn()} onPlaceAtCenter={vi.fn()}
+      suggestionSeeds={[{ target: { type: "sample", id: "sample-a" }, title: "Sample A", origin: "project" }]}
+    /></MemoryRouter>);
+    expect(await screen.findByText(/No matching records in this preview/)).toBeTruthy();
+    expect(screen.queryByText(/No suggested records match this type/)).toBeNull();
+    expect(screen.getByText(/Showing a limited preview/)).toBeTruthy();
+  });
+
+  it("keeps metadata collapsed and lets the full reference header initiate dragging", async () => {
+    render(<MemoryRouter><ReferenceSearchSurface mode="place"
+      value={defaultReferenceSearchUiState()} onChange={vi.fn()} onPlaceAtCenter={vi.fn()}
+      suggestionSeeds={[{ target: { type: "sample", id: "sample-a" }, title: "Sample A", origin: "selection" }]}
+    /></MemoryRouter>);
+    const heading = await screen.findByRole("heading", { name: "Etch run" });
+    const header = heading.closest<HTMLElement>("[draggable]");
+    expect(header?.draggable).toBe(true);
+    const transfer = new TestDataTransfer();
+    fireEvent.dragStart(heading, { dataTransfer: transfer });
+    expect(JSON.parse(transfer.getData(PROJECT_REFERENCE_DRAG_MIME)).target).toEqual(child.target);
+    const details = screen.getByLabelText("More about Etch run").closest("details");
+    expect(details?.open).toBe(false);
+    fireEvent.click(screen.getByLabelText("More about Etch run"));
+    expect(details?.open).toBe(true);
+    expect(screen.getByRole("link", { name: "Reference details" })).toBeTruthy();
+  });
+
 });

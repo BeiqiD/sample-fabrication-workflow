@@ -86,10 +86,13 @@ describe("Project Trash snapshot", () => {
     expect(trash.edges.map((edge) => edge.id)).toEqual(["edge-trash"]);
     expect(trash.items[0]).toMatchObject({ id: "item-trash-a", revision: 2 });
     expect(trash.items[0].deletedAt).not.toBeNull();
+    expect(trash.items[0].deletionOperationId).toBe("remove-trash-a");
+    expect(trash.items[1].deletionOperationId).toBeUndefined();
     expect(trash.contents[0]).toMatchObject({ id: "content-trash-a", revision: 2 });
     expect(trash.contents[0].deletedAt).not.toBeNull();
     expect(trash.edges[0]).toMatchObject({ id: "edge-trash", revision: 2 });
     expect(trash.edges[0].deletedAt).not.toBeNull();
+    expect(trash.edges[0].deletionOperationId).toBe("remove-trash-a");
     database.close();
   });
 });

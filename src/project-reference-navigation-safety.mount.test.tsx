@@ -231,6 +231,9 @@ describe("Project reference navigation safety", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
     expect(screen.getByText("Unsaved")).toBeTruthy();
 
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
     expect(screen.getByText("Pending reference: uncertain")).toBeTruthy();
@@ -287,6 +290,9 @@ describe("Project reference navigation safety", () => {
     expect(screen.getByText("Note x: 100")).toBeTruthy();
     expect(screen.getByText("Unsaved")).toBeTruthy();
 
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
     expect(await screen.findByText("Temporary insertion failure")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reconcile and cancel" }));
@@ -319,6 +325,9 @@ describe("Project reference navigation safety", () => {
     renderProjectPage();
     await screen.findByText("Map ready");
     fireEvent.click(screen.getByRole("button", { name: "Dirty existing geometry" }));
+    if (screen.getByRole("button", { name: "References" }).getAttribute("aria-pressed") !== "true") {
+      fireEvent.click(screen.getByRole("button", { name: "References" }));
+    }
     fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
 
     expect(await screen.findByText("Project revision conflict")).toBeTruthy();
@@ -330,12 +339,83 @@ describe("Project reference navigation safety", () => {
     expect(fetchMock.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Reload Project" }).hasAttribute("disabled")).toBe(false));
+    expect(screen.getByText("Pending reference: conflict")).toBeTruthy();
+    expect(screen.queryByText("Saved")).toBeNull();
     reload = screen.getByRole("button", { name: "Reload Project" });
-    expect(reload.hasAttribute("disabled")).toBe(false);
     fireEvent.click(reload);
 
     await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(2));
     await waitFor(() => expect(screen.queryByText("Pending reference: conflict")).toBeNull());
+    expect(screen.getByText("Saved")).toBeTruthy();
   });
+  it("keeps cancellation blocked when reversible 409 and an absent snapshot cannot settle the delayed original create", async () => {
+    let input: CreateReferenceProjectItemInput | null = null;
+    let lateCommit: ProjectItemMutationResponse | null = null;
+    let attempts = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) return jsonResponse(projectTestSnapshot());
+      if (init.method === "POST") {
+        attempts += 1;
+        const nextInput = JSON.parse(String(init.body)) as CreateReferenceProjectItemInput;
+        if (attempts === 1) {
+          input = nextInput;
+          return Promise.reject(new TypeError("Response lost while original create is still in flight"));
+        }
+        expect(nextInput).toEqual(input);
+        if (attempts === 2) return jsonResponse({ error: "The reference target is not currently eligible for Project insertion" }, 409);
+        if (!lateCommit) throw new Error("Original request has not committed yet");
+        return jsonResponse(lateCommit);
+      }
+      if (init.method === "DELETE" && lateCommit) return jsonResponse(removedInsertionResponse(lateCommit));
+      throw new Error("Unexpected request");
+    });
+    renderProjectPage();
+    await screen.findByText("Map ready");
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
+    await screen.findByText("Response lost while original create is still in flight");
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reconcile, cancel and leave" }));
+    await waitFor(() => expect(attempts).toBe(2));
+    await waitFor(() => expect(screen.queryByText("Pending reference: reconciling")).toBeNull());
+    expect(screen.queryByText("Projects route")).toBeNull();
+    expect(screen.getByText("Pending reference: uncertain")).toBeTruthy();
+    if (!input) throw new Error("No create request captured");
+    lateCommit = insertionResponse(input);
+    fireEvent.click(screen.getByRole("button", { name: "Reconcile, cancel and leave" }));
+    await screen.findByText("Projects route");
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(1);
+  });
+
+  it("allows cancellation after an authoritative revision fence rules out the delayed create", async () => {
+    let attempts = 0;
+    fetchMock.mockImplementation((_path, init) => {
+      if (!init?.method) return jsonResponse(attempts ? authoritativeSnapshotWithSavedGeometry() : projectTestSnapshot());
+      if (init.method === "POST") {
+        attempts += 1;
+        if (attempts === 1) return jsonResponse({ error: "Create response lost" }, 503);
+        return Promise.resolve(new Response(JSON.stringify({ error: "Project revision advanced" }), {
+          status: 409,
+          headers: {
+            "content-type": "application/json",
+            "x-project-mutation-disposition": "authoritative-rejection",
+          },
+        }));
+      }
+      throw new Error("Unexpected request");
+    });
+    renderProjectPage();
+    await screen.findByText("Map ready");
+    fireEvent.click(screen.getByRole("button", { name: "References" }));
+    fireEvent.click(screen.getByRole("button", { name: "Place fixture at center" }));
+    await screen.findByText("Create response lost");
+    fireEvent.click(screen.getByRole("link", { name: "Projects" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reconcile, cancel and leave" }));
+    await screen.findByText("Projects route");
+    expect(attempts).toBe(2);
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(0);
+  });
+
 });

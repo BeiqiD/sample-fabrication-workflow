@@ -21,6 +21,9 @@ vi.mock("./components/ReferenceSearchSurface", () => ({
 vi.mock("./components/project/ProjectMapSurface", () => ({
   ProjectMapSurface: forwardRef(function MockProjectMapSurface({
     edges = [],
+    selectedItemIds = [],
+    selectedEdgeId = null,
+    onSelect,
     pendingEdge,
     edgeInteractionDisabled = false,
     onEdgeConnect,
@@ -28,6 +31,9 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
     onGeometryCommit,
   }: {
     edges?: ProjectEdgeRecord[];
+    selectedItemIds?: readonly string[];
+    selectedEdgeId?: string | null;
+    onSelect?: (itemId: string | null) => void;
     pendingEdge?: ProjectPendingEdgePreview | null;
     edgeInteractionDisabled?: boolean;
     onEdgeConnect?: (connection: {
@@ -43,6 +49,9 @@ vi.mock("./components/project/ProjectMapSurface", () => ({
     return <div>
       <p>Edge Map ready</p>
       <p>Edge count: {edges.length}</p>
+      <p>Card selection: {selectedItemIds.join(",") || "none"}</p>
+      <p>Edge selection: {selectedEdgeId || "none"}</p>
+      <button type="button" onClick={() => onSelect?.("item-note")}>Select source card fixture</button>
       <p>Edge interaction: {edgeInteractionDisabled ? "disabled" : "enabled"}</p>
       {pendingEdge && <p>Pending edge: {pendingEdge.status}</p>}
       <button type="button" disabled={edgeInteractionDisabled} onClick={() => onEdgeConnect?.({
@@ -166,10 +175,18 @@ describe("mounted Project edge behavior", () => {
 
     renderProjectPage({ strict: true });
     await waitForMap();
+    fireEvent.click(screen.getByRole("button", { name: "Select source card fixture" }));
+    expect(screen.getByText("Card selection: item-note")).toBeTruthy();
+    expect(screen.getByText("Edge selection: none")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Connect edge fixture" }));
 
     await waitFor(() => expect(screen.getByText("Edge count: 1")).toBeTruthy());
     expect(createCalls).toBe(1);
+    await waitFor(() => expect(screen.getByText("Card selection: none")).toBeTruthy());
+    expect(screen.queryByText("Edge selection: none")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Select source card fixture" }));
+    expect(screen.getByText("Card selection: item-note")).toBeTruthy();
+    expect(screen.getByText("Edge selection: none")).toBeTruthy();
   });
 
   it("exact-retries an uncertain edge create with the original endpoint revisions and operation identity", async () => {
@@ -248,6 +265,9 @@ describe("mounted Project edge behavior", () => {
     renderProjectPage();
     await waitForMap();
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+    if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
+    fireEvent.click(screen.getByText("Technical details", { selector: "summary" }));
     expect(screen.getByText("right → left")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
     fireEvent.change(screen.getByLabelText("Direction"), { target: { value: "forward" } });
@@ -295,6 +315,8 @@ describe("mounted Project edge behavior", () => {
     renderProjectPage();
     await waitForMap();
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+    if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
     fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
     fireEvent.change(screen.getByLabelText("Label"), { target: { value: "invalid" } });
     fireEvent.click(screen.getByRole("button", { name: "Save edge" }));
@@ -336,6 +358,8 @@ describe("mounted Project edge behavior", () => {
     expect(screen.getByText("Edge interaction: enabled")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+    if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
     fireEvent.click(screen.getByRole("button", { name: "Delete edge" }));
     await waitFor(() => expect(screen.getByText("Edge count: 0")).toBeTruthy());
 
@@ -476,6 +500,8 @@ describe("mounted Project edge behavior", () => {
     renderProjectPage();
     await waitForMap();
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+    if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
     fireEvent.click(screen.getByRole("button", { name: "Delete edge" }));
     await waitFor(() => expect(screen.getByText("Edge count: 0")).toBeTruthy());
 
@@ -496,6 +522,79 @@ describe("mounted Project edge behavior", () => {
     ]);
   });
 
+  it.each(["toolbar", "leave"])("retries a determined edge rejection through %s without changing the draft", async (action) => {
+    const inputs: UpdateProjectEdgeInput[] = [];
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshotWithEdge());
+      if (String(path) === "/api/projects/project-a/edges/edge-a" && init?.method === "PATCH") {
+        const input = JSON.parse(String(init.body)) as UpdateProjectEdgeInput;
+        inputs.push(input);
+        if (inputs.length === 1) return jsonResponse({ error: "Edge metadata rejected" }, 400);
+        return jsonResponse({ value: edgeRecord({ label: input.label, markerStart: input.markerStart, markerEnd: input.markerEnd, revision: 2 }), replayed: false });
+      }
+      return jsonResponse({ error: "Unexpected request" }, 500);
+    });
+    renderProjectPage();
+    await waitForMap();
+    fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
+    const label = screen.getByLabelText("Label") as HTMLInputElement;
+    fireEvent.change(label, { target: { value: "Retained relationship" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save edge" }));
+    await screen.findAllByText("Edge metadata rejected");
+    expect(label.value).toBe("Retained relationship");
+    expect(label.disabled).toBe(false);
+    expect(screen.getByRole("button", { name: "Save edge" })).toBeTruthy();
+    if (action === "leave") {
+      fireEvent.click(screen.getByRole("link", { name: "Projects" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Save edge and leave" }));
+      await screen.findByText("Projects route");
+    } else {
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(screen.queryByLabelText("Label")).toBeNull());
+    }
+    expect(inputs).toHaveLength(2);
+    expect(inputs[1]).toEqual({ ...inputs[0], operationId: expect.any(String) });
+    expect(inputs[1].operationId).not.toBe(inputs[0].operationId);
+  });
+
+  it("keeps an uncertain edge update frozen after a later permission rejection", async () => {
+    const inputs: UpdateProjectEdgeInput[] = [];
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshotWithEdge());
+      if (String(path) === "/api/projects/project-a/edges/edge-a" && init?.method === "PATCH") {
+        const input = JSON.parse(String(init.body)) as UpdateProjectEdgeInput;
+        inputs.push(input);
+        if (inputs.length === 1) return jsonResponse({ error: "Edge save response unavailable" }, 503);
+        if (inputs.length === 2) return jsonResponse({ error: "Edge retry permission expired" }, 403);
+        return jsonResponse({ value: edgeRecord({ label: input.label, markerStart: input.markerStart, markerEnd: input.markerEnd, revision: 2 }), replayed: true });
+      }
+      return jsonResponse({ error: "Unexpected request" }, 500);
+    });
+    renderProjectPage();
+    await waitForMap();
+    fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inspector" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
+    const label = screen.getByLabelText("Label") as HTMLInputElement;
+    fireEvent.change(label, { target: { value: "Frozen relationship" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findAllByText("Edge save response unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findAllByText("Edge retry permission expired");
+    expect(label.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Save edge" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    fireEvent.change(label, { target: { value: "Cannot change an uncertain request" } });
+    expect(label.value).toBe("Frozen relationship");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.queryByLabelText("Label")).toBeNull());
+    expect(inputs).toHaveLength(3);
+    expect(inputs[1]).toEqual(inputs[0]);
+    expect(inputs[2]).toEqual(inputs[0]);
+  });
+
   it("blocks navigation for an edge draft and continues only after the explicit edge save succeeds", async () => {
     let patchCalls = 0;
     fetchMock.mockImplementation((path, init) => {
@@ -514,6 +613,8 @@ describe("mounted Project edge behavior", () => {
     renderProjectPage();
     await waitForMap();
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+    if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
     fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
     fireEvent.change(screen.getByLabelText("Label"), { target: { value: "causes" } });
     fireEvent.click(screen.getByRole("link", { name: "Projects" }));
@@ -542,6 +643,8 @@ describe("mounted Project edge behavior", () => {
     renderProjectPage();
     await waitForMap();
     fireEvent.click(screen.getByRole("button", { name: "Select edge fixture" }));
+    const inspectorTrigger = screen.getByRole("button", { name: "Inspector" });
+    if (inspectorTrigger.getAttribute("aria-pressed") !== "true") fireEvent.click(inspectorTrigger);
     fireEvent.click(screen.getByRole("button", { name: "Edit edge" }));
     fireEvent.change(screen.getByLabelText("Label"), { target: { value: "local" } });
     fireEvent.click(screen.getByRole("button", { name: "Save edge" }));

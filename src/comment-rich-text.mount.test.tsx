@@ -173,6 +173,21 @@ Second line with $R_a = 0.239\\,\\mathrm{nm}$.
     router.dispose();
   });
 
+
+  it("keeps compact timeline formulas complete in a keyboard-accessible scroll region", async () => {
+    const view = render(<SampleTimeline compact events={[
+      event({ id: "matrix", kind: "comment", body: String.raw`\[
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+\]` }),
+    ]} />);
+    const region = screen.getByRole("region", { name: "Comment content" });
+    await waitFor(() => expect(region.querySelector("mtable")).not.toBeNull());
+    expect(region.querySelectorAll("mtr")).toHaveLength(2);
+    region.focus();
+    expect(document.activeElement).toBe(region);
+    expect(view.container.querySelector(".compact-timeline")).not.toBeNull();
+  });
+
   it("never executes raw HTML from a Comment body", async () => {
     const view = render(<CommentBody source={'<script>alert("x")</script>'} />);
     await waitFor(() => expect(view.container.querySelector('[data-rich-text="comment"]')).not.toBeNull());
