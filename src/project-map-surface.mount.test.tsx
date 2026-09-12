@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { useState } from "react";
-import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ProjectMapSurface } from "./components/project/ProjectMapSurface";
+import { ProjectMapSurface, type ProjectMapContextCommands } from "./components/project/ProjectMapSurface";
 import type { ProjectItemSelection } from "./lib/project-canvas-productivity";
 import { projectMapNodes } from "./lib/project-map-model";
 import {
@@ -89,6 +90,63 @@ function installReactFlowDomMocks() {
     configurable: true,
     value: () => ({ x: 0, y: 0, width: 0, height: 0 }),
   });
+}
+
+function dispatchCanvasMouse(
+  target: EventTarget,
+  type: "mousedown" | "mousemove" | "mouseup",
+  init: MouseEventInit,
+) {
+  const view = document.defaultView!;
+  const MouseEventConstructor = (view as unknown as typeof globalThis).MouseEvent;
+  const event = new MouseEventConstructor(type, { ...init, bubbles: true, cancelable: true });
+  Object.defineProperty(event, "view", { value: view });
+  act(() => { target.dispatchEvent(event); });
+}
+
+function dragCanvasTarget(target: Element) {
+  dispatchCanvasMouse(target, "mousedown", { button: 0, buttons: 1, clientX: 100, clientY: 100 });
+  dispatchCanvasMouse(window, "mousemove", { buttons: 1, clientX: 110, clientY: 110 });
+  dispatchCanvasMouse(window, "mousemove", { buttons: 1, clientX: 180, clientY: 170 });
+  dispatchCanvasMouse(window, "mouseup", { button: 0, buttons: 0, clientX: 180, clientY: 170 });
+}
+
+function availableContextCommands(): ProjectMapContextCommands {
+  const noop = () => undefined;
+  return {
+    createDisabled: false, selectAllDisabled: false, clearSelectionDisabled: false,
+    copyDisabled: false, pasteDisabled: false, editDisabled: false, removeDisabled: false,
+    edgeInspectDisabled: false, edgeEditDisabled: false, edgeDeleteDisabled: false,
+    panelCommandsDisabled: false, alignmentDisabled: () => false, zOrderDisabled: () => false,
+    inspectItem: noop, editItem: noop, copyItemLink: noop, copySelection: noop,
+    pasteSelection: noop, selectAll: noop, clearSelection: noop, alignSelection: noop,
+    changeZOrder: noop, removeItem: noop, inspectEdge: noop, editEdge: noop, deleteEdge: noop,
+    openReferences: noop, openInspector: noop,
+  };
+}
+
+async function renderRealProjectPage(fetchMock: typeof fetch) {
+  sessionStorage.clear();
+  localStorage.clear();
+  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+    matches: query.includes("min-width"), media: query, onchange: null,
+    addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(),
+  })));
+  const { ProjectPage } = await import("./pages/ProjectPage");
+  const router = createMemoryRouter([{
+    path: "/projects/:projectId", element: <ProjectPage />,
+  }], { initialEntries: ["/projects/project-a"] });
+  return render(<div style={{ width: 1000, height: 700 }}><RouterProvider router={router} /></div>);
+}
+
+function dispatchCanvasKey(target: HTMLElement, key: string, modifier?: "ctrlKey" | "metaKey") {
+  const event = new KeyboardEvent("keydown", {
+    key, ...(modifier ? { [modifier]: true } : {}), bubbles: true, cancelable: true,
+  });
+  fireEvent(target, event);
+  return event;
 }
 
 describe("real Project Map surface keyboard behavior", () => {
@@ -215,10 +273,325 @@ The ratio is $\frac{1}{1+x_0^2}$.
     expect(link.getAttribute("rel")).toContain("noopener");
     fireEvent.doubleClick(link);
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
-    fireEvent.doubleClick(body);
+    for (const target of [body, within(body).getByRole("heading", { name: "Research note" }), note.querySelector("mfrac")!, note.querySelector("header")!]) {
+      onMarkdownEditRequest.mockClear();
+      fireEvent.doubleClick(target);
+      expect(onMarkdownEditRequest).toHaveBeenCalledExactlyOnceWith("item-note");
+    }
+  });
+
+  it.each([
+    { label: "blank Markdown card area", itemId: "item-note", selector: ".project-map-node", placementId: "placement-note" },
+    { label: "rendered Markdown paragraph", itemId: "item-note", selector: ".project-node-markdown p", placementId: "placement-note" },
+    { label: "reference excerpt", itemId: "item-reference", selector: ".project-node-excerpt", placementId: "placement-reference" },
+    { label: "attachment image", itemId: "item-attachment", selector: ".project-node-image", placementId: "placement-attachment" },
+  ])("moves a card from its $label and commits one geometry command", async ({ itemId, selector, placementId }) => {
+    const snapshot = projectTestSnapshotWithAttachment();
+    snapshot.attachments[0].mimeType = "image/png";
+    const onGeometryCommit = vi.fn();
+    const onMarkdownEditRequest = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest}
+      />
+    </div>);
+    const target = await waitFor(() => {
+      const element = container.querySelector<HTMLElement>(`.react-flow__node[data-id="${itemId}"] ${selector}`);
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    if (target instanceof HTMLImageElement) expect(target.draggable).toBe(false);
+    dragCanvasTarget(target);
+    await waitFor(() => expect(onGeometryCommit).toHaveBeenCalledTimes(1));
+    const command = onGeometryCommit.mock.calls[0][0];
+    expect(command.placementId).toBe(placementId);
+    expect(command.after.x).not.toBe(command.before.x);
+    expect(command.after.y).not.toBe(command.before.y);
+    expect(command.after.width).toBe(command.before.width);
+    expect(command.after.height).toBe(command.before.height);
     expect(onMarkdownEditRequest).not.toHaveBeenCalled();
-    fireEvent.doubleClick(note.querySelector("header")!);
-    expect(onMarkdownEditRequest).toHaveBeenCalledWith("item-note");
+  });
+
+  it("renders a reference's complete math excerpt while keeping formula gestures and nested links distinct", async () => {
+    const snapshot = projectTestSnapshot();
+    const source = snapshot.references[0].resolution.source!;
+    source.excerptFormat = "markdown";
+    source.excerpt = String.raw`First paragraph of the measurement.
+
+\[
+\frac{\int_0^L \alpha(x)\,dx}{1+\beta^2}
+\]
+
+The complete explanation follows the equation.
+
+[**Calibration source**](https://example.com/calibration)`;
+    const onGeometryCommit = vi.fn();
+    const inspectItem = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={onGeometryCommit}
+        contextCommands={{ ...availableContextCommands(), inspectItem }}
+      />
+    </div>);
+    const card = await waitFor(() => {
+      const element = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-reference"] .project-map-node');
+      expect(element?.querySelector("math mfrac")).toBeTruthy();
+      return element!;
+    });
+    expect(within(card).getByText("First paragraph of the measurement.")).toBeTruthy();
+    expect(within(card).getByText("The complete explanation follows the equation.")).toBeTruthy();
+    const fraction = card.querySelector("math mfrac")!;
+    dragCanvasTarget(fraction);
+    await waitFor(() => expect(onGeometryCommit).toHaveBeenCalledTimes(1));
+    const command = onGeometryCommit.mock.calls[0][0];
+    expect(command.placementId).toBe("placement-reference");
+    expect(command.after.x).not.toBe(command.before.x);
+    expect(command.after.y).not.toBe(command.before.y);
+    fireEvent.doubleClick(fraction);
+    expect(inspectItem).toHaveBeenCalledExactlyOnceWith("item-reference");
+
+    onGeometryCommit.mockClear();
+    inspectItem.mockClear();
+    const link = within(card).getByRole("link", { name: "Calibration source" });
+    const nestedLabel = within(link).getByText("Calibration source");
+    dragCanvasTarget(nestedLabel);
+    fireEvent.doubleClick(nestedLabel);
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    expect(inspectItem).not.toHaveBeenCalled();
+    expect(link.getAttribute("href")).toBe("https://example.com/calibration");
+    expect(link.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("keeps a plain reference excerpt literal rather than interpreting Markdown or HTML", async () => {
+    const snapshot = projectTestSnapshot();
+    const source = snapshot.references[0].resolution.source!;
+    source.excerptFormat = "plain";
+    source.excerpt = "Plain $x^2$ with <b>literal brackets</b>.";
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)} selectedItemId={null}
+        onSelect={() => undefined} onGeometryCommit={() => undefined}
+      />
+    </div>);
+    const text = await within(container).findByText(source.excerpt);
+    expect(text.closest(".project-node-excerpt")).toBeTruthy();
+    expect(text.querySelector("math, b")).toBeNull();
+  });
+
+  it("selects rendered Markdown with one click without editing or moving it", async () => {
+    const onSelect = vi.fn();
+    const onGeometryCommit = vi.fn();
+    const onMarkdownEditRequest = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(projectTestSnapshot())}
+        selectedItemId={null}
+        onSelect={onSelect}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest}
+      />
+    </div>);
+    const body = await waitFor(() => {
+      const element = container.querySelector<HTMLElement>('.react-flow__node[data-id="item-note"] .project-node-markdown p');
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    fireEvent.click(body);
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith("item-note");
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+  });
+
+  it("leaves rendered links interactive without dragging or opening the Markdown editor", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.contents[0].markdownSource = "[**Research source**](https://example.com/research)";
+    const onGeometryCommit = vi.fn();
+    const onMarkdownEditRequest = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(snapshot)}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest}
+      />
+    </div>);
+    const link = await within(container).findByRole("link", { name: "Research source" });
+    const nestedLabel = within(link).getByText("Research source");
+    dragCanvasTarget(nestedLabel);
+    fireEvent.doubleClick(nestedLabel);
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    expect(link.getAttribute("href")).toBe("https://example.com/research");
+  });
+
+  it.each([
+    { itemId: "item-reference", kind: "Reference", linkName: "Open source", href: "/samples/sample-a" },
+    { itemId: "item-attachment", kind: "attachment", linkName: "Open attachment", href: "/api/projects/project-a/contents/content-attachment/file" },
+  ])("opens $kind Details on card double-click, respecting links and disabled panel commands", async ({ itemId, linkName, href }) => {
+    const descriptors = projectMapNodes(projectTestSnapshotWithAttachment());
+    const inspectItem = vi.fn();
+    const onGeometryCommit = vi.fn();
+    const onMarkdownEditRequest = vi.fn();
+    const contextCommands = { ...availableContextCommands(), inspectItem };
+    const surface = (panelCommandsDisabled: boolean) => <div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={descriptors}
+        selectedItemId={null}
+        onSelect={() => undefined}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest}
+        contextCommands={{ ...contextCommands, panelCommandsDisabled }}
+      />
+    </div>;
+    const { container, rerender } = render(surface(false));
+    const card = await waitFor(() => {
+      const element = container.querySelector<HTMLElement>(`.react-flow__node[data-id="${itemId}"] .project-map-node`);
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    const link = within(card).getByRole("link", { name: linkName });
+    dragCanvasTarget(link);
+    fireEvent.doubleClick(link);
+    expect(inspectItem).not.toHaveBeenCalled();
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    expect(link.getAttribute("href")).toBe(href);
+    for (const target of [card, card.querySelector("header")!, card.querySelector("h2")!]) {
+      fireEvent.doubleClick(target);
+      expect(inspectItem).toHaveBeenCalledExactlyOnceWith(itemId);
+      inspectItem.mockClear();
+    }
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    rerender(surface(true));
+    fireEvent.doubleClick(card);
+    fireEvent.doubleClick(card.querySelector("h2")!);
+    expect(inspectItem).not.toHaveBeenCalled();
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+  });
+
+  it("keeps an open Markdown editor interactive without reopening or moving its card", async () => {
+    const onMarkdownEditRequest = vi.fn();
+    const onGeometryCommit = vi.fn();
+    const { container } = render(<div style={{ width: 800, height: 600 }}>
+      <ProjectMapSurface
+        nodes={projectMapNodes(projectTestSnapshot())}
+        selectedItemId="item-note"
+        markdownEditor={{
+          itemId: "item-note",
+          value: "Continue editing this note.",
+          isNew: false,
+          geometry: { x: 20, y: 40, width: 250, height: 180, zIndex: 0 },
+          status: "editing",
+          message: null,
+        }}
+        onSelect={() => undefined}
+        onGeometryCommit={onGeometryCommit}
+        onMarkdownEditRequest={onMarkdownEditRequest}
+      />
+    </div>);
+    const editor = await within(container).findByRole("textbox", { name: "Edit Project Markdown" });
+    const card = editor.closest<HTMLElement>(".project-map-node")!;
+    dragCanvasTarget(editor);
+    for (const target of [editor, card, card.querySelector("header")!]) fireEvent.doubleClick(target);
+    expect(onMarkdownEditRequest).not.toHaveBeenCalled();
+    expect(onGeometryCommit).not.toHaveBeenCalled();
+    expect((editor as HTMLTextAreaElement).value).toBe("Continue editing this note.");
+    expect(editor.isConnected).toBe(true);
+  });
+
+  it("copies and removes the selected card from focused Markdown while blocking both commands during unsaved movement", async () => {
+    const snapshot = projectTestSnapshot();
+    const fetchMock = vi.fn<typeof fetch>(async (path, init) => {
+      if (init?.method === "PATCH") {
+        expect(String(path)).toBe("/api/projects/project-a/placements/placement-note");
+        const input = JSON.parse(String(init.body));
+        const placement = snapshot.placements.find((candidate) => candidate.id === "placement-note")!;
+        expect(input.expectedRevision).toBe(placement.revision);
+        Object.assign(placement, input.geometry, { revision: placement.revision + 1 });
+        return new Response(JSON.stringify({ value: placement, replayed: false }), {
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (init?.method === "DELETE") {
+        expect(String(path)).toBe("/api/projects/project-a/items/item-note");
+        const input = JSON.parse(String(init.body));
+        expect(input).toMatchObject({ expectedItemRevision: 1, expectedContentRevision: 1 });
+        const item = snapshot.items.find((candidate) => candidate.id === "item-note")!;
+        const content = snapshot.contents[0];
+        Object.assign(item, { revision: 2, deletedAt: "2026-09-13T10:00:00Z", deletedBy: item.updatedBy, deletionOperationId: input.operationId });
+        Object.assign(content, { revision: 2, deletedAt: item.deletedAt, deletedBy: item.deletedBy });
+        return new Response(JSON.stringify({
+          project: snapshot.project, item, content, attachment: null,
+          placement: snapshot.placements.find((placement) => placement.projectItemId === item.id), replayed: false,
+        }), { headers: { "content-type": "application/json" } });
+      }
+      expect(init?.method ?? "GET").toBe("GET");
+      return new Response(JSON.stringify(snapshot), { headers: { "content-type": "application/json" } });
+    });
+    const { container } = await renderRealProjectPage(fetchMock);
+    const body = await screen.findByRole("region", { name: "Markdown content" });
+    await within(body).findByRole("heading", { name: "Design note" });
+    fireEvent.click(body);
+    body.focus();
+    expect(document.activeElement).toBe(body);
+    dragCanvasTarget(within(body).getByText("Preserve the occurrence identity."));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Unsaved"));
+    for (const modifier of ["ctrlKey", "metaKey"] as const) {
+      expect(dispatchCanvasKey(body, "c", modifier).defaultPrevented).toBe(false);
+    }
+    expect(dispatchCanvasKey(body, "Delete").defaultPrevented).toBe(false);
+    expect(screen.queryByText("1 copied")).toBeNull();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Project save status" }).textContent).toBe("Saved"));
+    body.focus();
+    for (const modifier of ["ctrlKey", "metaKey"] as const) {
+      expect(dispatchCanvasKey(body, "c", modifier).defaultPrevented).toBe(true);
+      expect(await screen.findByText("1 copied")).toBeTruthy();
+    }
+    expect(dispatchCanvasKey(body, "Delete").defaultPrevented).toBe(true);
+    await waitFor(() => expect(container.querySelector('.react-flow__node[data-id="item-note"]')).toBeNull());
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")).toHaveLength(1);
+    expect(container.querySelector('.react-flow__node[data-id="item-reference"]')).not.toBeNull();
+  });
+
+  it.each(["Inspector", "Reading"] as const)("keeps native %s rich-text shortcuts outside the Canvas command path", async (surface) => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(projectTestSnapshot()), {
+      headers: { "content-type": "application/json" },
+    }));
+    await renderRealProjectPage(fetchMock);
+    const mapBody = await screen.findByRole("region", { name: "Markdown content" });
+    await within(mapBody).findByRole("heading", { name: "Design note" });
+    fireEvent.click(mapBody);
+    fireEvent.click(screen.getByRole("button", { name: surface }));
+    const region = await screen.findByRole("region", {
+      name: surface === "Inspector" ? "Inspector Markdown content" : "Project Reading",
+    });
+    const paragraph = await within(region).findByText("Preserve the occurrence identity.");
+    if (surface === "Inspector") region.focus();
+    const selection = window.getSelection()!;
+    const range = document.createRange();
+    range.selectNodeContents(paragraph);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    for (const modifier of ["ctrlKey", "metaKey"] as const) {
+      for (const key of ["a", "c", "v", "z", "y"]) {
+        expect(dispatchCanvasKey(paragraph, key, modifier).defaultPrevented).toBe(false);
+      }
+    }
+    expect(dispatchCanvasKey(paragraph, "Delete").defaultPrevented).toBe(false);
+    expect(selection.toString()).toBe("Preserve the occurrence identity.");
+    expect(screen.queryByText("1 copied")).toBeNull();
+    expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === "GET")).toBe(true);
+    selection.removeAllRanges();
   });
 
   it("keeps Shift-click multi-selection controlled by the parent selection model", async () => {

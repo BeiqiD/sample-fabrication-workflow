@@ -649,6 +649,7 @@ it("keeps edge selection and connection handles stable after local geometry move
       const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
       const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
       const [rejectEdgeSelection, setRejectEdgeSelection] = useState(false);
+      const [removalDisabled, setRemovalDisabled] = useState(false);
       const selectedItemId = selectedItemIds.at(-1) ?? null;
       return <div className="project-desktop-workspace" style={{ width: 900, height: 700 }}>
         <button type="button" onClick={() => {
@@ -657,6 +658,9 @@ it("keeps edge selection and connection handles stable after local geometry move
         }}>Select both for test</button>
         <button type="button" onClick={() => setRejectEdgeSelection(true)}>
           Reject edge selection for test
+        </button>
+        <button type="button" onClick={() => setRemovalDisabled(true)}>
+          Disable card removal for test
         </button>
         <div className="project-map-panel">
           <ProjectMapSurface
@@ -689,7 +693,7 @@ it("keeps edge selection and connection handles stable after local geometry move
               copyDisabled: selectedItemIds.length === 0,
               pasteDisabled: false,
               editDisabled: false,
-              removeDisabled: false,
+              removeDisabled: removalDisabled,
               edgeInspectDisabled: false,
               edgeEditDisabled: false,
               edgeDeleteDisabled: false,
@@ -805,10 +809,17 @@ it("keeps edge selection and connection handles stable after local geometry move
     expect(addMarkdown).toHaveBeenLastCalledWith(pastePoint);
 
     fireEvent.click(view.getByRole("button", { name: "Select both for test" }));
-    fireEvent.keyDown(note().querySelector("[data-project-reading-content]")!, { key: "Backspace" });
+    fireEvent.keyDown(attachment().querySelector("a")!, { key: "Backspace" });
     expect(removeSelection).not.toHaveBeenCalled();
-    fireEvent.keyDown(canvas(), { key: "Delete" });
+    fireEvent.keyDown(note().querySelector("[data-project-card-content]")!, { key: "Backspace" });
     expect(removeSelection).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(canvas(), { key: "Delete" });
+    expect(removeSelection).toHaveBeenCalledTimes(2);
+    expect(removeItem).not.toHaveBeenCalled();
+    fireEvent.click(view.getByRole("button", { name: "Disable card removal for test" }));
+    fireEvent.keyDown(note().querySelector("[data-project-card-content]")!, { key: "Delete" });
+    fireEvent.keyDown(canvas(), { key: "Backspace" });
+    expect(removeSelection).toHaveBeenCalledTimes(2);
     expect(removeItem).not.toHaveBeenCalled();
 
     fireEvent.click(view.getByRole("button", { name: "Reject edge selection for test" }));

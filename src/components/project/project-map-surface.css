@@ -155,6 +155,7 @@
 .project-map-node > p { margin: 0; overflow-wrap: anywhere; }
 .project-node-subtitle { color: var(--muted); font-size: 11px; line-height: 1.4; }
 .project-node-excerpt {
+  min-height: 0;
   display: -webkit-box;
   overflow: hidden;
   color: var(--ink);
@@ -165,6 +166,8 @@
   -webkit-line-clamp: 6;
   line-clamp: 6;
 }
+.project-node-excerpt .rich-text { font-size: inherit; line-height: inherit; }
+.project-node-excerpt > p { margin: 0; }
 
 .project-node-open-reference {
   position: absolute;
@@ -384,7 +387,7 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   padding: 2px 4px 4px 0;
-  user-select: text;
+  user-select: none;
 }
 .project-node-markdown:focus-visible {
   outline: 2px solid var(--accent);
@@ -393,8 +396,10 @@
 }
 .project-node-markdown .rich-text { font-size: 13px; line-height: 1.6; }
 
-.project-node-drag-handle { cursor: grab; }
-.project-node-drag-handle:active { cursor: grabbing; }
+.react-flow__node.draggable .project-map-node:not(.editing) { cursor: grab; user-select: none; }
+.react-flow__node.dragging .project-map-node { cursor: grabbing; }
+.project-map-node a { cursor: pointer; }
+.project-map-node .project-markdown-editor { cursor: auto; user-select: text; }
 
 /* Selection tools follow their card or edge and remain legible at any zoom. */
 .project-selection-toolbar {

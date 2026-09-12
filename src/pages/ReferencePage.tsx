@@ -7,6 +7,7 @@ import {
   type ReferenceTargetType,
 } from "../../shared/reference-types";
 import { resolveReference } from "../lib/reference-api";
+import { ReferenceExcerpt } from "../components/ReferenceExcerpt";
 import "../reference-page.css";
 
 const REFERENCE_TYPE_LABELS = {
@@ -175,7 +176,7 @@ export function ReferencePage() {
         <code>{resolution.target.id}</code>
       </div>
       {source ? <>
-        {source.excerpt && <p className="reference-excerpt">{source.excerpt}</p>}
+        <ReferenceExcerpt source={source.excerpt} format={source.excerptFormat} className="reference-excerpt" />
         <dl className="reference-metadata">
           <div><dt>Target type</dt><dd>{typeLabel}</dd></div>
           <div><dt>Source kind</dt><dd>{source.kind || "—"}</dd></div>

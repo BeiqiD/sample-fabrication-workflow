@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ActionIcon } from "../ActionIcon";
+import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import {
   Background,
   ConnectionMode,
@@ -69,12 +70,14 @@ import {
 import type { ProjectEdgeEditorState } from "../../lib/use-project-edge-controller";
 import type { ProjectEdgeConnection } from "../../lib/project-edge-history";
 import { projectEdgeToolbarPosition } from "../../lib/project-edge-toolbar";
+import { projectMapInteractionProjection } from "../../lib/project-map-interaction-projection";
 import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import {
   normalizeProjectItemSelection,
   PROJECT_CANVAS_GUIDE_COORDINATE_LIMIT,
   projectCanvasAlignmentGuides,
   projectCanvasKeyboardShortcutFromEvent,
+  projectCanvasKeyboardTargetIsReading,
   type ProjectCanvasAlignment,
   type ProjectCanvasAlignmentGuides,
   type ProjectCanvasZOrderAction,
@@ -210,6 +213,24 @@ const PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR = [
   "[role='textbox']",
 ].join(",");
 
+const PROJECT_CARD_INTERACTIVE_SELECTOR = `${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR},.nodrag,[role='button'],[role='link'],summary`;
+
+function cardTargetIsInteractive(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest(PROJECT_CARD_INTERACTIVE_SELECTOR));
+}
+
+function cardPointerIsOnScrollbar(target: EventTarget | null, clientX: number, clientY: number) {
+  if (!(target instanceof HTMLElement) || !target.closest("[data-project-card-content]")) return false;
+  const rect = target.getBoundingClientRect();
+  // Use the rendered scale so the scrollbar still owns its gutter when zoomed.
+  const scaleX = target.offsetWidth ? rect.width / target.offsetWidth : 1;
+  const scaleY = target.offsetHeight ? rect.height / target.offsetHeight : 1;
+  return (target.clientWidth > 0 && target.offsetWidth > target.clientWidth
+      && clientX >= rect.left + target.clientWidth * scaleX)
+    || (target.clientHeight > 0 && target.offsetHeight > target.clientHeight
+      && clientY >= rect.top + target.clientHeight * scaleY);
+}
+
 function nodeGeometry(node: ProjectFlowNode): ProjectMapGeometry {
   const fallback = node.data.descriptor.geometry;
   const width = node.measured?.width ?? node.width ?? fallback.width;
@@ -301,6 +322,17 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
   return <article
     className={`project-map-node project-map-node-${descriptor.kind}${editing ? " editing" : ""}`}
     data-detail-level={detailLevel}
+    onMouseDownCapture={(event) => {
+      // React Flow already filters nodrag descendants. Let their own handlers
+      // receive the event (especially resize handles, connections and editors).
+      if (event.target instanceof Element && event.target.closest(".nodrag")) return;
+      if (cardTargetIsInteractive(event.target)
+        || cardPointerIsOnScrollbar(event.target, event.clientX, event.clientY)) event.stopPropagation();
+    }}
+    onTouchStartCapture={(event) => {
+      if (event.target instanceof Element && event.target.closest(".nodrag")) return;
+      if (cardTargetIsInteractive(event.target)) event.stopPropagation();
+    }}
   >
     <>
       <Handle type="source" id="top" position={Position.Top} className={handleClassName} isConnectable={showHandles && !edgeInteractionDisabled && !editing} />
@@ -325,11 +357,7 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
     />
     <header
       className="project-node-drag-handle"
-      title={descriptor.kind === "markdown" && !editing ? "Double-click to edit Markdown" : "Drag to move card"}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        if (descriptor.kind === "markdown" && !editing) data.onMarkdownEditRequest(descriptor.itemId);
-      }}
+      title={descriptor.kind === "markdown" ? "Drag to move · Double-click to edit Markdown" : "Drag to move · Double-click for details"}
     >
       <span><ActionIcon name={descriptor.kind === "reference" ? "link" : descriptor.kind === "markdown" ? "note" : "attachment"} />{projectNodeKindLabel(descriptor.kind)}</span>
       {showHeaderMeta && markdownEditor?.isNew && <small>draft</small>}
@@ -344,15 +372,13 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         onCancel={data.onMarkdownCancel}
       /></Suspense>
     </div> : <>
-      {!(showRichContent && descriptor.kind === "markdown") && <h2 className="project-node-drag-handle" title={descriptor.title} onDoubleClick={(event) => {
-        event.stopPropagation();
-        if (descriptor.kind === "markdown") data.onMarkdownEditRequest(descriptor.itemId);
-      }}>{descriptor.title}</h2>}
+      {!(showRichContent && descriptor.kind === "markdown") && <h2 title={descriptor.title}>{descriptor.title}</h2>}
       {showSubtitle && descriptor.subtitle && <p className="project-node-subtitle">{descriptor.subtitle}</p>}
       {previewUrl && <img
         className="project-node-image"
         src={previewUrl}
         alt={descriptor.attachmentCaption || descriptor.title}
+        draggable={false}
         onError={() => setFailedPreviewUrl(previewUrl)}
       />}
       {showAction && descriptor.kind === "attachment" && descriptor.fileUrl && !previewUrl && <a
@@ -362,8 +388,8 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
         onClick={(event) => event.stopPropagation()}
       >Open attachment</a>}
       {showRichContent && (descriptor.kind === "markdown" ? <div
-        className="project-node-markdown nodrag nopan nowheel"
-        data-project-reading-content="true"
+        className="project-node-markdown nopan nowheel"
+        data-project-card-content="true"
         tabIndex={0}
         role="region"
         aria-label="Markdown content"
@@ -373,10 +399,11 @@ const ProjectItemNode = memo(function ProjectItemNode({ data, selected }: NodePr
             event.stopPropagation();
           }
         }}
-        onDoubleClick={(event) => event.stopPropagation()}
       >
         <ProjectMarkdownPreview source={descriptor.markdownSource || ""} />
-      </div> : descriptor.excerpt && <p className="project-node-excerpt">{descriptor.excerpt}</p>)}
+      </div> : descriptor.excerpt && <div className="project-node-excerpt" data-project-card-content="true">
+        <ReferenceExcerpt source={descriptor.excerpt} format={descriptor.excerptFormat} />
+      </div>)}
       {showAction && (descriptor.openSourceUrl || descriptor.openReferenceUrl) && <a
         className="project-node-open-reference nodrag nopan"
         href={descriptor.openSourceUrl ?? descriptor.openReferenceUrl!}
@@ -527,7 +554,7 @@ function buildFlowNode(
       ...callbacks,
     },
     draggable: !geometryInteractionDisabled && !editing,
-    dragHandle: ".project-node-drag-handle",
+    dragHandle: ".project-map-node",
     selectable: true,
     connectable: !edgeInteractionDisabled && !editing,
     deletable: false,
@@ -661,6 +688,9 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const performanceScaleRef = useRef(performancePolicy.scale);
   const interactionStarts = useMemo(() => new Map<string, ProjectMapGeometry>(), []);
   const dragStarts = useMemo(() => new Map<string, ProjectMapGeometry>(), []);
+  const cancelledGestureNodeIds = useMemo(() => new Set<string>(), []);
+  const gestureGenerationRef = useRef(0);
+  const cancelledTouchGestureRef = useRef(false);
   const recentDragCommitsRef = useRef(new Set<string>());
   const recentDragCommitTimerRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -734,16 +764,18 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
 
   const handleResizeStart = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
     if (geometryInteractionDisabled) return;
+    gestureGenerationRef.current += 1;
+    cancelledGestureNodeIds.delete(descriptor.itemId);
     interactionStarts.set(descriptor.placementId, geometryFromResize(descriptor, params));
-  }, [geometryInteractionDisabled, interactionStarts]);
+  }, [cancelledGestureNodeIds, geometryInteractionDisabled, interactionStarts]);
 
   const handleResizeEnd = useCallback((descriptor: ProjectNodeDescriptor, params: ResizeParams) => {
-    if (geometryInteractionDisabled) return;
-    const after = geometryFromResize(descriptor, params);
-    const before = interactionStarts.get(descriptor.placementId) ?? descriptor.geometry;
+    const before = interactionStarts.get(descriptor.placementId);
     interactionStarts.delete(descriptor.placementId);
+    if (geometryInteractionDisabled || !before || cancelledGestureNodeIds.has(descriptor.itemId)) return;
+    const after = geometryFromResize(descriptor, params);
     onGeometryCommit({ placementId: descriptor.placementId, before, after });
-  }, [geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
+  }, [cancelledGestureNodeIds, geometryInteractionDisabled, interactionStarts, onGeometryCommit]);
 
   // Node data stores these callbacks. Route volatile parent identities through
   // stable dispatchers so selection-only parent renders cannot rebuild the full
@@ -807,12 +839,64 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [callbacks, descriptors, detailLevel, edgeInteractionDisabled, geometryInteractionDisabled, markdownEditor, pendingAttachment, pendingReference]);
   const [flowNodes, setFlowNodes] = useState<ProjectFlowNode[]>(projectedNodes);
   const flowNodesRef = useRef<ProjectFlowNode[]>(projectedNodes);
+  const projectedNodesRef = useRef(projectedNodes);
+  projectedNodesRef.current = projectedNodes;
   const selectedItemIdRef = useRef(selectedItemId);
   const selectedItemIdsRef = useRef<readonly string[]>(selectedItemIds);
   const selectedEdgeIdRef = useRef(selectedEdgeId);
   selectedItemIdRef.current = selectedItemId;
   selectedItemIdsRef.current = selectedItemIds;
   selectedEdgeIdRef.current = selectedEdgeId;
+  const cancelTrackedGestures = useCallback(() => {
+    if (dragStarts.size === 0 && interactionStarts.size === 0) return;
+    for (const node of flowNodesRef.current) {
+      const placementId = node.data.descriptor.placementId;
+      if (dragStarts.has(placementId) || interactionStarts.has(placementId)) cancelledGestureNodeIds.add(node.id);
+    }
+    dragStarts.clear();
+    interactionStarts.clear();
+    clearAlignmentGuides();
+    const next = applyAuthoritativeSelection(projectedNodesRef.current,
+      selectedItemIdsRef.current, selectedItemIdRef.current);
+    flowNodesRef.current = next;
+    setFlowNodes(next);
+  }, [cancelledGestureNodeIds, clearAlignmentGuides, dragStarts, interactionStarts]);
+
+  useEffect(() => {
+    let mounted = true;
+    const finishTimers = new Set<number>();
+    const finishPointerGesture = (event: MouseEvent | TouchEvent) => {
+      if (event instanceof MouseEvent && event.button !== 0) return;
+      if (event.type === "touchcancel") cancelTrackedGestures();
+      if ("touches" in event && event.touches.length > 0) return;
+      if (dragStarts.size === 0 && interactionStarts.size === 0
+        && cancelledGestureNodeIds.size === 0 && !cancelledTouchGestureRef.current) return;
+      const generation = gestureGenerationRef.current;
+      // Wait for the complete native event dispatch, including React Flow stop
+      // listeners. Microtasks can run between native listeners and cancel an
+      // ordinary drag before its stop callback gets to commit it.
+      const timer = window.setTimeout(() => {
+        finishTimers.delete(timer);
+        if (!mounted || generation !== gestureGenerationRef.current) return;
+        // A resize-control click with no movement or cancelled gesture can end
+        // without a normal stop callback; restore only that leftover state.
+        cancelTrackedGestures();
+        cancelledGestureNodeIds.clear();
+        cancelledTouchGestureRef.current = false;
+      }, 0);
+      finishTimers.add(timer);
+    };
+    window.addEventListener("mouseup", finishPointerGesture, true);
+    window.addEventListener("touchend", finishPointerGesture, true);
+    window.addEventListener("touchcancel", finishPointerGesture, true);
+    return () => {
+      mounted = false;
+      for (const timer of finishTimers) window.clearTimeout(timer);
+      window.removeEventListener("mouseup", finishPointerGesture, true);
+      window.removeEventListener("touchend", finishPointerGesture, true);
+      window.removeEventListener("touchcancel", finishPointerGesture, true);
+    };
+  }, [cancelTrackedGestures, cancelledGestureNodeIds, dragStarts, interactionStarts]);
   const projectedEdges = useMemo(() => {
     const labels = new Map(descriptors.map((descriptor) => [descriptor.itemId, descriptor.title]));
     const active = edges.map((edge) => buildFlowEdge(
@@ -830,16 +914,26 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   // Ordinary selection changes reuse every untouched React Flow node object instead
   // of rebuilding the full large-map projection.
   useEffect(() => {
-    setFlowNodes(() => {
+    setFlowNodes((current) => {
+      const projectedById = new Map(projectedNodes.map((node) => [node.id, node]));
+      for (const node of current) {
+        const placementId = node.data.descriptor.placementId;
+        if (!dragStarts.has(placementId) && !interactionStarts.has(placementId)) continue;
+        const projected = projectedById.get(node.id);
+        if (projected?.data.descriptor.placementId === placementId && projected.draggable !== false) continue;
+        dragStarts.delete(placementId);
+        interactionStarts.delete(placementId);
+        cancelledGestureNodeIds.add(node.id);
+      }
       const next = applyAuthoritativeSelection(
-        projectedNodes,
+        projectMapInteractionProjection(projectedNodes, current, dragStarts, interactionStarts),
         selectedItemIdsRef.current,
         selectedItemIdRef.current,
       );
       flowNodesRef.current = next;
       return next;
     });
-  }, [projectedNodes]);
+  }, [projectedNodes, cancelledGestureNodeIds, dragStarts, interactionStarts]);
 
   useEffect(() => {
     setFlowNodes((current) => {
@@ -910,9 +1004,10 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   }, [onGeometryBatchCommit, onGeometryCommit]);
 
   const onNodesChange = useCallback((changes: NodeChange<ProjectFlowNode>[]) => {
-    const effectiveChanges = geometryInteractionDisabled
-      ? changes.filter((change) => change.type !== "position")
-      : changes;
+    const effectiveChanges = changes.filter((change) => {
+      if (change.type !== "position" && !(change.type === "dimensions" && change.resizing !== undefined)) return true;
+      return !geometryInteractionDisabled && !cancelledGestureNodeIds.has(change.id);
+    });
     const current = flowNodesRef.current;
     let next = applyNodeChanges(effectiveChanges, current);
 
@@ -963,7 +1058,7 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       if (!projectGeometryEquals(before, after)) commands.push({ placementId, before, after });
     }
     emitGeometryCommands(commands);
-  }, [dragStarts, emitGeometryCommands, geometryInteractionDisabled, interactionStarts, onSelect, onSelectionChange]);
+  }, [cancelledGestureNodeIds, dragStarts, emitGeometryCommands, geometryInteractionDisabled, interactionStarts, onSelect, onSelectionChange]);
 
   const handleElementClick = useCallback(() => {
     setContextMenu(null);
@@ -971,6 +1066,15 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const handlePaneClick = useCallback(() => {
     setContextMenu(null);
   }, []);
+  const handleCardTouchCapture = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length > 1 && (dragStarts.size > 0 || interactionStarts.size > 0)) {
+      cancelledTouchGestureRef.current = true;
+      cancelTrackedGestures();
+    }
+    // Do not feed the second touch to XYDrag: its multitouch abort skips its
+    // normal stop cleanup. The original touchend still releases that gesture.
+    if (cancelledTouchGestureRef.current) event.stopPropagation();
+  }, [cancelTrackedGestures, dragStarts, interactionStarts]);
   const handleEdgesChange = useCallback((changes: EdgeChange<ProjectFlowEdge>[]) => {
     const selected = [...changes].reverse().find((change) => (
       change.type === "select" && change.selected && change.id !== pendingEdge?.edgeId
@@ -1007,13 +1111,15 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
   const handleNodeDragStart = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
     clearAlignmentGuides();
     if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) return;
+    gestureGenerationRef.current += 1;
     dragStarts.clear();
     const movingNodes = selectedNodes.length > 0 ? selectedNodes : [node];
     for (const movingNode of movingNodes) {
       if (movingNode.data.pendingReference || movingNode.data.pendingAttachment || movingNode.data.markdownEditor) continue;
+      cancelledGestureNodeIds.delete(movingNode.id);
       dragStarts.set(movingNode.data.descriptor.placementId, nodeGeometry(movingNode));
     }
-  }, [clearAlignmentGuides, dragStarts, geometryInteractionDisabled]);
+  }, [cancelledGestureNodeIds, clearAlignmentGuides, dragStarts, geometryInteractionDisabled]);
   const handleNodeDrag = useCallback<OnNodeDrag<ProjectFlowNode>>((_event, node, selectedNodes) => {
     if (geometryInteractionDisabled || node.data.pendingReference || node.data.pendingAttachment || node.data.markdownEditor) {
       clearAlignmentGuides();
@@ -1604,13 +1710,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
     data-project-map-edge-count={performancePolicy.edgeCount}
     tabIndex={-1}
     onDoubleClick={handleDoubleClick}
+    onTouchStartCapture={handleCardTouchCapture}
+    onTouchMoveCapture={handleCardTouchCapture}
     onDragOver={handleDragOver}
     onDrop={handleDrop}
     onKeyDown={(event) => {
       if (!contextCommands || event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey
         || (event.key !== "Delete" && event.key !== "Backspace")) return;
       const target = event.target;
-      if (target instanceof Element && target.closest(`${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR}, [data-project-reading-content], [data-rich-text], [role='menu'], [role='dialog']`)) return;
+      if (projectCanvasKeyboardTargetIsReading(target)
+        || (target instanceof Element && target.closest(`${PROJECT_CONTEXT_MENU_INTERACTIVE_SELECTOR}, [role='menu'], [role='dialog']`))) return;
       if (selectedEdgeId && !contextCommands.edgeDeleteDisabled) {
         event.preventDefault(); event.stopPropagation(); contextCommands.deleteEdge();
       } else if (selectedItemIds.length && !(contextCommands.removeSelectionDisabled ?? contextCommands.removeDisabled)) {
@@ -1636,6 +1745,16 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
       onNodesChange={onNodesChange}
       onEdgesChange={handleEdgesChange}
       onNodeClick={handleElementClick}
+      onNodeDoubleClick={(event, node) => {
+        event.stopPropagation();
+        if (cardTargetIsInteractive(event.target) || node.data.markdownEditor
+          || node.data.pendingReference || node.data.pendingAttachment) return;
+        if (node.data.descriptor.kind === "markdown") {
+          if (!geometryInteractionDisabled) onMarkdownEditRequest(node.id);
+        } else if (contextCommands && !contextCommands.panelCommandsDisabled) {
+          contextCommands.inspectItem(node.id);
+        }
+      }}
       onEdgeClick={handleElementClick}
       onNodeContextMenu={handleNodeContextMenu}
       onEdgeContextMenu={handleEdgeContextMenu}

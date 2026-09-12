@@ -1,10 +1,12 @@
 import { findAvailableProjectPlacementPoint } from "./project-placement-position";
 import { referenceUrlForTarget } from "../../shared/reference-destinations";
+import { referenceCommentExcerpt } from "../../shared/reference-comment-preview";
 import type { ReferenceSearchResult } from "../../shared/reference-search";
 import {
   isReferenceTarget,
   type ReferenceResolution,
   type ReferenceTarget,
+  type ResolvedReferenceSource,
 } from "../../shared/reference-types";
 import type {
   ProjectReferenceRecord,
@@ -28,6 +30,7 @@ export interface ProjectReferencePreview {
   title: string;
   subtitle: string | null;
   excerpt: string | null;
+  excerptFormat?: ResolvedReferenceSource["excerptFormat"];
   referenceUrl: string;
   openSourceUrl: string | null;
 }
@@ -69,7 +72,10 @@ export function projectReferencePreviewFromResolution(
     title: boundedText(source?.title || resolution.target.id, MAX_PREVIEW_TITLE)
       || resolution.target.id,
     subtitle: boundedText(source?.subtitle, MAX_PREVIEW_SUBTITLE),
-    excerpt: boundedText(source?.excerpt, MAX_PREVIEW_EXCERPT),
+    excerpt: source?.excerptFormat === "markdown"
+      ? referenceCommentExcerpt(source.excerpt?.replaceAll("\u0000", ""), MAX_PREVIEW_EXCERPT)
+      : boundedText(source?.excerpt, MAX_PREVIEW_EXCERPT),
+    ...(source?.excerptFormat === undefined ? {} : { excerptFormat: source.excerptFormat }),
     referenceUrl: safeReferenceUrl(resolution.destination.referenceUrl)
       || referenceUrlForTarget(resolution.target),
     openSourceUrl: safeReferenceUrl(resolution.destination.openSourceUrl),
@@ -123,6 +129,7 @@ export function isProjectReferenceDragPayload(
     && Array.from(preview.title).length <= MAX_PREVIEW_TITLE
     && isNullableBoundedText(preview.subtitle, MAX_PREVIEW_SUBTITLE)
     && isNullableBoundedText(preview.excerpt, MAX_PREVIEW_EXCERPT)
+    && (preview.excerptFormat === undefined || preview.excerptFormat === "plain" || preview.excerptFormat === "markdown")
     && typeof preview.referenceUrl === "string"
     && preview.referenceUrl.startsWith("/")
     && preview.referenceUrl.length <= MAX_PREVIEW_URL
@@ -199,6 +206,7 @@ export function projectReferenceRecordFromPreview(
         title: payload.preview.title,
         subtitle: payload.preview.subtitle,
         excerpt: payload.preview.excerpt,
+        ...(payload.preview.excerptFormat === undefined ? {} : { excerptFormat: payload.preview.excerptFormat }),
         kind: payload.target.type,
         state: null,
         updatedAt: null,

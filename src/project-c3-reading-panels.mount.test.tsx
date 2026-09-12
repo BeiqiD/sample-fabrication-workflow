@@ -9,6 +9,20 @@ import type { ReferenceSearchUiState } from "./lib/reference-search-ui";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshotWithAttachment } from "./project-test-fixture";
 
+const readingMount = vi.hoisted(() => ({ onMount: null as (() => void) | null }));
+
+vi.mock("./components/project/ProjectReadingSurface", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./components/project/ProjectReadingSurface")>();
+  const React = await import("react");
+  return {
+    ...actual,
+    ProjectReadingSurface: (props: Parameters<typeof actual.ProjectReadingSurface>[0]) => {
+      React.useEffect(() => { readingMount.onMount?.(); }, []);
+      return <actual.ProjectReadingSurface {...props} />;
+    },
+  };
+});
+
 vi.mock("./components/ReferenceSearchSurface", () => ({
   ReferenceSearchSurface: ({ value, onChange, suggestionSeeds, onPlaceAtCenter, placementDisabled }: {
     value: ReferenceSearchUiState;
@@ -120,6 +134,7 @@ describe("C3 Reading details and responsive panel integration", () => {
   let snapshot: ProjectSnapshot;
 
   beforeEach(() => {
+    readingMount.onMount = null;
     snapshot = snapshotWithRelationships();
     media = responsiveMedia(1440);
     fetchMock.mockReset();
@@ -132,6 +147,7 @@ describe("C3 Reading details and responsive panel integration", () => {
   });
 
   afterEach(() => {
+    readingMount.onMount = null;
     cleanup();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -199,6 +215,28 @@ describe("C3 Reading details and responsive panel integration", () => {
       expect(scroll).toHaveBeenCalledTimes(count);
     }
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a first-frame Details click after reconciling the initial empty selection", async () => {
+    media.setWidth(390);
+    // Resolve the real lazy Reading surface before the second page mounts, so
+    // its controls and the initial empty selection commit in the same frame.
+    const warm = renderProject();
+    await showReading();
+    warm.unmount();
+
+    const earlyClick = vi.fn(() => {
+      screen.getByRole("button", { name: "Details for Design note" }).click();
+    });
+    // Child passive effects run before parent passive effects. This exposes a
+    // stale empty-selection close without relying on worker load or a sleep.
+    readingMount.onMount = earlyClick;
+    renderProject();
+    const inspector = await screen.findByRole("complementary", { name: "Project Inspector" });
+    expect(earlyClick).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Details for Design note" }).getAttribute("aria-expanded")).toBe("true");
+    await waitFor(() => expect(inspector.contains(document.activeElement)).toBe(true));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("replaces mobile Inspector with one References modal while preserving the related source selection", async () => {

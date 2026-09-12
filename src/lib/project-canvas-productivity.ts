@@ -81,6 +81,7 @@ export function projectCanvasKeyboardTargetIsEditable(target: EventTarget | null
 
 export function projectCanvasKeyboardTargetIsReading(target: EventTarget | null) {
   return target instanceof Element
+    && !target.closest("[data-project-card-content]")
     && Boolean(target.closest("[data-project-reading-content], [data-rich-text]"));
 }
 

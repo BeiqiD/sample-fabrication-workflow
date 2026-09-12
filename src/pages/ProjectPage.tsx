@@ -589,9 +589,11 @@ export function ProjectPage() {
     window.requestAnimationFrame(() => (referencePanelTriggerRef.current ?? addMenuTriggerRef.current)?.focus());
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!readingActive) return;
     // Reading has one contextual panel, including after a clean breakpoint change.
+    // Reconcile the committed selection before newly visible Details controls
+    // can open a panel; a stale passive close must not overwrite that action.
     if (referencePanelOpen || trash.isOpen) setInspectorPanelOpen(false);
     if (trash.isOpen && !pendingReference) setReferencePanelOpen(false);
     if (selectedItemIds.length !== 1 || edgeController.selectedEdgeId) setInspectorPanelOpen(false);
@@ -604,7 +606,7 @@ export function ProjectPage() {
     return () => document.documentElement.classList.remove(className);
   }, [mapViewportActive]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pendingReference) setReferencePanelOpen(true);
     const hasInspectorTarget = selectedItemIds.length > 0
       || edgeController.selectedEdgeId !== null

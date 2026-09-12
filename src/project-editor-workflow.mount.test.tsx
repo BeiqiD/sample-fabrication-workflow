@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectSnapshot } from "../shared/project-api";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
@@ -99,6 +99,9 @@ function page() {
 }
 
 const fetchMock = vi.fn<typeof fetch>();
+// Keep cold module transformation outside the user-interaction assertions while
+// retaining the actual lazy-loaded Reading component and its editing workflow.
+beforeAll(async () => { await import("./components/project/ProjectReadingSurface"); });
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));

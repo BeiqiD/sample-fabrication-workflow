@@ -49,7 +49,8 @@ describe("Phase 3B2 source contract", () => {
     expect(page).toContain("retryReferenceRemoval");
     expect(page).toContain("geometryInteractionDisabled={geometryInteractionDisabled}");
     expect(map).toContain("nodesDraggable={!geometryInteractionDisabled}");
-    expect(map).toContain('changes.filter((change) => change.type !== "position")');
+    expect(map).toContain('change.type !== "position" && !(change.type === "dimensions" && change.resizing !== undefined)');
+    expect(map).toContain('return !geometryInteractionDisabled && !cancelledGestureNodeIds.has(change.id)');
   });
 
   it("shares reference placement with Reading while keeping the interactive Map desktop-only", () => {
