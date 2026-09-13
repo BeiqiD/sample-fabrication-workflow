@@ -362,8 +362,7 @@ describe("FabuBlox storage winner recovery", () => {
       `).run(winnerKey, workbookBytes.byteLength, NOW, workbookSha);
     });
     const put = vi.fn(async (key: string, value: unknown) => {
-      if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer upload");
-      stored.set(key, new Uint8Array(value.slice(0)));
+      stored.set(key, new Uint8Array(await new Response(value as BodyInit).arrayBuffer()));
     });
     const remove = vi.fn(async (key: string) => {
       deletedKeys.push(key);
@@ -380,7 +379,10 @@ describe("FabuBlox storage winner recovery", () => {
         put,
         delete: remove,
         head,
-        get: vi.fn(async () => null),
+        get: vi.fn(async (key: string) => {
+          const bytes = stored.get(key);
+          return bytes ? r2Object(bytes) : null;
+        }),
         list: vi.fn(async () => ({ objects: [], truncated: false })),
       } as unknown as R2Bucket,
     } satisfies Env;
@@ -481,8 +483,7 @@ describe("FabuBlox storage winner recovery", () => {
       },
     );
     const put = vi.fn(async (key: string, value: unknown) => {
-      if (!(value instanceof ArrayBuffer)) throw new Error('Expected an ArrayBuffer upload');
-      stored.set(key, new Uint8Array(value.slice(0)));
+      stored.set(key, new Uint8Array(await new Response(value as BodyInit).arrayBuffer()));
     });
     const remove = vi.fn(async (key: string) => {
       deletedKeys.push(key);
@@ -616,8 +617,7 @@ describe("FabuBlox storage winner recovery", () => {
       throw new Error('injected FabuBlox metadata failure');
     });
     const put = vi.fn(async (key: string, value: unknown) => {
-      if (!(value instanceof ArrayBuffer)) throw new Error('Expected an ArrayBuffer upload');
-      stored.set(key, new Uint8Array(value.slice(0)));
+      stored.set(key, new Uint8Array(await new Response(value as BodyInit).arrayBuffer()));
     });
     const remove = vi.fn(async (key: string) => {
       deletedKeys.push(key);
@@ -689,11 +689,13 @@ describe("FabuBlox storage winner recovery", () => {
       WHERE import_id = ? AND sha256 = ? AND status = 'pending'
     `).get(pendingImport.id, workbookSha) as { id: string; r2_key: string };
 
+    const verificationReadCount = get.mock.calls.length;
+    expect(verificationReadCount).toBeGreaterThan(0);
     const liveBeforeFailure = await worker.fetch(new Request(
       `https://app.test/api/assets/${pendingAsset.r2_key}`,
     ), env, executionContext);
     expect(liveBeforeFailure.status).toBe(404);
-    expect(get).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(verificationReadCount);
 
     const putCountBeforeConcurrent = put.mock.calls.length;
     const concurrent = await worker.fetch(new Request(
@@ -774,8 +776,7 @@ describe("FabuBlox storage winner recovery", () => {
     });
 
     const put = vi.fn(async (key: string, value: unknown) => {
-      if (!(value instanceof ArrayBuffer)) throw new Error("Expected an ArrayBuffer upload");
-      stored.set(key, new Uint8Array(value.slice(0)));
+      stored.set(key, new Uint8Array(await new Response(value as BodyInit).arrayBuffer()));
     });
     const remove = vi.fn(async (key: string) => {
       deletedKeys.push(key);
@@ -1045,6 +1046,211 @@ describe("FabuBlox storage winner recovery", () => {
     database.close();
   });
 
+});
+
+describe("FabuBlox verified byte publication", () => {
+  const workbookBytes = Uint8Array.from([80, 75, 3, 4, 21, 22, 23, 24]);
+
+  async function importForm(imageCount = 0) {
+    const workbookSha = await sha256Hex(workbookBytes.buffer as ArrayBuffer);
+    const images = Array.from({ length: imageCount }, (_, index) => ({
+      localId: `image-${index}`,
+      sourcePart: `xl/media/image${index}.png`,
+      mimeType: "image/png",
+      assignedStepLocalId: "step-1",
+      anchor: {},
+    }));
+    const manifest = {
+      schemaVersion: 2,
+      title: "Verified import bytes",
+      source: { fileName: "verified.xlsx", fileSha256: workbookSha, sheetName: "Process" },
+      initialSubstrateStep: null,
+      steps: [{
+        localId: "step-1", sourceRow: 2, position: 0, stepNumber: "1",
+        sectionName: null, name: "Etch", toolName: null, parametersText: null,
+        commentsText: null, imageIds: images.map((image) => image.localId), rawCells: {},
+      }],
+      images,
+      initialStateImageIds: [],
+      warnings: [],
+    };
+    const form = new FormData();
+    form.set("workbook", new File([workbookBytes], "verified.xlsx"));
+    form.set("manifest", new File([JSON.stringify(manifest)], "manifest.json", {
+      type: "application/json",
+    }));
+    images.forEach((image, index) => {
+      form.set(`image:${image.localId}`, new File([
+        Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, index]),
+      ], `${image.localId}.png`, { type: "image/png" }));
+    });
+    return { form, workbookSha };
+  }
+
+  function storageFixture(database: DatabaseSync, options: {
+    databaseAdapter?: D1Database;
+    stored?: Map<string, Uint8Array>;
+    failure?: "hash" | "size" | "missing" | "read" | "stream" | "lost_put";
+  } = {}) {
+    const stored = options.stored ?? new Map<string, Uint8Array>();
+    let writesInFlight = 0;
+    let maxWritesInFlight = 0;
+    const put = vi.fn(async (key: string, value: unknown) => {
+      // Provider writes cannot begin before the import owns a durable candidate.
+      expect(database.prepare(`
+        SELECT a.status AS asset_status, i.status AS import_status
+        FROM assets a JOIN imports i ON i.id = a.import_id WHERE a.r2_key = ?
+      `).get(key)).toEqual({ asset_status: "pending", import_status: "pending" });
+      writesInFlight += 1;
+      maxWritesInFlight = Math.max(maxWritesInFlight, writesInFlight);
+      try {
+        const bytes = new Uint8Array(await new Response(value as BodyInit).arrayBuffer());
+        stored.set(key, bytes);
+        if (options.failure === "lost_put" && key.includes("/source/")) {
+          throw new Error("secret provider acknowledgement was lost");
+        }
+      } finally {
+        writesInFlight -= 1;
+      }
+    });
+    const get = vi.fn(async (key: string) => {
+      const bytes = stored.get(key);
+      if (!bytes) return null;
+      if (key.includes("/source/")) {
+        if (options.failure === "missing") return null;
+        if (options.failure === "read") throw new Error("secret provider GET failure");
+        if (options.failure === "hash") {
+          const changed = bytes.slice();
+          changed[0] ^= 1;
+          return r2Object(changed);
+        }
+        if (options.failure === "size") return r2Object(bytes.subarray(1));
+        if (options.failure === "stream") {
+          let pulled = false;
+          return {
+            ...r2Object(bytes),
+            body: new ReadableStream<Uint8Array>({
+              pull(controller) {
+                if (!pulled) {
+                  pulled = true;
+                  controller.enqueue(bytes);
+                } else {
+                  controller.error(new Error("secret provider trailing stream failure"));
+                }
+              },
+            }),
+          };
+        }
+      }
+      return r2Object(bytes);
+    });
+    const remove = vi.fn(async (key: string) => { stored.delete(key); });
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: options.databaseAdapter ?? new SqliteD1Database(database) as unknown as D1Database,
+      ASSETS: {
+        put, get, delete: remove,
+        head: vi.fn(async (key: string) => {
+          const bytes = stored.get(key);
+          return bytes ? r2Object(bytes) : null;
+        }),
+        list: vi.fn(async () => ({ objects: [], truncated: false })),
+      } as unknown as R2Bucket,
+    } satisfies Env;
+    return { env, stored, put, get, remove, maxWrites: () => maxWritesInFlight };
+  }
+
+  it("verifies workbook, manifest and images before guarded publication with at most five writes in flight", async () => {
+    const database = referenceTestDatabase();
+    const fixture = storageFixture(database);
+    const { form } = await importForm(6);
+    const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
+      method: "POST", body: form,
+    }), fixture.env, executionContext);
+    expect(response.status).toBe(201);
+    expect(fixture.put).toHaveBeenCalledTimes(8);
+    expect(fixture.get).toHaveBeenCalledTimes(8);
+    expect(fixture.maxWrites()).toBeGreaterThan(1);
+    expect(fixture.maxWrites()).toBeLessThanOrEqual(5);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM assets WHERE status = 'ready'").get())
+      .toEqual({ count: 8 });
+    expect(database.prepare("SELECT COUNT(*) AS count FROM imports WHERE status = 'ready'").get())
+      .toEqual({ count: 1 });
+    expect(fixture.remove).not.toHaveBeenCalled();
+    database.close();
+  });
+
+  it.each(["hash", "size", "missing", "read", "stream", "lost_put"] as const)(
+    "keeps %s destination failures unpublished and queues owned candidates without deleting or replaying bytes",
+    async (failure) => {
+      const database = referenceTestDatabase();
+      const fixture = storageFixture(database, { failure });
+      const { form } = await importForm();
+      const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
+        method: "POST", body: form,
+      }), fixture.env, executionContext);
+      expect(response.status).toBe(503);
+      expect(await response.text()).not.toContain("secret provider");
+      expect(database.prepare("SELECT status FROM imports").all()).toEqual([{ status: "failed" }]);
+      expect(database.prepare("SELECT COUNT(*) AS count FROM template_versions WHERE name = 'Verified import bytes'").get()).toEqual({ count: 0 });
+      const candidates = database.prepare("SELECT r2_key, status, sha256 FROM assets").all() as Array<{
+        r2_key: string; status: string; sha256: string | null;
+      }>;
+      expect(candidates).toHaveLength(2);
+      for (const candidate of candidates) {
+        expect(candidate).toMatchObject({ status: "failed", sha256: null });
+        expect(fixture.stored.has(candidate.r2_key)).toBe(true);
+        expect(database.prepare("SELECT state FROM blob_gc_ledger WHERE object_key = ?")
+          .get(candidate.r2_key)).toEqual({ state: "orphaned" });
+        expect(fixture.put.mock.calls.filter(([key]) => key === candidate.r2_key)).toHaveLength(1);
+      }
+      expect(fixture.remove).not.toHaveBeenCalled();
+      database.close();
+    },
+  );
+
+  it.each(["initial", "registration_race"] as const)(
+    "rejects a same-size corrupt %s winner without changing or deleting the historical object",
+    async (stage) => {
+      const database = referenceTestDatabase();
+      const { form, workbookSha } = await importForm();
+      const key = "historical/claimed-workbook.xlsx";
+      const changedBytes = workbookBytes.slice();
+      changedBytes[0] ^= 1;
+      const stored = new Map([[key, changedBytes]]);
+      const insertWinner = () => database.prepare(`
+        INSERT INTO assets (
+          id, r2_key, original_name, mime_type, byte_size,
+          status, actor_email, created_at, sha256
+        ) VALUES ('corrupt-import-winner', ?, 'claimed.xlsx', 'application/octet-stream', ?,
+                  'ready', 'owner@example.com', ?, ?)
+      `).run(key, workbookBytes.byteLength, NOW, workbookSha);
+      let injected = false;
+      const adapter = new HookedD1Database(database, (query, bindings) => {
+        if (stage !== "registration_race" || injected
+          || !/^\s*INSERT INTO assets\b/i.test(query) || bindings.at(-1) !== workbookSha) return;
+        injected = true;
+        insertWinner();
+      });
+      if (stage === "initial") insertWinner();
+      const fixture = storageFixture(database, {
+        stored, databaseAdapter: adapter as unknown as D1Database,
+      });
+      const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
+        method: "POST", body: form,
+      }), fixture.env, executionContext);
+      expect(response.status).toBe(503);
+      expect(fixture.get).toHaveBeenCalledWith(key);
+      expect(fixture.put).not.toHaveBeenCalled();
+      expect(fixture.remove).not.toHaveBeenCalled();
+      expect(database.prepare("SELECT status, sha256 FROM assets WHERE id = 'corrupt-import-winner'").get())
+        .toEqual({ status: "ready", sha256: workbookSha });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM template_versions WHERE name = 'Verified import bytes'").get()).toEqual({ count: 0 });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM blob_integrity_quarantine").get()).toEqual({ count: 0 });
+      expect(fixture.stored.get(key)).toEqual(changedBytes);
+      database.close();
+    },
+  );
 });
 
 describe("ordinary asset registration reconciliation", () => {

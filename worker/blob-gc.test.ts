@@ -91,12 +91,16 @@ function envFor(
     beforeExecute?: (query: string, bindings: unknown[]) => void;
   } = {},
 ): Env {
+  const uploaded = new Map<string, Uint8Array>();
   return {
     AUTH_MODE: "disabled",
     DB: new SqliteD1Database(database, options.beforeBatch, options.beforeExecute),
     ASSETS: {
       delete: assetDelete,
-      put: options.assetPut ?? vi.fn(async () => undefined),
+      put: async (key: string, value: ArrayBuffer, metadata: unknown) => {
+        await options.assetPut?.(key, value, metadata);
+        uploaded.set(key, new Uint8Array(value.slice(0)));
+      },
       head: async (key: string) => {
         const row = database.prepare(`
           SELECT byte_size FROM assets WHERE r2_key = ?
@@ -115,7 +119,7 @@ function envFor(
           SELECT byte_size FROM assets WHERE r2_key = ?
         `).get(key) as { byte_size: number } | undefined;
         if (!row) return null;
-        const bytes = new Uint8Array(Number(row.byte_size));
+        const bytes = uploaded.get(key) ?? new Uint8Array(Number(row.byte_size));
         return {
           body: new ReadableStream<Uint8Array>({
             start(controller) {

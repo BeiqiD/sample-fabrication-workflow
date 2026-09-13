@@ -565,6 +565,74 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
+  it("rejects a false Comment attachment hash after streaming bytes without publishing its candidate", async () => {
+    const bytes = Uint8Array.from([17, 29, 43, 61, 79]);
+    const claimedSha256 = "f".repeat(64);
+    expect(await sha256Hex(bytesBuffer(bytes))).not.toBe(claimedSha256);
+    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const received: number[] = [];
+    const methods: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const method = init?.method || "GET";
+      methods.push(method);
+      if (method === "MKCOL") return new Response(null, { status: 201 });
+      if (method === "PUT") {
+        expect(database.prepare("SELECT status FROM managed_storage_objects").get())
+          .toEqual({ status: "failed" });
+        const reader = (init?.body as ReadableStream<Uint8Array>).getReader();
+        try {
+          while (true) {
+            const next = await reader.read();
+            if (next.done) break;
+            received.push(...next.value);
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        return new Response(null, { status: 201 });
+      }
+      throw new Error(`Unexpected SWITCHdrive method ${method}`);
+    }));
+    const env = {
+      AUTH_MODE: "disabled",
+      DB: new FaultD1Database(database, "managed_storage_objects") as unknown as D1Database,
+      ASSETS: {} as R2Bucket,
+      MANAGED_STORAGE_PROVIDER: "switchdrive",
+      SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/test-user/",
+      SWITCHDRIVE_USERNAME: "test-user",
+      SWITCHDRIVE_APP_PASSWORD: "test-password",
+    } satisfies Env;
+    const response = await worker.fetch(new Request(
+      "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/octet-stream",
+          "x-upload-size": String(bytes.byteLength),
+          "x-content-sha256": claimedSha256,
+        },
+        body: bytes,
+      },
+    ), env, executionContext);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain("Attachment checksum changed during upload");
+    expect(received).toEqual([...bytes]);
+    expect(methods.filter((method) => method === "PUT")).toHaveLength(1);
+    expect(methods).not.toContain("DELETE");
+    expect(methods).not.toContain("GET");
+    expect(database.prepare(`
+      SELECT status, storage_object_id, error_message
+      FROM comment_submission_items WHERE id = 'item-upload'
+    `).get()).toEqual({
+      status: "failed", storage_object_id: null,
+      error_message: "Attachment checksum changed during upload",
+    });
+    expect(database.prepare("SELECT status, sha256 FROM managed_storage_objects").all())
+      .toEqual([{ status: "failed", sha256: claimedSha256 }]);
+    database.close();
+  });
+
   it("keeps a committed managed Comment attachment and does not delete its own provider key after response loss", async () => {
     const bytes = Uint8Array.from([41, 42, 43, 44, 45]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
@@ -705,6 +773,10 @@ describe("uncertain blob registration reconciliation", () => {
               },
             })
           : new Response(null, { status: 404 });
+      }
+      if (method === "GET") {
+        const value = stored.get(url);
+        return value ? new Response(value) : new Response(null, { status: 404 });
       }
       if (method === "DELETE") {
         deletedUrls.push(url);
@@ -993,6 +1065,10 @@ describe("uncertain blob registration reconciliation", () => {
               },
             })
           : new Response(null, { status: 404 });
+      }
+      if (method === "GET") {
+        const value = stored.get(url);
+        return value ? new Response(value) : new Response(null, { status: 404 });
       }
       if (method === "DELETE") {
         deletedUrls.push(url);

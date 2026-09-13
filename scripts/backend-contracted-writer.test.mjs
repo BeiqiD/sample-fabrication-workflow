@@ -7,6 +7,10 @@ import { after, before, test } from "node:test";
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
+import { installWorkerCryptoForHostTests } from "../test/worker-crypto.mjs";
+
+const restoreHostCrypto = installWorkerCryptoForHostTests();
+after(restoreHostCrypto);
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");

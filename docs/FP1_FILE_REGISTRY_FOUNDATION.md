@@ -112,7 +112,9 @@ This PR does not activate its schema remotely.
 
 The [FP1b byte-reader slice](./FP1_BYTE_READER_BOUNDARY.md) introduces a narrow
 read/stat transport boundary and converges legacy download routes while keeping
-these tables dormant. It does not complete the conversion below.
+these tables dormant. [FP1c verified writes](./FP1_VERIFIED_BYTE_WRITES.md) adds
+bounded source/destination verification to legacy ingestion and current reuse.
+Neither slice completes the authority conversion below.
 
 Introduce verified provider-neutral ingestion/resolution and convert the complete
 consumer, deduplication, quarantine and retention inventory together. Only that

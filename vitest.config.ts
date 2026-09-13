@@ -4,5 +4,6 @@ export default defineConfig({
   test: {
     include: ["**/*.test.ts"],
     environment: "node",
+    setupFiles: ["./test/setup-worker-crypto.ts"],
   },
 });
