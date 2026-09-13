@@ -563,7 +563,7 @@ export const REFERENCE_SEARCH_ADAPTERS = {
     `,
     idSql: "rsc.id",
     primarySqls: [],
-    contentSqls: ["CASE WHEN rsc.submission_id IS NULL THEN rsc.body ELSE '' END"],
+    contentSqls: ["CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body ELSE '' END"],
     metadataSqls: [
       "CASE WHEN rsc.submission_id IS NULL THEN rsc.scope ELSE '' END",
       "CASE WHEN rsc.submission_id IS NULL THEN COALESCE(rs.title, sd.name) ELSE '' END",

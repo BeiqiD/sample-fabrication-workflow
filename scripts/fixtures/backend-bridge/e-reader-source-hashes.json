@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "source": "Reviewed E and B4 runtime sources before the B bridge writer",
+  "files": {
+    "worker/comment-submission-routes.ts": "f7b214377c18b851c9337329658b439dac3cd9fd1b1a51fd41df37614705a808",
+    "worker/evidence/legacy-routes.ts": "4b2c981c1e5d1f20848086a4b1dbbdffce20c231fc21fc39a1bec820dd81692b",
+    "worker/references/adapters.ts": "5e162409cef23faef70bfcbbb9b19aa345e0ed9390c07ff6f10bd967e83df826",
+    "worker/references/search.ts": "04f3a13e98bbb1f0c618c1bc67e8ea7b7e8ba6dadbaea3986dd4c1dbe212460a",
+    "worker/samples/routes.ts": "7b650a3f6e3801ee14fe12c937d2c16cb63d29b974900f2484931dce26fe6f41"
+  }
+}
