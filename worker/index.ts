@@ -5,6 +5,8 @@ import { hashInitialSubstrateRepresentation, hashRecipeManifest, hashStateRepres
 import { alignFuturePlan } from "../shared/plan-alignment";
 import { isCanonicalMimeType } from "../shared/mime-type";
 import { isSampleRecordEvent } from "../shared/sample-records";
+import { CURRENT_SAMPLE_STRUCTURE_SQL } from "./sample-structure-query";
+import { prepareSplitInheritedState, type SplitExecutionAsset } from "./sample-split-state";
 import { sampleDetail, sampleEvent, sampleSummary } from "./serializers";
 import { authenticateRequest } from "./auth";
 import { bulkInsertStatements } from "./d1-bulk";
@@ -244,6 +246,8 @@ app.route("/", projectRoutes);
 app.route("/", referenceRoutes);
 
 type SampleStructureState = {
+  sourceStateHash: string | null;
+  executionAssets: SplitExecutionAsset[];
   stepId: string | null;
   stateHash: string | null;
   stepTitle: string | null;
@@ -299,64 +303,15 @@ function compareSubstrateStructures(
 
 async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Promise<SampleStructureState> {
   const row = await db.prepare(
-    `WITH latest_run AS (
-       SELECT id, sequence_no, initial_state_hash
-       FROM runs
-       WHERE sample_id = ? AND run_kind = 'process' AND deleted_at IS NULL
-       ORDER BY sequence_no DESC LIMIT 1
-     ),
-     candidates AS (
-       SELECT rs.id AS step_id, rs.expected_state_hash AS state_hash,
-              COALESCE(rs.title, sd.name) AS step_title, 1 AS priority
-       FROM run_steps rs
-       JOIN latest_run lr ON lr.id = rs.run_id
-       LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE rs.status = 'done' AND rs.deleted_at IS NULL
-         AND rs.entry_kind = 'fabrication'
-         AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
-         AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
-           SELECT 1 FROM run_step_assets rsa
-           WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
-         ))
-       ORDER BY rs.position DESC LIMIT 1
-     ),
-     latest_initial AS (
-       SELECT NULL AS step_id, initial_state_hash AS state_hash, NULL AS step_title, 2 AS priority
-       FROM latest_run WHERE initial_state_hash IS NOT NULL
-     ),
-     historical_step AS (
-       SELECT rs.id AS step_id, rs.expected_state_hash AS state_hash,
-              COALESCE(rs.title, sd.name) AS step_title, 3 AS priority
-       FROM run_steps rs
-       JOIN runs r ON r.id = rs.run_id
-       LEFT JOIN step_definitions sd ON sd.hash = rs.definition_hash
-       WHERE r.sample_id = ? AND r.run_kind = 'process' AND r.deleted_at IS NULL
-         AND rs.entry_kind = 'fabrication' AND rs.status = 'done' AND rs.deleted_at IS NULL
-         AND (rs.plan_status = 'current' OR rs.actualized_at IS NOT NULL)
-         AND (rs.expected_state_hash IS NOT NULL OR EXISTS (
-           SELECT 1 FROM run_step_assets rsa
-           WHERE rsa.run_step_id = rs.id AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
-         ))
-       ORDER BY r.sequence_no DESC, rs.position DESC LIMIT 1
-     ),
-     inherited_sample AS (
-       SELECT NULL AS step_id, inherited_state_hash AS state_hash, NULL AS step_title, 4 AS priority
-       FROM samples WHERE id = ? AND inherited_state_hash IS NOT NULL AND deleted_at IS NULL
-     )
-     SELECT step_id, state_hash, step_title FROM (
-       SELECT * FROM candidates
-       UNION ALL SELECT * FROM latest_initial
-       UNION ALL SELECT * FROM historical_step
-       UNION ALL SELECT * FROM inherited_sample
-     ) ORDER BY priority LIMIT 1`,
+    CURRENT_SAMPLE_STRUCTURE_SQL,
   ).bind(sampleId, sampleId, sampleId).first<{ step_id: string | null; state_hash: string | null; step_title: string | null }>();
   const executionAssets = row?.step_id ? await db.prepare(
-    `SELECT a.r2_key, a.sha256
+    `SELECT rsa.id AS occurrenceId, a.id AS assetId, a.r2_key, a.sha256, rsa.position
      FROM run_step_assets rsa
      JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
      WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
      ORDER BY rsa.position, a.id`,
-  ).bind(row.step_id).all<{ r2_key: string; sha256: string }>() : { results: [] };
+  ).bind(row.step_id).all<SplitExecutionAsset>() : { results: [] };
   const assets = executionAssets.results.length
     ? executionAssets.results
     : await stateAssets(db, row?.state_hash ?? null);
@@ -364,6 +319,8 @@ async function loadCurrentSampleStructure(db: D1Database, sampleId: string): Pro
     ? `execution-assets:${await sha256Hex(stableJson(executionAssets.results.map((asset) => asset.sha256)))}`
     : row?.state_hash ?? null;
   return {
+    sourceStateHash: row?.state_hash ?? null,
+    executionAssets: executionAssets.results,
     stepId: row?.step_id ?? null,
     stateHash,
     stepTitle: row?.step_title ?? null,
@@ -852,7 +809,8 @@ app.post("/samples/:id/split", async (c) => {
   const userEmail = c.get("userEmail");
   const mutationId = crypto.randomUUID();
   const children = pieces.map((piece) => ({ ...piece, id: crypto.randomUUID() }));
-  const statements: D1PreparedStatement[] = [];
+  const inherited = await prepareSplitInheritedState(c.env.DB, parentId, input.expectedUpdatedAt, parentStructure, now);
+  const statements: D1PreparedStatement[] = [...inherited.statements];
   for (const child of children) {
     statements.push(
       c.env.DB.prepare(
@@ -860,9 +818,10 @@ app.post("/samples/:id/split", async (c) => {
           (id, code, title, description, status, location, parent_id, inherited_state_hash,
            created_by, updated_by, created_at, updated_at)
          SELECT ?, ?, ?, ?, ?, ?, id, ?, ?, ?, ?, ?
-         FROM samples WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
+         FROM samples WHERE id = ? AND updated_at = ? AND deleted_at IS NULL
+           AND ${inherited.guardSql}`,
       ).bind(child.id, child.code, child.title, child.description, child.status, child.location,
-        parentStructure.stateHash, userEmail, userEmail, now, now, parentId, input.expectedUpdatedAt),
+        inherited.stateHash, userEmail, userEmail, now, now, parentId, input.expectedUpdatedAt, ...inherited.guardBindings),
       c.env.DB.prepare(
         `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
          SELECT ?, id, 'created', ?, ?, ?, ? FROM samples
@@ -873,7 +832,7 @@ app.post("/samples/:id/split", async (c) => {
           action: "created_by_split",
           parentId,
           parentCode: parent.code,
-          inheritedStateHash: parentStructure.stateHash,
+          inheritedStateHash: inherited.stateHash,
         }), userEmail, now, child.id, parentId,
       ),
     );
@@ -883,16 +842,18 @@ app.post("/samples/:id/split", async (c) => {
     c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
        SELECT ?, id, 'status', ?, ?, ?, ? FROM samples
-       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL
+         AND ${inherited.guardSql}`,
     ).bind(
       crypto.randomUUID(), `Split into ${children.length} child samples: ${childCodes.join(", ")}`,
       JSON.stringify({ action: "sample_split", childIds: children.map((child) => child.id), childCodes, parentStatusAfter: input.parentStatusAfter }),
-      userEmail, now, parentId, input.expectedUpdatedAt,
+      userEmail, now, parentId, input.expectedUpdatedAt, ...inherited.guardBindings,
     ),
     c.env.DB.prepare(
       `UPDATE samples SET status = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
-    ).bind(input.parentStatusAfter, userEmail, mutationId, now, parentId, input.expectedUpdatedAt),
+       WHERE id = ? AND updated_at = ? AND deleted_at IS NULL
+         AND ${inherited.guardSql}`,
+    ).bind(input.parentStatusAfter, userEmail, mutationId, now, parentId, input.expectedUpdatedAt, ...inherited.guardBindings),
   );
 
   try {
@@ -900,7 +861,7 @@ app.post("/samples/:id/split", async (c) => {
     if (!results.at(-1)?.meta.changes) {
       throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before splitting." });
     }
-    if (results.some((result) => !result.meta.changes)) throw new Error("The complete split audit trail was not created");
+    if (results.slice(inherited.statements.length).some((result) => !result.meta.changes)) throw new Error("The complete split audit trail was not created");
   } catch (error) {
     if (error instanceof HTTPException) throw error;
     if (String(error).includes("UNIQUE")) throw new HTTPException(409, { message: "One or more generated sample codes already exist" });
