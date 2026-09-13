@@ -34,6 +34,17 @@ SELECT json_object(
 const LEDGER_PROBE_SQL = "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'd1_migrations') AS ledger_exists";
 const LEDGER_SQL = "SELECT id, name, applied_at FROM d1_migrations ORDER BY id";
 
+// Fixed statements shared with the remote transport. These are not query
+// templates: neither callers nor observed identifiers can supply SQL fragments.
+export const D1_MIGRATION_OBSERVATION_SQL = Object.freeze({
+  schema: SCHEMA_SQL, ledgerProbe: LEDGER_PROBE_SQL, ledger: LEDGER_SQL,
+  // The REST transport cannot assume a multi-query REST batch has the binding's
+  // transaction guarantee. Read both values in a single SQLite SELECT instead.
+  schemaAndLedger: `SELECT (${SCHEMA_SQL}) AS schema_json,
+    (SELECT json_group_array(json_object('id', id, 'name', name, 'applied_at', applied_at))
+      FROM (${LEDGER_SQL})) AS ledger_json`,
+});
+
 function reject(message) {
   throw new Error(`D1 migration observation rejected: ${message}`);
 }

@@ -17,6 +17,7 @@
     "cf-typegen": "npm run config:local && wrangler types --config .wrangler/deploy.jsonc",
     "db:migrate:local": "npm run config:local && wrangler d1 migrations apply DB --local --config .wrangler/deploy.jsonc --persist-to .wrangler/state",
     "db:migrate:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
+    "db:observe:remote": "node scripts/observe-remote-d1-migrations.mjs",
     "internal:db:migrate:remote": "npm run config:deploy && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
     "test": "vitest run && npm run test:reference-mounted && npm run test:rich-text-bundle && npm run test:verification-scripts",
     "test:rich-text-bundle": "node scripts/verify-rich-text-bundle.mjs",
@@ -63,7 +64,7 @@
     "test:project-map-performance-mounted": "vitest run --config vitest.mounted.config.ts src/project-map-performance.mount.test.tsx",
     "verify:project-map-performance": "npm run test:project-map-performance && npm run test:project-map-performance-mounted && npm run build && node scripts/verify-project-map-bundle.mjs",
     "test:source": "vitest run",
-    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs scripts/shared-boundary.test.mjs scripts/compatibility-stage-gate.test.mjs scripts/d1-migration-plan.test.mjs scripts/d1-migration-observer.test.mjs scripts/backend-compatibility-schema.test.mjs scripts/backend-schema-baseline.test.mjs scripts/local-migration-staging.test.mjs && node scripts/verify-shared-boundary.mjs",
+    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs scripts/shared-boundary.test.mjs scripts/compatibility-stage-gate.test.mjs scripts/d1-migration-plan.test.mjs scripts/d1-migration-observer.test.mjs scripts/remote-d1-migration-observation.test.mjs scripts/backend-compatibility-schema.test.mjs scripts/backend-schema-baseline.test.mjs scripts/local-migration-staging.test.mjs && node scripts/verify-shared-boundary.mjs",
     "test:project-map-bundle": "node scripts/verify-project-map-bundle.mjs",
     "verify:project-worker-artifact": "node scripts/verify-project-worker.mjs --production-artifact",
     "verify:ci": "node scripts/run-verification.mjs --mode ci"
