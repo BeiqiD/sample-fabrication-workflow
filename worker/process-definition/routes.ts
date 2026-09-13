@@ -1,5 +1,15 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import type {
+  MetrologyTemplateReference,
+  MetrologyTemplateSummary,
+  ProcessTemplateFamilyOption,
+  ProcessTemplateFamilySummary,
+  ProcessTemplateVersionSummary,
+  TemplateDetail,
+  TemplateRecord,
+  TemplateStepRecord,
+} from "../../shared/contracts/template";
 import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../../shared/content-addressing";
 import { bulkInsertStatements } from "../d1-bulk";
 import { contentLengthWithin } from "../request-guards";
@@ -28,7 +38,7 @@ type ProcessTemplateDirectoryRow = {
   version_count?: number;
 };
 
-function processTemplateVersionSummary(row: ProcessTemplateDirectoryRow) {
+function processTemplateVersionSummary(row: ProcessTemplateDirectoryRow): ProcessTemplateVersionSummary {
   return {
     id: row.id,
     recipeFamilyId: row.recipe_family_id,
@@ -125,7 +135,7 @@ routes.get("/template-families/options", async (c) => {
   ).all<{ recipe_family_id: string; name: string; version: number }>();
   const d1Duration = performance.now() - d1Started;
   const serializeStarted = performance.now();
-  const payload = { families: result.results.map((row) => ({
+  const payload = { families: result.results.map((row): ProcessTemplateFamilyOption => ({
     recipeFamilyId: row.recipe_family_id,
     name: row.name,
     latestVersion: Number(row.version),
@@ -170,7 +180,7 @@ routes.get("/template-families", async (c) => {
   const d1Duration = performance.now() - d1Started;
   const serializeStarted = performance.now();
   const payload = {
-    families: result.results.map((row) => ({
+    families: result.results.map((row): ProcessTemplateFamilySummary => ({
       recipeFamilyId: row.recipe_family_id,
       name: row.name,
       templateType: row.template_type,
@@ -243,7 +253,7 @@ routes.get("/metrology-templates", async (c) => {
   const d1Duration = performance.now() - d1Started;
   const serializeStarted = performance.now();
   const payload = {
-    templates: result.results.map((row) => ({
+    templates: result.results.map((row): MetrologyTemplateSummary => ({
       id: row.id,
       name: row.name,
       toolName: row.tool_name,
@@ -314,7 +324,7 @@ routes.get("/templates", async (c) => {
   }
   const d1Duration = performance.now() - d1Started;
   const serializeStarted = performance.now();
-  const payload = { templates: result.results.map((row) => ({
+  const payload = { templates: result.results.map((row): TemplateRecord => ({
     id: row.id,
     recipeFamilyId: row.recipe_family_id,
     name: row.name,
@@ -559,7 +569,7 @@ routes.post("/metrology-templates/:id/references", async (c) => {
       byteSize: Number(asset.byte_size),
       assetKey: asset.r2_key,
       createdAt: existingReference.created_at,
-    } });
+    } satisfies MetrologyTemplateReference });
   }
 
   const referenceId = crypto.randomUUID();
@@ -586,7 +596,7 @@ routes.post("/metrology-templates/:id/references", async (c) => {
     byteSize: Number(asset.byte_size),
     assetKey: asset.r2_key,
     createdAt: now,
-  } }, 201);
+  } satisfies MetrologyTemplateReference }, 201);
 });
 
 routes.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
@@ -717,7 +727,8 @@ routes.get("/templates/:id", async (c) => {
   for (const row of assetRows.results) images.set(row.template_step_id, [...(images.get(row.template_step_id) ?? []), row.r2_key]);
   return c.json({ template: {
     id: String(template.id), recipeFamilyId: String(template.recipe_family_id), name: String(template.name),
-    templateType: String(template.template_type), templateKind: String(template.template_kind),
+    templateType: String(template.template_type) as TemplateDetail["templateType"],
+    templateKind: String(template.template_kind) as TemplateDetail["templateKind"],
     version: Number(template.version),
     manifestHash: String(template.manifest_hash),
     initialStateHash: template.initial_state_hash ? String(template.initial_state_hash) : null,
@@ -725,7 +736,7 @@ routes.get("/templates/:id", async (c) => {
     initialSubstrateStep: parseInitialSubstrateStep(template.content_json ? String(template.content_json) : null),
     sourceFilename: template.source_filename ? String(template.source_filename) : null,
     metrologyNotes: template.metrology_notes ? String(template.metrology_notes) : null,
-    referenceAttachments: referenceRows.results.map((reference) => ({
+    referenceAttachments: referenceRows.results.map((reference): MetrologyTemplateReference => ({
       id: reference.id,
       filename: reference.display_name,
       mimeType: reference.mime_type,
@@ -735,7 +746,7 @@ routes.get("/templates/:id", async (c) => {
     })),
     locked: Boolean(template.locked_at), lockedAt: template.locked_at ? String(template.locked_at) : null,
     archived: Boolean(template.archived_at), createdAt: String(template.created_at),
-    steps: stepRows.results.map((step) => ({
+    steps: stepRows.results.map((step): TemplateStepRecord => ({
       id: String(step.id), logicalStepKey: String(step.logical_step_key), definitionHash: String(step.definition_hash),
       expectedStateHash: step.expected_state_hash ? String(step.expected_state_hash) : null,
       position: Number(step.position), sourceRow: step.source_row === null ? null : Number(step.source_row),
@@ -745,7 +756,7 @@ routes.get("/templates/:id", async (c) => {
       commentsText: step.comments_text ? String(step.comments_text) : null,
       imageKeys: images.get(String(step.id)) ?? [],
     })),
-  } });
+  } satisfies TemplateDetail });
 });
 
 routes.patch("/templates/:id", async (c) => {

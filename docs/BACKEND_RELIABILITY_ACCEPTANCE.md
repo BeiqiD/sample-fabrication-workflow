@@ -178,18 +178,25 @@ Worker. `worker/index.ts` now only mounts source-owned routes and delegates fetc
 and scheduled execution; it has no source SQL or ordinary HTTP handler. Existing
 Sample/Execution behavior and the B3 split guards remain unchanged.
 
-The 15 production files in `shared/` contain no D1, React or provider
-implementation. Separate them by actual ownership:
+The 15 production files inventoried in `shared/` contain no D1, React or provider
+implementation. Their canonical ownership is now explicit:
 
 | Destination | Current surface |
 | --- | --- |
 | `shared/contracts` | Request/response DTOs and validators in `types`, `comment-submissions`, `project-api`, `project-types`, `project-copy-paste-api`, `reference-types`, `reference-search`, `reference-children`; stable Reference URL codecs/destinations |
 | `shared/domain` | Content addressing, conservative Comment previews, Sample-record classification and attachment MIME/TIFF classification used by Web and Worker |
-| Execution-owned algorithm | `plan-alignment` currently has only Worker consumers |
+| `worker/execution` | `plan-alignment` has only Worker consumers; its algorithm and tests move together |
 
-Template DTOs in `src/lib/api.ts` are the first consolidation candidate: constrain
-Worker serializers with the same response contracts. Do not change accepted
-inputs, output shapes or public retry semantics in a contract-movement PR.
+The 14 root-level shared paths remain supported compatibility re-exports;
+canonical implementations and new imports use `contracts/` or `domain/`.
+See [shared ownership](../shared/README.md) for the dependency boundary. The
+relocation preserves all public symbols, validators, wire constants and pure
+algorithm behavior.
+
+Template DTOs now belong to `shared/contracts/template.ts`; client API methods
+and Worker serializers use the same response contracts. Independent review
+confirmed identical generated runtime code, preserving accepted inputs, output
+shapes and public retry semantics.
 
 ## Compatibility and migration boundaries
 
@@ -240,8 +247,9 @@ migration fixtures may live outside the active Wrangler migration directory.
   250/500-node read/save measurements implemented, with remaining limits recorded.
 - [x] Repair B1 and B2 separately; record exact-head review, focused and complete
   verification, merged PRs and deployed browser regression evidence.
-- [ ] Repair B3 in a separate correctness PR before Sample extraction, including
+- [x] Repair B3 in a separate correctness PR before Sample extraction, including
   ordered inherited images, concurrent state registration and transaction rollback.
+  Deployed image/split browser acceptance remains a separate open item.
 - [ ] 6A2: extract Sample; Execution; legacy Evidence; process/metrology templates;
   import/assets/export; then review Project settlement, maintenance and the final
   composition root in independently reviewable slices.

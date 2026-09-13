@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 
 describe("Phase 3B4 edge contract", () => {
   it("keeps the bounded edge model and persistence routes explicit", () => {
-    const types = fs.readFileSync("shared/project-types.ts", "utf8");
-    const api = fs.readFileSync("shared/project-api.ts", "utf8");
+    const types = fs.readFileSync("shared/contracts/project-types.ts", "utf8");
+    const api = fs.readFileSync("shared/contracts/project-api.ts", "utf8");
     const routes = fs.readFileSync("worker/project-routes.ts", "utf8");
     expect(types).toContain('PROJECT_EDGE_HANDLES = ["top", "right", "bottom", "left"]');
     expect(types).toContain('PROJECT_EDGE_MARKERS = ["none", "arrow"]');
