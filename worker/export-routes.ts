@@ -1,13 +1,11 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
+import { supportedExportRequest } from "../shared/contracts/export-protocol";
+import { snapshotFullExportV8 } from "./export-v8-snapshot";
 import { getBlob } from "./blob-lifecycle/storage";
-import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { buildBlobExportPlan } from "./export-data";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
-type ExportRow = Record<string, unknown>;
 
 // Snapshot and byte delivery stay at their original registration positions in
 // the root Worker, with authentication and error handling owned by that root.
@@ -15,18 +13,10 @@ export const snapshotRoutes = new Hono<AppBindings>();
 export const blobRoutes = new Hono<AppBindings>();
 
 snapshotRoutes.get("/exports/all", async (c) => {
-  const names = Object.keys(FULL_EXPORT_TABLE_QUERIES);
-  const results = await c.env.DB.batch(
-    Object.values(FULL_EXPORT_TABLE_QUERIES).map((sql) => c.env.DB.prepare(sql)),
-  );
-  const entries = names.map((name, index) => [name, results[index].results ?? []] as const);
-  const tables = Object.fromEntries(entries) as Record<string, ExportRow[]>;
-  return c.json({
-    schemaVersion: PROJECT_EXPORT_SCHEMA_VERSION,
-    exportedAt: new Date().toISOString(),
-    tables,
-    blobs: buildBlobExportPlan(tables),
-  });
+  if (!supportedExportRequest(new URL(c.req.url))) {
+    throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+  }
+  return c.json(await snapshotFullExportV8(c.env.DB));
 });
 
 blobRoutes.get("/exports/r2/:key{.+}", async (c) => {

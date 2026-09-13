@@ -11,6 +11,8 @@ import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { FullExportManifest } from "../shared/types";
+import type { FullExportManifestV8 } from "../shared/contracts/export";
+import { restoreCompatibilityRows } from "../shared/contracts/export-compatibility";
 import { buildFullExportArchive } from "../src/lib/exportAll";
 import { snapshotRoutes } from "./export-routes";
 import { createAttachmentProjectItem, createMarkdownProjectItem, createProject, createProjectEdge,
@@ -32,9 +34,14 @@ const locator = (store: string, provider: string, key: string) => JSON.stringify
 async function fullExport(database: DatabaseSync) {
   const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
   app.route("/", snapshotRoutes);
-  const response = await app.request("/exports/all", {}, { DB: new SqliteD1Database(database) } as unknown as Env);
+  const response = await app.request("/exports/all?archiveSchema=8&archiveWriter=1", {}, { DB: new SqliteD1Database(database) } as unknown as Env);
   expect(response.status).toBe(200);
-  return await response.json() as FullExportManifest;
+  const current = await response.json() as FullExportManifestV8;
+  // Keep this existing recovery suite on genuine v7 row/ZIP contracts. This
+  // fixture-only conversion is not an unversioned live endpoint.
+  return { schemaVersion: 7, exportedAt: current.exportedAt,
+    tables: restoreCompatibilityRows(current.tables, current.artifacts.retiredFields.value, "S0"),
+    blobs: current.blobs } as FullExportManifest;
 }
 
 async function fixture() {

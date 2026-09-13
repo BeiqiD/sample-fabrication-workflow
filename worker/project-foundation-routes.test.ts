@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
-import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
+import { FULL_EXPORT_ARCHIVE_SCHEMA } from "../shared/contracts/export";
+import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import {
   FULL_EXPORT_TABLE_QUERIES,
 } from "./export-catalog";
@@ -10,24 +11,11 @@ import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 
-type Statement = { sql: string };
-
 function exportEnvironment() {
-  const queryNames = new Map(
-    Object.entries(FULL_EXPORT_TABLE_QUERIES).map(([name, sql]) => [sql, name]),
-  );
-  const batch = vi.fn(async (statements: Statement[]) => statements.map((statement) => ({
-    success: true,
-    results: [{ table: queryNames.get(statement.sql) }],
-    meta: {},
-  })));
-  const database = {
-    prepare(sql: string) {
-      return { sql };
-    },
-    batch,
-  } as unknown as D1Database;
-  return { env: { DB: database } as Env, batch };
+  const database = referenceTestDatabase();
+  const d1 = new SqliteD1Database(database);
+  const batch = vi.spyOn(d1, "batch");
+  return { env: { DB: d1 } as unknown as Env, batch, database };
 }
 
 const PRE_PROJECT_EXPORT_TABLES = [
@@ -64,12 +52,12 @@ const PRE_PROJECT_EXPORT_TABLES = [
 
 describe("Full export route", () => {
   it("owns complete export and snapshots every current table in one batch", async () => {
-    expect(PROJECT_EXPORT_SCHEMA_VERSION).toBe(7);
+    expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(8);
     const app = new Hono<AppBindings>();
     app.route("/", snapshotRoutes);
-    const { env, batch } = exportEnvironment();
+    const { env, batch, database } = exportEnvironment();
 
-    const response = await app.request("/exports/all", {}, env);
+    const response = await app.request("/exports/all?archiveSchema=8&archiveWriter=1", {}, env);
     const body = await response.json<{
       schemaVersion: number;
       tables: Record<string, Array<Record<string, unknown>>>;
@@ -77,24 +65,13 @@ describe("Full export route", () => {
     }>();
 
     expect(response.status).toBe(200);
-    expect(body.schemaVersion).toBe(PROJECT_EXPORT_SCHEMA_VERSION);
+    expect(body.schemaVersion).toBe(FULL_EXPORT_ARCHIVE_SCHEMA);
     expect(Object.keys(body.tables)).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES));
-    expect(body.tables.attachment_derivatives).toEqual([
-      { table: "attachment_derivatives" },
-    ]);
-    expect(body.tables.projects).toEqual([{ table: "projects" }]);
-    expect(body.tables.project_contents).toEqual([{ table: "project_contents" }]);
-    expect(body.tables.project_content_attachments).toEqual([
-      { table: "project_content_attachments" },
-    ]);
-    expect(body.tables.project_items).toEqual([{ table: "project_items" }]);
-    expect(body.tables.project_map_placements).toEqual([
-      { table: "project_map_placements" },
-    ]);
-    expect(body.tables.project_edges).toEqual([{ table: "project_edges" }]);
+    for (const name of ["attachment_derivatives", "projects", "project_contents", "project_content_attachments", "project_items", "project_map_placements", "project_edges"]) expect(body.tables[name]).toEqual([]);
     expect(body.blobs).toEqual([]);
     expect(batch).toHaveBeenCalledTimes(1);
-    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length);
+    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length + 3);
+    database.close();
   });
 
   it("keeps every pre-Project export table while adding all Project tables", () => {

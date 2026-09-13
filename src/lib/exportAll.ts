@@ -1,3 +1,5 @@
+import type JSZip from "jszip";
+import { createExportArtifact, exportArtifactText, validateFullExportV8 } from "../../shared/contracts/export-protocol";
 import type {
   BlobExportOutcome,
   FullExportBlobEntry,
@@ -32,18 +34,13 @@ function warningMessage(outcome: Exclude<BlobExportOutcome, "packaged">, entry: 
   }
 }
 
-export async function buildFullExportArchive(
-  manifest: FullExportManifest,
-  onProgress?: (completed: number, total: number) => void,
-  fetcher: typeof fetch = fetch,
+async function packageExportBlobs(
+  zip: JSZip,
+  blobs: FullExportBlobEntry[],
+  onProgress: ((completed: number, total: number) => void) | undefined,
+  fetcher: typeof fetch,
 ) {
-  const { default: JSZip } = await import("jszip");
-  const zip = new JSZip();
-  for (const [name, rows] of Object.entries(manifest.tables)) {
-    zip.file(`tables/${safeSegment(name)}.json`, JSON.stringify(rows, null, 2));
-  }
-
-  const total = manifest.blobs.length;
+  const total = blobs.length;
   onProgress?.(0, total);
   let completed = 0;
   const results: Array<{
@@ -60,7 +57,7 @@ export async function buildFullExportArchive(
     path: string | null;
   }> = [];
 
-  for (const [index, entry] of manifest.blobs.entries()) {
+  for (const [index, entry] of blobs.entries()) {
     let outcome: BlobExportOutcome = entry.initialOutcome ?? "download_failed";
     let path: string | null = null;
     if (entry.downloadUrl) {
@@ -111,8 +108,23 @@ export async function buildFullExportArchive(
     locatorId: entry.locatorId,
     blobRecordIds: entry.blobRecordIds,
     sourceOccurrences: entry.sourceOccurrences,
-    message: warningMessage(entry.outcome, manifest.blobs.find((blob) => blob.locatorId === entry.locatorId)!),
+    message: warningMessage(entry.outcome, blobs.find((blob) => blob.locatorId === entry.locatorId)!),
   }]);
+  return { results, warnings };
+}
+
+export async function buildFullExportArchive(
+  manifest: FullExportManifest,
+  onProgress?: (completed: number, total: number) => void,
+  fetcher: typeof fetch = fetch,
+) {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  for (const [name, rows] of Object.entries(manifest.tables)) {
+    zip.file(`tables/${safeSegment(name)}.json`, JSON.stringify(rows, null, 2));
+  }
+
+  const { results, warnings } = await packageExportBlobs(zip, manifest.blobs, onProgress, fetcher);
   zip.file("export-manifest.json", JSON.stringify({
     schemaVersion: manifest.schemaVersion,
     exportedAt: manifest.exportedAt,
@@ -135,9 +147,50 @@ export async function buildFullExportArchive(
   };
 }
 
+export async function buildFullExportArchiveV8(
+  input: unknown,
+  onProgress?: (completed: number, total: number) => void,
+  fetcher: typeof fetch = fetch,
+) {
+  const manifest = await validateFullExportV8(input);
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const paths = new Set(["export-manifest.json", "export-warnings.json"]);
+  const tables: Record<string, { rowCount: number; path: string; byteSize: number; sha256: string }> = {};
+  for (const [name, rows] of Object.entries(manifest.tables)) {
+    const artifact = await createExportArtifact(`tables/${name}.json`, rows);
+    zip.file(artifact.path, exportArtifactText(rows));
+    paths.add(artifact.path);
+    tables[name] = { rowCount: rows.length, path: artifact.path, byteSize: artifact.byteSize, sha256: artifact.sha256 };
+  }
+  const artifacts = Object.fromEntries(Object.entries(manifest.artifacts).map(([name, artifact]) => {
+    zip.file(artifact.path, exportArtifactText(artifact.value));
+    paths.add(artifact.path);
+    return [name, { path: artifact.path, byteSize: artifact.byteSize, sha256: artifact.sha256 }];
+  }));
+  const { results, warnings } = await packageExportBlobs(zip, manifest.blobs, onProgress, fetcher);
+  for (const result of results) if (result.path) paths.add(result.path);
+  zip.file("export-manifest.json", JSON.stringify({
+    schemaVersion: manifest.schemaVersion,
+    archiveWriter: manifest.archiveWriter,
+    exportedAt: manifest.exportedAt,
+    tables,
+    artifacts,
+    blobs: results,
+  }, null, 2));
+  zip.file("export-warnings.json", JSON.stringify(warnings, null, 2));
+  const files = Object.values(zip.files).filter((file) => !file.dir);
+  if (files.length !== paths.size || files.some((file) => !paths.has(file.name))) throw new Error("Full export ZIP inventory differs from its manifest");
+  return {
+    archive: await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } }),
+    warnings,
+    results,
+  };
+}
+
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const { archive } = await buildFullExportArchive(manifest, onProgress);
+  const { archive } = await buildFullExportArchiveV8(manifest, onProgress);
   const url = URL.createObjectURL(archive);
   const anchor = document.createElement("a");
   anchor.href = url;
