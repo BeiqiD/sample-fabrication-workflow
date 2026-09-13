@@ -1,7 +1,8 @@
 # Backend migration planning before baseline replacement
 
-Status: local, read-only prerequisite mechanism for Phase 6A5; not an activated
-baseline, deployment change, completed cleanup, or authorization to migrate.
+Status: pure planning, read-only observation and isolated local Wrangler
+qualification for Phase 6A5; not an activated baseline, deployment change,
+completed cleanup, or authorization to migrate remote resources.
 
 Reviewed: 2026-09-13. Implementation starts from integration commit
 `5787b32e202ac3fa2c55eb0b2c90e3b910e54d70`.
@@ -78,7 +79,7 @@ run one. Rejection throws without returning an executable partial plan.
 | Observation | Proposal |
 | --- | --- |
 | No application objects; ledger absent or empty | Baseline lineage and its later increments |
-| Complete current 37-file ledger with matching schema | Legacy lineage, no migrations |
+| Complete current 37-file ledger with matching schema | Remaining reviewed legacy suffix; no-op if that catalog ends at S0 |
 | Explicitly supported historical/cleanup prefix with matching schema | Remaining legacy/incremental suffix only |
 | Known baseline prefix with matching schema | Remaining baseline-lineage increments only |
 | Unknown, mixed, duplicate, misordered, gapped, ambiguous or unsupported ledger | Reject |
@@ -153,9 +154,13 @@ adapter. Data invariants and restore validation remain separate gates.
    proposal. Enabling an executor remains subject to the existing exact-head,
    recovery and deployment requirements.
 
-These are later implementation slices, not capabilities delivered by the pure
-planner. The current `migrations/` directory and automatic deployment command
-remain unchanged.
+The pure planner does not execute these slices. The subsequent
+[isolated local staging qualification](./BACKEND_LOCAL_MIGRATION_STAGING.md) now
+implements selection, private staging, preflight re-observation and actual
+installed Wrangler local apply for new fixtures, including failure/retry tests.
+Remote admission, deployment serialization and remote execution remain pending.
+The current `migrations/` directory and automatic deployment command remain
+unchanged.
 
 ## Inactive final baseline qualification
 
