@@ -19,7 +19,10 @@ replayed onto the completed ownership extractions. The integrated implementation
 merged as [PR #194](https://github.com/BeiqiD/sample-fabrication-workflow/pull/194),
 commit `2ffd3d8f88cdb6fda2cfc868d164f9613f25cc21`, tree
 `224b771f38e25a0d275508df0cb05937b2622446`, after all 11 local leaves and
-4 Verify / 14 commit contexts passed. Deployed-browser acceptance remains pending.
+4 Verify / 14 commit contexts passed. The later
+[current S0 browser record](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) confirms
+canonical Comment readback, Reference search and source focus. It does not
+qualify the later B/C/D transitions or every legacy/overlap scenario.
 
 - Sample occurrence reads select canonical text by `submission_id`; only a
   legacy occurrence reads its own original `body`.
@@ -40,7 +43,8 @@ commit `2ffd3d8f88cdb6fda2cfc868d164f9613f25cc21`, tree
 
 Stage A can deploy with the existing schema and writer. The implemented
 [negotiated v8 protocol](./FULL_EXPORT_V8.md) supplies E's archive/recovery
-boundary; deployed browser acceptance is still pending. The
+boundary; actual v8 browser downloads and isolated S0 recovery now pass in the
+[retry acceptance record](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md). The
 [inactive schema qualification](./BACKEND_COMPATIBILITY_SCHEMA_QUALIFICATION.md)
 proves S1/S2 conversion and rollback on SQLite and workerd D1, with the B4 exact
 returned-ID acknowledgement required for the old writer on S1. None of these

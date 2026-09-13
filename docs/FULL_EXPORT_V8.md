@@ -91,3 +91,9 @@ utility, without conversion through the new writer: SHA-256
 The result preserved 34 tables, 94 rows and one blob, installed 198 triggers,
 and passed row, foreign-key and integrity checks with zero warnings.
 This is offline archive compatibility evidence, not live v8 browser acceptance.
+
+The subsequent [browser retry acceptance](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md)
+records actual deployed v8 downloads and isolated S0 restores. The final archive
+includes a canonical process Comment, 34 tables, 135 rows and four blobs, with
+all declared hashes and provenance checked and no restore warnings. This current
+S0 evidence does not activate S1/S2 or establish old-request retirement.
