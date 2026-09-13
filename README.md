@@ -168,13 +168,15 @@ are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEA
 for validation, missing-byte outcomes, size limits and the separate remote
 recovery boundary.
 
-This final S2 preparation branch selects the reviewed baseline for new empty
-local databases and preserves the original SQL in `migrations-history/s0/`.
+The integration branch uses the S2 baseline for new empty local databases and
+preserves the original SQL in `migrations-history/s0/`.
 Historical S0 recovery must explicitly add
-`--migrations-dir migrations-history/s0 --target-schema S0`. This candidate must
-not deploy to the existing S0 service; see the
-[final S2 application gate](./docs/BACKEND_S2_APPLICATION_GATE.md) for the local
-qualification and remaining remote activation requirements.
+`--migrations-dir migrations-history/s0 --target-schema S0`. The authorized
+same-D1 S2 activation is complete; final browser acceptance remains open in the
+[activation checkpoint](./docs/CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). The proposed
+[file/data portability track](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+is a separate documentation review, not an implemented storage or website-import
+capability.
 
 ## Further documentation
 
@@ -182,6 +184,10 @@ qualification and remaining remote activation requirements.
 - [Architecture and invariants](./docs/ARCHITECTURE.md)
 - [Data model](./docs/DATA_MODEL.md)
 - [Product goal and roadmap](./docs/PRODUCT_ROADMAP.md)
+- [Long-term roadmap](./docs/LONG_TERM_ROADMAP.md)
+- [Proposed file storage architecture](./docs/FILE_STORAGE_ARCHITECTURE.md)
+- [Proposed reports, data packages and system recovery](./docs/DATA_EXPORT_IMPORT_DESIGN.md)
+- [File/data portability implementation and compatibility plan](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

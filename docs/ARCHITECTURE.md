@@ -1,5 +1,13 @@
 # Architecture
 
+This document describes the current implementation. The proposed replacement of
+the R2/managed split, purpose-based configuration and native export/import are in
+[file storage architecture](./FILE_STORAGE_ARCHITECTURE.md),
+[data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md), and their
+[implementation and compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
+Those targets are under document review; no new runtime or storage capability is
+claimed here.
+
 ## Runtime
 
 The application is one Cloudflare Worker deployment. React/Vite serves the interface, Hono serves `/api`, D1 stores relational state, a private R2 bucket stores workbooks and images, and an optional `ManagedStorage` adapter stores unchanged original files.
@@ -32,7 +40,7 @@ Containers, or a second Worker.
 - Every API route except the shallow `/api/health` endpoint validates the `Cf-Access-Jwt-Assertion` signature, issuer, and application audience against the team's rotating JWKS.
 - `ALLOWED_EMAILS` can add an application-level email allowlist after JWT validation.
 - Unsafe browser requests must have the same `Origin` as the Worker.
-- `/api/ready` is authenticated and verifies both D1 and R2 bindings; configured managed storage is checked separately.
+- `/api/ready` is authenticated and verifies D1 and R2; when managed storage is configured, its failed check also makes readiness fail. The proposed per-profile readiness/default behavior is not yet implemented.
 - R2 is private; assets are returned only by authenticated application routes.
 - Managed-storage credentials remain server-side and are never returned in export manifests or warnings.
 - Reference responses expose source/occurrence identity and read-only summaries. They never expose R2 keys, managed-storage object keys, provider locators, credentials, or source mutation capabilities.

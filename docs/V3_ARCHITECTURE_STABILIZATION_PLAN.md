@@ -4,8 +4,8 @@ Status: backend reliability corrections, Worker extraction and shared-contract
 separation are merged. Compatibility schemas, recovery and local migration
 staging are qualified; the final S2 application from #202 is merged and deployed.
 Current S0 browser checks and read-only remote observation transport qualification
-are recorded. The owner now authorizes discarding integration test data and
-selects an in-place rebuild of the current D1 with all file bindings retained.
+are recorded. The owner selected an in-place rebuild of the disposable test D1
+with all file bindings retained.
 The existing D1 was rebuilt and S2 deployed with unchanged file bindings; final
 authenticated browser acceptance and exit review remain open. New frontend
 refinement remains paused.
@@ -14,6 +14,15 @@ The inventory, isolated recovery rehearsal and scale measurements are tracked in
 [Backend reliability acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md).
 
 Last reviewed: 2026-09-13 for the user-authorized backend-first execution order
+
+Planning update, 2026-09-13: the owner requests a documentation review of the
+[file/data portability track](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
+Its purpose-based files, Settings, migration and native export/import are
+intentional new capabilities, separate from this behavior-preserving
+stabilization phase. They do not certify 6A6 or authorize a second reset. The
+[product roadmap](./PRODUCT_ROADMAP.md) now schedules the reviewed FP track and
+its affected UI before broad remaining frontend refinement; implementation
+follows review of the documentation Draft PR.
 
 This document defines the bounded backend reliability, architecture and schema
 stabilization work required before final v1 release validation. Backend work now
@@ -46,8 +55,8 @@ See the [compatibility sequence](./BACKEND_COMPATIBILITY_CLEANUP_DESIGN.md),
 Passing an inactive candidate test does not close an activation or browser gate.
 
 The [current S0 browser evidence](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) and
-read-only observation PR #203 are complete. The owner states that the application
-is a test environment and selects the [in-place S2 rebuild](./BACKEND_DISPOSABLE_S2_CUTOVER.md):
+read-only observation PR #203 are complete. The owner selected and completed
+the [in-place S2 rebuild](./BACKEND_DISPOSABLE_S2_CUTOVER.md) for the test environment:
 keep the current Worker, D1 UUID/binding, R2 and SWITCHdrive configuration; pause
 access, builds and background writers; clear old application tables/ledger;
 initialize S2 and deploy matching code. Old physical test files remain for later
@@ -121,26 +130,28 @@ behavior or schema needs a separate design and review with its frontend impact
 and verification made explicit. Do not combine frontend controller rewrites with
 Worker extraction or repeat completed visual/shortcut work.
 
-Compatibility cleanup and the database baseline remain the late Phase 6A4–6
-sequence after affected consumers and contracts are stable. Their existing
-design, schema-comparison and migration/resource gates remain in force.
+Compatibility cleanup and baseline qualification were the late Phase 6A4/6A5
+sequence, now completed for the selected S2 integration path. Preserve their
+historical schema-comparison and recovery evidence; 6A6 remains open. New FP
+schema work follows the current baseline with reviewed forward migrations.
 
-At the backend review checkpoint, resume outstanding C4 acceptance and the
-frontend 5D → 5E → 5F sequence with its unverified boundaries intact. Backend
-probes cannot qualify physical-device or frontend usability claims. Phase 6B
-release validation starts only after both the backend stabilization exit and
-Phase 5F's final frontend baseline; earlier backend reliability evidence is
-rechecked where later changes affect it.
+The FP track preserves outstanding C4 acceptance and the frontend 5D → 5E → 5F
+sequence; its necessary storage/upload/data UI changes are reviewed in the FP
+slices. Resume broad frontend refinement at the checkpoint in the product
+roadmap without repeating completed work. Backend probes cannot qualify device
+or usability claims. Phase 6B requires backend exit, the final frontend baseline
+and acceptance of the release's enabled FP capabilities. Earlier recovery and
+reliability evidence is rechecked where those changes affect it.
 
-The current V3 migration chain and deployment gate remain authoritative until the
-baseline replacement slice is complete. No planning document, local schema dump,
-or passing ordinary build authorizes remote migration or deployment.
+S2 baseline activation is complete. The current migration/deployment gate remains
+authoritative; FP schema changes use separately reviewed forward migrations and
+matching export/recovery protocols. No planning document, local schema dump or
+passing ordinary build authorizes remote migration or deployment.
 
 An optional trusted server-side derivative producer remains an independent
-feature decision. If an approved implementation requires schema changes, it must
-either finish before the final V3 baseline is cut or be deferred to an ordinary
-post-baseline migration. It is not silently included in architecture
-stabilization.
+feature decision. Its schema changes now use ordinary post-S2 migrations and
+matching export/recovery coverage. It is not silently included in stabilization
+or required merely to store/import preview bytes with unverified provenance.
 
 ## Preserved domain invariants
 
@@ -408,6 +419,11 @@ that transport error into a universal cross-domain retry policy.
 
 ### 6A4 — compatibility cleanup and vocabulary decision
 
+Historical qualification scope: the candidate inventory and removal conditions
+below describe the pre-S2 work. The selected final S2 consumers/schema have since
+been qualified and deployed; see the decision summary. They are not new FP
+cleanup tasks, and the retained-data B/C/D alternatives remain unactivated.
+
 This late slice follows backend reliability corrections and stable module/API
 boundaries. It is not bundled into the initial inventory or extraction PRs.
 
@@ -439,6 +455,10 @@ without a canonical submission ID. Absence of UI calls to the old creation
 endpoint alone does not prove that the old command family can be removed.
 
 ### 6A5 — clean V3 baseline and migration gate
+
+Historical baseline gate: this selected S2 activation is complete. Preserve these
+requirements and its evidence for review; new FP schema changes extend the
+immutable baseline through forward migrations rather than repeating this cutover.
 
 After the final authorized schema cleanup, create `0001_v3_baseline.sql` as the
 only active pre-release V3 migration. The old chain remains recoverable from Git
@@ -487,7 +507,9 @@ Run an exact-head review across the complete Phase 6A result. Confirm that:
   catch-all `shared` surface;
 - approved compatibility fields are absent and deferred candidates remain
   explicitly documented;
-- the baseline creates the complete final schema from an empty database;
+- the immutable S2 baseline still creates its qualified S2 schema, and the
+  baseline plus all reviewed forward migrations creates the complete schema of
+  the actual integration head from an empty database;
 - all permanent gates pass without remote side effects;
 - Phase 6B can use isolated persistent resources without requiring another
   destructive baseline reset.
@@ -510,12 +532,14 @@ Run an exact-head review across the complete Phase 6A result. Confirm that:
 
 ## Phase 6A exit and Phase 6B handoff
 
-Phase 6A is complete when the current V3 product behavior is represented by a
-modular single Worker, explicit contract boundary, reviewed final schema, and one
-fresh-install baseline without discarding the verified implementation.
+Phase 6A is complete when its V3 behavior is represented by a modular single
+Worker, explicit contract boundary and qualified S2 baseline, with its browser
+and exit evidence complete. If FP migrations precede the final integrated review,
+also qualify fresh install and populated upgrade through the baseline plus those
+forward migrations; do not recut the baseline to satisfy a final-schema claim.
 
-Phase 6B follows only when this backend exit and Phase 5F's resumed frontend
-baseline are both complete. It owns:
+Phase 6B follows only when this backend exit, the release's enabled FP scope and
+Phase 5F's resumed frontend baseline are complete. It owns:
 
 - sustained representative research-data use;
 - desktop, mobile, and supported-browser regression;
@@ -534,11 +558,12 @@ The preliminary Phase 6A1 reliability checks do not complete this final rehearsa
 Backup qualification includes an archive-to-isolated-database/provider round
 trip, comparing stable IDs, normalized rows, deleted state, Reference targets,
 retention, quarantine, derivatives and file hashes. Record schema/build identity,
-restore order and unavailable-byte outcomes. Add visible export results and
-cancellation in the planned source-page refinement; measure browser ZIP memory
-before choosing a streaming or desktop export implementation. Direct provenance
-keys remain conservatively retained until a separate metadata migration is
-justified by restore or storage-volume requirements.
+restore order and unavailable-byte outcomes. The reviewed FP plan now schedules
+visible completeness and native round trips, with bounded job/streaming execution
+in FP3–FP5. FP1 includes direct provenance-key conversion in the universal file
+inventory; their existing retention remains until that conversion is verified.
+Measure actual runtime/archive limits and do not treat browser-only ZIP generation
+or the old trusted CLI recovery utility as qualification of the new engine.
 
 Frontend-wide file relocation, a Sample-record/audit split, broader concurrency
 normalization, Docker distribution, permanent delete, semantic/LLM features, and

@@ -119,10 +119,13 @@ A real issue was reproduced:
   These observations do not prove when the credential problem began, whether
   the passcode expired, or which credential is incorrect.
 
-The owner must supply a working SWITCHdrive username/App Passcode through the
-Worker's secure Variables and Secrets settings. Do not publish credentials in
-Git or chat, change file roots, disable the provider to disguise the error, or
-claim the original-file upload/download check passed.
+Successful live reads/writes through this SWITCHdrive configuration require
+working credentials. The owner has since deferred configuring them and requests
+the [file/data portability design](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md),
+including R2 defaults and application Settings. Planning and later reviewed
+implementation can proceed independently; actual SWITCHdrive byte tests remain
+blocked. Do not publish credentials, reinterpret old file roots, hide the
+recorded failure or claim this upload/download check passed.
 
 ## Live export and isolated restore
 
@@ -153,11 +156,28 @@ Safari page interaction is unavailable until “Allow JavaScript from Apple
 Events” is enabled. Native accessibility actions were denied; the separate
 computer-use executor cannot start with the current symlinked writable root.
 Interactive create/save/reload, new file uploads/downloads and exact Reference
-navigation remain unexecuted against this deployment. The owner has been asked
-to enable page automation and update SWITCHdrive credentials, or take over the
-remaining manual interaction checks.
+navigation remain unexecuted in this recorded deployment session. This is a
+historical tool-availability observation, not a claim about every future browser
+executor. A subsequent session must record its own successful interaction tests;
+the owner's deferred SWITCHdrive configuration is not a prerequisite for
+reviewing the new storage design.
 
 Phase 6A5 activation is complete; Phase 6A6 exit remains open. Application access
 is available, with temporary Builds and Cron holds retained until acceptance.
 Old physical files remain in the same storage; no cleanup of those unreferenced
 test files ran.
+
+## File/data portability planning handoff — 2026-09-13
+
+PR #206 subsequently merged as `4e78fa76b727f81b1431b60ff481bd686d83cb4c` and
+distinguishes authentication, authorization and redirect diagnostics. It does
+not establish a working SWITCHdrive connection or complete the remaining S2
+acceptance. The proposed FP track is a separate capability change.
+
+Acceptance must distinguish core create/save/reload and non-empty R2 file
+behavior from optional SWITCHdrive behavior, and verify the new default-storage
+rules after implementation. The documentation review neither resumes nor
+reconfigures Builds/Cron. Their recorded temporary state above must be checked
+and explicitly handed off by the implementing deployment work; no fresh live
+control-state observation is claimed here. Do not repeat the completed reset or
+delete retained test objects as a side effect of this plan.

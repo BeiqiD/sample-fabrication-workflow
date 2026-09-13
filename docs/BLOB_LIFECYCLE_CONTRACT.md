@@ -1,5 +1,15 @@
 # Blob lifecycle, export integrity, and permanent-delete contract
 
+The proposed [file storage architecture](./FILE_STORAGE_ARCHITECTURE.md) replaces
+the current physical locator forms below with file/location/profile identities
+for all managed file purposes. The [implementation and compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+requires migration/read/export holds, location-level deletion claims and
+purpose-aware reuse. Existing retention, quarantine, registration and unknown-
+result rules remain mandatory; new tables do not qualify their integration by
+themselves. The [export/import design](./DATA_EXPORT_IMPORT_DESIGN.md) adds native
+packages while retaining full-backup recovery obligations. No lifecycle code or
+retention interval changes in this documentation proposal.
+
 Status: normative v3 backend contract; current through attachment lifecycle Slice A in Draft PR #152
 
 Last reviewed: 2026-08-19 after explicit Run-attachment retention was bounded in Draft PR #152

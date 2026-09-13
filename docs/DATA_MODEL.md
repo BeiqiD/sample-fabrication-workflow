@@ -1,5 +1,18 @@
 # Data model
 
+The tables below describe the current schema. The proposed provider-neutral
+`File`/`FileLocation` model and purpose-based storage rules are defined in
+[file storage architecture](./FILE_STORAGE_ARCHITECTURE.md). The
+[compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#schema-and-api-transition-strategy)
+requires preserving business identities, classifying existing file uses and
+updating export/recovery with every schema slice. These future entities have
+not been added by the documentation proposal.
+
+Current-state review: integration commit
+`4e78fa76b727f81b1431b60ff481bd686d83cb4c` (S2). The
+[repository compatibility audit](./FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md)
+maps the proposed transition to existing modules, schema guards and test gates.
+
 ## Current source and storage entities
 
 | Entity | Purpose |
@@ -25,6 +38,14 @@
 | `reference_targets` | Sparse, idempotent polymorphic registry for durable external source identities. Its registry identity and source target are immutable; it stores validation metadata rather than copied source content. |
 | `managed_storage_objects` | Metadata for unchanged original files stored through the provider-neutral `ManagedStorage` adapter. |
 | `assets` | R2 object metadata and readiness state for imported and ordinary uploads. |
+| `attachment_derivatives` | Source-content-addressed browser-preview registry with generator, status and retention metadata; a separate trusted producer is not implied. |
+| `blob_integrity_quarantine` | Integrity findings that prevent ordinary reuse or publication of affected physical locators. |
+| `projects` | Project identity, lifecycle, optimistic revision and next creation-sequence watermark. |
+| `project_contents` | Project-owned Markdown source or attachment presentation; not copied experimental source records. |
+| `project_content_attachments` | One attachment subtype per owned content row, with occurrence presentation and exactly one current asset/managed-object locator. |
+| `project_items` | Project-local content or Reference occurrences, with immutable creation sequence and recoverable deletion metadata. |
+| `project_map_placements` | At most one stored Map placement per item; authoritative active-item creation supplies the stronger exactly-one guarantee. |
+| `project_edges` | Project-local item-to-item connections, handles, markers, labels, revisions and deletion groups. |
 | `blob_retention_edges` | Derived shared view of every current reason that provider bytes must remain recoverable. |
 | `blob_gc_ledger` | Provider-neutral orphan, deletion-claim, retry, and terminal cleanup work state. |
 | `state_verifications` | Sparse observed-state anchors connected to the previous verification. |
@@ -60,8 +81,8 @@ not delete shared bytes and does not rewrite source hierarchy. Restore exposes
 the same stable ID.
 
 The complete source identity and soft-delete contract is in
-[v3 backend foundation](./V3_BACKEND_FOUNDATION.md). Project, Text, Map, and the
-reference model are specified in
+[v3 backend foundation](./V3_BACKEND_FOUNDATION.md). Project, Map, Reading, and
+the reference model are specified in
 [Project design foundation](./PROJECT_DESIGN_FOUNDATION.md).
 
 
@@ -90,9 +111,9 @@ recipe_revision
 ```
 
 `reference_targets` is sparse. Existing source rows are not automatically
-copied or backfilled into it. A row is registered only when a future durable
-consumer needs a stable registry identity. Raw valid targets can still be read
-through the batch resolver before registration.
+copied or backfilled into it. A row is registered when a durable consumer,
+including a Project item, needs a stable registry identity. Raw valid targets
+can still be read through the batch resolver before registration.
 
 The registry stores:
 
@@ -103,8 +124,8 @@ The registry stores:
 - last-known structural contexts for integrity reporting.
 
 The registry row ID, registry version, target type, target ID, and first
-registration time are immutable after insertion. A future Project item may keep
-a foreign key to that row, so the row cannot be updated in place to represent a
+registration time are immutable after insertion. Project items keep foreign keys
+to those rows, so a registry row cannot be updated in place to represent a
 different source. Only validation metadata, last-known contexts, and the future
 tombstone field may change.
 
@@ -127,9 +148,10 @@ Recipe revisions as resolved read-only objects with lifecycle metadata. It
 distinguishes them from truly missing, structurally inconsistent, and future
 tombstoned targets. Ordinary resolution does not update registry timestamps.
 
-Actual Project backlinks are not represented by a generic placeholder table.
-They will arise from future `project_items.reference_target_id` rows when
-Project-item identity exists.
+Actual Project consumer relationships are represented by the existing
+`project_items.reference_target_id` rows, not a parallel generic usage table.
+This is a persisted relationship, not a claim that every possible backlink UI
+has been implemented.
 
 See [reference registry and batch resolver implementation plan](./REFERENCE_RESOLUTION_IMPLEMENTATION_PLAN.md).
 
@@ -169,10 +191,13 @@ R2 object keys are stored in D1. The bucket stays private and the Worker returns
 assets only through application routes. Original files use the
 `ManagedStorage` adapter; provider credentials and requests stay server-side.
 
-Ordinary uploads are registered only after provider writes succeed. Newly
-received content is SHA-256-addressed and deduplicated. A failed registration
-removes the object or records a recoverable failure according to the upload
-path.
+The shared ingestion/registration paths persist candidate metadata before the
+provider write, then conditionally publish or reconcile the outcome. Failed or
+unknown writes remain tracked; they do not authorize deleting a competing winner.
+See [registration](../worker/blob-lifecycle/registration.ts). Recorded content
+hashes support deduplication, but existing managed-provider size/ETag checks are
+not independently verified whole-object SHA-256 evidence. The FP transition
+must preserve that distinction rather than strengthen old evidence by relabelling it.
 
 A physical blob may be shared by active, unfinished, retryable, archived, or
 soft-deleted sources. The provider object therefore cannot be collected from
@@ -181,14 +206,16 @@ and never exposes a provider object key.
 
 ## Complete export
 
-The full export includes every database table and packages available physical
-bytes using relative paths. Failed, deleted, orphaned, and missing blob metadata
-remain in table JSON as audit data.
+The full export inventories canonical application tables and the required
+retention view, and packages available physical bytes using relative paths.
+Other views are explicitly classified as reconstructible by
+[the schema-coverage test](../worker/export-schema-coverage.test.ts). Failed,
+deleted, orphaned, and missing blob metadata remain in table JSON as audit data.
 
 The current exporter is availability-aware:
 
-- every table/view snapshot, including `reference_targets`, is read through one
-  D1 batch;
+- the canonical table catalog and required retention view, including
+  `reference_targets`, are read through one D1 batch;
 - metadata-not-ready rows are not treated as guaranteed bytes;
 - ready objects are deduplicated by physical locator;
 - missing or unavailable objects produce structured warnings;
@@ -217,12 +244,14 @@ Validated Cloudflare Access email addresses are stored on events and mutable or
 imported records. Older rows created before attribution remain valid with a
 null actor.
 
-`samples.process_revision` remains only for compatibility with the deployed
-alpha schema. Current concurrency control uses `updated_at` and mutation IDs;
-removing the legacy column requires an explicit migration.
-The negotiated v8 archive omits it from logical Sample rows while retaining
-every observed value in `provenance/retired-fields.json`. The active database
-column has not yet been removed; see [the compatibility sequence](./BACKEND_COMPATIBILITY_CLEANUP_DESIGN.md).
+The current S2 schema has no `samples.process_revision` column. Sample
+concurrency uses `updated_at` and mutation IDs; Project APIs use their explicit
+revision fields. S2 stores legacy occurrence text in `run_step_comments.legacy_body`,
+not the retired `body` column; canonical Comment text belongs to its submission.
+The negotiated v8 projection preserves observed retired values from supported
+historical schemas in `provenance/retired-fields.json`; it does not invent values
+for absent S2 columns. See [the actual snapshot](../worker/export-v8-snapshot.ts)
+and [S2 schema assertions](../worker/export-schema-coverage.test.ts).
 
 Reference registration uses `UNIQUE(target_type, target_id)` plus
 `INSERT OR IGNORE` and then reads the canonical row. The database rejects any
@@ -259,13 +288,24 @@ every current Step in the interval is done or skipped. The verification stores
 its predecessor and an explicit ordered coverage snapshot; a mismatch also
 opens process-change evidence without mutating execution history.
 
-## Planned Project entities
+<a id="planned-project-entities"></a>
 
-Project schema does not belong in the reference-registry PR. The later Project
-phase adds stable Project/content/item identities, `project_items` relationships,
-independent Text and Map placements, and local edges. Project items, rather than
-a premature generic usage table, become the authoritative consumer/backlink
-relationship for registry targets.
+## Current Project entities
 
-The conceptual model and phase order are fixed in
-[PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md).
+Project persistence is already implemented in the six tables listed above.
+Map and Reading project the same item occurrences. Reading follows immutable
+`created_sequence`; there is no separate Text-placement table or independent
+Reading-order model. Repeated references are allowed, while an owned content row
+belongs to one item. Active-item creation publishes its placement together with
+its content/reference relationship. Edges connect item IDs, not File IDs.
+
+Project source references remain read-only. Owned Markdown stays a plain source
+string in `project_contents`; storage portability does not turn it into a file
+upload or make the React Flow representation authoritative. The current
+[Project API](../shared/contracts/project-api.ts) owns revisions, operation IDs,
+geometry and mutation response shapes. Native import needs an explicit identity
+and publication mapping; a raw insertion of Canvas JSON does not satisfy it.
+
+The conceptual model is defined in
+[PROJECT_DESIGN_FOUNDATION.md](./PROJECT_DESIGN_FOUNDATION.md); current phase
+priority belongs to [the product roadmap](./PRODUCT_ROADMAP.md).

@@ -1,5 +1,13 @@
 # Negotiated complete-export protocol
 
+This is the current complete-backup protocol, with qualified offline recovery;
+it is not a native website package-import contract. The proposed report,
+portable-package and system-recovery products are described in
+[data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md). The
+[compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#compatibility-matrix)
+retains existing v7/v8 archives and requires a versioned writer/reader change
+when the file schema changes; new fields must not be silently omitted under v8.
+
 The current browser requests
 `/api/exports/all?archiveSchema=8&archiveWriter=1`. Exactly one supported value for
 each parameter is required. Unversioned requests, duplicates, extra parameters

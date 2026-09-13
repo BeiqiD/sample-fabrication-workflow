@@ -1,8 +1,16 @@
 # Shared attachment backend and domain-lifecycle contract
 
-Status: active architecture contract; Slices A/B/C are complete in PRs #152/#153/#154 and the trusted shared-derivative registry foundation is active in Draft PR #155
+Status: active ownership/lifecycle contract; Slices A/B/C and the shared-derivative registry foundation are merged in PRs #152–#155. The provider-neutral file replacement is proposed, not implemented.
 
-Last reviewed: 2026-08-24 during independent review of Draft PR #155
+Last reviewed: 2026-09-13 for file/data portability design compatibility
+
+The [file storage architecture](./FILE_STORAGE_ARCHITECTURE.md) generalizes all
+persistent bytes, including small images and previews, to logical files and
+locations. Its [implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+governs the proposed transition. Current `assets`/`managed_storage_objects`
+descriptions below remain implementation facts; the former size-based storage
+direction does not constrain the target. Domain ownership, contextual metadata,
+trusted derivation and recoverable deletion remain required throughout.
 
 This document defines the intended boundary between shared file ingestion,
 physical blob storage, attachment occurrences, domain ownership, derivatives,
@@ -21,7 +29,7 @@ Concrete post-Phase-4C sequencing is recorded in
 Slice A in PR #152 established bounded attachment lifecycle behavior, Slice B
 in PR #153 consolidated verified ingestion/registration behind shared internal
 services, and merged Slice C in PR #154 separated contextual occurrence
-presentation from physical blob registration provenance. Draft PR #155 adds the
+presentation from physical blob registration provenance. Merged PR #155 added the
 source-addressed derivative registry, resolver, retention edge, and export
 contract; a trusted server-side generator remains a separate producer step.
 Every implementation that changes retention behavior MUST update the blob
@@ -77,9 +85,13 @@ name, title, caption, role, ordering, and lifecycle.
 An **owner** is the domain aggregate whose semantics control the occurrence.
 Examples are a Project item, a canonical Comment submission, or a Run step.
 
-A **derivative** is a rebuildable preview or representation generated from an
+A **derivative** is a preview or representation generated from an
 original blob, such as an image thumbnail, TIFF preview, or future PDF first-
-page preview. A derivative is not the authoritative original.
+page preview. It is not the authoritative original. Classifying one as a
+rebuildable cache requires available verified source bytes and a supported
+generation recipe; independently retained evidence must not be discarded merely
+because it was generated. The proposed file model keeps purpose, provenance
+and retention policy separate.
 
 A **retention edge** is one effective reason the shared blob lifecycle must keep
 the bytes recoverable.
@@ -105,16 +117,20 @@ the bytes recoverable.
 9. A blob remains protected while any effective retention edge exists,
    regardless of how many other occurrences were deleted.
 10. The same bytes MAY appear with different filenames, captions, titles, MIME
-    presentation, or domain roles. Those contextual values MUST NOT force a
-    second physical copy.
+    presentation, or contextual domain roles. These presentation values alone
+    MUST NOT force a second physical copy. A distinct storage purpose or selected
+    destination is a placement requirement: the target file model permits
+    independent logical files and copies and bounds reuse by scope, purpose and
+    destination. Contextual role and storage purpose are different concepts.
 11. Filename and MIME metadata attached to one occurrence MUST NOT silently
     rewrite another occurrence or the global identity of a deduplicated blob.
 12. Upload retry must reuse the same frozen ingestion identity, declared size,
     expected hash when present, and operation identity.
 13. A failed domain binding after successful ingestion creates an orphan
     candidate, not an untracked provider object.
-14. Derivatives MUST be linked to their source blob and generator version, and
-    MUST be safe to rebuild or discard.
+14. Derivatives MUST be linked to their source blob and generator version.
+    Cache eviction MUST establish rebuildability and absence of independent
+    retention requirements before discard; a generated flag alone is insufficient.
 15. Unsupported file formats remain ordinary files. Shared ingestion MUST NOT
     become a general scientific-data parser.
 16. Complete export MUST preserve domain occurrences, contextual metadata,
@@ -331,16 +347,15 @@ introduced at the TypeScript/service boundary before any table unification.
 
 A domain requests ingestion; it does not select a private provider key.
 
-The shared service chooses an allowed path based on deployment capability,
-file class, size, and policy:
+The current implementation uses R2 for application images and the configured
+managed adapter for originals. Its replacement is selected by
+[explicit file purpose and policy](./FILE_STORAGE_ARCHITECTURE.md), with
+`internal` and `originals` defaults. MIME and size may select rendering and
+transfer limits; they MUST NOT independently determine source meaning,
+placement or discardability. All persistent file purposes are in scope, and
+both defaults may use the same profile or different profiles.
 
-```text
-small image or derived preview -> private R2
-large durable original          -> configured managed storage
-```
-
-Exact thresholds remain deployment and implementation constants, but every
-path MUST provide the same minimum guarantees:
+Every current and future path MUST provide the same minimum guarantees:
 
 - authenticated and same-origin write boundary;
 - bounded filename and MIME metadata;
@@ -377,7 +392,8 @@ Derivative generation MUST:
 - use bounded input size, memory, expansion, and execution time;
 - avoid remote network fetches from untrusted file contents;
 - record source blob, derivative kind, generator version, and status;
-- treat derivative bytes as rebuildable and independently collectable;
+- classify derivative cache eviction only when verified sources and supported
+  recipes allow rebuilding and no independent retention edge requires the bytes;
 - never replace the original blob identity;
 - permit reuse across Project, Comment, and Run occurrences of the same source
   blob.
