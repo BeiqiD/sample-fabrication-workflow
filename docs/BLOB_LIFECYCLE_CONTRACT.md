@@ -691,3 +691,14 @@ missing or size-mismatched HEAD. The registered candidate remains subject to the
 same reconciliation, retention and operation-ID cleanup rules. Authenticated
 provider requests stop at redirects; transport code does not replay a body or
 credentials at the redirected destination.
+
+The [FP1c ingestion boundary](./FP1_VERIFIED_BYTE_WRITES.md) requires complete
+source and destination SHA-256/size checks for its current write operation before
+legacy promotion. A managed reuse path MUST consume and validate the upload body
+even when no PUT is needed; every selected reused destination in these ingestion
+paths is read and independently hashed. A definite source size/hash mismatch
+rejects input. Destination failure or uncertain I/O returns a safe unavailable
+result and leaves the candidate tracked. A provider acknowledgement, HEAD length,
+ETag or custom hash field alone MUST NOT certify the operation. This per-operation
+evidence neither upgrades historical registry observations nor authorizes removal
+of corrupt history or inline provider deletion.

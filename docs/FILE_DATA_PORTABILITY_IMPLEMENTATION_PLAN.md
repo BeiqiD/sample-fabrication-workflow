@@ -4,7 +4,9 @@ Status: design reviewed and merged in PR #207; FP1 implementation in progress.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
-and complete consumer/lifecycle conversion remain open. FP1 remains incomplete;
+and complete consumer/lifecycle conversion remain open.
+[FP1c](./FP1_VERIFIED_BYTE_WRITES.md) now adds bounded full-byte verification to
+current writes and selected reuse; File authority remains dormant. FP1 remains incomplete;
 no deployment is certified by this document.
 
 Last reviewed: 2026-09-13 against `v2/backend-foundation` at
@@ -278,7 +280,7 @@ prerequisite for introducing these narrow interfaces.
 
 Review FP1 in bounded slices: schema/profile mapping with matching recovery;
 provider-neutral ingestion/resolution and complete consumer/lifecycle conversion
-(including the separately reviewed FP1b read-transport precursor);
+(including the separately reviewed FP1b reader and FP1c verified-write precursors);
 then deployment defaults, readiness and basic Settings acceptance. These are
 review boundaries within FP1, not independently completed product milestones.
 Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
@@ -378,7 +380,10 @@ revision boundary, not concatenate unrelated live pages.
 
 The current [managed adapter](../worker/managed-storage.ts) exposes size/ETag,
 and [SWITCHdrive PUT](../worker/switchdrive-storage.ts) checks reported length;
-neither establishes a provider-verified full-content SHA-256. Legacy `ready`
+neither alone establishes a provider-verified full-content SHA-256. The FP1c
+ingestion composition independently reads and hashes destination bytes for its
+current write/reuse operation; it does not strengthen every historical row.
+Legacy `ready`
 status, client-declared hashes and copied custom checksum metadata must not be
 promoted into stronger verification evidence during backfill. Preserve expected
 values and their provenance; unavailable or insufficiently evidenced files remain

@@ -1,4 +1,12 @@
 import { primaryD1 } from "../d1-primary";
+import { ByteVerificationError } from "../files/byte-verification";
+import {
+  verifyManagedBytes,
+  verifyR2Bytes,
+  verifyUploadBody,
+  writeManagedBytes,
+  writeR2Bytes,
+} from "../files/legacy-byte-writer";
 import type { ManagedStorage } from "../managed-storage";
 import type { Env } from "../types";
 import {
@@ -42,6 +50,53 @@ function authorityUnavailable(error: unknown) {
       ? detail
       : undefined,
   );
+}
+
+async function verifyRegistrationOperation(operation: () => Promise<void>) {
+  try {
+    await operation();
+  } catch (error) {
+    // A caller's incorrect upload claim is different from an unavailable or
+    // corrupt destination. Never publish provider details in either case.
+    if (error instanceof ByteVerificationError && error.phase === "source") {
+      throw error;
+    }
+    throw new BlobRegistrationAuthorityUnavailableError(
+      "destination bytes could not be verified",
+      "Attachment bytes could not be verified. Retry later.",
+    );
+  }
+}
+
+async function verifyR2Registration(
+  env: Env,
+  expected: { byteSize: number; sha256: string },
+  asset: ReusableR2Asset,
+) {
+  if (Number(asset.byte_size) !== expected.byteSize || asset.sha256 !== expected.sha256) {
+    throw authorityUnavailable("R2 registration metadata does not match the upload");
+  }
+  await verifyRegistrationOperation(() => verifyR2Bytes(env, {
+    objectKey: asset.r2_key,
+    byteSize: expected.byteSize,
+    sha256: expected.sha256,
+  }));
+}
+
+async function verifyManagedRegistration(
+  storage: ManagedStorage,
+  expected: { byteSize: number; sha256: string },
+  object: ReusableManagedObject,
+) {
+  if (object.provider !== storage.provider || Number(object.byte_size) !== expected.byteSize
+    || object.sha256 !== expected.sha256) {
+    throw authorityUnavailable("Managed registration metadata does not match the upload");
+  }
+  await verifyRegistrationOperation(() => verifyManagedBytes(storage, {
+    objectKey: object.object_key,
+    byteSize: expected.byteSize,
+    sha256: expected.sha256,
+  }));
 }
 
 async function readR2RegistrationCandidate(
@@ -150,9 +205,11 @@ export interface R2AssetRegistration {
  *
  * Metadata is durably staged before the provider PUT. A response loss before
  * that claim therefore creates no object, while a failure after PUT leaves a
- * pending row that ordinary GC can enumerate. Promotion is guarded against a
- * concurrent ready winner; the losing candidate remains a uniquely addressed,
- * tracked GC candidate and is never allowed to delete the winner's locator.
+ * pending row that ordinary GC can enumerate. The destination must pass a full
+ * SHA-256/size readback before promotion; reused candidates are checked too.
+ * Promotion is guarded against a concurrent ready winner; the losing candidate
+ * remains uniquely addressed and tracked for GC and never deletes the winner's
+ * locator.
  */
 export async function registerR2Asset(
   env: Env,
@@ -160,6 +217,7 @@ export async function registerR2Asset(
 ): Promise<R2AssetRegistration> {
   const initialWinner = await findR2Winner(input.findWinner);
   if (initialWinner) {
+    await verifyR2Registration(env, input, initialWinner);
     return { asset: initialWinner, deduplicated: true };
   }
 
@@ -208,7 +266,10 @@ export async function registerR2Asset(
       if (candidate) break;
 
       const winner = await findR2Winner(input.findWinner);
-      if (winner) return { asset: winner, deduplicated: true };
+      if (winner) {
+        await verifyR2Registration(env, input, winner);
+        return { asset: winner, deduplicated: true };
+      }
       if (attempt === 1) throw authorityUnavailable(error);
     }
   }
@@ -219,12 +280,11 @@ export async function registerR2Asset(
   }
   if (candidate.status === "ready") {
     const { status: _status, ...asset } = candidate;
+    await verifyR2Registration(env, input, asset);
     return { asset, deduplicated: false };
   }
 
-  await env.ASSETS.put(input.objectKey, input.bytes, {
-    httpMetadata: { contentType: input.mimeType },
-  });
+  await verifyRegistrationOperation(() => writeR2Bytes(env, input));
 
   let promotionError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -304,11 +364,13 @@ export async function registerR2Asset(
     }
     if (exact?.status === "ready") {
       const { status: _status, ...asset } = exact;
+      await verifyR2Registration(env, input, asset);
       return { asset, deduplicated: false };
     }
 
     const winner = await findR2Winner(input.findWinner);
     if (winner) {
+      await verifyR2Registration(env, input, winner);
       try {
         await env.DB.prepare(`
           UPDATE assets
@@ -380,15 +442,25 @@ export interface ManagedObjectRegistration {
 /**
  * Managed storage uses a failed metadata row as the non-public staging state.
  * The schema predates an explicit pending status, but failed rows are not
- * reusable and are now part of the ordinary tracked-GC surface.
+ * reusable and are now part of the ordinary tracked-GC surface. An upload claim
+ * must match the consumed source even if a winner already exists, and every
+ * returned destination is independently verified before publication/reuse.
  */
 export async function registerManagedObject(
   env: Env,
   storage: ManagedStorage,
   input: RegisterManagedObjectInput,
 ): Promise<ManagedObjectRegistration> {
+  let sourceVerified = false;
+  async function verifySource() {
+    if (sourceVerified) return;
+    await verifyUploadBody(input.body, input);
+    sourceVerified = true;
+  }
   const initialWinner = await findManagedWinner(input.findWinner);
   if (initialWinner) {
+    await verifySource();
+    await verifyManagedRegistration(storage, input, initialWinner);
     return { object: initialWinner, deduplicated: true };
   }
 
@@ -438,7 +510,11 @@ export async function registerManagedObject(
       }
       if (candidate) break;
       const winner = await findManagedWinner(input.findWinner);
-      if (winner) return { object: winner, deduplicated: true };
+      if (winner) {
+        await verifySource();
+        await verifyManagedRegistration(storage, input, winner);
+        return { object: winner, deduplicated: true };
+      }
       if (attempt === 1) throw authorityUnavailable(error);
     }
   }
@@ -450,20 +526,13 @@ export async function registerManagedObject(
   }
   if (candidate.status === "ready" || candidate.status === "orphaned") {
     const { status: _status, ...object } = candidate;
+    await verifySource();
+    await verifyManagedRegistration(storage, input, object);
     return { object, deduplicated: false };
   }
 
-  const stored = await storage.put({
-    key: input.objectKey,
-    body: input.body,
-    contentType: input.mimeType,
-    filename: input.originalName,
-    sha256: input.sha256,
-    byteSize: input.byteSize,
-  });
-  if (stored.byteSize !== input.byteSize) {
-    throw new ManagedRegistrationByteSizeMismatchError();
-  }
+  await verifyRegistrationOperation(() => writeManagedBytes(storage, input));
+  sourceVerified = true;
 
   let promotionError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -536,11 +605,13 @@ export async function registerManagedObject(
     }
     if (exact?.status === "ready" || exact?.status === "orphaned") {
       const { status: _status, ...object } = exact;
+      await verifyManagedRegistration(storage, input, object);
       return { object, deduplicated: false };
     }
 
     const winner = await findManagedWinner(input.findWinner);
     if (winner) {
+      await verifyManagedRegistration(storage, input, winner);
       return { object: winner, deduplicated: true };
     }
     if (attempt === 1) {

@@ -23,6 +23,7 @@ import {
 } from "./blob-lifecycle/reachability";
 import {
   AttachmentIngestionByteSizeMismatchError,
+  AttachmentIngestionHashMismatchError,
   AttachmentIngestionUnavailableError,
   ingestManagedAttachment,
   ingestR2Attachment,
@@ -78,6 +79,9 @@ function commentUploadFailureMessage(input: unknown) {
 function rethrowCommentIngestionError(error: unknown): never {
   if (error instanceof AttachmentIngestionByteSizeMismatchError) {
     throw new HTTPException(400, { message: "Attachment size changed during upload" });
+  }
+  if (error instanceof AttachmentIngestionHashMismatchError) {
+    throw new HTTPException(400, { message: "Attachment checksum changed during upload" });
   }
   if (error instanceof AttachmentIngestionUnavailableError) {
     throw new HTTPException(503, { message: error.publicMessage });

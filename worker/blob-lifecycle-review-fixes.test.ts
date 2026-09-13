@@ -102,6 +102,7 @@ function envFor(
     assetPut?: ReturnType<typeof vi.fn>;
     assetDelete?: ReturnType<typeof vi.fn>;
     assetHead?: ReturnType<typeof vi.fn>;
+    assetGet?: ReturnType<typeof vi.fn>;
   } = {},
 ): Env {
   return {
@@ -111,7 +112,7 @@ function envFor(
       put: options.assetPut ?? vi.fn(async () => undefined),
       delete: options.assetDelete ?? vi.fn(async () => undefined),
       head: options.assetHead ?? vi.fn(async () => null),
-      get: vi.fn(async () => null),
+      get: options.assetGet ?? vi.fn(async () => null),
       list: vi.fn(async () => ({ objects: [], truncated: false })),
     },
   } as unknown as Env;
@@ -230,11 +231,25 @@ describe("blob lifecycle review fixes", () => {
         '2026-07-01T00:00:00.000Z');
     `);
     let insertedWinner = false;
-    const assetPut = vi.fn(async () => undefined);
+    const objects = new Map<string, Uint8Array>();
+    const assetPut = vi.fn(async (key: string, value: ArrayBuffer) => {
+      objects.set(key, new Uint8Array(value.slice(0)));
+    });
     const assetDelete = vi.fn(async () => undefined);
     const env = envFor(database, {
       assetPut,
       assetDelete,
+      assetGet: vi.fn(async (key: string) => {
+        const value = objects.get(key);
+        return value ? {
+          body: new Response(value).body!,
+          size: value.byteLength,
+          httpEtag: '"readback-etag"',
+          writeHttpMetadata(headers: Headers) {
+            headers.set("content-type", "application/octet-stream");
+          },
+        } : null;
+      }),
       assetHead: vi.fn(async (key: string) => key === "metrology/winner.bin" ? {
         size: 4,
         httpEtag: '"winner-etag"',
@@ -253,6 +268,7 @@ describe("blob lifecycle review fixes", () => {
              'application/octet-stream', 4, 'ready', ?,
              '2026-08-08T00:00:00.000Z')`,
         ).run(String(bindings[7]));
+        objects.set("metrology/winner.bin", new TextEncoder().encode("data"));
       },
     });
 

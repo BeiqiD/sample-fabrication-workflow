@@ -1,4 +1,5 @@
 import { sha256Hex } from "../shared/content-addressing";
+import { ByteVerificationError } from "./files/byte-verification";
 import type { ManagedStorage } from "./managed-storage";
 import type { Env } from "./types";
 import {
@@ -37,11 +38,29 @@ export class AttachmentIngestionByteSizeMismatchError extends Error {
   }
 }
 
+export class AttachmentIngestionHashMismatchError extends Error {
+  constructor() {
+    super("Attachment checksum changed during upload");
+    this.name = "AttachmentIngestionHashMismatchError";
+  }
+}
+
 export function safeAttachmentObjectName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
 }
 
 function throwIngestionError(error: unknown): never {
+  if (error instanceof ByteVerificationError) {
+    if (error.phase === "source" && error.reason === "size_mismatch") {
+      throw new AttachmentIngestionByteSizeMismatchError();
+    }
+    if (error.phase === "source" && error.reason === "hash_mismatch") {
+      throw new AttachmentIngestionHashMismatchError();
+    }
+    throw new AttachmentIngestionUnavailableError(
+      "Attachment bytes could not be verified. Retry later.",
+    );
+  }
   if (error instanceof BlobRegistrationAuthorityUnavailableError) {
     throw new AttachmentIngestionUnavailableError(error.publicMessage);
   }

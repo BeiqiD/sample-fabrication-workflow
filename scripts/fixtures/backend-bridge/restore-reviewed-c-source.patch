@@ -8,7 +8,25 @@
  import {
    listItemBlobLocators,
    listSubmissionBlobLocators,
-@@ -1349,13 +1348,10 @@
+@@ -23,7 +22,6 @@
+ } from "./blob-lifecycle/reachability";
+ import {
+   AttachmentIngestionByteSizeMismatchError,
+-  AttachmentIngestionHashMismatchError,
+   AttachmentIngestionUnavailableError,
+   ingestManagedAttachment,
+   ingestR2Attachment,
+@@ -79,9 +77,6 @@
+ function rethrowCommentIngestionError(error: unknown): never {
+   if (error instanceof AttachmentIngestionByteSizeMismatchError) {
+     throw new HTTPException(400, { message: "Attachment size changed during upload" });
+-  }
+-  if (error instanceof AttachmentIngestionHashMismatchError) {
+-    throw new HTTPException(400, { message: "Attachment checksum changed during upload" });
+   }
+   if (error instanceof AttachmentIngestionUnavailableError) {
+     throw new HTTPException(503, { message: error.publicMessage });
+@@ -1353,13 +1348,10 @@
       WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'`,
    ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
    if (!row) throw new HTTPException(404, { message: "Export attachment not found" });
@@ -26,7 +44,7 @@
    const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
    const encoded = encodeURIComponent(row.filename);
    return new Response(object.body, {
-@@ -1387,13 +1383,10 @@
+@@ -1391,13 +1383,10 @@
         AND ${readableSubmissionTargetsSql("cs")}`,
    ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
    if (!row) throw new HTTPException(404, { message: "Attachment not found" });

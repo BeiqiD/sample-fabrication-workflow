@@ -10,6 +10,8 @@ import { fabubloxImportLeaseExpiresAt, queueFabubloxImportCleanup, readFabubloxI
 import type { Env } from "../types";
 import { normalizedSubstrateStepName } from "../process-definition/substrate";
 import { digestSha256, reusableR2Asset, safeObjectName } from "../application/r2-upload-support";
+import { verifyR2Bytes, writeR2Bytes } from "../files/legacy-byte-writer";
+import { ByteVerificationError } from "../files/byte-verification";
 
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 
@@ -179,10 +181,19 @@ routes.post("/imports/fabublox", async (c) => {
     const hashes = [...new Set(candidates.map((candidate) => candidate.sha256))];
     const existingByHash = new Map<string, { assetId: string; key: string }>();
     for (let index = 0; index < hashes.length; index += 5) {
-      const verified = await Promise.all(hashes.slice(index, index + 5).map(async (hash) => ({
-        hash,
-        asset: await reusableR2Asset(c.env, hash),
-      })));
+      const verified = await Promise.all(hashes.slice(index, index + 5).map(async (hash) => {
+        const asset = await reusableR2Asset(c.env, hash);
+        if (asset) {
+          // Legacy ready/stat is not whole-content evidence. Check the exact
+          // selected bytes before this import adopts an existing location.
+          await verifyR2Bytes(c.env, {
+            objectKey: asset.r2_key,
+            byteSize: candidates.find((candidate) => candidate.sha256 === hash)!.buffer.byteLength,
+            sha256: hash,
+          });
+        }
+        return { hash, asset };
+      }));
       for (const candidate of verified) {
         if (candidate.asset) {
           existingByHash.set(candidate.hash, {
@@ -248,6 +259,11 @@ routes.post("/imports/fabublox", async (c) => {
           }
           const winner = await reusableR2Asset(c.env, asset.sha256);
           if (winner) {
+            await verifyR2Bytes(c.env, {
+              objectKey: winner.r2_key,
+              byteSize: asset.buffer.byteLength,
+              sha256: asset.sha256,
+            });
             for (const candidate of resolved) {
               if (candidate.sha256 !== asset.sha256) continue;
               candidate.assetId = winner.id;
@@ -272,8 +288,13 @@ routes.post("/imports/fabublox", async (c) => {
     for (let index = 0; index < stagedAssets.length; index += 5) {
       const uploadResults = await Promise.allSettled(
         stagedAssets.slice(index, index + 5).map((asset) =>
-          c.env.ASSETS.put(asset.key, asset.buffer, {
-            httpMetadata: { contentType: asset.mimeType },
+          writeR2Bytes(c.env, {
+            objectKey: asset.key,
+            bytes: asset.buffer,
+            originalName: asset.originalName,
+            mimeType: asset.mimeType,
+            byteSize: asset.buffer.byteLength,
+            sha256: asset.sha256,
           })),
       );
       const failedUpload = uploadResults.find((result) => result.status === "rejected");
@@ -483,6 +504,13 @@ routes.post("/imports/fabublox", async (c) => {
         // scheduled reaper to retry this metadata-only recovery safely.
         console.error("Could not queue failed FabuBlox import recovery", recoveryError);
       }
+    }
+    if (error instanceof ByteVerificationError) {
+      const badSource = error.phase === "source"
+        && (error.reason === "size_mismatch" || error.reason === "hash_mismatch");
+      throw new HTTPException(badSource ? 400 : 503, {
+        message: error.message,
+      });
     }
     throw error;
   }

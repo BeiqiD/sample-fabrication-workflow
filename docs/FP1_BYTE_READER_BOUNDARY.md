@@ -63,6 +63,10 @@ remains schema 9 / writer 1 / `fp1-legacy-overlap`, with existing v7/v8 isolated
 recovery support. FP1a observations remain immutable, unresolved and dormant;
 legacy metadata and retention are still authoritative.
 
+The subsequent [FP1c slice](./FP1_VERIFIED_BYTE_WRITES.md) converges legacy PUTs
+and verifies current ingestion/reused bytes before legacy publication. It does
+not activate File authority or complete the lifecycle conversion below.
+
 This read boundary does not convert legacy writers. R2/managed ingestion,
 FabuBlox writes, registration/reuse, quarantine and operation-ID GC still use
 their existing contracts. The full consumer/lifecycle conversion must establish

@@ -150,6 +150,7 @@ Containers, or a second Worker.
 - Provider absence is an integrity condition, not permission to remove source or occurrence rows.
 - [Instance-bound byte readers](./FP1_BYTE_READER_BOUNDARY.md) implement full-object read/stat behind the legacy locator bridge. Routes authorize first; definite absence stays distinct from provider failure. Reads do not publish File registry state, change retention or switch providers. Legacy writers and deletion claims retain their existing contracts.
 - Authenticated SWITCHdrive requests do not follow redirects. Post-upload validation failure leaves the registered candidate for reconciliation/GC rather than deleting provider bytes inside the adapter.
+- [Verified write composition](./FP1_VERIFIED_BYTE_WRITES.md) consumes managed upload claims and independently hashes full destination bytes before legacy ingestion publishes or adopts a reused object. A lost PUT result is not replayed, and failed candidates keep their existing registration/GC owner. Incremental verification has a 100 MiB ceiling and does not activate File/Location authority.
 
 ## Export invariants
 
