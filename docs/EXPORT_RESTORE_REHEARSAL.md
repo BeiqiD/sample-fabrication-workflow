@@ -11,12 +11,16 @@ remote disaster-recovery procedure.
 Use Node 24 and the repository's installed dependencies:
 
 ```sh
-npm run verify:export-restore -- --archive /path/to/backup.zip --destination /path/to/new-rehearsal
+npm run verify:export-restore -- --archive /path/to/backup.zip --destination /path/to/new-rehearsal --target-schema S0
 ```
 
 The destination must not exist, including as an empty directory or symlink.
 There is no overwrite, force or remote option. The current repository's SQL
 migrations provide the schema; the archive cannot supply executable SQL.
+V8 requires an explicit `--target-schema S0|S1|S2`; S0 is the current active
+schema. Offline qualification can select an independently reviewed migration
+directory with `--migrations-dir`. The selected target must match that directory’s
+actual resulting columns. V7 keeps its existing default S0 recovery command.
 
 The utility reserves a private destination, works inside a temporary child and
 publishes `restored/` only after validation. Failure removes the newly created
@@ -27,7 +31,10 @@ destination. Success produces:
 - `restored/provider-manifest.json`, mapping each exact locator to its local
   bytes, SHA-256 and archived outcome;
 - `restored/restore-report.json`, recording archive, migration and schema hashes,
-  row counts, installed triggers, warnings and expired retention edges.
+  row counts, installed triggers, warnings and expired retention edges;
+- `restored/original-archive.zip`, an exact copy of the input archive;
+- `restored/provenance/`, retaining actual retired values and, for v8, the physical
+  source-schema observation from the export snapshot.
 
 Provider keys are opaque metadata. They are never used as filesystem paths.
 The same utility accepts prior schema-v7 archive filenames by following their
@@ -39,7 +46,13 @@ rejected; missing overwritten bytes cannot be reconstructed.
 The parser checks the schema version, full business-table and exported-view
 catalog, exact row columns and declared counts. It rejects duplicate or unsafe
 ZIP paths, undeclared entries, malformed warnings, inconsistent blob metadata,
-and member size/CRC errors. Each packaged blob must match its recorded size and
+and member size/CRC errors. V8 also verifies each table/artifact SHA-256 and
+byte size, writer version, physical-source shape and exact retired-field ID
+coverage. An S0/S1 target requires actual recorded counter/body values; S2
+archives with absent retired families cannot be restored to those older targets.
+A legacy-only row whose recorded compatibility `body` differs from logical
+`legacy_body` is rejected for S0. No SQL default supplies missing evidence.
+Each packaged blob must match its recorded size and
 SHA-256 where available. Blob identity and occurrence metadata are recomputed
 with the existing export planner over the archived table/view rows.
 
@@ -88,10 +101,11 @@ remote database replacement, provider writes or larger real research datasets.
 
 ## Limits and later work
 
-- Only trusted schema-v7 exports compatible with the **current** repository
-  schema are supported. Schema 7 does not carry the source build or migration
-  digest; matching table columns cannot prove their provenance. The report
-  records the archive hash and the local migrations used for this rehearsal.
+- Trusted v7 and [negotiated v8](./FULL_EXPORT_V8.md) exports are supported with
+  an explicitly qualified physical target. V7 has no observed source schema;
+  its report states that absence. V8 retains same-snapshot schema and retired
+  values, but neither version proves a source build or historic migration bytes.
+  The report records original archive and actual target-migration hashes.
 - Restoring write triggers does not replay every historical business command or
   authenticate arbitrary third-party archives. This is preservation and
   qualification of known exports, not a general untrusted-data import protocol.
@@ -103,6 +117,6 @@ remote database replacement, provider writes or larger real research datasets.
 - The bounded utility accepts ordinary single-volume ZIP files up to 64 MiB,
   with at most 64 MiB per expanded entry and 256 MiB expanded in total. ZIP64,
   encrypted archives and larger datasets require a separately designed path.
-- Remote D1 restoration, provider credentials/uploads, upgrade between schemas,
-  and activating the later V3 baseline retain their own review and deployment
+- Remote D1 restoration, provider credentials/uploads, live compatibility
+  contractions and activating the later V3 baseline retain their own review and deployment
   gates. The relevant rehearsal must be repeated against that final schema.

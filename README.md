@@ -161,8 +161,8 @@ A full-system export preserves every database table row and packages each availa
 
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
-`npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY`
-rehearses a trusted schema-v7 archive against the current migrations in a newly
+`npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S0`
+rehearses a trusted negotiated schema-v8 archive against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote

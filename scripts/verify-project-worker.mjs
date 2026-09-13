@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -45,6 +46,12 @@ function runWrangler(args) {
 
 function delay(milliseconds) {
   return new Promise((accept) => setTimeout(accept, milliseconds));
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
 }
 
 async function jsonRequest(miniflare, path, method, body, headers = {}) {
@@ -102,6 +109,29 @@ try {
     ...(artifact ?? {}),
   };
   miniflare = new Miniflare(miniflareOptions);
+
+  // Exercise the actual Worker/D1 adapter's schema SELECT and table-valued
+  // PRAGMAs used in the negotiated full-export snapshot, in both smoke modes.
+  const oldExport = await miniflare.dispatchFetch("https://app.test/api/exports/all");
+  assert.equal(oldExport.status, 409);
+  assert.match((await oldExport.json()).error, /Refresh the page/);
+  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=8&archiveWriter=1");
+  const fullExport = await exportResponse.json();
+  assert.equal(exportResponse.status, 200, JSON.stringify(fullExport));
+  assert.equal(fullExport.schemaVersion, 8);
+  assert.equal(fullExport.archiveWriter, 1);
+  assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
+  const sourceSchema = fullExport.artifacts.sourceSchema.value;
+  assert(sourceSchema.objects.some((entry) => entry.type === "table" && entry.name === "samples"));
+  assert(sourceSchema.compatibilityColumns.samples.includes("process_revision"));
+  assert(sourceSchema.compatibilityColumns.run_step_comments.includes("body"));
+  for (const artifact of Object.values(fullExport.artifacts)) {
+    const bytes = Buffer.from(`${canonicalJson(artifact.value)}\n`);
+    assert.equal(bytes.length, artifact.byteSize);
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), artifact.sha256);
+  }
+  assert.equal(fullExport.artifacts.retiredFields.value.samplesProcessRevision.values.length, fullExport.tables.samples.length);
+  assert.equal(fullExport.artifacts.retiredFields.value.runStepCommentsBody.values.length, fullExport.tables.run_step_comments.length);
 
   if (artifact) {
     const health = await miniflare.dispatchFetch("https://app.test/api/health");

@@ -4,7 +4,10 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { crc32 } from "node:zlib";
 import JSZip from "jszip";
-import { buildBlobExportPlan } from "../../worker/blob-lifecycle/export";
+import type { CompatibilitySchema, ExportTables, RetiredExportFields } from "../../shared/contracts/export";
+import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8 } from "../../shared/contracts/export-protocol";
+import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
 
 type Row = Record<string, string | number | null>;
 const EXPORTED_VIEWS = ["blob_retention_edges"];
@@ -165,6 +168,7 @@ export async function restoreExportToIsolatedDirectory(options: {
   archivePath: string;
   destination: string;
   migrationsDirectory: string;
+  targetCompatibilitySchema?: CompatibilitySchema;
 }) {
   const destination = resolve(options.destination);
   // Exclusive creation precedes all writes. Neither an existing directory nor
@@ -181,7 +185,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && manifest.schemaVersion === 7 && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -198,21 +202,67 @@ export async function restoreExportToIsolatedDirectory(options: {
     const tableNames = expectedSchema.filter((entry) => entry.type === "table" && !PLATFORM_TABLES.has(entry.name)).map((entry) => entry.name);
     const catalog = [...tableNames, ...EXPORTED_VIEWS].sort();
     ensure(canonical(Object.keys(manifest.tables).sort()) === canonical(catalog), "Archive table catalog differs from the current local schema");
-    const tables: Record<string, Row[]> = {};
+    const observedColumns = (name: string) => (database!.prepare(`PRAGMA table_xinfo(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name);
+    const targetCompatibilitySchema = classifyExportCompatibilitySchema({
+      samples: observedColumns("samples"), run_step_comments: observedColumns("run_step_comments"),
+    });
+    ensure(options.targetCompatibilitySchema === undefined || options.targetCompatibilitySchema === targetCompatibilitySchema,
+      "Requested compatibility target differs from the reviewed migration schema");
+    ensure(options.targetCompatibilitySchema !== undefined || manifest.schemaVersion === 7 && targetCompatibilitySchema === "S0",
+      "An explicit compatibility target is required for this archive or schema");
+    let tables: Record<string, Row[]> = {};
     for (const name of catalog) {
       const descriptor = manifest.tables[name];
       ensure(object(descriptor) && Number.isSafeInteger(descriptor.rowCount) && descriptor.rowCount >= 0, `Invalid table row count: ${name}`);
-      const rows = await archive.json(descriptor.path);
+      const tableBytes = await archive.read(descriptor.path);
+      const rows = JSON.parse(tableBytes.toString("utf8"));
       ensure(Array.isArray(rows) && rows.length === descriptor.rowCount, `Table row count mismatch: ${name}`);
+      if (manifest.schemaVersion === 8) ensure(Number.isSafeInteger(descriptor.byteSize) && descriptor.byteSize === tableBytes.length
+        && typeof descriptor.sha256 === "string" && descriptor.sha256 === hash(tableBytes), `Table SHA-256 or size mismatch: ${name}`);
       const columns = (database.prepare(`PRAGMA table_info(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name).sort();
       for (const row of rows) {
-        ensure(object(row) && canonical(Object.keys(row).sort()) === canonical(columns), `Table column mismatch: ${name}`);
+        ensure(object(row) && (["samples", "run_step_comments"].includes(name) || canonical(Object.keys(row).sort()) === canonical(columns)), `Table column mismatch: ${name}`);
         ensure(Object.values(row).every((value) => value === null || typeof value === "string"
           || typeof value === "number" && Number.isFinite(value) && (!Number.isInteger(value) || Number.isSafeInteger(value))), `Invalid table cell: ${name}`);
       }
       tables[name] = rows;
     }
 
+    let retiredFields: RetiredExportFields;
+    const retainedArtifacts: Array<{ path: string; bytes: Buffer }> = [];
+    if (manifest.schemaVersion === 8) {
+      ensure(manifest.archiveWriter === 1 && object(manifest.artifacts), "Unsupported complete-export writer");
+      const artifacts: Record<string, any> = {};
+      for (const [name, path] of [["sourceSchema", EXPORT_SOURCE_SCHEMA_PATH], ["retiredFields", EXPORT_RETIRED_FIELDS_PATH]]) {
+        const descriptor = manifest.artifacts[name];
+        ensure(object(descriptor) && descriptor.path === path && Number.isSafeInteger(descriptor.byteSize), `Invalid ${name} artifact descriptor`);
+        const artifactBytes = await archive.read(path);
+        ensure(artifactBytes.length === descriptor.byteSize && typeof descriptor.sha256 === "string" && hash(artifactBytes) === descriptor.sha256, `${name} artifact SHA-256 or size mismatch`);
+        artifacts[name] = { ...descriptor, value: JSON.parse(artifactBytes.toString("utf8")) };
+        retainedArtifacts.push({ path, bytes: artifactBytes });
+      }
+      ensure(Object.keys(manifest.artifacts).sort().join(",") === "retiredFields,sourceSchema", "Unknown or missing provenance artifacts");
+      // Archive entries have final outcomes, while the negotiated wire catalog
+      // has download URLs. Validate provenance against a reconstructed wire
+      // plan here; the original archived blob catalog and bytes are checked
+      // against that same table-derived plan below without dropping entries.
+      const validated = await validateFullExportV8({ ...manifest, tables, artifacts, blobs: buildBlobExportPlan(tables) });
+      retiredFields = validated.artifacts.retiredFields.value;
+      tables = restoreCompatibilityRows(validated.tables, retiredFields, targetCompatibilitySchema);
+    } else {
+      // V7 has no physical schema/build digest. Use only its declared row
+      // contract; never label an inferred schema as an observed one.
+      const converted = projectCompatibilitySnapshot(tables as ExportTables, { compatibilityColumns: exportCompatibilityColumns("S0") });
+      retiredFields = converted.retiredFields;
+      tables = restoreCompatibilityRows(converted.tables, retiredFields, targetCompatibilitySchema);
+      retainedArtifacts.push({ path: EXPORT_RETIRED_FIELDS_PATH, bytes: Buffer.from(JSON.stringify(retiredFields, null, 2)) });
+    }
+    // Validate physical target columns after lossless conversion, including
+    // empty tables whose retired-family availability is checked above.
+    for (const name of catalog) {
+      const columns = observedColumns(name).sort();
+      for (const row of tables[name]) ensure(canonical(Object.keys(row).sort()) === canonical(columns), `Table column mismatch: ${name}`);
+    }
     const plan = buildBlobExportPlan(tables);
     const expectedBlobs = new Map(plan.map((entry) => [entry.locatorId, entry]));
     ensure(manifest.blobs.length === plan.length, "Archive blob catalog differs from exported tables");
@@ -227,7 +277,13 @@ export async function restoreExportToIsolatedDirectory(options: {
       const expected = expectedBlobs.get(blob.locatorId);
       ensure(expected, "Unknown blob locator");
       for (const field of ["storeKind", "provider", "objectKey", "blobRecordIds", "filename", "expectedByteSize", "expectedSha256", "sourceOccurrences"] as const) {
-        ensure(canonical(blob[field]) === canonical(expected[field]), `Blob metadata disagrees with table snapshot: ${field}`);
+        // Occurrences form a multiset: source and restoring hosts may have
+        // different locale sort orders. Sorting retains duplicate entries, so
+        // missing, extra or changed occurrences still fail exact comparison.
+        const observed = field === "sourceOccurrences" && Array.isArray(blob[field])
+          ? blob[field].map(canonical).sort() : blob[field];
+        const recorded = field === "sourceOccurrences" ? expected[field].map(canonical).sort() : expected[field];
+        ensure(canonical(observed) === canonical(recorded), `Blob metadata disagrees with table snapshot: ${field}`);
       }
       ensure(OUTCOMES.has(blob.outcome), "Unknown blob export outcome");
       ensure(expected.initialOutcome === null || blob.outcome === expected.initialOutcome, "Blob outcome disagrees with unavailable metadata");
@@ -317,7 +373,10 @@ export async function restoreExportToIsolatedDirectory(options: {
       }
     }
     const report = {
-      kind: "isolated-same-schema-export-rehearsal", schemaVersion: 7,
+      kind: "isolated-versioned-export-rehearsal", schemaVersion: manifest.schemaVersion,
+      targetCompatibilitySchema, originalArchivePath: "original-archive.zip",
+      retainedArtifactPaths: retainedArtifacts.map((artifact) => artifact.path),
+      sourceSchemaEvidence: manifest.schemaVersion === 8 ? "observed-in-source-snapshot" : "unavailable-in-v7",
       archivedAt: manifest.exportedAt, verifiedAt: now, archiveSha256: hash(bytes),
       migrationsSha256: hash(canonical(migrations)), migrations,
       schemaSha256: hash(canonical(expectedSchema)), tableCount: tableNames.length,
@@ -329,6 +388,9 @@ export async function restoreExportToIsolatedDirectory(options: {
         schemaEqual: true, projectRelations: true, retentionDifferencesOnlyExpired: true,
         expiredEdgesReconstructed: true, exportedAtIsExactSnapshotClock: false },
     };
+    await mkdir(join(staging, "provenance"));
+    for (const artifact of retainedArtifacts) await writeFile(join(staging, artifact.path), artifact.bytes, { flag: "wx", mode: 0o600 });
+    await writeFile(join(staging, "original-archive.zip"), bytes, { flag: "wx", mode: 0o600 });
     await writeFile(join(staging, "provider-manifest.json"), JSON.stringify(providerEntries, null, 2), { flag: "wx", mode: 0o600 });
     await writeFile(join(staging, "restore-report.json"), JSON.stringify(report, null, 2), { flag: "wx", mode: 0o600 });
     database.close();

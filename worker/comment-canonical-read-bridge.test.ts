@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ReferenceResolution } from "../shared/reference-types";
 import type { SampleDetail } from "../shared/types";
 import worker from "./index";
+import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import { REFERENCE_FIXTURE_IDS as ids, referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
@@ -150,7 +151,7 @@ describe("canonical Comment read bridge before schema cleanup", () => {
     } finally { f.database.close(); }
   });
 
-  it("keeps schema-7 stored values and columns exact inside one export snapshot", async () => {
+  it("keeps legacy schema-7 stored values and columns exact in the offline catalog", async () => {
     const f = fixture();
     try {
       f.database.prepare("UPDATE samples SET process_revision = 37 WHERE id = ?").run(ids.sampleA);
@@ -159,10 +160,9 @@ describe("canonical Comment read bridge before schema cleanup", () => {
       // Simulate additive columns only: Stage A must not advertise them as v7.
       f.database.exec("ALTER TABLE samples ADD COLUMN future_bridge_marker TEXT DEFAULT 'private'; ALTER TABLE run_step_comments ADD COLUMN legacy_body TEXT");
       f.d1.resetQueryCount();
-      const response = await f.request("/exports/all");
-      expect(response.status).toBe(200);
-      const archive = await response.json() as { schemaVersion: number; tables: Record<string, unknown[]> };
-      expect(archive.schemaVersion).toBe(7);
+      const names = Object.keys(FULL_EXPORT_TABLE_QUERIES);
+      const results = await f.d1.batch(Object.values(FULL_EXPORT_TABLE_QUERIES).map((sql) => f.d1.prepare(sql)) as unknown as D1PreparedStatement[]);
+      const archive = { tables: Object.fromEntries(names.map((name, index) => [name, results[index].results])) };
       expect(archive.tables.samples).toEqual(samples);
       expect(archive.tables.run_step_comments).toEqual(comments);
       expect(f.d1.batchCount).toBe(1);
