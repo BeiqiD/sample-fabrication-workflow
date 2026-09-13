@@ -1,8 +1,10 @@
 # Final S2 application gate candidate
 
 This branch prepares the final application's complete local gate. It is not a
-remote activation or retirement record and must not merge into the S0 automatic
-deployment branch. It contains the already prepared C Worker, which requires S1
+remote activation or retirement record. The owner now permits discarding the
+integration test data: use the [direct fresh-resource cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md),
+with serialized builds and paired code/resource bindings. Do not merge while
+automatic builds still target the original S0 resources. It contains the already prepared C Worker, which requires S1
 or S2, plus a default **new-empty-database** S2 baseline.
 
 ## Schema selection and retained history
@@ -20,7 +22,7 @@ The baseline generator reads those archived bytes while retaining their original
 logical source names in the provenance comments. Existing-ledger planner and
 S0 → S1 → S2 rollback/retry tests still execute the original historical chain.
 
-This is deliberately not a remote executor. Existing databases must use the
+This is deliberately not a remote executor. Existing databases whose data must be retained must use the
 reviewed lineage selection and staged migration procedure; they must never
 receive the new-empty-database baseline. The qualified local staging preparation is included, with only its historical
 source and fixture lookups adapted to the archived physical directory. Its

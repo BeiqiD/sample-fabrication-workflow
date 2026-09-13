@@ -832,19 +832,21 @@ Project-owned Markdown or attachment content only through explicit user action.
 1. Preserve the completed **S0 deployed-browser checkpoint** and merged read-only
    remote D1 observation PR #203. The recorded split-image, Comment/Reference and
    v8 restore checks pass; repair any newly reproduced defect in a focused PR.
-2. Obtain a real **read-only target observation** through an admitted connection.
-   Preserve schema/ledger evidence and classify the retained target; no remote
-   observation has yet been established by the local transport qualification.
-3. Choose and qualify the remaining **6A4/6A5 activation path**. Resolve the
-   historical-request retirement/bootstrap gap for the existing-database
-   sequence, or separately review isolated recovery and cutover with consistent
-   retained data. Preserve recovery evidence and rollback barriers. Observation
-   and a generic executor cannot substitute for those requirements.
-4. Only after that path is qualified, integrate the corresponding execution
-   mechanism and advance the compatible Worker/schema stages. Keep #199, #200
-   and #202 inactive meanwhile; the new-empty baseline must never be applied as
-   an increment to the retained S0 ledger. Complete the final S2 browser checks
-   and **6A6 exact-head stabilization review** before declaring backend exit.
+2. Follow the owner-authorized **disposable test-environment reset** in
+   [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md). Obtain authenticated
+   Cloudflare access, identify the actual integration resources, and prepare a
+   new empty D1 database and isolated file storage. The owner permits discarding
+   current test rows; preserving/restoring the old dataset is not a prerequisite.
+3. Serialize builds, pair the final C/S2 source with the new resource bindings,
+   and use the existing complete verify → fresh-baseline → deploy path. The new
+   resource path does not require B/C/D overlap stages or historical-request
+   retirement; retain those tests and gates for data-preserving upgrades. Never
+   apply the new-empty baseline to the old S0 database or deploy old code against
+   the new S2 resources.
+4. Keep #202 inactive until the actual target and build pairing are ready; then
+   merge its reviewed, CI-passing head and execute the cutover. #199/#200 need no
+   separate activation for this route. Complete final S2 browser checks, export
+   recovery and the **6A6 exact-head stabilization review** before backend exit.
 5. At the backend review checkpoint, resume the outstanding **C4 acceptance**,
    then **Phase 5D**, **5E** and **5F**, keeping their existing scope and previously
    completed results. Isolated correctness fixes need not wait for that resumption.
