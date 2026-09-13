@@ -110,6 +110,10 @@ This PR does not activate its schema remotely.
 
 ## Next FP1 slice
 
+The [FP1b byte-reader slice](./FP1_BYTE_READER_BOUNDARY.md) introduces a narrow
+read/stat transport boundary and converges legacy download routes while keeping
+these tables dormant. It does not complete the conversion below.
+
 Introduce verified provider-neutral ingestion/resolution and convert the complete
 consumer, deduplication, quarantine and retention inventory together. Only that
 review may relax the unresolved-state restrictions, add guarded active-location

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { encodeReferenceRouteId } from "../shared/reference-destinations";
 import worker from "./index";
 import {
@@ -66,6 +66,7 @@ function mediaRequest(
 describe("stable execution-image media route", () => {
   it("streams bytes only when the stable occurrence belongs to the requested active Step", async () => {
     const { database, env } = fixture();
+    const get = vi.spyOn(env.ASSETS, "get");
     const response = await mediaRequest(
       env,
       REFERENCE_FIXTURE_IDS.executionImage,
@@ -87,6 +88,7 @@ describe("stable execution-image media route", () => {
       REFERENCE_FIXTURE_IDS.stepB,
     );
     expect(wrongContext.status).toBe(404);
+    expect(get).toHaveBeenCalledTimes(1);
     database.close();
   });
 
@@ -172,6 +174,106 @@ it("shares the hardened MIME policy with ordinary asset reads", async () => {
   expect(activeContent.headers.get("content-disposition")).toMatch(/^attachment;/);
   expect(activeContent.headers.get("content-security-policy")).toContain("sandbox");
   database.close();
+});
+
+const byteReadRoutes = [
+  {
+    name: "ordinary asset",
+    path: "/api/assets/reference/private/execution.png",
+    cacheControl: "private, max-age=3600",
+    missingMessage: "Asset not found",
+  },
+  {
+    name: "execution image",
+    path: `/api/references/media/execution_image/${encodeReferenceRouteId(REFERENCE_FIXTURE_IDS.executionImage)}?step=${REFERENCE_FIXTURE_IDS.stepA}`,
+    cacheControl: "private, no-store",
+    missingMessage: "Execution image bytes are unavailable",
+  },
+];
+
+describe.each(byteReadRoutes)("$name byte-reader boundary", ({ path, cacheControl, missingMessage }) => {
+  it("preserves representation metadata while enforcing the application media policy", async () => {
+    const { database, env } = fixture();
+    env.ASSETS = {
+      async get() {
+        return {
+          body: streamBytes(),
+          httpEtag: '"representation-etag"',
+          writeHttpMetadata(headers: Headers) {
+            headers.set("content-type", "text/html");
+            headers.set("content-encoding", "gzip");
+            headers.set("content-language", "zh-CN");
+            headers.set("expires", "Wed, 21 Oct 2037 07:28:00 GMT");
+            headers.set("cache-control", "public, max-age=31536000");
+            headers.set("content-disposition", "attachment; filename=provider.html");
+          },
+        };
+      },
+    } as unknown as R2Bucket;
+    try {
+      const response = await worker.fetch(new Request(`https://app.test${path}`), env, executionContext);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-encoding")).toBe("gzip");
+      expect(response.headers.get("content-language")).toBe("zh-CN");
+      expect(response.headers.get("expires")).toBe("Wed, 21 Oct 2037 07:28:00 GMT");
+      expect(response.headers.get("etag")).toBe('"representation-etag"');
+      expect(response.headers.get("content-type")).toBe("image/png");
+      expect(response.headers.get("cache-control")).toBe(cacheControl);
+      expect(response.headers.get("content-disposition")).toBe("inline; filename*=UTF-8''execution.png");
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+      expect(response.headers.get("content-security-policy")).toBeNull();
+      // The transport and response policy preserve opaque bytes without decoding.
+      expect(new Uint8Array(await response.arrayBuffer())).toEqual(imageBytes);
+    } finally { database.close(); }
+  });
+
+  it("distinguishes missing bytes from a provider failure without disclosing its message", async () => {
+    const { database, env } = fixture();
+    const get = vi.fn().mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error("private-bucket credential=secret-provider-token"));
+    env.ASSETS = { get } as unknown as R2Bucket;
+    try {
+      const missing = await worker.fetch(new Request(`https://app.test${path}`), env, executionContext);
+      expect(missing.status).toBe(404);
+      expect(await missing.json()).toEqual({ error: missingMessage });
+      const unavailable = await worker.fetch(new Request(`https://app.test${path}`), env, executionContext);
+      expect(unavailable.status).toBe(503);
+      expect(await unavailable.json()).toEqual({ error: "R2 is unavailable" });
+      expect(get).toHaveBeenCalledTimes(2);
+    } finally { database.close(); }
+  });
+
+  it("rejects unpublished sources before requesting provider bytes", async () => {
+    const { database, env } = fixture();
+    const get = vi.fn();
+    env.ASSETS = { get } as unknown as R2Bucket;
+    try {
+      database.prepare("UPDATE assets SET status = 'pending' WHERE id = ?")
+        .run("reference-execution-asset");
+      const response = await worker.fetch(new Request(`https://app.test${path}`), env, executionContext);
+      expect(response.status).toBe(404);
+      expect(get).not.toHaveBeenCalled();
+    } finally { database.close(); }
+  });
+
+  it("rejects unauthenticated requests before requesting provider bytes", async () => {
+    const { database, env } = fixture();
+    const get = vi.fn();
+    env.ASSETS = { get } as unknown as R2Bucket;
+    env.AUTH_MODE = "access";
+    env.ACCESS_TEAM_DOMAIN = "https://access.example";
+    env.ACCESS_AUD = "application-audience";
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const response = await worker.fetch(new Request(`https://app.test${path}`), env, executionContext);
+      expect(response.status).toBe(403);
+      expect(get).not.toHaveBeenCalled();
+    } finally {
+      warning.mockRestore();
+      database.close();
+    }
+  });
 });
 
 it.each(["deleting", "deleted"] as const)(

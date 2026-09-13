@@ -193,6 +193,7 @@ routing and native website import remain later slices.
 - [Proposed reports, data packages and system recovery](./docs/DATA_EXPORT_IMPORT_DESIGN.md)
 - [File/data portability implementation and compatibility plan](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
 - [FP1a file registry implementation boundary](./docs/FP1_FILE_REGISTRY_FOUNDATION.md)
+- [FP1b byte-reader and legacy route boundary](./docs/FP1_BYTE_READER_BOUNDARY.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

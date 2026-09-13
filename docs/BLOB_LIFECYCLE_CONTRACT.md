@@ -419,6 +419,13 @@ A reachable blob may be physically missing. That condition:
 Confirmed absence, authentication failure, timeout, metadata-not-ready, size
 mismatch, and hash mismatch are distinct outcomes.
 
+The [FP1b byte-reader boundary](./FP1_BYTE_READER_BOUNDARY.md) separates missing,
+denied and unavailable transport outcomes. The legacy public contract maps both
+provider denial and unavailability to `provider_unavailable` with safe messages;
+neither creates an absence/quarantine observation. Source authorization and
+live/export visibility remain caller-owned and precede provider I/O. Available
+streams and provider ETags do not establish verified File identities.
+
 ## Permanent-delete contract
 
 Ordinary Delete remains soft delete.
@@ -678,3 +685,9 @@ Provider bytes must never exist without a database identity that ordinary GC can
 5. never delete a locator merely because another database ID won when both attempts could share that locator.
 
 Comment uploads use a unique locator per registration attempt, including same-item retries. This prevents different-SHA same-size requests from overwriting one another before database coordination. A primary-authority failure returns retryable `503` and preserves the tracked candidate. Legacy FabuBlox recovery may rebind durable occurrences to a verified canonical same-SHA/same-size winner only after a persistent recovery claim; the superseded locator then follows normal GC.
+
+SWITCHdrive PUT validation MUST NOT perform its own physical DELETE after a
+missing or size-mismatched HEAD. The registered candidate remains subject to the
+same reconciliation, retention and operation-ID cleanup rules. Authenticated
+provider requests stop at redirects; transport code does not replay a body or
+credentials at the redirected destination.
