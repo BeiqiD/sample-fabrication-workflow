@@ -1,9 +1,9 @@
 # Compatibility-field cleanup by separate deployment bridges
 
-Status: independently reviewed Phase 6A4 implementation sequence. Stage A is
-merged in PR #194; E/B/C/D remain separate implementation and
-deployment gates. This document changes no migration, provider binding or
-deployed schema.
+Status: Stage A is merged in PR #194 and trigger-aware legacy Comment settlement
+in PR #196. The E protocol implementation is merged in PR #197. Inactive S1/S2
+schema candidates and the contracted C reader/writer are locally qualified;
+B/C/D remote transitions remain separate, unmet deployment gates.
 
 Reviewed: 2026-09-13 against the 37-file schema and routes at integration
 `5787b32e202ac3fa2c55eb0b2c90e3b910e54d70`. Re-inventory the final implementation
@@ -38,9 +38,13 @@ commit `2ffd3d8f88cdb6fda2cfc868d164f9613f25cc21`, tree
   stored rows/columns. Eight related files passed 77 tests; Worker and export
   contract type checks passed.
 
-Stage A can deploy with the existing schema and writer. E must still implement
-and qualify the negotiated v8 browser/archive/recovery protocol before B's
-schema or canonical-placeholder behavior is enabled.
+Stage A can deploy with the existing schema and writer. The implemented
+[negotiated v8 protocol](./FULL_EXPORT_V8.md) supplies E's archive/recovery
+boundary; deployed browser acceptance is still pending. The
+[inactive schema qualification](./BACKEND_COMPATIBILITY_SCHEMA_QUALIFICATION.md)
+proves S1/S2 conversion and rollback on SQLite and workerd D1, with the B4 exact
+returned-ID acknowledgement required for the old writer on S1. None of these
+local results establishes retirement of old serving requests or enables B/C/D.
 
 ## Required final state
 
@@ -71,13 +75,13 @@ both before and after the next migration. Merging new code alongside DROP does
 not meet that requirement. Separate releases must establish compatible reads,
 then compatible writes, before the final column removal.
 
-The same principle applies to archives. The current `/exports/all` handler uses
-`SELECT *` for both tables under schema 7, and the existing browser ZIP writer
-copies `schemaVersion` without validating it while omitting unknown top-level
+The same principle applies to archives. The original schema-7 `/exports/all`
+handler exposed the stored compatibility columns, and its browser ZIP writer
+copied `schemaVersion` without validating it while omitting unknown top-level
 metadata. Returning v8 to that writer could create an archive labelled v8 without
-its required provenance. Version negotiation and explicit serialization therefore
-precede any changed text-writing behavior; simply changing the manifest number
-is insufficient.
+its required provenance. E now rejects unnegotiated requests and explicitly
+serializes and validates provenance. This protocol boundary must be deployed
+and accepted before changed text-writing behavior begins.
 
 ## Proposed PR sequence
 

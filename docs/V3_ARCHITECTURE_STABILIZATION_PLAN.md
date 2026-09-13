@@ -1,9 +1,12 @@
 # V3 architecture stabilization plan
 
-Status: backend reliability work is underway under the 2026-09-13 route revision.
-The inventory, isolated recovery rehearsal, scale measurements and independently
-merged fixes are tracked in [Backend reliability acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md).
-New frontend refinement remains paused while this backend track proceeds.
+Status: backend reliability corrections, Worker extraction and shared-contract
+separation are merged. Compatibility export and final-schema qualification are
+the current work; remote field contraction, baseline activation and the final
+browser acceptance are still open. New frontend refinement remains paused.
+
+The inventory, isolated recovery rehearsal and scale measurements are tracked in
+[Backend reliability acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md).
 
 Last reviewed: 2026-09-13 for the user-authorized backend-first execution order
 
@@ -20,6 +23,22 @@ integration line. Stabilization proceeds through small Draft PRs targeting that
 branch, with exact-head review and the existing verification gates.
 
 ## Decision summary
+
+Implementation checkpoint, 2026-09-13:
+
+| Slice | Evidence and remaining work |
+|---|---|
+| 6A1 reliability | PRs [#187](https://github.com/BeiqiD/sample-fabrication-workflow/pull/187), [#188](https://github.com/BeiqiD/sample-fabrication-workflow/pull/188), [#189](https://github.com/BeiqiD/sample-fabrication-workflow/pull/189), [#190](https://github.com/BeiqiD/sample-fabrication-workflow/pull/190) and [#196](https://github.com/BeiqiD/sample-fabrication-workflow/pull/196) are merged: export identity, uncertain placement settlement, recovery/scale baselines, split image inheritance and trigger-aware Comment acknowledgement. |
+| 6A2 ownership | PRs [#191](https://github.com/BeiqiD/sample-fabrication-workflow/pull/191) and [#192](https://github.com/BeiqiD/sample-fabrication-workflow/pull/192) are merged; root Worker composition, domain routes, settlement and scheduled coordination have explicit owners. |
+| 6A3 contracts | [#193](https://github.com/BeiqiD/sample-fabrication-workflow/pull/193) is merged; shared contracts/domain modules and permanent AST/type gates enforce dependency direction. |
+| 6A4 compatibility | Canonical reader A is merged in [#194](https://github.com/BeiqiD/sample-fabrication-workflow/pull/194), and versioned export E in [#197](https://github.com/BeiqiD/sample-fabrication-workflow/pull/197). S1/S2 SQL and the C reader/writer implementation are locally qualified, but B/C/D remote transitions remain inactive. |
+| 6A5 baseline | [#195](https://github.com/BeiqiD/sample-fabrication-workflow/pull/195) merged the read-only planner/observer/preflight. The inactive S2 baseline matches the incremental schema and retained-data path on SQLite and workerd D1. Selection/execution integration and complete application acceptance on the activated final schema remain open. |
+| 6A6 exit | Not complete. The browser runtime is unavailable; post-extraction and v8 deployed-page acceptance is outstanding. A deployed version allocation alone does not establish old-request retirement for destructive cleanup. |
+
+See the [compatibility sequence](./BACKEND_COMPATIBILITY_CLEANUP_DESIGN.md),
+[schema qualification](./BACKEND_COMPATIBILITY_SCHEMA_QUALIFICATION.md), and
+[baseline evidence](./BACKEND_MIGRATION_BASELINE_DESIGN.md#inactive-final-baseline-qualification).
+Passing an inactive candidate test does not close an activation or browser gate.
 
 V3 keeps the current runtime shape:
 
