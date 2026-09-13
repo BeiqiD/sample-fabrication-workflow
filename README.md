@@ -158,6 +158,12 @@ npm run verify:v3-deployment
 
 ## Data ownership and backup
 
+`npm run plan:file-migration -- --snapshot COMPLETE_V10_SNAPSHOT.json --output NEW_REPORT.json`
+produces a bounded, read-only historical file consumer and purpose-conversion report.
+It accepts a complete schema-10 JSON snapshot; see the
+[FP1g input contract and limits](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md).
+The report does not migrate files or verify their bytes.
+
 A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
 
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
