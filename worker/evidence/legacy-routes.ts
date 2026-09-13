@@ -80,8 +80,8 @@ routes.post("/run-step-comments", async (c) => {
        WHERE rs.updated_at = q.expected_updated_at
      )
      INSERT INTO run_step_comments
-       (id, run_step_id, scope, operation_group_id, body, asset_id, actor_email, created_at)
-     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?
+       (id, run_step_id, scope, operation_group_id, body, legacy_body, asset_id, actor_email, created_at)
+     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?, ?
      FROM valid
      WHERE (SELECT COUNT(*) FROM valid) = ?
      RETURNING id`,
@@ -89,6 +89,7 @@ routes.post("/run-step-comments", async (c) => {
     ...requestedBindings,
     input.scope,
     operationGroupId,
+    body,
     body,
     commentAsset?.id ?? null,
     userEmail,
@@ -207,7 +208,7 @@ routes.delete("/run-step-comments/:id/asset", async (c) => {
   const targets = removeCommonGroup
     ? await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body
                    ELSE (SELECT cs.body FROM comment_submissions cs WHERE cs.id = rsc.submission_id) END AS body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
@@ -225,7 +226,7 @@ routes.delete("/run-step-comments/:id/asset", async (c) => {
     ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body
                    ELSE (SELECT cs.body FROM comment_submissions cs WHERE cs.id = rsc.submission_id) END AS body, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id JOIN samples s ON s.id = r.sample_id
@@ -596,7 +597,7 @@ routes.delete("/run-step-comments/:id", async (c) => {
   const targets = removeCommonGroup
     ? await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body
                    ELSE (SELECT cs.body FROM comment_submissions cs WHERE cs.id = rsc.submission_id) END AS body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
@@ -616,7 +617,7 @@ routes.delete("/run-step-comments/:id", async (c) => {
     ).bind(comment.operation_group_id).all<{ id: string; run_step_id: string; body: string; asset_id: string | null; sample_id: string; updated_at: string; sample_updated_at: string }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body
                    ELSE (SELECT cs.body FROM comment_submissions cs WHERE cs.id = rsc.submission_id) END AS body, rsc.asset_id, r.sample_id, rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
@@ -803,7 +804,7 @@ routes.post("/run-step-comments/:id/restore", async (c) => {
   const targets = restoreCommonGroup
     ? await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body
                    ELSE (SELECT cs.body FROM comment_submissions cs WHERE cs.id = rsc.submission_id) END AS body, r.sample_id, a.r2_key,
               rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc
@@ -828,7 +829,7 @@ routes.post("/run-step-comments/:id/restore", async (c) => {
     }>()
     : await c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body
                    ELSE (SELECT cs.body FROM comment_submissions cs WHERE cs.id = rsc.submission_id) END AS body, r.sample_id, a.r2_key,
               rs.updated_at, s.updated_at AS sample_updated_at
        FROM run_step_comments rsc

@@ -664,7 +664,7 @@ routes.get("/samples/:id", async (c) => {
     ).bind(id).all<{ run_id: string; r2_key: string }>(),
     c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
-              CASE WHEN rsc.submission_id IS NULL THEN rsc.body ELSE cs.body END AS body,
+              CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body ELSE cs.body END AS body,
               ca.r2_key AS asset_key, rsc.submission_id, rsc.actor_email, rsc.created_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
