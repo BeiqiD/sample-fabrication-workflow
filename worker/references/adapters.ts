@@ -313,7 +313,7 @@ const commentAdapter: ReferenceAdapter = async (db, ids) => {
 const commentOccurrenceAdapter: ReferenceAdapter = async (db, ids) => {
   const rows = await allRows(db, `
     SELECT rsc.id, rsc.scope, rsc.submission_id, cs.id AS canonical_submission_id,
-           CASE WHEN rsc.submission_id IS NULL THEN rsc.body ELSE cs.body END AS body,
+           CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body ELSE cs.body END AS body,
            CASE WHEN rsc.submission_id IS NULL THEN 'legacy' ELSE cs.status END AS comment_state,
            COALESCE(rsc.updated_at, rsc.created_at) AS updated_at,
            COALESCE(rsc.deleted_at, cs.deleted_at) AS deleted_at,
