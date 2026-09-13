@@ -11,12 +11,17 @@
   scroll-margin: 96px 24px 32px;
 }
 
-.reference-source-focus::after {
+.reference-source-focus:not(.sample-note)::after {
   content: "Referenced";
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 3;
+  pointer-events: none;
+}
+
+.reference-source-focus:not(.sample-note)::after,
+.sample-note-reference-badge {
   padding: 4px 7px;
   border-radius: 999px;
   color: var(--accent-contrast);
@@ -26,14 +31,21 @@
   line-height: 1;
   letter-spacing: .055em;
   text-transform: uppercase;
-  pointer-events: none;
 }
 
 .cell-comment.reference-source-focus::after,
-.metrology-reference-item.reference-source-focus::after,
-.sample-note.reference-source-focus::after {
+.metrology-reference-item.reference-source-focus::after {
   top: 6px;
   right: 6px;
+}
+
+.sample-note-reference-badge {
+  display: none;
+}
+
+.sample-note.reference-source-focus .sample-note-reference-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
 }
 
 .reference-focus-notice {

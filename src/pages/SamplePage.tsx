@@ -334,8 +334,11 @@ export function SamplePage() {
           </button>}
           <article className={`sample-note sample-note-${note.kind}${index >= SAMPLE_NOTES_PREVIEW_COUNT ? " sample-note-preview-overflow" : ""}`}>
           <div className="sample-note-heading">
-            <div><p className="card-label">{note.label}</p><p className="sample-note-context">{note.context}</p></div>
-            <time>{new Date(note.createdAt).toLocaleString()}</time>
+            <div>
+              <div className="sample-note-label"><p className="card-label">{note.label}</p><span className="sample-note-reference-badge">Referenced</span></div>
+              <p className="sample-note-context">{note.context}</p>
+            </div>
+            <time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleString()}</time>
           </div>
           <div className="sample-note-content">
             {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
@@ -348,8 +351,8 @@ export function SamplePage() {
             <CommentAttachmentList attachments={note.attachments} className="sample-note-attachments" />
           </div>
           <div className="sample-note-footer">
-            <span>{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>
-            <div>
+            <span className="sample-note-author">{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>
+            <div className="sample-note-actions">
               {note.runId && <Link className="text-button" to={`/processing/${sample.id}?run=${encodeURIComponent(note.runId)}`}>Open in processing</Link>}
               {note.sampleEvent?.assetKey && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
               {note.sampleEvent && <button type="button" className="text-button danger-text-button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(note.sampleEvent); }}>Delete note</button>}
