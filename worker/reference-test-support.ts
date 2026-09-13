@@ -38,11 +38,13 @@ export class SqliteD1Statement {
 
   execute() {
     const statement = this.owner.database.prepare(this.sql);
-    if (/^\s*SELECT\b/i.test(this.sql)) {
+    if (statement.columns().length > 0) {
+      const before = Number(this.owner.database.prepare("SELECT total_changes() AS count").get()?.count);
+      const results = statement.all(...this.bindings);
       return {
-        results: statement.all(...this.bindings),
+        results,
         success: true,
-        meta: { changes: 0 },
+        meta: { changes: Number(this.owner.database.prepare("SELECT total_changes() AS count").get()?.count) - before },
       };
     }
     const result = statement.run(...this.bindings);
