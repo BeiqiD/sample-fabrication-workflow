@@ -271,10 +271,9 @@ describe("shared attachment ingestion adapters", () => {
   it("keeps low-level registration out of the three public attachment adapters", () => {
     const project = readFileSync(new URL("./project-foundation-routes.ts", import.meta.url), "utf8");
     const comment = readFileSync(new URL("./comment-submission-routes.ts", import.meta.url), "utf8");
-    const index = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
-    const ordinaryRoute = index.slice(
-      index.indexOf('app.post("/assets"'),
-      index.indexOf('app.get("/exports/r2/:key{.+}"'),
+    const ordinaryRoute = readFileSync(
+      new URL("./blob-lifecycle/attachment-routes.ts", import.meta.url),
+      "utf8",
     );
 
     expect(project).toContain('from "./attachment-ingestion"');

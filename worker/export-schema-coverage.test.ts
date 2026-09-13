@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { PROJECT_EXPORT_TABLE_QUERIES } from "./project-foundation-routes";
+import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import { referenceTestDatabase } from "./reference-test-support";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
@@ -42,7 +42,7 @@ function assertExportSchemaCoverage(database: DatabaseSync) {
   const views = new Set(schema.filter(({ type }) => type === "view").map(({ name }) => name));
   const classifiedViews = new Set([...EXPORTED_VIEWS, ...REBUILDABLE_VIEWS]);
   const required = new Set([...tables.map(({ name }) => name), ...EXPORTED_VIEWS]);
-  const actual = new Set(Object.keys(PROJECT_EXPORT_TABLE_QUERIES));
+  const actual = new Set(Object.keys(FULL_EXPORT_TABLE_QUERIES));
   const issues = [
     ...[...required].filter((name) => !actual.has(name))
       .map((name) => `Missing export: ${name}`),
@@ -66,7 +66,7 @@ describe("complete export schema coverage", () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    for (const [name, sql] of Object.entries(PROJECT_EXPORT_TABLE_QUERIES)) {
+    for (const [name, sql] of Object.entries(FULL_EXPORT_TABLE_QUERIES)) {
       expect(() => database.prepare(sql).all(), `${name} export query`).not.toThrow();
     }
   });

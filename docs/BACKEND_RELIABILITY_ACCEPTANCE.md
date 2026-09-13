@@ -1,7 +1,8 @@
 # Backend reliability and stabilization acceptance
 
 Status: Phase 6A1 recovery and scale baseline implemented; export and placement
-repairs merged; the newly reproduced Sample split defect remains under repair.
+and Sample split repairs merged; Worker ownership extraction is implemented.
+Newly deployed browser checks remain open while the browser connection is unavailable.
 
 Last updated: 2026-09-13
 
@@ -32,7 +33,7 @@ distinct. An unchecked item is not completed by an earlier phase's tests.
 | Deployed complete-export download | Browser `/export` downloaded `sample-log-2026-09-13.zip`: schema version 7, 35 datasets (34 tables and the retention view), 95 rows, one blob, no warnings; packaged size and SHA-256 matched | Small baseline archive inspected; not a complete database/provider recovery rehearsal |
 | B1: ZIP physical identity | Real FabuBlox import accepted distinct `foo bar` and `foo_bar` image IDs; sanitized archive paths collided and overwrote one payload. An accepted `../foo` locator was also normalized in the download URL and reported falsely missing | [PR #187](https://github.com/BeiqiD/sample-fabrication-workflow/pull/187) merged and deployed; browser download, hashes and row comparison passed |
 | B2: placement save with unknown result | A real SQLite placement UPDATE was held while the client observed a network failure. The page allowed **Leave without saving**, navigation completed, then releasing the original UPDATE changed `x: 0 → 80` and revision `1 → 2` | [PR #188](https://github.com/BeiqiD/sample-fabrication-workflow/pull/188) merged and deployed; browser autosave, explicit Save and reload persistence passed |
-| B3: split after actual execution images | A parent Sample with an image on its latest completed Step reads correctly, but split inserts a temporary `execution-assets:` identifier into the child's state foreign key. POST returns 500 and the transaction rolls back | Confirmed; repair the inherited state before publishing Sample extraction |
+| B3: split after actual execution images | A parent Sample with an image on its latest completed Step reads correctly, but split inserts a temporary `execution-assets:` identifier into the child's state foreign key. POST returns 500 and the transaction rolls back | [PR #190](https://github.com/BeiqiD/sample-fabrication-workflow/pull/190) merged after all 4 Verify / 14 statuses passed; deployed browser acceptance remains pending |
 | Large-Project reads and saves | Actual Worker/local SQLite reads and mounted Page saves measured at 250/500 nodes; final response held to check acknowledgement ownership | Measured below; serial per-node HTTP remains a documented network-performance boundary |
 | Full export-to-destination recovery | The new isolated verifier restored both browser archives: 34 tables, 94 canonical rows, one retention-view row and one blob with schema/FK/integrity/hash checks | Independent review and corruption/cleanup regressions passed; see the [recovery runbook](./EXPORT_RESTORE_REHEARSAL.md) for reproducible commands and limits |
 
@@ -81,6 +82,15 @@ and retained that coordinate after reload. Moving it back with explicit Save
 again persisted after reload. The final geometry matched the starting point;
 both reloads displayed Saved. Adversarial response loss remains covered by the
 isolated real-SQLite tests, not by browser network injection.
+
+B3 merge: `5e869dc1b39622fcf406ca880a5f86487d4c7325`, reviewed final head
+`0bac25773b7fc1e32d2f30662178f99b3370298c`, tree
+`b56c195f560231b6fbae249df07809f4d21425e3`. Eleven real Worker/SQLite
+regressions cover immutable inherited images, guarded source selection, concurrent
+empty or incomplete state winners and full rollback. Real local D1 also verified
+that only the adjacent newly created state can receive image mappings. Browser
+QA created synthetic Sample `QA-BACKEND-SPLIT-20260913`; its process/image/split
+flow was interrupted by the browser service connection and is not accepted yet.
 
 The continuing fixture suite adds five scale cases and 15 restore cases. The
 Worker smoke now uses bounded filesystem retries when removing its own disposed
@@ -152,14 +162,21 @@ ownership decisions guide the extraction:
   policy. Readable common evidence and whole-group mutation have different
   visibility requirements; preserve both.
 - Export owns the complete catalog and `/exports/all`, currently in
-  `worker/project-foundation-routes.ts`. Preserve its one-D1-batch snapshot,
-  all lifecycle states and blob-retention coverage when moving it out of Project.
-- Project application services own replay and settlement queries, currently
-  partly in `worker/project-routes.ts`. HTTP translates their result to status
+  `worker/export-catalog.ts` and `worker/export-routes.ts`. The one-D1-batch
+  snapshot, lifecycle states and blob-retention coverage are preserved.
+- Project application services own replay and settlement queries in
+  `worker/projects/settlement.ts`. HTTP translates their result to status
   and mutation-disposition headers; a failed proof continues to mean uncertain.
 - Scheduled maintenance coordinates import recovery, Evidence retry-window
-  closure and physical blob GC in that order. Move Evidence timeout SQL out of
-  `worker/blob-lifecycle/gc.ts` without weakening its atomic mutation guards.
+  closure and physical blob GC in that order through `worker/application/maintenance.ts`.
+  Evidence timeout SQL belongs to `worker/evidence/retry-maintenance.ts`; physical
+  GC keeps its existing atomic mutation guards.
+
+The extraction independently matched all 95 HTTP handlers and their expanded
+registration order, authentication and error mapping against the pre-extraction
+Worker. `worker/index.ts` now only mounts source-owned routes and delegates fetch
+and scheduled execution; it has no source SQL or ordinary HTTP handler. Existing
+Sample/Execution behavior and the B3 split guards remain unchanged.
 
 The 15 production files in `shared/` contain no D1, React or provider
 implementation. Separate them by actual ownership:

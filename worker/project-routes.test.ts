@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it, vi } from "vitest";
+import { routes as projectFoundationRoutes } from "./project-foundation-routes";
 import { routes as projectRoutes } from "./project-routes";
 import {
   referenceTestDatabase,
@@ -66,6 +67,7 @@ function fixture() {
     if (error instanceof HTTPException) return c.json({ error: error.message }, error.status);
     throw error;
   });
+  app.route("/", projectFoundationRoutes);
   app.route("/", projectRoutes);
   return { app, env, database, bytes, uploaded, head };
 }

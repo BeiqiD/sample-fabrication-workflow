@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { FullExportManifest } from "../shared/types";
 import { buildFullExportArchive } from "../src/lib/exportAll";
-import { routes } from "./project-foundation-routes";
+import { snapshotRoutes } from "./export-routes";
 import { createAttachmentProjectItem, createMarkdownProjectItem, createProject, createProjectEdge,
   createReferenceProjectItem, readProjectSnapshot, removeProjectItem } from "./projects/service";
 import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
@@ -31,7 +31,7 @@ const locator = (store: string, provider: string, key: string) => JSON.stringify
 
 async function fullExport(database: DatabaseSync) {
   const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
-  app.route("/", routes);
+  app.route("/", snapshotRoutes);
   const response = await app.request("/exports/all", {}, { DB: new SqliteD1Database(database) } as unknown as Env);
   expect(response.status).toBe(200);
   return await response.json() as FullExportManifest;

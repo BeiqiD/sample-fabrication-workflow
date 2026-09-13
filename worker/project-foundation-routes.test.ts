@@ -3,9 +3,9 @@ import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import { PROJECT_EXPORT_SCHEMA_VERSION } from "../shared/project-types";
 import {
-  PROJECT_EXPORT_TABLE_QUERIES,
-} from "./project-foundation-routes";
-import { routes as projectRoutes } from "./project-routes";
+  FULL_EXPORT_TABLE_QUERIES,
+} from "./export-catalog";
+import { snapshotRoutes } from "./export-routes";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
@@ -14,7 +14,7 @@ type Statement = { sql: string };
 
 function exportEnvironment() {
   const queryNames = new Map(
-    Object.entries(PROJECT_EXPORT_TABLE_QUERIES).map(([name, sql]) => [sql, name]),
+    Object.entries(FULL_EXPORT_TABLE_QUERIES).map(([name, sql]) => [sql, name]),
   );
   const batch = vi.fn(async (statements: Statement[]) => statements.map((statement) => ({
     success: true,
@@ -62,11 +62,11 @@ const PRE_PROJECT_EXPORT_TABLES = [
   "blob_retention_edges",
 ] as const;
 
-describe("Project foundation export route", () => {
+describe("Full export route", () => {
   it("owns complete export and snapshots every current table in one batch", async () => {
     expect(PROJECT_EXPORT_SCHEMA_VERSION).toBe(7);
     const app = new Hono<AppBindings>();
-    app.route("/", projectRoutes);
+    app.route("/", snapshotRoutes);
     const { env, batch } = exportEnvironment();
 
     const response = await app.request("/exports/all", {}, env);
@@ -78,7 +78,7 @@ describe("Project foundation export route", () => {
 
     expect(response.status).toBe(200);
     expect(body.schemaVersion).toBe(PROJECT_EXPORT_SCHEMA_VERSION);
-    expect(Object.keys(body.tables)).toEqual(Object.keys(PROJECT_EXPORT_TABLE_QUERIES));
+    expect(Object.keys(body.tables)).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES));
     expect(body.tables.attachment_derivatives).toEqual([
       { table: "attachment_derivatives" },
     ]);
@@ -94,14 +94,14 @@ describe("Project foundation export route", () => {
     expect(body.tables.project_edges).toEqual([{ table: "project_edges" }]);
     expect(body.blobs).toEqual([]);
     expect(batch).toHaveBeenCalledTimes(1);
-    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(PROJECT_EXPORT_TABLE_QUERIES).length);
+    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length);
   });
 
   it("keeps every pre-Project export table while adding all Project tables", () => {
-    expect(Object.keys(PROJECT_EXPORT_TABLE_QUERIES)).toEqual(
+    expect(Object.keys(FULL_EXPORT_TABLE_QUERIES)).toEqual(
       expect.arrayContaining([...PRE_PROJECT_EXPORT_TABLES]),
     );
-    expect(Object.keys(PROJECT_EXPORT_TABLE_QUERIES)).toEqual(expect.arrayContaining([
+    expect(Object.keys(FULL_EXPORT_TABLE_QUERIES)).toEqual(expect.arrayContaining([
       "projects",
       "project_contents",
       "project_content_attachments",
@@ -111,7 +111,7 @@ describe("Project foundation export route", () => {
     ]));
   });
 
-  it("mounts Project directly in core and leaves the Reference aggregate independent", () => {
+  it("mounts Export and Project directly in core and leaves the Reference aggregate independent", () => {
     const indexSource = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
     const referenceSource = readFileSync(
       new URL("./reference-routes.ts", import.meta.url),
@@ -121,9 +121,13 @@ describe("Project foundation export route", () => {
     expect(indexSource).toContain(
       'import { routes as projectRoutes } from "./project-routes";',
     );
+    const foundationMount = indexSource.indexOf('app.route("/", projectFoundationRoutes);');
+    const exportMount = indexSource.indexOf('app.route("/", exportSnapshotRoutes);');
     const projectMount = indexSource.indexOf('app.route("/", projectRoutes);');
     const referenceMount = indexSource.indexOf('app.route("/", referenceRoutes);');
-    expect(projectMount).toBeGreaterThan(-1);
+    expect(foundationMount).toBeGreaterThan(-1);
+    expect(exportMount).toBeGreaterThan(foundationMount);
+    expect(projectMount).toBeGreaterThan(exportMount);
     expect(referenceMount).toBeGreaterThan(projectMount);
     expect(indexSource).not.toMatch(/app\.get\("\/exports\/all"/);
     expect(referenceSource).not.toContain("./project-routes");

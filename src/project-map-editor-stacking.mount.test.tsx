@@ -43,6 +43,11 @@ async function flowCard(container: HTMLElement, itemId: string) {
     const card = container.querySelector<HTMLElement>(`.react-flow__node[data-id="${itemId}"]`)!;
     expect(card).toBeTruthy();
     expect(card.style.visibility).not.toBe("hidden");
+    // Node measurement can finish before onInit's queued fitView. Start these
+    // editor interactions after the viewport has left its initial transform.
+    const viewport = container.querySelector<HTMLElement>(".react-flow__viewport");
+    expect(viewport).toBeTruthy();
+    expect(viewport!.style.transform).not.toMatch(/^translate\(0px,\s*0px\)/);
     return card;
   });
 }

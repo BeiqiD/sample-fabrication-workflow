@@ -54,3 +54,7 @@ export async function loadCurrentSampleStructure(db: D1Database, sampleId: strin
     imageHashes: assets.map((asset) => asset.sha256),
   };
 }
+
+export async function stateImageKeys(db: D1Database, stateHash: string | null) {
+  return (await stateAssets(db, stateHash)).map((row) => row.r2_key);
+}

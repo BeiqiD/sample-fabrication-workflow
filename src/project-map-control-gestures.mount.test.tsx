@@ -615,6 +615,9 @@ describe("Project Map native card controls", () => {
       expect(node!.style.visibility).not.toBe("hidden");
       return node!;
     });
+    // Selection and touch resizing start after onInit's queued initial fit.
+    await waitFor(() => expect(container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform)
+      .not.toMatch(/^translate\(0px,\s*0px\)/));
     fireEvent.click(note);
     fireEvent.click(within(await screen.findByRole("toolbar", { name: "Selected card actions" })).getByRole("button", { name: "Edit" }));
     const field = await screen.findByRole("textbox", { name: "Edit Project Markdown" });
