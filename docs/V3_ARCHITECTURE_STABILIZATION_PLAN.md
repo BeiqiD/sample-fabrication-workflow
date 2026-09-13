@@ -1,9 +1,11 @@
 # V3 architecture stabilization plan
 
 Status: backend reliability corrections, Worker extraction and shared-contract
-separation are merged. Compatibility export and final-schema qualification are
-the current work; remote field contraction, baseline activation and the final
-browser acceptance are still open. New frontend refinement remains paused.
+separation are merged. Compatibility schemas, recovery and local migration
+staging are qualified; the final S2 application is prepared in an inactive Draft.
+Current S0 browser checks and read-only remote observation transport qualification
+are recorded. Live target observation, remote field contraction, baseline activation and final S2
+browser acceptance remain open. New frontend refinement remains paused.
 
 The inventory, isolated recovery rehearsal and scale measurements are tracked in
 [Backend reliability acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md).
@@ -31,14 +33,26 @@ Implementation checkpoint, 2026-09-13:
 | 6A1 reliability | PRs [#187](https://github.com/BeiqiD/sample-fabrication-workflow/pull/187), [#188](https://github.com/BeiqiD/sample-fabrication-workflow/pull/188), [#189](https://github.com/BeiqiD/sample-fabrication-workflow/pull/189), [#190](https://github.com/BeiqiD/sample-fabrication-workflow/pull/190) and [#196](https://github.com/BeiqiD/sample-fabrication-workflow/pull/196) are merged: export identity, uncertain placement settlement, recovery/scale baselines, split image inheritance and trigger-aware Comment acknowledgement. |
 | 6A2 ownership | PRs [#191](https://github.com/BeiqiD/sample-fabrication-workflow/pull/191) and [#192](https://github.com/BeiqiD/sample-fabrication-workflow/pull/192) are merged; root Worker composition, domain routes, settlement and scheduled coordination have explicit owners. |
 | 6A3 contracts | [#193](https://github.com/BeiqiD/sample-fabrication-workflow/pull/193) is merged; shared contracts/domain modules and permanent AST/type gates enforce dependency direction. |
-| 6A4 compatibility | Canonical reader A is merged in [#194](https://github.com/BeiqiD/sample-fabrication-workflow/pull/194), and versioned export E in [#197](https://github.com/BeiqiD/sample-fabrication-workflow/pull/197). S1/S2 SQL and the C reader/writer implementation are locally qualified, but B/C/D remote transitions remain inactive. |
-| 6A5 baseline | [#195](https://github.com/BeiqiD/sample-fabrication-workflow/pull/195) merged the read-only planner/observer/preflight. The inactive S2 baseline matches the incremental schema and retained-data path on SQLite and workerd D1. Selection/execution integration and complete application acceptance on the activated final schema remain open. |
-| 6A6 exit | Not complete. The browser runtime is unavailable; post-extraction and v8 deployed-page acceptance is outstanding. A deployed version allocation alone does not establish old-request retirement for destructive cleanup. |
+| 6A4 compatibility | Canonical reader A [#194](https://github.com/BeiqiD/sample-fabrication-workflow/pull/194), versioned export E [#197](https://github.com/BeiqiD/sample-fabrication-workflow/pull/197), and inactive S1/S2 schema/recovery qualification [#198](https://github.com/BeiqiD/sample-fabrication-workflow/pull/198) are merged. The C writer [#199](https://github.com/BeiqiD/sample-fabrication-workflow/pull/199) and B overlap bridge [#200](https://github.com/BeiqiD/sample-fabrication-workflow/pull/200) are implemented and locally qualified Drafts; B/C/D remote transitions remain inactive. |
+| 6A5 baseline | Planner/observer/preflight [#195](https://github.com/BeiqiD/sample-fabrication-workflow/pull/195) and actual local Wrangler staging [#201](https://github.com/BeiqiD/sample-fabrication-workflow/pull/201) are merged. Draft [#202](https://github.com/BeiqiD/sample-fabrication-workflow/pull/202) qualifies the final S2 application's complete gate, default fresh baseline, preserved historical chain and recovery matrix; it is not eligible for the current S0 automatic deployment path. The read-only remote D1 transport in [#203](https://github.com/BeiqiD/sample-fabrication-workflow/pull/203) is merged after complete verification; no live remote observation is claimed. Remote admission and execution integration remain open. |
+| 6A6 exit | Not complete. Browser access is restored; the exercised S0 Template/Run, split-image, canonical Comment/Reference and v8 download/restore checks pass. Final S2 deployed-browser acceptance remains outstanding. A deployed version allocation alone does not establish old-request retirement for destructive cleanup. |
 
 See the [compatibility sequence](./BACKEND_COMPATIBILITY_CLEANUP_DESIGN.md),
 [schema qualification](./BACKEND_COMPATIBILITY_SCHEMA_QUALIFICATION.md), and
 [baseline evidence](./BACKEND_MIGRATION_BASELINE_DESIGN.md#inactive-final-baseline-qualification).
 Passing an inactive candidate test does not close an activation or browser gate.
+
+The [current S0 browser evidence](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) and
+read-only observation PR #203 are complete. The next checkpoint obtains an actual target observation through an admitted
+read-only connection. Observation identifies schema and ledger state; it cannot
+prove that incompatible historical Worker requests have ended. The
+[compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md) still blocks remote
+B/C/D because that retirement proof has no implemented bootstrap path. Choose
+and qualify a safe activation path before building its executor: either satisfy
+the existing-database retirement sequence or separately review an isolated
+recovery/cutover path with consistent retained data. An executor, elapsed wait or
+operator assertion alone cannot close this technical blocker. The three
+inactive application Drafts must not enter the S0 automatic deployment path.
 
 V3 keeps the current runtime shape:
 
@@ -86,11 +100,12 @@ The stabilization phase will not:
 ## Relationship to Phase 5 and release hardening
 
 The user has chosen to pause new frontend refinement and prioritize backend
-review/correction. Phase 6A1 starts from the latest integration head, using the
-deployed PR #185 frontend behavior as the initial regression reference. Review
-complete export/restore and representative large-Project behavior first, repair
-demonstrated defects separately, then proceed through small Phase 6A2/6A3 Worker
-and contract slices. Phase 5F is no longer a prerequisite for those backend tasks.
+review/correction. Phase 6A1 used the deployed PR #185 frontend behavior as the
+initial regression reference. Complete export/restore and representative
+large-Project characterization, demonstrated defect repairs, and Phase 6A2/6A3
+Worker/contract ownership work are merged. Continue from the current late-stage
+checkpoint above; do not repeat those completed slices. Phase 5F was not a
+prerequisite for them.
 
 Backend extraction preserves public API, source identity, revisions, idempotency,
 transaction and export/retention behavior. Any intentional change to interface,
@@ -237,10 +252,10 @@ This document and its roadmap links complete the planning gate. It records:
 - release-critical versus optional cleanup;
 - explicit non-goals and decision gates.
 
-The 2026-09-13 route revision makes backend Phase 6A1 the next execution step;
-it supersedes the old requirement to wait for all of Phase 5. Merging this
-documentation records that sequence, not a completed audit, new repair or schema
-activation. Implementation proceeds in separately reviewed bounded PRs.
+The 2026-09-13 route revision began the backend Phase 6A1 sequence before the
+remaining Phase 5 work. That planning decision did not itself establish audit,
+repair or activation results; the current implementation checkpoint above now
+records the subsequent bounded PRs and remaining gates.
 
 The 2026-09-12 audit repair work is tracked in
 [Architecture audit remediation](./ARCHITECTURE_AUDIT_REMEDIATION.md). The
