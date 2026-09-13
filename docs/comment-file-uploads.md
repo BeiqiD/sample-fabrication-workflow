@@ -63,6 +63,40 @@ Application authentication and storage authentication are separate:
 Do not put OAuth access or refresh tokens in D1 records, local storage, Comment
 metadata, upload URLs, exports, or client logs.
 
+## Connection diagnostics
+
+The existing authenticated `/api/storage/status` route returns an optional
+`diagnostic` object when SWITCHdrive answers a connection probe with an HTTP
+failure. It includes the exact `httpStatus`, a fixed `classification`, the
+native `redirected` flag, whether a Basic challenge was present, and an optional
+allowlisted DAV `providerReason` (`not_authenticated` or `forbidden`). Unknown
+provider messages, response bodies/URLs, header contents and credentials are
+never returned. XML inspection is limited to 8 KiB and unread bodies are cancelled.
+
+The read-only `PROPFIND` probe uses `redirect: "manual"`. A 3xx reports a redirect
+without following it or forwarding credentials to another endpoint; a previously
+followed legitimate redirect now leaves storage unavailable until its intended
+endpoint is confirmed. Successful 200/207 checks keep the same behavior. The
+upload/download requests and storage bindings are unchanged.
+
+Interpret the result without assuming a cause:
+
+- 401 means authentication was not accepted; it does not establish passcode
+  expiry, revocation or which credential is incorrect.
+- 403 means access was forbidden; check account/endpoint permissions as well as
+  authentication. The login identifier and DAV path account identifier may be
+  different; do not rewrite one from the other automatically.
+- A redirect or other HTTP failure is reported separately from authentication.
+- A timeout or network/configuration error retains the existing unavailable
+  response without fabricated HTTP diagnostic fields.
+
+Compare current account details and the App Passcode login name with the
+[official SWITCHdrive WebDAV guidance](https://help.switch.ch/drive/faq/mobile-devices/).
+The [Nextcloud login API](https://docs.nextcloud.com/server/stable/developer_manual/client_apis/LoginFlow/index.html)
+explains why login names and WebDAV user IDs need not be identical. Diagnose
+before changing credentials, and enter any credential correction through secure
+Worker settings rather than repository files or logs.
+
 ## SWITCHdrive configuration
 
 Configure these values as Worker secrets in the Cloudflare dashboard:

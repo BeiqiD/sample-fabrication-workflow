@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SwitchdriveStorage,
+  SwitchdriveAuthenticationError,
   switchdriveConfiguration,
 } from "./switchdrive-storage";
 
@@ -30,10 +31,87 @@ describe("SWITCHdrive managed storage", () => {
     expect(fetchMock).toHaveBeenCalledWith(`${configuration.webdavUrl}/`, expect.objectContaining({
       method: "PROPFIND",
       headers: expect.any(Headers),
+      redirect: "manual",
     }));
     const headers = fetchMock.mock.calls[0][1]?.headers as Headers;
     expect(headers.get("depth")).toBe("0");
     expect(headers.get("authorization")).toMatch(/^Basic /);
+  });
+
+  it.each([200, 207])("keeps successful HTTP %s checks unchanged and does not read their bodies", async (status) => {
+    const cancel = vi.fn();
+    const body = new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode("not-read")); },
+      cancel,
+    });
+    const response = new Response(body, { status });
+    const getReader = vi.spyOn(body, "getReader");
+    vi.stubGlobal("fetch", vi.fn(async () => response));
+    await expect(new SwitchdriveStorage(configuration).check()).resolves.toBeUndefined();
+    expect(getReader).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [401, "authentication_required"], [403, "forbidden"],
+    [301, "redirect"], [302, "redirect"], [303, "redirect"], [307, "redirect"], [308, "redirect"],
+    [304, "upstream_error"], [404, "upstream_error"], [503, "upstream_error"],
+  ])("preserves HTTP %s as a connection-check diagnostic", async (status, classification) => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: Number(status) })));
+    await expect(new SwitchdriveStorage(configuration).check()).rejects.toMatchObject({
+      name: "SwitchdriveConnectionCheckError",
+      diagnostic: { httpStatus: status, redirected: false, classification, basicChallenge: false },
+    });
+  });
+
+  it.each([302, 403, 503])("cancels unread non-XML HTTP %s bodies without parsing them", async (status) => {
+    const cancel = vi.fn();
+    const body = new ReadableStream({ cancel });
+    const getReader = vi.spyOn(body, "getReader");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body, { status, headers: { "content-type": "text/html" } })));
+    await expect(new SwitchdriveStorage(configuration).check()).rejects.toMatchObject({ diagnostic: { httpStatus: status } });
+    expect(getReader).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads at most the bounded XML prefix and cancels the remaining response", async () => {
+    const cancel = vi.fn();
+    const bytes = new TextEncoder().encode("x".repeat(8 * 1024) + "<s:exception>Sabre\\DAV\\Exception\\NotAuthenticated</s:exception>");
+    const body = new ReadableStream({
+      start(controller) { controller.enqueue(bytes); },
+      cancel,
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body, {
+      status: 401, headers: { "content-type": "application/xml" },
+    })));
+    await expect(new SwitchdriveStorage(configuration).check()).rejects.toMatchObject({
+      diagnostic: { httpStatus: 401, classification: "authentication_required" },
+    });
+    expect(cancel).toHaveBeenCalledTimes(1);
+    // The exception exists only beyond the allowed prefix and must not be parsed.
+    const closedBody = new Response(bytes, { status: 401, headers: { "content-type": "application/xml" } });
+    vi.stubGlobal("fetch", vi.fn(async () => closedBody));
+    const error = await new SwitchdriveStorage(configuration).check().catch((failure) => failure);
+    expect(error).toMatchObject({ name: "SwitchdriveConnectionCheckError" });
+    expect(error.diagnostic).not.toHaveProperty("providerReason");
+  });
+
+  it.each([
+    ['<s:exception>private-exception</s:exception>', "application/xml"],
+    ['<s:message>Sabre\\DAV\\Exception\\NotAuthenticated</s:message>', "application/xml"],
+    ['<s:exception>Sabre\\DAV\\Exception\\NotAuthenticated</s:exception>', "text/html"],
+  ])("omits unrecognized or non-XML provider detail", async (body, contentType) => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body, { status: 401, headers: { "content-type": contentType } })));
+    const error = await new SwitchdriveStorage(configuration).check().catch((failure) => failure);
+    expect(error).toMatchObject({ name: "SwitchdriveConnectionCheckError" });
+    expect(error.diagnostic).not.toHaveProperty("providerReason");
+    expect(JSON.stringify(error.diagnostic)).not.toContain("private-");
+  });
+
+  it.each([401, 403] as const)("retains HTTP %s on object authentication errors", async (status) => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status })));
+    await expect(new SwitchdriveStorage(configuration).stat("file.bin")).rejects.toBeInstanceOf(SwitchdriveAuthenticationError);
+    await expect(new SwitchdriveStorage(configuration).stat("file.bin")).rejects.toMatchObject({ status });
   });
 
   it("creates folders, uploads the unchanged stream, and verifies its size", async () => {

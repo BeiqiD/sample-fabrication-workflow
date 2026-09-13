@@ -278,6 +278,15 @@ export interface ManagedStorageStatus {
   available: boolean;
   authentication: "service_binding" | "oauth" | "not_configured";
   message: string;
+  diagnostic?: {
+    httpStatus: number;
+    // Native Response.redirected: whether a redirect was actually followed.
+    // A manual 3xx response has classification "redirect" and redirected false.
+    redirected: boolean;
+    classification: "authentication_required" | "forbidden" | "redirect" | "upstream_error";
+    basicChallenge: boolean;
+    providerReason?: "not_authenticated" | "forbidden";
+  };
 }
 
 export interface RunStepTarget {
