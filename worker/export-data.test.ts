@@ -52,7 +52,7 @@ describe("buildBlobExportPlan", () => {
     expect(plan.find((entry) => entry.objectKey === "comments/main.webp")).toEqual(
       expect.objectContaining({
         blobRecordIds: ["asset-1"],
-        downloadUrl: "/api/exports/r2/comments/main.webp",
+        downloadUrl: "/api/exports/r2/comments%2Fmain.webp",
         sourceOccurrences: [
           expect.objectContaining({ occurrenceId: "item-1" }),
           expect.objectContaining({ occurrenceId: "import-1" }),

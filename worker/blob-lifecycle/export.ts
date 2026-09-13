@@ -32,7 +32,9 @@ function locatorId(storeKind: string, provider: string, objectKey: string) {
 }
 
 function encodedR2Path(objectKey: string) {
-  return objectKey.split("/").map(encodeURIComponent).join("/");
+  // Keep the entire opaque key in one URL segment so a browser cannot resolve
+  // embedded dot segments before the existing route decodes its parameter.
+  return encodeURIComponent(objectKey);
 }
 
 function fallbackFilename(objectKey: string) {
