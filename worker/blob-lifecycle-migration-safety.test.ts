@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { reapStaleFabubloxImports } from "./fabublox-import-recovery";
@@ -19,14 +20,17 @@ function applyMigrations(
   }
 }
 
-function migrationRecoveryEnv(database: DatabaseSync) {
+function recoveryFixture(byteSize: number) {
+  const bytes = new Uint8Array(byteSize).fill(byteSize);
+  return { bytes, sha256: createHash("sha256").update(bytes).digest("hex") };
+}
+
+function migrationRecoveryEnv(database: DatabaseSync, stored: Map<string, Uint8Array>) {
   const head = async (key: string) => {
-    const row = database.prepare(`
-      SELECT byte_size FROM assets WHERE r2_key = ?
-    `).get(key) as { byte_size: number } | undefined;
-    if (!row) return null;
+    const bytes = stored.get(key);
+    if (!bytes) return null;
     return {
-      size: Number(row.byte_size),
+      size: bytes.byteLength,
       httpEtag: '"migration-recovery"',
       writeHttpMetadata(headers: Headers) {
         headers.set("content-type", "application/octet-stream");
@@ -38,7 +42,15 @@ function migrationRecoveryEnv(database: DatabaseSync) {
     DB: new SqliteD1Database(database) as unknown as D1Database,
     ASSETS: {
       head,
-      get: async () => null,
+      get: async (key: string) => {
+        const metadata = await head(key);
+        const bytes = stored.get(key);
+        if (!metadata || !bytes) return null;
+        return { ...metadata, body: new ReadableStream<Uint8Array>({ start(controller) {
+          controller.enqueue(bytes);
+          controller.close();
+        } }) };
+      },
       delete: async () => undefined,
       put: async () => undefined,
       list: async () => ({ objects: [], truncated: false }),
@@ -91,6 +103,7 @@ describe("blob lifecycle migration safety", () => {
 
   it("upgrades through-0024 partial imports, blocks unpublished SQL edges, and recovers legacy failed rows", async () => {
     const database = new DatabaseSync(":memory:");
+    const failed = recoveryFixture(10), pending = recoveryFixture(11), winner = recoveryFixture(12);
     applyMigrations(database, (name) => name <= "0024_blob_integrity_quarantine.sql");
     database.exec(`
       INSERT INTO recipe_families (id, name, template_type, created_at)
@@ -156,13 +169,13 @@ describe("blob lifecycle migration safety", () => {
          sha256, created_at)
       VALUES
         ('legacy-failed-asset', 'legacy-failed-import', 'imports/legacy-failed/image.png',
-          'image.png', 'image/png', 10, 'ready', '${"b".repeat(64)}',
+          'image.png', 'image/png', 10, 'ready', '${failed.sha256}',
           '2026-07-01T00:00:00.000Z'),
         ('legacy-pending-asset', 'legacy-pending-import', 'imports/legacy-pending/image.png',
-          'image.png', 'image/png', 11, 'pending', '${"c".repeat(64)}',
+          'image.png', 'image/png', 11, 'pending', '${pending.sha256}',
           '2026-07-01T00:00:00.000Z'),
         ('legacy-reused-winner', NULL, 'ready/reused-winner.png',
-          'winner.png', 'image/png', 12, 'ready', '${"d".repeat(64)}',
+          'winner.png', 'image/png', 12, 'ready', '${winner.sha256}',
           '2026-06-01T00:00:00.000Z');
 
       INSERT INTO state_representation_assets (state_hash, asset_id, position)
@@ -284,7 +297,11 @@ describe("blob lifecycle migration safety", () => {
       WHERE id = 'clean-event-thumbnail';
     `)).toThrow(/asset owning import is not ready/);
 
-    const env = migrationRecoveryEnv(database);
+    const env = migrationRecoveryEnv(database, new Map([
+      ["imports/legacy-failed/image.png", failed.bytes],
+      ["imports/legacy-pending/image.png", pending.bytes],
+      ["ready/reused-winner.png", winner.bytes],
+    ]));
     const recovery = await reapStaleFabubloxImports(
       env,
       new Date("2026-08-20T00:00:00.000Z"),
@@ -383,16 +400,18 @@ describe("blob lifecycle migration safety", () => {
     `).get()).toEqual({
       import_id: null,
       status: "ready",
-      sha256: "b".repeat(64),
+      sha256: failed.sha256,
     });
     expect(database.prepare(`
       SELECT status, sha256 FROM assets WHERE id = 'legacy-reused-winner'
-    `).get()).toEqual({ status: "ready", sha256: "d".repeat(64) });
+    `).get()).toEqual({ status: "ready", sha256: winner.sha256 });
     database.close();
   });
 
   it("preserves A-to-B deduplication, Run/Sample state images, and event attachments during through-0024 recovery", async () => {
     const database = new DatabaseSync(":memory:");
+    const shared = recoveryFixture(10), runState = recoveryFixture(11), sampleState = recoveryFixture(12);
+    const event = recoveryFixture(13), runStepState = recoveryFixture(14);
     applyMigrations(database, (name) => name <= "0024_blob_integrity_quarantine.sql");
     database.exec(`
       INSERT INTO recipe_families (id, name, template_type, created_at)
@@ -468,19 +487,19 @@ describe("blob lifecycle migration safety", () => {
          sha256, created_at)
       VALUES
         ('shared-asset-a', 'failed-import-a', 'imports/a/shared.png',
-          'shared.png', 'image/png', 10, 'ready', '${"a".repeat(64)}',
+          'shared.png', 'image/png', 10, 'ready', '${shared.sha256}',
           '2026-07-01T00:00:00.000Z'),
         ('run-state-asset-a', 'failed-import-a', 'imports/a/run-state.png',
-          'run-state.png', 'image/png', 11, 'ready', '${"b".repeat(64)}',
+          'run-state.png', 'image/png', 11, 'ready', '${runState.sha256}',
           '2026-07-01T00:00:00.000Z'),
         ('sample-state-asset-a', 'failed-import-a', 'imports/a/sample-state.png',
-          'sample-state.png', 'image/png', 12, 'ready', '${"c".repeat(64)}',
+          'sample-state.png', 'image/png', 12, 'ready', '${sampleState.sha256}',
           '2026-07-01T00:00:00.000Z'),
         ('event-asset-a', 'failed-import-a', 'imports/a/event.png',
-          'event.png', 'image/png', 13, 'pending', '${"d".repeat(64)}',
+          'event.png', 'image/png', 13, 'pending', '${event.sha256}',
           '2026-07-01T00:00:00.000Z'),
         ('run-step-state-asset-a', 'failed-import-a', 'imports/a/run-step-state.png',
-          'run-step-state.png', 'image/png', 14, 'ready', '${"e".repeat(64)}',
+          'run-step-state.png', 'image/png', 14, 'ready', '${runStepState.sha256}',
           '2026-07-01T00:00:00.000Z');
 
       INSERT INTO state_representation_assets (state_hash, asset_id, position)
@@ -547,7 +566,13 @@ describe("blob lifecycle migration safety", () => {
       (name) => name > "0024_blob_integrity_quarantine.sql",
     )).not.toThrow();
 
-    const env = migrationRecoveryEnv(database);
+    const env = migrationRecoveryEnv(database, new Map([
+      ["imports/a/shared.png", shared.bytes],
+      ["imports/a/run-state.png", runState.bytes],
+      ["imports/a/sample-state.png", sampleState.bytes],
+      ["imports/a/event.png", event.bytes],
+      ["imports/a/run-step-state.png", runStepState.bytes],
+    ]));
     const recovery = await reapStaleFabubloxImports(
       env,
       new Date("2026-08-20T00:00:00.000Z"),

@@ -220,13 +220,15 @@ describe("FabuBlox import recovery ownership", () => {
       SELECT COUNT(*) AS count FROM blob_gc_ledger
       WHERE object_key = 'imports/a/shared.png'
     `).get()).toEqual({ count: 0 });
-    expect(head).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(get).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(head).not.toHaveBeenCalled();
+    const readsBeforePrivateRoute = get.mock.calls.length;
 
     const afterA = await worker.fetch(new Request(
       "https://app.test/api/assets/imports/a/shared.png",
     ), env, executionContext);
     expect(afterA.status).toBe(404);
-    expect(get).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(readsBeforePrivateRoute);
 
     database.prepare(`
       UPDATE imports
@@ -419,7 +421,7 @@ describe("FabuBlox import recovery ownership", () => {
       );
     `);
     finishRecoveryMigrations(database);
-    const { env, head } = recoveryEnv(database, new Map());
+    const { env, head, get } = recoveryEnv(database, new Map());
 
     const recovered = await reapStaleFabubloxImports(env, NOW);
     expect(recovered).toEqual({
@@ -428,7 +430,8 @@ describe("FabuBlox import recovery ownership", () => {
       staleImportObjectsQueued: 0,
       staleImportRecoveryFailures: 0,
     });
-    expect(head).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(get).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(head).not.toHaveBeenCalled();
     expect(database.prepare(`
       SELECT import_id, status, sha256 FROM assets WHERE id = 'shared-asset'
     `).get()).toEqual({
@@ -725,7 +728,7 @@ describe("FabuBlox import recovery ownership", () => {
     `);
     finishRecoveryMigrations(database);
     const stored = new Map([["ready/canonical-shared.png", bytes]]);
-    const { env, head } = recoveryEnv(database, stored);
+    const { env, head, get } = recoveryEnv(database, stored);
 
     const result = await reapStaleFabubloxImports(env, NOW);
     expect(result).toEqual({
@@ -735,7 +738,9 @@ describe("FabuBlox import recovery ownership", () => {
       staleImportRecoveryFailures: 0,
     });
     expect(head).toHaveBeenCalledWith("ready/canonical-shared.png");
-    expect(head).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(get).toHaveBeenCalledWith("imports/a/shared.png");
+    expect(get).toHaveBeenCalledWith("ready/canonical-shared.png");
+    expect(head).not.toHaveBeenCalledWith("imports/a/shared.png");
     expect(database.prepare(`
       SELECT asset_id FROM state_representation_assets
       WHERE state_hash = 'shared-state'
@@ -885,7 +890,8 @@ describe("FabuBlox import recovery ownership", () => {
     });
     expect(head).toHaveBeenCalledWith("ready/canonical-shared.png");
     expect(head).not.toHaveBeenCalledWith("imports/a/shared.png");
-    expect(get).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledWith("ready/canonical-shared.png");
+    expect(get).not.toHaveBeenCalledWith("imports/a/shared.png");
 
     expect(database.prepare(`
       SELECT asset_id FROM state_representation_assets
