@@ -4,9 +4,11 @@ Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
 C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
-C4 integration acceptance is in progress.
+C4 refinements through PR #185 are merged and deployed; wider integration
+acceptance remains in progress.
 
-Last reviewed: 2026-09-12
+Last reviewed: 2026-09-13 against PR #185 integration commit
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
@@ -415,8 +417,18 @@ remains authoritative.
 
 ### Phase 5C4 — integrated acceptance status
 
-Status: in progress after merged PRs #168/#169/#170, starting from integration
-commit `2f515ef6e348fb5067d187632cd85e2da377980d`.
+Status: in progress at merged PR #185, integration commit
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`.
+
+Completed implementation and deployed desktop follow-ups include shortcut help
+and command ownership (#175/#176/#183), editing resize (#180), Markdown draft
+composition (#181), the leave dialog and Inspector disclosures (#182), shared
+panel behavior and combined Markdown activation (#184), and panel/source-note
+layout (#185). Their current evidence is in
+[C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+Do not reopen these implemented slices solely because an older acceptance entry
+describes a pre-deployment state. In particular, keyboard shortcuts are already
+part of the verified implementation.
 
 Record the served version, real-backend workflow checks, directory/workspace
 transitions, cross-mode commands and focus, representative content and viewport
@@ -425,6 +437,8 @@ and keep untested device or workflow boundaries explicit. The merged slice
 evidence does not itself complete C4; Phase 5D remains subsequent work.
 
 ### Phase 5D — attachment and media surfaces
+
+Status: not started; next implementation slice after the outstanding C4 acceptance.
 
 Goal: expose the stable shared attachment semantics through one clear visual and
 wording system while preserving separate Project, Comment, and Run ownership.

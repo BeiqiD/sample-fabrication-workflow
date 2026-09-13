@@ -3,9 +3,10 @@
 Status: governing Phase 5C contract; C0 complete in PR #161, C1 complete in
 merged PR #162, C2a complete in PR #163, C2b.1 complete in PR #166; C2b.2/C2b.3
 merged in PR #168, C3 merged in PR #169, and the gesture/reference follow-up merged
-in PR #170. C4 integration acceptance is in progress.
+in PR #170. C4 refinements through PR #185 are merged and deployed; wider
+integration acceptance remains in progress.
 
-Last reviewed: 2026-09-12 after PRs #168/#169/#170 merged and C4 review began
+Last reviewed: 2026-09-13 against PR #185 and its deployed desktop acceptance
 
 This document governs the Project-specific layout and control decisions now being
 implemented through the bounded Phase 5C sequence. The high-level phase order remains in
@@ -167,9 +168,13 @@ second save controller, or additional content identity.
 
 Reference discovery is closed by default and opens explicitly from the Project
 top bar, Add > Reference, related-record entry, or a context-aware Canvas command.
-Note selection and attachment upload do not implicitly open References. Its starting width target is
-approximately `300–320px`; Phase 5C2/C3 measure the final size against real
-search results without shrinking the underlying Canvas.
+Note selection and attachment upload do not implicitly open References. Both
+References and Inspector use `--project-panel-width`: `min(340px, calc(50% - 42px))`
+on wide Map and `min(280px, calc(50% - 34px))` at the existing 860–1180px tier.
+Desktop Reading uses the shared 380px panel container; mobile uses the shared
+sheet width. The panels keep the underlying Canvas size unchanged. PR #185
+measured both Map panels at 340px and both Reading panels at 380px in a
+1363 × 936 browser; narrow/mobile behavior was not remeasured in that pass.
 
 The panel owns:
 
@@ -243,19 +248,24 @@ record. It disappears once it is no longer useful.
 
 Inspector is selection context, not permanent page chrome.
 
-The starting floating-width target is approximately `320–360px`; the exact value
-is measured in Phase 5C2/C3 without creating a Canvas layout track.
+Inspector uses the same responsive width as References, including while editing;
+the shared values and measured viewport are recorded above. It does not create
+a Canvas layout track.
 
 ### Default behavior
 
-- no selected occurrence/edge and no pin: Inspector is closed and consumes no
-  Canvas width;
+- both panels start closed; explicitly opening either with no selection keeps
+  it usable, without requiring Pin or consuming Canvas width;
 - selecting an occurrence or edge selects it and exposes a compact local toolbar;
   it updates an already open Inspector but does not open a closed Inspector;
 - Details, an explicit Inspector trigger, or a multi-field editor opens Inspector;
-- clearing selection closes an unpinned Inspector;
-- opening Inspector does not pin it; only the explicit Pin control changes pin
-  preference;
+- after a real selection is cleared, an unpinned panel temporarily hides and a
+  pinned panel remains. Temporary hiding retains the user's open intent;
+- explicit Close stays closed on later selection. Reopening preserves Pin and
+  Inspector disclosure choices; opening either panel does not change Pin;
+- References and Inspector share these rules within each Project session.
+  Reference search input/applied search and Inspector disclosure choices remain
+  isolated by Project; active placement and editing retain their operation guards;
 - panel open/pin state is interface preference only and must not mutate the
   Project, Project revision, placement rows, or export.
 
@@ -263,8 +273,8 @@ is measured in Phase 5C2/C3 without creating a Canvas layout track.
 
 Inspector always uses the desktop non-modal floating presentation. Opening it does
 not resize the React Flow host or rewrite viewport, item coordinates, or sizes.
-C3 may measure a narrower panel width before the mobile boundary, but may not
-reintroduce a docked track that reduces Canvas area.
+The shared narrow-desktop width does not reintroduce a docked track that reduces
+Canvas area.
 
 ### Information hierarchy
 
@@ -318,14 +328,15 @@ Desktop Map overlays must:
 
 Panel state is independent from the responsive mobile presentation boundary:
 
-- Research-record state is closed/open and Inspector state is
-  closed/temporary/pinned;
+- both panels track user-opened intent, Pin and temporary visibility separately
+  through the shared Project-session controller;
 - desktop presentation is always floating/non-modal; mobile Reading-first
   pickers and expanded editors use the ordinary modal contract when presented
   as a sheet or dialog;
-- narrower editable desktop widths prefer one visible panel: explicitly opening
-  References hides an unpinned Inspector, and opening Inspector hides References;
-  an explicitly pinned Inspector remains respected;
+- narrow Map and Reading show the most recently opened eligible panel; Pin does
+  not override this mutual exclusion. Replacing a panel preserves its open intent;
+- closing the active Reading panel does not automatically open the other panel;
+  returning to wide Map restores eligible open panels, respecting explicit Close;
 - resizing or changing presentation must preserve selection, pin preference,
   search/draft input, pending placement, and reconciliation state;
 - presentation changes never alter Project persistence or mutation identity.
@@ -367,9 +378,10 @@ coordinates remain clamped to the Canvas/workspace rectangle.
 - while a menu item owns focus, document-level Canvas shortcuts are consumed by
   the menu and must not change selection, history, clipboard, or save state behind
   the still-open target-specific command surface;
-- commands that open References/Inspector focus that panel, while an unpinned
-  Inspector removed by selection clearing restores a surviving trigger when its
-  focused descendant would otherwise be removed.
+- discovery/inspection commands focus their panel. Combined Markdown double-click
+  instead keeps the caret in the surface editor and invalidates older queued
+  panel focus requests. Hiding a panel whose descendant owns focus restores a
+  surviving trigger when appropriate.
 
 ## Selection and edge toolbars
 
@@ -403,18 +415,21 @@ Inspector. Dragging an endpoint or handle reconnects the same edge through its
 revisioned update operation. A pointer selection anchors the bounded toolbar near
 the actual click, clamped within the visible Canvas and clear of endpoint controls;
 keyboard/programmatic selection uses the endpoint-based fallback. Double-clicking
-a line/label opens Inspector, matching every committed card. Edit is an explicit
-action after selection or inspection.
+a line/label opens Inspector, as for references and attachments. Edge editing
+remains an explicit action after selection or inspection.
 
 A single click selects a committed card or edge and updates an already-open
-Inspector. A double-click opens Inspector for Markdown, references, attachments
-and edges alike. An unchanged existing editor in ordinary `editing` state exits
+Inspector. Markdown double-click starts the existing surface editor and opens
+Inspector alongside it after editing succeeds; the textarea retains focus and
+no additional card is created. Details remains read-only. Other card kinds and
+edges retain double-click inspection. An unchanged existing editor in ordinary `editing` state exits
 when the user starts a primary Canvas click or drag outside editor controls, then
 allows that same gesture to continue. The draft must exactly match its persisted
 content/metadata, and focus follows the new Canvas action. New or changed drafts,
 rejected saves, saving, uncertain and conflict outcomes keep their guards; pending
 operations, reloads, navigation decisions and modal controls are not dismissed.
-This follow-up leaves keyboard shortcut organization unchanged.
+The existing shortcut/help behavior is recorded in
+`PROJECT_SHORTCUT_INSPECTOR_ACCEPTANCE.md`.
 
 ## Unified command model
 
@@ -449,7 +464,8 @@ The following placement rules are frozen for Phase 5C implementation:
 | Add | Markdown, attachment, research-record entry | top-bar Add menu or exact-position blank-Canvas context menu |
 | References top-bar/context entry | search/discovery surface | left floating desktop non-modal panel |
 | Committed node or edge click | selection | local quick actions; update Inspector only if already open |
-| Committed card or edge double-click | inspection | open Inspector consistently; use an explicit Edit action to edit |
+| Committed Markdown double-click | editing and inspection | open the existing surface editor and Inspector together; retain textarea focus |
+| Committed reference/attachment or edge double-click | inspection | open Inspector; explicit Edit retains its existing behavior |
 | Selected node quick actions | frequent item commands | bounded toolbar above/adjacent to the selected node |
 | Blank Canvas context menu | exact-position creation, paste, select/fit, panel entry | pointer position clamped inside Canvas |
 | Node More / context menu | inspect/edit/open/copy/layer/remove as applicable | anchored to More or the pointer position |
@@ -580,8 +596,8 @@ The intended transformation is:
 
 - wide desktop: both side panels may float above the full Canvas simultaneously;
 - medium and narrower desktop above the functional Map boundary: panels remain
-  floating/non-modal and never resize Canvas; explicit panel opening prefers one
-  visible panel unless Inspector is explicitly pinned;
+  floating/non-modal and never resize Canvas; the most recently opened eligible
+  panel is visible, independently of either panel's Pin preference;
 - below the existing functional desktop-Map boundary: use Reading and its Add /
   edit / recovery entries, with ordinary modal containment for sheets and expanded
   editing; no mobile Map is introduced.
@@ -590,9 +606,10 @@ The current `560px`, `860px`, and `1180px` Project thresholds are starting
 baselines, not presumed final layout thresholds. Every changed threshold requires
 adjacent-boundary verification and must remain Project-local.
 
-Panel width, open/closed state, and pin preference may be remembered locally in
-the browser if useful. They are UI preferences and must not enter authoritative
-Project persistence, mutation identity, revision, or export.
+Panel open intent, Pin, Inspector disclosures and Reference search state are
+remembered within each Project session. Width follows the responsive CSS rules.
+These UI choices do not enter authoritative Project persistence, mutation
+identity, revision, or export.
 
 ## Phase ownership
 
@@ -620,7 +637,8 @@ Does not own:
 
 ### Phase 5C2 — panels and control hierarchy
 
-C2a owns:
+C2a established the following scope; PR #184 subsequently unified both panels'
+session state as specified above:
 
 - Research-record closed/open state and Inspector closed/temporary/pinned state;
 - left/right floating desktop non-modal panel presentation over the full Canvas;
@@ -678,8 +696,10 @@ does not add custom Reading order or mobile Canvas editing.
 
 ### Phase 5C4 — Project integration review
 
-Status: in progress after merged PRs #168/#169/#170. Current evidence and remaining
-acceptance limits are recorded in `PROJECT_C4_ACCEPTANCE.md`.
+Status: in progress at merged PR #185. The implemented keyboard, editor, panel
+and source-note refinements have deployed desktop evidence. Current results and
+the unverified device, viewport and workflow cases are recorded in
+`PROJECT_C4_ACCEPTANCE.md`; they are not a new shortcut implementation backlog.
 
 Owns only evidenced gaps after C1–C3:
 
@@ -725,13 +745,13 @@ Every Phase 5C implementation head must cover the relevant subset of:
 - empty Project, ordinary mixed-content Project, long-title Project, and the
   representative large Project;
 - Map and Reading;
-- References closed/open and Inspector closed/temporary/pinned where applicable;
+- both panels' explicit open/Close, temporary hiding and separate Pin states;
 - desktop Map page-scroll suppression, internal panel/status scrolling, and
   ordinary Reading/mobile document scrolling;
 - exact Reference drag, collision-aware click placement, and type filtering before
   the display cap with honest truncated/partial-result feedback;
-- explicit panel opening, separate Pin, narrow-panel preference, local toolbars,
-  body text selection, and title-triggered editing;
+- explicit panel opening, separate Pin, narrow-panel replacement, local toolbars,
+  body dragging, combined Markdown double-click and native Reading text selection;
 - shared expanded drafts, active-editor Save, correctable metadata failure,
   uncertain exact retry, and Reading/mobile Add;
 - single/bulk removal, partial/uncertain acknowledgement, Undo and Trash restore,

@@ -1,4 +1,17 @@
-## 2026-09-11 — Math rendering and cross-surface card audit
+## 2026-09-13 — Current Project refinement evidence
+
+Project refinements through merged PR #185 are deployed on the isolated v3
+integration site. The [current C4 record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
+owns exact build identity, CI evidence and the remaining acceptance matrix.
+It includes completed shortcut/command ownership, editing resize, Markdown
+composition, panel-state/dialog and source-focus refinements. At 1363 × 936,
+References and Inspector both measure 340px on Map and 380px in Reading, with
+matching 14px padding and 12px radius. The Sample note Referenced badge no longer
+intersects its timestamp; Delete note has 14px right clearance. Light and dark
+desktop checks passed. These measurements do not replace native-device or
+unverified viewport acceptance, or alter the frozen historical baseline below.
+
+## Historical 2026-09-11 — Math rendering and cross-surface card audit
 
 Follow-up to merged #167, prompted by Project Markdown displaying TeX source. This pass covers the shared renderer, Project Map/Reading/Inspector, Comment surfaces, Search controls, template/import cards, descriptions and confirmation dialogs.
 
@@ -18,7 +31,13 @@ Follow-up to merged #167, prompted by Project Markdown displaying TeX source. Th
 
 Validation: added renderer regressions for fractions, scripts, matrices/aligned, escaped delimiters, malformed TeX and protected code; mounted regressions cover complete Map/Inspector content past the old excerpt boundary, reading-key isolation, link double-click behavior, native text shortcuts in the actual ProjectPage, and compact Timeline scroll access. Existing representative Map performance and repository CI gates remain required. The representative performance fixture covers compact/overview and existing scale contracts; complex full-detail MathML layout still needs browser timing.
 
-The execution environment disconnected before implementation. Source edits were prepared through the repository connection; locked Marked 18.0.9 / Temml 0.13.3 parsing was exercised in an isolated JavaScript runtime. Local build and browser visual QA are **not yet verified**. Do not treat CI as evidence of actual viewport/MathML font layout. Review light/dark, narrow cards, wide formulas, 390px Reading and short dialogs when preview access returns.
+At that initial checkpoint, the execution environment disconnected before
+implementation; source edits were prepared through the repository connection
+and locked Marked 18.0.9 / Temml 0.13.3 parsing was exercised in an isolated
+JavaScript runtime. The then-pending build and browser checks were subsequently
+recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`, `PROJECT_C3_ACCEPTANCE.md` and
+`PROJECT_C4_ACCEPTANCE.md`. Preserve their specific versions and viewport
+limits; CI alone does not establish viewport or MathML font-layout acceptance.
 
 # Frontend implementation baseline
 

@@ -1,14 +1,31 @@
 # Inspector hierarchy and keyboard ownership
 
-Date: 2026-09-12. Implementation base: merged PR #174 at
+Reviewed: 2026-09-13. Original implementation base: merged PR #174 at
 `4da00e06f9a5d18a1bfb022a5b4375e692fba7ed`.
 
 ## Current acceptance status
 
-PR #175 and follow-up fixes #176–#178 are merged into `v2/backend-foundation` at
+PR #175 and follow-up fixes #176–#178 are merged and their recorded desktop
+shortcut/help checks passed. The shortcuts are already implemented and do not
+need another implementation pass. PR #180 subsequently completed deployed
+desktop acceptance of active-editor resizing and large-card editor height;
+#183 verified native Space activation within panels and pointer access to
+Reading menus. PR #184 unified panel state and made Markdown double-click
+open the card editor and Inspector together; explicit Details remains read-only.
+
+Current integration is PR #185 merge
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`. Exact CI/deployment identity,
+the completed follow-ups and remaining C4 boundaries are recorded in
+[Project C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+The historical results below belong to their named build, not a new execution
+of the shortcut suite on this documentation update. Phase 5C4 remains in
+progress and Phase 5D has not started.
+
+## Historical desktop acceptance — PR #175–#178
+
+These checks used integration commit
 `791f00073ee69f4ce2c59a377705fe3faee61423`. Verify and Project Map performance
-passed on that exact integration commit. The production assets and CI evidence
-are recorded in [Project C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-12).
+passed on that exact commit.
 
 In the earlier check on 2026-09-12, an authenticated browser reloaded the synthetic QA Project at
 `1363 × 936`. The inspected deployment served `index-BkL0387N.js`, rather than
@@ -42,12 +59,11 @@ resizing also passed pointer checks. The compact result table and observed
 placement-conflict recovery are recorded in the
 [C4 desktop browser results](./PROJECT_C4_ACCEPTANCE.md#desktop-browser-results).
 
-The user additionally requested resizing the current card while editing and
-letting large-card textarea/Preview areas use the available height. The code now
-supports both; existing-card size uses placement history, while new-note size
-stays local until creation. The refinement is not yet deployed or browser-accepted.
-Full interaction and device acceptance
-remains open: Phase 5C4 is in progress and Phase 5D has not started.
+At the time of these checks, resizing the current card while editing and
+letting large-card textarea/Preview areas use the available height were new
+requirements. Both were implemented and later accepted on PR #180's deployed
+build. Existing-card size uses placement history, while new-note size stays
+local until creation. Full interaction and device acceptance remains open.
 No manual deployment, migration, or remote configuration change was performed.
 
 ## Product changes
@@ -96,8 +112,8 @@ or geometry write was needed for this inspection.
 
 ## Remaining browser acceptance
 
-Validate the new editing-state resize and large-card editor layout after its
-deployment. The desktop draft/Control+S/Escape/Cancel,
+Editing-state resize and large-card editor layout passed PR #180's desktop
+deployment checks. The desktop draft/Control+S/Escape/Cancel,
 Control+A/Delete isolation, native copying, and More actions checks passed
 above; macOS Command shortcuts and the remaining Canvas commands under help
 are still unverified in the browser.

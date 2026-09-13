@@ -1,7 +1,13 @@
 # Project card gestures and live workflow acceptance
 
-Date: 2026-09-12. Follow-up to the authenticated Cloudflare inspection and the
-user's request for intuitive selection, dragging, editing and realistic records.
+Updated: 2026-09-13. Current integration baseline: PR #185, merge
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`. The contract below includes PR #180's
+active-editor resize and PR #184's combined Markdown activation. Historical
+2026-09-12 browser evidence is retained under its original scope.
+
+See the [current C4 integration record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
+for deployed desktop acceptance and remaining wide-screen, physical-device and
+large-Project checks. C4 remains in progress; Phase 5D has not started.
 
 ## Interaction contract
 
@@ -9,10 +15,11 @@ user's request for intuitive selection, dragging, editing and realistic records.
 | --- | --- |
 | Single click on a committed card or edge | Select it and show nearby actions. An already-open Inspector follows the selection; this gesture does not open it. |
 | Press and move | Drag from any non-interactive area, including Markdown text, mathematical content, blank space, reference excerpts and attachment images. No preliminary selection click is needed. |
-| Double-click a committed card or edge | Open its Inspector, subject to the existing panel lock. Markdown, reference, attachment and edge use the same inspection gesture. Editing starts through an explicit Edit action. |
+| Double-click a committed Markdown card | Start its existing surface editor and open Inspector alongside it, subject to the edit/panel guards. The textarea retains focus; no extra card is created. Details remains read-only. |
+| Double-click a committed reference, attachment or edge | Open its Inspector, subject to the existing panel lock. Editing remains an explicit Edit action where available. |
 | Primary click or drag in Canvas while an existing editor is unchanged | Exit the clean editor and perform that same click or drag. This requires the editable draft to exactly match its existing persisted content; editor inputs and controls keep their own interaction. |
 | Click an edge | Place its action toolbar near the actual click, clamped inside the visible Canvas and clear of endpoint controls. Keyboard/programmatic selection uses the endpoint-based fallback. |
-| Any committed card's bottom-right corner | Drag the always-visible triangular border corner to resize directly, without selecting first. The 18-unit corner scales with the card, follows its 12-unit outer radius and stays clear of content/source links. Only that card resizes; selection is preserved. Editing and geometry locks disable this operation. |
+| Any committed card's bottom-right corner | Drag the always-visible triangular border corner to resize directly, without selecting first. The 18-unit corner scales with the card, follows its 12-unit outer radius and stays clear of content/source links. Only that card resizes; selection is preserved. The active Markdown card remains resizable during ordinary Canvas or Inspector editing; unresolved saves and other geometry locks retain their guards. |
 | Arrow keys with the resize grip focused | Adjust width/height by 5 canvas units, or 20 with Shift. Preserve position and layer, respect existing dimension limits, and retain Save/Undo/Redo. |
 | Link, editor, resize grip or connection handle | Keep its own operation; do not start card movement or double-click inspection. |
 | Scroll a long note | Scroll its contents. Arrow/Page/Home/End keys retain scrolling when its reading region has focus. |
@@ -22,15 +29,23 @@ user's request for intuitive selection, dragging, editing and realistic records.
 An acknowledgement for one card no longer replaces the transient position of
 another card during its active drag. The same projection rule preserves active
 resize dimensions while accepting fresh content and selection. Deleted,
-replaced, pending, locked or edited nodes do not retain stale pointer geometry.
+replaced, pending or otherwise locked nodes do not retain stale pointer geometry.
+
+PR #180 permits resizing the active Markdown editor without losing its text.
+Existing-card size changes use placement autosave/history; Cancel discards the
+text draft while Undo after editing restores size. New-note dimensions stay
+local until creation. Save, Cancel and Expand wait for an active resize, and
+gesture cancellation or unmount releases the resize lock.
 
 Clean-editor handoff applies only to an existing Markdown, attachment metadata or
 edge editor in the ordinary `editing` state. New or changed drafts, rejected saves,
-saving, uncertain and conflict states keep their selection and geometry guards.
+saving, uncertain and conflict states cannot use this handoff; they retain their
+editing session and operation guards, including the allowed Markdown resize above.
 Pending operations, reloads, navigation decisions and modal controls cannot be
 cleared by clicking the Canvas. Handoff performs no content write and keeps focus
 with the new Canvas action instead of returning it to the former Edit trigger.
-This follow-up does not add or reorganize keyboard shortcuts.
+The existing shortcut implementation is recorded in
+[shortcut acceptance](./PROJECT_SHORTCUT_INSPECTOR_ACCEPTANCE.md).
 
 ## Reference mathematics
 
@@ -42,7 +57,7 @@ remain plain text. The Map does not truncate the Markdown summary a second time.
 Content that cannot fit safely is read through Open source. These previews stay
 inside the existing card dimensions and renderer lazy-loading boundaries.
 
-## Browser verification against the existing Cloudflare deployment
+## Historical browser verification — 2026-09-12, before the gesture repairs
 
 Created an isolated `QA · Canvas interaction · 2026-09-12` Project and a
 `QA-CANVAS-20260912` Sample, both explicitly marked as synthetic fixtures.
@@ -61,12 +76,11 @@ The pre-existing Doping Project was not changed by this workflow.
   cards and the labelled directed edge were restored.
 - No application errors were reported by the browser's filtered error log.
 
-This browser pass used the existing deployed frontend. It validates the actual
-backend workflow and supplies reproduction evidence, not proof that the new
-gestures have been deployed. Post-deployment verification must repeat body drag,
-double-click inspection, explicit editing, clean-editor handoff, near-click edge
-actions and drag-during-save on the new served assets. The historical browser
-observations above remain evidence for the deployment tested at that time.
+This browser pass used the then-deployed frontend. It validated the actual
+backend workflow and supplied reproduction evidence; it did not establish
+deployment of the subsequent gesture repairs. Their later deployed checks and
+remaining acceptance are recorded in [C4 acceptance](./PROJECT_C4_ACCEPTANCE.md).
+These observations apply only to the deployment tested at that time.
 
 ## Regression evidence
 
@@ -79,11 +93,12 @@ controls expose four keyboard-operable icon radio buttons instead of a select.
 Connection ports are siblings of the clipped article, and source actions are
 bottom-centered; native connection and card gesture regressions remain applicable.
 
-Live inspection of the deployed #173 assets confirmed article overflow/clip-path
-cuts the outer half of each connection port. The follow-up assets and bounded
-2K/4K layout still require post-deployment visual acceptance; the available browser
-viewport is 1363×936, so mounted coverage is not claimed as a physical large-screen
-or mobile visual test.
+Historical inspection of the deployed #173 assets confirmed article
+overflow/clip-path cut the outer half of each connection port. Follow-up assets
+were still awaiting deployment in that inspection. Later desktop checks are
+recorded in C4; bounded 2K/4K layout and physical-device acceptance remain open.
+The available browser viewport was 1363×936, so mounted coverage is not claimed
+as a physical large-screen or mobile visual test.
 
 Real ReactFlow mounted tests cover body/image/reference dragging, double-click
 ownership, native links and editor input, keyboard ownership, resize, mouse and
@@ -95,7 +110,7 @@ multi-drag, resize and replacement/lock boundaries.
 Full-suite and build results are recorded in the pull request. The existing
 deployment gate and activation requirements still apply.
 
-## Dedicated resize grip follow-up
+## Historical resize grip follow-up — PRs #172–#174
 
 The authenticated Cloudflare page reproduced the resizing difficulty: selected
 cards exposed four 9px corner targets, partly clipped by the card, alongside
@@ -120,11 +135,11 @@ The Projects directory displays Created from `createdAt` and Updated from
 `updatedAt`, in equal-width, left-aligned date columns. Small screens show a
 label with each date. Revision remains an internal concurrency parameter.
 
-Browser evidence for this follow-up currently covers reproduction on the
-existing deployment. The new grip still requires post-deployment browser
-verification, including zoomed-out hit targets and nearby links/connection
-handles. Mounted touch coverage does not establish physical mobile acceptance
-or change the existing Reading-only mobile scope.
+At this follow-up's original review, browser evidence covered reproduction on
+the preceding deployment. Subsequent desktop grip and active-editor resize
+checks are recorded in C4 and [PR #180](https://github.com/BeiqiD/sample-fabrication-workflow/pull/180).
+Mounted touch coverage does not establish physical mobile acceptance or change
+the existing Reading-only mobile scope.
 
 ## Additional merge review
 

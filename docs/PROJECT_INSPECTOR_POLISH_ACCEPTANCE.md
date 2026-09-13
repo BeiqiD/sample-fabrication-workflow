@@ -1,7 +1,23 @@
 # Project panel continuity and hierarchy
 
-Baseline: PR #181, integration commit
+Reviewed: 2026-09-13. Original implementation baseline: PR #181, integration commit
 `1830927b33e2c6b82e6104cc50511cdba04290f7`.
+
+## Current acceptance status
+
+[PR #182](https://github.com/BeiqiD/sample-fabrication-workflow/pull/182) deployed
+the dialog, disclosure retention and typography changes. Its browser acceptance
+found two additional interaction defects, both fixed and accepted after
+[PR #183](https://github.com/BeiqiD/sample-fabrication-workflow/pull/183) deployed.
+PR #184 subsequently applied the shared session/pinning rules to both panels.
+PR #185 unified their widths and corrected referenced Sample-note layout.
+
+The measurements and findings below are historical observations on PR #182.
+Current Map panels both measure `340px` at the tested desktop viewport, and
+Reading panels each measure `380px`. Current build identity, CI and the scoped
+desktop results are in the
+[C4 integration record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+Responsive and physical-device acceptance remains open.
 
 ## Observed defects
 
@@ -46,11 +62,12 @@ Local gate results, independent review, exact integration build and deployed
 browser acceptance are recorded on the associated PR. Browser checks use only
 the named synthetic QA Project and discard temporary drafts.
 
-## Browser follow-up after PR #182
+## Historical browser follow-up after PR #182
 
 The deployed dialog passed light/dark visual checks, initial focus and
 Stay/Escape draft preservation. Panel sizes were 320px for References and 340px
-for Inspector, with no horizontal overflow. Peer disclosure headings measured
+for Inspector, with no horizontal overflow; those unequal widths were later
+superseded by PR #185. Peer disclosure headings measured
 13px, metadata labels 12px and values 13px. Expanded choices survived card
 switches, explicit close/reopen and Reading replacement; explicit Close did not
 reopen on single selection.
@@ -66,3 +83,18 @@ Two interaction issues were found and corrected in the follow-up:
   center, browser hit testing reached Inspector instead of the menu button.
   Reading uses panel layer 8 and toolbar layer 9, below the global header 10
   and modal backdrop 46. The content workspace remains isolated underneath.
+
+## Follow-up acceptance — PR #183
+
+PR #183 merged as `0b05cf156f80b298e85609c0d46dcfdb8054070b` after all four
+Verify checks and 14 statuses passed; both postmerge Verify jobs and all 14
+statuses also passed. Automatic Workers Build
+`bb505823-3584-418e-b5a4-1ed2d7b30215` succeeded, version
+`3e3e6c54-e97e-4708-9bca-17ee825ac6c0`. The deployed browser served its exact
+CI entry `index-G3Xso3bC.js`.
+
+On the named synthetic QA Project, native Space opened Inspector Details and
+References More. Reading Add → Reference passed hit testing at the button
+center; an actual pointer click opened References and replaced Inspector.
+These checks needed no content writes or temporary drafts. They close the two
+observed PR #182 interaction findings, within the recorded desktop scope.

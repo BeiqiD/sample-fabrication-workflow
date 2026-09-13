@@ -1,19 +1,29 @@
 # Architecture audit remediation
 
-Reviewed: 2026-09-12
+Audit reviewed: 2026-09-12. Status reconciled: 2026-09-13.
 
 The audit baseline is PR #175 head
 `352b3f7705051e6a664ab1a0e01a6d64cc140ad3`. Its complete tree was reviewed across
 the Project and source-record frontend, Worker, Reference, storage, migrations,
 export and delivery checks. The user then authorized the concrete repairs below.
 
-## Repair scope
+## Completed repair scope
 
-The repair sequence contains three reviewable groups: Project consistency,
-source input/edit/upload recovery, and verification plus architecture planning.
-They build on the Inspector/shortcut baseline without changing its visual scope.
-No schema or provider migration is required. Existing Phase 5C4 browser/device
-acceptance remains open.
+All three repair groups merged into `v2/backend-foundation` on 2026-09-12:
+
+| Repair group | Merged PR | Merge commit |
+| --- | --- | --- |
+| Project consistency | [#176](https://github.com/BeiqiD/sample-fabrication-workflow/pull/176) | `ce834f9073e8421fb13ce21568546bea2849d4ba` |
+| Source input/edit/upload recovery | [#177](https://github.com/BeiqiD/sample-fabrication-workflow/pull/177) | `83616c6bf96d8bc07e35460e67697b0bcf99e1d4` |
+| Verification and architecture planning | [#178](https://github.com/BeiqiD/sample-fabrication-workflow/pull/178) | `791f00073ee69f4ce2c59a377705fe3faee61423` |
+
+They build on the Inspector/shortcut baseline without changing its visual scope
+or requiring a schema/provider migration. Current integration is PR #185 merge
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`; deployed desktop evidence and remaining
+wide-screen, physical-device and large-Project checks are in the
+[current C4 record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+Phase 5C4 remains in progress; Phase 5D has not started. The larger Phase 6A
+ownership changes below remain scheduled after Phase 5F.
 
 | Finding | Repair boundary | Required regression evidence |
 |---|---|---|
@@ -59,13 +69,13 @@ after Phase 5F:
   large Project through the end of a multi-card save before changing write
   concurrency.
 
-The audit found all 34 current business tables represented in complete export;
+The audit found all 34 business tables at its baseline represented in complete export;
 the new coverage gate protects future changes rather than repairing known data
 omission. The current single Worker, normalized Project model, stable source and
 occurrence identities, atomic D1 batches and shared blob-retention rules remain
 the architecture baseline.
 
-## Verification record
+## Historical verification record — integrated #176–#178 repair workspace
 
 The integrated repair workspace passed:
 
@@ -85,7 +95,8 @@ The integrated repair workspace passed:
 
 The common profile was completed in stages after the test type correction;
 checks already passed were retained, then the affected test and build/artifact
-checks were rerun. CI evaluates each published repair head independently.
+checks were rerun. Each published repair head then had its independent CI gate;
+the merged repair and later deployment evidence is retained in C4.
 Passing jsdom or local workerd checks does not establish remote
 deployment, device usability, disaster recovery or measured browser frame rate.
 The PR descriptions record the exact head, executed commands and results for

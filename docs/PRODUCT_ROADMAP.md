@@ -2,11 +2,11 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-12 after C2b.2/C2b.3 merged in PR #168, C3 merged in
-PR #169, and the card-gesture and mathematical-reference follow-up merged in
-PR #170. C4 integration acceptance is in progress in `PROJECT_C4_ACCEPTANCE.md`.
-The 2026-09-12 repository audit repair scope and deferred ownership work are
-recorded in `ARCHITECTURE_AUDIT_REMEDIATION.md`.
+Last reviewed: 2026-09-13 against merged PR #185, integration commit
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`. Project refinements through #185
+are merged and deployed; C4's wider acceptance remains in progress in
+`PROJECT_C4_ACCEPTANCE.md`. The repository audit repairs merged in #176–#178;
+their deferred ownership work remains in `ARCHITECTURE_AUDIT_REMEDIATION.md`.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -554,8 +554,9 @@ After the freeze:
 **Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 have merged through
-PRs #166/#168/#169, with the gesture and mathematical-reference follow-up in
-PR #170. C4 integration acceptance is in progress.
+PRs #166/#168/#169. Project refinements through #185 are merged and deployed;
+C4 integration acceptance remains in progress for the explicitly unverified
+workflow, viewport and physical-device cases.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -597,14 +598,23 @@ extends that slice to safe editing, placement, endpoint reconnection and recover
 see the implementation plan for its bounded exceptions to the earlier freeze.
 C3 implements Reading detail composition and modal mobile panels; its automated
 and browser evidence is recorded in `PROJECT_C3_ACCEPTANCE.md`. The PR #170
-follow-up is recorded in `PROJECT_CARD_GESTURE_ACCEPTANCE.md`. C4 is now checking
-the integrated Project workflow and served version, with results and remaining
-limits in `PROJECT_C4_ACCEPTANCE.md`. Existing identity, source hierarchy and
-performance contracts continue to govern this review.
+follow-up is recorded in `PROJECT_CARD_GESTURE_ACCEPTANCE.md`. C4 records the
+integrated Project workflow and served version, with results and remaining limits
+in `PROJECT_C4_ACCEPTANCE.md`. Shortcuts and help were delivered in #175; #176 and
+#183 corrected history availability and native panel key ownership. They are
+implemented baseline behavior, not an unstarted work item. Subsequent refinements
+cover editing resize (#180), Markdown composition (#181), the leave dialog and
+Inspector disclosures (#182/#183), shared panel state and combined Markdown
+double-click (#184), and equal panel widths plus Sample note source-focus layout
+(#185). Desktop browser evidence is recorded per deployed version; physical OS
+IME, wider device/viewport and other unverified C4 cases remain explicit. Existing
+identity, source hierarchy and performance contracts continue to govern this review.
 
 The previously planned attachment/media, source-record/directory, and
 cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
-respectively; its product scope is unchanged.
+respectively; its product scope is unchanged. The next implementation slice
+after C4 acceptance is **Phase 5D — attachment and media surfaces**. Phase 5D
+has not started; Phase 6A architecture extraction remains after Phase 5F.
 
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
