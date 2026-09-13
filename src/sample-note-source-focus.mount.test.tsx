@@ -52,10 +52,13 @@ function mountSourceNavigation() {
 }
 
 async function noteArticle(note: CommentSubmission) {
-  const body = await screen.findByText(note.body);
-  const article = body.closest("article");
-  if (!article) throw new Error(`Note ${note.id} did not render in an article`);
-  return article;
+  // Resolve the ancestor before yielding: the lazy rich-text renderer can replace
+  // its fallback text node while findByText's promise is settling.
+  return waitFor(() => {
+    const article = screen.getByText(note.body).closest("article");
+    if (!article?.isConnected) throw new Error(`Note ${note.id} did not render in a connected article`);
+    return article;
+  });
 }
 
 describe("Sample note Open source navigation", () => {
