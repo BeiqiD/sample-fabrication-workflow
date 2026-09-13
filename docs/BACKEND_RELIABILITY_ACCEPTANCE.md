@@ -1,7 +1,8 @@
 # Backend reliability and stabilization acceptance
 
 Status: Phase 6A1 recovery and scale baseline implemented; export and placement
-and Sample split repairs merged; Worker ownership extraction is implemented.
+and Sample split repairs merged; Worker ownership and shared-contract separation
+are merged. Canonical Comment reader conversion is implemented without schema changes.
 Newly deployed browser checks remain open while the browser connection is unavailable.
 
 Last updated: 2026-09-13
@@ -198,6 +199,16 @@ and Worker serializers use the same response contracts. Independent review
 confirmed identical generated runtime code, preserving accepted inputs, output
 shapes and public retry semantics.
 
+Worker ownership merged in [PR #191](https://github.com/BeiqiD/sample-fabrication-workflow/pull/191)
+and [PR #192](https://github.com/BeiqiD/sample-fabrication-workflow/pull/192).
+Shared contracts and permanent dependency gates merged in
+[PR #193](https://github.com/BeiqiD/sample-fabrication-workflow/pull/193),
+merge `d2ff199134df161bd122c61529fbffafa084ffdb`, tree
+`6d59650dcd0531374aef6009f9be28336a28d1fd`. Each final head passed all
+4 Verify checks and 14 commit contexts. The combined module/contract local gates
+passed all 11 leaves, with 1030 source and 467 mounted tests. This evidence does
+not complete the interrupted deployed browser checks.
+
 ## Compatibility and migration boundaries
 
 `samples.process_revision` has no explicit runtime or test readers/writers; it
@@ -206,9 +217,15 @@ the entire Sample row, so its removal still changes the archive schema and needs
 an explicit schema/compatibility slice.
 
 `run_step_comments.body` remains authoritative for legacy occurrences without a
-submission ID, and is duplicated for canonical submissions. Sample detail,
-legacy timeline summaries, Reference resolution/search and export still read it;
-legacy creation and canonical finalization still write it. The Execution grid
+submission ID, and is duplicated for canonical submissions. The first compatible
+reader conversion now selects canonical text from `comment_submissions` in
+Sample detail, legacy lifecycle summaries and Reference occurrence resolution.
+Empty canonical text stays empty; a missing canonical parent does not authorize
+a fallback to stale duplicated text. Legacy search and legacy-only records keep
+their existing body owner. Export stays schema 7 with the exact original physical
+fields, including nonzero retired counters and duplicated bodies. Legacy creation
+and canonical finalization still write the existing columns. Nine real Worker/SQLite
+regressions and the complete 11-leaf gate verify this read-only schema bridge. The Execution grid
 still chooses legacy Comment/image deletion when `submissionId` is absent.
 Convert every applicable reader/writer and preserve legacy content, occurrence
 IDs, group semantics and deletion provenance before dropping the column.
@@ -250,10 +267,10 @@ migration fixtures may live outside the active Wrangler migration directory.
 - [x] Repair B3 in a separate correctness PR before Sample extraction, including
   ordered inherited images, concurrent state registration and transaction rollback.
   Deployed image/split browser acceptance remains a separate open item.
-- [ ] 6A2: extract Sample; Execution; legacy Evidence; process/metrology templates;
+- [x] 6A2: extract Sample; Execution; legacy Evidence; process/metrology templates;
   import/assets/export; then review Project settlement, maintenance and the final
   composition root in independently reviewable slices.
-- [ ] 6A3: consolidate Template DTOs, then finish contracts/domain ownership and
+- [x] 6A3: consolidate Template DTOs, then finish contracts/domain ownership and
   enforce dependency direction without introducing a catch-all shared package.
 - [ ] 6A4: review compatibility consumers, convert them, prove behavior, and only
   then apply separately reviewed schema cleanup.

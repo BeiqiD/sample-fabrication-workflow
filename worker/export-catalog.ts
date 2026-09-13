@@ -1,7 +1,11 @@
 // The full-system export inventories every canonical application table and
 // the retention projection in stable order within one D1 snapshot batch.
 export const FULL_EXPORT_TABLE_QUERIES = {
-  samples: "SELECT * FROM samples ORDER BY created_at, id",
+  // Freeze these physical fields for schema 7 while compatibility readers are
+  // deployed. Future bridge columns require the negotiated archive upgrade.
+  samples: `SELECT id, code, title, description, status, location, parent_id, pinned,
+    process_revision, created_by, updated_by, last_mutation_id, created_at, updated_at,
+    inherited_state_hash, deleted_at, deleted_by FROM samples ORDER BY created_at, id`,
   events: "SELECT * FROM events ORDER BY created_at, id",
   recipe_families: "SELECT * FROM recipe_families ORDER BY created_at, id",
   step_definitions: "SELECT * FROM step_definitions ORDER BY hash",
@@ -14,7 +18,11 @@ export const FULL_EXPORT_TABLE_QUERIES = {
   run_plan_revisions: "SELECT * FROM run_plan_revisions ORDER BY run_id, revision_no",
   run_steps: "SELECT * FROM run_steps ORDER BY run_id, position",
   run_step_plan_links: "SELECT * FROM run_step_plan_links ORDER BY run_plan_revision_id, template_step_id",
-  run_step_comments: "SELECT * FROM run_step_comments ORDER BY run_step_id, created_at, id",
+  run_step_comments: `SELECT id, run_step_id, scope, operation_group_id, body, asset_id,
+    actor_email, created_at, submission_id, updated_at, updated_by, deleted_at,
+    deleted_by, asset_deleted_at, asset_deleted_by, last_mutation_id,
+    deletion_operation_id, asset_deletion_operation_id
+    FROM run_step_comments ORDER BY run_step_id, created_at, id`,
   run_step_assets: "SELECT * FROM run_step_assets ORDER BY run_step_id, role, position",
   state_verifications: "SELECT * FROM state_verifications ORDER BY sample_id, created_at, id",
   state_verification_steps: "SELECT * FROM state_verification_steps ORDER BY verification_id, ordinal",
