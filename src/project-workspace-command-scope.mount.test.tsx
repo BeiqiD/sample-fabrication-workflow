@@ -67,7 +67,14 @@ describe("Project workspace command scope", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Move fixture" }));
     fireEvent.click(screen.getByRole("button", { name: /^Save$/ }));
     await screen.findByText("Saved");
+    // Saved can render before useBlocker registers its updated callback. Flush
+    // passive effects so this navigation exercises the settled Project state.
+    await act(async () => { await Promise.resolve(); });
     await act(async () => { await router.navigate("/projects/project-b"); });
+    expect(router.state.location.pathname).toBe("/projects/project-b");
+    expect(fetchMock.mock.calls.filter(([path, init]) => (
+      String(path) === "/api/projects/project-b" && !init?.method
+    ))).toHaveLength(1);
     await screen.findByText("Loading Project…");
     fireEvent.keyDown(document.body, { key: "z", ctrlKey: true });
     fireEvent.keyDown(document.body, { key: "s", ctrlKey: true });

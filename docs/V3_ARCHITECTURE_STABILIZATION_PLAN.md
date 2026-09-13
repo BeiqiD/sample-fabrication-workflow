@@ -1,8 +1,9 @@
 # V3 architecture stabilization plan
 
-Status: prioritized backend track under the 2026-09-13 route revision; begin
-with current-state inventory and reliability verification before new frontend
-refinement. This document update does not claim implementation has started.
+Status: backend reliability work is underway under the 2026-09-13 route revision.
+The inventory, isolated recovery rehearsal, scale measurements and independently
+merged fixes are tracked in [Backend reliability acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md).
+New frontend refinement remains paused while this backend track proceeds.
 
 Last reviewed: 2026-09-13 for the user-authorized backend-first execution order
 
