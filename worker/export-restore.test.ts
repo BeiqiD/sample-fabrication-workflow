@@ -20,6 +20,9 @@ import type { Env } from "./types";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const migrationsDirectory = join(root, "migrations");
+// Each case migrates the full schema and handles real ZIP bytes. Shared CI
+// runners can exceed the unit-test default even on rejection paths.
+const RECOVERY_TEST_TIMEOUT = 15_000;
 const ACTOR = "restore-fixture@example.test";
 const NOW = "2026-08-09T23:00:00.000Z";
 const geometry = { x: 0, y: 0, width: 320, height: 180, zIndex: 0 };
@@ -101,8 +104,6 @@ describe("isolated full export recovery rehearsal", () => {
   afterEach(async () => { await rm(scratch, { recursive: true, force: true }); });
   const options = (scratch: string, archivePath: string, suffix = "destination") => ({ archivePath, destination: join(scratch, suffix), migrationsDirectory });
 
-  // This round trip migrates two databases and builds two archives. Give that
-  // bounded integration work its own budget under a shared CI runner's load.
   it("restores canonical, legacy, history, deleted Project, managed, quarantine and missing-byte state then reexports it", async () => {
     const source = await fixture();
     try {
@@ -142,7 +143,7 @@ describe("isolated full export recovery rehearsal", () => {
       } finally { restored.close(); }
       expect(hash(await readFile(archivePath))).toBe(inputHash);
     } finally { source.database.close(); }
-  }, 15_000);
+  }, RECOVERY_TEST_TIMEOUT);
 
   it("reconstructs genuine expired edges even when they expired before the export response timestamp", async () => {
     const source = await fixture();
@@ -165,7 +166,7 @@ describe("isolated full export recovery rehearsal", () => {
       expect(restored.report.expiredRetentionEdges).toEqual([expect.objectContaining({ occurrence_id: "reference-execution-image",
         retention_reason: "deleted_run_step_asset_grace", retain_until: "2026-09-02T00:00:00.500Z" })]);
     } finally { source.database.close(); clock.close(); }
-  });
+  }, RECOVERY_TEST_TIMEOUT);
 
   it.each(["row count", "table catalog", "blob hash", "warnings", "duplicate path", "foreign key", "project relation", "historical edge", "unsafe path"])(
     "rejects %s corruption and removes every partial destination", async (kind) => {
@@ -225,6 +226,7 @@ describe("isolated full export recovery rehearsal", () => {
         expect(await readdir(scratch)).toEqual(["corrupt.zip"]);
       } finally { source.database.close(); }
     },
+    RECOVERY_TEST_TIMEOUT,
   );
 
   it.each(["CRC", "duplicate directory entry", "shadowed unsafe entry"])("rejects raw ZIP %s corruption", async (kind) => {
@@ -261,7 +263,7 @@ describe("isolated full export recovery rehearsal", () => {
       await expect(restoreExportToIsolatedDirectory(target)).rejects.toThrow(message);
       await expect(stat(target.destination)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { database.close(); }
-  });
+  }, RECOVERY_TEST_TIMEOUT);
 
   it("refuses existing and symlink destinations and exercises the public local CLI", async () => {
     const database = referenceTestDatabase();
@@ -281,5 +283,5 @@ describe("isolated full export recovery rehearsal", () => {
         "--archive", path, "--destination", join(scratch, "cli-destination")], { cwd: root });
       expect(JSON.parse(cli.stdout).report.verification.rowsEqual).toBe(true);
     } finally { database.close(); }
-  });
+  }, RECOVERY_TEST_TIMEOUT);
 });
