@@ -80,6 +80,17 @@ deleted    provider deletion or confirmed absence was finalized
 `managed_storage_objects.status` remains a compatibility projection during this
 slice. The ledger is authoritative when the two are interpreted for GC.
 
+Under [FP1d](./FP1_FENCED_BYTE_DELETION.md), provider failure or an unknown DELETE
+result retains `deleting`. The stable operation ID and exact attempt count/claim
+timestamp protect retries against stale executors. New GC errors use fixed
+redacted diagnostics; pre-existing historical error text is not rewritten.
+
+These guarantees require FP1d-compatible maintenance executors. Drain older
+executions before relying on the new fence; deploying an older binary restores
+its earlier failure behavior. GitHub deployment/browser acceptance does not
+certify that drain or remote GC. See the
+[rollout boundary](./FP1_FENCED_BYTE_DELETION.md#rollout-and-old-executors).
+
 ### Integrity quarantine
 
 `blob_integrity_quarantine` records a definite provider-level absence or byte-size
@@ -125,9 +136,10 @@ Recovery is retention-first but publication remains dependency-complete:
    asset in `fabublox_import_asset_dependencies`, including standalone shared
    state images and final workbook/manifest keys.
 
-R2 deletion therefore uses the existing retryable orphan/deleting operation-ID
-queue, including retry after provider failure. Import ownership alone is never
-deletion authority.
+R2 deletion therefore uses the operation-ID queue after orphan grace. A provider
+failure keeps the claimed locator `deleting` for guarded reconciliation; it does
+not return the locator to reuse. Import ownership alone is never deletion
+authority.
 
 ## Terminal locator rule
 
@@ -332,9 +344,14 @@ in `blob_integrity_quarantine` and is not returned as a reusable winner.
 
 ### Stale `deleting` claim
 
-The scheduled worker may reclaim a stale claim with the same operation ID and
-repeat the idempotent provider delete. Do not assign a new edge to the locator
-or manually remove the claim.
+The scheduled worker may reclaim a stale claim with the same operation ID and a
+new attempt count/claim timestamp. It checks the same provider instance/key:
+confirmed absence can finalize without DELETE; available bytes permit a repeated
+idempotent DELETE; denied or unavailable inspection keeps `deleting`. Both
+completion and failure recording must match the new attempt. The existing
+15-minute lease is an eligibility boundary, not a promise that the daily executor
+runs then. Do not assign a new edge, demote the claim to `orphaned`, or manually
+remove it. Repair provider access and let the normal guarded operation reconcile.
 
 ### Large orphan backlog
 
@@ -426,4 +443,4 @@ A provider outage increments `staleImportRecoveryFailures` without claiming the 
 
 ## Registration response-loss diagnostics
 
-A response-loss retry that finds its exact stable record returns the original non-deduplicated success and leaves the provider key intact. A retry that finds a different verified winner may delete only the newly uploaded redundant key. Fault-injection coverage exists for ordinary R2 assets, Comment images, and SWITCHdrive Comment attachments.
+A response-loss retry that finds its exact stable record returns the original non-deduplicated success and leaves the provider key intact. A retry that finds a different verified winner leaves the registered redundant candidate for ordinary guarded GC; it does not delete provider bytes inline. Fault-injection coverage exists for ordinary R2 assets, Comment images, and SWITCHdrive Comment attachments. FP1d further keeps uncertain GC deletion claimed until reconciliation and fences every completion/error update against stale attempts.

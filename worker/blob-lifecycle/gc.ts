@@ -1,21 +1,48 @@
 import type { Env } from "../types";
+import { ByteDeletionError } from "../files/byte-deleter";
+import type { BlobLifecycleDatabase } from "./gc-database";
 import {
+  type BlobDeletionClaim,
   BLOB_ORPHAN_GRACE_MS,
   BLOB_REGISTRATION_GRACE_MS,
   claimBlobDeletion,
   markOrphanCandidate,
   reclaimBlobDeletion,
 } from "./reachability";
-import { removeBlob } from "./storage";
+import { removeBlob, statBlob, type BlobStatResult } from "./storage";
 import type { BlobLocator } from "./types";
+
+export interface BlobGarbageCollectionDependencies {
+  db: BlobLifecycleDatabase;
+  storage: {
+    remove(locator: BlobLocator): Promise<void>;
+    stat(locator: BlobLocator): Promise<BlobStatResult>;
+  };
+  newOperationId(): string;
+}
+
+type DeletionFailureCode =
+  | "deletion_unavailable"
+  | "deletion_denied"
+  | "deletion_invalid_locator"
+  | "deletion_confirmation_unavailable"
+  | "deletion_claim_changed";
+
+function deletionFailureCode(error: unknown): DeletionFailureCode {
+  if (error instanceof ByteDeletionError) {
+    if (error.reason === "denied") return "deletion_denied";
+    if (error.reason === "invalid_locator") return "deletion_invalid_locator";
+  }
+  return "deletion_unavailable";
+}
 
 const GC_BATCH_SIZE = 100;
 const DELETION_CLAIM_LEASE_MS = 15 * 60 * 1_000;
 
-async function listUnreachableLocators(env: Env, now: Date) {
+async function listUnreachableLocators(db: BlobLifecycleDatabase, now: Date) {
   const registrationCutoff = new Date(now.getTime() - BLOB_REGISTRATION_GRACE_MS).toISOString();
   const [r2, managed] = await Promise.all([
-    env.DB.prepare(
+    db.prepare(
       `SELECT 'r2' AS store_kind, 'r2' AS provider, a.r2_key AS object_key,
               a.id AS blob_record_id
        FROM assets a
@@ -37,7 +64,7 @@ async function listUnreachableLocators(env: Env, now: Date) {
     ).bind(registrationCutoff, GC_BATCH_SIZE).all<{
       store_kind: "r2"; provider: string; object_key: string; blob_record_id: string;
     }>(),
-    env.DB.prepare(
+    db.prepare(
       `SELECT 'managed' AS store_kind, mso.provider, mso.object_key,
               mso.id AS blob_record_id
        FROM managed_storage_objects mso
@@ -66,19 +93,19 @@ async function listUnreachableLocators(env: Env, now: Date) {
   }));
 }
 
-async function markUnreachableLocators(env: Env, now: Date) {
-  const candidates = await listUnreachableLocators(env, now);
+async function markUnreachableLocators(dependencies: BlobGarbageCollectionDependencies, now: Date) {
+  const candidates = await listUnreachableLocators(dependencies.db, now);
   let marked = 0;
   for (const locator of candidates) {
-    if (await markOrphanCandidate(env.DB, locator, crypto.randomUUID(), now)) marked += 1;
+    if (await markOrphanCandidate(dependencies.db, locator, dependencies.newOperationId(), now)) marked += 1;
   }
   return marked;
 }
 
-async function listDeletionWork(env: Env, now: Date) {
+async function listDeletionWork(db: BlobLifecycleDatabase, now: Date) {
   const orphanCutoff = new Date(now.getTime() - BLOB_ORPHAN_GRACE_MS).toISOString();
   const staleClaimCutoff = new Date(now.getTime() - DELETION_CLAIM_LEASE_MS).toISOString();
-  const result = await env.DB.prepare(
+  const result = await db.prepare(
     `SELECT store_kind, provider, object_key, blob_record_id, state, operation_id
      FROM blob_gc_ledger
      WHERE (state = 'orphaned' AND orphaned_at <= ?)
@@ -108,32 +135,35 @@ async function listDeletionWork(env: Env, now: Date) {
 }
 
 async function finalizeDeletion(
-  env: Env,
+  db: BlobLifecycleDatabase,
   locator: BlobLocator,
-  operationId: string,
+  claim: BlobDeletionClaim,
   now: Date,
 ) {
   const timestamp = now.toISOString();
-  const ledgerUpdate = env.DB.prepare(
+  const ledgerUpdate = db.prepare(
     `UPDATE blob_gc_ledger
      SET state = 'deleted', deleted_at = ?, last_error = NULL, updated_at = ?
      WHERE store_kind = ? AND provider = ? AND object_key = ?
-       AND state = 'deleting' AND operation_id = ?`,
+       AND state = 'deleting' AND operation_id = ?
+       AND attempt_count = ? AND deletion_started_at = ?`,
   ).bind(
     timestamp,
     timestamp,
     locator.storeKind,
     locator.provider,
     locator.objectKey,
-    operationId,
+    claim.operationId,
+    claim.attemptCount,
+    claim.deletionStartedAt,
   );
   if (locator.storeKind === "r2") {
     const result = await ledgerUpdate.run();
     return Boolean(result.meta.changes);
   }
-  const results = await env.DB.batch([
+  const results = await db.batch([
     ledgerUpdate,
-    env.DB.prepare(
+    db.prepare(
       `UPDATE managed_storage_objects
        SET status = 'deleted'
        WHERE provider = ? AND object_key = ?
@@ -142,38 +172,42 @@ async function finalizeDeletion(
            WHERE bg.store_kind = 'managed' AND bg.provider = managed_storage_objects.provider
              AND bg.object_key = managed_storage_objects.object_key
              AND bg.state = 'deleted' AND bg.operation_id = ?
+             AND bg.attempt_count = ? AND bg.deletion_started_at = ?
          )`,
-    ).bind(locator.provider, locator.objectKey, operationId),
+    ).bind(locator.provider, locator.objectKey, claim.operationId, claim.attemptCount, claim.deletionStartedAt),
   ]);
   return Boolean(results[0].meta.changes);
 }
 
 async function recordDeletionFailure(
-  env: Env,
+  db: BlobLifecycleDatabase,
   locator: BlobLocator,
-  operationId: string,
+  claim: BlobDeletionClaim,
   now: Date,
-  error: unknown,
+  code: DeletionFailureCode,
 ) {
-  const message = (error instanceof Error ? error.message : String(error)).slice(0, 1_000);
   const timestamp = now.toISOString();
-  await env.DB.prepare(
+  await db.prepare(
     `UPDATE blob_gc_ledger
-     SET state = 'orphaned', deletion_started_at = NULL, last_error = ?, updated_at = ?
+     SET last_error = ?, updated_at = ?
      WHERE store_kind = ? AND provider = ? AND object_key = ?
-       AND state = 'deleting' AND operation_id = ?`,
+       AND state = 'deleting' AND operation_id = ?
+       AND attempt_count = ? AND deletion_started_at = ?`,
   ).bind(
-    message,
+    code,
     timestamp,
     locator.storeKind,
     locator.provider,
     locator.objectKey,
-    operationId,
+    claim.operationId,
+    claim.attemptCount,
+    claim.deletionStartedAt,
   ).run();
 }
 
-async function deleteClaimedLocators(env: Env, now: Date) {
-  const candidates = await listDeletionWork(env, now);
+async function deleteClaimedLocators(dependencies: BlobGarbageCollectionDependencies, now: Date) {
+  const { db, storage } = dependencies;
+  const candidates = await listDeletionWork(db, now);
   let imageDeleted = 0;
   let managedDeleted = 0;
   let failures = 0;
@@ -181,28 +215,59 @@ async function deleteClaimedLocators(env: Env, now: Date) {
     const { locator } = candidate;
     const operationId = candidate.state === "deleting"
       ? candidate.operationId!
-      : crypto.randomUUID();
-    const claimed = candidate.state === "deleting"
-      ? await reclaimBlobDeletion(env.DB, locator, operationId, now, candidate.staleClaimCutoff)
-      : await claimBlobDeletion(env.DB, locator, operationId, now);
-    if (!claimed) continue;
+      : dependencies.newOperationId();
+    const claim = candidate.state === "deleting"
+      ? await reclaimBlobDeletion(db, locator, operationId, now, candidate.staleClaimCutoff)
+      : await claimBlobDeletion(db, locator, operationId, now);
+    if (!claim) continue;
+    let failureCode: DeletionFailureCode | null = null;
     try {
-      await removeBlob(env, locator);
-      if (!await finalizeDeletion(env, locator, operationId, now)) {
-        throw new Error("GC deletion claim changed before finalization");
+      // A previous lease can have left an outcome-unknown remote DELETE. Observe
+      // this exact bound locator before any retry; denial/outage is not absence.
+      let alreadyMissing = false;
+      if (candidate.state === "deleting") {
+        const observed = await storage.stat(locator);
+        if (observed.outcome === "provider_unavailable") {
+          failureCode = "deletion_confirmation_unavailable";
+        } else {
+          alreadyMissing = observed.outcome === "missing";
+        }
       }
-      if (locator.storeKind === "r2") imageDeleted += 1;
-      else managedDeleted += 1;
+      if (!failureCode) {
+        if (!alreadyMissing) await storage.remove(locator);
+        if (await finalizeDeletion(db, locator, claim, now)) {
+          if (locator.storeKind === "r2") imageDeleted += 1;
+          else managedDeleted += 1;
+        } else {
+          failureCode = "deletion_claim_changed";
+        }
+      }
     } catch (error) {
+      failureCode = deletionFailureCode(error);
+    }
+    if (failureCode) {
       failures += 1;
-      await recordDeletionFailure(env, locator, operationId, now, error);
+      // Never make an uncertain deletion attachable again. Both this failure
+      // update and successful finalization are fenced by the exact returned lease.
+      await recordDeletionFailure(db, locator, claim, now, failureCode);
     }
   }
   return { imageDeleted, managedDeleted, failures };
 }
 
-export async function runBlobGarbageCollection(env: Env, now = new Date()) {
-  const orphanCandidatesMarked = await markUnreachableLocators(env, now);
-  const deleted = await deleteClaimedLocators(env, now);
+export async function collectBlobGarbage(dependencies: BlobGarbageCollectionDependencies, now: Date) {
+  const orphanCandidatesMarked = await markUnreachableLocators(dependencies, now);
+  const deleted = await deleteClaimedLocators(dependencies, now);
   return { orphanCandidatesMarked, ...deleted };
+}
+
+export async function runBlobGarbageCollection(env: Env, now = new Date()) {
+  return collectBlobGarbage({
+    db: env.DB,
+    storage: {
+      remove: (locator) => removeBlob(env, locator),
+      stat: (locator) => statBlob(env, locator),
+    },
+    newOperationId: () => crypto.randomUUID(),
+  }, now);
 }

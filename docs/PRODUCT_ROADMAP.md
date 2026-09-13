@@ -17,8 +17,10 @@ The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) now implements dormant
 file identities/mappings and matched v9 recovery. The
 [FP1b reader boundary](./FP1_BYTE_READER_BOUNDARY.md) converges legacy byte reads
 and hardens SWITCHdrive transport. [FP1c](./FP1_VERIFIED_BYTE_WRITES.md) verifies
-source/destination bytes for current ingestion and selected reused objects;
-authoritative File publication remains open.
+source/destination bytes for current ingestion and selected reused objects.
+[FP1d](./FP1_FENCED_BYTE_DELETION.md) supplies bound deletion adapters and fences
+GC retries while uncertain deletions remain claimed. Authoritative File
+publication remains open.
 FP1 is still in progress and
 no deployment is authorized by this document.
 
@@ -59,7 +61,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | FP1a supplies dormant identities and v9 recovery; FP1b converges reads; FP1c verifies current writes and selected reuse through bound adapters. Next: authoritative File ingestion/resolution and full consumer/lifecycle conversion, then R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | FP1a supplies dormant identities and v9 recovery; FP1b converges reads; FP1c verifies current writes and selected reuse; FP1d adds bound deletion and fenced GC recovery. Next: authoritative File ingestion/resolution and full consumer/lifecycle conversion, then R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |

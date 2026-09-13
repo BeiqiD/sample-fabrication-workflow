@@ -300,6 +300,11 @@ It stores operation ID, timestamps, attempt count, and last error. A `deleted`
 locator is terminal and is not revived by manually recreating bytes at the same
 provider key.
 
+[FP1d](./FP1_FENCED_BYTE_DELETION.md) uses the existing attempt count and claim
+timestamp to fence executors independently of the stable operation ID. Failed or
+uncertain DELETE stays `deleting`; a later stale-claim retry checks that exact
+provider/key before repeating deletion or finalizing confirmed absence.
+
 ### Existing readiness columns
 
 - `assets.status` remains upload/registration readiness. FabuBlox registers
@@ -359,11 +364,14 @@ Owns only physical blob collection:
 
 1. bounded orphan discovery;
 2. grace-period deletion claim;
-3. provider deletion;
-4. operation-ID finalization or retryable error recording.
+3. bound provider deletion, with exact-locator inspection on a stale retry;
+4. exact-attempt finalization or redacted error recording that retains the claim.
 
 Provider I/O occurs after the D1 claim and outside a database transaction.
-`runBlobGarbageCollection` returns the physical discovery/deletion counts.
+`collectBlobGarbage` receives explicit persistence, storage, clock and identity
+capabilities. `runBlobGarbageCollection` supplies runtime composition and returns
+the physical discovery/deletion counts. FP1d adds the bound `ByteDeleter`
+capability without changing retention views, grace periods or scheduled controls.
 
 `worker/evidence/retry-maintenance.ts` owns abandoned Comment uploads and
 explicit retry expiry into system cancellation. Its four guarded statements
@@ -523,8 +531,13 @@ structured warning and the rest of the archive continues.
 
 ### Provider success versus D1 failure
 
-The same operation ID may reclaim a stale `deleting` claim and repeat the
-idempotent provider delete before finalizing `deleted`.
+The same operation ID may reclaim a stale `deleting` claim with an incremented
+attempt count and renewed claim timestamp. After inspecting the exact locator,
+confirmed absence permits matching finalization without DELETE, while an
+available object permits idempotent deletion. Provider/inspection failure keeps
+`deleting`. Finalization and error recording match the exact attempt so a stale
+executor cannot modify its successor, even if a database acknowledgement was
+lost. Managed metadata and ledger completion remain one atomic batch.
 
 ## Dedicated verification
 
@@ -627,7 +640,7 @@ lifecycle.
 
 `0026_fabublox_recovery_ownership.sql` deliberately leaves the generic GC view unchanged and adds recovery-only projections for publication and private ownership succession. Recovery performs provider preflight before claiming the import, then atomically cleans failed-import provenance, repairs legacy metadata, transfers private ownership when necessary, and queues only genuinely unowned locators.
 
-Ordinary `/assets` registration uses the same exact-outcome principle: after an uncertain INSERT response it first reconciles its stable `id` and R2 key on the primary database. It deletes the uploaded key only after proving that a different canonical winner committed.
+Ordinary `/assets` registration uses the same exact-outcome principle: after an uncertain INSERT response it first reconciles its stable `id` and R2 key on the primary database. A registered redundant candidate remains owned by ordinary guarded GC after a different verified canonical winner is selected; registration does not delete the uploaded key inline.
 
 ## Shared registration reconciliation
 

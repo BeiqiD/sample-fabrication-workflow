@@ -6,8 +6,10 @@ schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
 and complete consumer/lifecycle conversion remain open.
 [FP1c](./FP1_VERIFIED_BYTE_WRITES.md) now adds bounded full-byte verification to
-current writes and selected reuse; File authority remains dormant. FP1 remains incomplete;
-no deployment is certified by this document.
+current writes and selected reuse; [FP1d](./FP1_FENCED_BYTE_DELETION.md) adds bound
+deletion and fenced GC reconciliation without releasing uncertain deletion
+claims. File authority remains dormant. FP1 remains incomplete; no deployment
+is certified by this document.
 
 Last reviewed: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
@@ -280,13 +282,22 @@ prerequisite for introducing these narrow interfaces.
 
 Review FP1 in bounded slices: schema/profile mapping with matching recovery;
 provider-neutral ingestion/resolution and complete consumer/lifecycle conversion
-(including the separately reviewed FP1b reader and FP1c verified-write precursors);
+(including the FP1b reader, FP1c verified-write and FP1d fenced-deletion precursors);
 then deployment defaults, readiness and basic Settings acceptance. These are
 review boundaries within FP1, not independently completed product milestones.
 Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
 FP4 graph import into the first schema PR. Before FP3 implementation, record a
 runtime/provider capability matrix and an executable transfer spike, including
 hashing and interrupted archive output. Estimates depend on those results.
+
+The [FP1d handoff inventory](./FP1_FENCED_BYTE_DELETION.md#next-authority-transition-complete-inventory)
+identifies the concrete relational, direct-key, import/recovery, API and
+export/restore consumers for the next authority conversion. Bound read/write/
+delete adapters do not themselves convert those consumers. Preserve the FP1a
+unresolved-state guards until accepted operation identity, profile/default races,
+guarded publication and the complete retention/dedup/quarantine/recovery
+transition are reviewed together. R2 original defaults and basic Settings follow
+that conversion.
 
 ### Bootstrap, configuration authority and health
 
