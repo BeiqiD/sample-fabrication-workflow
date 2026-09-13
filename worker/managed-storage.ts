@@ -1,6 +1,6 @@
 import type { ManagedStorageStatus } from "../shared/types";
 import {
-  SwitchdriveAuthenticationError,
+  SwitchdriveConnectionCheckError,
   SwitchdriveStorage,
   switchdriveConfiguration,
 } from "./switchdrive-storage";
@@ -75,9 +75,10 @@ export async function managedStorageStatus(env: Env): Promise<ManagedStorageStat
         provider: storage.provider,
         available: false,
         authentication: storage.authentication,
-        message: error instanceof SwitchdriveAuthenticationError
-          ? "SWITCHdrive rejected the configured username or App Passcode. File attachments are disabled."
+        message: error instanceof SwitchdriveConnectionCheckError
+          ? `${error.message} File attachments are disabled.`
           : "SWITCHdrive could not be reached or its WebDAV address is invalid. File attachments are disabled.",
+        ...(error instanceof SwitchdriveConnectionCheckError ? { diagnostic: error.diagnostic } : {}),
       };
     }
   }
