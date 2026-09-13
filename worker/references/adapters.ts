@@ -312,8 +312,9 @@ const commentAdapter: ReferenceAdapter = async (db, ids) => {
 
 const commentOccurrenceAdapter: ReferenceAdapter = async (db, ids) => {
   const rows = await allRows(db, `
-    SELECT rsc.id, rsc.scope, COALESCE(cs.body, rsc.body) AS body,
-           COALESCE(cs.status, 'legacy') AS comment_state,
+    SELECT rsc.id, rsc.scope, rsc.submission_id, cs.id AS canonical_submission_id,
+           CASE WHEN rsc.submission_id IS NULL THEN rsc.body ELSE cs.body END AS body,
+           CASE WHEN rsc.submission_id IS NULL THEN 'legacy' ELSE cs.status END AS comment_state,
            COALESCE(rsc.updated_at, rsc.created_at) AS updated_at,
            COALESCE(rsc.deleted_at, cs.deleted_at) AS deleted_at,
            s.id AS sample_id, s.code AS sample_code, s.title AS sample_title,
@@ -347,7 +348,7 @@ const commentOccurrenceAdapter: ReferenceAdapter = async (db, ids) => {
         archivedAt: null,
       },
       contexts: context ? [context] : [],
-      consistent: Boolean(context),
+      consistent: Boolean(context) && (row.submission_id === null || row.canonical_submission_id !== null),
     }];
   }));
 };
