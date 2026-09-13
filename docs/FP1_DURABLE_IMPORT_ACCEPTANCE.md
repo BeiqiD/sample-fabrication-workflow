@@ -167,6 +167,11 @@ are preserved. Legacy assets/managed records and retention still own bytes, and
 global-SHA legacy deduplication remains. Other upload boundaries do not gain the
 FabuBlox request protocol automatically.
 
+The subsequent [FP1g slice](./FP1_FILE_CONSUMER_MIGRATION_PLAN.md) supplies typed
+historical consumers and a deterministic read-only conversion plan. It preserves
+unresolved purposes and namespace evidence, and proposes separate identities for
+incompatible purposes without executing the authority transition below.
+
 Complete File activation still requires typed consumer foreign keys, classification
 and independent verified copies for incompatible purposes, purpose/scope/profile
 deduplication, complete retention/quarantine/location deletion fencing, stable

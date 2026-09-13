@@ -25,7 +25,7 @@
     "test:comment-rich-text-mounted": "vitest run --config vitest.mounted.config.ts src/comment-rich-text.mount.test.tsx",
     "test:blob-lifecycle": "vitest run worker/blob-reachability.test.ts worker/blob-gc.test.ts worker/blob-export.test.ts worker/permanent-delete-protection.test.ts worker/blob-lifecycle-review-fixes.test.ts worker/blob-lifecycle-migration-safety.test.ts worker/blob-lifecycle-legacy-managed-migration.test.ts worker/fabublox-import-recovery.test.ts worker/comment-attachment-restore.test.ts",
     "test:storage-integrity": "vitest run worker/blob-integrity.test.ts worker/blob-integrity-routes.test.ts worker/blob-registration-reconciliation.test.ts worker/blob-registration-concurrency.test.ts worker/switchdrive-storage.test.ts worker/attachment-ingestion.test.ts worker/attachment-occurrence-metadata.test.ts worker/attachment-occurrence-mime-nul.test.ts worker/attachment-derivatives.test.ts worker/attachment-derivative-migration-safety.test.ts worker/attachment-derivative-parameterized-preview.test.ts worker/comment-submission-input-validation.test.ts",
-    "typecheck:export-contract": "tsc -p tsconfig.export-contract.json",
+    "typecheck:export-contract": "tsc -p tsconfig.export-contract.json && tsc -p tsconfig.file-migration.json",
     "test:export-restore": "vitest run worker/export-restore.test.ts worker/blob-export.test.ts worker/export-schema-coverage.test.ts",
     "verify:export-restore": "node scripts/verify-export-restore.mjs",
     "test:reference-mounted": "vitest run --config vitest.mounted.config.ts",
@@ -64,10 +64,11 @@
     "test:project-map-performance-mounted": "vitest run --config vitest.mounted.config.ts src/project-map-performance.mount.test.tsx",
     "verify:project-map-performance": "npm run test:project-map-performance && npm run test:project-map-performance-mounted && npm run build && node scripts/verify-project-map-bundle.mjs",
     "test:source": "vitest run",
-    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs scripts/shared-boundary.test.mjs scripts/compatibility-stage-gate.test.mjs scripts/d1-migration-plan.test.mjs scripts/d1-migration-observer.test.mjs scripts/remote-d1-migration-observation.test.mjs scripts/backend-compatibility-schema.test.mjs scripts/backend-schema-baseline.test.mjs scripts/current-schema-source.test.mjs scripts/fp1-file-registry.test.mjs scripts/fp1-file-inventory.test.mjs scripts/fp1-byte-verification.test.mjs scripts/fp1-byte-deletion.test.mjs scripts/fp1-recovery-verification.test.mjs scripts/fp1-import-acceptance.test.mjs scripts/cloudflare-bootstrap.test.mjs scripts/backend-contracted-writer.test.mjs scripts/local-migration-staging.test.mjs && node scripts/verify-shared-boundary.mjs",
+    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs scripts/shared-boundary.test.mjs scripts/compatibility-stage-gate.test.mjs scripts/d1-migration-plan.test.mjs scripts/d1-migration-observer.test.mjs scripts/remote-d1-migration-observation.test.mjs scripts/backend-compatibility-schema.test.mjs scripts/backend-schema-baseline.test.mjs scripts/current-schema-source.test.mjs scripts/fp1-file-registry.test.mjs scripts/fp1-file-inventory.test.mjs scripts/fp1-byte-verification.test.mjs scripts/fp1-byte-deletion.test.mjs scripts/fp1-recovery-verification.test.mjs scripts/fp1-import-acceptance.test.mjs scripts/fp1-consumer-plan.test.mjs scripts/cloudflare-bootstrap.test.mjs scripts/backend-contracted-writer.test.mjs scripts/local-migration-staging.test.mjs && node scripts/verify-shared-boundary.mjs",
     "test:project-map-bundle": "node scripts/verify-project-map-bundle.mjs",
     "verify:project-worker-artifact": "node scripts/verify-project-worker.mjs --production-artifact",
-    "verify:ci": "node scripts/run-verification.mjs --mode ci"
+    "verify:ci": "node scripts/run-verification.mjs --mode ci",
+    "plan:file-migration": "node scripts/plan-file-migration.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
@@ -85,6 +86,7 @@
     "@cloudflare/vite-plugin": "^1.45.1",
     "@cloudflare/workers-types": "^5.20260719.1",
     "@testing-library/react": "^16.3.0",
+    "@types/node": "22.19.7",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
@@ -92,10 +94,10 @@
     "esbuild": "0.28.1",
     "jsdom": "^26.1.0",
     "miniflare": "4.20260714.0",
+    "rolldown": "1.1.5",
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
-    "wrangler": "^4.112.0",
-    "rolldown": "1.1.5"
+    "wrangler": "^4.112.0"
   }
 }

@@ -12,13 +12,15 @@ claims. [FP1e](./FP1_RECOVERY_BYTE_VERIFICATION.md) closes the complete-byte
 verification gap in independently invoked import recovery and its canonical
 replacement selection. [FP1f](./FP1_DURABLE_IMPORT_ACCEPTANCE.md) now adds durable
 FabuBlox request acceptance, original-result replay and frozen R2 namespace
-composition, with schema 10 export/recovery. File/location authority remains
+composition, with schema 10 export/recovery. [FP1g](./FP1_FILE_CONSUMER_MIGRATION_PLAN.md)
+adds complete historical consumer projection and a deterministic read-only
+purpose-split conversion report. File/location authority remains
 dormant and legacy global-SHA deduplication still applies. FP1 remains incomplete;
 no deployment is certified by this document.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
-FP1f implementation base: `9f1ac38` (merged PR #212), 2026-09-13; its implementation
+FP1g implementation base: `0e7d3f6` (merged PR #213), 2026-09-13; its implementation
 PR records final verification and deployment evidence.
 
 ## Authority and reading order
@@ -68,8 +70,8 @@ works. R2 default behavior requires new non-empty live acceptance; no default
 change retroactively qualifies the old SWITCHdrive path. The new track is an
 intentional product/schema change, separate from behavior-preserving Phase 6A.
 
-The original design PR changed no runtime state. FP1a–FP1f introduce bounded
-forward schema, transport, recovery and accepted-import slices; the complete
+The original design PR changed no runtime state. FP1a–FP1g introduce bounded
+forward schema, transport, recovery, accepted-import and offline planning slices; the complete
 File/location authority transition remains open. FP1f captures a historical R2
 profile on first accepted import without changing the storage binding or defaults.
 The earlier disposable-reset authorization is not a standing reset
@@ -89,6 +91,10 @@ but does not replace legacy deduplication or satisfy the File publication contra
 for other writers. The [FP1f handoff](./FP1_DURABLE_IMPORT_ACCEPTANCE.md#qualification-and-remaining-file-authority-work)
 identifies the consumer, lifecycle and placement conversion that still needs to
 ship together before relaxing FP1a's dormant-state restrictions.
+The [FP1g planner](./FP1_FILE_CONSUMER_MIGRATION_PLAN.md) now enumerates historical
+consumer slots and retention mismatches without changing those restrictions.
+Its proposals require live revalidation, durable holds and independently verified
+copying before future conversion can execute.
 
 | Milestone | Deliverable | Exit evidence |
 |---|---|---|
