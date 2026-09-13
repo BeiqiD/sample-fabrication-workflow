@@ -1,6 +1,8 @@
 import type { FullExportBlobEntry } from "./types";
 
-export const FULL_EXPORT_ARCHIVE_SCHEMA = 8 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V8 = 8 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = 9 as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-legacy-overlap" as const;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -45,7 +47,7 @@ export interface ExportJsonArtifact<T> {
 }
 
 export interface FullExportManifestV8 {
-  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA;
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V8;
   archiveWriter: typeof FULL_EXPORT_ARCHIVE_WRITER;
   exportedAt: string;
   tables: ExportTables;
@@ -54,4 +56,11 @@ export interface FullExportManifestV8 {
     sourceSchema: ExportJsonArtifact<ObservedExportSchema>;
     retiredFields: ExportJsonArtifact<RetiredExportFields>;
   };
+}
+
+// The first file schema is dormant metadata: existing locators own reads,
+// writes and retention until the separate runtime conversion is qualified.
+export interface FullExportManifestV9 extends Omit<FullExportManifestV8, "schemaVersion"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE;
 }

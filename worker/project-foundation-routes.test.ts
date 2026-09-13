@@ -52,12 +52,12 @@ const PRE_PROJECT_EXPORT_TABLES = [
 
 describe("Full export route", () => {
   it("owns complete export and snapshots every current table in one batch", async () => {
-    expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(8);
+    expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(9);
     const app = new Hono<AppBindings>();
     app.route("/", snapshotRoutes);
     const { env, batch, database } = exportEnvironment();
 
-    const response = await app.request("/exports/all?archiveSchema=8&archiveWriter=1", {}, env);
+    const response = await app.request("/exports/all?archiveSchema=9&archiveWriter=1", {}, env);
     const body = await response.json<{
       schemaVersion: number;
       tables: Record<string, Array<Record<string, unknown>>>;

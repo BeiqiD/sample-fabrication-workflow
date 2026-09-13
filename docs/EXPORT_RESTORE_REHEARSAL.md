@@ -7,6 +7,17 @@ This utility and its existing archive fixtures remain recovery evidence. Its
 trusted-input, size and destination limits below are not qualification of an
 untrusted website importer or arbitrary-size recovery.
 
+FP1a adds schema 9, archive writer 1 and profile `fp1-legacy-overlap`. It preserves
+the four dormant registry tables with the existing byte outcomes. For the current
+migration directory use `--target-schema S2`. The compatibility label S2 refers to
+the Sample/Comment column family, not the full application migration version.
+Historical v7/v8 restoration into this target first validates/restores the baseline
+and then applies the reviewed additive `0002_fp1_file_registry.sql`; the report
+records `appliedForwardMigrations` and `restoredTableCount`. New observation tables
+remain empty in that upgrade, while original archived rows and schema definitions
+are preserved. No historical byte verification is upgraded by adding metadata.
+See [FP1a](./FP1_FILE_REGISTRY_FOUNDATION.md) for the dormant-state restrictions.
+
 Phase 6A1 verifies that a trusted complete export can recreate its current-schema
 rows, identities and available physical bytes in disposable local resources.
 This tool is a verification utility. It does not install a public import route,
@@ -18,13 +29,13 @@ remote disaster-recovery procedure.
 Use Node 24 and the repository's installed dependencies:
 
 ```sh
-npm run verify:export-restore -- --archive /path/to/backup.zip --destination /path/to/new-rehearsal --target-schema S0
+npm run verify:export-restore -- --archive /path/to/backup.zip --destination /path/to/new-rehearsal --target-schema S2
 ```
 
 The destination must not exist, including as an empty directory or symlink.
 There is no overwrite, force or remote option. The current repository's SQL
 migrations provide the schema; the archive cannot supply executable SQL.
-V8 requires an explicit `--target-schema S0|S1|S2`; the recorded original
+V8 and v9 require an explicit `--target-schema S0|S1|S2`; the recorded original
 rehearsals below target S0. S2 is now the active integration schema, as recorded
 in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 Offline qualification can select an independently reviewed migration

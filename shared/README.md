@@ -7,7 +7,7 @@ database queries, provider access, React components, or application retry policy
 
 | Canonical directory | Modules |
 | --- | --- |
-| `contracts/` | `template`, `types`, `comment-submissions`, `project-api`, `project-types`, `project-copy-paste-api`, `reference-types`, `reference-search`, `reference-children`, `reference-destinations`, `export`, `export-protocol`, `export-compatibility`, `export-blob-plan` |
+| `contracts/` | `template`, `types`, `comment-submissions`, `project-api`, `project-types`, `project-copy-paste-api`, `reference-types`, `reference-search`, `reference-children`, `reference-destinations`, `export`, `export-protocol`, `export-compatibility`, `export-blob-plan`, `export-file-foundation`, `files` |
 | `domain/` | `content-addressing`, `reference-comment-preview`, `sample-records`, `tiff`, `mime-type`, `sqlite-table-columns` |
 
 New imports use the canonical directories. Matching files directly under
@@ -55,4 +55,6 @@ gate forbids external imports, including provider SDKs and ZIP libraries.
 Keep reusable application services outside this pure client/Worker boundary and
 compose runtime adapters explicitly. See the
 [repository compatibility audit](../docs/FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md).
-This clarification adds no FP implementation or runtime adapter.
+FP1a places dormant legacy File/profile DTOs and the v9 overlap validator here.
+The inventory SQL service remains in `worker/files/` behind explicit persistence
+capabilities; no provider I/O, archive library or runtime adapter enters shared.

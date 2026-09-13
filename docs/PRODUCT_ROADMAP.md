@@ -12,8 +12,10 @@ The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) remains th
 source of operational evidence and temporary control state. Backend ownership and
 shared contracts are merged. Alternative Drafts #199/#200 remain inactive.
 Project refinements through #185 are merged and deployed; wider C4 acceptance
-remains open. The newly requested file/data-portability work is **planned for
-review**, not implemented or authorized for deployment by this document.
+remains open. The file/data-portability design was reviewed and merged in #207.
+The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) now implements dormant
+file identities/mappings and matched v9 recovery; FP1 is still in progress and
+no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -34,7 +36,8 @@ release handoff are defined in
 
 The user has paused new frontend refinement and requested a documentation PR for
 systematic file storage, Settings, migration, readable/portable export and website
-import. The user will review that design before implementation. The new **FP**
+import. That design review is complete, and the user has requested development.
+The new **FP**
 track is a capability change with its own schema, API and frontend impact; it is
 not a behavior-preserving Phase 6A extraction or a retroactive change to completed
 phase results. Each subsequent PR starts from the latest
@@ -50,8 +53,8 @@ The canonical new boundaries and stage gates are:
 | --- | --- | --- |
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
-| 3 | FP0: review file/data-portability documents | Current task. Reconcile current contracts, all-file coverage, longer-term portability and acceptance before implementation. |
-| 4 | FP1 → FP2: universal file foundation and configuration | After review: stable files/locations/profiles, Registry, R2 defaults for both roles and basic Settings; then external configuration, administrator/secret boundaries and S3. Keep lifecycle and complete export/recovery valid at every slice. |
+| 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
+| 4 | FP1 → FP2: universal file foundation and configuration | FP1a implements dormant identity/mapping tables and v9 recovery. Next: verified ingestion/resolution and full consumer/lifecycle conversion, then R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |

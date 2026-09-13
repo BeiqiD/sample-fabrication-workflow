@@ -1,7 +1,8 @@
-import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_WRITER, type ExportJsonArtifact, type FullExportManifestV8 } from "./export";
+import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_SCHEMA_V8, FULL_EXPORT_ARCHIVE_PROFILE, FULL_EXPORT_ARCHIVE_WRITER, type ExportJsonArtifact, type FullExportManifestV8, type FullExportManifestV9 } from "./export";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "./export-compatibility";
 import { buildBlobExportPlan } from "./export-blob-plan";
+import { FILE_FOUNDATION_EXPORT_COLUMNS, validateLegacyOverlap } from "./export-file-foundation";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 
 export const EXPORT_SOURCE_SCHEMA_PATH = "provenance/source-schema.json";
@@ -21,7 +22,7 @@ export function supportedExportRequest(url: URL) {
   return entries.length === 2
     && url.searchParams.getAll("archiveSchema").length === 1
     && url.searchParams.getAll("archiveWriter").length === 1
-    && url.searchParams.get("archiveSchema") === String(FULL_EXPORT_ARCHIVE_SCHEMA)
+    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA)].includes(url.searchParams.get("archiveSchema") ?? "")
     && url.searchParams.get("archiveWriter") === String(FULL_EXPORT_ARCHIVE_WRITER);
 }
 
@@ -32,10 +33,10 @@ function object(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-export async function validateFullExportV8(value: unknown): Promise<FullExportManifestV8> {
+async function validateFullExport(value: unknown, version: 8 | 9): Promise<FullExportManifestV8 | FullExportManifestV9> {
   // In particular an E client reaching the previous A Worker must stop here,
   // before downloading any bytes or creating a ZIP from an unnegotiated v7.
-  ensure(object(value) && value.schemaVersion === FULL_EXPORT_ARCHIVE_SCHEMA && value.archiveWriter === FULL_EXPORT_ARCHIVE_WRITER,
+  ensure(object(value) && value.schemaVersion === version && value.archiveWriter === FULL_EXPORT_ARCHIVE_WRITER,
     "the server and archive writer versions differ. Refresh and try again.");
   ensure(typeof value.exportedAt === "string" && Number.isFinite(Date.parse(value.exportedAt)) && object(value.tables)
     && Array.isArray(value.blobs) && object(value.artifacts), "incomplete snapshot envelope");
@@ -90,7 +91,7 @@ export async function validateFullExportV8(value: unknown): Promise<FullExportMa
       ensure(JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...columns].sort()), "table row columns differ from source contract");
     }
   }
-  const manifest = value as FullExportManifestV8;
+  const manifest = value as FullExportManifestV8 | FullExportManifestV9;
   const physical = classifyExportCompatibilitySchema(manifest.artifacts.sourceSchema.value.compatibilityColumns);
   const restored = restoreCompatibilityRows(manifest.tables, manifest.artifacts.retiredFields.value, physical);
   const replayed = projectCompatibilitySnapshot(restored, manifest.artifacts.sourceSchema.value);
@@ -106,5 +107,28 @@ export async function validateFullExportV8(value: unknown): Promise<FullExportMa
   }).map(stableJson).sort();
   ensure(stableJson(normalizedPlan(manifest.blobs)) === stableJson(normalizedPlan(buildBlobExportPlan(manifest.tables))),
     "blob catalog differs from snapshot tables");
+  const registryTables = ["storage_profiles", "files", "file_locations", "legacy_file_mappings"];
+  if (version === 8) ensure(!registryTables.some((name) => Object.hasOwn(manifest.tables, name)),
+    "the file foundation requires archive schema 9");
+  else {
+    ensure((manifest as FullExportManifestV9).archiveProfile === FULL_EXPORT_ARCHIVE_PROFILE,
+      "unsupported archive schema profile");
+    ensure(physical === "S2" && registryTables.every((name) => Object.hasOwn(manifest.tables, name)),
+      "the file foundation requires the complete S2 registry schema");
+    for (const [name, columns] of Object.entries(FILE_FOUNDATION_EXPORT_COLUMNS)) {
+      const entry = schema.objects.find((entry: { type: string; name: string }) => entry.type === "table" && entry.name === name);
+      ensure(JSON.stringify(sqliteTableColumns(entry.sql, name).sort()) === JSON.stringify([...columns].sort()),
+        "file foundation schema columns differ from the archive profile");
+    }
+    validateLegacyOverlap(manifest.tables);
+  }
   return manifest;
+}
+
+export async function validateFullExportV8(value: unknown): Promise<FullExportManifestV8> {
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA_V8) as FullExportManifestV8;
+}
+
+export async function validateFullExportV9(value: unknown): Promise<FullExportManifestV9> {
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA) as FullExportManifestV9;
 }

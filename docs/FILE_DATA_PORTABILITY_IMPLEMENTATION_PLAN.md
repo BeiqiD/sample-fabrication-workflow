@@ -1,7 +1,9 @@
 # File and data portability implementation plan
 
-Status: proposed implementation sequence for owner review; documentation only.
-No FP implementation or deployment is certified by this document.
+Status: design reviewed and merged in PR #207; FP1 implementation in progress.
+The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
+schema/mapping and archive slice. FP1 as a product milestone remains incomplete;
+no deployment is certified by this document.
 
 Last reviewed: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
@@ -11,7 +13,7 @@ Last reviewed: 2026-09-13 against `v2/backend-foundation` at
 The owner requests a systematic file model, purpose-based storage selection for
 all managed files, explicit migration, and useful export/import round trips.
 This supersedes the former large-originals-only storage direction. The requested
-deliverable is a documentation Draft PR for review before implementation.
+design was reviewed and merged before the owner requested development.
 
 Read these documents together:
 
@@ -53,8 +55,9 @@ works. R2 default behavior requires new non-empty live acceptance; no default
 change retroactively qualifies the old SWITCHdrive path. The new track is an
 intentional product/schema change, separate from behavior-preserving Phase 6A.
 
-This PR changes no code, schema, bindings, credentials, live data or maintenance
-controls. The earlier disposable-reset authorization is not a standing reset
+The original design PR changed no runtime state. Implementation now starts with
+the explicitly bounded FP1a slice; it changes no live data or maintenance controls.
+The earlier disposable-reset authorization is not a standing reset
 strategy for FP. Keep the recorded Builds/Cron holds and their release owner
 visible until an accepted operational handoff; this plan neither releases them
 nor establishes that they are still present through a fresh live check.

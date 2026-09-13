@@ -1,6 +1,8 @@
 # File storage architecture
 
-Status: proposed target architecture; documentation only, awaiting review.
+Status: target reviewed and merged in PR #207; implementation has begun with the
+[FP1a dormant registry](./FP1_FILE_REGISTRY_FOUNDATION.md). The complete runtime
+model below remains a target until the corresponding FP1 slices are accepted.
 
 Baseline inspected: `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (2026-09-13).

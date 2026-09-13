@@ -5,8 +5,10 @@ The tables below describe the current schema. The proposed provider-neutral
 [file storage architecture](./FILE_STORAGE_ARCHITECTURE.md). The
 [compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#schema-and-api-transition-strategy)
 requires preserving business identities, classifying existing file uses and
-updating export/recovery with every schema slice. These future entities have
-not been added by the documentation proposal.
+updating export/recovery with every schema slice. [FP1a](./FP1_FILE_REGISTRY_FOUNDATION.md)
+adds four dormant identity/observation tables; provider-neutral runtime publication
+and consumer conversion remain later work. The current source schema contains
+38 application tables and the required exported retention view.
 
 Current-state review: integration commit
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (S2). The
@@ -38,6 +40,10 @@ maps the proposed transition to existing modules, schema guards and test gates.
 | `reference_targets` | Sparse, idempotent polymorphic registry for durable external source identities. Its registry identity and source target are immutable; it stores validation metadata rather than copied source content. |
 | `managed_storage_objects` | Metadata for unchanged original files stored through the provider-neutral `ManagedStorage` adapter. |
 | `assets` | R2 object metadata and readiness state for imported and ordinary uploads. |
+| `storage_profiles` | Immutable, explicitly identified historical storage namespace; fixed configuration source and environment credential reference, without credentials. |
+| `files` | First legacy metadata observation with purpose or explicit unresolved classification, expected bytes and no verified hash or active location. |
+| `file_locations` | Immutable unresolved legacy physical address scoped to a storage profile. Not an independent retention root or published file. |
+| `legacy_file_mappings` | Deterministic legacy locator to File/Location mapping and bounded classification evidence. Old domain locators remain authoritative. |
 | `attachment_derivatives` | Source-content-addressed browser-preview registry with generator, status and retention metadata; a separate trusted producer is not implied. |
 | `blob_integrity_quarantine` | Integrity findings that prevent ordinary reuse or publication of affected physical locators. |
 | `projects` | Project identity, lifecycle, optimistic revision and next creation-sequence watermark. |
@@ -248,9 +254,10 @@ The current S2 schema has no `samples.process_revision` column. Sample
 concurrency uses `updated_at` and mutation IDs; Project APIs use their explicit
 revision fields. S2 stores legacy occurrence text in `run_step_comments.legacy_body`,
 not the retired `body` column; canonical Comment text belongs to its submission.
-The negotiated v8 projection preserves observed retired values from supported
+The current v9 profile retains the negotiated v8 compatibility projection, which preserves observed retired values from supported
 historical schemas in `provenance/retired-fields.json`; it does not invent values
-for absent S2 columns. See [the actual snapshot](../worker/export-v8-snapshot.ts)
+for absent S2 columns. V9 additionally captures the four dormant registry tables.
+See [the actual snapshot](../worker/export-v9-snapshot.ts)
 and [S2 schema assertions](../worker/export-schema-coverage.test.ts).
 
 Reference registration uses `UNIQUE(target_type, target_id)` plus

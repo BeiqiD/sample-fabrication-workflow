@@ -11,10 +11,10 @@ import type { CompatibilitySchema, ExportRow, ExportTables, FullExportManifestV8
 import type { FullExportManifest } from "../shared/contracts/types";
 import { createExportArtifact, exportArtifactText } from "../shared/contracts/export-protocol";
 import { buildFullExportArchive, buildFullExportArchiveV8 } from "../src/lib/exportAll";
-import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
+import { FULL_EXPORT_V8_TABLE_QUERIES } from "./export-catalog";
 import { buildBlobExportPlan } from "./export-data";
 import worker from "./index";
-import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph, referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
+import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -57,7 +57,8 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
       migrationDirectories[target] = directory;
     }
     for (const kind of [...sourceKinds, "S2-baseline"] as const) {
-      const database = kind === "S2-baseline" ? referenceTestDatabase() : historicalReferenceTestDatabase();
+      const database = kind === "S2-baseline" ? new DatabaseSync(":memory:") : historicalReferenceTestDatabase();
+      if (kind === "S2-baseline") database.exec(await readFile(join(root, "migrations/0001_v3_baseline.sql"), "utf8"));
       try {
         if (kind === "S2-baseline") {
           seedReferenceGraph(database);
@@ -102,7 +103,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         const response = await fetcher("/api/exports/all?archiveSchema=8&archiveWriter=1");
         expect(response.status).toBe(200);
         const manifest = await response.json() as FullExportManifestV8;
-        const physicalTables = Object.fromEntries(Object.keys(FULL_EXPORT_TABLE_QUERIES).map((name) =>
+        const physicalTables = Object.fromEntries(Object.keys(FULL_EXPORT_V8_TABLE_QUERIES).map((name) =>
           [name, database.prepare(`SELECT * FROM ${quote(name)}`).all()])) as ExportTables;
         const result = await buildFullExportArchiveV8(manifest, undefined, fetcher);
         const bytes = Buffer.from(await result.archive.arrayBuffer());
@@ -112,7 +113,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         if (kind === "S0") {
           // Capture actual v7 physical SELECTs and use the old browser writer;
           // no v8 projection or compatibility restoration constructs this ZIP.
-          const entries = Object.entries(FULL_EXPORT_TABLE_QUERIES);
+          const entries = Object.entries(FULL_EXPORT_V8_TABLE_QUERIES);
           const snapshot = await d1.batch(entries.map(([, sql]) => d1.prepare(sql)) as unknown as D1PreparedStatement[]);
           const tables = Object.fromEntries(entries.map(([name], index) => [name, snapshot[index].results])) as ExportTables;
           const oldManifest = { schemaVersion: 7, exportedAt: new Date().toISOString(), tables,
@@ -136,6 +137,11 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
     expect(result.report).toMatchObject({ schemaVersion: source.version, targetCompatibilitySchema: target,
       archiveSha256: hash(source.bytes), sourceSchemaEvidence: source.version === 8 ? "observed-in-source-snapshot" : "unavailable-in-v7",
       verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
+    if (migrationsDirectory === join(root, "migrations")) {
+      expect(result.report.appliedForwardMigrations).toEqual([
+        { name: "0002_fp1_file_registry.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0002_fp1_file_registry.sql"), "utf8"))) },
+      ]);
+    } else expect(result.report.appliedForwardMigrations).toEqual([]);
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite"));
     try {
       // Compare every physical table and the retention projection independently
@@ -152,6 +158,11 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
           return copy;
         });
         expect(sortedRows(restored.prepare(`SELECT * FROM ${quote(name)}`).all() as ExportRow[]), name).toEqual(sortedRows(expected));
+      }
+      if (migrationsDirectory === join(root, "migrations")) {
+        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) {
+          expect(restored.prepare(`SELECT COUNT(*) AS count FROM ${quote(name)}`).get()?.count).toBe(0);
+        }
       }
       const sampleColumns = restored.prepare("PRAGMA table_xinfo(samples)").all().map((column) => column.name);
       const commentColumns = restored.prepare("PRAGMA table_xinfo(run_step_comments)").all().map((column) => column.name);
@@ -204,11 +215,11 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
     expect(await readdir(destination)).toEqual(["restored"]);
   }
 
-  it("restores actual default-baseline S2 API and browser ZIP into the default S2 baseline with exact rows, bytes and unavailable retired-field evidence", async () => {
+  it("restores actual default-baseline S2 API and browser ZIP into the current S2 schema with a recorded dormant-registry upgrade with exact rows, bytes and unavailable retired-field evidence", async () => {
     await assertRestored(archives["S2-baseline"], "S2", "default-baseline-roundtrip", join(root, "migrations"));
   }, 15_000);
 
-  it("restores the historical v7 ZIP into the default S2 baseline while preserving the nonzero retired values outside active rows", async () => {
+  it("restores the historical v7 ZIP into the current S2 schema with a recorded dormant-registry upgrade while preserving the nonzero retired values outside active rows", async () => {
     await assertRestored(archives.v7, "S2", "v7-default-baseline", join(root, "migrations"));
   }, 15_000);
 
