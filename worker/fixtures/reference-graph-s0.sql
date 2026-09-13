@@ -84,14 +84,14 @@ VALUES
   ('reference-comment', 'reference-sample-b', 'reference-run-b', 'reference-step-b', '2026-08-01T02:00:00.000Z');
 
 INSERT INTO run_step_comments
-  (id, run_step_id, scope, operation_group_id, legacy_body, submission_id, actor_email,
+  (id, run_step_id, scope, operation_group_id, body, submission_id, actor_email,
    created_at, updated_at)
 VALUES
   ('reference-comment-occurrence-a', 'reference-step-a', 'common', 'reference-comment-group',
-   NULL, 'reference-comment', 'reference@example.com',
+   'Shared reference Comment body', 'reference-comment', 'reference@example.com',
    '2026-08-01T04:00:00.000Z', '2026-08-01T04:00:00.000Z'),
   ('reference-comment-occurrence-b', 'reference-step-b', 'common', 'reference-comment-group',
-   NULL, 'reference-comment', 'reference@example.com',
+   'Shared reference Comment body', 'reference-comment', 'reference@example.com',
    '2026-08-01T04:00:00.000Z', '2026-08-01T04:00:00.000Z');
 
 INSERT INTO comment_submission_items

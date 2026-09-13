@@ -14,14 +14,14 @@ import { buildFullExportArchive, buildFullExportArchiveV8 } from "../src/lib/exp
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import { buildBlobExportPlan } from "./export-data";
 import worker from "./index";
-import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
+import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph, referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const candidatesDirectory = join(root, "scripts/fixtures/backend-schema");
 const targets = ["S0", "S1", "S2"] as const;
 const sourceKinds = ["S0", "S1", "S1-C", "S2"] as const;
-type SourceKind = typeof sourceKinds[number];
+type SourceKind = typeof sourceKinds[number] | "S2-baseline";
 const context = { waitUntil: () => undefined, passThroughOnException: () => undefined, props: {} } as unknown as ExecutionContext;
 const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
@@ -51,15 +51,21 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
     const retainedData = await readFile(join(candidatesDirectory, "retained-data.sql"), "utf8");
     for (const target of targets) {
       const directory = join(scratch, `reviewed-${target}`);
-      await cp(join(root, "migrations"), directory, { recursive: true });
+      await cp(join(root, "migrations-history/s0"), directory, { recursive: true });
       if (target !== "S0") await writeFile(join(directory, "0037_compatibility_bridge.sql"), bridge);
       if (target === "S2") await writeFile(join(directory, "0038_final_schema.sql"), contraction);
       migrationDirectories[target] = directory;
     }
-    for (const kind of sourceKinds) {
-      const database = referenceTestDatabase();
+    for (const kind of [...sourceKinds, "S2-baseline"] as const) {
+      const database = kind === "S2-baseline" ? referenceTestDatabase() : historicalReferenceTestDatabase();
       try {
-        seedReferenceGraph(database);
+        if (kind === "S2-baseline") {
+          seedReferenceGraph(database);
+          database.prepare(`INSERT INTO run_step_comments
+            (id, run_step_id, scope, legacy_body, created_at)
+            VALUES ('retained-legacy-individual', 'reference-step-a', 'individual', ?, '2026-08-07T00:00:00.000Z')`).run(legacyText);
+        } else {
+        seedHistoricalReferenceGraph(database);
         database.exec(retainedData);
         // Exercise both an old duplicate and an empty canonical placeholder.
         // Neither is the operational text owned by comment_submissions.
@@ -75,6 +81,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
             VALUES ('matrix-c-legacy', 'reference-step-a', 'individual', ?, '2026-08-07T00:00:00.000Z')`).run(cText);
         }
         if (kind === "S2") database.exec(`BEGIN; ${contraction} COMMIT;`);
+        }
         const provider = new Map<string, Uint8Array>();
         for (const asset of database.prepare("SELECT id, r2_key, byte_size FROM assets").all()) {
           const bytes = new Uint8Array(Number(asset.byte_size)).fill(Number(asset.byte_size));
@@ -122,10 +129,10 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
 
   afterAll(async () => { if (scratch) await rm(scratch, { recursive: true, force: true }); });
 
-  async function assertRestored(source: SourceArchive, target: CompatibilitySchema, suffix: string) {
+  async function assertRestored(source: SourceArchive, target: CompatibilitySchema, suffix: string, migrationsDirectory = migrationDirectories[target]) {
     const destination = join(scratch, suffix);
     const result = await restoreExportToIsolatedDirectory({ archivePath: source.archivePath, destination,
-      migrationsDirectory: migrationDirectories[target], targetCompatibilitySchema: target });
+      migrationsDirectory, targetCompatibilitySchema: target });
     expect(result.report).toMatchObject({ schemaVersion: source.version, targetCompatibilitySchema: target,
       archiveSha256: hash(source.bytes), sourceSchemaEvidence: source.version === 8 ? "observed-in-source-snapshot" : "unavailable-in-v7",
       verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
@@ -175,7 +182,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
     const retired = JSON.parse(await readFile(join(result.restoredDirectory, "provenance/retired-fields.json"), "utf8")) as RetiredExportFields;
     for (const [family, name, column] of [["samplesProcessRevision", "samples", "process_revision"],
       ["runStepCommentsBody", "run_step_comments", "body"]] as const) {
-      const present = source.kind !== "S2";
+      const present = source.kind !== "S2" && source.kind !== "S2-baseline";
       expect(retired[family]).toMatchObject({ presentInSourceSchema: present, complete: present, sourceRowCount: source.physicalTables[name].length });
       expect(sortedValues(retired[family].values)).toEqual(present
         ? sortedValues(source.physicalTables[name].map((row) => ({ id: String(row.id), value: row[column] as string | number }))) : []);
@@ -196,6 +203,14 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
     }
     expect(await readdir(destination)).toEqual(["restored"]);
   }
+
+  it("restores actual default-baseline S2 API and browser ZIP into the default S2 baseline with exact rows, bytes and unavailable retired-field evidence", async () => {
+    await assertRestored(archives["S2-baseline"], "S2", "default-baseline-roundtrip", join(root, "migrations"));
+  }, 15_000);
+
+  it("restores the historical v7 ZIP into the default S2 baseline while preserving the nonzero retired values outside active rows", async () => {
+    await assertRestored(archives.v7, "S2", "v7-default-baseline", join(root, "migrations"));
+  }, 15_000);
 
   it.each(sourceKinds.flatMap((source) => targets.map((target) => ({ source, target }))))(
     "v8 source $source restores to $target only when its actual evidence permits it", async ({ source, target }) => {

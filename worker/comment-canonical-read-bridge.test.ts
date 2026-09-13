@@ -1,9 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { ReferenceResolution } from "../shared/reference-types";
 import type { SampleDetail } from "../shared/types";
 import worker from "./index";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { REFERENCE_FIXTURE_IDS as ids, referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
+import { REFERENCE_FIXTURE_IDS as ids, historicalReferenceTestDatabase, seedHistoricalReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const canonicalBody = "Canonical spectroscopy observation";
@@ -21,14 +22,16 @@ class SnapshotDatabase extends SqliteD1Database {
 }
 
 function fixture() {
-  const database = referenceTestDatabase();
-  seedReferenceGraph(database);
+  const database = historicalReferenceTestDatabase();
+  seedHistoricalReferenceGraph(database);
   database.prepare("UPDATE comment_submissions SET body = ? WHERE id = ?").run(canonicalBody, ids.comment);
   database.prepare("UPDATE run_step_comments SET body = ? WHERE submission_id = ?").run(staleBody, ids.comment);
   database.prepare(`INSERT INTO run_step_comments
     (id, run_step_id, scope, body, actor_email, created_at, updated_at)
     VALUES (?, ?, 'individual', ?, 'legacy@example.com', '2026-08-01T05:00:00.000Z', '2026-08-01T05:00:00.000Z')`)
     .run(legacyId, ids.stepA, legacyBody);
+  // Retained S1 still holds the original duplicate; the contracted reader must never expose it.
+  database.exec(readFileSync(new URL("../scripts/fixtures/backend-schema/s1-compatibility-bridge.sql", import.meta.url), "utf8"));
   const d1 = new SnapshotDatabase(database);
   const env = { AUTH_MODE: "disabled", DB: d1 as unknown as D1Database, ASSETS: {} as R2Bucket } satisfies Env;
   const request = (path: string, method = "GET", body?: unknown) => worker.fetch(
@@ -54,7 +57,7 @@ function fixture() {
   };
 }
 
-describe("canonical Comment read bridge before schema cleanup", () => {
+describe("canonical Comment reading on retained S1 data", () => {
   it("reads canonical text and legacy text by ownership without rewriting either stored row", async () => {
     const f = fixture();
     try {
@@ -156,9 +159,9 @@ describe("canonical Comment read bridge before schema cleanup", () => {
     try {
       f.database.prepare("UPDATE samples SET process_revision = 37 WHERE id = ?").run(ids.sampleA);
       const samples = f.database.prepare("SELECT * FROM samples ORDER BY created_at, id").all();
-      const comments = f.database.prepare("SELECT * FROM run_step_comments ORDER BY run_step_id, created_at, id").all();
+      const comments = f.database.prepare("SELECT * FROM run_step_comments ORDER BY run_step_id, created_at, id").all().map(({ legacy_body, ...row }) => row);
       // Simulate additive columns only: Stage A must not advertise them as v7.
-      f.database.exec("ALTER TABLE samples ADD COLUMN future_bridge_marker TEXT DEFAULT 'private'; ALTER TABLE run_step_comments ADD COLUMN legacy_body TEXT");
+      f.database.exec("ALTER TABLE samples ADD COLUMN future_bridge_marker TEXT DEFAULT 'private'");
       f.d1.resetQueryCount();
       const names = Object.keys(FULL_EXPORT_TABLE_QUERIES);
       const results = await f.d1.batch(Object.values(FULL_EXPORT_TABLE_QUERIES).map((sql) => f.d1.prepare(sql)) as unknown as D1PreparedStatement[]);

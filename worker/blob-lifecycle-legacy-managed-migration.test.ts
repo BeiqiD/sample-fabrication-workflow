@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const REPAIR_MIGRATION = "0015_managed_orphan_dedupe_repair.sql";
 
 function migrationNames() {
-  const directory = new URL("../migrations/", import.meta.url);
+  const directory = new URL("../migrations-history/s0/", import.meta.url);
   return {
     directory,
     names: readdirSync(directory).filter((name) => name.endsWith(".sql")).sort(),

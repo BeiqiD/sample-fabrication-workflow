@@ -48,7 +48,7 @@ function addAsset(database: DatabaseSync, id: string) {
 describe("blob retention reachability", () => {
   it("repairs a legacy orphan mark when an unfinished submission still retains the object", () => {
     const database = new DatabaseSync(":memory:");
-    const directory = new URL("../migrations/", import.meta.url);
+    const directory = new URL("../migrations-history/s0/", import.meta.url);
     const migrations = readdirSync(directory).filter((name) => name.endsWith(".sql")).sort();
     for (const filename of migrations.filter((name) => name < "0016_blob_lifecycle_control.sql")) {
       database.exec(readFileSync(new URL(filename, directory), "utf8"));
@@ -99,7 +99,7 @@ describe("blob retention reachability", () => {
         (id, template_version_id, asset_id, display_name, created_at)
       VALUES ('reference-1', 'template-1', 'asset-metrology', 'Reference', '2026-07-01T00:00:00.000Z');
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, asset_id, created_at)
+        (id, run_step_id, scope, legacy_body, asset_id, created_at)
       VALUES ('legacy-comment-1', 'step-1', 'individual', 'Legacy', 'asset-legacy',
         '2026-07-01T00:00:00.000Z');
       INSERT INTO state_verifications

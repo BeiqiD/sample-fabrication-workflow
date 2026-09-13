@@ -180,9 +180,9 @@ describe("run trash and restore routes", () => {
          'storage-1', '2026-07-30T10:06:00.000Z', '2026-07-30T10:06:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, submission_id, created_at)
+        (id, run_step_id, scope, legacy_body, submission_id, created_at)
       VALUES
-        ('comment-delete', 'step-delete', 'individual', 'Delete this comment',
+        ('comment-delete', 'step-delete', 'individual', NULL,
          'submission-delete', '2026-07-30T10:06:00.000Z');
 
       INSERT INTO events
@@ -310,11 +310,11 @@ describe("run trash and restore routes", () => {
          'storage-shared', '2026-07-30T10:06:00.000Z', '2026-07-30T10:06:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, operation_group_id, body, submission_id, created_at)
+        (id, run_step_id, scope, operation_group_id, legacy_body, submission_id, created_at)
       VALUES
-        ('comment-delete', 'step-delete', 'common', 'operation-1', 'Shared comment',
+        ('comment-delete', 'step-delete', 'common', 'operation-1', NULL,
          'submission-shared', '2026-07-30T10:06:00.000Z'),
-        ('comment-keep', 'step-keep', 'common', 'operation-1', 'Shared comment',
+        ('comment-keep', 'step-keep', 'common', 'operation-1', NULL,
          'submission-shared', '2026-07-30T10:06:00.000Z');
     `);
 

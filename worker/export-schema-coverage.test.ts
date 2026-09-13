@@ -1,7 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { referenceTestDatabase } from "./reference-test-support";
+import { snapshotFullExportV8 } from "./export-v8-snapshot";
+import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
@@ -62,13 +63,15 @@ describe("complete export schema coverage", () => {
   beforeEach(() => { database = referenceTestDatabase(); });
   afterEach(() => { database.close(); });
 
-  it("covers every migrated application table and required view with executable queries", () => {
+  it("covers every migrated application table and required view with the actual v8 snapshot", async () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    for (const [name, sql] of Object.entries(FULL_EXPORT_TABLE_QUERIES)) {
-      expect(() => database.prepare(sql).all(), `${name} export query`).not.toThrow();
-    }
+    const snapshot = await snapshotFullExportV8(new SqliteD1Database(database) as unknown as D1Database);
+    expect(Object.keys(snapshot.tables).sort()).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES).sort());
+    expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.samples).not.toContain("process_revision");
+    expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).toContain("legacy_body");
+    expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).not.toContain("body");
   });
 
   it.each(["audit_future_records", "_audit_future_records"])(

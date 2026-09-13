@@ -47,7 +47,7 @@ describe("legacy Comment creation settlement", () => {
         expect(response.status).toBe(201);
         const payload = await response.json() as { operationGroupId: string };
         expect(f.d1.insertedChanges).toBe(f.targets.length * 2);
-        const rows = f.database.prepare("SELECT id, run_step_id, scope, body, actor_email FROM run_step_comments WHERE operation_group_id = ? ORDER BY run_step_id").all(payload.operationGroupId);
+        const rows = f.database.prepare("SELECT id, run_step_id, scope, legacy_body AS body, actor_email FROM run_step_comments WHERE operation_group_id = ? ORDER BY run_step_id").all(payload.operationGroupId);
         expect(rows).toHaveLength(f.targets.length);
         expect(new Set(rows.map(({ id }) => id)).size).toBe(f.targets.length);
         expect(rows.map(({ run_step_id }) => run_step_id)).toEqual(f.targets.map(({ stepId }) => stepId));

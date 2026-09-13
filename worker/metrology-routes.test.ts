@@ -1,23 +1,8 @@
-import { readFileSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { referenceTestDatabase, seedReferenceGraph } from "./reference-test-support";
 import { describe, expect, it } from "vitest";
 import worker from "./index";
 import type { Env } from "./types";
-
-const migrationNames = [
-  "alpha_state_chain",
-  "run_initial_state",
-  "release_unreferenced_templates",
-  "sync_sample_run_status",
-  "comment_submissions",
-  "metrology_templates",
-  "directory_performance",
-  "sync_metrology_sample_status",
-  "sample_directory_filters",
-  "matching_run_picker",
-  "reference_lifecycle_foundation",
-  "run_soft_delete",
-];
 
 class SqliteD1Statement {
   constructor(
@@ -49,11 +34,8 @@ class SqliteD1Statement {
 }
 
 function testDatabase() {
-  const database = new DatabaseSync(":memory:");
-  migrationNames.forEach((name, index) => {
-    const prefix = String(index + 1).padStart(4, "0");
-    database.exec(readFileSync(new URL(`../migrations/${prefix}_${name}.sql`, import.meta.url), "utf8"));
-  });
+  const database = referenceTestDatabase();
+  seedReferenceGraph(database);
   database.exec(`
     INSERT INTO samples
       (id, code, title, status, created_at, updated_at)
@@ -95,7 +77,7 @@ describe("metrology lifecycle routes", () => {
     const env = testEnv(database);
 
     const startResponse = await request(env, "/api/samples/sample-1/metrology-runs", "POST", {
-      templateVersionId: "builtin-metrology-template-afm",
+      templateVersionId: "reference-metrology-template",
     });
     const { id: runId } = await startResponse.json() as { id: string };
     const started = database.prepare(

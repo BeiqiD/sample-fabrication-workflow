@@ -11,8 +11,8 @@ export const quoteIdentifier = (value) => `"${value.replaceAll('"', '""')}"`;
 const quoteText = (value) => `'${value.replaceAll("'", "''")}'`;
 
 export function readSchemaSources(root) {
-  const historical = readdirSync(resolve(root, "migrations")).filter((name) => name.endsWith(".sql")).sort()
-    .map((filename) => ({ filename: `migrations/${filename}`, sql: readFileSync(resolve(root, "migrations", filename), "utf8") }));
+  const historical = readdirSync(resolve(root, "migrations-history/s0")).filter((name) => name.endsWith(".sql")).sort()
+    .map((filename) => ({ filename: `migrations/${filename}`, sql: readFileSync(resolve(root, "migrations-history/s0", filename), "utf8") }));
   assert.equal(historical.length, 37, "Re-inventory a changed historical chain before regenerating the candidate");
   const stages = compatibilityStages.map((filename) => ({ filename: `${compatibilityDirectory}/${filename}`,
     sql: readFileSync(resolve(root, compatibilityDirectory, filename), "utf8") }));

@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-const migrationDirectory = new URL("../migrations/", import.meta.url);
+const migrationDirectory = new URL("../migrations-history/s0/", import.meta.url);
 const migrationNames = readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort();
 
 function apply(database: DatabaseSync, names: string[]) {

@@ -30,7 +30,7 @@ function fixture() {
     WHERE id = '${REFERENCE_FIXTURE_IDS.commentAttachment}';
 
     INSERT INTO run_step_comments
-      (id, run_step_id, scope, body, actor_email, created_at, updated_at)
+      (id, run_step_id, scope, legacy_body, actor_email, created_at, updated_at)
     VALUES
       ('reference-legacy-occurrence', '${REFERENCE_FIXTURE_IDS.stepB}', 'individual',
        'Reference legacy occurrence body', 'reference@example.com',

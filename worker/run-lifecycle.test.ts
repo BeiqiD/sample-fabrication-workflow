@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
+import { referenceTestDatabase } from "./reference-test-support";
 import { ACTIVATE_SAMPLE_FOR_RUN_SQL } from "./run-lifecycle";
 
-const migration = (name: string) => readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8");
+const migration = (name: string) => readFileSync(new URL(`../migrations-history/s0/${name}`, import.meta.url), "utf8");
 
 function createSample(status: "active" | "stored" | "consumed" | "lost") {
-  const database = new DatabaseSync(":memory:");
-  database.exec(migration("0001_alpha_state_chain.sql"));
+  const database = referenceTestDatabase();
   database.prepare(
     `INSERT INTO samples (id, code, title, status, created_at, updated_at)
      VALUES ('sample-1', 'S-1', 'Sample', ?, '2026-07-23T10:00:00.000Z', '2026-07-23T10:00:00.000Z')`,
@@ -48,9 +48,9 @@ describe("sample status when a process run starts", () => {
 });
 
 function createLifecycleDatabase(applyLifecycleMigration = true) {
-  const database = new DatabaseSync(":memory:");
-  database.exec(migration("0001_alpha_state_chain.sql"));
-  if (applyLifecycleMigration) database.exec(migration("0004_sync_sample_run_status.sql"));
+  const database = applyLifecycleMigration ? referenceTestDatabase() : new DatabaseSync(":memory:");
+  // Only the final historical repair case starts before migration 0004.
+  if (!applyLifecycleMigration) database.exec(migration("0001_alpha_state_chain.sql"));
   database.exec(`
     INSERT INTO recipe_families (id, name, template_type, created_at)
     VALUES ('family-1', 'Process', 'process', '2026-07-23T10:00:00.000Z');

@@ -32,7 +32,7 @@ async function trustedCatalog() {
   const generated = generateS2Baseline(root);
   assert.equal(baseline, generated.sql, "Reviewed baseline no longer matches its exact historical and stage source hashes");
   const sources = [
-    ...historical.map((source) => ({ ...source, path: source.filename, filename: basename(source.filename), kind: "historical" })),
+    ...historical.map((source) => ({ ...source, path: `migrations-history/s0/${basename(source.filename)}`, filename: basename(source.filename), kind: "historical" })),
     ...stages.map((source, index) => ({ ...source, path: source.filename, filename: stageNames[index], kind: "incremental" })),
     { path: baselinePath, filename: baselineName, sql: baseline, kind: "baseline" },
   ].map((source) => ({ ...source, sha256: migrationSqlHash(source.sql) }));
@@ -63,7 +63,7 @@ async function plainFile(path) {
 async function verifySources(trusted) {
   for (const source of trusted.sources) assert.equal(migrationSqlHash(await plainFile(join(root, source.path))), source.sha256,
     `Source hash drift: ${source.path}`);
-  assert.deepEqual((await readdir(join(root, "migrations"))).filter((name) => name.endsWith(".sql")).sort(),
+  assert.deepEqual((await readdir(join(root, "migrations-history/s0"))).filter((name) => name.endsWith(".sql")).sort(),
     trusted.sources.filter(({ kind }) => kind === "historical").map(({ filename }) => filename), "Historical source inventory drift");
 }
 
@@ -168,7 +168,7 @@ export async function createLocalMigrationRehearsal(options) {
     const historical = await invokeWrangler(paths, ["migrations", "apply"], "bootstrap-historical");
     assert(historical.success, `Actual local Wrangler historical setup failed: ${historical.stderr}`);
     const seedPath = join(directory, "retained-fixture.sql");
-    const seed = await readFile(join(root, "worker/fixtures/reference-graph.sql"), "utf8") + "\n"
+    const seed = await readFile(join(root, "worker/fixtures/reference-graph-s0.sql"), "utf8") + "\n"
       + await readFile(join(root, compatibilityDirectory, "retained-data.sql"), "utf8");
     await writeFile(seedPath, seed, { flag: "wx", mode: 0o600 });
     const seeded = await invokeWrangler(paths, ["execute", "--file", seedPath], "bootstrap-retained-data");

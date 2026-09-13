@@ -143,7 +143,7 @@ test("repository source hash drift rejects a prepared proposal without changing 
   // source after planning; the public wrapper has no alternate-source parameter.
   const checkout = join(scratch, "private-source-checkout");
   await mkdir(checkout);
-  for (const path of ["migrations", "scripts/fixtures/backend-schema", "worker/fixtures/reference-graph.sql",
+  for (const path of ["migrations-history/s0", "scripts/fixtures/backend-schema", "worker/fixtures/reference-graph-s0.sql",
     "scripts/rehearse-local-migration-staging.mjs", "scripts/d1-migration-observer.mjs", "scripts/d1-migration-plan.mjs", "scripts/lib/backend-schema-baseline.mjs"]) {
     await mkdir(resolve(checkout, path, ".."), { recursive: true });
     await cp(join(root, path), join(checkout, path), { recursive: true });
@@ -152,7 +152,7 @@ test("repository source hash drift rejects a prepared proposal without changing 
   const copied = await import(pathToFileURL(join(checkout, "scripts/rehearse-local-migration-staging.mjs")).href);
   const session = await copied.createLocalMigrationRehearsal({ destination: join(scratch, "source-drift") });
   await session.prepare();
-  const filename = "migrations/0001_alpha_state_chain.sql";
+  const filename = "migrations-history/s0/0001_alpha_state_chain.sql";
   const original = await readFile(join(root, filename), "utf8");
   await writeFile(join(checkout, filename), original + "\n-- changed after planning\n");
   await assert.rejects(session.apply(), /Source hash drift/);

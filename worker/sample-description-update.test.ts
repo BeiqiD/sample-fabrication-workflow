@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { referenceTestDatabase } from "./reference-test-support";
 import { describe, expect, it } from "vitest";
 import worker from "./index";
 import type { Env } from "./types";
@@ -34,9 +34,7 @@ class SqliteD1Statement {
 }
 
 function testDatabase() {
-  const database = new DatabaseSync(":memory:");
-  database.exec(readFileSync(new URL("../migrations/0001_alpha_state_chain.sql", import.meta.url), "utf8"));
-  database.exec("ALTER TABLE samples ADD COLUMN deleted_at TEXT; ALTER TABLE samples ADD COLUMN deleted_by TEXT;");
+  const database = referenceTestDatabase();
   database.prepare(
     `INSERT INTO samples
       (id, code, title, description, status, location, pinned, created_at, updated_at)
