@@ -1,11 +1,12 @@
 # Final S2 application gate candidate
 
-This branch prepares the final application's complete local gate. It is not a
-remote activation or retirement record. The owner now permits discarding the
-integration test data: use the [in-place D1 rebuild](./BACKEND_DISPOSABLE_S2_CUTOVER.md),
-with access, builds and background writers paused. Preserve the existing D1
-identity and all file bindings. Do not merge into an unpaused S0 deployment path. It contains the already prepared C Worker, which requires S1
-or S2, plus a default **new-empty-database** S2 baseline.
+This document records the final application's complete local qualification.
+PR #202 has since merged and deployed; its actual in-place reset and remote
+results are in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
+Historical qualification records below retain their original scope. The deployed
+C Worker requires S1 or S2. Its baseline initialized the existing disposable D1
+after the reviewed in-place reset; file bindings remained unchanged. Do not
+repeat that destructive operation as part of ordinary deployments.
 
 ## Schema selection and retained history
 
@@ -114,8 +115,8 @@ The candidate incorporates integration commit
 `b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, including the read-only observation
 transport merged in PR #203 and the deployed S0 browser/roadmap evidence merged
 in PR #204. That S0 browser evidence does not establish final S2 activation or
-browser acceptance. The candidate remains an inactive Draft with the same
-retirement, recovery and migration-selection barriers.
+browser acceptance. At that synchronization checkpoint the candidate remained an inactive Draft;
+its later authorized activation is recorded separately.
 
 The newly added transport parity test originally read the default `migrations/`
 directory while asserting the historical 37-file chain. Combining the branches

@@ -2,12 +2,12 @@
 
 Status: backend reliability corrections, Worker extraction and shared-contract
 separation are merged. Compatibility schemas, recovery and local migration
-staging are qualified; the final S2 application is prepared in an inactive Draft.
+staging are qualified; the final S2 application from #202 is merged and deployed.
 Current S0 browser checks and read-only remote observation transport qualification
 are recorded. The owner now authorizes discarding integration test data and
 selects an in-place rebuild of the current D1 with all file bindings retained.
-Authenticated target inspection and maintenance controls are recorded; reset,
-matching deployment and final S2 browser acceptance remain open. New frontend
+The existing D1 was rebuilt and S2 deployed with unchanged file bindings; final
+authenticated browser acceptance and exit review remain open. New frontend
 refinement remains paused.
 
 The inventory, isolated recovery rehearsal and scale measurements are tracked in
@@ -37,7 +37,7 @@ Implementation checkpoint, 2026-09-13:
 | 6A2 ownership | PRs [#191](https://github.com/BeiqiD/sample-fabrication-workflow/pull/191) and [#192](https://github.com/BeiqiD/sample-fabrication-workflow/pull/192) are merged; root Worker composition, domain routes, settlement and scheduled coordination have explicit owners. |
 | 6A3 contracts | [#193](https://github.com/BeiqiD/sample-fabrication-workflow/pull/193) is merged; shared contracts/domain modules and permanent AST/type gates enforce dependency direction. |
 | 6A4 compatibility | Canonical reader A [#194](https://github.com/BeiqiD/sample-fabrication-workflow/pull/194), versioned export E [#197](https://github.com/BeiqiD/sample-fabrication-workflow/pull/197), and inactive S1/S2 schema/recovery qualification [#198](https://github.com/BeiqiD/sample-fabrication-workflow/pull/198) are merged. The C writer [#199](https://github.com/BeiqiD/sample-fabrication-workflow/pull/199) and B overlap bridge [#200](https://github.com/BeiqiD/sample-fabrication-workflow/pull/200) are implemented and locally qualified Drafts; B/C/D remote transitions remain inactive. |
-| 6A5 baseline | Planner/observer/preflight [#195](https://github.com/BeiqiD/sample-fabrication-workflow/pull/195) and actual local Wrangler staging [#201](https://github.com/BeiqiD/sample-fabrication-workflow/pull/201) are merged. Draft [#202](https://github.com/BeiqiD/sample-fabrication-workflow/pull/202) qualifies the final S2 application's complete gate, default fresh baseline, preserved historical chain and recovery matrix; it is not eligible for the current S0 automatic deployment path. The read-only remote D1 transport in [#203](https://github.com/BeiqiD/sample-fabrication-workflow/pull/203) is merged after complete verification; read-only live schema/ledger inventory is now recorded in the activation checkpoint. The owner-authorized route clears the disposable database during maintenance, preserves file bindings and deploys S2; reset and matching deployment remain open. |
+| 6A5 baseline | Planner/observer/preflight [#195](https://github.com/BeiqiD/sample-fabrication-workflow/pull/195) and actual local Wrangler staging [#201](https://github.com/BeiqiD/sample-fabrication-workflow/pull/201) are merged. [#202](https://github.com/BeiqiD/sample-fabrication-workflow/pull/202) qualifies the final S2 application's complete gate, default fresh baseline, preserved historical chain and recovery matrix; it merged as `e37dbe1` and deployed after the authorized in-place reset. The read-only remote D1 transport in [#203](https://github.com/BeiqiD/sample-fabrication-workflow/pull/203) is merged after complete verification; read-only live schema/ledger inventory is now recorded in the activation checkpoint. The owner-authorized reset and matching S2 deployment are complete; database/ledger/integrity and binding checks pass. Live browser acceptance remains open. |
 | 6A6 exit | Not complete. The earlier exercised S0 Template/Run, split-image, canonical Comment/Reference and v8 download/restore checks pass. Final S2 deployed-browser acceptance remains outstanding. A deployed version allocation alone does not establish old-request retirement for destructive cleanup. |
 
 See the [compatibility sequence](./BACKEND_COMPATIBILITY_CLEANUP_DESIGN.md),
@@ -59,8 +59,8 @@ sequence passed; it requires actual maintenance and completion of existing
 requests/uploads before deleting the old schema. The complete application gate,
 reviewed reset, same-database local Wrangler rehearsal and final remote/browser
 acceptance remain required. The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md)
-records successful live reads and applied maintenance controls. No reset is
-claimed until its actual execution is recorded.
+records the successful reset, gated deployment and database checks. Application
+access is restored; build/Cron holds remain until final live browser acceptance.
 
 V3 keeps the current runtime shape:
 
