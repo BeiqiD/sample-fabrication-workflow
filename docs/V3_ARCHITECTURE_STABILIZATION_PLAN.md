@@ -1,13 +1,14 @@
 # V3 architecture stabilization plan
 
-Status: planned pre-release phase; planning may complete during Phase 5, while
-implementation starts only after Phase 5F
+Status: prioritized backend track under the 2026-09-13 route revision; begin
+with current-state inventory and reliability verification before new frontend
+refinement. This document update does not claim implementation has started.
 
-Last reviewed: 2026-09-12 after the repository architecture audit
+Last reviewed: 2026-09-13 for the user-authorized backend-first execution order
 
-This document defines the bounded architecture and schema stabilization work that
-must sit between the completed Phase 5 frontend refinement sequence and final v1
-release validation. The high-level order remains in
+This document defines the bounded backend reliability, architecture and schema
+stabilization work required before final v1 release validation. Backend work now
+precedes the remaining frontend refinement. The high-level order remains in
 [Product goal and roadmap](./PRODUCT_ROADMAP.md). Current source identity,
 lifecycle, Reference, blob, Project, export, and deployment invariants remain
 authoritative in their focused contracts.
@@ -64,20 +65,29 @@ The stabilization phase will not:
 
 ## Relationship to Phase 5 and release hardening
 
-Phase 5C2b, Phase 5C3/C4, Phase 5D, Phase 5E, and Phase 5F remain in their
-existing order. Their protected backend, API, schema, migration, persistence, and
-performance boundaries remain frozen.
+The user has chosen to pause new frontend refinement and prioritize backend
+review/correction. Phase 6A1 starts from the latest integration head, using the
+deployed PR #185 frontend behavior as the initial regression reference. Review
+complete export/restore and representative large-Project behavior first, repair
+demonstrated defects separately, then proceed through small Phase 6A2/6A3 Worker
+and contract slices. Phase 5F is no longer a prerequisite for those backend tasks.
 
-Planning and measurement for stabilization may occur during Phase 5, but no
-architecture implementation slice may compete with the active frontend files or
-change Phase 5 acceptance behavior. After Phase 5F records the final frontend
-baseline:
+Backend extraction preserves public API, source identity, revisions, idempotency,
+transaction and export/retention behavior. Any intentional change to interface,
+behavior or schema needs a separate design and review with its frontend impact
+and verification made explicit. Do not combine frontend controller rewrites with
+Worker extraction or repeat completed visual/shortcut work.
 
-1. **Phase 6A — V3 architecture stabilization** executes the bounded sequence in
-   this document.
-2. **Phase 6B — release validation and operational rehearsal** executes the
-   representative-data, browser, performance, backup, restore, deployment,
-   accessibility, and security work previously described as Phase 6.
+Compatibility cleanup and the database baseline remain the late Phase 6A4–6
+sequence after affected consumers and contracts are stable. Their existing
+design, schema-comparison and migration/resource gates remain in force.
+
+At the backend review checkpoint, resume outstanding C4 acceptance and the
+frontend 5D → 5E → 5F sequence with its unverified boundaries intact. Backend
+probes cannot qualify physical-device or frontend usability claims. Phase 6B
+release validation starts only after both the backend stabilization exit and
+Phase 5F's final frontend baseline; earlier backend reliability evidence is
+rechecked where later changes affect it.
 
 The current V3 migration chain and deployment gate remain authoritative until the
 baseline replacement slice is complete. No planning document, local schema dump,
@@ -207,8 +217,10 @@ This document and its roadmap links complete the planning gate. It records:
 - release-critical versus optional cleanup;
 - explicit non-goals and decision gates.
 
-Merging the planning gate does not start Phase 6A implementation while Phase 5
-remains active.
+The 2026-09-13 route revision makes backend Phase 6A1 the next execution step;
+it supersedes the old requirement to wait for all of Phase 5. Merging this
+documentation records that sequence, not a completed audit, new repair or schema
+activation. Implementation proceeds in separately reviewed bounded PRs.
 
 The 2026-09-12 audit repair work is tracked in
 [Architecture audit remediation](./ARCHITECTURE_AUDIT_REMEDIATION.md). The
@@ -218,8 +230,8 @@ baseline replacement or complete Phase 5 browser acceptance.
 
 ### 6A1 — exact inventory and characterization gate
 
-Re-measure the post-Phase-5 repository rather than treating current counts as a
-future contract:
+Re-measure the current integration repository rather than treating historical
+audit counts as a future contract:
 
 - direct routes, SQL ownership, and cross-domain helpers still present in
   `worker/index.ts`;
@@ -239,6 +251,33 @@ future contract:
   submission/recovery state ownership;
 - the shared CI/deployment leaf-check inventory and the actual production
   artifacts covered by each smoke test.
+
+#### First execution slice: backend reliability baseline
+
+Start with an exact commit, existing routes and a reproducible synthetic fixture
+in isolated local database/provider resources:
+
+- exercise complete export and recovery into a separate destination, comparing
+  stable IDs, normalized rows, source/Reference relationships, deleted state,
+  attachment metadata, retention/quarantine state and available file hashes;
+- record archive/schema/build identity, restore order and unavailable-byte
+  outcomes. Inventory any missing recovery path explicitly; do not assume the
+  current export implies a complete restore implementation or silently introduce
+  a new public import protocol;
+- measure representative large-Project snapshot reads and writes through final
+  save acknowledgement, including query/request counts, latency, conflict and
+  failed/uncertain retry behavior. Distinguish backend timings from browser frame
+  rate and memory claims;
+- report reproduced defects, verification gaps and measured limits with bounded
+  follow-up PRs. Add characterization coverage only where a concrete boundary
+  lacks it; reuse the existing migration/export/Worker checks.
+
+This first slice does not rewrite application modules or modify the schema.
+Actual corrections follow as focused PRs before the affected extraction. Its
+exit is a reviewable reliability/inventory record and regression baseline, not
+an assertion that every backend feature or final release rehearsal is complete.
+The later baseline replacement must repeat affected recovery checks against the
+final schema; no persistent resource is reset during this first slice.
 
 Add characterization coverage only where an extraction would otherwise rely on
 unstated behavior. This slice changes no production behavior or schema.
@@ -279,7 +318,8 @@ The audit identified these bounded ownership follow-ups:
   closure and physical blob GC in the existing order. Keep domain timeout SQL
   with Evidence and retain atomic guards; no new Worker or queue is required.
 
-Frontend ownership work follows the same small-slice discipline after Phase 5F:
+Frontend ownership work remains separate, following the same small-slice
+discipline after Phase 5F; it is not brought forward with Worker extraction:
 first converge ordinary single/bulk item lifecycle execution, then use one
 command-availability boundary, then introduce narrow acknowledgement reducers
 and a dedicated placement-save queue. Preserve special insertion-cancellation
@@ -324,6 +364,9 @@ Project-specific mutation disposition remains owned by Project. Do not turn
 that transport error into a universal cross-domain retry policy.
 
 ### 6A4 — compatibility cleanup and vocabulary decision
+
+This late slice follows backend reliability corrections and stable module/API
+boundaries. It is not bundled into the initial inventory or extraction PRs.
 
 Only explicitly identified compatibility state is release-critical by default.
 Current candidates are:
@@ -428,7 +471,8 @@ Phase 6A is complete when the current V3 product behavior is represented by a
 modular single Worker, explicit contract boundary, reviewed final schema, and one
 fresh-install baseline without discarding the verified implementation.
 
-Phase 6B then owns:
+Phase 6B follows only when this backend exit and Phase 5F's resumed frontend
+baseline are both complete. It owns:
 
 - sustained representative research-data use;
 - desktop, mobile, and supported-browser regression;
@@ -443,6 +487,7 @@ move through the final save acknowledgement, measuring request count, elapsed
 time and React commits. jsdom scale checks do not establish browser frame rate.
 Measure before changing sequential writes or adding a bulk API.
 
+The preliminary Phase 6A1 reliability checks do not complete this final rehearsal.
 Backup qualification includes an archive-to-isolated-database/provider round
 trip, comparing stable IDs, normalized rows, deleted state, Reference targets,
 retention, quarantine, derivatives and file hashes. Record schema/build identity,

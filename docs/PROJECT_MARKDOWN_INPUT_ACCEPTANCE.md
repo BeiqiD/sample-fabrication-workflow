@@ -1,7 +1,26 @@
 # Markdown composition input
 
-Date: 2026-09-12. Implementation baseline: PR #180, integration commit
+Reviewed: 2026-09-13. Original implementation baseline: PR #180, integration commit
 `6d85db2cecb5fd2b65df1abf40630c631daadcce`.
+
+## Current acceptance status
+
+[PR #181](https://github.com/BeiqiD/sample-fabrication-workflow/pull/181) merged
+the composition correction as `1830927b33e2c6b82e6104cc50511cdba04290f7`.
+Both postmerge Verify jobs and all 14 statuses passed. Its automatic Workers
+deployment succeeded, and the browser served the matching CI entry
+`index-DRmC-BVm.js`.
+
+On the named synthetic QA Project, directly inserted Chinese text survived
+Preview, expanded Write and collapse. Cancel restored Saved and removed the
+temporary draft without persisting content. This deployed smoke and the
+simulated composition regressions below do not establish physical Windows/macOS
+IME acceptance; native candidate entry remains a device acceptance item.
+
+The fix remains included through PR #185. See the
+[current C4 integration record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
+for its exact deployment identity and broader acceptance limits. The older
+entry asset above identifies PR #181's check, not the current deployed asset.
 
 ## Defect and correction
 
@@ -39,4 +58,8 @@ active composition through a delayed value prop.
   and composition events and observe DOM value writes. They do not constitute
   a physical Windows/macOS IME acceptance result.
 
-Full verification and deployed smoke results are recorded on the associated PR.
+PR #181's full verification passed 992 source and 435 mounted tests, plus
+TypeScript/build, lazy Map ownership, local migrations, Reference/search Worker,
+production Project Worker/assets and bundled formula checks. Independent review
+found no remaining blocker. These are historical implementation results; this
+documentation update does not rerun or broaden the physical IME claim.

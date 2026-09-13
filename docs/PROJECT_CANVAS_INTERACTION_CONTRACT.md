@@ -2,7 +2,7 @@
 
 Status: canonical product and architecture contract; Phase 4C is complete in PR #151
 
-Last reviewed: 2026-09-11 for the user-authorized interaction, editing, and recovery revision
+Last reviewed: 2026-09-13 for the merged interaction refinements through PR #185
 
 This document defines the intended Project workspace. Phase 3A1, implemented in
 PR #131, freezes the normalized schema; PR #132 implements the completed Phase
@@ -41,7 +41,9 @@ including repairs beyond the original PR's presentation scope. The current rules
 below supersede earlier selection-opens-Inspector, creation-free Reading/mobile,
 fixed-edge-endpoint, and placement-only Save rules. Completed Phase 3/4 records
 remain historical. Integrated results and remaining acceptance boundaries are
-recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`; the PR remains Draft.
+recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md` as the historical PR #168 repair
+record. Current merged/deployed progress through PR #185 and remaining C4
+acceptance are recorded in `PROJECT_C4_ACCEPTANCE.md`.
 
 Identity, immutable Reading order, revision checks, exact operation replay,
 uncertain-outcome protection, and attachment trust remain authoritative. Edge
@@ -231,9 +233,12 @@ pointer position and immediately focuses its editor.
 - only one Markdown node loads the full editor at a time;
 - editing temporarily disables node dragging; an unchanged existing editor can
   exit during the next primary Canvas click or drag and allow that same gesture;
-- existing Markdown nodes enter edit mode through an explicit Edit action;
-  double-clicking their non-interactive body/title/chrome opens Inspector, matching
-  references, attachments and edges;
+- existing Markdown nodes enter edit mode through Edit or double-clicking their
+  non-interactive body/title/chrome. Double-click starts the surface editor and
+  opens Inspector after editing succeeds, retaining focus in the textarea;
+- Details remains read-only, as does double-click inspection of references,
+  attachments and edges. Interactive children and active/pending editors do not
+  initiate another edit or create a new note;
 - Map, Reading, and the expanded editor share one draft and canonical Markdown
   source; changing editor presentation must not create a new operation identity;
 - active-editor Save and Ctrl/Command+S save that draft; safe navigation offers
@@ -274,9 +279,10 @@ references found through the sidebar.
 - focus the resize grip and use arrow keys: adjust the corresponding dimension
   by 5 canvas units, or 20 with Shift, without moving the card;
 - double-click empty space: create Markdown;
-- double-click any committed card's non-interactive body/title/chrome or an edge's
-  line/label: open Inspector; Markdown, reference, attachment and edge follow the
-  same inspection rule;
+- double-click a committed Markdown card's non-interactive body/title/chrome:
+  start its surface editor and open Inspector without taking focus from the editor;
+- double-click a committed reference/attachment or an edge's line/label: open
+  Inspector; these kinds retain their existing inspection action;
 - explicit Edit: start the corresponding content or edge editor;
 - Reading and Inspector content retain native text selection/copy; Map card
   previews use selection/copy/delete shortcuts for cards and retain scrolling;
@@ -296,8 +302,10 @@ Every committed card displays an 18-unit triangular resize corner integrated int
 its border, following the card's 12-unit outer radius in both paint and hit area.
 It scales with the card, with reserved content clearance and the
 source link offset away from the corner. Resizing only affects that card's
-dimensions and preserves the existing selection. Editing or a geometry lock
-hides the control without reclaiming its content clearance during a lock.
+dimensions and preserves the existing selection. The active Markdown card remains
+resizable during ordinary or rejected editing, including Inspector editing;
+saving/uncertain/conflict states and other geometry locks retain their guards.
+Locked controls keep their content clearance so card content does not reflow.
 Resize retains the existing 180–1200 width
 and 110–1000 height limits, Save, Undo and Redo behavior, and stored position/layer.
 An acknowledgement for another card must not replace the position or dimensions
@@ -328,9 +336,13 @@ Inspector editing stays in the Inspector: Markdown, attachment metadata and edge
 metadata use one local editing area with Save and Cancel next to the inputs.
 Existing card/Reading edits keep their local editor; opening an Inspector edit
 does not mount a second editor on the surface. During an Inspector edit, supporting
-previews/details/actions are hidden. The panel width is bounded at 460 CSS pixels
-on large Map workspaces, the default Markdown input height at 360 pixels, and the
-editing panel at 760 pixels; controls do not spread across a 2K/4K display.
+previews/details/actions are hidden. Inspector shares the References width:
+340 CSS pixels on wide Map, 280 at the existing narrow desktop tier, and the
+shared 380px container in desktop Reading, with the viewport bounds defined in
+`PROJECT_WORKSPACE_LAYOUT_CONTRACT.md`. The default Inspector Markdown input
+height remains capped at 360 pixels and the editing panel at 760 pixels;
+controls do not spread across a 2K/4K display. The card-surface editor instead
+uses its available card height as specified in the resize contract below.
 
 Plain Escape cancels editable/rejected drafts like Cancel, including an unchanged
 existing note, and returns focus to the local Edit action while leaving Inspector
@@ -407,6 +419,13 @@ Node resize changes `width` and `height`, never font size or source content.
 Markdown nodes reflow text when width changes and expose more or less content
 when height changes. Non-editing nodes clip or fade overflow. Reading always
 renders the complete Markdown source independent of Map node dimensions.
+
+During an allowed Markdown edit, resizing preserves the same text draft.
+Existing-card dimensions use placement autosave/history: Cancel discards text,
+while Undo after editing restores size. New-note dimensions remain local until
+creation. Save, Cancel and Expand wait for an active resize; gesture cancellation
+or unmount releases that lock. The card editor's Write and Preview use the
+available card height, with actions below and form scrolling at small sizes.
 
 Reference nodes use size-dependent information density:
 

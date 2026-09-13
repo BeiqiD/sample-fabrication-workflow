@@ -1,12 +1,68 @@
 # Project C4 integration acceptance
 
-Status: in progress. The deployed Inspector and shortcut changes passed the
-desktop checks below. Editor resizing and space use are being refined;
-browser/device acceptance remains incomplete and Phase 5D has not started.
+Status: in progress. Shortcut ownership/help, editor resizing and space use,
+panel continuity and Markdown activation, and panel/Sample-note layout have
+passed their recorded deployed desktop checks through PR #185. The remaining
+browser/device acceptance below is incomplete; Phase 5D has not started. New
+frontend refinement is paused while backend verification and concrete repairs
+take priority under the [product roadmap](./PRODUCT_ROADMAP.md). C4's open checks
+remain recorded here and are not a prerequisite for behavior-preserving backend
+work or satisfied by backend-only evidence.
 
-Reviewed: 2026-09-12.
+Reviewed: 2026-09-13. This update reconciles the merged PR acceptance records;
+it does not claim a new execution of their tests or browser workflows.
 
-## Current integration check — 2026-09-12
+## Current integration check — 2026-09-13
+
+- Integration branch: `v2/backend-foundation`, at [PR #185](https://github.com/BeiqiD/sample-fabrication-workflow/pull/185)
+  merge [`c4bf698e3753a0474e7d75d400af6685ff874a6a`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/c4bf698e3753a0474e7d75d400af6685ff874a6a),
+  tree `5c5f2c7a932db8e380305205684bd4ddcbf832e4`, matching the locally tested tree.
+- Both postmerge Verify jobs and all 14 status contexts passed. The full suites
+  contain 992 source tests and 467 mounted tests.
+- [Automatic Workers Build](https://github.com/BeiqiD/sample-fabrication-workflow/runs/103645367972)
+  `8a88f5c2-ff0a-4c8e-acae-68fb4c90615b` succeeded at
+  `2026-09-13 00:26:01 UTC`, version `29cb6d4e-4c20-4c8d-9efa-385dd4495e1e`.
+  An ordinary browser reload served `index-BPgDwsci.js`, matching the exact
+  completed merge build. Earlier asset names below identify historical checks.
+- Acceptance used the existing synthetic QA Project and Sample listed below,
+  on `https://sample-workflow-v3.clannadas.workers.dev` at `1363 × 936`.
+  No manual deployment or remote migration was performed.
+
+### Accepted desktop follow-ups
+
+These results were recorded on each merged PR's deployed build. They establish
+the named behavior within that session, rather than a rerun of every prior
+workflow on the PR #185 build.
+
+| Change | Deployed result and evidence |
+| --- | --- |
+| Existing shortcuts and ownership — #175–#178 | Help, Control+S/Escape draft preservation, Control+A/Delete background isolation and native panel/Reading copying passed the historical desktop checks below. These shortcuts are implemented; they are not a new development step. See [shortcut acceptance](./PROJECT_SHORTCUT_INSPECTOR_ACCEPTANCE.md). |
+| Active-editor resize and height — [#180](https://github.com/BeiqiD/sample-fabrication-workflow/pull/180) | Native inline drag enlarged the note from `904 × 711` to `1200 × 1000`; Write grew from `580px` to `869px` and Preview also measured `869px`, without a max-height cap, with a `6px` CSS action gap. Inspector editing also resized. Cancel preserved size and discarded text; Undo restored geometry. A new `180 × 110` draft retained reachable actions through form scrolling. Final reload restored the original four cards and Saved. |
+| Composition synchronization — [#181](https://github.com/BeiqiD/sample-fabrication-workflow/pull/181) | Simulated composition regressions passed. Directly inserted Chinese text survived Preview, expanded Write and collapse in the deployed browser; Cancel discarded it. This is not physical Windows/macOS IME acceptance. See [Markdown input acceptance](./PROJECT_MARKDOWN_INPUT_ACCEPTANCE.md). |
+| Dialog and Inspector hierarchy — [#182](https://github.com/BeiqiD/sample-fabrication-workflow/pull/182) | Light/night dialog layout, aligned `38px` actions, Stay/Escape draft preservation, measured text hierarchy and disclosure retention passed. Browser findings concerning Space and Reading menus were then fixed by #183; the original unequal panel widths were later replaced by #185. |
+| Panel Space and Reading menus — [#183](https://github.com/BeiqiD/sample-fabrication-workflow/pull/183) | Native Space opened Inspector Details and References More. Reading Add → Reference passed pointer hit testing and opened References while replacing Inspector. See [panel hierarchy acceptance](./PROJECT_INSPECTOR_POLISH_ACCEPTANCE.md). |
+| Shared panel state and Markdown activation — [#184](https://github.com/BeiqiD/sample-fabrication-workflow/pull/184) | Both panels passed open-with-no-selection, Pin/Unpin, selection changes/clearing and explicit Close/reopen checks. Markdown double-click opened one existing-card editor and Inspector while keeping the textarea focused; Details remained read-only. Reading panel replacement and blank-Canvas new-note cancellation passed. No temporary content or geometry was saved. See [panel behavior acceptance](./PROJECT_PANEL_BEHAVIOR_ACCEPTANCE.md). |
+
+### PR #185 desktop layout and source-note acceptance
+
+| Check | Direct observation on the current integration build |
+| --- | --- |
+| Map panels | References and Inspector both measured `340px`, with `14px` padding and `12px` radius. Neither overflowed horizontally. Light and night screenshots were inspected. |
+| Reading panels | References and Inspector each measured `380px`, with the same padding and radius. |
+| Open source | Clicking the selected reference card's Open source link focused the correct synthetic Sample note. Referenced sat beside Sample note, did not intersect the timestamp, and the former floating pseudo-element was absent. Note content had no horizontal overflow in either theme. |
+| Delete note | The button had `14px` clearance from the right edge and passed visible hit testing. Clicking opened the correct note summary; Cancel preserved the note and returned focus to Delete note. |
+| Final state | Light Map mode, Saved, no draft or confirmation dialog. The existing synthetic note remained present; no Project content or remote Sample data was changed. |
+
+The two new mounted SamplePage cases cover older-note expansion, source-focus
+switching/cleanup, timestamp preservation and cancelling the intended deletion.
+The first remote run exposed a lazy RichText test race; resolving the connected
+article inside `waitFor` retained all behavior assertions and made the complete
+467-test mounted suite pass. Narrow/mobile screenshots were not taken.
+
+## Historical integration check — 2026-09-12
+
+This is the PR #175–#179 record. Its entry assets, measurements and the
+then-pending editor work identify that earlier build, not the current deployment.
 
 - Deployed code baseline: `v2/backend-foundation` merge commit
   [`791f00073ee69f4ce2c59a377705fe3faee61423`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/791f00073ee69f4ce2c59a377705fe3faee61423),
@@ -57,7 +113,11 @@ changes undone. No temporary text or edge label was persisted. A final reload
 confirmed four cards, Saved, no temporary marker, and the comment reference's
 restored `445 × 239` size and original position/layer.
 
-### New editor requirement — implemented, deployed acceptance pending
+### Historical editor requirement — predeployment implementation record
+
+The following implementation and local-validation record preceded PR #180's
+deployment. Its pending browser checks were completed by the PR #180 results
+above; it is retained to distinguish the original reproduction from acceptance.
 
 The user requested that the current card retain its bottom-right resize control
 while editing. For large Markdown cards, the textarea and Preview should expand
@@ -70,8 +130,8 @@ wait for an active resize to finish; interrupted gestures release that lock.
 
 The compact textarea and Preview no longer have the `360px` height cap. They fill
 the available card height, with actions below and form scrolling for very small
-cards. Deployed browser measurements remain pending and are required before
-treating the new resizing and layout behavior as accepted.
+cards. At this stage, deployed measurements were still pending; PR #180 later
+completed desktop acceptance of the resizing and editor-space changes.
 
 Regression coverage exercises actual ReactFlow resize controls in Canvas and
 Inspector editing, draft preservation, placement saves and Undo/Redo, new-note
@@ -95,16 +155,18 @@ The complete `npm run verify:ci` gate passed, including TypeScript/export
 contracts, local migrations, Reference and search Worker smoke checks,
 production build, lazy Map bundle ownership, and production Project Worker plus
 assets. The local build emitted `index-BwVQjoze.js`, `ProjectPage-49wfw6sZ.js`,
-and `ProjectMapSurface-CVR8I2pQ.js`; these names are a comparison baseline for the
-pending deployed check, not deployment evidence.
+and `ProjectMapSurface-CVR8I2pQ.js`; these names were the local comparison
+baseline at that stage, not deployment evidence. PR #180 subsequently deployed
+`index-BuJsDT8b.js`, matching its completed merge build.
 
 The deployed reproduction used a `1200 × 1000` Markdown card. Its textarea had
 computed height and max-height of `360px`, leaving about `197.2` screen pixels
 before Save at the fitted Canvas zoom; editing exposed no Resize card button.
 
-### Remaining acceptance
+## Remaining acceptance
 
-The desktop results cover the actions named above. macOS Command shortcuts,
+The desktop results cover the actions named above, including the completed
+PR #180–#185 follow-ups. macOS Command shortcuts,
 other Canvas commands under help, and returning keyboard ownership to the Canvas
 still need their applicable browser checks. Reuse the existing CI and historical
 evidence within its recorded scope.
@@ -207,7 +269,8 @@ Four new mounted cases use the actual ReactFlow node wrappers and ProjectPage:
 
 All four failed before the fix and passed after it. These tests verify rendered
 stacking and persistence behavior; actual pointer hit testing of this new code
-still requires a browser session loading the fixed build.
+required a browser session loading the fixed build. The later PR #175–#178
+desktop check above completed the overlapping Save/Cancel pointer validation.
 
 ## Defect: post-merge Verify times out in observer simulation
 
@@ -246,9 +309,9 @@ not a claim of improved real-browser frame rate.
 
 ## Historical remaining acceptance boundaries
 
-1. Load the fixed editor build in a browser and repeat Cancel and Save pointer
-   hit tests with an overlapping higher-layer reference. Keep C4 in progress
-   until this regression has been verified after deployment.
+1. The then-pending fixed-editor overlap pointer check was completed by the
+   later PR #175–#178 desktop result above. It no longer blocks that regression's
+   acceptance; the broader C4 limits below still apply.
 2. This run covered one desktop viewport. Phone, short-screen and physical touch
    acceptance still requires direct visual/device checks; mounted responsive
    coverage does not establish those results.
@@ -261,5 +324,7 @@ not a claim of improved real-browser frame rate.
    lifecycle or release/deployment recovery rehearsal. Historical acceptance
    limits in the earlier records remain applicable.
 
-Phase 5D attachment/media refinement follows C4 acceptance. It is not started
-or declared complete by this change.
+When frontend refinement resumes, Phase 5D attachment/media work follows the
+remaining C4 acceptance. Neither phase is declared complete by the backend-first
+schedule change; the final Phase 5F frontend baseline remains required before
+release hardening.

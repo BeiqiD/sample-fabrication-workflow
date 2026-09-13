@@ -1,19 +1,21 @@
 # Project interaction repair acceptance
 
-Date: 2026-09-11. Follow-up to the user's review of entry, editing, references,
-connections, removal, mouse gestures and information density. This extends Draft
-PR #168 beyond its original rendering scope. No merge or production deployment.
+Historical acceptance: 2026-09-11–12, PR #168. This records its review of entry,
+editing, references, connections, removal, mouse gestures and information
+density while the PR was still Draft. PR #168 subsequently merged; its original
+local-only deployment and Draft statements are not current repository status.
 
-The historical Map body-selection rule below is superseded by the 2026-09-12
-[card gesture acceptance](./PROJECT_CARD_GESTURE_ACCEPTANCE.md): Map previews
-drag from their non-interactive body; single click selects any committed card or
-edge, and double-click opens its Inspector. Editing uses an explicit Edit action.
+Current baseline: PR #185 merge `c4bf698e3753a0474e7d75d400af6685ff874a6a`.
+Use the [current gesture contract](./PROJECT_CARD_GESTURE_ACCEPTANCE.md#interaction-contract)
+and [C4 integration record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+Map previews now drag from their non-interactive body; single click selects.
+PR #184 makes Markdown double-click open its surface editor and Inspector
+together, while reference, attachment and edge double-click opens Inspector.
 An unchanged existing editor can yield to the same primary Canvas click or drag;
 changed/new drafts and unresolved operations stay protected. Reading and Inspector
-retain text selection. The implementation and browser results below record the
-historical version tested, not acceptance of these later interaction changes.
+retain text selection. C4 is still in progress; Phase 5D has not started.
 
-## Implemented behavior
+## Historical implemented behavior — PR #168
 
 | Task | Result |
 | --- | --- |
@@ -27,7 +29,7 @@ historical version tested, not acceptance of these later interaction changes.
 | Remove and recover | Delete/Backspace and More support selected cards. Undo prioritizes the latest deletion group. Project actions opens Trash, including multi-select restore. Cascade edges restore only for the matching deletion action and available endpoints. |
 | Reduce secondary content | Inspector previews have bounded scrolling and optional expansion. Technical metadata and infrequent actions are collapsed. Relationship entries focus the connected card. Canvas status notifications float above the canvas instead of resizing it; paste notices can be dismissed. |
 
-## Browser acceptance on the integrated implementation
+## Historical browser acceptance — PR #168 integrated implementation
 
 Chrome, real local Worker/D1/R2 bindings; dedicated Project
 `project-f790244b-656f-4744-9b72-343a6b2e9613`.
@@ -128,22 +130,24 @@ preconditions. The clipboard error assertions remain unchanged.
   bindings, including asset deduplication, retries, rollback and lifecycle flows.
 - `git diff --check` passed.
 
-## Remaining acceptance boundaries
+## Acceptance boundaries at the PR #168 review
 
 - Desktop Chrome and the controlled iframe dimensions above cover this interaction
   revision. Native mobile Safari/Chrome, touch gestures and the on-screen keyboard
   were not tested; iframe resizing is not evidence for those device behaviors.
-- C3 remains open for contextual Reading details and fully modal mobile panels
-  with focus containment/dismissal/return. Existing Reading Add, shared editing and
-  compact actions are already implemented and should be reused by that slice.
+- C3 was then open for contextual Reading details and fully modal mobile panels
+  with focus containment/dismissal/return. That implementation has since landed;
+  the current C4 record distinguishes completed desktop checks from remaining
+  browser/device acceptance.
 - Earlier export-download landing, full valid-workbook import, and configured
   managed-storage Comment upload limits remain as recorded in that report.
 - Global Undo covers layout/edge history and deletion priority; it is not universal
   history for content edits or creation. Unfinished deletion recovery is held in
   the current tab/session and uses authoritative reads before releasing locks.
-- Deployment of endpoint reconnection requires migration
-  `0036_project_edge_reconnection.sql` before serving the new Worker. Only the
-  local QA database was migrated in this pass. PR remains Draft.
+- Endpoint reconnection required migration `0036_project_edge_reconnection.sql`
+  before serving its new Worker. Only the local QA database was migrated in this
+  historical pass, and PR #168 was still Draft at that point. Current integration
+  and automatic-deployment evidence is recorded in C4, linked above.
 
 ## Extended pre-merge review — 2026-09-12
 
