@@ -113,7 +113,7 @@ a removed column, schema-cache races, or mutation retries after a schema error.
 
 ### Negotiation and old browser behavior
 
-The proposed request is `/exports/all?archiveSchema=8&archiveWriter=1`. E accepts
+The implemented request is `/exports/all?archiveSchema=8&archiveWriter=1`. E accepts
 only this supported pair; no query, duplicate/unknown values, or unsupported
 versions receive `409` with a clear refresh/update message and no manifest.
 The existing `request()` rejects non-2xx responses before its old ZIP writer
