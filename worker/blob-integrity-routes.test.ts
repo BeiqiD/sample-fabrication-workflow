@@ -2,6 +2,7 @@ import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
 import { runBlobGarbageCollection } from "./blob-lifecycle/gc";
+import { reapStaleFabubloxImports } from "./fabublox-import-recovery";
 import { encodeReferenceRouteId } from "../shared/reference-destinations";
 import worker from "./index";
 import {
@@ -1093,6 +1094,8 @@ describe("FabuBlox verified byte publication", () => {
     failure?: "hash" | "size" | "missing" | "read" | "stream" | "lost_put";
   } = {}) {
     const stored = options.stored ?? new Map<string, Uint8Array>();
+    const stagedCandidates = new Map<string, Record<string, unknown>>();
+    let acceptedImport: Record<string, unknown> | undefined;
     let writesInFlight = 0;
     let maxWritesInFlight = 0;
     const put = vi.fn(async (key: string, value: unknown) => {
@@ -1101,6 +1104,9 @@ describe("FabuBlox verified byte publication", () => {
         SELECT a.status AS asset_status, i.status AS import_status
         FROM assets a JOIN imports i ON i.id = a.import_id WHERE a.r2_key = ?
       `).get(key)).toEqual({ asset_status: "pending", import_status: "pending" });
+      stagedCandidates.set(key, database.prepare("SELECT * FROM assets WHERE r2_key = ?").get(key)!);
+      acceptedImport ??= database.prepare(`SELECT * FROM imports
+        WHERE id = (SELECT import_id FROM assets WHERE r2_key = ?)`).get(key);
       writesInFlight += 1;
       maxWritesInFlight = Math.max(maxWritesInFlight, writesInFlight);
       try {
@@ -1157,7 +1163,8 @@ describe("FabuBlox verified byte publication", () => {
         list: vi.fn(async () => ({ objects: [], truncated: false })),
       } as unknown as R2Bucket,
     } satisfies Env;
-    return { env, stored, put, get, remove, maxWrites: () => maxWritesInFlight };
+    return { env, stored, put, get, remove, stagedCandidates,
+      acceptedImport: () => acceptedImport, maxWrites: () => maxWritesInFlight };
   }
 
   it("verifies workbook, manifest and images before guarded publication with at most five writes in flight", async () => {
@@ -1180,7 +1187,7 @@ describe("FabuBlox verified byte publication", () => {
     database.close();
   });
 
-  it.each(["hash", "size", "missing", "read", "stream", "lost_put"] as const)(
+  it.each(["size", "missing", "lost_put"] as const)(
     "keeps %s destination failures unpublished and queues owned candidates without deleting or replaying bytes",
     async (failure) => {
       const database = referenceTestDatabase();
@@ -1204,7 +1211,84 @@ describe("FabuBlox verified byte publication", () => {
           .get(candidate.r2_key)).toEqual({ state: "orphaned" });
         expect(fixture.put.mock.calls.filter(([key]) => key === candidate.r2_key)).toHaveLength(1);
       }
+      const quarantined = database.prepare("SELECT object_key, reason FROM blob_integrity_quarantine").all();
+      if (failure === "missing" || failure === "size") {
+        expect(quarantined).toEqual([{
+          object_key: candidates.find(candidate => candidate.r2_key.includes("/source/"))!.r2_key,
+          reason: failure === "missing" ? "missing" : "size_mismatch",
+        }]);
+      } else {
+        expect(quarantined).toEqual([]);
+      }
       expect(fixture.remove).not.toHaveBeenCalled();
+      database.close();
+    },
+  );
+
+  it.each(["hash", "read", "stream"] as const)(
+    "retains the accepted import and expected metadata after %s failure, then reconciles after provider repair without replay",
+    async failure => {
+      const database = referenceTestDatabase();
+      const options: { failure?: typeof failure } = { failure };
+      const fixture = storageFixture(database, options);
+      const { form } = await importForm();
+      const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
+        method: "POST", body: form,
+      }), fixture.env, executionContext);
+      expect(response.status).toBe(503);
+      expect(await response.text()).not.toContain("secret provider");
+      const acceptedImport = fixture.acceptedImport()!;
+      expect(acceptedImport).toMatchObject({ status: "pending", recovery_operation_id: null,
+        finalization_id: null, completed_at: null, template_version_id: null });
+      expect(typeof acceptedImport.operation_id).toBe("string");
+      expect(typeof acceptedImport.lease_expires_at).toBe("string");
+      expect(database.prepare("SELECT * FROM imports").all()).toEqual([acceptedImport]);
+      const candidates = database.prepare("SELECT * FROM assets ORDER BY r2_key").all();
+      const acceptedCandidates = [...fixture.stagedCandidates.values()]
+        .sort((a, b) => String(a.r2_key).localeCompare(String(b.r2_key)));
+      expect(candidates).toHaveLength(2);
+      expect(candidates).toEqual(acceptedCandidates);
+      for (const candidate of candidates) {
+        const key = String(candidate.r2_key);
+        expect(candidate).toMatchObject({ status: "pending", import_id: acceptedImport.id });
+        const storedBytes = fixture.stored.get(key)!;
+        expect(candidate.byte_size).toBe(storedBytes.byteLength);
+        expect(candidate.sha256).toBe(await sha256Hex(storedBytes.buffer.slice(
+          storedBytes.byteOffset, storedBytes.byteOffset + storedBytes.byteLength,
+        ) as ArrayBuffer));
+        expect(fixture.put.mock.calls.filter(([putKey]) => putKey === key)).toHaveLength(1);
+      }
+      expect(database.prepare("SELECT COUNT(*) AS count FROM template_versions WHERE name = 'Verified import bytes'").get())
+        .toEqual({ count: 0 });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM blob_gc_ledger").get()).toEqual({ count: 0 });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM blob_integrity_quarantine").get()).toEqual({ count: 0 });
+      expect(fixture.remove).not.toHaveBeenCalled();
+
+      // These fixtures retain the correct uploaded bytes; repair removes the
+      // failed/corrupt GET behavior. The ordinary expired-lease reaper must then
+      // verify those exact bytes and converge through guarded cleanup.
+      options.failure = undefined;
+      const repaired = await reapStaleFabubloxImports(fixture.env,
+        new Date(Date.parse(String(acceptedImport.lease_expires_at)) + 1));
+      expect(repaired).toEqual({ staleImportsFailed: 1, staleImportAssetsReleased: 2,
+        staleImportObjectsQueued: 2, staleImportRecoveryFailures: 0 });
+      expect(database.prepare("SELECT status, operation_id, lease_expires_at FROM imports").all())
+        .toEqual([{ status: "failed", operation_id: acceptedImport.operation_id, lease_expires_at: null }]);
+      expect(database.prepare("SELECT recovery_operation_id FROM imports").get()!.recovery_operation_id).not.toBeNull();
+      for (const candidate of candidates) {
+        const key = String(candidate.r2_key);
+        expect(database.prepare("SELECT status, sha256 FROM assets WHERE r2_key = ?").get(key))
+          .toEqual({ status: "failed", sha256: null });
+        expect(database.prepare("SELECT state FROM blob_gc_ledger WHERE object_key = ?").get(key))
+          .toEqual({ state: "orphaned" });
+        expect(fixture.stored.has(key)).toBe(true);
+        expect(fixture.put.mock.calls.filter(([putKey]) => putKey === key)).toHaveLength(1);
+      }
+      expect(fixture.put).toHaveBeenCalledTimes(2);
+      expect(fixture.remove).not.toHaveBeenCalled();
+      expect(database.prepare("SELECT COUNT(*) AS count FROM blob_integrity_quarantine").get()).toEqual({ count: 0 });
+      expect(database.prepare("SELECT COUNT(*) AS count FROM template_versions WHERE name = 'Verified import bytes'").get())
+        .toEqual({ count: 0 });
       database.close();
     },
   );

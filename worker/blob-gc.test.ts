@@ -91,11 +91,12 @@ function envFor(
   assetDelete = vi.fn(async () => undefined),
   options: {
     assetPut?: ReturnType<typeof vi.fn>;
+    initialAssets?: ReadonlyMap<string, Uint8Array>;
     beforeBatch?: () => void;
     beforeExecute?: (query: string, bindings: unknown[]) => void;
   } = {},
 ): Env {
-  const uploaded = new Map<string, Uint8Array>();
+  const uploaded = new Map<string, Uint8Array>(options.initialAssets);
   return {
     AUTH_MODE: "disabled",
     DB: new SqliteD1Database(database, options.beforeBatch, options.beforeExecute),
@@ -240,7 +241,10 @@ describe("blob garbage collection", () => {
       .mockRejectedValueOnce(new Error('temporary R2 delete outage'))
       .mockResolvedValue(undefined);
     const assetPut = vi.fn(async () => undefined);
-    const env = envFor(database, assetDelete, { assetPut });
+    const env = envFor(database, assetDelete, {
+      assetPut,
+      initialAssets: new Map([["imports/stale/source.xlsx", bytes]]),
+    });
 
     const first = await cleanupCommentUploads(env, new Date('2026-08-14T00:00:00.000Z'));
     expect(first).toMatchObject({
