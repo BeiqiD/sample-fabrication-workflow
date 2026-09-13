@@ -30,7 +30,13 @@ and does not justify deleting their resources during the cutover.
 ## Existing implementation
 
 `scripts/generate-wrangler-config.mjs` already generates the D1 `DB` and R2
-`ASSETS` bindings from explicit Build Variables. The final candidate's ordinary
+`ASSETS` bindings from explicit Build Variables. The optional remote-only
+`DEPLOY_SWITCHDRIVE_ROOT` input adds `vars.SWITCHDRIVE_ROOT` to that same
+configuration so managed originals can use a new folder in the final Worker
+version. Other runtime settings retain the base `keep_vars: true` behavior and
+WebDAV credentials remain encrypted secrets. Omitting this input preserves the existing
+root; it does not isolate or disable an already configured provider. Local
+configuration ignores it. The final candidate's ordinary
 `npm run deploy:remote` runs the complete deployment verification, applies
 `migrations/0001_v3_baseline.sql` to the selected database, and deploys the built
 Worker and client only after migration succeeds. No new reset API, automatic
@@ -65,19 +71,24 @@ route; it does not constitute a remote deployment result.
    | `DEPLOY_D1_DATABASE_NAME` | New database name |
    | `DEPLOY_D1_DATABASE_ID` | New database UUID |
    | `DEPLOY_R2_BUCKET_NAME` | New private bucket name |
+   | `DEPLOY_SWITCHDRIVE_ROOT` | New unused application-owned folder, when SWITCHdrive is configured |
 
    Preserve the reviewed Worker name and hostname settings. Confirm that the
    build's configured credential can access the new resources. Build variables
    are [build-time inputs](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/),
    not an immediate replacement of the running version's bindings. Do not edit
    the running Worker's `DB` binding separately before deploying C/S2 code.
-5. If managed storage is configured, isolate it too: the final new version must
-   use a new SWITCHdrive root or have that optional provider disabled. A new R2
-   bucket alone does not isolate managed originals. Preserve Access/authentication
-   settings and pair any managed-storage change with the final code deployment;
-   do not first deploy old code with the new root. If this pairing cannot be
-   prepared, use a separate test Worker for first acceptance. No provider change
-   is required when managed storage is already unconfigured.
+5. If SWITCHdrive is configured, select a new unused root and set only its
+   **Build Variable** `DEPLOY_SWITCHDRIVE_ROOT`; do not edit the running Worker's
+   Runtime Variable or Secret named `SWITCHDRIVE_ROOT`. Confirm the selected
+   folder differs from the old root and has no original files. A new R2 bucket
+   alone does not isolate managed originals. The generator rejects empty or
+   slash-only roots, `.`/`..` path segments and backslashes; nested paths are
+   allowed. Leave the input set for later S2 builds and preserve Access settings
+   and WebDAV credentials. If another managed provider is configured, prepare
+   equivalent isolation or disable it in the final new version. If that pairing
+   cannot be prepared, use a separate test Worker for first acceptance. No
+   provider change is required when managed storage is already unconfigured.
 6. With old-source builds stopped and the new target settings confirmed, review
    the final PR head and its required CI, then merge PR #202. Keep automatic
    triggering paused until the build source and resource settings are paired.
@@ -85,8 +96,10 @@ route; it does not constitute a remote deployment result.
    and `deploy:remote` commands, with all existing verification gates enabled.
    The baseline must only be applied to the new database. Never retry an old
    source build using these new variables.
-7. Confirm the deployed version contains the expected S2 code and new bindings,
-   serves all new traffic, and the new D1 ledger records only the baseline.
+7. Confirm the deployed version contains the expected S2 code, new D1/R2 bindings
+   and, when configured, the new `SWITCHDRIVE_ROOT`; confirm Access settings and
+   managed-storage credentials remain configured. Verify it serves all new
+   traffic and the new D1 ledger records only the baseline.
    Verify schema/integrity and `/api/ready`, then exercise Sample creation,
    template/Run, Comment text and image, Project save/reload, Reference source
    navigation, and full export/isolated restore in the browser.
@@ -104,18 +117,35 @@ new database uses its existing baseline ledger instead of starting over.
 
 If the deployed candidate fails acceptance, stop additional builds and return
 the matched old application/resource version using the provider's supported
-deployment controls. Restore the old build variables and source together before
-resuming automation. Test records created only after the switch are disposable;
-they are not silently merged back into the old database. Retain both resource
+deployment controls. Restore the old build variables (including the matching
+`DEPLOY_SWITCHDRIVE_ROOT` if needed) and source together before resuming automation.
+Simply removing the root input does not restore the old folder: `keep_vars: true`
+preserves whichever runtime root is currently configured. Test records created
+only after the switch are disposable; they are not silently merged back into
+the old database. Retain both resource
 sets for diagnosis. Resource deletion is a later cleanup action, not part of
 this first cutover attempt.
 
 ## Current execution checkpoint
 
-The local Cloudflare CLI was actually checked with `wrangler whoami` and returned
-`You are not authenticated`. No callable authenticated Cloudflare connection is
-available in this session. No database or bucket has been created, cleared or
-rebound, no Build Variables have been changed, and no remote S2 migration has
-run. The next external step is authenticated target inspection and preparation
-of the explicit new resources and serialized build. The remaining obstacle is
-access and execution, not a requirement to preserve the disposable S0 data.
+Authenticated Cloudflare API reads on 2026-09-13 identified the integration
+Worker, its successful deployment of integration commit
+`b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, current storage bindings, Access
+configuration and configured SWITCHdrive provider. The build trigger watches
+only the integration branch and keeps the ordinary verification-first deployment
+commands. No running or queued build and no deploy hook was returned during
+inspection.
+
+Pausing automatic Builds and creating a new D1 both returned Cloudflare API
+error `10000: Authentication error`. Explicit account scoping did not resolve
+the Builds write failure. Read-back confirmed the trigger remains unchanged
+and the proposed new database was not created. Local `wrangler whoami` also
+returned unauthenticated. No resource, runtime binding, Build Variable, schema
+or data has changed; #202 must remain Draft.
+
+The next action is restoring authorized Cloudflare write access, then repeating
+the live inventory and executing the ordered preparation above. The
+[activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) distinguishes
+the successful inspection from the unexecuted cutover. The new optional
+`DEPLOY_SWITCHDRIVE_ROOT` input prepares version-paired managed-storage isolation;
+adding code support does not itself configure or create the remote folder.

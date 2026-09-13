@@ -129,5 +129,10 @@ the 34-file shared ownership gate. This includes actual local D1 S0/S2 observer
 parity, C Worker qualification, baseline/history identity, and local Wrangler
 selection/failure/retry checks. These tests made no live Cloudflare request.
 The earlier complete-application result above belongs to its recorded frozen
-commit; this synchronization's full integrated gate is recorded separately once
-completed.
+commit. The synchronized complete gate at `48834069023a8751d7c9cc6752af01662329f2ac`
+was subsequently recorded in PR #202 with all 11 leaves passing, followed by
+successful CI on documentation head `ecbc7ee2985bb2e4870d967348e74c910d66a725`.
+The later managed-storage configuration extension and current remote
+write-authentication blocker are recorded in the
+[activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). Neither result
+constitutes final S2 deployment or browser acceptance.

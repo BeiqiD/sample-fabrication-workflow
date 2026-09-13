@@ -23,6 +23,19 @@ function parseBoolean(name, value) {
   throw new Error(`${name} must be exactly "true" or "false"`);
 }
 
+function optionalSwitchdriveRoot() {
+  const input = process.env.DEPLOY_SWITCHDRIVE_ROOT;
+  if (input === undefined) return undefined;
+  const root = input.trim();
+  // Match the adapter's path segments; an explicit empty root must fail rather
+  // than silently falling back to the old installation's default folder.
+  const segments = root.split("/").filter(Boolean);
+  if (!segments.length || segments.some((segment) => segment === "." || segment === ".." || segment.includes("\\"))) {
+    throw new Error("DEPLOY_SWITCHDRIVE_ROOT must contain a non-empty SWITCHdrive path without dot segments or backslashes");
+  }
+  return root;
+}
+
 function assertDeploymentValues(values) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(values.workerName)) {
     throw new Error("DEPLOY_WORKER_NAME must contain only lowercase letters, numbers, and hyphens");
@@ -64,6 +77,7 @@ const values = local
       databaseId: required("DEPLOY_D1_DATABASE_ID"),
       bucketName: required("DEPLOY_R2_BUCKET_NAME"),
       workersDev: parseBoolean("DEPLOY_WORKERS_DEV", required("DEPLOY_WORKERS_DEV")),
+      switchdriveRoot: optionalSwitchdriveRoot(),
     };
 
 assertDeploymentValues(values);
@@ -74,7 +88,9 @@ const generated = {
   main: relativeToOutput(base.main),
   name: values.workerName,
   workers_dev: values.workersDev,
-  ...(local ? { vars: { AUTH_MODE: "disabled" } } : {}),
+  ...(local
+    ? { vars: { AUTH_MODE: "disabled" } }
+    : values.switchdriveRoot === undefined ? {} : { vars: { SWITCHDRIVE_ROOT: values.switchdriveRoot } }),
   d1_databases: [
     {
       binding: "DB",

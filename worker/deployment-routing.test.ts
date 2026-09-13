@@ -1,7 +1,7 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -46,48 +46,106 @@ describe("deployment routing", () => {
     expect(configuration.keep_vars).toBe(true);
   });
 
-  it("generates one deployment config from explicit Cloudflare Build Variables", () => {
+  const deploymentEnvironment = {
+    DEPLOY_WORKER_NAME: "example-worker",
+    DEPLOY_D1_DATABASE_NAME: "example-database",
+    DEPLOY_D1_DATABASE_ID: "12345678-1234-4234-8234-123456789abc",
+    DEPLOY_R2_BUCKET_NAME: "example-assets",
+    DEPLOY_WORKERS_DEV: "true",
+  };
+
+  function generateConfiguration(environment: Record<string, string>, local = false) {
     const directory = mkdtempSync(join(tmpdir(), "sample-workflow-config-"));
     const output = join(directory, "deploy.jsonc");
     const script = fileURLToPath(
       new URL("../scripts/generate-wrangler-config.mjs", import.meta.url),
     );
-
     try {
-      execFileSync(process.execPath, [script, "--output", output], {
+      const result = spawnSync(process.execPath, [script, "--output", output, ...(local ? ["--local"] : [])], {
         cwd: projectRoot,
-        env: {
-          DEPLOY_WORKER_NAME: "example-worker",
-          DEPLOY_D1_DATABASE_NAME: "example-database",
-          DEPLOY_D1_DATABASE_ID: "12345678-1234-4234-8234-123456789abc",
-          DEPLOY_R2_BUCKET_NAME: "example-assets",
-          DEPLOY_WORKERS_DEV: "true",
-        },
+        env: environment,
+        encoding: "utf8",
       });
-
-      const generated = JSON.parse(readFileSync(output, "utf8"));
-      expect(resolve(dirname(output), generated.main)).toBe(resolve(projectRoot, "worker/index.ts"));
-      expect(generated.name).toBe("example-worker");
-      expect(generated.workers_dev).toBe(true);
-      expect(generated.keep_vars).toBe(true);
-      expect(generated.vars).toBeUndefined();
-      expect(generated.d1_databases).toMatchObject([
-        {
-          binding: "DB",
-          database_name: "example-database",
-          database_id: "12345678-1234-4234-8234-123456789abc",
-        },
-      ]);
-      expect(
-        resolve(dirname(output), generated.d1_databases[0].migrations_dir),
-      ).toBe(resolve(projectRoot, "migrations"));
-      expect(generated.r2_buckets).toEqual([
-        { binding: "ASSETS", bucket_name: "example-assets" },
-      ]);
+      return {
+        ...result,
+        output,
+        generated: existsSync(output) ? JSON.parse(readFileSync(output, "utf8")) : undefined,
+      };
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  }
+
+  it("generates one deployment config from explicit Cloudflare Build Variables", () => {
+    const { status, output, generated } = generateConfiguration({
+      ...deploymentEnvironment,
+      // Build environment values must not become arbitrary runtime variables.
+      AUTH_MODE: "disabled",
+      SWITCHDRIVE_ROOT: "unpaired-runtime-root",
+      SWITCHDRIVE_APP_PASSWORD: "not-a-runtime-binding",
+    });
+    expect(status).toBe(0);
+    expect(resolve(dirname(output), generated.main)).toBe(resolve(projectRoot, "worker/index.ts"));
+    expect(generated.name).toBe("example-worker");
+    expect(generated.workers_dev).toBe(true);
+    expect(generated.keep_vars).toBe(true);
+    expect(generated.vars).toBeUndefined();
+    expect(generated.d1_databases).toMatchObject([
+      {
+        binding: "DB",
+        database_name: "example-database",
+        database_id: "12345678-1234-4234-8234-123456789abc",
+      },
+    ]);
+    expect(
+      resolve(dirname(output), generated.d1_databases[0].migrations_dir),
+    ).toBe(resolve(projectRoot, "migrations"));
+    expect(generated.r2_buckets).toEqual([
+      { binding: "ASSETS", bucket_name: "example-assets" },
+    ]);
   });
+
+  it("pairs an explicit managed-storage root with remote bindings without replacing other runtime settings", () => {
+    const { status, generated } = generateConfiguration({
+      ...deploymentEnvironment,
+      DEPLOY_SWITCHDRIVE_ROOT: "  integration/s2-originals  ",
+      AUTH_MODE: "disabled",
+      SWITCHDRIVE_APP_PASSWORD: "not-a-runtime-binding",
+    });
+    expect(status).toBe(0);
+    expect(generated.vars).toEqual({ SWITCHDRIVE_ROOT: "integration/s2-originals" });
+    expect(generated.keep_vars).toBe(true);
+    expect(generated.d1_databases[0].database_id).toBe(deploymentEnvironment.DEPLOY_D1_DATABASE_ID);
+    expect(generated.r2_buckets[0].bucket_name).toBe(deploymentEnvironment.DEPLOY_R2_BUCKET_NAME);
+  });
+
+  it.each([undefined, "integration/s2-originals", "../unsafe"])(
+    "keeps local configuration isolated from DEPLOY_SWITCHDRIVE_ROOT=%s",
+    (root) => {
+      const { status, generated } = generateConfiguration(
+        root === undefined ? {} : { DEPLOY_SWITCHDRIVE_ROOT: root },
+        true,
+      );
+      expect(status).toBe(0);
+      expect(generated.vars).toEqual({ AUTH_MODE: "disabled" });
+      expect(generated.name).toBe("sample-fabrication-workflow-local");
+      expect(generated.d1_databases[0].database_id).toBe("00000000-0000-4000-8000-000000000000");
+      expect(generated.r2_buckets[0].bucket_name).toBe("sample-fabrication-workflow-local-assets");
+    },
+  );
+
+  it.each(["", "   ", "/", ".", "..", "new/../old", "new/./old", "new\\old"])(
+    "rejects unsafe explicit managed-storage root %j before writing deployment configuration",
+    (root) => {
+      const { status, stderr, generated } = generateConfiguration({
+        ...deploymentEnvironment,
+        DEPLOY_SWITCHDRIVE_ROOT: root,
+      });
+      expect(status).not.toBe(0);
+      expect(stderr).toContain("DEPLOY_SWITCHDRIVE_ROOT");
+      expect(generated).toBeUndefined();
+    },
+  );
 
   it("fails closed when a required deployment value is missing", () => {
     const script = fileURLToPath(
