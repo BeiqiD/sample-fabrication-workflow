@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ReferenceResolution } from "../shared/reference-types";
 import type { SampleDetail } from "../shared/types";
 import worker from "./index";
-import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
+import { FULL_EXPORT_V8_TABLE_QUERIES } from "./export-catalog";
 import { REFERENCE_FIXTURE_IDS as ids, historicalReferenceTestDatabase, seedHistoricalReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
@@ -163,8 +163,8 @@ describe("canonical Comment reading on retained S1 data", () => {
       // Simulate additive columns only: Stage A must not advertise them as v7.
       f.database.exec("ALTER TABLE samples ADD COLUMN future_bridge_marker TEXT DEFAULT 'private'");
       f.d1.resetQueryCount();
-      const names = Object.keys(FULL_EXPORT_TABLE_QUERIES);
-      const results = await f.d1.batch(Object.values(FULL_EXPORT_TABLE_QUERIES).map((sql) => f.d1.prepare(sql)) as unknown as D1PreparedStatement[]);
+      const names = Object.keys(FULL_EXPORT_V8_TABLE_QUERIES);
+      const results = await f.d1.batch(Object.values(FULL_EXPORT_V8_TABLE_QUERIES).map((sql) => f.d1.prepare(sql)) as unknown as D1PreparedStatement[]);
       const archive = { tables: Object.fromEntries(names.map((name, index) => [name, results[index].results])) };
       expect(archive.tables.samples).toEqual(samples);
       expect(archive.tables.run_step_comments).toEqual(comments);

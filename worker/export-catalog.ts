@@ -1,6 +1,6 @@
 // The full-system export inventories every canonical application table and
 // the retention projection in stable order within one D1 snapshot batch.
-export const FULL_EXPORT_TABLE_QUERIES = {
+export const FULL_EXPORT_V8_TABLE_QUERIES = {
   // Freeze these physical fields for schema 7 while compatibility readers are
   // deployed. Future bridge columns require the negotiated archive upgrade.
   samples: `SELECT id, code, title, description, status, location, parent_id, pinned,
@@ -46,4 +46,14 @@ export const FULL_EXPORT_TABLE_QUERIES = {
   blob_integrity_quarantine: "SELECT * FROM blob_integrity_quarantine ORDER BY store_kind, provider, object_key",
   blob_retention_edges: `SELECT * FROM blob_retention_edges
     ORDER BY store_kind, provider, object_key, source_type, source_id, occurrence_type, occurrence_id`,
+} as const;
+
+// Schema 9 classifies all four dormant, non-secret mapping tables as canonical
+// metadata. They neither add byte download roots nor authorize runtime writes.
+export const FULL_EXPORT_TABLE_QUERIES = {
+  ...FULL_EXPORT_V8_TABLE_QUERIES,
+  storage_profiles: "SELECT * FROM storage_profiles ORDER BY id",
+  files: "SELECT * FROM files ORDER BY id",
+  file_locations: "SELECT * FROM file_locations ORDER BY id",
+  legacy_file_mappings: "SELECT * FROM legacy_file_mappings ORDER BY file_id",
 } as const;

@@ -6,7 +6,7 @@ import { crc32 } from "node:zlib";
 import JSZip from "jszip";
 import type { CompatibilitySchema, ExportTables, RetiredExportFields } from "../../shared/contracts/export";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
-import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8 } from "../../shared/contracts/export-protocol";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9 } from "../../shared/contracts/export-protocol";
 import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
 
 type Row = Record<string, string | number | null>;
@@ -185,7 +185,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && [7, 8].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8, 9].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -193,12 +193,20 @@ export async function restoreExportToIsolatedDirectory(options: {
     const migrationNames = (await readdir(options.migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort();
     ensure(migrationNames.length > 0, "No local migrations found");
     const migrations: Array<{ name: string; sha256: string }> = [];
+    // An old archive is first restored against the reviewed S2 baseline.
+    // Applying the additive dormant registry afterward is an explicit local
+    // forward upgrade, never an invented table snapshot under archive v7/v8.
+    const forwardNames = manifest.schemaVersion < 9
+      && canonical(migrationNames) === canonical(["0001_v3_baseline.sql", "0002_fp1_file_registry.sql"])
+      ? ["0002_fp1_file_registry.sql"] : [];
+    const forwardMigrations: Array<{ name: string; sha256: string; sql: string }> = [];
     for (const name of migrationNames) {
       const sql = await readFile(join(options.migrationsDirectory, name), "utf8");
       migrations.push({ name, sha256: hash(sql) });
-      database.exec(sql);
+      if (forwardNames.includes(name)) forwardMigrations.push({ name, sha256: hash(sql), sql });
+      else database.exec(sql);
     }
-    const expectedSchema = schema(database);
+    let expectedSchema = schema(database);
     const tableNames = expectedSchema.filter((entry) => entry.type === "table" && !PLATFORM_TABLES.has(entry.name)).map((entry) => entry.name);
     const catalog = [...tableNames, ...EXPORTED_VIEWS].sort();
     ensure(canonical(Object.keys(manifest.tables).sort()) === canonical(catalog), "Archive table catalog differs from the current local schema");
@@ -217,7 +225,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       const tableBytes = await archive.read(descriptor.path);
       const rows = JSON.parse(tableBytes.toString("utf8"));
       ensure(Array.isArray(rows) && rows.length === descriptor.rowCount, `Table row count mismatch: ${name}`);
-      if (manifest.schemaVersion === 8) ensure(Number.isSafeInteger(descriptor.byteSize) && descriptor.byteSize === tableBytes.length
+      if (manifest.schemaVersion >= 8) ensure(Number.isSafeInteger(descriptor.byteSize) && descriptor.byteSize === tableBytes.length
         && typeof descriptor.sha256 === "string" && descriptor.sha256 === hash(tableBytes), `Table SHA-256 or size mismatch: ${name}`);
       const columns = (database.prepare(`PRAGMA table_info(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name).sort();
       for (const row of rows) {
@@ -230,7 +238,7 @@ export async function restoreExportToIsolatedDirectory(options: {
 
     let retiredFields: RetiredExportFields;
     const retainedArtifacts: Array<{ path: string; bytes: Buffer }> = [];
-    if (manifest.schemaVersion === 8) {
+    if (manifest.schemaVersion >= 8) {
       ensure(manifest.archiveWriter === 1 && object(manifest.artifacts), "Unsupported complete-export writer");
       const artifacts: Record<string, any> = {};
       for (const [name, path] of [["sourceSchema", EXPORT_SOURCE_SCHEMA_PATH], ["retiredFields", EXPORT_RETIRED_FIELDS_PATH]]) {
@@ -246,7 +254,8 @@ export async function restoreExportToIsolatedDirectory(options: {
       // has download URLs. Validate provenance against a reconstructed wire
       // plan here; the original archived blob catalog and bytes are checked
       // against that same table-derived plan below without dropping entries.
-      const validated = await validateFullExportV8({ ...manifest, tables, artifacts, blobs: buildBlobExportPlan(tables) });
+      const validate = manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validated = await validate({ ...manifest, tables, artifacts, blobs: buildBlobExportPlan(tables) });
       retiredFields = validated.artifacts.retiredFields.value;
       tables = restoreCompatibilityRows(validated.tables, retiredFields, targetCompatibilitySchema);
     } else {
@@ -372,14 +381,41 @@ export async function restoreExportToIsolatedDirectory(options: {
         candidates.splice(found, 1);
       }
     }
+    if (forwardMigrations.length) {
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        for (const migration of forwardMigrations) database.exec(migration.sql);
+        // The bounded forward migration creates only dormant empty metadata;
+        // old rows, relationships, retained bytes and observed provenance stay
+        // exactly as verified above. No job or provider action is replayed.
+        for (const name of tableNames) ensure(sameRows(database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[], tables[name]), `Forward migration changed recovered rows: ${name}`);
+        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+          "Historical restore forward migration must leave file observations empty");
+        ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Forward migration foreign-key check failed");
+        ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
+        // Comparing the unchanged rows and complete old view SQL proves the
+        // same retention at any fixed clock. Do not compare two wall-clock
+        // projections: a valid retained edge may expire during this upgrade.
+        const upgradedSchema = schema(database);
+        const registryNames = new Set(["storage_profiles", "files", "file_locations", "legacy_file_mappings"]);
+        ensure(canonical(upgradedSchema.filter((entry) => !registryNames.has(entry.tbl_name))) === canonical(expectedSchema),
+          "Historical restore forward migration changed the verified baseline schema");
+        expectedSchema = upgradedSchema;
+        database.exec("COMMIT");
+      } catch (error) { database.exec("ROLLBACK"); throw error; }
+    }
     const report = {
       kind: "isolated-versioned-export-rehearsal", schemaVersion: manifest.schemaVersion,
-      targetCompatibilitySchema, originalArchivePath: "original-archive.zip",
+      targetCompatibilitySchema,
+      archiveProfile: manifest.schemaVersion === 9 ? manifest.archiveProfile : null,
+      appliedForwardMigrations: forwardMigrations.map(({ name, sha256 }) => ({ name, sha256 })),
+      originalArchivePath: "original-archive.zip",
       retainedArtifactPaths: retainedArtifacts.map((artifact) => artifact.path),
-      sourceSchemaEvidence: manifest.schemaVersion === 8 ? "observed-in-source-snapshot" : "unavailable-in-v7",
+      sourceSchemaEvidence: manifest.schemaVersion >= 8 ? "observed-in-source-snapshot" : "unavailable-in-v7",
       archivedAt: manifest.exportedAt, verifiedAt: now, archiveSha256: hash(bytes),
       migrationsSha256: hash(canonical(migrations)), migrations,
       schemaSha256: hash(canonical(expectedSchema)), tableCount: tableNames.length,
+      restoredTableCount: expectedSchema.filter((entry) => entry.type === "table" && !PLATFORM_TABLES.has(entry.name)).length,
       rowCount: tableNames.reduce((count, name) => count + tables[name].length, 0),
       restoredBlobCount: providerEntries.filter((entry) => entry.path !== null).length,
       databasePath: "database.sqlite", providerManifestPath: "provider-manifest.json",

@@ -1,6 +1,11 @@
-# Negotiated complete-export protocol
+# Historical v8 complete-export protocol
 
-This is the current complete-backup protocol, with qualified offline recovery;
+Current FP1a exports negotiate schema 9 with profile `fp1-legacy-overlap`; see
+[the current archive boundary](./FP1_FILE_REGISTRY_FOUNDATION.md#archive-and-recovery-boundary).
+V8 requests against the new registry schema receive 409 and require a refreshed
+client. The qualified v7/v8 offline readers remain supported.
+
+The remainder records the v8 complete-backup protocol and its recovery evidence;
 it is not a native website package-import contract. The proposed report,
 portable-package and system-recovery products are described in
 [data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md). The
@@ -8,7 +13,7 @@ portable-package and system-recovery products are described in
 retains existing v7/v8 archives and requires a versioned writer/reader change
 when the file schema changes; new fields must not be silently omitted under v8.
 
-The current browser requests
+The historical v8 browser requests
 `/api/exports/all?archiveSchema=8&archiveWriter=1`. Exactly one supported value for
 each parameter is required. Unversioned requests, duplicates, extra parameters
 or unsupported versions receive 409 with a refresh message before any snapshot

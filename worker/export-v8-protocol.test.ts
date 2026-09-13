@@ -9,7 +9,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { FullExportManifestV8 } from "../shared/contracts/export";
 import { createExportArtifact, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8 } from "../shared/contracts/export-protocol";
-import { api } from "../src/lib/api";
 import { buildFullExportArchive, buildFullExportArchiveV8 } from "../src/lib/exportAll";
 import worker from "./index";
 import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph, SqliteD1Database } from "./reference-test-support";
@@ -69,12 +68,12 @@ describe("negotiated v8 API, browser archive writer and isolated recovery", () =
     } finally { f.database.close(); }
   });
 
-  it("uses the negotiated browser API and packages exact provenance, table inventory and provider bytes", async () => {
+  it("preserves the negotiated v8 archive writer and packages exact provenance, table inventory and provider bytes", async () => {
     const f = fixture();
     try {
       const before = f.database.prepare("SELECT * FROM run_step_comments ORDER BY id").all();
       vi.stubGlobal("fetch", f.fetcher);
-      const manifest = await api.getFullExport();
+      const manifest = await (await f.fetcher(endpoint, undefined)).json() as FullExportManifestV8;
       expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
       expect(f.batch).toHaveBeenCalledTimes(1);
       expect(f.batch.mock.calls[0][0]).toHaveLength(Object.keys(manifest.tables).length + 3);

@@ -1,6 +1,6 @@
-# Final S2 baseline
+# S2 baseline and forward migrations
 
-This directory contains only `0001_v3_baseline.sql`, the exact reviewed bytes of
+`0001_v3_baseline.sql` retains the exact reviewed bytes of
 `scripts/fixtures/backend-schema/s2-baseline.sql`. Its provenance comments remain
 unchanged. The baseline requires an empty application schema and migration
 ledger. This may be a newly created database or the existing disposable test
@@ -23,11 +23,14 @@ Retained-data upgrades from a historical S0/S1 installation still require their
 admitted historical suffix and [compatibility preflight](../docs/COMPATIBILITY_STAGE_PREFLIGHT.md).
 That is different from extending an installation already at S2.
 
-Future FP changes use reviewed forward migrations after the immutable S2 baseline.
-The current directory is still baseline-only: adding the first suffix must update
+FP1a adds `0002_fp1_file_registry.sql` after the immutable S2 baseline. It creates
+four dormant identity/legacy-observation tables and changes no existing rows or
+retention rules. It inserts no deployment profile and verifies no remote bytes.
+The same slice updates
 [schema-source qualification](../scripts/current-schema-source.test.mjs), migration
-planning and recovery/version coverage in the same implementation slice. Preserve
+planning qualification and v9 recovery/version coverage. Preserve
 the baseline and historical byte hashes; do not drop those checks merely to admit
 new SQL. Qualify both fresh baseline-plus-suffix installation and populated S2
-upgrade. No suffix or remote change is introduced by this documentation update.
+upgrade. See the [FP1a implementation boundary](../docs/FP1_FILE_REGISTRY_FOUNDATION.md).
+No remote migration, reset or deployment is performed by this implementation PR.
 See the [repository compatibility audit](../docs/FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md).

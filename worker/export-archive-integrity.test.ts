@@ -1,8 +1,8 @@
 import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
-import type { FullExportManifestV8 as FullExportManifest } from "../shared/contracts/export";
-import { buildFullExportArchiveV8 } from "../src/lib/exportAll";
+import type { FullExportManifestV9 as FullExportManifest } from "../shared/contracts/export";
+import { buildFullExportArchiveV9 } from "../src/lib/exportAll";
 import worker from "./index";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
@@ -88,10 +88,10 @@ describe("complete archive physical identity", () => {
       expect(stored.size).toBe(imageIds.length + 2); // workbook and import manifest
       read.mockClear();
 
-      const response = await request("/api/exports/all?archiveSchema=8&archiveWriter=1");
+      const response = await request("/api/exports/all?archiveSchema=9&archiveWriter=1");
       expect(response.status).toBe(200);
       const manifest = await response.json() as FullExportManifest;
-      const result = await buildFullExportArchiveV8(manifest, undefined,
+      const result = await buildFullExportArchiveV9(manifest, undefined,
         (async (url) => request(String(url))) as typeof fetch);
       expect(result.warnings).toEqual([]);
       expect(result.results).toHaveLength(stored.size);
@@ -101,7 +101,7 @@ describe("complete archive physical identity", () => {
 
       const zip = await JSZip.loadAsync(await result.archive.arrayBuffer());
       const archivedManifest = JSON.parse(await zip.file("export-manifest.json")!.async("string"));
-      expect(archivedManifest.schemaVersion).toBe(8);
+      expect(archivedManifest.schemaVersion).toBe(9);
       expect(archivedManifest.blobs).toEqual(result.results);
       expect(JSON.parse(await zip.file("export-warnings.json")!.async("string"))).toEqual([]);
       const paths = result.results.map((entry) => entry.path!);
@@ -124,7 +124,7 @@ describe("complete archive physical identity", () => {
       for (const [name, rows] of Object.entries(manifest.tables)) {
         expect(JSON.parse(await zip.file(archivedManifest.tables[name].path)!.async("string"))).toEqual(rows);
       }
-      const afterExport = await request("/api/exports/all?archiveSchema=8&archiveWriter=1");
+      const afterExport = await request("/api/exports/all?archiveSchema=9&archiveWriter=1");
       expect((await afterExport.json() as FullExportManifest).tables).toEqual(manifest.tables);
     } finally {
       database.close();
@@ -149,10 +149,10 @@ describe("complete archive physical identity", () => {
           VALUES (?, 'switchdrive', ?, ?, 'application/octet-stream', ?, ?, 'ready', '2026-09-13T00:00:00Z')`)
           .run(id, `managed/key-${index}`, filename, bytes.byteLength, await sha256Hex(buffer(bytes)));
       }
-      const response = await request("/api/exports/all?archiveSchema=8&archiveWriter=1");
+      const response = await request("/api/exports/all?archiveSchema=9&archiveWriter=1");
       expect(response.status).toBe(200);
       const manifest = await response.json() as FullExportManifest;
-      const result = await buildFullExportArchiveV8(manifest, undefined, (async (url) => {
+      const result = await buildFullExportArchiveV9(manifest, undefined, (async (url) => {
         const id = decodeURIComponent(String(url).split("/").at(-1)!);
         const bytes = bytesById.get(id);
         return bytes ? new Response(buffer(bytes)) : new Response("", { status: 404 });

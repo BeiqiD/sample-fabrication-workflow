@@ -162,21 +162,25 @@ A full-system export preserves every database table row and packages each availa
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated schema-v8 archive against the current migrations in a newly
+rehearses a trusted negotiated schema-v9 (`fp1-legacy-overlap`) archive against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote
 recovery boundary.
 
-The integration branch uses the S2 baseline for new empty local databases and
+The integration branch uses the S2 baseline plus the additive FP1 registry suffix for new empty local databases and
 preserves the original SQL in `migrations-history/s0/`.
 Historical S0 recovery must explicitly add
 `--migrations-dir migrations-history/s0 --target-schema S0`. The authorized
 same-D1 S2 activation is complete; final browser acceptance remains open in the
-[activation checkpoint](./docs/CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). The proposed
+[activation checkpoint](./docs/CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). The reviewed
 [file/data portability track](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-is a separate documentation review, not an implemented storage or website-import
-capability.
+has begun with [FP1a](./docs/FP1_FILE_REGISTRY_FOUNDATION.md): dormant file identities,
+legacy observations and matched v9 recovery. Current R2/managed upload, read and
+retention paths remain in use. Qualified v7/v8 archives can be restored against
+the reviewed S2 target and then upgraded by the same additive suffix, with the
+applied forward migration recorded in the report. Settings, universal upload
+routing and native website import remain later slices.
 
 ## Further documentation
 
@@ -188,6 +192,7 @@ capability.
 - [Proposed file storage architecture](./docs/FILE_STORAGE_ARCHITECTURE.md)
 - [Proposed reports, data packages and system recovery](./docs/DATA_EXPORT_IMPORT_DESIGN.md)
 - [File/data portability implementation and compatibility plan](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+- [FP1a file registry implementation boundary](./docs/FP1_FILE_REGISTRY_FOUNDATION.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

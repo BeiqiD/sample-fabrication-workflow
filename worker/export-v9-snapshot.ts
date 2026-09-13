@@ -1,13 +1,13 @@
-import { FULL_EXPORT_ARCHIVE_SCHEMA_V8, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV8, type ObservedExportSchema } from "../shared/contracts/export";
+import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_PROFILE, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV9, type ObservedExportSchema } from "../shared/contracts/export";
 import { projectCompatibilitySnapshot } from "../shared/contracts/export-compatibility";
-import { createExportArtifact, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH } from "../shared/contracts/export-protocol";
-import { FULL_EXPORT_V8_TABLE_QUERIES } from "./export-catalog";
+import { createExportArtifact, validateFullExportV9, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH } from "../shared/contracts/export-protocol";
+import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import { buildBlobExportPlan } from "./export-data";
 
 // The negotiated route and browser writer share this complete snapshot contract.
-export async function snapshotFullExportV8(database: D1Database): Promise<FullExportManifestV8> {
-  const names = Object.keys(FULL_EXPORT_V8_TABLE_QUERIES);
-  const queries = Object.entries(FULL_EXPORT_V8_TABLE_QUERIES).map(([name, sql]) => name === "samples"
+export async function snapshotFullExportV9(database: D1Database): Promise<FullExportManifestV9> {
+  const names = Object.keys(FULL_EXPORT_TABLE_QUERIES);
+  const queries = Object.entries(FULL_EXPORT_TABLE_QUERIES).map(([name, sql]) => name === "samples"
     ? "SELECT * FROM samples ORDER BY created_at, id"
     : name === "run_step_comments" ? "SELECT * FROM run_step_comments ORDER BY run_step_id, created_at, id" : sql);
   const results = await database.batch([
@@ -28,20 +28,18 @@ export async function snapshotFullExportV8(database: D1Database): Promise<FullEx
       run_step_comments: results[names.length + 2].results.map((row) => String((row as { name: string }).name)),
     },
   };
-  if (schema.objects.some((entry) => entry.type === "table" && ["storage_profiles", "files", "file_locations", "legacy_file_mappings"].includes(entry.name))) {
-    throw new Error("This database requires archive schema 9; refresh the page before exporting");
-  }
   const projected = projectCompatibilitySnapshot(physicalTables, schema);
   const [sourceSchema, retiredFields] = await Promise.all([
     createExportArtifact(EXPORT_SOURCE_SCHEMA_PATH, schema),
     createExportArtifact(EXPORT_RETIRED_FIELDS_PATH, projected.retiredFields),
   ]);
-  return {
-    schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA_V8,
+  return validateFullExportV9({
+    archiveProfile: FULL_EXPORT_ARCHIVE_PROFILE,
+    schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA,
     archiveWriter: FULL_EXPORT_ARCHIVE_WRITER,
     exportedAt: new Date().toISOString(),
     tables: projected.tables,
     blobs: buildBlobExportPlan(physicalTables),
     artifacts: { sourceSchema, retiredFields },
-  };
+  });
 }

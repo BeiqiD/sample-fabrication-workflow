@@ -6,8 +6,8 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const sqlNames = (directory) => readdirSync(new URL(directory, root)).filter((name) => name.endsWith(".sql")).sort();
 
-test("the final candidate scans only the reviewed S2 baseline and retains all 37 historical SQL files byte-for-byte", () => {
-  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql"]);
+test("the current chain admits the reviewed FP1 suffix and retains the S2 baseline and all 37 historical SQL files byte-for-byte", () => {
+  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql"]);
   const baseline = readFileSync(new URL("scripts/fixtures/backend-schema/s2-baseline.sql", root));
   assert.deepEqual(readFileSync(new URL("migrations/0001_v3_baseline.sql", root)), baseline);
   const recorded = [...baseline.toString("utf8").matchAll(/^-- Source migrations\/([^ /]+\.sql) sha256=([a-f0-9]{64})$/gm)];

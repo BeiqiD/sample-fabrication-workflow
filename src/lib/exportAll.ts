@@ -1,5 +1,5 @@
 import type JSZip from "jszip";
-import { createExportArtifact, exportArtifactText, validateFullExportV8 } from "../../shared/contracts/export-protocol";
+import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9 } from "../../shared/contracts/export-protocol";
 import type {
   BlobExportOutcome,
   FullExportBlobEntry,
@@ -147,12 +147,13 @@ export async function buildFullExportArchive(
   };
 }
 
-export async function buildFullExportArchiveV8(
+async function buildVersionedFullExportArchive(
+  version: 8 | 9,
   input: unknown,
   onProgress?: (completed: number, total: number) => void,
   fetcher: typeof fetch = fetch,
 ) {
-  const manifest = await validateFullExportV8(input);
+  const manifest = version === 8 ? await validateFullExportV8(input) : await validateFullExportV9(input);
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = new Set(["export-manifest.json", "export-warnings.json"]);
@@ -173,6 +174,7 @@ export async function buildFullExportArchiveV8(
   zip.file("export-manifest.json", JSON.stringify({
     schemaVersion: manifest.schemaVersion,
     archiveWriter: manifest.archiveWriter,
+    ...(manifest.schemaVersion === 9 ? { archiveProfile: manifest.archiveProfile } : {}),
     exportedAt: manifest.exportedAt,
     tables,
     artifacts,
@@ -188,9 +190,17 @@ export async function buildFullExportArchiveV8(
   };
 }
 
+export function buildFullExportArchiveV8(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(8, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV9(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(9, input, onProgress, fetcher);
+}
+
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const { archive } = await buildFullExportArchiveV8(manifest, onProgress);
+  const { archive } = await buildFullExportArchiveV9(manifest, onProgress);
   const url = URL.createObjectURL(archive);
   const anchor = document.createElement("a");
   anchor.href = url;

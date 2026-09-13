@@ -1,4 +1,4 @@
-import type { FullExportManifestV8 } from "../../shared/contracts/export";
+import type { FullExportManifestV9 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -312,7 +312,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV8>("/exports/all?archiveSchema=8&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV9>("/exports/all?archiveSchema=9&archiveWriter=1"),
   importFabublox: async (file: File, preview: FabubloxImportPreview, recipeFamilyId?: string) => {
     const form = new FormData();
     form.append("workbook", file, file.name);
