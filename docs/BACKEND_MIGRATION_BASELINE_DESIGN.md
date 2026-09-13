@@ -157,10 +157,54 @@ These are later implementation slices, not capabilities delivered by the pure
 planner. The current `migrations/` directory and automatic deployment command
 remain unchanged.
 
+## Inactive final baseline qualification
+
+The executable candidates now live in `scripts/fixtures/backend-schema/`, outside
+Wrangler's active migration scan. The S1/S2 schema qualification and generated
+`s2-baseline.sql` run in the existing verification-scripts gate. Reproduce them with:
+
+```sh
+node --test scripts/backend-compatibility-schema.test.mjs scripts/backend-schema-baseline.test.mjs
+node scripts/generate-backend-s2-baseline.mjs --check
+```
+
+Host SQLite and actual workerd D1 prove that incremental S2 and a fresh candidate
+have the same 34 tables, 93 explicit indexes, 15 views, 200 triggers and 20 exact
+built-in seed rows. The normalized application schema SHA-256 is
+`71e082ee9bbf00f8844c5580bbc81c8dec3894025fc0d17b88584a8ce984c4b2`.
+All original trigger definitions and their relative creation order within each
+table remain intact; the fresh baseline follows final S2 creation order.
+
+The retained-data rehearsal compares every stored row, allowing only the two
+retired column removals and the explicit legacy text projection. It covers
+canonical/common/legacy and image-only occurrences, partial deletion, ancestor
+trash, pending retry, shared quarantine, and original retired counters of 37 and
+9007199254740000. Retained ledgers extend from 37 to 39 entries with the original
+37 rows unchanged; the separate fresh ledger contains one candidate entry. The
+planner never selects baseline SQL for the retained S0 target.
+
+Both engines pass foreign-key and quick checks; host SQLite also passes
+`integrity_check`, which D1's authorizer does not support. Injected failures during
+copy, swap, object recreation, contraction, and ledger recording roll back fully
+and allow the exact candidate to succeed on retry. A fresh-baseline failure also
+leaves no application objects or applied ledger row.
+
+The generator preserves quoted text and comments and adds only token-equivalent
+spacing around compound SQL keywords for the installed Wrangler splitter. All
+308 index, view and trigger definitions retain their SQL tokens. Actual Wrangler splits the
+candidate into 363 statements, at most 3851 UTF-8 bytes each; it does not submit
+the over-limit combined trigger statement produced by naive concatenation.
+
+This is qualified local schema preparation. It is not a deployed baseline,
+remote cleanup, retirement proof, or complete application acceptance against an
+activated final schema. The remaining execution and full final-schema gates above
+still apply; the active directory contains the original 37 migrations.
+
 ## Compatibility fields and schema-7 archives
 
-The full export currently selects entire `samples` and `run_step_comments` rows
-under schema version 7. `samples.process_revision` has no explicit runtime
+The original schema-7 export preserves complete `samples` and `run_step_comments`
+rows, including explicit physical-column projections introduced by Stage A.
+`samples.process_revision` has no explicit runtime
 reader/writer, but dropping it still changes exported row structure. Do not keep
 the same archive schema number while silently removing that field, and do not
 synthesize zero without proving all retained values and agreeing a lossless

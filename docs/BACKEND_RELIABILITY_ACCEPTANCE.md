@@ -2,7 +2,8 @@
 
 Status: Phase 6A1 recovery and scale baseline implemented; export and placement
 and Sample split repairs merged; Worker ownership and shared-contract separation
-are merged. Canonical Comment reader conversion is implemented without schema changes.
+are merged. Canonical Comment reads, trigger-aware legacy Comment acknowledgement
+and negotiated v8 export/recovery are merged without an active schema change.
 Newly deployed browser checks remain open while the browser connection is unavailable.
 
 Last updated: 2026-09-13
@@ -211,10 +212,11 @@ not complete the interrupted deployed browser checks.
 
 ## Compatibility and migration boundaries
 
-`samples.process_revision` has no explicit runtime or test readers/writers; it
-remains in the initial migration and model documentation. Full export selects
-the entire Sample row, so its removal still changes the archive schema and needs
-an explicit schema/compatibility slice.
+`samples.process_revision` is not a current concurrency token. It remains in the
+active schema. The [v8 export protocol](./FULL_EXPORT_V8.md), merged in
+[PR #197](https://github.com/BeiqiD/sample-fabrication-workflow/pull/197), preserves
+its actual values in the retired-field artifact and omits it from logical Sample
+rows. Physical removal remains a separately gated migration.
 
 `run_step_comments.body` remains authoritative for legacy occurrences without a
 submission ID, and is duplicated for canonical submissions. The first compatible
@@ -222,13 +224,27 @@ reader conversion now selects canonical text from `comment_submissions` in
 Sample detail, legacy lifecycle summaries and Reference occurrence resolution.
 Empty canonical text stays empty; a missing canonical parent does not authorize
 a fallback to stale duplicated text. Legacy search and legacy-only records keep
-their existing body owner. Export stays schema 7 with the exact original physical
-fields, including nonzero retired counters and duplicated bodies. Legacy creation
+their existing body owner. Stage A kept schema-7 exports with the exact original
+physical fields; E now negotiates schema 8 and explicitly retains those actual
+retired values as provenance. Original v7 archives remain supported offline.
+Legacy creation
 and canonical finalization still write the existing columns. Nine real Worker/SQLite
 regressions and the complete 11-leaf gate verify this read-only schema bridge. The Execution grid
 still chooses legacy Comment/image deletion when `submissionId` is absent.
 Convert every applicable reader/writer and preserve legacy content, occurrence
 IDs, group semantics and deletion provenance before dropping the column.
+
+The legacy-create acknowledgement repair merged in
+[PR #196](https://github.com/BeiqiD/sample-fabrication-workflow/pull/196). Actual D1
+counts trigger writes in `meta.changes`; success now requires the exact generated
+occurrence IDs returned by the guarded INSERT. Empty returned rows remain a
+conflict, while a malformed acknowledgement remains an uncertain server error.
+The regression checks both trigger timings, both scopes, committed malformed
+acknowledgements and atomic stale-target rejection.
+
+See the [inactive schema qualification](./BACKEND_COMPATIBILITY_SCHEMA_QUALIFICATION.md)
+for S1/S2 migration, baseline and 22-case recovery evidence. These candidates do
+not activate the final schema or establish completion of the browser exit gate.
 
 Use **Template** as the current public vocabulary; historical `recipe_*` database
 names can remain. Splitting `events`, changing aggregate concurrency generally,

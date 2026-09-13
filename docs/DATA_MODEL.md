@@ -220,6 +220,9 @@ null actor.
 `samples.process_revision` remains only for compatibility with the deployed
 alpha schema. Current concurrency control uses `updated_at` and mutation IDs;
 removing the legacy column requires an explicit migration.
+The negotiated v8 archive omits it from logical Sample rows while retaining
+every observed value in `provenance/retired-fields.json`. The active database
+column has not yet been removed; see [the compatibility sequence](./BACKEND_COMPATIBILITY_CLEANUP_DESIGN.md).
 
 Reference registration uses `UNIQUE(target_type, target_id)` plus
 `INSERT OR IGNORE` and then reads the canonical row. The database rejects any
