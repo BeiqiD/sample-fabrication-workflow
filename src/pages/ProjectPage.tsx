@@ -135,6 +135,10 @@ const ProjectReadingSurface = lazy(() => import("../components/project/ProjectRe
 const ProjectMarkdownEditor = lazy(() => import("../components/project/ProjectMarkdownEditor"));
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "conflict";
+type PendingPlacementMutation = {
+  input: UpdateProjectPlacementInput;
+  outcomeUncertain: boolean;
+};
 type ReferenceRemovalStatus = "removing" | "uncertain" | "reconciling" | "conflict";
 
 type PendingReferenceRemoval = {
@@ -309,6 +313,7 @@ export function ProjectPage() {
   const [redoStack, setRedoStack] = useState<ProjectSessionHistoryCommand[]>([]);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [saveError, setSaveError] = useState("");
+  const [placementSaveUncertain, setPlacementSaveUncertain] = useState(false);
   const [pendingReference, setPendingReferenceState] = useState<ProjectPendingReferencePlacement | null>(null);
   const [pendingReferenceRemoval, setPendingReferenceRemovalState] = useState<PendingReferenceRemoval | null>(null);
   const [referenceActionError, setReferenceActionError] = useState("");
@@ -336,7 +341,7 @@ export function ProjectPage() {
 
   const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
   const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
-  const pendingMutationRef = useRef<Record<string, UpdateProjectPlacementInput>>({});
+  const pendingMutationRef = useRef<Record<string, PendingPlacementMutation>>({});
   const saveStateRef = useRef<SaveState>("saved");
   const autosaveTimerRef = useRef<number | null>(null);
   const savingRef = useRef(false);
@@ -799,6 +804,7 @@ export function ProjectPage() {
     baselineRef.current = baseline;
     geometryRef.current = nextGeometry;
     pendingMutationRef.current = {};
+    setPlacementSaveUncertain(false);
     appliedFocusRef.current = null;
     clearReferenceInsertion();
     clearReferenceRemoval();
@@ -1074,6 +1080,7 @@ export function ProjectPage() {
     updateSaveState("saving");
     setSaveError("");
     let succeeded = false;
+    let attemptedMutation: PendingPlacementMutation | null = null;
     try {
       for (const placementId of placementIds) {
         if (!saveSessionIsActive(generation)) return;
@@ -1084,19 +1091,25 @@ export function ProjectPage() {
         if (!mutation) {
           if (projectGeometryEquals(baseline, attemptedGeometry)) continue;
           mutation = {
-            geometry: attemptedGeometry,
-            expectedRevision: baseline.revision,
-            operationId: createProjectApiId("operation"),
+            input: {
+              geometry: attemptedGeometry,
+              expectedRevision: baseline.revision,
+              operationId: createProjectApiId("operation"),
+            },
+            outcomeUncertain: false,
           };
           pendingMutationRef.current[placementId] = mutation;
         }
-        const result = await projectApi.updatePlacement(projectId, placementId, mutation);
+        attemptedMutation = mutation;
+        const result = await projectApi.updatePlacement(projectId, placementId, mutation.input);
         if (!saveSessionIsActive(generation)) return;
         baselineRef.current = { ...baselineRef.current, [placementId]: result.value };
         setSnapshot((current) => current
           ? snapshotWithSavedPlacement(current, result.value)
           : current);
         delete pendingMutationRef.current[placementId];
+        setPlacementSaveUncertain(false);
+        attemptedMutation = null;
       }
       succeeded = true;
     } catch (caught) {
@@ -1104,7 +1117,16 @@ export function ProjectPage() {
       const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
       navigationSaveRequestedRef.current = false;
       setSaveError(message);
-      updateSaveState(caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
+      // A later rejected retry does not settle an earlier request with a lost
+      // response. Only the backend's immutable revision proof can do that.
+      const settled = caught instanceof ProjectApiError && caught.status === 409
+        && projectCreateReplayIsAuthoritativelySettled(caught);
+      const uncertain = attemptedMutation?.outcomeUncertain
+        ? !settled
+        : projectDeletionOutcomeIsUncertain(caught);
+      if (attemptedMutation) attemptedMutation.outcomeUncertain = uncertain;
+      setPlacementSaveUncertain(uncertain);
+      updateSaveState(!uncertain && caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
     } finally {
       if (saveSessionIsActive(generation)) savingRef.current = false;
     }
@@ -2255,6 +2277,9 @@ export function ProjectPage() {
   }, [saveAttachmentMetadata]);
 
   const reloadAfterEdgeConflict = useCallback(() => {
+    // Edge writes can overlap independent placement saves. Their conflict must
+    // not discard a placement request that can still commit after this reload.
+    if (saveStateRef.current !== "saved" && saveStateRef.current !== "conflict") return;
     edgeController.resetForAuthoritativeReload();
     referenceNavigationRequestedRef.current = false;
     if (blocker.state === "blocked") blocker.reset();
@@ -2280,6 +2305,7 @@ export function ProjectPage() {
     if (blocker.state !== "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
       || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
       || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    if (Object.values(pendingMutationRef.current).some((mutation) => mutation.outcomeUncertain)) return;
     const state = saveStateRef.current;
     if (state !== "error" && state !== "conflict") return;
     navigationSaveRequestedRef.current = false;
@@ -2857,6 +2883,10 @@ export function ProjectPage() {
 
   const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
   const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe || trash.pending !== null;
+  const edgeConflict = edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict";
+  const edgeConflictReloadDisabled = saveState !== "saved" && saveState !== "conflict";
+  const placementRetryDisabled = pendingReferenceRemoval !== null || ownedContentBusy
+    || copyPaste.unsafe || trash.pending !== null || (edgeController.unsafe && !edgeConflict);
   const referencePlacementDisabled = Boolean(ownedContentReloadPending || pendingReference || pendingReferenceRemoval || workspaceOperationBusy || saveState === "conflict");
   const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null || workspaceOperationBusy;
   const geometryInteractionDisabled = pendingReferenceRemoval !== null
@@ -3090,6 +3120,8 @@ export function ProjectPage() {
                 : "Save or discard these metadata edits before leaving. Rejected values can be corrected in the editor."
             : saveState === "conflict"
               ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
+              : placementSaveUncertain
+                ? "The placement save outcome is uncertain. Retry the exact save before leaving."
               : saveState === "error"
                 ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
                 : "Saving placement changes before leaving this Project…";
@@ -3253,7 +3285,7 @@ export function ProjectPage() {
               {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge</button>}
               {edgeController.editor.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact save</button>}
               {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" aria-keyshortcuts="Escape" onClick={edgeController.cancelEdit}>Cancel</button>}
-              {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
+              {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" disabled={edgeConflictReloadDisabled} onClick={reloadAfterEdgeConflict}>Reload Project</button>}
             </div>
           </div> : null}
           {!edgeController.editor && <><section className="project-inspector-section" aria-label="Edge connection">
@@ -3677,6 +3709,7 @@ export function ProjectPage() {
 
     {saveError && <div className={`project-save-banner ${saveState}`}>
       <p>{saveError}</p>
+      {placementSaveUncertain && <p>The placement save may still complete. Retry preserves the original request; wait for confirmation before leaving.</p>}
       {saveState === "conflict" && <button
         type="button"
         className="button compact-button"
@@ -3688,7 +3721,7 @@ export function ProjectPage() {
       {saveState === "error" && <button
         type="button"
         className="button compact-button"
-        disabled={pendingReferenceRemoval !== null || workspaceOperationBusy}
+        disabled={placementRetryDisabled}
         onClick={() => void flushSave()}
       >
         Retry save
@@ -3745,7 +3778,7 @@ export function ProjectPage() {
       <div className="project-navigation-actions">
         {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
         {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss failed edge operation</button>}
-        {(edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict") && <button type="button" className="button compact-button" onClick={reloadAfterEdgeConflict}>Reload authoritative Project</button>}
+        {edgeConflict && <button type="button" className="button compact-button" disabled={edgeConflictReloadDisabled} onClick={reloadAfterEdgeConflict}>Reload authoritative Project</button>}
       </div>
     </div>}
 
@@ -3762,13 +3795,13 @@ export function ProjectPage() {
         {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
         {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
         {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
-        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
+        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && !placementSaveUncertain && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
       </>}
       primaryActions={<>
         {copyPaste.paste?.status === "paused" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>}
         {copyPaste.paste?.status === "reconcile-error" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>}
         {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
-        {(edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict") && <button type="button" className="button primary compact-button" onClick={reloadAfterEdgeConflict}>Reload Project</button>}
+        {edgeConflict && <button type="button" className="button primary compact-button" disabled={edgeConflictReloadDisabled} onClick={reloadAfterEdgeConflict}>Reload Project</button>}
         {edgeController.editor && (edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge and leave</button>}
         {edgeController.editor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge save</button>}
         {pendingReferenceRemoval?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>}
@@ -3780,7 +3813,7 @@ export function ProjectPage() {
         {markdownEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
         {attachmentEditor && (attachmentEditor.status === "editing" || attachmentEditor.status === "error") && <button type="button" className="button primary compact-button" onClick={() => void saveAttachmentMetadata()}>Save metadata and leave</button>}
         {attachmentEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
-        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
+        {!pendingReference && !placementRetryDisabled && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
       </>}
     />}
 
