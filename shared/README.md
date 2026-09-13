@@ -7,10 +7,10 @@ database queries, provider access, React components, or application retry policy
 
 | Canonical directory | Modules |
 | --- | --- |
-| `contracts/` | `template`, `types`, `comment-submissions`, `project-api`, `project-types`, `project-copy-paste-api`, `reference-types`, `reference-search`, `reference-children`, `reference-destinations` |
-| `domain/` | `content-addressing`, `reference-comment-preview`, `sample-records`, `tiff`, `mime-type` |
+| `contracts/` | `template`, `types`, `comment-submissions`, `project-api`, `project-types`, `project-copy-paste-api`, `reference-types`, `reference-search`, `reference-children`, `reference-destinations`, `export`, `export-protocol`, `export-compatibility`, `export-blob-plan` |
+| `domain/` | `content-addressing`, `reference-comment-preview`, `sample-records`, `tiff`, `mime-type`, `sqlite-table-columns` |
 
-New imports use the canonical directories. The 14 matching files directly under
+New imports use the canonical directories. Matching files directly under
 `shared/` are supported compatibility re-exports, so existing consumers and test
 entry points retain the same symbols and module identities without maintaining
 another implementation. Tests beside those compatibility paths exercise the
@@ -41,4 +41,18 @@ Ambient reference directives and nonliteral dependency loading are rejected.
 The existing build leaf runs `tsconfig.shared.json` through `tsc -b`, separately
 from the Web and Worker projects. It uses standard ECMAScript and Web API types
 with `types: []`, so shared code cannot inherit Node, React or Cloudflare ambient
-types from either application. No additional verification leaf is needed.
+types from either application. This ownership check already has a verification
+leaf; new modules must keep it enforced.
+
+## File/data portability boundary
+
+The proposed FP track reuses this ownership split. File/profile/job DTOs and
+versioned package validators may belong in `contracts/`; deterministic algorithms
+with no contract dependency may belong in `domain/`. Storage SDKs, SQL repositories,
+credential encryption services, schedulers, browser downloads and archive I/O do
+not move into `shared/` merely because several features use them. Its dependency
+gate forbids external imports, including provider SDKs and ZIP libraries.
+Keep reusable application services outside this pure client/Worker boundary and
+compose runtime adapters explicitly. See the
+[repository compatibility audit](../docs/FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md).
+This clarification adds no FP implementation or runtime adapter.
