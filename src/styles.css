@@ -867,14 +867,15 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-note-composer .grid-comment-composer textarea { font-size: 13px; }
 .sample-note-composer .comment-add-button { min-width: 72px; }
 .sample-notes-list { min-height: 0; flex: 1 1 auto; margin: 20px -4px 0 0; padding-right: 8px; overflow-y: auto; scrollbar-color: var(--line-strong) transparent; }
-.sample-note { padding: 16px 2px 16px 14px; border-top: 1px solid var(--line); border-left: 3px solid var(--line-strong); }
+.sample-note { padding: 16px 14px; border-top: 1px solid var(--line); border-left: 3px solid var(--line-strong); }
 .sample-note:first-child { border-top-color: transparent; }
 .sample-note-deviation, .sample-note-blocked_step { border-left-color: var(--warning); }
 .sample-note-state_mismatch { border-left-color: var(--danger); }
-.sample-note-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
-.sample-note-heading > div { min-width: 0; display: grid; gap: 3px; }
+.sample-note-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 6px 16px; }
+.sample-note-heading > div { min-width: 0; flex: 1 1 180px; display: grid; gap: 3px; }
+.sample-note-label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .sample-note-heading time, .sample-note-context, .sample-note-footer { color: var(--muted); font-size: var(--font-meta); }
-.sample-note-heading time { flex: 0 0 auto; white-space: nowrap; }
+.sample-note-heading time { flex: 0 1 auto; overflow-wrap: anywhere; }
 .sample-note-context { margin: 0; overflow-wrap: anywhere; line-height: 1.4; }
 .sample-note-content { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; margin-top: 9px; }
 .sample-note-content > p, .sample-note-content > .comment-rich-text-fallback { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
@@ -883,10 +884,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .sample-note-images { max-width: 304px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .sample-note-images > .grid-diagrams { justify-content: flex-end; margin-top: 0; }
 .sample-note-images .grid-diagrams.photo-thumbnails .grid-diagram-item > button:first-child { width: 92px; height: 72px; border-radius: 8px; }
-.sample-note-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
-.sample-note-footer > span { min-width: 0; overflow-wrap: anywhere; }
-.sample-note-footer > div { flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
-.sample-note-footer .text-button { font-size: 11px; text-decoration: none; }
+.sample-note-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+.sample-note-author { min-width: 0; flex: 1 1 180px; overflow-wrap: anywhere; }
+.sample-note-actions { min-width: 0; max-width: 100%; flex: 0 1 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; margin-left: auto; }
+.sample-note-actions:empty { display: none; }
+.sample-note-footer .text-button { font-size: 11px; text-decoration: none; white-space: nowrap; }
 .danger-text-button { color: var(--danger); }
 .sample-notes-toggle { display: none; }
 .notes-empty { flex: 1 1 auto; display: grid; place-items: center; min-height: 150px; margin-top: 18px; padding: 24px; border-top: 1px solid var(--line); color: var(--muted); text-align: center; }
@@ -1207,10 +1209,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .form-actions { flex-wrap: wrap; }
   .sample-notes-card { padding: 16px; }
   .sample-notes-list { margin-right: 0; padding-right: 0; }
-  .sample-note { padding-left: 10px; }
-  .sample-note-heading, .sample-note-footer { align-items: flex-start; flex-direction: column; }
-  .sample-note-heading time { white-space: normal; }
-  .sample-note-footer > div { justify-content: flex-start; }
+  .sample-note { padding-right: 10px; padding-left: 10px; }
   .sample-note-content { grid-template-columns: minmax(0, 1fr) 76px; }
   .sample-note-images .grid-diagrams.photo-thumbnails .grid-diagram-item > button:first-child { width: 76px; height: 62px; }
   .sample-secondary-grid { gap: 34px; margin-top: 34px; padding-top: 30px; }

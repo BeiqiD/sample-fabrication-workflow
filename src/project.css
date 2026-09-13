@@ -334,8 +334,7 @@
 .project-desktop-workspace {
   --project-panel-gap: 12px;
   --project-panel-padding: 14px;
-  --project-reference-width: min(320px, calc(50% - 42px));
-  --project-inspector-width: min(clamp(340px, 24vw, 460px), calc(50% - 42px));
+  --project-panel-width: min(340px, calc(50% - 42px));
   min-width: 0;
   min-height: 0;
   position: relative;
@@ -357,7 +356,7 @@
 .project-page.desktop.reading .project-reading-surface { overflow: visible; }
 .project-desktop-workspace[data-reference-open="true"] {
   --project-map-controls-left: calc(
-    var(--project-panel-gap) + var(--project-reference-width) + 10px
+    var(--project-panel-gap) + var(--project-panel-width) + 10px
   );
 }
 .project-map-panel {
@@ -378,6 +377,7 @@
   font-size: var(--project-panel-font-body);
   line-height: 1.5;
   min-width: 0;
+  width: var(--project-panel-width);
   position: absolute;
   top: var(--project-panel-gap);
   max-height: calc(100% - 2 * var(--project-panel-gap));
@@ -393,12 +393,10 @@
 }
 .project-reference-sidebar {
   left: var(--project-panel-gap);
-  width: var(--project-reference-width);
   overflow-x: hidden;
 }
 .project-inspector {
   right: var(--project-panel-gap);
-  width: var(--project-inspector-width);
 }
 .project-inspector.editing {
   max-height: min(760px, calc(100% - 2 * var(--project-panel-gap)));
@@ -429,8 +427,7 @@
   z-index: 8;
   --project-panel-gap: 0px;
   --project-panel-padding: 14px;
-  --project-reference-width: 100%;
-  --project-inspector-width: 100%;
+  --project-panel-width: 100%;
 }
 .project-reading-panel .project-reference-sidebar,
 .project-reading-panel .project-inspector {
@@ -671,8 +668,7 @@
   .project-desktop-workspace {
     --project-panel-gap: 10px;
     --project-panel-padding: 12px;
-    --project-reference-width: min(280px, calc(50% - 34px));
-    --project-inspector-width: min(280px, calc(50% - 34px));
+    --project-panel-width: min(280px, calc(50% - 34px));
   }
   .project-workspace-header,
   .project-page.desktop .project-workspace-header { gap: 7px; }
