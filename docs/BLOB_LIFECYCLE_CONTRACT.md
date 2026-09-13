@@ -7,12 +7,14 @@ requires migration/read/export holds, location-level deletion claims and
 purpose-aware reuse. Existing retention, quarantine, registration and unknown-
 result rules remain mandatory; new tables do not qualify their integration by
 themselves. The [export/import design](./DATA_EXPORT_IMPORT_DESIGN.md) adds native
-packages while retaining full-backup recovery obligations. No lifecycle code or
-retention interval changes in this documentation proposal.
+packages while retaining full-backup recovery obligations. The bounded
+[FP1d implementation](./FP1_FENCED_BYTE_DELETION.md) strengthens current deletion
+claims without changing retention intervals or activating File authority.
 
-Status: normative v3 backend contract; current through attachment lifecycle Slice A in Draft PR #152
+Status: normative v3 backend contract, including the FP1 transport boundaries.
 
-Last reviewed: 2026-08-19 after explicit Run-attachment retention was bounded in Draft PR #152
+Last reviewed: 2026-09-13 for FP1d deletion and GC recovery against the FP1c base
+`35664cb76c75ba4b99b07b26759cdbe6d661e163`; executed acceptance belongs to its PR.
 
 This document is the single source of truth for physical file retention,
 garbage collection, complete export, and permanent-delete safety. It applies to
@@ -310,13 +312,35 @@ retryable conflict; they may not attach a new occurrence to a claimed locator.
 
 Provider I/O occurs outside a D1 transaction:
 
-1. claim the locator with an operation ID;
-2. delete or confirm absence at the provider;
-3. finalize `deleted` only if the operation ID still matches;
-4. record retryable provider failure without losing source history.
+1. claim the locator with an operation ID and exact attempt token;
+2. delete or confirm absence at the bound provider instance/key;
+3. finalize `deleted` only if the operation ID, attempt count and claim timestamp
+   still match;
+4. record a fixed redacted error for retryable provider failure while retaining
+   `deleting`, without losing source history or reopening the locator to reuse.
 
 The operation is idempotent. Retrying after provider success but before the
-final database update converges to `deleted`.
+final database update converges to `deleted`. A stale retry first renews the
+guarded claim and checks the exact locator: confirmed absence permits matching
+finalization without another DELETE; available bytes permit a repeated
+idempotent DELETE; denied/unavailable inspection leaves the locator claimed.
+
+The stable operation ID identifies cleanup across retries. Incremented
+`attempt_count` and `deletion_started_at` fence each executor, including attempts
+with identical timestamps. Stale success or failure MUST NOT mutate a renewed
+claim. Managed-object status and ledger finalization remain atomic. An uncertain
+database acknowledgement MUST NOT release a claim.
+
+This attempt fence is enforced by FP1d-compatible executors. Older binaries must
+drain before relying on it across deployment; schema compatibility alone is not
+an execution barrier. See the [rollout boundary](./FP1_FENCED_BYTE_DELETION.md#rollout-and-old-executors).
+
+Provider acknowledgement uses the current adapter completion contract; it is not
+permission for a future asynchronous adapter to report accepted work as completed
+deletion. An unknown DELETE result never proves that the remote request stopped.
+It MUST NOT demote `deleting` to `orphaned`, even when retry is necessary. Provider
+exception text, response bodies, paths and credentials MUST NOT enter newly
+recorded GC diagnostics.
 
 ### Terminal locator rule
 
@@ -670,7 +694,7 @@ Sample, Run, or other durable source still retains the historical occurrence.
 
 ## Uncertain registration outcomes
 
-An uploaded provider object and its stable database identity form one registration attempt. If the INSERT response is uncertain, the writer must first read the exact `(id, provider, object_key, sha256)` record from primary D1. An exact committed record is the writer's own successful result and its provider object must not be deleted. Only after that reconciliation returns no record may the writer select a different content-addressed winner and delete the redundant upload.
+An uploaded provider object and its stable database identity form one registration attempt. If the INSERT response is uncertain, the writer must first read the exact `(id, provider, object_key, sha256)` record from primary D1. An exact committed record is the writer's own result and its provider object must not be deleted. After authoritative reconciliation the writer may select a different verified content-addressed winner; any redundant candidate remains registered for ordinary guarded GC. Registration never performs an inline DELETE.
 
 This rule applies uniformly to ordinary R2 assets, Project uploads, metrology references, Comment images, and managed Comment attachments. A content-hash lookup alone cannot distinguish the writer's own committed row from a competing winner.
 

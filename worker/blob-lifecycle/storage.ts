@@ -1,4 +1,5 @@
-import { managedStorage } from "../managed-storage";
+import { ByteDeletionError } from "../files/byte-deleter";
+import { legacyByteDeleter } from "../files/legacy-byte-deleter";
 import { legacyByteReader } from "../files/legacy-byte-reader";
 import type { Env } from "../types";
 import type { BlobLocator } from "./types";
@@ -37,13 +38,6 @@ function unavailableMessage(locator: BlobLocator) {
 }
 
 export async function removeBlob(env: Env, locator: BlobLocator) {
-  if (locator.storeKind === "r2") {
-    await env.ASSETS.delete(locator.objectKey);
-    return;
-  }
-  const storage = managedStorage(env);
-  if (!storage || storage.provider !== locator.provider) {
-    throw new Error(`Managed storage provider ${locator.provider} is unavailable`);
-  }
-  await storage.delete(locator.objectKey);
+  const result = await legacyByteDeleter(env, locator).delete(locator.objectKey);
+  if (result.outcome !== "acknowledged") throw new ByteDeletionError(result.outcome);
 }

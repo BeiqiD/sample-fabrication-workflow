@@ -141,7 +141,7 @@ Containers, or a second Worker.
 - Soft deletion and archival do not remove durable retention edges. Unfinished/retryable submissions retain already-registered bytes until retryability is explicitly closed.
 - Sample-record primary images and distinct `events.metadata_json.thumbnailKey` images are separate retention edges.
 - `assets.status` expresses upload/registration readiness. `blob_gc_ledger` expresses cross-provider cleanup work; they are not interchangeable.
-- GC uses `orphaned -> deleting -> deleted` with a unique operation ID. Edge creation clears only an unclaimed orphan and rejects `deleting` or `deleted` locators.
+- GC uses `orphaned -> deleting -> deleted` with a stable operation ID and per-attempt fencing. Failed/uncertain deletion stays `deleting`; stale retries reconcile the exact provider/key before repeating DELETE. Edge creation clears only an unclaimed orphan and rejects `deleting` or `deleted` locators.
 - Cancel does not delete provider bytes. The daily scheduled handler is the ordinary physical-cleanup entry point.
 - A `deleted` locator is terminal and must not be silently reused for different bytes. Recovery registers a new locator.
 - Ready R2 content is unique among live locators. Historical metadata for a collected locator remains, and the same content may be registered again at a new live locator after the old locator reaches `deleting` or `deleted`.
@@ -151,6 +151,7 @@ Containers, or a second Worker.
 - [Instance-bound byte readers](./FP1_BYTE_READER_BOUNDARY.md) implement full-object read/stat behind the legacy locator bridge. Routes authorize first; definite absence stays distinct from provider failure. Reads do not publish File registry state, change retention or switch providers. Legacy writers and deletion claims retain their existing contracts.
 - Authenticated SWITCHdrive requests do not follow redirects. Post-upload validation failure leaves the registered candidate for reconciliation/GC rather than deleting provider bytes inside the adapter.
 - [Verified write composition](./FP1_VERIFIED_BYTE_WRITES.md) consumes managed upload claims and independently hashes full destination bytes before legacy ingestion publishes or adopts a reused object. A lost PUT result is not replayed, and failed candidates keep their existing registration/GC owner. Incremental verification has a 100 MiB ceiling and does not activate File/Location authority.
+- [Bound deletion and fenced GC](./FP1_FENCED_BYTE_DELETION.md) supply the remaining transport capability. The GC core receives explicit database/storage/clock/identity capabilities; the runtime wrapper retains existing maintenance composition. Finalization and redacted error recording require the exact claim attempt, so a stale FP1d executor cannot overwrite a renewed claim. Pre-FP1d maintenance executions must drain before relying on those guarantees across deployment. This changes neither retention roots nor File authority.
 
 ## Export invariants
 

@@ -1,4 +1,12 @@
 import type { BlobLocator, RetentionEdgeRow } from "./types";
+import type { BlobLifecycleDatabase } from "./gc-database";
+
+/** The exact lease granted by the atomic claim, not just its operation family. */
+export interface BlobDeletionClaim {
+  operationId: string;
+  attemptCount: number;
+  deletionStartedAt: string;
+}
 
 export const COMMENT_RETRY_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
 export const BLOB_REGISTRATION_GRACE_MS = 24 * 60 * 60 * 1_000;
@@ -61,7 +69,7 @@ function orphanInsertSql(storeKind: BlobLocator["storeKind"]) {
 }
 
 export async function markOrphanCandidate(
-  db: D1Database,
+  db: BlobLifecycleDatabase,
   locator: BlobLocator,
   operationId: string,
   now: Date,
@@ -139,7 +147,7 @@ export async function refreshOrphanGrace(
 }
 
 export async function claimBlobDeletion(
-  db: D1Database,
+  db: BlobLifecycleDatabase,
   locator: BlobLocator,
   operationId: string,
   now: Date,
@@ -155,7 +163,9 @@ export async function claimBlobDeletion(
        AND NOT EXISTS (
          SELECT 1 FROM blob_retention_edges bre
          WHERE bre.store_kind = ? AND bre.provider = ? AND bre.object_key = ?
-       )`,
+       )
+     RETURNING operation_id AS operationId, attempt_count AS attemptCount,
+               deletion_started_at AS deletionStartedAt`,
   ).bind(
     operationId,
     timestamp,
@@ -167,12 +177,12 @@ export async function claimBlobDeletion(
     locator.storeKind,
     locator.provider,
     locator.objectKey,
-  ).run();
-  return Boolean(result.meta.changes);
+  ).first<BlobDeletionClaim>();
+  return result;
 }
 
 export async function reclaimBlobDeletion(
-  db: D1Database,
+  db: BlobLifecycleDatabase,
   locator: BlobLocator,
   operationId: string,
   now: Date,
@@ -181,13 +191,16 @@ export async function reclaimBlobDeletion(
   const timestamp = now.toISOString();
   const result = await db.prepare(
     `UPDATE blob_gc_ledger
-     SET deletion_started_at = ?, attempt_count = attempt_count + 1, updated_at = ?
+     SET deletion_started_at = ?, attempt_count = attempt_count + 1,
+         last_error = NULL, updated_at = ?
      WHERE store_kind = ? AND provider = ? AND object_key = ?
        AND state = 'deleting' AND operation_id = ? AND deletion_started_at <= ?
        AND NOT EXISTS (
          SELECT 1 FROM blob_retention_edges bre
          WHERE bre.store_kind = ? AND bre.provider = ? AND bre.object_key = ?
-       )`,
+       )
+     RETURNING operation_id AS operationId, attempt_count AS attemptCount,
+               deletion_started_at AS deletionStartedAt`,
   ).bind(
     timestamp,
     timestamp,
@@ -199,8 +212,8 @@ export async function reclaimBlobDeletion(
     locator.storeKind,
     locator.provider,
     locator.objectKey,
-  ).run();
-  return Boolean(result.meta.changes);
+  ).first<BlobDeletionClaim>();
+  return result;
 }
 
 export async function listSubmissionBlobLocators(db: D1Database, submissionId: string) {

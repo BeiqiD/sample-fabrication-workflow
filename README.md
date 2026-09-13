@@ -177,7 +177,9 @@ same-D1 S2 activation is complete; final browser acceptance remains open in the
 [file/data portability track](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
 has begun with [FP1a](./docs/FP1_FILE_REGISTRY_FOUNDATION.md): dormant file identities,
 legacy observations and matched v9 recovery. Current R2/managed upload, read and
-retention paths remain in use. Qualified v7/v8 archives can be restored against
+retention paths remain in use. The byte-read/write boundaries now extend to
+[fenced deletion and GC recovery](./docs/FP1_FENCED_BYTE_DELETION.md): uncertain
+deletion keeps the locator claimed until guarded reconciliation. Qualified v7/v8 archives can be restored against
 the reviewed S2 target and then upgraded by the same additive suffix, with the
 applied forward migration recorded in the report. Settings, universal upload
 routing and native website import remain later slices.
@@ -195,6 +197,7 @@ routing and native website import remain later slices.
 - [FP1a file registry implementation boundary](./docs/FP1_FILE_REGISTRY_FOUNDATION.md)
 - [FP1b byte-reader and legacy route boundary](./docs/FP1_BYTE_READER_BOUNDARY.md)
 - [FP1c verified writes and bounded hashing](./docs/FP1_VERIFIED_BYTE_WRITES.md)
+- [FP1d deletion and fenced GC recovery](./docs/FP1_FENCED_BYTE_DELETION.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

@@ -118,6 +118,9 @@ The PR records the final executed local/CI checks, independent review, deploymen
 and applicable browser acceptance. Deterministic fixtures do not establish live
 SWITCHdrive access. No ZIP-specific acceptance is performed for this slice.
 
+[FP1d](./FP1_FENCED_BYTE_DELETION.md) extends the transport boundary to deletion
+and fixes uncertain-delete/stale-executor handling in the existing GC service.
+It leaves File authority dormant and records the concrete conversion inventory.
 The next authority change must convert the complete consumer, deduplication,
 quarantine and retention inventory together, with accepted operation identity,
 profile/default races, guarded File publication and matching recovery coverage.

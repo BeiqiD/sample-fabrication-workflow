@@ -66,10 +66,14 @@ legacy metadata and retention are still authoritative.
 The subsequent [FP1c slice](./FP1_VERIFIED_BYTE_WRITES.md) converges legacy PUTs
 and verifies current ingestion/reused bytes before legacy publication. It does
 not activate File authority or complete the lifecycle conversion below.
+The [FP1d deletion slice](./FP1_FENCED_BYTE_DELETION.md) subsequently supplies
+bound deletion and fenced GC reconciliation while preserving claimed locators
+after uncertain DELETE outcomes.
 
 This read boundary does not convert legacy writers. R2/managed ingestion,
-FabuBlox writes, registration/reuse, quarantine and operation-ID GC still use
-their existing contracts. The full consumer/lifecycle conversion must establish
+FabuBlox writes, registration/reuse and quarantine still use legacy ownership
+contracts; FP1d strengthens operation-ID GC with per-attempt fencing. The full
+consumer/lifecycle conversion must establish
 verified bytes, guarded File publication, recorded profile/configuration
 identity and complete export/recovery before relaxing FP1a restrictions. New
 original defaults, role readiness, authenticated Settings and external provider
