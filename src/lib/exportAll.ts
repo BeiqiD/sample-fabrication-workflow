@@ -10,12 +10,14 @@ function safeSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-function archivePath(entry: FullExportBlobEntry) {
-  if (entry.storeKind === "r2") {
-    return `blobs/r2/${entry.objectKey.split("/").map(safeSegment).join("/")}`;
-  }
-  const identity = entry.blobRecordIds[0] || entry.locatorId;
-  return `blobs/managed/${safeSegment(entry.provider)}/${safeSegment(identity)}-${safeSegment(entry.filename)}`;
+function archivePath(entry: FullExportBlobEntry, index: number) {
+  // Provider keys and record IDs are opaque identities, not filesystem paths.
+  // Sanitizing them can merge different locators or preserve dot segments. The
+  // manifest's unique ordinal owns the path; its metadata retains every exact
+  // identity needed to put these bytes back into the original provider.
+  const ordinal = String(index + 1).padStart(6, "0");
+  const filename = safeSegment(entry.filename).slice(0, 160).replace(/\.+$/, "") || "blob";
+  return `blobs/${entry.storeKind}/${ordinal}-${filename}`;
 }
 
 function warningMessage(outcome: Exclude<BlobExportOutcome, "packaged">, entry: FullExportBlobEntry) {
@@ -58,7 +60,7 @@ export async function buildFullExportArchive(
     path: string | null;
   }> = [];
 
-  for (const entry of manifest.blobs) {
+  for (const [index, entry] of manifest.blobs.entries()) {
     let outcome: BlobExportOutcome = entry.initialOutcome ?? "download_failed";
     let path: string | null = null;
     if (entry.downloadUrl) {
@@ -79,7 +81,7 @@ export async function buildFullExportArchive(
             outcome = "hash_mismatch";
           } else {
             outcome = "packaged";
-            path = archivePath(entry);
+            path = archivePath(entry, index);
             zip.file(path, bytes);
           }
         }

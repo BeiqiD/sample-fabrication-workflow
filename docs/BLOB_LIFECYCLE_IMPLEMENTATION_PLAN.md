@@ -445,7 +445,7 @@ reaper removes only the failed import's provenance and then checks the same
 
 ### Complete export
 
-The current complete export returns schema v6:
+The current complete export returns schema v7:
 
 ```text
 all table/view snapshots, including integrity quarantine
@@ -463,6 +463,16 @@ The browser:
 4. records final outcomes rather than aborting on one failure;
 5. writes `export-manifest.json` and `export-warnings.json`;
 6. generates the ZIP.
+
+Each blob's `path` in `export-manifest.json` is the authoritative archive entry.
+New archives use a unique ordinal and a readable filename under `blobs/r2/` or
+`blobs/managed/`; provider keys and record IDs are retained exactly in the
+manifest and are never interpreted as archive directories. This prevents
+filename sanitization, Unicode replacement, case-insensitive extraction and dot
+segments from merging distinct physical locators. Recovery must use the
+manifest's path-to-locator mapping, including for older schema-v7 archives.
+The existing R2 export download route also accepts a key encoded as one URL
+segment, preserving embedded `.` and `..` segments in imported object keys.
 
 The first version builds the ZIP in browser memory; this is a documented scale
 boundary, not a streaming guarantee.

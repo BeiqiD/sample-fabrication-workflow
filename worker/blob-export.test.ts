@@ -129,11 +129,12 @@ describe("complete blob export", () => {
       "tables/samples.json",
       "tables/assets.json",
       "tables/attachment_derivatives.json",
-      "blobs/r2/ready/data.bin",
+      "blobs/r2/000001-data.bin",
       "export-manifest.json",
       "export-warnings.json",
     ]));
-    expect(zip.file("blobs/managed/switchdrive/managed-missing-missing.bin")).toBeNull();
+    expect(Object.keys(zip.files).filter((name) =>
+      name.startsWith("blobs/managed/") && !zip.files[name].dir)).toEqual([]);
     expect(JSON.parse(await zip.file("tables/samples.json")!.async("string"))).toEqual(
       manifest.tables.samples,
     );
