@@ -244,6 +244,50 @@ describe("Project mutation settlement disposition", () => {
     database.close();
   });
 
+  it("keeps a failed settlement query unmarked and proves the same frozen rejection after recovery", async () => {
+    const { app, env, database } = fixture();
+    await createProject(app, env, "project-proof-failure");
+    expect((await createMarkdown(
+      app,
+      env,
+      "project-proof-failure",
+      "proof-filler",
+      1,
+    )).status).toBe(201);
+
+    const originalPrepare = env.DB.prepare.bind(env.DB);
+    let failedProofQueries = 0;
+    env.DB.prepare = (sql: string) => {
+      if (/SELECT revision FROM projects WHERE id = \? LIMIT 1/.test(sql)) {
+        failedProofQueries += 1;
+        throw new Error("Settlement database read is temporarily unavailable");
+      }
+      return originalPrepare(sql);
+    };
+    const retry = () => createMarkdown(
+      app,
+      env,
+      "project-proof-failure",
+      "proof-request",
+      1,
+    );
+    const uncertain = await retry();
+    expect(uncertain.status).toBe(409);
+    expect(disposition(uncertain)).toBeNull();
+    expect(failedProofQueries).toBe(1);
+
+    env.DB.prepare = originalPrepare;
+    const settled = await retry();
+    expect(settled.status).toBe(409);
+    expect(disposition(settled)).toBe("authoritative-rejection");
+    expect(await settled.json()).toEqual(await uncertain.json());
+    expect(database.prepare("SELECT revision FROM projects WHERE id = ?")
+      .get("project-proof-failure")).toEqual({ revision: 2 });
+    expect(database.prepare("SELECT id FROM project_items WHERE id = ?")
+      .get("item-proof-request")).toBeUndefined();
+    database.close();
+  });
+
   it("leaves a future placement revision unmarked and accepts it after revision catches up", async () => {
     const { app, env, database } = fixture();
     await createProject(app, env, "project-future-placement");

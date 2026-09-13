@@ -10,7 +10,7 @@ import {
   resolveManagedAttachmentBrowserPreview,
   resolveR2AttachmentBrowserPreview,
 } from "./attachment-derivatives";
-import { PROJECT_EXPORT_TABLE_QUERIES } from "./project-foundation-routes";
+import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import {
   referenceTestDatabase,
   SqliteD1Database,
@@ -212,7 +212,7 @@ describe("shared attachment derivatives", () => {
     }, NOW);
 
     const exported = sourceDatabase.prepare(
-      PROJECT_EXPORT_TABLE_QUERIES.attachment_derivatives,
+      FULL_EXPORT_TABLE_QUERIES.attachment_derivatives,
     ).get() as ExportedDerivativeRow;
     expect(exported).toMatchObject({
       source_sha256: sourceSha,
@@ -251,7 +251,7 @@ describe("shared attachment derivatives", () => {
       exported.updated_at,
     );
     expect(restoredDatabase.prepare(
-      PROJECT_EXPORT_TABLE_QUERIES.attachment_derivatives,
+      FULL_EXPORT_TABLE_QUERIES.attachment_derivatives,
     ).get()).toEqual(exported);
     await expect(resolveAttachmentDerivative(dbAdapter(restoredDatabase), {
       sourceSha256: sourceSha,

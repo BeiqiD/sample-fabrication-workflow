@@ -355,16 +355,26 @@ readiness, hash reservation, or GC state.
 
 ### `gc.ts`
 
-Implements:
+Owns only physical blob collection:
 
-1. abandoned-upload transition;
-2. explicit retry expiry into system cancellation;
-3. bounded orphan discovery;
-4. grace-period deletion claim;
-5. provider deletion;
-6. operation-ID finalization or retryable error recording.
+1. bounded orphan discovery;
+2. grace-period deletion claim;
+3. provider deletion;
+4. operation-ID finalization or retryable error recording.
 
 Provider I/O occurs after the D1 claim and outside a database transaction.
+`runBlobGarbageCollection` returns the physical discovery/deletion counts.
+
+`worker/evidence/retry-maintenance.ts` owns abandoned Comment uploads and
+explicit retry expiry into system cancellation. Its four guarded statements
+remain in one atomic D1 batch.
+
+`worker/application/maintenance.ts` coordinates stale FabuBlox recovery, Evidence
+retry-window closure, orphan discovery and claimed deletion in the existing
+order, using the same supplied clock. Its aggregate result keeps the import,
+retry and physical GC counts. The scheduled `cleanupCommentUploads` adapter
+delegates to this coordinator. Physical GC does not import the source-owner
+maintenance functions.
 
 ### `storage.ts`
 
