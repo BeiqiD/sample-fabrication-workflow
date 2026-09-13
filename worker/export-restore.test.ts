@@ -101,6 +101,8 @@ describe("isolated full export recovery rehearsal", () => {
   afterEach(async () => { await rm(scratch, { recursive: true, force: true }); });
   const options = (scratch: string, archivePath: string, suffix = "destination") => ({ archivePath, destination: join(scratch, suffix), migrationsDirectory });
 
+  // This round trip migrates two databases and builds two archives. Give that
+  // bounded integration work its own budget under a shared CI runner's load.
   it("restores canonical, legacy, history, deleted Project, managed, quarantine and missing-byte state then reexports it", async () => {
     const source = await fixture();
     try {
@@ -140,7 +142,7 @@ describe("isolated full export recovery rehearsal", () => {
       } finally { restored.close(); }
       expect(hash(await readFile(archivePath))).toBe(inputHash);
     } finally { source.database.close(); }
-  });
+  }, 15_000);
 
   it("reconstructs genuine expired edges even when they expired before the export response timestamp", async () => {
     const source = await fixture();
