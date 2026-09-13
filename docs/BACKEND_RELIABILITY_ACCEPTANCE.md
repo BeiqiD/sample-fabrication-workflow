@@ -4,7 +4,10 @@ Status: Phase 6A1 recovery and scale baseline implemented; export and placement
 and Sample split repairs merged; Worker ownership and shared-contract separation
 are merged. Canonical Comment reads, trigger-aware legacy Comment acknowledgement
 and negotiated v8 export/recovery are merged without an active schema change.
-Newly deployed browser checks remain open while the browser connection is unavailable.
+The browser connection is restored. The current S0 split-image, Template/Run,
+canonical Comment/Reference and v8 export/recovery checks now pass; see
+[the retry acceptance record](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md).
+Remote contraction, final baseline activation and S2 browser acceptance remain open.
 
 Last updated: 2026-09-13
 
@@ -35,7 +38,7 @@ distinct. An unchecked item is not completed by an earlier phase's tests.
 | Deployed complete-export download | Browser `/export` downloaded `sample-log-2026-09-13.zip`: schema version 7, 35 datasets (34 tables and the retention view), 95 rows, one blob, no warnings; packaged size and SHA-256 matched | Small baseline archive inspected; not a complete database/provider recovery rehearsal |
 | B1: ZIP physical identity | Real FabuBlox import accepted distinct `foo bar` and `foo_bar` image IDs; sanitized archive paths collided and overwrote one payload. An accepted `../foo` locator was also normalized in the download URL and reported falsely missing | [PR #187](https://github.com/BeiqiD/sample-fabrication-workflow/pull/187) merged and deployed; browser download, hashes and row comparison passed |
 | B2: placement save with unknown result | A real SQLite placement UPDATE was held while the client observed a network failure. The page allowed **Leave without saving**, navigation completed, then releasing the original UPDATE changed `x: 0 → 80` and revision `1 → 2` | [PR #188](https://github.com/BeiqiD/sample-fabrication-workflow/pull/188) merged and deployed; browser autosave, explicit Save and reload persistence passed |
-| B3: split after actual execution images | A parent Sample with an image on its latest completed Step reads correctly, but split inserts a temporary `execution-assets:` identifier into the child's state foreign key. POST returns 500 and the transaction rolls back | [PR #190](https://github.com/BeiqiD/sample-fabrication-workflow/pull/190) merged after all 4 Verify / 14 statuses passed; deployed browser acceptance remains pending |
+| B3: split after actual execution images | A parent Sample with an image on its latest completed Step reads correctly, but split inserts a temporary `execution-assets:` identifier into the child's state foreign key. POST returns 500 and the transaction rolls back | [PR #190](https://github.com/BeiqiD/sample-fabrication-workflow/pull/190) merged after all 4 Verify / 14 statuses passed; current S0 browser execution-image/split/inheritance and reload acceptance passed on 2026-09-13 |
 | Large-Project reads and saves | Actual Worker/local SQLite reads and mounted Page saves measured at 250/500 nodes; final response held to check acknowledgement ownership | Measured below; serial per-node HTTP remains a documented network-performance boundary |
 | Full export-to-destination recovery | The new isolated verifier restored both browser archives: 34 tables, 94 canonical rows, one retention-view row and one blob with schema/FK/integrity/hash checks | Independent review and corruption/cleanup regressions passed; see the [recovery runbook](./EXPORT_RESTORE_REHEARSAL.md) for reproducible commands and limits |
 
@@ -91,8 +94,11 @@ B3 merge: `5e869dc1b39622fcf406ca880a5f86487d4c7325`, reviewed final head
 regressions cover immutable inherited images, guarded source selection, concurrent
 empty or incomplete state winners and full rollback. Real local D1 also verified
 that only the adjacent newly created state can receive image mappings. Browser
-QA created synthetic Sample `QA-BACKEND-SPLIT-20260913`; its process/image/split
-flow was interrupted by the browser service connection and is not accepted yet.
+QA created synthetic Sample `QA-BACKEND-SPLIT-20260913`; the initial interrupted
+process/image/split flow was completed after connection recovery. Both children
+display the same inherited image, and the first child's reload preserved it.
+The [retry record](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) identifies the fixtures,
+current S0 checks and actual v8 archives restored locally with no warnings.
 
 The continuing fixture suite adds five scale cases and 15 restore cases. The
 Worker smoke now uses bounded filesystem retries when removing its own disposed
@@ -207,8 +213,9 @@ Shared contracts and permanent dependency gates merged in
 merge `d2ff199134df161bd122c61529fbffafa084ffdb`, tree
 `6d59650dcd0531374aef6009f9be28336a28d1fd`. Each final head passed all
 4 Verify checks and 14 commit contexts. The combined module/contract local gates
-passed all 11 leaves, with 1030 source and 467 mounted tests. This evidence does
-not complete the interrupted deployed browser checks.
+passed all 11 leaves, with 1030 source and 467 mounted tests. Those gates did
+not themselves complete the deployed browser checks; the later
+[retry record](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) supplies current S0 evidence.
 
 ## Compatibility and migration boundaries
 
@@ -282,7 +289,7 @@ migration fixtures may live outside the active Wrangler migration directory.
   verification, merged PRs and deployed browser regression evidence.
 - [x] Repair B3 in a separate correctness PR before Sample extraction, including
   ordered inherited images, concurrent state registration and transaction rollback.
-  Deployed image/split browser acceptance remains a separate open item.
+  Deployed image/split and inherited-structure browser acceptance now passes.
 - [x] 6A2: extract Sample; Execution; legacy Evidence; process/metrology templates;
   import/assets/export; then review Project settlement, maintenance and the final
   composition root in independently reviewable slices.

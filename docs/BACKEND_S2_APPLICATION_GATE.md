@@ -103,3 +103,29 @@ in the existing mounted drag-continuity test. Its isolated rerun and the final
 complete mounted suite passed without frontend, assertion, or timeout changes.
 This record does not claim that the earlier initialization failure's cause was
 identified or eliminated. No browser or remote-stage acceptance is recorded.
+
+## Integration synchronization — 2026-09-13
+
+The candidate incorporates integration commit
+`b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, including the read-only observation
+transport merged in PR #203 and the deployed S0 browser/roadmap evidence merged
+in PR #204. That S0 browser evidence does not establish final S2 activation or
+browser acceptance. The candidate remains an inactive Draft with the same
+retirement, recovery and migration-selection barriers.
+
+The newly added transport parity test originally read the default `migrations/`
+directory while asserting the historical 37-file chain. Combining the branches
+reproduced a `1 !== 37` failure. The S0 case now reads the explicit archived
+history directory; a separate fresh-database case verifies the default S2
+baseline. Both compare complete normalized schema and exact ledger rows with
+the binding observer. No production observer or remote activation behavior was
+changed. The verification-script command retains both the original S2 source/C
+writer gates and the new remote-transport tests.
+
+The combined `npm run test:verification-scripts` leaf passed all 90 cases and
+the 34-file shared ownership gate. This includes actual local D1 S0/S2 observer
+parity, C Worker qualification, baseline/history identity, and local Wrangler
+selection/failure/retry checks. These tests made no live Cloudflare request.
+The earlier complete-application result above belongs to its recorded frozen
+commit; this synchronization's full integrated gate is recorded separately once
+completed.
