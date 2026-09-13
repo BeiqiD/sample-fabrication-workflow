@@ -308,3 +308,82 @@ Docker delivery remains later. Earlier gates must cover corrupt/partial archives
 duplicate retries, copy identity, missing references, unauthorized dependencies,
 concurrent edits/GC/migration, unavailable providers, and restored readable behavior.
 Do not mark a milestone complete from an empty archive or schema-only rehearsal.
+
+## 13. Identity and recovery cutover clarifications
+
+### Fresh record IDs do not mean new content hashes
+
+The fresh-ID rule in section 6 applies to copied business entities and occurrences.
+New logical Files use destination IDs unless eligible byte reuse explicitly selects
+an existing authorized File; the mapping never merges business occurrences.
+Content-addressed definitions are different. The existing
+[hash schemes](../shared/domain/content-addressing.ts) derive Step definitions,
+State/substrate representations and Recipe manifests from canonical semantic
+content, including ordered asset hashes where applicable. They are not opaque
+UUIDs to replace during copy-import.
+
+Validate and recompute content-addressed entries using their supported, versioned
+canonicalization scheme. Unchanged canonical content retains its hash even when
+business IDs, File IDs or physical storage change. Rewrite typed relationship
+fields through the import map; do not substitute file IDs for content hashes,
+rehash immutable history during storage migration, or rewrite arbitrary user text.
+A required change of hash meaning needs an explicit versioned converter and
+historical-provenance contract. Reuse of a validated immutable definition does not
+match or merge Samples, Projects, Comments or actors by hash.
+
+Package IDs and source-installation claims are untrusted provenance. The importer
+computes the validated inventory/payload digest and scopes its operation ledger to
+the authorized destination. Returning an existing import result requires current
+permission to see that result. The same claimed package ID with conflicting
+content must not resume another payload or reveal another user's import. Explicit
+"Import another copy" creates a new operation; a retry preserves the original
+operation's frozen mapping and storage policy, including after a default change.
+
+### A fresh recovery database also needs isolated physical writes
+
+Staging into a fresh database is not sufficient if the recovery executor can
+replace objects used by the live source. Allocate an isolated destination namespace
+or collision-proof recovery prefix and independent location mapping, even when
+reusing the same bucket. Do not overwrite published or terminally deleted source
+keys. Destination records must never resolve old locators through a newly selected
+profile merely because their strings match.
+
+Identity-preserving recovery keeps canonical business/File IDs and content history;
+physical location/profile mappings are destination-specific. Preserve original
+operational records as recovery provenance, not active leases, GC claims or jobs.
+Only the staged target owns its new candidate keys and cleanup scope. Failed-target
+cleanup must not delete the source installation's bytes or release its holds.
+Validate this isolation before enabling writes, not only after archive extraction.
+
+### Planned cutover and historical recovery have different loss boundaries
+
+V1 planned installation migration uses an explicit maintenance/write-fence window.
+Fence source mutations and background writers, drain or safely reconcile accepted
+work, then take the final snapshot. Verify the frozen source checkpoint again at
+cutover. A previously staged snapshot may be reused only if this check proves no
+relevant intervening changes; otherwise recapture and revalidate it. Online delta
+replication is not implied. Source reads can remain available where safe; "source
+remains usable" does not promise unrestricted writes through the final cutover.
+
+Restoring an older backup is a different administrative choice. Show its recovery
+point and explicitly acknowledged loss of later changes; never describe that as a
+no-loss live migration. After the target accepts new writes, reverting to the old
+database is not a safe automatic rollback. Define reconciliation/recovery before
+that boundary and retain the old source read-only until the handoff is accepted.
+
+Cloudflare target provisioning and D1 binding activation remain deployment-control
+operations. FP5 can provide website validation, staging to an explicitly provisioned
+isolated target, progress and a recovery report, followed by an operator-reviewed
+deployment cutover. It does not require placing broad Cloudflare account-management
+credentials in Settings or claim that a database setting rebinds the running Worker.
+Server recovery likewise requires a stopped/fenced writer and a reviewed database,
+file-root and process activation procedure. Qualify the complete assisted flow;
+a working upload form alone is not administrative restore acceptance.
+
+Keep the application-independent recovery route available for a broken installation.
+The [execution gates](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#reviewed-execution-decisions-and-implementation-gates)
+govern snapshot holds, job fencing, actor revalidation and configuration races.
+Acceptance includes unchanged canonical hashes after fresh-ID import; a conflicting
+package ID/payload; inaccessible prior import results; isolated same-bucket recovery;
+source edits after an earlier snapshot; stale jobs during cutover; and rollback
+before versus after the target begins accepting writes.

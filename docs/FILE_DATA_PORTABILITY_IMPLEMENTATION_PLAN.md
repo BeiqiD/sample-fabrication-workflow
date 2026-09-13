@@ -243,3 +243,184 @@ for future-proofing. Preserve actor attribution, optimistic conflicts and
 idempotent operations. Real-time editing, cross-scope deduplication, replication,
 automatic failover/tiering, distributed queues and large-organization tenancy
 are outside this plan unless a later measured need changes the roadmap.
+
+## Reviewed execution decisions and implementation gates
+
+These clarifications refine FP1–FP5 rather than introduce another roadmap.
+They are proposed implementation requirements, not evidence of deployed behavior.
+
+### Runtime seams and bounded review slices
+
+The inspected [Worker entry](../worker/index.ts),
+[attachment ingestion](../worker/attachment-ingestion.ts), and
+[blob storage dispatcher](../worker/blob-lifecycle/storage.ts) still consume
+Cloudflare environment objects or select the singleton managed provider.
+Wrapping that singleton in a Registry does not by itself establish portability.
+New file/settings/job services receive explicit storage, persistence, identity,
+clock and execution capabilities; runtime composition supplies their adapters.
+Do not require a Node deployment to fabricate a Cloudflare `Env` or duplicate
+business services. Existing unaffected modules need not all be rewritten in FP1.
+
+The persistence boundary must preserve atomic guarded publication, authoritative
+reconciliation reads, affected-row/conflict semantics and snapshot/hold behavior.
+D1's atomic statement batch is not an arbitrary long-lived JavaScript transaction;
+the SQLite implementation must provide equivalent business guarantees rather
+than merely mimic method names. Qualify rollback, foreign keys, contention and
+lost acknowledgements on D1 and host-SQLite contract fixtures now; repeat against
+the actual server adapter before declaring Docker support. Object-store I/O stays
+outside database transactions. No new ORM, PostgreSQL or distributed coordination service is a
+prerequisite for introducing these narrow interfaces.
+
+Review FP1 in bounded slices: schema/profile mapping with matching recovery;
+provider-neutral ingestion/resolution and complete consumer/lifecycle conversion;
+then deployment defaults, readiness and basic Settings acceptance. These are
+review boundaries within FP1, not independently completed product milestones.
+Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
+FP4 graph import into the first schema PR. Before FP3 implementation, record a
+runtime/provider capability matrix and an executable transfer spike, including
+hashing and interrupted archive output. Estimates depend on those results.
+
+### Bootstrap, configuration authority and health
+
+Fresh-install defaults are initialized once; restarting or redeploying must not
+replace persisted role choices with environment defaults. Upgrades first record
+the exact existing R2/SWITCHdrive instance and configuration source. The planned
+FP1 change of new-original writes to R2 is an explicit, tested policy transition,
+not a reinterpretation of historical locations. Existing environment credentials
+can remain referenced during the bridge; users must not have to reconnect storage
+merely because profile IDs are introduced. Moving credentials into the encrypted
+store is a separate tested activation, without changing the namespace.
+
+The shallow health endpoint remains independent of optional providers. Readiness
+reports core database/settings availability and the capability required by each
+active write-role default. An unavailable historical-only profile is reported as
+degraded and blocks its own file operations, not unrelated healthy-role uploads.
+A failing selected default remains visibly unavailable with no fallback; Settings
+must remain reachable to repair it when core services work. Deployment admission
+uses core readiness; authenticated storage status separately reports role/profile
+capability failures. Do not let an aggregate provider-health probe take healthy
+operations and the repair UI offline. Status responses are bounded, redacted and
+timestamped. This intentionally replaces the current
+[readiness route](../worker/platform/http.ts), which requires native R2 and fails
+when the configured managed provider fails.
+
+Distinguish read-only historical profiles from profiles eligible for new writes.
+A historical connection may be registered even when unavailable or lacking delete
+permission; it is not thereby qualified as a write destination. Default activation
+requires the selected operation's tested capabilities. Read-only profiles retain
+pending cleanup visibly; failed cleanup must not erase their location records.
+
+### Accepted operations, settings races and credential rotation
+
+At durable operation acceptance, record actor/scope, purpose, declared immutable
+input, resolved destination and policy revision. A retry looks up that operation
+before consulting current defaults or dedup candidates. Lost acknowledgement plus
+a default change must not route the same upload/import to a second destination.
+A reused operation ID with conflicting input is rejected; a genuinely new copy
+requires a new operation. Unverified declared hashes remain claims until verified.
+
+Settings activation compares the expected active revision and the exact tested
+candidate, including namespace, credential revision and required capabilities.
+Concurrent edits cannot activate an untested mixture or silently lose an update.
+A test result is dated evidence, not a guarantee that future I/O will succeed.
+Tests use isolated, tracked keys and apply endpoint/redirect credential policy to
+all adapter methods, including directory creation, reads, writes and deletion.
+
+Freeze physical identity, not an obligation to retain revoked passwords forever.
+A retry may use an activated replacement credential for the same verified namespace,
+with the credential revision audited. Credential revocation can pause a job;
+it cannot redirect it or authorize replay using a revoked secret. Preserve the
+configuration/operation metadata needed for reconciliation and cleanup. Bootstrap
+key loss leaves encrypted profiles unavailable while provisioned native storage
+can still work; restoration or re-entry must be explicit, never a silent reset.
+
+### Durable execution, fencing and protected snapshots
+
+FP3 needs both persisted work and an independently invoked executor. The initial
+small-installation option to qualify is a database job ledger with bounded
+scheduled dispatch; Node later supplies a restartable local execution loop.
+Cloudflare scheduling cadence, plan limits and operational setup must be recorded
+before enabling jobs. The current daily cleanup handler is not acceptance of this
+runner. Any trigger/control change needs its own deployment review; the existing
+Builds/Cron holds are not implicitly released. Queues/Workflows may be selected
+through a later justified adapter decision, not leaked into domain contracts.
+
+Neither an in-memory promise, a browser polling loop nor HTTP `waitUntil()` is a
+durable scheduler. Missing/stale executor heartbeats expose queued/paused work and
+an actionable status instead of progress that promises eventual execution without
+an active runner. Test browser disconnect, missed invocations and process restart.
+
+Job leases carry a fencing generation checked at authoritative publication and
+cutover. A stale executor cannot publish after another has taken ownership. Each
+external write attempt has its own registered candidate key; a lease timeout does
+not prove that an earlier remote PUT has stopped. Retain holds until the attempt
+is reconciled or its enforced I/O lifetime has ended and cleanup is safe. Prevent
+late writes from recreating supposedly collected objects. Cancellation stops at a
+safe boundary; it does not undo already committed per-file switches. Report moved,
+remaining, failed and cleanup-pending files separately. Dry runs include staging
+space, retained source copies and transfer/verification work, not only final size.
+
+Selecting snapshot locations and acquiring their holds must be atomic with respect
+to authoritative GC/cutover decisions, or use a qualified guarded retry protocol.
+A later hold insert after an unprotected location read is insufficient. The current
+[v8 snapshot](../worker/export-v8-snapshot.ts) supplies a table batch but no durable
+export job/hold protocol; preserve its recovery evidence without claiming it solves
+this new race. Chunked snapshot construction must retain one documented consistent
+revision boundary, not concatenate unrelated live pages.
+
+### Verification evidence and administration
+
+The current [managed adapter](../worker/managed-storage.ts) exposes size/ETag,
+and [SWITCHdrive PUT](../worker/switchdrive-storage.ts) checks reported length;
+neither establishes a provider-verified full-content SHA-256. Legacy `ready`
+status, client-declared hashes and copied custom checksum metadata must not be
+promoted into stronger verification evidence during backfill. Preserve expected
+values and their provenance; unavailable or insufficiently evidenced files remain
+explicitly unresolved until qualified verification is possible.
+
+A transfer capability records checksum algorithm, whole-object versus composite
+meaning, encoding, exact object/version and how the service verified it. Multipart
+S3 SHA-256 evidence may be composite rather than the File's whole-byte SHA-256.
+Use independently hashed destination bytes or a qualified equivalent; multipart
+part hashes/ETags and an S3-compatible label are not sufficient. Demonstrate bounded
+streaming hash computation or reject unsupported sizes before acceptance.
+
+Current [authentication](../worker/auth.ts) validates Access email or uses a
+development-only disabled mode; it has no local-account or administrator model.
+Early administration needs an explicit bootstrap-approved identity/capability,
+not every allowed email or the first visitor. Historical actor email remains
+provenance, not a grant of future privileges. Recheck current authorization at
+job acceptance, execution/publication and output download; safe orphan cleanup
+uses its separately authorized system boundary even after an initiating user
+loses access. No speculative workspace schema is required for these checks.
+
+The later Node/Docker milestone includes local-account login, secure session and
+account-recovery/bootstrap behavior without requiring Cloudflare Access. Disabled
+authentication is not its production login solution. Map authenticated principals
+to stable internal identity while retaining old Access actor attribution; imported
+actor claims never create accounts or permissions. Keep full membership/resource
+sharing later, as the long-term roadmap specifies.
+
+### Additional acceptance and remaining decisions
+
+Require fixtures for restart without default reset; legacy credentials without
+re-entry; read-only historical-provider failure; lost-response retry across default
+and credential changes; concurrent candidate activation; stale executors and late
+PUT completion; snapshot-hold/GC races; claimed/composite checksum rejection; and
+administrator revocation during a job. Also exercise the
+[identity and recovery cutover rules](./DATA_EXPORT_IMPORT_DESIGN.md#13-identity-and-recovery-cutover-clarifications).
+
+Concrete SQL, adapter packages, size/CPU/concurrency budgets, dispatch cadence,
+lease/deadline/grace durations and platform-specific recovery commands remain
+reviewed implementation deliverables. They cannot be left unspecified when the
+corresponding feature ships. FP5's website-assisted fresh-target restore includes
+the explicit operator/deployment cutover described in the data design; it does not
+promise arbitrary D1 rebinding from Settings. File migration, package copy-import
+and whole-installation/database cutover remain separate operations.
+
+Platform references checked on 2026-09-13:
+[Workers execution limits](https://developers.cloudflare.com/workers/platform/limits/),
+[D1 batch semantics and bindings](https://developers.cloudflare.com/d1/worker-api/d1-database/),
+[S3 checksum types](https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity-upload.html),
+and [R2 S3 compatibility](https://developers.cloudflare.com/r2/api/s3/api/).
+Recheck applicable limits when qualifying the actual runtime, plan and adapter.
