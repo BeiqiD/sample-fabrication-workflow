@@ -1,151 +1,122 @@
-# Disposable test environment: direct S2 cutover
+# Disposable test environment: rebuild the existing D1 for S2
 
-Decision, 2026-09-13: the owner confirmed that the current integration database
-contains no production data and authorized replacing its test content. The
-selected route starts with empty resources; it does not retain or restore those
-test rows. This decision applies to this integration installation, not to other
-installations or the `main` production workflow.
+Decision, 2026-09-13: the owner states that the application is a test environment
+and explicitly authorizes discarding its database content. The selected route
+rebuilds the currently bound D1 database and preserves the existing Worker,
+database UUID, D1 binding, R2 bucket, SWITCHdrive root, credentials and file
+bindings. No new database or file-storage resource is required.
 
-## Selected route and scope
+## Scope and file behavior
 
-Create a new empty D1 database and private R2 bucket, then deploy the reviewed
-final C/S2 application with both new bindings in the same Worker version. Keep
-the old resources in place during acceptance. This obtains a clean test system
-without dropping tables underneath an older Worker.
+Clear the old application tables and migration ledger only while application
+access, deployments and background writers are paused. Initialize the reviewed
+S2 baseline in the emptied schema and deploy the corresponding final C/S2 code.
+Keep existing R2 and SWITCHdrive files. They lose their old business metadata
+and cannot be recovered through the new application's records merely because
+the physical bytes remain. New uploads continue using the same configurations.
+Any later cleanup of old files is a separate operation after acceptance.
 
-The C application and fresh baseline are already prepared in PR #202. It does
-not require separately activating PR #200's B bridge, PR #199's standalone C
-preparation, or the S0-to-S1-to-S2 suffixes. Those remain applicable to an
-existing database whose data must survive the upgrade. Their compatibility
-preflight and historical tests stay intact; no retirement evidence is fabricated
-or waived for that different route.
+PR #202 already contains the C application, exact S2 baseline and current/history
+qualification. This disposable reset does not separately activate #199/#200 or
+run the retained-data S0 → S1 → S2 suffixes. Those paths and their tests remain
+relevant to installations whose existing data must survive.
 
-Cloudflare records code, static assets and bindings together in a
-[Worker version](https://developers.cloudflare.com/workers/versions-and-deployments/).
-With distinct storage bindings, requests using an older version continue to
-address the older resources. This removes old-request retirement as a condition
-for initializing the new database. It does not prove that older requests ended,
-and does not justify deleting their resources during the cutover.
+## Prepare before downtime
 
-## Existing implementation
+1. Record the current Worker/version, D1 UUID/name, R2 binding, SWITCHdrive root,
+   runtime settings, Access settings, Cron, and Builds source/commands. Confirm
+   the target is the current integration installation, not another Worker that
+   happens to use the same repository. Keep private configuration out of Git.
+2. Freeze and review the final PR head and run the complete ordinary verification
+   gate. Review and locally rehearse the explicit reset SQL in
+   [manual operations](../scripts/operations/README.md). Match the remote
+   schema and ledger to its admitted object inventory before using that script.
+3. Preserve all existing resource Build Variables. The generator retains `keep_vars: true`
+   and emits no remote runtime-variable overrides. Do not add
+   `DEPLOY_SWITCHDRIVE_ROOT`, alter `SWITCHDRIVE_ROOT`, or rebind DB/ASSETS.
 
-`scripts/generate-wrangler-config.mjs` already generates the D1 `DB` and R2
-`ASSETS` bindings from explicit Build Variables. The optional remote-only
-`DEPLOY_SWITCHDRIVE_ROOT` input adds `vars.SWITCHDRIVE_ROOT` to that same
-configuration so managed originals can use a new folder in the final Worker
-version. Other runtime settings retain the base `keep_vars: true` behavior and
-WebDAV credentials remain encrypted secrets. Omitting this input preserves the existing
-root; it does not isolate or disable an already configured provider. Local
-configuration ignores it. The final candidate's ordinary
-`npm run deploy:remote` runs the complete deployment verification, applies
-`migrations/0001_v3_baseline.sql` to the selected database, and deploys the built
-Worker and client only after migration succeeds. No new reset API, automatic
-resource discovery or in-place destructive migration is needed.
+## Pause all writers
 
-The candidate's previous complete local gate and remote CI are recorded in
-PR #202 at head `48834069023a8751d7c9cc6752af01662329f2ac`, tree
-`b3efb157b81b596e92221346ad8d1a6dec0cbec5`. They cover the fresh baseline and
-actual Worker/restore behavior. This document changes the selected activation
-route; it does not constitute a remote deployment result.
+1. Pause automatic Builds and prevent manual/hook/retried builds from reaching
+   migration or deployment. Drain or cancel previously queued/running builds.
+   Record the original settings for restoration. An exclude-all watch path alone
+   is insufficient: Cloudflare documents exceptions for empty and large pushes.
+   A temporary fail-closed build/deploy command also prevents new jobs from
+   reaching the database while the cutover is paused. Restore the ordinary
+   commands only for the reviewed final-source deployment.
+2. Disable the current application ingress, including workers.dev and preview
+   URLs and any other actual route. Keep the Worker, Access policy and storage
+   bindings in place. Verify that new requests cannot reach the application.
+3. Disable Cron/background maintenance and confirm earlier work is finished.
+   `cleanupCommentUploads` reaches import cleanup and blob GC, which can delete
+   physical files after claiming database records. It must not overlap the reset.
+4. Close existing application tabs and finish/cancel active uploads. Confirm no
+   ongoing writes or file deletions remain. Blocking new access is not proof
+   that an older request ended; HTTP requests can remain alive while clients
+   stay connected. Inspect pending operations and request/maintenance evidence.
+   Do not use an arbitrary 30-second sleep as a substitute for this check.
 
-## Ordered execution
+Cloudflare references: [build watch paths](https://developers.cloudflare.com/workers/ci-cd/builds/build-watch-paths/),
+[Worker limits](https://developers.cloudflare.com/workers/platform/limits/), and
+[Cron propagation](https://developers.cloudflare.com/workers/configuration/cron-triggers/).
 
-1. In the authorized Cloudflare account, record the current integration Worker,
-   deployed version, D1 ID, R2 bucket, build source/commands and managed-storage
-   configuration. Verify this is the disposable integration target. Do not copy
-   private settings or credentials into Git.
-2. Pause automatic build triggers using the provider's supported controls.
-   Cancel or finish already queued/running old-source builds and prevent manual
-   or hook-triggered builds from racing the cutover. This concerns build jobs,
-   not the lifetime of old HTTP requests. Keep the current Worker serving its
-   current resources.
-3. Create a new empty D1 database and private R2 bucket. Record their actual
-   names and the new database UUID; require them to differ from the old targets.
-   Check that the database has no application tables or historical migration
-   ledger and the bucket has no objects. No original schema/ledger classification
-   or export recovery is needed to preserve data that is being discarded.
-4. Set the following **Build Variables** to the new resource values:
+## Rebuild and deploy with the same bindings
 
-   | Variable | Required value |
-   | --- | --- |
-   | `DEPLOY_D1_DATABASE_NAME` | New database name |
-   | `DEPLOY_D1_DATABASE_ID` | New database UUID |
-   | `DEPLOY_R2_BUCKET_NAME` | New private bucket name |
-   | `DEPLOY_SWITCHDRIVE_ROOT` | New unused application-owned folder, when SWITCHdrive is configured |
+1. Recheck the target D1 UUID, paused controls and exact known schema. Execute
+   only the reviewed application-trigger/view/table drops and `d1_migrations`
+   removal. Preserve Cloudflare/SQLite internal objects such as `_cf_KV` and
+   `sqlite_*`; do not modify `sqlite_schema` directly or delete storage objects.
+2. Verify the application schema and old migration ledger are absent. A database
+   with the same UUID is now an empty application target; the new-empty S2
+   baseline can initialize it. The baseline must never be applied on top of the
+   non-empty old schema. Do not falsify migration-ledger entries.
+3. With access and maintenance still paused, merge the reviewed, passing #202
+   head and run the existing `build:deploy` and `deploy:remote` commands on that
+   final source. The complete verification gate remains enabled, followed by
+   the ordinary baseline migration and deployment. It creates the new migration
+   ledger normally. Use the same D1/R2 Build Variables and unchanged runtime
+   file-storage settings. Temporarily set only `DEPLOY_WORKERS_DEV=false` so
+   the deployment itself does not reopen workers.dev before database checks;
+   restore its original value when reopening access. The configured daily Cron
+   can be restored by deployment; ensure it cannot fire during the operation
+   and remove it again after deploy if acceptance is still pending. Never run
+   the former S0 application against S2.
+4. Confirm the deployed code, version and unchanged bindings; verify the ledger
+   contains only `0001_v3_baseline.sql`, the expected S2 structure/seed rows,
+   `PRAGMA quick_check` and `PRAGMA foreign_key_check`. Confirm the expected new
+   version serves all traffic. Keep ingress paused during database checks and
+   account for deployment configuration restoring the configured Cron.
+5. Restore Access-protected application access and perform the acceptance below.
+   Resume the original automatic-build commands/watch paths and Cron only when
+   the accepted final source and schema match. Record actual results before
+   completing Phase 6A6; remaining C4 and Phase 5D–5F follow that checkpoint.
 
-   Preserve the reviewed Worker name and hostname settings. Confirm that the
-   build's configured credential can access the new resources. Build variables
-   are [build-time inputs](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/),
-   not an immediate replacement of the running version's bindings. Do not edit
-   the running Worker's `DB` binding separately before deploying C/S2 code.
-5. If SWITCHdrive is configured, select a new unused root and set only its
-   **Build Variable** `DEPLOY_SWITCHDRIVE_ROOT`; do not edit the running Worker's
-   Runtime Variable or Secret named `SWITCHDRIVE_ROOT`. Confirm the selected
-   folder differs from the old root and has no original files. A new R2 bucket
-   alone does not isolate managed originals. The generator rejects empty or
-   slash-only roots, `.`/`..` path segments and backslashes; nested paths are
-   allowed. Leave the input set for later S2 builds and preserve Access settings
-   and WebDAV credentials. If another managed provider is configured, prepare
-   equivalent isolation or disable it in the final new version. If that pairing
-   cannot be prepared, use a separate test Worker for first acceptance. No
-   provider change is required when managed storage is already unconfigured.
-6. With old-source builds stopped and the new target settings confirmed, review
-   the final PR head and its required CI, then merge PR #202. Keep automatic
-   triggering paused until the build source and resource settings are paired.
-   Run one build from that merged S2 source using the existing `build:deploy`
-   and `deploy:remote` commands, with all existing verification gates enabled.
-   The baseline must only be applied to the new database. Never retry an old
-   source build using these new variables.
-7. Confirm the deployed version contains the expected S2 code, new D1/R2 bindings
-   and, when configured, the new `SWITCHDRIVE_ROOT`; confirm Access settings and
-   managed-storage credentials remain configured. Verify it serves all new
-   traffic and the new D1 ledger records only the baseline.
-   Verify schema/integrity and `/api/ready`, then exercise Sample creation,
-   template/Run, Comment text and image, Project save/reload, Reference source
-   navigation, and full export/isolated restore in the browser.
-8. Resume automatic builds only for the final S2 source and new resources after
-   acceptance. Record the actual version, target IDs and browser/export results,
-   then complete the integrated 6A6 review. Do not mark backend exit complete
-   merely because the fresh database was created.
+## Acceptance
+
+- Authenticated readiness succeeds and unauthorized API requests remain rejected.
+- Create a Sample, template/Run and Project; save, reload and verify the records.
+- Add Comment text and an image; check Reference source navigation.
+- Upload and download new files using the retained R2/SWITCHdrive configuration,
+  comparing downloaded bytes with the original. Confirm old files were not
+  cleared as a side effect of the database operation.
+- Export a complete ZIP and restore it in the existing isolated/local recovery
+  harness; compare data and packaged file bytes. An isolated restore test does
+  not require a new Cloudflare database or bucket for the application.
 
 ## Failure handling
 
-If verification or initialization fails, the old Worker can continue serving
-its old resources. Inspect the new target before retrying; never redirect the
-failed baseline to the old database. A retry against a successfully initialized
-new database uses its existing baseline ledger instead of starting over.
+Before the reset starts, the untouched old schema can resume with its old code
+and original controls. After tables or ledger have been cleared, keep maintenance
+in place until S2 initialization and deployment succeed. Inspect partial state
+and retry only the reviewed reset/initialization path. A code-only rollback to
+S0 cannot reconstruct discarded rows or make S0 compatible with S2. Do not
+reopen the old application over a partial/new schema. Files and all storage
+bindings remain in place throughout; no automatic cleanup is part of recovery.
 
-If the deployed candidate fails acceptance, stop additional builds and return
-the matched old application/resource version using the provider's supported
-deployment controls. Restore the old build variables (including the matching
-`DEPLOY_SWITCHDRIVE_ROOT` if needed) and source together before resuming automation.
-Simply removing the root input does not restore the old folder: `keep_vars: true`
-preserves whichever runtime root is currently configured. Test records created
-only after the switch are disposable; they are not silently merged back into
-the old database. Retain both resource
-sets for diagnosis. Resource deletion is a later cleanup action, not part of
-this first cutover attempt.
+## Execution record
 
-## Current execution checkpoint
-
-Authenticated Cloudflare API reads on 2026-09-13 identified the integration
-Worker, its successful deployment of integration commit
-`b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, current storage bindings, Access
-configuration and configured SWITCHdrive provider. The build trigger watches
-only the integration branch and keeps the ordinary verification-first deployment
-commands. No running or queued build and no deploy hook was returned during
-inspection.
-
-Pausing automatic Builds and creating a new D1 both returned Cloudflare API
-error `10000: Authentication error`. Explicit account scoping did not resolve
-the Builds write failure. Read-back confirmed the trigger remains unchanged
-and the proposed new database was not created. Local `wrangler whoami` also
-returned unauthenticated. No resource, runtime binding, Build Variable, schema
-or data has changed; #202 must remain Draft.
-
-The next action is restoring authorized Cloudflare write access, then repeating
-the live inventory and executing the ordered preparation above. The
-[activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) distinguishes
-the successful inspection from the unexecuted cutover. The new optional
-`DEPLOY_SWITCHDRIVE_ROOT` input prepares version-paired managed-storage isolation;
-adding code support does not itself configure or create the remote folder.
+See the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) for live
+inspection and control changes. The earlier new-resource/root-switch proposal
+was superseded before any remote database or storage binding changed. The
+owner's current instruction is authorization for the disposable database reset;
+remaining checks concern stopping writers and executing the reviewed procedure.

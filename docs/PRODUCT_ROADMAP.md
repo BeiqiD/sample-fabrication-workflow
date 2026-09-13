@@ -5,8 +5,9 @@ Status: canonical product direction and active implementation roadmap
 Last reviewed: 2026-09-13 through merged PR #204, integration commit
 `b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, with inactive application Drafts
 #199/#200/#202. Authenticated Cloudflare reads confirmed this integration commit
-was built and deployed successfully; write authorization remains blocked as
-recorded in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). Backend reliability,
+was built and deployed successfully. The owner subsequently selected an
+in-place disposable D1 rebuild with all file bindings preserved; current
+execution is recorded in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). Backend reliability,
 Worker ownership and shared-contract changes are merged. Schema/recovery and
 local Wrangler staging qualification merged in #198/#201; remote cleanup and
 baseline activation remain open. Project refinements through #185 are merged
@@ -42,7 +43,7 @@ latest `v2/backend-foundation` head.
 | 1 | Phase 6A1: inventory backend behavior and verify reliability | Initial inventory, isolated export/restore and representative large-Project measurements are merged; recorded performance and final release-rehearsal limits remain. |
 | 2 | Correct demonstrated defects in focused PRs | Export identity, uncertain saves, split-image inheritance and Comment acknowledgement repairs are merged. Continue focused correction only for newly reproduced defects. |
 | 3 | Phase 6A2/6A3: extract Worker modules and clarify shared contracts | Worker ownership and shared contracts are merged in #191–#193 with permanent gates; current S0 Template/Run, split-image, canonical Comment and Reference browser checks pass. |
-| 4 | Phase 6A4–6: compatibility/schema decisions, final baseline and exit review | Current work. Inactive schemas and local staging are merged preparations; B/C writers and the complete final S2 application are qualified Drafts. Read-only remote transport #203 and S0 browser evidence #204 are merged. The selected disposable integration route uses new resources with paired C/S2 code and bindings; Cloudflare target inspection is complete, but write access, resource creation, serialized activation and final S2 browser acceptance remain open. |
+| 4 | Phase 6A4–6: compatibility/schema decisions, final baseline and exit review | Current work. Inactive schemas and local staging are merged preparations; B/C writers and the complete final S2 application are qualified Drafts. Read-only remote transport #203 and S0 browser evidence #204 are merged. The selected disposable integration route pauses access, builds and background writers, rebuilds the same D1 database and keeps all file bindings. Target inspection is complete; reset, matching S2 deployment and final browser acceptance remain open. |
 | 5 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | Keep completed UI work and the unverified acceptance matrix. Resume after the backend review checkpoint; do not repeat completed shortcuts or visual slices. |
 | 6 | Phase 6B release validation | Requires both backend stabilization and the final frontend baseline; repeat affected recovery/performance checks against the final integrated result. |
 
@@ -53,8 +54,9 @@ remote observer has offline transport tests and actual local D1 parity, with no
 live remote call claimed at this checkpoint. It cannot establish retirement of
 incompatible historical Worker requests. That remains a technical blocker for
 in-place B/C/D upgrades whose data must survive. The selected disposable
-integration route instead creates isolated resources and retains old resources
-for old versions; it does not require or claim historical-request retirement. See the [compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md)
+integration route instead stops access, builds and background writers before
+clearing the same database. It preserves file bindings and requires actual
+request/maintenance quiescence, not the retained-data compatibility sequence. See the [compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md)
 and the [stabilization checkpoint](./V3_ARCHITECTURE_STABILIZATION_PLAN.md#decision-summary).
 
 A backend slice may proceed before frontend refinement is complete; it must keep
@@ -64,7 +66,8 @@ separately, including its frontend impact, rather than hidden inside extraction.
 Project frontend controller rewrites remain separate from Worker extraction.
 Database baseline consolidation stays late. The integration-specific authorization
 and ordered execution are recorded in the [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md);
-they do not authorize resetting other installations or deleting the old resources.
+they preserve the current Worker, D1 identity and file-storage resources. The
+current execution target remains the identified integration Worker.
 
 ## North star
 
@@ -836,23 +839,21 @@ Project-owned Markdown or attachment content only through explicit user action.
 1. Preserve the completed **S0 deployed-browser checkpoint** and merged read-only
    remote D1 observation PR #203. The recorded split-image, Comment/Reference and
    v8 restore checks pass; repair any newly reproduced defect in a focused PR.
-2. Follow the owner-authorized **disposable test-environment reset** in
-   [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md). Authenticated read-only
-   target inspection is complete. Restore Cloudflare write authorization, then
-   prepare a new empty D1 database and isolated file storage; the current
-   [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) records the
-   observed permissions failure without claiming resource creation. The owner permits discarding
-   current test rows; preserving/restoring the old dataset is not a prerequisite.
-3. Serialize builds, pair the final C/S2 source with the new resource bindings,
-   and use the existing complete verify → fresh-baseline → deploy path. The new
-   resource path does not require B/C/D overlap stages or historical-request
-   retirement; retain those tests and gates for data-preserving upgrades. Never
-   apply the new-empty baseline to the old S0 database or deploy old code against
-   the new S2 resources.
-4. Keep #202 inactive until the actual target and build pairing are ready; then
-   merge its reviewed, CI-passing head and execute the cutover. #199/#200 need no
-   separate activation for this route. Complete final S2 browser checks, export
-   recovery and the **6A6 exact-head stabilization review** before backend exit.
+2. Follow the owner-authorized **in-place test-database rebuild** in
+   [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md). Keep the current Worker,
+   D1 database identity/binding, R2 and SWITCHdrive configuration. Pause access,
+   automatic/manual deployments and background maintenance; finish existing
+   uploads/requests before clearing application tables and the old ledger.
+3. Initialize the final baseline in that emptied schema and use the existing
+   complete verify → baseline → deploy path for the final C/S2 source. Keep all
+   file bindings and existing files; old unreferenced files can be cleaned up
+   separately after acceptance. No new resources or separate B/C/D activation
+   are needed. Preserve historical tests for retained-data upgrades.
+4. Keep #202 Draft until the reviewed reset and deployment can execute during
+   confirmed maintenance. Verify schema, matching code/bindings, create/save,
+   file upload/download, full export/isolated restore and final browser behavior
+   before completing the **6A6 exact-head stabilization review**. Track actual
+   controls and outcomes in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 5. At the backend review checkpoint, resume the outstanding **C4 acceptance**,
    then **Phase 5D**, **5E** and **5F**, keeping their existing scope and previously
    completed results. Isolated correctness fixes need not wait for that resumption.

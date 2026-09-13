@@ -40,25 +40,6 @@ In the Worker's **Settings → Builds → Variables and secrets**, add these Bui
 | `DEPLOY_D1_DATABASE_ID` | The existing D1 database UUID |
 | `DEPLOY_R2_BUCKET_NAME` | The existing private R2 bucket name |
 | `DEPLOY_WORKERS_DEV` | `true` for a `workers.dev` deployment; otherwise `false` |
-| `DEPLOY_SWITCHDRIVE_ROOT` | Optional: an application-owned SWITCHdrive path to pair with this Worker version |
-
-`DEPLOY_SWITCHDRIVE_ROOT`, when supplied, generates only the runtime variable
-`SWITCHDRIVE_ROOT` in the remote configuration. Use it when new application code
-and a new managed-originals folder must be activated together. Omit it to keep
-the existing dashboard-managed root; omission does not disable managed storage.
-An explicit empty value, a slash-only path, `.` or `..` path segments, or a
-backslash fails the build. Nested folders such as `integration/s2-originals`
-are supported. Local configuration ignores this input.
-
-The base `keep_vars: true` remains enabled: other dashboard-managed runtime
-variables and credential secrets are preserved. Only this explicit root override
-is emitted; Build Variables are not copied wholesale into Worker bindings.
-Keep the root input consistent across build and deploy, and retain it for
-subsequent deployments that should use that folder. To change or roll back the
-root, pair the corresponding input, application source, D1 and R2 resources in
-one deployment. Do not first change the running Worker's root while older code
-is still active. See the [disposable S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md)
-for the ordered procedure.
 
 These identifiers are not credentials, so Build Variables are sufficient. The build generates `.wrangler/deploy.jsonc`, which is ignored by Git. Missing or malformed variables stop the build before migration or deployment; the generator never guesses or provisions a resource.
 
@@ -174,7 +155,7 @@ Before storing real sample data:
 
 `ALLOWED_EMAILS` is a second allowlist checked after the Access JWT has been validated. It is not a replacement for an Access policy.
 
-These values describe the runtime environment but are not credentials. Actual tokens, passwords, and client secrets must use encrypted Secrets instead. The base Wrangler configuration sets `keep_vars: true`, so deployments preserve Runtime Variables managed in the Cloudflare dashboard, except the explicit `SWITCHDRIVE_ROOT` value when `DEPLOY_SWITCHDRIVE_ROOT` is supplied for that deployment.
+These values describe the runtime environment but are not credentials. Actual tokens, passwords, and client secrets must use encrypted Secrets instead. The base Wrangler configuration sets `keep_vars: true`, so deployments preserve Runtime Variables managed in the Cloudflare dashboard.
 
 The application is fail-closed when `AUTH_MODE=access`: protected API routes reject requests if Access is absent, misconfigured, or supplies an invalid issuer/audience.
 
@@ -216,11 +197,7 @@ The included SWITCHdrive adapter uses HTTPS WebDAV with a dedicated App Passcode
 | `SWITCHDRIVE_WEBDAV_URL` | The complete WebDAV URL copied from your SWITCHdrive account |
 | `SWITCHDRIVE_USERNAME` | The username shown when the App Passcode is created |
 | `SWITCHDRIVE_APP_PASSWORD` | The dedicated App Passcode, not the SWITCH edu-ID password |
-
-Set `SWITCHDRIVE_ROOT` as a non-secret Runtime Variable for the application-owned
-folder. For a root change that must accompany new code and storage bindings,
-set the `DEPLOY_SWITCHDRIVE_ROOT` Build Variable described above instead of
-editing the running Worker's root. WebDAV credentials remain encrypted Secrets.
+| `SWITCHDRIVE_ROOT` | A folder name owned by this application |
 
 After deploying the secrets, sign in and inspect `/api/storage/status`. `available: true` means the server-side WebDAV check succeeded and original-file controls can be enabled.
 
@@ -237,6 +214,26 @@ For an existing installation:
 5. Run a small workflow smoke test when a release changes imports, Comments, Runs, or storage.
 
 Applied D1 migrations are recorded and are not executed again.
+
+### Current disposable integration installation: in-place S2 rebuild
+
+The owner has authorized rebuilding the existing disposable integration D1
+in place. Follow the [current S2 procedure](./BACKEND_DISPOSABLE_S2_CUTOVER.md)
+and its recorded execution checkpoint. This installation keeps the current
+Worker, D1 database ID and `DB` binding, R2 bucket and `ASSETS` binding, and
+SWITCHdrive provider, root and credentials. Preserve its existing `DEPLOY_*`
+Build Variables, hostname and Access settings; no new storage-root build input
+or replacement resources are required.
+
+Rebuilding the application schema and migration ledger is a controlled
+maintenance operation against the explicitly confirmed disposable database.
+Stop old application writers and serialize builds before executing that
+procedure, then initialize the final S2 schema, deploy the verified matching
+application and complete acceptance before restoring normal access. Ordinary
+`deploy:remote` remains verification- and migration-first; it does not reset
+an existing database automatically. This one installation's authorized rebuild
+does not change the upgrade or recovery procedure for installations that must
+preserve their data.
 
 ## Local development and CLI deployment
 

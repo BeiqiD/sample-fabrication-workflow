@@ -1,25 +1,23 @@
-# Final S2 candidate — not activated
+# Final S2 baseline
 
-This candidate directory contains only `0001_v3_baseline.sql`, the exact reviewed
-bytes of `scripts/fixtures/backend-schema/s2-baseline.sql`. Its original
-"inactive candidate" comments preserve the source and review provenance. Local
-application checks in this branch select this baseline to create **new, empty**
-databases. No existing database may receive this file.
+This directory contains only `0001_v3_baseline.sql`, the exact reviewed bytes of
+`scripts/fixtures/backend-schema/s2-baseline.sql`. Its provenance comments remain
+unchanged. The baseline requires an empty application schema and migration
+ledger. This may be a newly created database or the existing disposable test
+database after the explicitly authorized and verified reset; it must never be
+applied over a non-empty historical schema.
 
-The 37 historical migration files are preserved unchanged in
-`migrations-history/s0/`. History and archive recovery tests name that directory
-explicitly. The existing-ledger planner, retained S0 → S1 → S2 rehearsal, and
-exact historical file hashes remain mandatory checks.
+The 37 historical SQL files remain unchanged in `migrations-history/s0/`.
+Retained-data upgrade planning, staged rehearsal and hash checks still use that
+history. Ordinary CI and deployment verification gates remain enabled.
 
-This branch remains preparation until the target and build inputs are paired.
-For the authorized disposable integration, follow the
-[direct S2 cutover](../docs/BACKEND_DISPOSABLE_S2_CUTOVER.md): serialize Builds,
-create new empty D1 and isolated file resources, and deploy the final C/S2
-application with those bindings in one version using the ordinary complete gate.
-Keep old resources intact and perform the final browser/recovery acceptance.
-Never merge while automatic builds still point to the original S0 database.
+For the current test installation, follow the
+[in-place S2 rebuild](../docs/BACKEND_DISPOSABLE_S2_CUTOVER.md): pause application
+access, deployments and background writers; finish old requests; use the
+[reviewed manual reset](../scripts/operations/README.md); apply this baseline and
+deploy C/S2 while retaining the Worker, D1 UUID, R2 and SWITCHdrive bindings.
+Old file cleanup is a separate task. Never automatically run the manual reset
+as part of normal migrations or deployment.
 
-Data-preserving upgrades of an existing database still require the staged
-selection, old-request retirement evidence and recovery qualification in the
-[compatibility preflight](../docs/COMPATIBILITY_STAGE_PREFLIGHT.md). They receive
-only their admitted historical suffix, never this new-empty baseline.
+Data-preserving upgrades require the admitted historical suffix and the
+[compatibility preflight](../docs/COMPATIBILITY_STAGE_PREFLIGHT.md), not a reset.

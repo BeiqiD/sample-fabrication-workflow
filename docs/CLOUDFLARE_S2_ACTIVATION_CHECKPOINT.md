@@ -1,80 +1,87 @@
 # S2 activation checkpoint — 2026-09-13
 
-Status: remote target inspected; activation blocked by Cloudflare write authentication.
+Selected route: rebuild the existing disposable test D1 while retaining the
+Worker, database identity, R2, SWITCHdrive and all file bindings/configuration.
+The owner's current instruction supersedes the earlier new-resource proposal.
 
-## Verified state
+## Verified target and preparation
 
-- The active integration source is `v2/backend-foundation` at
-  `b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, merged through PR #204.
-  Cloudflare Workers Builds completed successfully at 10:06 UTC on 2026-09-13
-  for that exact commit, and the deployment API reports one version at 100%.
-- The integration Build trigger watches only that branch. Its build command is
-  `npm run build:deploy`; its deploy command is `npm run deploy:remote`.
-  The inspected build history contained no running/queued job; the integration
-  deploy-hook list was empty. Repeat these reads immediately before a cutover.
-- D1 and private R2 bindings match the current Build Variables. Managed storage
-  is configured as SWITCHdrive, so its originals directory must be isolated too.
-  Access remains enabled. Account identifiers, storage paths, identity settings
-  and secret values are intentionally omitted from this repository record.
-- The separate `main` deployment is unchanged and remains outside this cutover.
-- PR #202 at the inspected head `ecbc7ee2985bb2e4870d967348e74c910d66a725`
-  had all four check runs and all 14 `pre-pr/*` statuses successful. PRs #199
-  and #200 remain alternative inactive preparations; their historical-fixture
-  verification failures are not a reason to retry or activate them for this route.
+- Integration source is `v2/backend-foundation` at
+  `b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`; Cloudflare successfully deployed
+  that exact commit at 10:06 UTC. The separate main-branch Worker is not the
+  current execution target; no production-data claim is made for either app.
+- D1 and R2 bindings match existing Build Variables. SWITCHdrive is configured;
+  its runtime root is a plain-text variable and its password remains a secret.
+  Access is enabled. Private configuration values are omitted from Git.
+- R2 public r2.dev access is disabled and no custom domain is attached.
+- Read-only D1 queries found 34 application tables plus `d1_migrations`, 198
+  triggers, 15 views and 37 original ledger entries. The 248 table/trigger/view
+  names exactly match the explicit reset SQL, with no missing or extra names.
+  Pending imports and unfinished comment submissions both counted zero.
+- The prior preparation head `fdabae49fc9ef678217ba135c94f18e83e1728c7` passed
+  all four GitHub checks and 14 status contexts. Its optional root-switch feature
+  is now removed because the owner requires existing file configuration to stay.
 
-## Attempted configuration and outcome
+## Maintenance controls applied
 
-The authorized Cloudflare connection succeeded for reads but returned API error
-`10000: Authentication error` for both the build-trigger PATCH and new-D1 POST.
-Retrying the trigger request with explicit account scope also failed. Read-back
-confirmed the existing trigger was not paused and the proposed new database did
-not exist. Local Wrangler 4.112.0 reported unauthenticated. Browser automation
-could not start because the local executor rejects a symlinked writable root.
+Earlier low-level Builds requests returned authentication errors, and subsequent
+trigger PATCH attempts returned `12002: Invalid request body`. The supported
+Worker Builds configuration endpoint succeeded. This supersedes the earlier
+record that no configuration write was possible.
 
-No D1 or R2 resource was created or removed. No runtime binding, Build Variable,
-Access policy, migration ledger or application data was changed. No merge or
-S2 deployment was attempted. This is an authentication failure record, not
-permission to bypass the existing verification or target-pairing requirements.
+At 11:51 UTC, read-back confirmed:
 
-## Prepared change
+- the Worker workers.dev endpoint and preview URLs are disabled;
+- the Cron schedule list is empty;
+- Builds watch paths exclude `*`, and both build/deploy commands are temporarily
+  fail-closed maintenance commands; no queued/running build exists;
+- no integration deploy hook or custom Worker domain exists;
+- all DB/R2 bindings, Build Variable resource values, Access policy, SWITCHdrive
+  root and credentials are unchanged.
 
-The generated remote configuration accepts optional `DEPLOY_SWITCHDRIVE_ROOT`
-and emits only `vars.SWITCHDRIVE_ROOT` alongside the explicit D1/R2 bindings.
-Other dashboard variables use the existing `keep_vars: true` behavior; credentials
-remain secrets. Omission preserves current behavior, and local configuration
-ignores this input. Invalid empty roots, dot segments and backslashes fail
-before configuration output. The focused test suite covers these boundaries.
+The hostname-only Build Variable `DEPLOY_WORKERS_DEV` is temporarily `false`,
+preventing the gated S2 deployment from reopening ingress before database
+checks. Restore its original `true` value together with workers.dev access.
+The configured daily Cron can be restored by the ordinary deployment; it must
+not execute before acceptance and can be removed again while tests run.
 
-This enables the new managed-originals folder to activate with the final S2
-version. It does not verify folder emptiness, create the folder, or change the
-currently serving root. That remote acceptance remains required.
+The original settings to restore are `npm run build:deploy`,
+`npm run deploy:remote`, watch paths include `*` / exclude none, workers.dev
+on / previews off, and Cron `17 3 * * *`. Do not restore old-code deployment
+against a rebuilt S2 schema. Watch paths alone are not a complete pause because
+Cloudflare documents empty/large-push exceptions.
 
-## Local validation of the pairing change
+The owner confirmed that application tabs are closed and no upload is running.
+The prior daily Cron time is well before the documented maximum invocation
+window; newly scheduled work is disabled and pending database operations are
+zero. Recheck these controls immediately before reset. Existing physical files
+are retained; application cleanup discovers objects from database registrations,
+not by scanning and deleting all unreferenced bucket/root contents.
 
-The complete `npm run verify:ci` gate passed all 11 leaves on 2026-09-13:
-90 verification-script cases, 1,119 source tests across 194 files, 467 mounted
-tests across 62 files, rich-text bundle, export contract, actual Wrangler local
-baseline migration, Reference and Reference-search Worker smokes, production
-build, Map bundle, and production-artifact Project Worker smoke. No gate was
-skipped or weakened. The 23 focused configuration/storage tests also passed.
+## Reset and acceptance status
 
-Independent baseline review of the parent candidate reproduced identical final
-schema and seed rows between the fresh baseline and the 37-file historical
-chain plus S1/S2, with 34 tables, all historical hashes matching, and clean
-integrity/foreign-key checks. These local results do not establish remote S2
-activation, browser acceptance or authorization for an in-place reset.
+The explicit reset SQL passed the actual same-database local Wrangler rehearsal:
+37 historical migrations and 53 fixture rows were cleared; normal S2 migration
+then produced one baseline ledger entry, 34 tables and 20 exact seed rows,
+matching an independent fresh control. Empty/partial-reset retries passed;
+platform system definitions, foreign keys and integrity checks were preserved.
+All 66 remote foreign-key edges also match the tested child-first drop order.
 
-## Resume point
+The final application after removing the root override passed all 11 ordinary
+`verify:ci` leaves: 90 script cases, 1,107 source cases, 467 mounted cases,
+actual migration/Worker checks, contracts and production builds. This local
+result does not substitute for the new head's GitHub CI or remote acceptance. No remote application table or migration
+ledger has been cleared at this checkpoint. No D1, R2 or SWITCHdrive resource
+has been created, removed, rebound or cleared. Runtime file-storage settings
+remain unchanged.
 
-1. Restore Cloudflare write authorization for Builds configuration and the
-   account's D1, R2 and Worker deployment resources.
-2. Recheck the exact PR head/CI, integration head, current version/bindings,
-   active builds and deploy hooks. Do not reuse a stale inventory.
-3. Follow [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md): pause and
-   serialize builds, create and inspect new empty storage, pair all explicit
-   Build Variables, then merge and run one ordinary gated deployment.
-4. Keep old resources and matched versions available. Confirm final code,
-   bindings, baseline ledger, schema/integrity, authenticated readiness,
-   browser workflows and complete ZIP/isolated restore before resuming builds.
-5. Record that live acceptance before completing Phase 6A6. Remaining C4 and
-   Phase 5D–5F work follows the backend checkpoint; Phase 6B is still later.
+The live reset must follow [the ordered procedure](./BACKEND_DISPOSABLE_S2_CUTOVER.md)
+and [manual SQL instructions](../scripts/operations/README.md): delete known
+application objects and the old ledger, preserve platform internals, initialize
+the ordinary S2 baseline, deploy the matching passing source and verify the
+unchanged bindings, new ledger, schema/integrity and application behavior.
+
+After access resumes, acceptance covers create/save/reload, Comment images,
+R2/SWITCHdrive upload/download, Reference navigation, full ZIP export and isolated
+restore. Record actual deployment and these results before marking Phase 6A6
+complete. No old-file cleanup is part of this operation.

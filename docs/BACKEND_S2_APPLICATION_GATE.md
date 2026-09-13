@@ -2,9 +2,9 @@
 
 This branch prepares the final application's complete local gate. It is not a
 remote activation or retirement record. The owner now permits discarding the
-integration test data: use the [direct fresh-resource cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md),
-with serialized builds and paired code/resource bindings. Do not merge while
-automatic builds still target the original S0 resources. It contains the already prepared C Worker, which requires S1
+integration test data: use the [in-place D1 rebuild](./BACKEND_DISPOSABLE_S2_CUTOVER.md),
+with access, builds and background writers paused. Preserve the existing D1
+identity and all file bindings. Do not merge into an unpaused S0 deployment path. It contains the already prepared C Worker, which requires S1
 or S2, plus a default **new-empty-database** S2 baseline.
 
 ## Schema selection and retained history
@@ -24,7 +24,9 @@ S0 → S1 → S2 rollback/retry tests still execute the original historical chai
 
 This is deliberately not a remote executor. Existing databases whose data must be retained must use the
 reviewed lineage selection and staged migration procedure; they must never
-receive the new-empty-database baseline. The qualified local staging preparation is included, with only its historical
+receive the new-empty-database baseline over their existing schema. The owner-authorized
+disposable reset first removes the application schema and ledger while all
+writers are stopped; that same database can then receive the baseline. The qualified local staging preparation is included, with only its historical
 source and fixture lookups adapted to the archived physical directory. Its
 private-file checks, observed planning, actual Wrangler execution, post-apply
 health checks, failure handling, and result checks are unchanged. No production database, resource binding, migration ledger,
@@ -132,7 +134,7 @@ The earlier complete-application result above belongs to its recorded frozen
 commit. The synchronized complete gate at `48834069023a8751d7c9cc6752af01662329f2ac`
 was subsequently recorded in PR #202 with all 11 leaves passing, followed by
 successful CI on documentation head `ecbc7ee2985bb2e4870d967348e74c910d66a725`.
-The later managed-storage configuration extension and current remote
-write-authentication blocker are recorded in the
+The subsequent owner-selected in-place rebuild, unchanged file bindings and
+current execution controls are recorded in the
 [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). Neither result
 constitutes final S2 deployment or browser acceptance.
