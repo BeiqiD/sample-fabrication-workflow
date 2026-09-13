@@ -7,7 +7,12 @@ and negotiated v8 export/recovery are merged without an active schema change.
 The browser connection is restored. The current S0 split-image, Template/Run,
 canonical Comment/Reference and v8 export/recovery checks now pass; see
 [the retry acceptance record](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md).
-Remote contraction, final baseline activation and S2 browser acceptance remain open.
+The separately authorized in-place S2 reset and baseline activation are complete;
+S2 browser acceptance and 6A6 remain open in the
+[activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). The data-preserving
+B/C/D alternatives were not activated by that reset. The proposed
+[file/data portability track](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+preserves this evidence while introducing separately reviewed new capabilities.
 
 Last updated: 2026-09-13
 
@@ -219,6 +224,16 @@ not themselves complete the deployed browser checks; the later
 
 ## Compatibility and migration boundaries
 
+Historical qualification record: the following inventory describes the S0
+Stage A/E checkpoint before PR #202 and the completed S2 reset. References to
+active legacy columns, 37 migrations and automatic Builds are facts from that
+checkpoint, not the present schema or a fresh observation of live controls.
+See the [S2 checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) for completed
+activation, remaining acceptance and recorded holds. FP uses the
+[forward-migration compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#schema-and-api-transition-strategy),
+not another baseline reset. The historical constraints below remain relevant to
+qualifying retained-data upgrades and old archives.
+
 `samples.process_revision` is not a current concurrency token. It remains in the
 active schema. The [v8 export protocol](./FULL_EXPORT_V8.md), merged in
 [PR #197](https://github.com/BeiqiD/sample-fabrication-workflow/pull/197), preserves
@@ -295,10 +310,12 @@ migration fixtures may live outside the active Wrangler migration directory.
   composition root in independently reviewable slices.
 - [x] 6A3: consolidate Template DTOs, then finish contracts/domain ownership and
   enforce dependency direction without introducing a catch-all shared package.
-- [ ] 6A4: review compatibility consumers, convert them, prove behavior, and only
-  then apply separately reviewed schema cleanup.
-- [ ] 6A5: qualify the clean baseline, archive/restore compatibility and each
-  target's migration ledger/resource path before activation.
+- [x] 6A4: canonical readers, negotiated export and final S2 consumers/schema are
+  qualified and deployed through #202 and the separately authorized disposable
+  reset. Retained-data B/C/D alternatives remain unactivated, not certified by
+  that reset.
+- [x] 6A5: baseline qualification and same-D1 S2 activation completed; bindings
+  retained and live schema/ledger checks recorded in the activation checkpoint.
 - [ ] 6A6: review the complete integrated head, permanent gates and browser
   behavior; record any explicit deferrals before declaring stabilization complete.
 

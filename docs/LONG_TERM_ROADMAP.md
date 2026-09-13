@@ -1,207 +1,192 @@
 # Long-term application roadmap
 
-Status: long-horizon product and architecture direction; not an active implementation plan
-
-Last reviewed: 2026-08-16
-
-This document records product areas that are intentionally **not** part of the immediate Project v1 roadmap. The canonical near-term implementation order remains in [Product goal and roadmap](./PRODUCT_ROADMAP.md).
-
-The purpose of this document is to preserve architectural direction without turning distant capabilities into present-day prerequisites. These projects may be reordered when real use provides better evidence, and none of them should delay Phase 3D, Phase 4, the v1 feature freeze, systematic frontend refinement, or release hardening unless a concrete data-integrity or operational risk requires earlier work.
-
-## Engineering stance
-
-The application has grown into a system where apparently small features can cross persistence, storage, authorization, export, recovery, and UI boundaries. Several of the long-term projects below would historically have represented months of engineering work. Modern libraries, managed infrastructure, automated verification, and AI-assisted development reduce implementation cost substantially, but they do not remove the need for explicit invariants around data integrity, migration, security, and authorization.
-
-The long-term strategy is therefore:
-
-- keep each major concern behind a clear boundary;
-- prefer normalized identities and adapter seams over provider-specific shortcuts;
-- make destructive transitions resumable, verifiable, and recoverable;
-- avoid implementing speculative multi-user or portability machinery before it is needed;
-- preserve enough architectural neutrality that future work remains an extension rather than a rewrite.
-
-## Intended long-term order
-
-The likely order after the Project v1 product shape and frontend refinement is:
-
-1. **Settings & Personalization** as an application-wide product area;
-2. **Tiered Large-file Storage & Migration** as a dedicated storage project;
-3. **Docker / self-hosted portability** as a separately scheduled deployment milestone;
-4. **Multi-user Collaboration & Authorization** as a later shared-data capability, likely after the portable deployment model is understood.
-
-This order is directional rather than contractual. In particular, the storage project may move earlier if long-term real data volume makes later migration unnecessarily risky.
-
----
-
-## Long-term project A — Settings & Personalization
-
-Settings is an application-level capability, not a Project feature and not a continuation of the Project phase numbering.
-
-### Goal
-
-Replace the current top-level Export-only destination with a coherent Settings area that owns application preferences, storage management entry points, and data-control tools without coupling them to Project internals.
-
-### Candidate areas
-
-#### Appearance and local preferences
-
-- light / dark / system theme selection;
-- reviewed palette families built from complete interface token sets;
-- density and other presentation preferences where useful;
-- default views and non-destructive UI preferences;
-- local-first persistence initially, with cross-device preference sync only if a later identity system justifies it.
-
-Workflow semantic colors remain separate from interface palettes. User-selectable palettes must not redefine the meaning of Done, Active, Complete, Warning, Mismatch, destructive actions, or Process-grid states.
-
-#### Data and backup
-
-- the existing complete ZIP export remains available inside Settings;
-- human-readable Project export remains a separate presentation/export concern;
-- restore remains a privileged and separately designed destructive operation;
-- backup/export behavior must not become dependent on optional personalization settings.
-
-#### Storage entry point
-
-Settings may expose storage status, connection management, migration state, and policy controls, but the underlying storage architecture belongs to the dedicated storage project below.
-
-### Boundary
-
-Settings should consume stable storage, export, authentication, and preference APIs. It should not become the owner of blob identity, migration state machines, or authorization semantics.
-
----
-
-## Long-term project B — Tiered Large-file Storage & Migration
-
-This is a dedicated architecture and data-integrity project. It should not be implemented as a simple provider dropdown.
-
-### Product boundary
-
-Small, derived, and latency-sensitive application objects remain on fast application storage such as R2 or the corresponding server-side equivalent.
-
-Examples include:
-
-- thumbnails and previews;
-- derived images;
-- small application assets;
-- staging/transient objects where appropriate;
-- other objects whose fast, predictable retrieval is part of normal UI behavior.
-
-Only **large durable originals** enter the configurable storage layer. Candidate classes include:
-
-- large attachments;
-- raw measurement files;
-- large Project-owned files;
-- source workbooks or datasets when their size/role justifies external storage.
-
-The system therefore does **not** need to make every blob provider-neutral.
-
-### Durable model direction
-
-The long-term model should distinguish the logical large object from one or more physical locations.
-
-Conceptually:
-
-```text
-logical attachment
-    ↓
-large object
-    ↓
-verified physical location(s)
-    ↓
-storage profile
-    ↓
-R2 / SWITCHdrive / WebDAV / future compatible providers
-```
-
-Likely persistent concepts include:
-
-- **large object identity** — stable content metadata such as SHA-256 and expected byte size;
-- **storage profile identity** — one configured backend/mount with stable identity independent of the provider name;
-- **physical location identity** — provider-specific locator plus verification/lifecycle state;
-- **storage policy** — which profile receives new large-object writes.
-
-A provider name alone is insufficient identity. Switching from one SWITCHdrive account/root to another must not cause historical objects to be interpreted through the new credentials.
-
-### Migration protocol
-
-Storage changes are not destructive `move` operations. The required direction is:
-
-```text
-enumerate
-→ copy
-→ verify destination
-→ register verified destination
-→ cut over read/write preference
-→ observe / reconcile
-→ retire old location
-→ GC only after safety checks
-```
-
-Migration must be:
-
-- resumable;
-- idempotent;
-- crash-safe;
-- auditable;
-- safe under response loss and provider uncertainty;
-- able to identify exactly which objects are pending, copied, verified, cut over, or retired.
-
-Destination validation should use the authoritative expected SHA-256 and byte size, provider metadata checks, and full-byte re-hashing when required by the trust boundary. A failed destination verification must not damage the existing source copy.
-
-### Multi-location support
-
-During migration, one logical large object may legitimately have more than one physical copy. The data model should therefore permit multiple verified locations even if the first product UI exposes only one preferred backend.
-
-This also leaves room for later replication/backup policies without redesigning logical attachment identity.
-
-### Secrets
-
-Credentials are server-side secrets. Settings may replace or test credentials, but saved secrets must never be returned to the browser. Storage-profile metadata and credential material should remain separate abstractions.
-
-### Authorization boundary
-
-Physical storage does not own user permissions. The storage layer answers:
-
-> Where are the bytes, and is this copy healthy?
-
-The domain/authorization layer answers:
-
-> Is this user allowed to access the logical attachment that references those bytes?
-
-Changing R2 ↔ external storage must not change who can see or modify the corresponding Sample, Project, Comment, or attachment.
-
----
-
-## Long-term project C — Docker / self-hosted portability
-
-Docker/self-hosted distribution is a later portability milestone, not a near-term Project requirement.
-
-### Goal
-
-Run the same product contracts outside the current Cloudflare deployment without creating a separate fork or alternative domain model.
-
-### Expected boundaries
-
-A portable deployment should provide equivalents for:
-
-- D1 through ordinary SQLite or another explicitly supported database adapter;
-- R2 through local/object-storage adapters;
-- managed large-file storage through the same storage-profile/provider contracts;
-- authentication and secret storage through deployment-specific adapters;
-- scheduled/background operations through explicit runtime boundaries;
-- export, restore, configuration, and migration behavior through the same product semantics.
-
-Cloudflare may remain the preferred hosted deployment. Portability means the domain model does not require Cloudflare-specific identity or storage semantics, not that every deployment must provide identical infrastructure internally.
-
-### Relationship to later multi-user work
-
-Understanding authentication, secrets, storage profiles, configuration, and background-operation boundaries in both hosted and self-hosted deployments should make later multi-user authorization easier to design cleanly. For that reason, multi-user remains a likely post-portability project rather than an immediate prerequisite.
-
----
-
-## Long-term project D — Multi-user Collaboration & Authorization
-
-Multi-user support is a long-term capability and should not be pre-implemented in the current single-user-oriented schema. The immediate product should continue to preserve actor attribution, stable identities, optimistic concurrency, and clean resource boundaries without adding speculative ACL machinery.
+Status: long-horizon direction and compatibility with the proposed FP track;
+not authorization to implement later capabilities
+
+Last reviewed: 2026-09-13 — file/data-portability documentation checkpoint
+
+The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
+The newly requested [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+is at **FP0: documentation review**. This update deliberately brings universal
+file storage, essential Settings and export/import forward; the previous rule
+that only large originals were configurable and every small/derived blob need
+not be provider-neutral is superseded. Completed Project and stabilization work
+is preserved. New capabilities are not considered delivered by this document.
+
+## Product scale and engineering stance
+
+The intended deployment serves an individual researcher or a small research
+lab/group, rather than a large enterprise. A single server with SQLite and local
+storage, or Cloudflare with D1 and R2 defaults, is the initial deployment target.
+Database performance changes should follow measured limits. PostgreSQL, Redis,
+Kubernetes, distributed workers and horizontal scaling are not prerequisites.
+
+Keep domain identity, file location, authorization and runtime concerns separate.
+Favor verified, resumable operations and explicit recovery over provider-specific
+shortcuts. Preserve strong integrity/concurrency guarantees while replacing
+provisional file persistence where the new model requires it. Avoid speculative
+replication, workspaces, ACL tables or per-user infrastructure.
+
+## Intended order and compatibility
+
+| Order | Capability | Boundary with current and later work |
+| --- | --- | --- |
+| Now | FP0 design review | Documentation-only Draft PR; preserves outstanding S2/6A6 and C4 checks. Does not change credentials, data or operational holds. |
+| After review | FP1–FP3 file foundation, essential Settings and migration | All persistent files share logical identity/location/profile contracts; R2 defaults on Cloudflare; external configuration and S3; persisted bounded jobs and verified migration. |
+| Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
+| Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
+| Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual cross-deployment non-empty import/restore and runtime validation. |
+| Later shared-data milestone | Small-group users, membership and domain authorization | Extend the early admin boundary and actor/concurrency seams; no real-time editing requirement. |
+| Independently justified | Appearance preferences, measured search/derivatives, optional insight | Do not block reliable files, recovery or the deterministic research workflow. |
+
+The exact FP sequence, gates and compatibility transition belong to the
+[implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md). This
+long-term document must not introduce alternative phase labels or silently turn
+later portability/multi-user goals into an FP release gate.
+
+## Advanced now — universal file management and data portability
+
+This is a dedicated capability track, separate from behavior-preserving Phase 6A.
+The durable [file architecture](./FILE_STORAGE_ARCHITECTURE.md) and
+[export/import design](./DATA_EXPORT_IMPORT_DESIGN.md) define the detailed
+contracts; the following are their long-term commitments.
+
+### File purpose and storage roles
+
+Every managed persistent file is portable, including ordinary images, originals,
+previews, source workbooks, import provenance materials and persistent task
+outputs. Purpose comes from the business operation, not MIME type or byte size.
+Transient scratch/cache objects have explicit retention semantics and are not
+silently promoted to durable records or treated as backup content.
+
+Keep business references, immutable logical files, derivation/provenance,
+physical locations, configured profiles and write policies separate. The same
+provider type may have multiple independent profiles; changing an account,
+bucket or root cannot reinterpret historical object addresses. Replacement bytes
+create a new logical file. Purpose, derivation and retention are independent:
+a small uploaded image is durable unless an explicit lifecycle action says
+otherwise, and generating a preview does not authorize deleting its source.
+
+Initial Settings exposes two write-policy roles, `internal` (ordinary/internal
+files) and `originals`, with richer internal purpose metadata feeding them:
+
+| Configuration | Ordinary/internal files | Originals |
+| --- | --- | --- |
+| Cloudflare default after FP1 | Existing R2 profile | Existing R2 profile |
+| Later server/Docker default | Persistent local profile | Persistent local profile |
+| User-selected example | Amazon S3 | R2 |
+| User-selected example after local runtime exists | Local | SWITCHdrive |
+
+Switching defaults affects new writes; historical reads use registered locations.
+It does not migrate existing files, repair unavailable providers or silently
+redirect a failed upload. Deduplication must respect purpose and destination
+policy so it cannot defeat a user's storage choice.
+
+The universal location model supports source and candidate copies during a
+verified migration. Copy, verify destination bytes, conditionally switch active
+location, retain the source and explicitly clean up under GC safeguards. Migration
+is required for both roles, rather than an optional future feature restricted to
+originals. This model leaves future replication possible without promising it.
+
+### Essential Settings before personalization
+
+Essential Settings is part of FP, not a distant appearance project. It provides
+profile/default management, status and capability checks, connection testing,
+validated activation, migration progress and data-control entry points. FP1 uses deployment-provided R2 and can expose authenticated status without
+configuration writes. FP2 adds web-managed external credentials and encrypted
+secret storage. Any default/configuration mutation, even if brought into FP1,
+requires the minimal server-side administrator check before its endpoint ships.
+
+Separate minimum bootstrap configuration (runtime/database/default binding or
+local mount and root-key provision), application settings and encrypted secrets.
+A web UI cannot supply the infrastructure needed to boot that same UI. Cloudflare
+bindings and later container volumes remain deployment responsibilities. Each
+supported installation provisions working defaults before optional external
+configuration. Protect root-key backup/recovery and rotation; a database copy
+without the key is insufficient to recover encrypted credentials. Ordinary
+exports never include usable external credentials.
+
+Design configuration scope and identity seams now, initially at system scope.
+Do not create speculative workspace ACLs solely to implement a system Settings
+page. Credentials belong to the deployment/profile, not an uploading individual.
+Configuration, jobs and secrets are services consumed by Settings rather than
+state machines hidden inside UI components.
+
+### Export and import as usable product features
+
+Provide three explicit goals sharing one snapshot/file/package/job foundation:
+
+| Goal | Result and identity rule |
+| --- | --- |
+| Report | Human-readable presentation for sharing/reading; it is not the authoritative import representation. |
+| Native Sample/Project data package | Readable HTML/Markdown/CSV alongside versioned structured records, manifest and bytes; website import creates fresh business IDs, reconstructs references and records source identity. |
+| System backup/restore | Complete privileged recovery including history/lifecycle state; identity-preserving restore has an isolated preparation and controlled cutover boundary. |
+
+Native package export and matching website import ship and are accepted together
+in FP4. A Project package preserves graph/occurrence geometry and authorized source
+dependencies, rather than converting references to editable local text or merely
+preserving dead source-site URLs. Package import uses destination role policies;
+provider credentials/addresses are not authoritative logical file identity.
+Report projections can be edited outside the application without silently
+changing the structured records that a package importer consumes.
+
+FP5 adds a privileged web recovery flow; retain existing exporter/offline-recovery
+coverage in every earlier schema slice. Clearly report incomplete/missing bytes
+and do not call a partial package a complete backup. Large data operations need
+bounded streaming, progress, retries and interruption recovery outside a single
+browser request. The persisted task contract is shared with migration.
+
+## Later project — Docker / self-hosted portability
+
+### Goal and default installation
+
+Run the same product on Node with SQLite and a persistent local file store, using
+a documented container volume for database, files and recoverable configuration.
+Both initial storage roles use local storage. S3, R2 and WebDAV/SWITCHdrive profiles
+are optional extensions. Docker is packaging for the same application, not a
+parallel domain model or a different native package format.
+
+The milestone must implement and verify:
+
+- database transactions, migrations, indexes and concurrency on ordinary SQLite;
+- safe local paths, durable writes, streaming/ranges and volume persistence;
+- the shared profile/role/secret configuration services;
+- request authentication and the system-administrator boundary;
+- bounded background scheduling, persisted progress, crash recovery and cleanup;
+- startup/setup, upgrades, diagnostics, backup and operational recovery;
+- actual non-empty Cloudflare ↔ Docker native import and system recovery with
+  destination storage remapping and preserved expected identity semantics.
+
+FP's adapter and package design is preparation; it is not evidence that the local
+adapter, Docker runtime or cross-deployment acceptance already exists. R2 native
+bindings are specific to Cloudflare; other runtimes must access compatible object
+services through a supported adapter and credentials. Database copy mechanics
+also remain runtime-specific even when recovery semantics are shared.
+
+### Relationship to multi-user
+
+Both hosted and self-hosted deployments need authentication, secret management,
+configuration and jobs before complete shared-data permissions. Establishing
+those deployment boundaries makes later authorization concrete. The minimum
+privileged Settings boundary therefore ships earlier; full membership and
+resource sharing remain a separately reviewed project.
+
+## Later project — appearance and personal preferences
+
+Add light/dark/system themes, coherent palette token sets, density and useful
+view preferences after evidence justifies them. Keep workflow semantic colors
+(Done, Active, Warning, Mismatch and destructive actions) stable across palettes.
+Start with non-destructive local preferences; account sync requires an actual
+identity/use case. These controls extend the existing Settings area without
+becoming prerequisites for storage setup, data export or recovery.
+
+## Later project — small-group multi-user authorization
+
+Complete multi-user support remains a later capability. FP requires a minimal
+server-side system-administrator boundary for privileged Settings, credentials,
+migration and restore now; this does not imply implementing membership or
+resource-sharing schemas. Preserve actor attribution, stable identities,
+optimistic concurrency and clean resource boundaries without speculative ACLs.
 
 ### Shared infrastructure is a requirement
 
@@ -323,14 +308,14 @@ Every operation must record the actual actor who performed it even when the reso
 
 ### Storage remains orthogonal
 
-Logical permission follows the domain resource that references a large object. It does not follow the physical blob location or uploader.
+Logical permission follows the domain resource that references a logical file. It does not follow the physical blob location or uploader.
 
 For example:
 
 ```text
 Sample B
   ↓ attachment
-large object
+logical file
   ↓
 SWITCHdrive location
 ```
@@ -339,43 +324,70 @@ If User A cannot read Sample B, A cannot fetch that attachment even though A and
 
 ### Export and administration
 
-Multi-user will require at least two distinct export concepts:
+Multi-user builds on the FP distinction between:
 
-- an export of data the current user is authorized to access;
-- a privileged full-workspace/system backup.
+- readable report/native package export of data the actor may access;
+- native package import with domain create permissions and fresh business IDs;
+- privileged full-workspace/system backup and identity-preserving restore.
+
+Reference dependencies, file reads, package snapshots and background execution
+must enforce that scope as well as foreground routes. A Project permission does
+not independently grant access to every source resource it references.
 
 Full restore and storage migration are administrative operations and require stronger authorization than ordinary research editing.
 
 ---
 
-## What should be preserved now
+## What must remain compatible throughout
 
-These long-term projects do **not** justify adding speculative multi-user or storage-migration schema during the current Project work.
+Current FP work preserves:
 
-Current development should simply avoid closing the future path:
+- source, reference-target, Project occurrence and Map placement identity layers;
+- actor attribution, optimistic revisions, idempotent operation identity and
+  authoritative conflict responses;
+- attachment ownership, recoverable deletion, quarantine, GC reachability and
+  final physical-delete checks across every file location;
+- complete export/recovery schema coverage during transitions, with explicit
+  version handling rather than assumptions about prior disposable test data;
+- public file/reference navigation that resolves authorized logical files instead
+  of exposing provider addresses as stable identity;
+- runtime-neutral domain logic and explicit database, storage, auth and job
+  adapters;
+- existing user-visible media/Comment/Project behavior while backend records evolve.
 
-- continue recording real actor identity where available;
-- keep stable resource and occurrence IDs;
-- preserve optimistic concurrency and idempotent operation identity;
-- keep logical attachment identity separate from physical storage locators;
-- keep storage adapters behind explicit provider/runtime boundaries;
-- keep Cloudflare-specific details out of domain contracts where practical;
-- avoid assumptions that the creator is permanently the only person allowed to operate a resource;
-- avoid assumptions that a blob's physical provider determines its logical ownership or visibility.
+The currently outstanding S2/6A6 and C4 acceptance remains outstanding. FP design
+cannot convert a zero-blob recovery exercise into a non-empty upload/download
+pass, infer successful SWITCHdrive authentication, repeat a database reset or
+resume held operational controls. Detailed transition and stage checks are in
+the implementation plan and activation checkpoint.
 
-Everything beyond those low-cost constraints can wait until its dedicated project begins.
+Later multi-user extensions must preserve all of the above while narrowing data
+visibility server-side. File placement never changes domain ownership; workspace
+membership must not depend on the uploader's continuing personal account access.
+
+## Optional later capabilities
+
+Add a rebuildable search index only when representative latency/data volume
+requires it. Preserve deterministic eligibility, ranking and lifecycle semantics.
+Trusted server-side derivative production remains separately justified; the file
+model records source/recipe/trust without pretending every preview is regenerable.
+Read-only insight over explicitly selected Project content may follow a stable
+deterministic workflow. Replication, automatic tiering/failover, real-time editing
+and large-organization features require separate evidence and design.
 
 ## Non-goals for the near term
 
-The current roadmap should not be expanded to implement:
+The proposed FP track does not require:
 
-- user/workspace tables solely for future-proofing;
-- per-resource ACLs before multi-user work begins;
-- real-time collaboration;
+- user/workspace tables solely for future-proofing or per-resource ACLs before
+  shared-data work begins;
 - per-user databases or per-user physical storage stacks;
-- arbitrary provider-neutral storage for every small/derived object;
-- destructive storage migration without copy-and-verify semantics;
-- Docker-specific duplicated domain logic;
-- account-level preference synchronization before a real identity requirement exists.
+- live presence, CRDT/OT or automatic multi-location failover;
+- PostgreSQL, Redis, Kubernetes or distributed worker coordination;
+- silent provider fallback or destructive migration without byte verification;
+- Docker-specific duplicated domain logic or early claims of deployment parity;
+- account-level preference sync or appearance expansion before functional needs.
 
-The near-term priority remains completing and refining the single-deployment product. These long-term capabilities should begin only when their product value justifies the additional correctness surface.
+Universal file portability, explicit migration and paired native export/import
+are now planned deliverables, not items on this deferred list. Their current
+status remains design review, with implementation scheduled only after review.

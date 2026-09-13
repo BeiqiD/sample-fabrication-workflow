@@ -2,17 +2,18 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-13 after PR #202 merged as
-`e37dbe119a063147887b681799198f0805024e11` and S2 deployed successfully.
-The same disposable D1 was rebuilt with all file bindings preserved. Page
-read checks and live export/isolated restore pass. Managed originals are blocked
-by SWITCHdrive authentication rejection, and interactive create/save/upload
-acceptance remains open in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
-Backend ownership and shared contracts are merged. Alternative Drafts #199/#200
-remain inactive. Project refinements through #185 are merged and deployed;
-C4's wider acceptance remains in `PROJECT_C4_ACCEPTANCE.md`.
-The user-authorized backend-first order below now takes priority over the earlier
-requirement to finish all of Phase 5 before starting backend stabilization.
+Last reviewed: 2026-09-13 at the documentation-planning checkpoint after PR #206
+(`4e78fa76b727f81b1431b60ff481bd686d83cb4c`). PR #202's S2 activation is deployed;
+the same disposable D1 was rebuilt with file bindings preserved. Page reads and
+a zero-blob export/isolated-restore exercise are recorded, but do not establish
+non-empty file round-trip or full interactive acceptance. SWITCHdrive originals
+remain blocked by authentication; #206 adds diagnostics, not working credentials.
+The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) remains the
+source of operational evidence and temporary control state. Backend ownership and
+shared contracts are merged. Alternative Drafts #199/#200 remain inactive.
+Project refinements through #185 are merged and deployed; wider C4 acceptance
+remains open. The newly requested file/data-portability work is **planned for
+review**, not implemented or authorized for deployment by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -29,45 +30,55 @@ The behavior-preserving architecture cleanup, schema-baseline replacement, and
 release handoff are defined in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 
-## Backend-first execution order — 2026-09-13
+## Backend-first and file/data-portability order — 2026-09-13
 
-The user has chosen to pause new frontend refinement and prioritize backend
-review and correction. Phase numbers retain their scope; they no longer require
-all Phase 5 work to precede backend Phase 6A. The deployed PR #185 behavior is
-the initial frontend regression reference; each new PR still starts from the
-latest `v2/backend-foundation` head.
+The user has paused new frontend refinement and requested a documentation PR for
+systematic file storage, Settings, migration, readable/portable export and website
+import. The user will review that design before implementation. The new **FP**
+track is a capability change with its own schema, API and frontend impact; it is
+not a behavior-preserving Phase 6A extraction or a retroactive change to completed
+phase results. Each subsequent PR starts from the latest
+`v2/backend-foundation` head and preserves the currently deployed UI contracts.
+
+The canonical new boundaries and stage gates are:
+
+- [File storage architecture](./FILE_STORAGE_ARCHITECTURE.md);
+- [Data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md);
+- [File/data portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
 
 | Phase order | Work | Current state and boundary |
 | --- | --- | --- |
-| 1 | Phase 6A1: inventory backend behavior and verify reliability | Initial inventory, isolated export/restore and representative large-Project measurements are merged; recorded performance and final release-rehearsal limits remain. |
-| 2 | Correct demonstrated defects in focused PRs | Export identity, uncertain saves, split-image inheritance and Comment acknowledgement repairs are merged. Continue focused correction only for newly reproduced defects. |
-| 3 | Phase 6A2/6A3: extract Worker modules and clarify shared contracts | Worker ownership and shared contracts are merged in #191–#193 with permanent gates; current S0 Template/Run, split-image, canonical Comment and Reference browser checks pass. |
-| 4 | Phase 6A4–6: compatibility/schema decisions, final baseline and exit review | Current work. Inactive schemas and local staging are merged preparations; The separate B/C alternatives #199/#200 remain Drafts; the final S2 application is deployed. Read-only remote transport #203 and S0 browser evidence #204 are merged. PR #202 is merged and S2 is deployed after rebuilding the same D1 under maintenance, with every file binding preserved. Database/ledger/integrity and binding checks pass; final authenticated browser acceptance and exit review remain open. |
-| 5 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | Keep completed UI work and the unverified acceptance matrix. Resume after the backend review checkpoint; do not repeat completed shortcuts or visual slices. |
-| 6 | Phase 6B release validation | Requires both backend stabilization and the final frontend baseline; repeat affected recovery/performance checks against the final integrated result. |
+| 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
+| 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
+| 3 | FP0: review file/data-portability documents | Current task. Reconcile current contracts, all-file coverage, longer-term portability and acceptance before implementation. |
+| 4 | FP1 → FP2: universal file foundation and configuration | After review: stable files/locations/profiles, Registry, R2 defaults for both roles and basic Settings; then external configuration, administrator/secret boundaries and S3. Keep lifecycle and complete export/recovery valid at every slice. |
+| 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
+| 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
+| 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
 
-The completed early phases above are evidence to preserve, not work to repeat.
-The earlier [current S0 browser checks](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md)
-cover the deployed extraction and v8 export behavior. Their results do not qualify a final S2 deployment. The
-remote observer transport has offline tests and actual local D1 parity. Live
-schema/ledger/integrity reads were additionally performed through authenticated
-Cloudflare API calls during this activation. It cannot establish retirement of
-incompatible historical Worker requests. That remains a technical blocker for
-in-place B/C/D upgrades whose data must survive. The selected disposable
-integration route instead stops access, builds and background writers before
-clearing the same database. It preserves file bindings and requires actual
-request/maintenance quiescence, not the retained-data compatibility sequence. See the [compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md)
-and the [stabilization checkpoint](./V3_ARCHITECTURE_STABILIZATION_PLAN.md#decision-summary).
+SWITCHdrive authentication is not a prerequisite for document review or developing
+R2 defaults, Registry, Settings and provider-independent contracts. It remains a
+prerequisite for an actual SWITCHdrive file read/write/migration acceptance case.
+Record that case as blocked until exercised with working credentials; a healthy
+R2 default neither repairs old SWITCHdrive files nor establishes that acceptance.
+New writes use the chosen role default; reads continue to resolve recorded file
+locations. There is no silent fallback to a different destination.
 
-A backend slice may proceed before frontend refinement is complete; it must keep
-the current frontend usable and run the affected integration checks. Any change
-that alters public API or persistence behavior must be designed and reviewed
-separately, including its frontend impact, rather than hidden inside extraction.
-Project frontend controller rewrites remain separate from Worker extraction.
-Database baseline consolidation stays late. The integration-specific authorization
-and ordered execution are recorded in the [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md);
-they preserve the current Worker, D1 identity and file-storage resources. The
-current execution target remains the identified integration Worker.
+The earlier [S0 browser checks](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) and
+[compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md) remain evidence for
+the versions and paths they tested. They do not qualify a later schema or establish
+retirement of incompatible historical Worker requests. The completed disposable
+integration reset is recorded in the
+[direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md); it is not standing
+authorization to reset a database again. New file-schema changes require an
+explicit upgrade/recovery plan and ordinarily use later versioned migrations.
+
+The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) owns the
+remaining live checks and temporary Builds/Cron controls. The responsible
+operator must record their disposition against the accepted deployed version;
+this documentation PR does not resume writers, change credentials or restore
+controls. Reconcile the late 6A6 review against the actual baseline without
+claiming the FP capabilities are already complete.
 
 ## North star
 
@@ -175,15 +186,25 @@ All future phases preserve these rules:
 8. **Delete remains recoverable by default.** Permanent deletion stays disabled
    until Project reverse relations, privileged authorization, tombstones, and
    final concurrency checks exist.
-9. **Export evolves with the model.** The first Project schema bumps the complete
-   export version and includes Project rows and reachable Project-owned bytes.
+9. **Export and import evolve with the model.** Preserve existing complete-export
+   coverage as schemas change. A native Sample/Project package is human-readable
+   and has a matching website importer in the same milestone; report export and
+   privileged full backup/restore share infrastructure but have different identity
+   and authorization semantics.
 10. **Platform contracts stay portable.** Cloudflare is the current deployment,
     not the domain model. New code avoids unnecessary D1, R2, Access, Queue, or
     Worker coupling outside adapters and runtime boundaries.
 11. **Collaboration is reserved, not implemented.** Stable IDs, monotonic
     optimistic revisions, idempotent operations, and conflict responses preserve
     a future path without introducing CRDT/OT or live presence now.
-12. **LLM capability is read-only and explicit.** A later insight feature may
+12. **All managed persistent files are portable.** Purpose determines the `internal`/`originals` write
+    policy, not whether a file is migratable. Logical file identity is separate
+    from physical locations and configured storage profiles. Changing defaults
+    affects new writes; verified migration is explicit and preserves references.
+13. **Storage does not grant access.** Domain authorization governs every file
+    read, export and mutation. Storage/secret/migration/restore administration
+    requires an explicit administrator boundary before write endpoints ship.
+14. **LLM capability is read-only and explicit.** A later insight feature may
     summarize or connect user-selected Project content, but it does not mutate
     source records or silently add Project items.
 
@@ -262,9 +283,11 @@ first-activation repairs. Historical evidence remains in
 [card gesture acceptance](./PROJECT_CARD_GESTURE_ACCEPTANCE.md).
 [C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md) is now in progress;
 these merges do not complete C4 or establish a release milestone.
-Storage, lifecycle,
-Reference, and rich-content foundations return to correctness maintenance rather
-than continuing as independent feature tracks.
+The completed Reference and rich-content foundations remain correctness baselines.
+The newly planned FP track deliberately extends file/storage and export behavior;
+it preserves the lifecycle, integrity, concurrency and ownership guarantees
+already delivered, while replacing provider-specific persistence where required.
+It does not mark any earlier storage feature as unimplemented.
 
 ## Active implementation roadmap
 
@@ -595,6 +618,11 @@ After the freeze:
 - defer optional integrations and speculative capabilities instead of reopening the
   v1 interaction model.
 
+The proposed FP track, after review, is a separately scoped exception for file/data-control
+capabilities and Settings. It does not reopen Project Map/Reading identities or
+Canvas composition. Its necessary UI ships with the capability; remaining Phase 5
+work refines the integrated surfaces without reimplementing their backend.
+
 ### Phase 5 — frontend refinement
 
 **Status:** new refinement paused for the backend-first track; Phase 5A and Phase 5B are complete in PRs
@@ -662,16 +690,21 @@ respectively; its product scope is unchanged. On resuming the frontend track,
 the next frontend implementation slice after C4 acceptance is **Phase 5D —
 attachment and media surfaces**. Phase 5D has not started. Backend inventory,
 correction and behavior-preserving extraction now take priority under the
-backend-first order above.
+backend-first order above. File upload/download, location health, migration and
+Settings functionality belongs to FP; Phase 5D later owns consistent attachment
+presentation and states across existing pages. Phase 5F includes the new enabled
+Settings/export/import surfaces in final cross-product acceptance. Appearance
+personalization is a separate later feature, not a prerequisite.
 
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
 
 ### Phase 6 — architecture stabilization and release hardening
 
-Backend Phase 6A now starts before the remaining frontend refinement. Phase 6B
-still requires both the completed stabilization result and Phase 5F's final
-frontend baseline. The two gates remain distinct so early backend probes cannot
+Backend Phase 6A precedes the remaining frontend refinement. Its late S2/6A6
+acceptance remains open. FP is a separate, reviewed capability track; Phase 6B
+requires the completed stabilization result, all enabled FP scope and Phase 5F's
+final frontend baseline. The two gates remain distinct so early backend probes cannot
 be mistaken for final release qualification.
 
 #### Phase 6A — V3 architecture stabilization
@@ -700,8 +733,10 @@ non-goals are defined in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 
 **Exit:** the existing V3 implementation is modularized without a rewrite, the
-approved compatibility state is removed, one baseline creates the final schema
-from an empty database, and every permanent gate passes.
+approved compatibility state is removed and the S2 baseline is qualified. Final
+integrated acceptance also verifies the baseline plus any reviewed FP forward
+migrations from empty and populated databases; it does not replace the baseline.
+Every permanent gate and required browser check must pass for the tested scope.
 
 #### Phase 6B — release validation and operational rehearsal
 
@@ -713,7 +748,10 @@ treating it as a release candidate.
 - sustained testing with representative real research data and Projects;
 - desktop/mobile and supported-browser regression passes;
 - performance regression and large-Project checks;
-- backup, complete export, human-readable export, and restore rehearsal;
+- version-appropriate backup/recovery, human-readable reports, native package
+  export/website import and privileged restore rehearsal for enabled FP scope;
+- non-empty file cases across configured storage roles, migration interruption,
+  destination verification, reference preservation and deletion protection;
 - isolated migration/deployment/runbook verification;
 - accessibility and security review of the final interaction surface;
 - release-blocking bug fixing without reopening optional feature development.
@@ -748,24 +786,24 @@ now so a future collaboration project does not need to replace the data model.
 
 ### Portability and Docker distribution
 
-Portability remains a continuous architectural constraint, but a Docker/self-hosted
-distribution is **not a near-term implementation requirement** and is not part of
-the immediate Project v1 sequence.
+The FP design establishes runtime-neutral file, configuration, job and package
+contracts now. Its Cloudflare implementation uses D1 and the existing R2 binding
+as both initial file-role defaults. External S3/WebDAV profiles are optional;
+no ordinary image or original is permanently tied to R2.
 
-Current product work should continue to preserve:
+The later portability milestone implements the same application on Node with
+ordinary SQLite and persistent local storage, with both roles defaulting to
+local storage. It covers streaming, bounded job scheduling/recovery,
+authentication, encrypted secrets, backups, volume persistence and deployment
+upgrades. Keep platform adapters explicit; do not build a second domain model.
 
-- runtime-neutral domain logic where practical;
-- explicit D1-specific query/runtime adapters;
-- R2 and managed-storage adapters;
-- Access/authentication adapters;
-- scheduled/background boundaries;
-- export and configuration assumptions.
-
-This keeps a future self-hosted path open without spending current product cycles on
-deployment parity. After the v1 functional shape, frontend refinement, and release
-hardening are complete, a separately scheduled portability milestone may perform a
-dedicated audit and build a reference Docker deployment using ordinary SQLite and
-explicit local/object-storage adapters. It remains the same product, not a fork.
+Design acceptance can establish that packages identify logical files rather than
+Cloudflare addresses. **Actual Cloudflare ↔ Docker restore/import parity requires
+both runnable deployments and non-empty validation at that later milestone.**
+FP does not claim Node/local availability merely because its interfaces allow it.
+For the intended individual/research-group scale, PostgreSQL, Redis, Kubernetes
+and distributed workers are not prerequisites. The longer-term order is in
+[Long-term application roadmap](./LONG_TERM_ROADMAP.md).
 
 ### Search performance
 
@@ -830,40 +868,41 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
 | Project v1 functional shape | MVP plus mature Inspector/navigation, selected Canvas productivity, previews where justified, and representative-scale performance |
 | V1 feature freeze | Interaction-shaping v1 scope is fixed; optional future capabilities no longer block refinement |
-| Refined release candidate | Frozen v1 plus systematic frontend refinement, V3 architecture stabilization, and release validation |
-| Portable release | Later milestone: the same Project contracts pass in a documented Docker/self-hosted deployment |
+| File/data portability | Planned FP1–FP5 exits: universal files, Settings, verified migration, readable native packages with website import, and full backup/privileged restore; not delivered by FP0 |
+| Refined release candidate | Frozen v1 plus enabled reviewed FP scope, systematic frontend refinement, V3 architecture stabilization, and final integrated release validation |
+| Portable release | Later milestone: Node/SQLite/local defaults and the same product contracts, including non-empty Cloudflare ↔ Docker import/restore and storage remapping, pass in documented deployments |
 | Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
 
 ## Immediate next PR order
 
-1. Preserve the completed **S0 deployed-browser checkpoint** and merged read-only
-   remote D1 observation PR #203. The recorded split-image, Comment/Reference and
-   v8 restore checks pass; repair any newly reproduced defect in a focused PR.
-2. Preserve the completed **in-place S2 activation** in the
-   [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md): #202 is
-   merged, the same D1 was cleared/rebuilt, and matching S2 is deployed with all
-   file bindings retained. Do not repeat the reset or clean up old files.
-3. Resolve the demonstrated SWITCHdrive authentication rejection and complete
-   live create/save, upload/download and Reference interaction checks. Major
-   pages and the live export/isolated-restore cycle pass; application access and
-   login are restored, while page interaction automation remains unavailable. Keep current temporary
-   build/Cron holds until acceptance, then restore their original settings.
-4. Record live acceptance and complete the **6A6 exact-head stabilization review**.
-   #199/#200 remain inactive alternatives for retained-data upgrades, not required
-   deployments for the completed disposable reset.
-5. At the backend review checkpoint, resume the outstanding **C4 acceptance**,
-   then **Phase 5D**, **5E** and **5F**, keeping their existing scope and previously
-   completed results. Isolated correctness fixes need not wait for that resumption.
-6. Run **Phase 6B release validation and operational rehearsal** only when both
-   frontend and backend exit criteria are met.
+1. Open **FP0 as a documentation-only Draft PR** for the user's review. Align the
+   [implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md), current
+   architecture contracts and this roadmap. Do not implement, merge or deploy
+   the proposed capabilities as part of that review task.
+2. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
+   non-empty/interactive acceptance. Keep #199/#200 inactive. No repeat reset or
+   unreferenced-file cleanup follows from this plan. The activation checkpoint
+   continues to own operator follow-up and temporary control restoration.
+3. **After design review**, implement FP1 then FP2 in focused PRs. Separate actual
+   storage-profile identity from provider type; establish provider-neutral files
+   for every persistent file class and both R2 role defaults. Add Settings,
+   authorized external configuration, encrypted secrets and S3 without requiring
+   SWITCHdrive credentials for development.
+4. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
+   exits. Do not ship an export-only native format or claim backup completeness
+   from a zero-file exercise. Maintain current exporter/recovery and GC coverage
+   throughout the model transition, not only at the final stage.
+5. Reconcile remaining late **6A6/S2 acceptance** against the deployed version and
+   enabled provider scope. Keep untested SWITCHdrive cases explicitly blocked;
+   do not pass them by changing the default. Resume **C4**, then **5D → 5E → 5F**
+   under the scope split above. Focused correctness repairs can occur throughout.
+6. Run **6B** against the final integrated result. Schedule complete
+   **Docker/Node + SQLite + local** support as a later portability milestone,
+   with actual cross-deployment package/restore verification there.
 
-A trusted server-side derivative producer remains optional, with a separately
-reviewed scope; it is not a prerequisite for this order. Any required schema
-change must finish before the final V3 baseline or use a later ordinary migration.
-
-Docker/self-hosted distribution is intentionally absent from this immediate order.
-Preserve portability seams now, but schedule implementation only as a later,
-independent milestone.
+A trusted server-side derivative producer remains optional and separately scoped.
+Neither automatic replication nor a distributed task system is required to make
+migration, export and import reliable for the intended small-group deployment.
 
 ## Work that should not happen next
 
@@ -878,10 +917,11 @@ The next phase should not be:
 - real-time collaboration before the single-user save/revision model is stable;
 - one unbounded whole-product visual mega-PR or global selector-normalization
   pass;
-- architecture implementation mixed into the remaining Phase 5 frontend slices;
+- implementing FP before the requested documentation review, or hiding capability
+  changes inside behavior-preserving Phase 6A/remaining Phase 5 PRs;
 - a replacement V3 implementation or another long-lived integration branch;
 - a repository-wide `apps/` / `packages/` / workspaces move without an independent
   build or distribution requirement;
-- near-term Docker/self-hosted implementation or a Docker-specific fork that
-  distracts from completing and refining the v1 product;
+- a Docker-specific fork or premature full deployment work before the reviewed
+  file/configuration/job contracts;
 - LLM features before the deterministic Project workflow is usable.

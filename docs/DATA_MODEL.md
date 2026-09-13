@@ -1,5 +1,13 @@
 # Data model
 
+The tables below describe the current schema. The proposed provider-neutral
+`File`/`FileLocation` model and purpose-based storage rules are defined in
+[file storage architecture](./FILE_STORAGE_ARCHITECTURE.md). The
+[compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#schema-and-api-transition-strategy)
+requires preserving business identities, classifying existing file uses and
+updating export/recovery with every schema slice. These future entities have
+not been added by the documentation proposal.
+
 ## Current source and storage entities
 
 | Entity | Purpose |
