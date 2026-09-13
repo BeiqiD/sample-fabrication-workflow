@@ -1,6 +1,6 @@
 # Phase 5 frontend refinement implementation plan
 
-Status: active execution plan; Phase 5A and Phase 5B are complete in PRs
+Status: new frontend refinement paused for the backend-first track; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
 C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
@@ -9,6 +9,15 @@ acceptance remains in progress.
 
 Last reviewed: 2026-09-13 against PR #185 integration commit
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`
+
+The 2026-09-13 user-authorized route revision prioritizes backend inventory,
+reliability verification, demonstrated defect repairs and behavior-preserving
+Worker/contract extraction. Its order and gates are owned by
+[Product goal and roadmap](./PRODUCT_ROADMAP.md). The deployed frontend remains
+the regression reference. C4's unverified cases remain open; completed keyboard,
+editor and panel work is not reopened. Resume C4 and then 5D/5E/5F after the
+backend review checkpoint. Phase 5F remains a prerequisite for final Phase 6B
+release qualification, not for beginning backend Phase 6A.
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
@@ -417,8 +426,10 @@ remains authoritative.
 
 ### Phase 5C4 — integrated acceptance status
 
-Status: in progress at merged PR #185, integration commit
+Status: partially accepted at merged PR #185, integration commit
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`.
+New frontend refinement is paused while backend work takes priority; the
+remaining C4 acceptance matrix is retained for resumption and affected regression.
 
 Completed implementation and deployed desktop follow-ups include shortcut help
 and command ownership (#175/#176/#183), editing resize (#180), Markdown draft
@@ -438,7 +449,8 @@ evidence does not itself complete C4; Phase 5D remains subsequent work.
 
 ### Phase 5D — attachment and media surfaces
 
-Status: not started; next implementation slice after the outstanding C4 acceptance.
+Status: not started; next frontend implementation slice after the outstanding C4
+acceptance when the frontend track resumes. Backend work now takes priority.
 
 Goal: expose the stable shared attachment semantics through one clear visual and
 wording system while preserving separate Project, Comment, and Run ownership.
@@ -1185,10 +1197,12 @@ Phase 5 is complete only when:
 - all exact-head CI and affected permanent gates are green;
 - the measured frontend baseline and product roadmap are updated for Phase 6.
 
-Phase 6A V3 architecture stabilization follows without reopening Phase 5 visual
-or interaction scope; its bounded plan is in
+Backend Phase 6A now proceeds ahead of the remaining frontend refinement without
+reopening completed Phase 5 visual or interaction scope; its bounded plan is in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
-Phase 6B release validation and operational rehearsal follows that gate. Optional
+The frontend track resumes in its existing C4/5D/5E/5F order. Phase 6B release
+validation and operational rehearsal requires both the final frontend baseline
+and the completed backend stabilization gate. Optional
 trusted derivative generation, transport convergence, Docker distribution,
 semantic/LLM features, real-time collaboration, and other deferred capabilities
 remain independent projects.

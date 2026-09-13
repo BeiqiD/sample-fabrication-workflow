@@ -22,8 +22,9 @@ or requiring a schema/provider migration. Current integration is PR #185 merge
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`; deployed desktop evidence and remaining
 wide-screen, physical-device and large-Project checks are in the
 [current C4 record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
-Phase 5C4 remains in progress; Phase 5D has not started. The larger Phase 6A
-ownership changes below remain scheduled after Phase 5F.
+Phase 5C4 remains in progress; Phase 5D has not started. New frontend refinement
+is paused while backend verification, concrete repairs and small behavior-preserving
+extractions take priority under the [current product roadmap](./PRODUCT_ROADMAP.md).
 
 | Finding | Repair boundary | Required regression evidence |
 |---|---|---|
@@ -48,26 +49,38 @@ For F3, a 403 for a retry proves only that retry was rejected. It does not settl
 an earlier request whose response was lost. A snapshot with unchanged relevant
 revisions cannot release that original request merely because it looks active.
 
-## Architecture work retained for Phase 6A
+## Backend priority and retained Phase 6A work
 
-The repairs establish a safer behavior baseline; larger ownership changes remain
-in the existing [stabilization sequence](./V3_ARCHITECTURE_STABILIZATION_PLAN.md)
-after Phase 5F:
+The repairs establish a safer behavior baseline. The
+[stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md) now permits backend
+correctness work and small behavior-preserving extractions before Phase 5F.
+The next work is to inspect the current backend, qualify a complete export/restore
+round trip in a disposable environment, and measure representative large-Project
+reads, multi-card saves and failure recovery. These checks are planned, not proven
+by the historical tests below. Repair reproducible defects before selecting
+module-extraction slices.
 
-- converge ordinary single/bulk Project lifecycle execution, then narrow the
-  snapshot/working-geometry/acknowledgement write boundary;
-- keep Comment visibility and lifecycle policy in Evidence, Project settlement
-  proof in application operations, full-system export in Export, and scheduled
-  maintenance outside physical blob GC;
-- extract reusable media presentation from the Execution grid and move concrete
-  Web/Worker DTO contracts with typed serializers;
-- replace implementation-string tests only where an extraction needs behavior
-  characterization; retain D1 guards, trigger invariants and exact retry tests;
-- classify each baseline target as disposable or retained-data, then verify its
-  rebuild/recovery or upgrade path in addition to empty-schema equivalence;
-- qualify an export/restore round trip and browser memory budget, and measure a
-  large Project through the end of a multi-card save before changing write
-  concurrency.
+During those slices, retain public API shapes, stable identities, revision and
+retry semantics, export coverage, D1 guards and trigger invariants. Keep Comment
+visibility and lifecycle policy in Evidence, full-system export in Export, and
+scheduled maintenance outside physical blob GC. Replace implementation-string
+tests only where an extraction needs behavior characterization. Changes to
+interfaces, persistence behavior, schema or write concurrency require a separate
+design and review.
+
+Frontend ownership work remains deferred until the frontend refinement resumes
+and Phase 5F establishes its final baseline: converge ordinary single/bulk
+Project lifecycle execution, then narrow snapshot/working-geometry/acknowledgement
+ownership; extract reusable media presentation from the Execution grid.
+Concrete Web/Worker DTO consolidation must preserve serialized behavior or receive
+its own contract review. Backend timing and memory measurements do not complete
+the outstanding C4 browser/device or frontend memory-budget acceptance.
+
+Compatibility removal and clean-baseline replacement remain the final database
+work. Classify each target as disposable or retained-data and verify the applicable
+rebuild/recovery or upgrade path in addition to empty-schema equivalence. This
+reordering does not authorize remote migration or resource replacement; the
+existing migration and deployment gates still apply.
 
 The audit found all 34 business tables at its baseline represented in complete export;
 the new coverage gate protects future changes rather than repairing known data

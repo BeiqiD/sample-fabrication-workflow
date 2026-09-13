@@ -7,6 +7,8 @@ Last reviewed: 2026-09-13 against merged PR #185, integration commit
 are merged and deployed; C4's wider acceptance remains in progress in
 `PROJECT_C4_ACCEPTANCE.md`. The repository audit repairs merged in #176–#178;
 their deferred ownership work remains in `ARCHITECTURE_AUDIT_REMEDIATION.md`.
+The user-authorized backend-first order below now takes priority over the earlier
+requirement to finish all of Phase 5 before starting backend stabilization.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -22,6 +24,33 @@ The bounded Phase 5 sequence and verification contract are defined in
 The behavior-preserving architecture cleanup, schema-baseline replacement, and
 release handoff are defined in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
+
+## Backend-first execution order — 2026-09-13
+
+The user has chosen to pause new frontend refinement and prioritize backend
+review and correction. Phase numbers retain their scope; they no longer require
+all Phase 5 work to precede backend Phase 6A. The deployed PR #185 behavior is
+the initial frontend regression reference; each new PR still starts from the
+latest `v2/backend-foundation` head.
+
+| Order | Work | Boundary |
+| --- | --- | --- |
+| 1 | Phase 6A1: inventory current backend behavior and verify reliability | Start with complete export/restore in isolated resources and representative large-Project reads/saves. Record missing recovery paths and measured limits before choosing an implementation. |
+| 2 | Correct demonstrated defects in focused PRs | Cover consistency, authorization, input validation, retry/recovery and export findings where evidence shows a defect. Keep fixes separate from code moves. |
+| 3 | Phase 6A2/6A3: extract Worker modules and clarify shared contracts | Preserve routes, externally visible behavior, source identities, revision/idempotency rules, atomicity and export/retention contracts. |
+| 4 | Phase 6A4–6: late compatibility/schema decisions, final baseline and exit review | Do this at the end of backend stabilization, after affected consumers and contracts are stable. Each interface, behavior or schema change needs its own design and review; existing migration/resource gates remain required. |
+| 5 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | Keep completed UI work and the unverified acceptance matrix. Resume after the backend review checkpoint; do not repeat completed shortcuts or visual slices. |
+| 6 | Phase 6B release validation | Requires both backend stabilization and the final frontend baseline; repeat affected recovery/performance checks against the final integrated result. |
+
+This documentation change completes only the route revision. It does not report
+new backend probes, repairs, restore qualification or schema activation. A
+backend slice may proceed before frontend refinement is complete; it must keep
+the current frontend usable and run the affected integration checks. Any change
+that alters public API or persistence behavior must be designed and reviewed
+separately, including its frontend impact, rather than hidden inside extraction.
+Project frontend controller rewrites remain separate from Worker extraction.
+Database baseline consolidation stays late; this order does not authorize a
+remote reset, migration or manual deployment.
 
 ## North star
 
@@ -551,7 +580,7 @@ After the freeze:
 
 ### Phase 5 — frontend refinement
 
-**Status:** active implementation; Phase 5A and Phase 5B are complete in PRs
+**Status:** new refinement paused for the backend-first track; Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 have merged through
 PRs #166/#168/#169. Project refinements through #185 are merged and deployed;
@@ -612,18 +641,21 @@ identity, source hierarchy and performance contracts continue to govern this rev
 
 The previously planned attachment/media, source-record/directory, and
 cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
-respectively; its product scope is unchanged. The next implementation slice
-after C4 acceptance is **Phase 5D — attachment and media surfaces**. Phase 5D
-has not started; Phase 6A architecture extraction remains after Phase 5F.
+respectively; its product scope is unchanged. On resuming the frontend track,
+the next frontend implementation slice after C4 acceptance is **Phase 5D —
+attachment and media surfaces**. Phase 5D has not started. Backend inventory,
+correction and behavior-preserving extraction now take priority under the
+backend-first order above.
 
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
 
 ### Phase 6 — architecture stabilization and release hardening
 
-Phase 6 starts only after Phase 5F records the final frontend baseline. It is
-split so internal stabilization cannot be mixed into representative-data release
-validation.
+Backend Phase 6A now starts before the remaining frontend refinement. Phase 6B
+still requires both the completed stabilization result and Phase 5F's final
+frontend baseline. The two gates remain distinct so early backend probes cannot
+be mistaken for final release qualification.
 
 #### Phase 6A — V3 architecture stabilization
 
@@ -633,7 +665,7 @@ one clean V3 migration baseline before persistent V3 activation.
 
 **Scope:**
 
-- characterize the post-Phase-5 dependency, route, SQL, compatibility-field, and
+- characterize the current dependency, route, SQL, compatibility-field, and
   migration boundaries, including Project command/journal/snapshot ownership;
 - extract remaining Sample, Execution, Process-definition, import, export, and
   asset routes from `worker/index.ts` through behavior-preserving PRs;
@@ -787,22 +819,27 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete the in-progress **Phase 5C4 Project integration review** after merged
-   PRs #168/#169/#170. Verify the served version and review directory entry,
-   commands, focus, empty/normal/large Projects and themes. Record evidence and
-   remaining limits in `PROJECT_C4_ACCEPTANCE.md`; preserve non-modal desktop Map
-   panels and the existing request controllers.
-2. After C4 acceptance, complete **Phase 5D — attachment and media surfaces**
-   without changing preview trust or owner lifecycle.
-3. Complete **Phase 5E — source-record and directory coherence**.
-4. Run **Phase 5F — cross-product integration review** and update the measured
-   frontend baseline.
-5. Introduce a trusted server-side derivative producer only as a separately
-   reviewed follow-up if it remains justified. Any required schema change must
-   finish before the final V3 baseline or resume later as an ordinary migration.
-6. Run **Phase 6A V3 architecture stabilization** through bounded,
-   behavior-preserving PRs.
-7. Run **Phase 6B release validation and operational rehearsal**.
+1. Start **Phase 6A1 backend inventory and reliability verification** from the
+   latest integration head. Prioritize isolated complete export/restore and
+   representative large-Project reads/saves; preserve the existing frontend as
+   the behavior reference.
+2. Repair demonstrated backend defects through focused PRs, retaining regression
+   cases and documenting any intentional contract change separately.
+3. Execute **Phase 6A2/6A3** through small behavior-preserving Worker extraction
+   and shared-contract PRs. Review before selecting the next domain slice.
+4. Finish the separately reviewed **Phase 6A4–6** compatibility, schema-baseline
+   and stabilization gates after affected contracts and consumers are stable.
+   The active migration chain remains authoritative until that replacement is
+   qualified; no remote resource action is implied by this plan.
+5. At the backend review checkpoint, resume the outstanding **C4 acceptance**,
+   then **Phase 5D**, **5E** and **5F**, keeping their existing scope and previously
+   completed results. Isolated correctness fixes need not wait for that resumption.
+6. Run **Phase 6B release validation and operational rehearsal** only when both
+   frontend and backend exit criteria are met.
+
+A trusted server-side derivative producer remains optional, with a separately
+reviewed scope; it is not a prerequisite for this order. Any required schema
+change must finish before the final V3 baseline or use a later ordinary migration.
 
 Docker/self-hosted distribution is intentionally absent from this immediate order.
 Preserve portability seams now, but schedule implementation only as a later,

@@ -3,7 +3,11 @@
 Status: in progress. Shortcut ownership/help, editor resizing and space use,
 panel continuity and Markdown activation, and panel/Sample-note layout have
 passed their recorded deployed desktop checks through PR #185. The remaining
-browser/device acceptance below is incomplete; Phase 5D has not started.
+browser/device acceptance below is incomplete; Phase 5D has not started. New
+frontend refinement is paused while backend verification and concrete repairs
+take priority under the [product roadmap](./PRODUCT_ROADMAP.md). C4's open checks
+remain recorded here and are not a prerequisite for behavior-preserving backend
+work or satisfied by backend-only evidence.
 
 Reviewed: 2026-09-13. This update reconciles the merged PR acceptance records;
 it does not claim a new execution of their tests or browser workflows.
@@ -320,5 +324,7 @@ not a claim of improved real-browser frame rate.
    lifecycle or release/deployment recovery rehearsal. Historical acceptance
    limits in the earlier records remain applicable.
 
-Phase 5D attachment/media refinement follows C4 acceptance. It is not started
-or declared complete by this change.
+When frontend refinement resumes, Phase 5D attachment/media work follows the
+remaining C4 acceptance. Neither phase is declared complete by the backend-first
+schedule change; the final Phase 5F frontend baseline remains required before
+release hardening.
