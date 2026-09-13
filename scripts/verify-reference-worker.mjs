@@ -288,7 +288,46 @@ try {
     result.destination.openSourceUrl === `/samples/${result.target.id}`
   )));
 
-  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, authoritative direct children, typed source focus, stable execution-image media, opaque canonical IDs, lifecycle-aware destinations, and 200-target batch.");
+  // Real D1 counts trigger updates in meta.changes. Legacy creation must settle
+  // against the exact RETURNING IDs even when those counts are doubled.
+  const db = await miniflare.getD1Database("DB");
+  for (const timing of ["BEFORE", "AFTER"]) {
+    await db.prepare(`CREATE TRIGGER qualification_legacy_noop ${timing} INSERT ON run_step_comments
+      BEGIN UPDATE run_steps SET title = title WHERE id = NEW.run_step_id; END`).run();
+    try {
+      const proofId = `workerd-legacy-proof-${timing.toLowerCase()}`;
+      const [proof] = await db.batch([db.prepare(`INSERT INTO run_step_comments
+        (id, run_step_id, scope, body, created_at)
+        VALUES (?, 'reference-step-a', 'individual', 'Trigger count proof', '2026-09-13') RETURNING id`).bind(proofId)]);
+      assert.equal(proof.meta.changes, 2);
+      assert.deepEqual(proof.results, [{ id: proofId }]);
+      for (const scope of ["individual", "common"]) {
+        const suffixes = scope === "common" ? ["a", "b"] : ["a"];
+        const targets = await Promise.all(suffixes.map(async (suffix) => ({
+          sampleId: `reference-sample-${suffix}`, runId: `reference-run-${suffix}`,
+          stepId: `reference-step-${suffix}`,
+          expectedUpdatedAt: (await db.prepare("SELECT updated_at FROM run_steps WHERE id = ?").bind(`reference-step-${suffix}`).first()).updated_at,
+        })));
+        const response = await miniflare.dispatchFetch("https://app.test/api/run-step-comments", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ scope, body: `Qualified ${timing} ${scope}`, targets }),
+        });
+        const payload = await response.json();
+        assert.equal(response.status, 201, JSON.stringify(payload));
+        const occurrences = (await db.prepare("SELECT id, run_step_id, scope, body FROM run_step_comments WHERE operation_group_id = ? ORDER BY run_step_id").bind(payload.operationGroupId).all()).results;
+        assert.equal(new Set(occurrences.map(({ id }) => id)).size, targets.length);
+        assert.deepEqual(occurrences.map(({ run_step_id }) => run_step_id), targets.map(({ stepId }) => stepId));
+        assert(occurrences.every((row) => row.scope === scope && row.body === `Qualified ${timing} ${scope}`));
+        const events = (await db.prepare("SELECT metadata_json FROM events WHERE json_extract(metadata_json, '$.operationGroupId') = ?").bind(payload.operationGroupId).all()).results;
+        assert.equal(events.length, targets.length);
+        assert(events.every(({ metadata_json }) => JSON.parse(metadata_json).action === "step_comment"));
+      }
+    } finally {
+      await db.prepare("DROP TRIGGER qualification_legacy_noop").run();
+    }
+  }
+
+  console.log("Reference Worker/D1 smoke passed: core middleware, all nine v1 adapters, authoritative direct children, typed source focus, stable execution-image media, opaque canonical IDs, lifecycle-aware destinations, 200-target batch, and exact legacy Comment settlement with trigger updates.");
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);

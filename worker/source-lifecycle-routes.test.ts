@@ -38,8 +38,10 @@ class SqliteD1Statement {
 
   execute() {
     const statement = this.statement();
-    if (/^\s*SELECT\b/i.test(this.query)) {
-      return { success: true, meta: { changes: 0 }, results: statement.all(...this.bindings) };
+    if (statement.columns().length > 0) {
+      const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+      const results = statement.all(...this.bindings);
+      return { success: true, meta: { changes: Number(this.database.prepare("SELECT total_changes() AS count").get()?.count) - before }, results };
     }
     const result = statement.run(...this.bindings);
     return { success: true, meta: { changes: Number(result.changes) }, results: [] };

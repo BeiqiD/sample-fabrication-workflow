@@ -83,7 +83,8 @@ routes.post("/run-step-comments", async (c) => {
        (id, run_step_id, scope, operation_group_id, body, asset_id, actor_email, created_at)
      SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?
      FROM valid
-     WHERE (SELECT COUNT(*) FROM valid) = ?`,
+     WHERE (SELECT COUNT(*) FROM valid) = ?
+     RETURNING id`,
   ).bind(
     ...requestedBindings,
     input.scope,
@@ -157,8 +158,23 @@ routes.post("/run-step-comments", async (c) => {
     ));
   }
   const results = await c.env.DB.batch(statements);
-  if (results[0].meta.changes !== input.targets.length) {
+  // D1 changes includes rows changed by triggers. RETURNING identifies only the
+  // occurrences inserted by this statement, so require this exact generated set.
+  const insertedRows = results[0]?.results;
+  if (Array.isArray(insertedRows) && insertedRows.length === 0) {
     throw new HTTPException(409, { message: "One or more sample steps changed before the comment was saved" });
+  }
+  // A malformed acknowledgement cannot prove that the transaction did not
+  // commit. Keep that uncertain outcome distinct from an empty guarded INSERT.
+  if (!Array.isArray(insertedRows)) {
+    throw new HTTPException(500, { message: "Unable to confirm whether the comment was saved" });
+  }
+  const expectedIds = new Set<string>(occurrenceIds);
+  const insertedIds = insertedRows.map((row) => row && typeof row === "object" && "id" in row ? row.id : undefined);
+  if (insertedIds.length !== expectedIds.size
+    || new Set(insertedIds).size !== expectedIds.size
+    || insertedIds.some((id) => typeof id !== "string" || !expectedIds.has(id))) {
+    throw new HTTPException(500, { message: "Unable to confirm whether the comment was saved" });
   }
   return c.json({ ok: true, operationGroupId }, 201);
 });
