@@ -12,18 +12,18 @@ import { createExportArtifact, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_
 import { api } from "../src/lib/api";
 import { buildFullExportArchive, buildFullExportArchiveV8 } from "../src/lib/exportAll";
 import worker from "./index";
-import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
+import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const context = { waitUntil: () => undefined, passThroughOnException: () => undefined, props: {} } as unknown as ExecutionContext;
 const endpoint = "/api/exports/all?archiveSchema=8&archiveWriter=1";
-const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
+const migrationsDirectory = fileURLToPath(new URL("../migrations-history/s0/", import.meta.url));
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 afterEach(() => vi.unstubAllGlobals());
 
 function fixture() {
-  const database = referenceTestDatabase();
-  seedReferenceGraph(database);
+  const database = historicalReferenceTestDatabase();
+  seedHistoricalReferenceGraph(database);
   database.exec(`UPDATE samples SET process_revision = 37 WHERE id = 'reference-sample-a';
     UPDATE run_step_comments SET body = 'Actual retired duplicate';
     INSERT INTO run_step_comments (id, run_step_id, scope, body, created_at)

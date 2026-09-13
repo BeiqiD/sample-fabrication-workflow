@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
-const migration = (name: string) => readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8");
+const migration = (name: string) => readFileSync(new URL(`../migrations-history/s0/${name}`, import.meta.url), "utf8");
 
 function createDatabase() {
   const database = new DatabaseSync(":memory:");

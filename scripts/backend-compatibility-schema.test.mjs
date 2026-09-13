@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
-import { build } from "esbuild";
+import { buildHistoricalEWorker } from "./lib/historical-e-worker.mjs";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 
 const root = new URL("../", import.meta.url);
-const migrationNames = readdirSync(new URL("migrations/", root)).filter((name) => name.endsWith(".sql")).sort();
-const migrations = migrationNames.map((name) => readFileSync(new URL(`migrations/${name}`, root), "utf8"));
+const migrationNames = readdirSync(new URL("migrations-history/s0/", root)).filter((name) => name.endsWith(".sql")).sort();
+const migrations = migrationNames.map((name) => readFileSync(new URL(`migrations-history/s0/${name}`, root), "utf8"));
 const s1Sql = readFileSync(new URL("fixtures/backend-schema/s1-compatibility-bridge.sql", import.meta.url), "utf8");
 const s2Sql = readFileSync(new URL("fixtures/backend-schema/s2-final-schema.sql", import.meta.url), "utf8");
-const referenceSql = readFileSync(new URL("worker/fixtures/reference-graph.sql", root), "utf8");
+const referenceSql = readFileSync(new URL("worker/fixtures/reference-graph-s0.sql", root), "utf8");
 const retainedSql = `
 UPDATE samples SET process_revision = 37 WHERE id = 'reference-sample-a';
 UPDATE run_step_comments SET body = 'Retired canonical duplicate' WHERE submission_id = 'reference-comment';
@@ -160,8 +160,7 @@ function preserved(before, after, stage) {
 
 let miniflare, oldWorker;
 before(async () => {
-  const bundle = await build({ entryPoints: [new URL("worker/index.ts", root).pathname], write: false, bundle: true, format: "esm", platform: "browser", target: "es2022", conditions: ["workerd", "worker", "browser"], logLevel: "silent" });
-  const script = bundle.outputFiles[0].text;
+  const script = await buildHistoricalEWorker(root);
   oldWorker = (await import(`data:text/javascript;base64,${Buffer.from(script).toString("base64")}`)).default;
   miniflare = new Miniflare({ modules: true, script, compatibilityDate: "2026-07-20", bindings: { AUTH_MODE: "disabled" }, d1Databases: ["DB", "COPY", "SWAP", "RECREATE", "CONTRACT", "RETURNING"], r2Buckets: ["ASSETS"], log: new Log(LogLevel.ERROR) });
 });

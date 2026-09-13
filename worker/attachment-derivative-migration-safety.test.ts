@@ -7,12 +7,12 @@ const NOW = "2026-08-20T12:30:00.000Z";
 
 function databaseBeforeDerivativeMigration() {
   const database = new DatabaseSync(":memory:");
-  const directory = new URL("../migrations/", import.meta.url);
+  const directory = new URL("../migrations-history/s0/", import.meta.url);
   for (const filename of readdirSync(directory).filter((name) => name.endsWith(".sql")).sort()) {
     if (filename >= "0033_attachment_derivatives.sql") break;
     database.exec(readFileSync(new URL(filename, directory), "utf8"));
   }
-  database.exec(readFileSync(new URL("./fixtures/reference-graph.sql", import.meta.url), "utf8"));
+  database.exec(readFileSync(new URL("./fixtures/reference-graph-s0.sql", import.meta.url), "utf8"));
   return database;
 }
 
@@ -85,7 +85,7 @@ function seedReadyPair(database: DatabaseSync) {
 
 function migrationText(...filenames: string[]) {
   return filenames.map((filename) => readFileSync(
-    new URL(`../migrations/${filename}`, import.meta.url),
+    new URL(`../migrations-history/s0/${filename}`, import.meta.url),
     "utf8",
   )).join("\n");
 }

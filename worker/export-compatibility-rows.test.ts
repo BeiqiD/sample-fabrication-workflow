@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import type { ExportTables, ObservedExportSchema } from "../shared/contracts/export";
 import { classifyExportCompatibilitySchema, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../shared/contracts/export-compatibility";
-import { referenceTestDatabase, seedReferenceGraph } from "./reference-test-support";
+import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph } from "./reference-test-support";
 
 function snapshot(database: DatabaseSync) {
   const names = ["samples", "run_step_comments", "comment_submissions"];
@@ -17,8 +17,8 @@ function snapshot(database: DatabaseSync) {
 }
 
 function fixture() {
-  const database = referenceTestDatabase();
-  seedReferenceGraph(database);
+  const database = historicalReferenceTestDatabase();
+  seedHistoricalReferenceGraph(database);
   database.exec(`
     UPDATE samples SET process_revision = 37 WHERE id = 'reference-sample-a';
     UPDATE samples SET process_revision = -2 WHERE id = 'reference-sample-b';
@@ -134,7 +134,7 @@ describe("lossless compatibility row projection before v8 activation", () => {
   });
 
   it("keeps empty-table availability distinct from physical absence", () => {
-    const database = referenceTestDatabase();
+    const database = historicalReferenceTestDatabase();
     try {
       const input = snapshot(database);
       // Built-in templates exist, while these compatibility tables are empty.

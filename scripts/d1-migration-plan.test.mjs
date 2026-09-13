@@ -326,7 +326,7 @@ test("baseline cannot enter a legacy proposal and catalog cannot leave resumable
 });
 
 test("current complete 37-file ledger is a no-op without receiving any baseline SQL", () => {
-  const directory = new URL("../migrations/", import.meta.url);
+  const directory = new URL("../migrations-history/s0/", import.meta.url);
   const filenames = readdirSync(directory).filter((name) => name.endsWith(".sql")).sort();
   assert.equal(filenames.length, 37);
   assert.deepEqual(filenames.filter((name) => name.startsWith("0015_")), ["0015_atomic_mutation_identity.sql", "0015_managed_orphan_dedupe_repair.sql"]);

@@ -7,7 +7,7 @@ import worker from "./index";
 import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
-const migrationDirectory = new URL("../migrations/", import.meta.url);
+const migrationDirectory = new URL("../migrations-history/s0/", import.meta.url);
 const migrationNames = () => readdirSync(migrationDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();

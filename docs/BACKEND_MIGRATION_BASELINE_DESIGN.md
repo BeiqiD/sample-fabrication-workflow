@@ -18,7 +18,11 @@ order or the current [deployment gates](./DEPLOYMENT.md).
 command, then Worker deployment. `scripts/generate-wrangler-config.mjs` assigns
 `migrations/` to Wrangler's `migrations_dir` for every database.
 
-The current directory has 37 SQL files, including two distinct `0015_*` files.
+The serving S0 integration directory has 37 SQL files, including two distinct
+`0015_*` files. This final S2 candidate archives those unchanged files in
+`migrations-history/s0/` and selects the reviewed baseline in `migrations/` only
+for new empty local application fixtures. It must not enter the serving branch
+before the remote activation boundary is implemented and qualified.
 Wrangler 4.112.0 in the reviewed local environment identifies applied migrations
 by their complete filename in `d1_migrations`; its ledger does not store SQL
 hashes. Replacing the directory with a newly named full baseline would therefore
@@ -159,13 +163,15 @@ The pure planner does not execute these slices. The subsequent
 implements selection, private staging, preflight re-observation and actual
 installed Wrangler local apply for new fixtures, including failure/retry tests.
 Remote admission, deployment serialization and remote execution remain pending.
-The current `migrations/` directory and automatic deployment command remain
-unchanged.
+The serving S0 integration directory remains unchanged. The separate final S2
+application candidate selects a new-empty-database baseline locally; see
+[its application gate](./BACKEND_S2_APPLICATION_GATE.md).
 
 ## Inactive final baseline qualification
 
-The executable candidates now live in `scripts/fixtures/backend-schema/`, outside
-Wrangler's active migration scan. The S1/S2 schema qualification and generated
+The reviewed source candidates live in `scripts/fixtures/backend-schema/`. The
+final S2 application candidate additionally copies the exact baseline bytes into
+its local default migration scan; the serving S0 branch does not. The S1/S2 schema qualification and generated
 `s2-baseline.sql` run in the existing verification-scripts gate. Reproduce them with:
 
 ```sh
@@ -203,7 +209,8 @@ the over-limit combined trigger statement produced by naive concatenation.
 This is qualified local schema preparation. It is not a deployed baseline,
 remote cleanup, retirement proof, or complete application acceptance against an
 activated final schema. The remaining execution and full final-schema gates above
-still apply; the active directory contains the original 37 migrations.
+still apply before remote activation. The serving S0 branch retains the original
+37 migrations; this candidate keeps their bytes in the history directory.
 
 ## Compatibility fields and schema-7 archives
 
@@ -243,7 +250,7 @@ node --test scripts/d1-migration-plan.test.mjs
 The planner and observer tests cover both admitted lineages, empty and populated targets, supported
 cleanup recovery, no-op repetition, ledger rejection cases, metadata and SQL
 drift, quoted-content preservation, malformed observations and source hashes.
-They build the current 37-file chain in memory and prove its complete ledger gets
+They build the archived original 37-file chain in memory and prove its complete ledger gets
 no baseline SQL. The test-only baseline for that case concatenates the chain;
 it is explicitly not a newly generated or qualified clean baseline.
 

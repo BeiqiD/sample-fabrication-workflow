@@ -204,14 +204,19 @@ test("replacement of the reserved output does not report success or remove the r
   } finally { fixture.database.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
-test("single remote SELECT has parity with actual local D1 across the complete 37-file schema", { timeout: 60_000 }, async (t) => {
+for (const fixture of [
+  { name: "complete 37-file S0 schema", directory: "../migrations-history/s0/", count: 37 },
+  { name: "default S2 baseline", directory: "../migrations/", filenames: ["0001_v3_baseline.sql"] },
+]) {
+test(`single remote SELECT has parity with actual local D1 across the ${fixture.name}`, { timeout: 60_000 }, async (t) => {
   const miniflare = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response("offline D1 parity") } }', compatibilityDate: "2026-07-20", d1Databases: ["CURRENT"], log: new Log(LogLevel.ERROR) });
   try {
     const database = await miniflare.getD1Database("CURRENT");
     await database.prepare(ledgerSql).run();
-    const directory = new URL("../migrations/", import.meta.url);
+    const directory = new URL(fixture.directory, import.meta.url);
     const filenames = (await readdir(directory)).filter((name) => name.endsWith(".sql")).sort();
-    assert.equal(filenames.length, 37);
+    if (fixture.filenames) assert.deepEqual(filenames, fixture.filenames);
+    else assert.equal(filenames.length, fixture.count);
     for (const filename of filenames) {
       const sql = await readFile(new URL(filename, directory), "utf8");
       await database.batch([
@@ -226,11 +231,13 @@ test("single remote SELECT has parity with actual local D1 across the complete 3
       const { sql } = JSON.parse(init.body);
       assert.equal(splitSql(sql).length, 1);
       const result = await database.prepare(sql).all();
-      if (requests === 2) t.diagnostic(`Offline REST response backed by actual local D1: one snapshot SELECT, rows_read=${result.meta.rows_read}, response bytes=${Buffer.byteLength(JSON.stringify(result))}`);
+      if (requests === 2) t.diagnostic(`Offline REST response backed by actual local D1 (${fixture.name}): one snapshot SELECT, rows_read=${result.meta.rows_read}, response bytes=${Buffer.byteLength(JSON.stringify(result))}`);
       return jsonResponse({ success: true, errors: [], messages: [], result: [result] });
     } });
     assert.equal(requests, 2);
     assert.deepEqual(normalizeSchema(observation.schema), normalizeSchema(expected.schema));
     assert.deepEqual(observation.ledger, expected.ledger);
+    assert.deepEqual(observation.ledger.rows.map(({ name }) => name), filenames);
   } finally { await miniflare.dispose(); }
 });
+}

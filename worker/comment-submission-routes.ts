@@ -829,8 +829,8 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
     }));
     for (const target of occurrenceTargets) statements.push(c.env.DB.prepare(
       `INSERT INTO run_step_comments
-       (id, run_step_id, scope, operation_group_id, body, submission_id, actor_email, created_at)
-       SELECT ?, rs.id, ?, ?, ?, ?, ?, ?
+       (id, run_step_id, scope, operation_group_id, submission_id, actor_email, created_at)
+       SELECT ?, rs.id, ?, ?, ?, ?, ?
        FROM comment_submission_targets cst
        JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
        JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
@@ -843,7 +843,6 @@ routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
       target.occurrenceId,
       submission.scope,
       operationGroupId,
-      submission.body,
       submissionId,
       userEmail,
       now,

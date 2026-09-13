@@ -309,11 +309,11 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, submission_id, created_at, deleted_at, deleted_by)
+        (id, run_step_id, scope, legacy_body, submission_id, created_at, deleted_at, deleted_by)
       VALUES
-        ('comment-1', 'step-1', 'individual', 'Observation', 'submission-1',
+        ('comment-1', 'step-1', 'individual', NULL, 'submission-1',
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z', 'earlier@example.com'),
-        ('comment-2', 'step-2', 'individual', 'Observation', 'submission-1',
+        ('comment-2', 'step-2', 'individual', NULL, 'submission-1',
          '2026-08-07T10:06:00.000Z', NULL, NULL);
     `);
     const env = testEnv(database);
@@ -492,9 +492,9 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:05:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, submission_id, created_at)
+        (id, run_step_id, scope, legacy_body, submission_id, created_at)
       VALUES
-        ('run-download-comment', 'step-1', 'individual', 'Visible attachment',
+        ('run-download-comment', 'step-1', 'individual', NULL,
          'run-download-submission', '2026-08-07T10:06:00.000Z');
     `);
     vi.stubGlobal("fetch", vi.fn(async () => new Response("attachment-bytes", {
@@ -540,11 +540,11 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:05:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, submission_id, created_at)
+        (id, run_step_id, scope, legacy_body, submission_id, created_at)
       VALUES
-        ('common-download-comment-1', 'step-1', 'common', 'Visible attachment',
+        ('common-download-comment-1', 'step-1', 'common', NULL,
          'common-download-submission', '2026-08-07T10:06:00.000Z'),
-        ('common-download-comment-2', 'step-2', 'common', 'Visible attachment',
+        ('common-download-comment-2', 'step-2', 'common', NULL,
          'common-download-submission', '2026-08-07T10:06:00.000Z');
     `);
     vi.stubGlobal("fetch", vi.fn(async () => new Response("attachment-bytes", {
@@ -593,9 +593,9 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:05:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, asset_id, submission_id, actor_email, created_at)
+        (id, run_step_id, scope, legacy_body, asset_id, submission_id, actor_email, created_at)
       VALUES
-        ('comment-guarded', 'step-1', 'individual', 'Guarded observation',
+        ('comment-guarded', 'step-1', 'individual', NULL,
          'comment-asset', 'submission-guarded', 'local-development',
          '2026-08-07T10:06:00.000Z');
     `);
@@ -670,11 +670,11 @@ describe("source lifecycle routes", () => {
         ('submission-race', 'sample-1', 'run-1', 'step-1',
          '2026-08-07T10:05:00.000Z');
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, operation_group_id, body, submission_id,
+        (id, run_step_id, scope, operation_group_id, legacy_body, submission_id,
          actor_email, created_at, updated_at, deleted_at, deleted_by,
          deletion_operation_id)
       VALUES
-        ('comment-race', 'step-1', 'common', 'submission-race', 'Race observation',
+        ('comment-race', 'step-1', 'common', 'submission-race', NULL,
          'submission-race', 'local-development',
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
          '2026-08-07T10:07:00.000Z', 'local-development', 'canonical-race-delete');
@@ -912,7 +912,7 @@ describe("source lifecycle routes", () => {
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
 
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, operation_group_id, body, created_at)
+        (id, run_step_id, scope, operation_group_id, legacy_body, created_at)
       VALUES
         ('common-visible', 'step-1', 'common', 'common-group-1', 'Shared observation',
          '2026-08-07T10:07:00.000Z'),
@@ -945,7 +945,7 @@ describe("source lifecycle routes", () => {
     addRun(database);
     database.exec(`
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, operation_group_id, body, created_at,
+        (id, run_step_id, scope, operation_group_id, legacy_body, created_at,
          updated_at, deleted_at, deleted_by, deletion_operation_id)
       VALUES
         ('common-race', 'step-1', 'common', 'common-race-group',
@@ -1667,16 +1667,16 @@ describe("source lifecycle routes", () => {
         ('submission-collision', 'sample-1', 'run-1', 'step-2',
          '2026-08-07T10:05:00.000Z');
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, operation_group_id, body, submission_id,
+        (id, run_step_id, scope, operation_group_id, legacy_body, submission_id,
          actor_email, created_at, updated_at, deleted_at, deleted_by,
          deletion_operation_id)
       VALUES
-        ('collision-independent', 'step-1', 'common', 'collision-group', 'Collision',
+        ('collision-independent', 'step-1', 'common', 'collision-group', NULL,
          'submission-collision', 'local-development',
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
          '2026-08-07T10:07:00.000Z', 'local-development',
          'independent-delete-op'),
-        ('collision-canonical', 'step-2', 'common', 'collision-group', 'Collision',
+        ('collision-canonical', 'step-2', 'common', 'collision-group', NULL,
          'submission-collision', 'local-development',
          '2026-08-07T10:06:00.000Z', '2026-08-07T10:07:00.000Z',
          '2026-08-07T10:07:00.000Z', 'local-development',
@@ -1748,8 +1748,8 @@ describe("source lifecycle routes", () => {
       VALUES ('submission-large-run', 'sample-1', 'run-1', 'step-1',
         '2026-08-07T10:05:00.000Z');
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, submission_id, created_at)
-      VALUES ('comment-large-run', 'step-1', 'individual', 'Visible attachment',
+        (id, run_step_id, scope, legacy_body, submission_id, created_at)
+      VALUES ('comment-large-run', 'step-1', 'individual', NULL,
         'submission-large-run', '2026-08-07T10:06:00.000Z');
       INSERT INTO events
         (id, sample_id, kind, body, metadata_json, created_at)
@@ -1770,9 +1770,9 @@ describe("source lifecycle routes", () => {
       WHERE id = 'submission-large-run'
     `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
     expect(database.prepare(`
-      SELECT body, deleted_at FROM run_step_comments
+      SELECT legacy_body, submission_id, deleted_at FROM run_step_comments
       WHERE id = 'comment-large-run'
-    `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
+    `).get()).toEqual({ legacy_body: null, submission_id: "submission-large-run", deleted_at: null });
     expect(database.prepare(`SELECT body FROM events WHERE id = 'event-large-run'`).get())
       .toEqual({ body: "Visible attachment" });
     const grace = database.prepare(`
@@ -1820,9 +1820,9 @@ describe("source lifecycle routes", () => {
       WHERE id = 'submission-large-run'
     `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
     expect(database.prepare(`
-      SELECT body, deleted_at FROM run_step_comments
+      SELECT legacy_body, submission_id, deleted_at FROM run_step_comments
       WHERE id = 'comment-large-run'
-    `).get()).toEqual({ body: "Visible attachment", deleted_at: null });
+    `).get()).toEqual({ legacy_body: null, submission_id: "submission-large-run", deleted_at: null });
     database.close();
   });
 });

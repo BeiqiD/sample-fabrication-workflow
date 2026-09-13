@@ -106,7 +106,7 @@ describe("authoritative reference child listing", () => {
     const { database, db } = fixture();
     database.exec(`
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, actor_email, created_at, updated_at)
+        (id, run_step_id, scope, legacy_body, actor_email, created_at, updated_at)
       VALUES
         ('legacy-child-comment', '${REFERENCE_FIXTURE_IDS.stepA}', 'individual',
          'Legacy direct child', 'reference@example.com',

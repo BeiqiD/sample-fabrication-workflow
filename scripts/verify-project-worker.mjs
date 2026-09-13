@@ -123,15 +123,16 @@ try {
   assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
   const sourceSchema = fullExport.artifacts.sourceSchema.value;
   assert(sourceSchema.objects.some((entry) => entry.type === "table" && entry.name === "samples"));
-  assert(sourceSchema.compatibilityColumns.samples.includes("process_revision"));
-  assert(sourceSchema.compatibilityColumns.run_step_comments.includes("body"));
+  assert(!sourceSchema.compatibilityColumns.samples.includes("process_revision"));
+  assert(!sourceSchema.compatibilityColumns.run_step_comments.includes("body"));
+  assert(sourceSchema.compatibilityColumns.run_step_comments.includes("legacy_body"));
   for (const artifact of Object.values(fullExport.artifacts)) {
     const bytes = Buffer.from(`${canonicalJson(artifact.value)}\n`);
     assert.equal(bytes.length, artifact.byteSize);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), artifact.sha256);
   }
-  assert.equal(fullExport.artifacts.retiredFields.value.samplesProcessRevision.values.length, fullExport.tables.samples.length);
-  assert.equal(fullExport.artifacts.retiredFields.value.runStepCommentsBody.values.length, fullExport.tables.run_step_comments.length);
+  assert.deepEqual(fullExport.artifacts.retiredFields.value.samplesProcessRevision, { presentInSourceSchema: false, complete: false, sourceRowCount: fullExport.tables.samples.length, values: [] });
+  assert.deepEqual(fullExport.artifacts.retiredFields.value.runStepCommentsBody, { presentInSourceSchema: false, complete: false, sourceRowCount: fullExport.tables.run_step_comments.length, values: [] });
 
   if (artifact) {
     const health = await miniflare.dispatchFetch("https://app.test/api/health");

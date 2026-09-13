@@ -21,7 +21,8 @@ inspection. No provider data is touched.
 
 ## Selection and execution
 
-The script constructs its catalog from the repository's 37 historical files,
+The script constructs its catalog from the repository's 37 historical files
+in `migrations-history/s0/`,
 the reviewed inactive S1/S2 candidates, and the generated S2 baseline. It requires
 the baseline to match the exact historical/stage source bytes and obtains
 expected schema states independently with host SQLite. The target observation

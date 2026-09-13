@@ -1,11 +1,11 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { sqliteTableColumns } from "../shared/domain/sqlite-table-columns";
-import { referenceTestDatabase } from "./reference-test-support";
+import { historicalReferenceTestDatabase } from "./reference-test-support";
 
 describe("recorded SQLite table column parsing without executing archive SQL", () => {
   it("matches actual migrated compatibility tables and subsequent column additions/removals", () => {
-    const database = referenceTestDatabase();
+    const database = historicalReferenceTestDatabase();
     try {
       const check = () => {
         for (const { name: table } of database.prepare("SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as Array<{ name: string }>) {

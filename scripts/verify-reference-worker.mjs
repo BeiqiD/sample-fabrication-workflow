@@ -297,7 +297,7 @@ try {
     try {
       const proofId = `workerd-legacy-proof-${timing.toLowerCase()}`;
       const [proof] = await db.batch([db.prepare(`INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, created_at)
+        (id, run_step_id, scope, legacy_body, created_at)
         VALUES (?, 'reference-step-a', 'individual', 'Trigger count proof', '2026-09-13') RETURNING id`).bind(proofId)]);
       assert.equal(proof.meta.changes, 2);
       assert.deepEqual(proof.results, [{ id: proofId }]);
@@ -314,7 +314,7 @@ try {
         });
         const payload = await response.json();
         assert.equal(response.status, 201, JSON.stringify(payload));
-        const occurrences = (await db.prepare("SELECT id, run_step_id, scope, body FROM run_step_comments WHERE operation_group_id = ? ORDER BY run_step_id").bind(payload.operationGroupId).all()).results;
+        const occurrences = (await db.prepare("SELECT id, run_step_id, scope, legacy_body AS body FROM run_step_comments WHERE operation_group_id = ? ORDER BY run_step_id").bind(payload.operationGroupId).all()).results;
         assert.equal(new Set(occurrences.map(({ id }) => id)).size, targets.length);
         assert.deepEqual(occurrences.map(({ run_step_id }) => run_step_id), targets.map(({ stepId }) => stepId));
         assert(occurrences.every((row) => row.scope === scope && row.body === `Qualified ${timing} ${scope}`));

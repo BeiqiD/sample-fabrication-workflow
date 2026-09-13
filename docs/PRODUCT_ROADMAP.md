@@ -2,9 +2,12 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-13 through merged PR #203, integration commit
-`8930c04996358657d36883e99f11482f74cad7a4`, with inactive application Drafts
-#199/#200/#202. Backend reliability,
+Last reviewed: 2026-09-13 through merged PR #204, integration commit
+`b8fc0bb4f5ec25fe54879d5bf251c17131c809e7`, with inactive application Drafts
+#199/#200/#202. Authenticated Cloudflare reads confirmed this integration commit
+was built and deployed successfully. The owner subsequently selected an
+in-place disposable D1 rebuild with all file bindings preserved; current
+execution is recorded in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). Backend reliability,
 Worker ownership and shared-contract changes are merged. Schema/recovery and
 local Wrangler staging qualification merged in #198/#201; remote cleanup and
 baseline activation remain open. Project refinements through #185 are merged
@@ -40,18 +43,20 @@ latest `v2/backend-foundation` head.
 | 1 | Phase 6A1: inventory backend behavior and verify reliability | Initial inventory, isolated export/restore and representative large-Project measurements are merged; recorded performance and final release-rehearsal limits remain. |
 | 2 | Correct demonstrated defects in focused PRs | Export identity, uncertain saves, split-image inheritance and Comment acknowledgement repairs are merged. Continue focused correction only for newly reproduced defects. |
 | 3 | Phase 6A2/6A3: extract Worker modules and clarify shared contracts | Worker ownership and shared contracts are merged in #191–#193 with permanent gates; current S0 Template/Run, split-image, canonical Comment and Reference browser checks pass. |
-| 4 | Phase 6A4–6: compatibility/schema decisions, final baseline and exit review | Current work. Inactive schemas and local staging are merged preparations; B/C writers and the complete final S2 application are qualified Drafts. Read-only remote transport #203 is merged after complete verification; live observation, a safe activation path, remote execution and final S2 browser acceptance remain open. |
+| 4 | Phase 6A4–6: compatibility/schema decisions, final baseline and exit review | Current work. Inactive schemas and local staging are merged preparations; B/C writers and the complete final S2 application are qualified Drafts. Read-only remote transport #203 and S0 browser evidence #204 are merged. The selected disposable integration route pauses access, builds and background writers, rebuilds the same D1 database and keeps all file bindings. Target inspection is complete; reset, matching S2 deployment and final browser acceptance remain open. |
 | 5 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | Keep completed UI work and the unverified acceptance matrix. Resume after the backend review checkpoint; do not repeat completed shortcuts or visual slices. |
 | 6 | Phase 6B release validation | Requires both backend stabilization and the final frontend baseline; repeat affected recovery/performance checks against the final integrated result. |
 
 The completed early phases above are evidence to preserve, not work to repeat.
-Browser access is restored; [current S0 checks](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md)
+The earlier [current S0 browser checks](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md)
 cover the deployed extraction and v8 export behavior. Their results do not qualify a final S2 deployment. The
 remote observer has offline transport tests and actual local D1 parity, with no
 live remote call claimed at this checkpoint. It cannot establish retirement of
 incompatible historical Worker requests. That remains a technical blocker for
-B/C/D and requires a separately qualified activation path, not an executor that
-assumes the missing proof. See the [compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md)
+in-place B/C/D upgrades whose data must survive. The selected disposable
+integration route instead stops access, builds and background writers before
+clearing the same database. It preserves file bindings and requires actual
+request/maintenance quiescence, not the retained-data compatibility sequence. See the [compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md)
 and the [stabilization checkpoint](./V3_ARCHITECTURE_STABILIZATION_PLAN.md#decision-summary).
 
 A backend slice may proceed before frontend refinement is complete; it must keep
@@ -59,8 +64,10 @@ the current frontend usable and run the affected integration checks. Any change
 that alters public API or persistence behavior must be designed and reviewed
 separately, including its frontend impact, rather than hidden inside extraction.
 Project frontend controller rewrites remain separate from Worker extraction.
-Database baseline consolidation stays late; this order does not authorize a
-remote reset, migration or manual deployment.
+Database baseline consolidation stays late. The integration-specific authorization
+and ordered execution are recorded in the [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md);
+they preserve the current Worker, D1 identity and file-storage resources. The
+current execution target remains the identified integration Worker.
 
 ## North star
 
@@ -832,19 +839,21 @@ Project-owned Markdown or attachment content only through explicit user action.
 1. Preserve the completed **S0 deployed-browser checkpoint** and merged read-only
    remote D1 observation PR #203. The recorded split-image, Comment/Reference and
    v8 restore checks pass; repair any newly reproduced defect in a focused PR.
-2. Obtain a real **read-only target observation** through an admitted connection.
-   Preserve schema/ledger evidence and classify the retained target; no remote
-   observation has yet been established by the local transport qualification.
-3. Choose and qualify the remaining **6A4/6A5 activation path**. Resolve the
-   historical-request retirement/bootstrap gap for the existing-database
-   sequence, or separately review isolated recovery and cutover with consistent
-   retained data. Preserve recovery evidence and rollback barriers. Observation
-   and a generic executor cannot substitute for those requirements.
-4. Only after that path is qualified, integrate the corresponding execution
-   mechanism and advance the compatible Worker/schema stages. Keep #199, #200
-   and #202 inactive meanwhile; the new-empty baseline must never be applied as
-   an increment to the retained S0 ledger. Complete the final S2 browser checks
-   and **6A6 exact-head stabilization review** before declaring backend exit.
+2. Follow the owner-authorized **in-place test-database rebuild** in
+   [direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md). Keep the current Worker,
+   D1 database identity/binding, R2 and SWITCHdrive configuration. Pause access,
+   automatic/manual deployments and background maintenance; finish existing
+   uploads/requests before clearing application tables and the old ledger.
+3. Initialize the final baseline in that emptied schema and use the existing
+   complete verify → baseline → deploy path for the final C/S2 source. Keep all
+   file bindings and existing files; old unreferenced files can be cleaned up
+   separately after acceptance. No new resources or separate B/C/D activation
+   are needed. Preserve historical tests for retained-data upgrades.
+4. Keep #202 Draft until the reviewed reset and deployment can execute during
+   confirmed maintenance. Verify schema, matching code/bindings, create/save,
+   file upload/download, full export/isolated restore and final browser behavior
+   before completing the **6A6 exact-head stabilization review**. Track actual
+   controls and outcomes in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 5. At the backend review checkpoint, resume the outstanding **C4 acceptance**,
    then **Phase 5D**, **5E** and **5F**, keeping their existing scope and previously
    completed results. Isolated correctness fixes need not wait for that resumption.

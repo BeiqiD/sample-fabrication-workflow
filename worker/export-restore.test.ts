@@ -17,11 +17,11 @@ import { buildFullExportArchive } from "../src/lib/exportAll";
 import { snapshotRoutes } from "./export-routes";
 import { createAttachmentProjectItem, createMarkdownProjectItem, createProject, createProjectEdge,
   createReferenceProjectItem, readProjectSnapshot, removeProjectItem } from "./projects/service";
-import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
+import { historicalReferenceTestDatabase, seedHistoricalReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const migrationsDirectory = join(root, "migrations");
+const migrationsDirectory = join(root, "migrations-history/s0");
 // Each case migrates the full schema and handles real ZIP bytes. Shared CI
 // runners can exceed the unit-test default even on rejection paths.
 const RECOVERY_TEST_TIMEOUT = 15_000;
@@ -45,8 +45,8 @@ async function fullExport(database: DatabaseSync) {
 }
 
 async function fixture() {
-  const database = referenceTestDatabase();
-  const ids = seedReferenceGraph(database);
+  const database = historicalReferenceTestDatabase();
+  const ids = seedHistoricalReferenceGraph(database);
   const db = new SqliteD1Database(database) as unknown as D1Database;
   const provider = new Map<string, Uint8Array>();
   for (const asset of database.prepare("SELECT id, r2_key, byte_size FROM assets").all() as Array<{ id: string; r2_key: string; byte_size: number }>) {
@@ -237,7 +237,7 @@ describe("isolated full export recovery rehearsal", () => {
   );
 
   it.each(["CRC", "duplicate directory entry", "shadowed unsafe entry"])("rejects raw ZIP %s corruption", async (kind) => {
-    const database = referenceTestDatabase();
+    const database = historicalReferenceTestDatabase();
     try {
       const result = await archiveFrom(await fullExport(database), new Map());
       const zip = await JSZip.loadAsync(await result.archive.arrayBuffer());
@@ -273,7 +273,7 @@ describe("isolated full export recovery rehearsal", () => {
   }, RECOVERY_TEST_TIMEOUT);
 
   it("refuses existing and symlink destinations and exercises the public local CLI", async () => {
-    const database = referenceTestDatabase();
+    const database = historicalReferenceTestDatabase();
     try {
       const manifest = await fullExport(database);
       const result = await archiveFrom(manifest, new Map());
@@ -287,7 +287,7 @@ describe("isolated full export recovery rehearsal", () => {
       }
       expect(await readFile(join(scratch, "existing", "keep.txt"), "utf8")).toBe("unchanged");
       const cli = await promisify(execFile)(process.execPath, [join(root, "scripts/verify-export-restore.mjs"),
-        "--archive", path, "--destination", join(scratch, "cli-destination")], { cwd: root });
+        "--archive", path, "--destination", join(scratch, "cli-destination"), "--migrations-dir", migrationsDirectory, "--target-schema", "S0"], { cwd: root });
       expect(JSON.parse(cli.stdout).report.verification.rowsEqual).toBe(true);
     } finally { database.close(); }
   }, RECOVERY_TEST_TIMEOUT);

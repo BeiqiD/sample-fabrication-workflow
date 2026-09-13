@@ -215,6 +215,26 @@ For an existing installation:
 
 Applied D1 migrations are recorded and are not executed again.
 
+### Current disposable integration installation: in-place S2 rebuild
+
+The owner has authorized rebuilding the existing disposable integration D1
+in place. Follow the [current S2 procedure](./BACKEND_DISPOSABLE_S2_CUTOVER.md)
+and its recorded execution checkpoint. This installation keeps the current
+Worker, D1 database ID and `DB` binding, R2 bucket and `ASSETS` binding, and
+SWITCHdrive provider, root and credentials. Preserve its existing `DEPLOY_*`
+Build Variables, hostname and Access settings; no new storage-root build input
+or replacement resources are required.
+
+Rebuilding the application schema and migration ledger is a controlled
+maintenance operation against the explicitly confirmed disposable database.
+Stop old application writers and serialize builds before executing that
+procedure, then initialize the final S2 schema, deploy the verified matching
+application and complete acceptance before restoring normal access. Ordinary
+`deploy:remote` remains verification- and migration-first; it does not reset
+an existing database automatically. This one installation's authorized rebuild
+does not change the upgrade or recovery procedure for installations that must
+preserve their data.
+
 ## Local development and CLI deployment
 
 Local development is optional:

@@ -95,9 +95,12 @@ They also run in the existing `test:verification-scripts` leaf. Fixture coverage
 includes absent/present/changing ledgers, data preservation, exact target and
 single-statement construction, failure envelopes, redaction, limits, slow
 requests/bodies, invalid arguments, private output and cleanup. The actual local
-D1 test constructs all 37 historical migrations and compares this single SELECT
-with the original binding batch observation. Its recorded snapshot read used
-1,983 `rows_read`, and the D1 result JSON was 374,116 bytes; these are local fixture
+D1 cases construct the complete 37-file S0 schema from `migrations-history/s0/`
+and the default S2 baseline from `migrations/` in separate fresh databases. Both
+compare this single SELECT with the original binding batch observation and
+preserve their distinct exact ledger filenames. The original S0 qualification
+recorded 1,983 `rows_read` and 374,116 bytes of D1 result JSON; the separate S2
+case recorded 1,950 and 371,310 respectively. Those are local fixture
 diagnostics, not remote capacity or latency guarantees.
 
 Before a target migration is proposed, still obtain and review a real remote

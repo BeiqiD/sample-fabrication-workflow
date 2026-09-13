@@ -81,12 +81,12 @@ node --test scripts/d1-migration-plan.test.mjs scripts/d1-migration-observer.tes
 Tests compare actual local D1 with an independent host SQLite observer using
 ordinary PRAGMAs. They cover an empty database; a complex schema with generated
 columns, quoted names, a partial/expression index, WITHOUT ROWID, foreign keys,
-views and triggers; and the complete current 37-file migration chain with its
-ledger. The real D1 schema and ledger produce a no-op legacy proposal without
+views and triggers; and the archived original 37-file S0 migration chain with
+its ledger. The real D1 schema and ledger produce a no-op legacy proposal without
 receiving baseline SQL. The synthetic test baseline is a concatenation used only
 to exercise planner wiring, not a qualified clean baseline.
 
-For the current chain, observation uses one preliminary statement plus two
+For that historical chain, observation uses one preliminary statement plus two
 snapshot statements, independent of the number of tables. In the recorded local
 run, snapshot `rows_read` was 1,946 for schema and 37 for ledger, and the schema
 JSON was 338,984 bytes. These are fixture diagnostics, not production limits or a

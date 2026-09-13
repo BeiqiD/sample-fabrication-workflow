@@ -164,7 +164,7 @@ function createDatabase() {
       ('revision-1', 'old-coat', 'run-coat', 'planned', '2026-07-28T10:00:00.000Z');
 
     INSERT INTO run_step_comments
-      (id, run_step_id, scope, body, actor_email, created_at)
+      (id, run_step_id, scope, legacy_body, actor_email, created_at)
     VALUES
       ('obsolete-comment', 'run-obsolete', 'individual', 'Keep this observation',
        'operator@example.com', '2026-07-28T10:06:00.000Z');
@@ -309,7 +309,7 @@ describe("plan update route", () => {
       SET status = 'done', actualized_at = '2026-07-28T10:07:00.000Z'
       WHERE id = 'run-coat';
       INSERT INTO run_step_comments
-        (id, run_step_id, scope, body, actor_email, created_at)
+        (id, run_step_id, scope, legacy_body, actor_email, created_at)
       VALUES
         ('coat-comment', 'run-coat', 'individual', 'Keep reordered evidence',
          'operator@example.com', '2026-07-28T10:07:00.000Z');
@@ -377,7 +377,7 @@ describe("plan update route", () => {
       plan_status: "current",
     });
     expect(database.prepare(
-      "SELECT body FROM run_step_comments WHERE run_step_id = 'run-coat'",
+      "SELECT legacy_body AS body FROM run_step_comments WHERE run_step_id = 'run-coat'",
     ).all()).toEqual([{ body: "Keep reordered evidence" }]);
     const revision = database.prepare(
       "SELECT current_plan_revision_id FROM runs WHERE id = 'run-1'",

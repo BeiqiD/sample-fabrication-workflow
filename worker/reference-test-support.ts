@@ -115,3 +115,18 @@ export function seedReferenceGraph(database: DatabaseSync) {
   database.exec(referenceGraphSql);
   return REFERENCE_FIXTURE_IDS;
 }
+
+/** Historical archive/migration fixtures only; business API tests use referenceTestDatabase. */
+export function historicalReferenceTestDatabase() {
+  const database = new DatabaseSync(":memory:");
+  const directory = new URL("../migrations-history/s0/", import.meta.url);
+  for (const filename of readdirSync(directory).filter((name) => name.endsWith(".sql")).sort()) {
+    database.exec(readFileSync(new URL(filename, directory), "utf8"));
+  }
+  return database;
+}
+
+export function seedHistoricalReferenceGraph(database: DatabaseSync) {
+  database.exec(readFileSync(new URL("./fixtures/reference-graph-s0.sql", import.meta.url), "utf8"));
+  return REFERENCE_FIXTURE_IDS;
+}

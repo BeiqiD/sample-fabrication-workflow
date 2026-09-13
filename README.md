@@ -161,12 +161,20 @@ A full-system export preserves every database table row and packages each availa
 
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
-`npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S0`
+`npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
 rehearses a trusted negotiated schema-v8 archive against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote
 recovery boundary.
+
+This final S2 preparation branch selects the reviewed baseline for new empty
+local databases and preserves the original SQL in `migrations-history/s0/`.
+Historical S0 recovery must explicitly add
+`--migrations-dir migrations-history/s0 --target-schema S0`. This candidate must
+not deploy to the existing S0 service; see the
+[final S2 application gate](./docs/BACKEND_S2_APPLICATION_GATE.md) for the local
+qualification and remaining remote activation requirements.
 
 ## Further documentation
 

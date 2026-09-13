@@ -14,7 +14,7 @@ import { applyHostTransaction, assertHealthyHost, baselineFilename, compatibilit
 const root = fileURLToPath(new URL("../", import.meta.url));
 const { historical, stages } = readSchemaSources(root);
 const baselineSql = readFileSync(resolve(root, compatibilityDirectory, baselineFilename), "utf8");
-const fixtureSql = readFileSync(resolve(root, "worker/fixtures/reference-graph.sql"), "utf8") + "\n"
+const fixtureSql = readFileSync(resolve(root, "worker/fixtures/reference-graph-s0.sql"), "utf8") + "\n"
   + readFileSync(resolve(root, compatibilityDirectory, "retained-data.sql"), "utf8");
 const ledgerSql = `CREATE TABLE d1_migrations (
   id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE,

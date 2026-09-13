@@ -175,7 +175,7 @@ test("real local D1 matches independent host metadata for quoted names, generate
 test("actual 37-file local D1 schema and ledger match host SQLite and produce a no-op legacy proposal", { timeout: 60_000 }, async (t) => {
   const database = await miniflare.getD1Database("CURRENT");
   const host = new DatabaseSync(":memory:");
-  const directory = new URL("../migrations/", import.meta.url);
+  const directory = new URL("../migrations-history/s0/", import.meta.url);
   const filenames = readdirSync(directory).filter((name) => name.endsWith(".sql")).sort();
   const sources = filenames.map((filename) => ({ filename, sql: readFileSync(new URL(filename, directory), "utf8") }));
   try {
