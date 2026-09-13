@@ -8,7 +8,9 @@ and complete consumer/lifecycle conversion remain open.
 [FP1c](./FP1_VERIFIED_BYTE_WRITES.md) now adds bounded full-byte verification to
 current writes and selected reuse; [FP1d](./FP1_FENCED_BYTE_DELETION.md) adds bound
 deletion and fenced GC reconciliation without releasing uncertain deletion
-claims. File authority remains dormant. FP1 remains incomplete; no deployment
+claims. [FP1e](./FP1_RECOVERY_BYTE_VERIFICATION.md) closes the complete-byte
+verification gap in independently invoked import recovery and its canonical
+replacement selection. File authority remains dormant. FP1 remains incomplete; no deployment
 is certified by this document.
 
 Last reviewed: 2026-09-13 against `v2/backend-foundation` at

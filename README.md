@@ -198,6 +198,7 @@ routing and native website import remain later slices.
 - [FP1b byte-reader and legacy route boundary](./docs/FP1_BYTE_READER_BOUNDARY.md)
 - [FP1c verified writes and bounded hashing](./docs/FP1_VERIFIED_BYTE_WRITES.md)
 - [FP1d deletion and fenced GC recovery](./docs/FP1_FENCED_BYTE_DELETION.md)
+- [FP1e import recovery byte verification](./docs/FP1_RECOVERY_BYTE_VERIFICATION.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

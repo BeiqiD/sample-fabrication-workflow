@@ -1,14 +1,15 @@
-import { sha256Hex } from "../shared/content-addressing";
 import {
   BlobReuseProviderUnavailableError,
   findReusableR2Asset,
   type ReusableR2Asset,
 } from "./blob-lifecycle/reuse";
-import { getBlob, statBlob } from "./blob-lifecycle/storage";
-import type { BlobLocator } from "./blob-lifecycle/types";
+import { inspectLegacyRecoveryBytes } from "./files/legacy-byte-inspection";
+import { validateByteExpectation } from "./files/byte-verification";
+import { cloudflareSha256 } from "./files/storage-adapters/cloudflare-sha256";
+import { r2ByteReader } from "./files/storage-adapters/r2-reader";
 import type { Env } from "./types";
 
-interface RecoveryAssetRow {
+export interface RecoveryAssetRow {
   id: string;
   r2_key: string;
   byte_size: number;
@@ -31,22 +32,16 @@ export interface FabubloxRecoveryAssetInspection {
   observedByteSize: number | null;
   canonicalAssetId: string | null;
   canonicalObjectKey: string | null;
+  canonicalSha256: string | null;
+  canonicalByteSize: number | null;
+  snapshot: Readonly<RecoveryAssetRow>;
 }
 
 export class FabubloxRecoveryProviderUnavailableError extends Error {
-  constructor(objectKey: string, detail: string) {
-    super(`Could not verify FabuBlox recovery asset ${objectKey}: ${detail}`);
+  constructor() {
+    super("FabuBlox recovery file bytes could not be verified. Retry later.");
     this.name = "FabubloxRecoveryProviderUnavailableError";
   }
-}
-
-function locator(row: RecoveryAssetRow): BlobLocator {
-  return {
-    storeKind: "r2",
-    provider: "r2",
-    objectKey: row.r2_key,
-    blobRecordId: row.id,
-  };
 }
 
 function unavailable(
@@ -67,23 +62,29 @@ function unavailable(
     observedByteSize,
     canonicalAssetId: canonical?.id ?? null,
     canonicalObjectKey: canonical?.r2_key ?? null,
+    canonicalSha256: canonical?.sha256 ?? null,
+    canonicalByteSize: canonical ? Number(canonical.byte_size) : null,
+    snapshot: Object.freeze({ ...row }),
   };
 }
 
 async function canonicalWinner(
   env: Env,
-  objectKey: string,
   sha256: string,
   byteSize: number,
 ): Promise<ReusableR2Asset | null> {
   try {
+    validateByteExpectation({ byteSize, sha256 }, "destination");
     const winner = await findReusableR2Asset(env, sha256);
     if (!winner) return null;
     if (Number(winner.byte_size) !== byteSize) {
-      throw new Error(
-        `Canonical asset ${winner.id} has byte-size metadata inconsistent with recovered SHA-256`,
-      );
+      throw new FabubloxRecoveryProviderUnavailableError();
     }
+    // The reuse lookup preserves its existing ownership/orphan-grace fences,
+    // but its stat result is not integrity evidence for a canonical successor.
+    const checked = await inspectLegacyRecoveryBytes(r2ByteReader(env.ASSETS), winner.r2_key,
+      { byteSize, sha256 }, cloudflareSha256);
+    if (checked.outcome !== "available") throw new FabubloxRecoveryProviderUnavailableError();
     return winner;
   } catch (error) {
     if (error instanceof BlobReuseProviderUnavailableError
@@ -92,10 +93,7 @@ async function canonicalWinner(
       // The recovery ownership graph will handle that case after the claim.
       return null;
     }
-    if (error instanceof BlobReuseProviderUnavailableError) {
-      throw new FabubloxRecoveryProviderUnavailableError(objectKey, error.message);
-    }
-    throw error;
+    throw new FabubloxRecoveryProviderUnavailableError();
   }
 }
 
@@ -116,6 +114,9 @@ function availableInspection(
     observedByteSize: byteSize,
     canonicalAssetId: canonical?.id ?? null,
     canonicalObjectKey: canonical?.r2_key ?? null,
+    canonicalSha256: canonical?.sha256 ?? null,
+    canonicalByteSize: canonical ? Number(canonical.byte_size) : null,
+    snapshot: Object.freeze({ ...row }),
   };
 }
 
@@ -148,7 +149,6 @@ export async function inspectFabubloxRecoveryAssets(
       ? null
       : await canonicalWinner(
           env,
-          row.r2_key,
           row.sha256,
           expectedByteSize,
         );
@@ -170,68 +170,35 @@ export async function inspectFabubloxRecoveryAssets(
       continue;
     }
 
-    if (row.sha256 === null) {
-      const read = await getBlob(env, locator(row));
-      if (read.outcome === "provider_unavailable") {
-        throw new FabubloxRecoveryProviderUnavailableError(row.r2_key, read.message);
-      }
-      if (read.outcome === "missing") {
-        inspections.push(unavailable(row, "missing", null));
-        continue;
-      }
-      const bytes = await new Response(read.body).arrayBuffer();
-      if (bytes.byteLength !== expectedByteSize) {
-        inspections.push(unavailable(
-          row,
-          "size_mismatch",
-          bytes.byteLength,
-        ));
-        continue;
-      }
-      const sha256 = await sha256Hex(bytes);
-      const canonical = await canonicalWinner(
-        env,
-        row.r2_key,
-        sha256,
-        expectedByteSize,
-      );
-      inspections.push(availableInspection(
-        row,
-        sha256,
-        expectedByteSize,
-        canonical,
-      ));
-      continue;
+    let checked;
+    try {
+      checked = await inspectLegacyRecoveryBytes(r2ByteReader(env.ASSETS), row.r2_key,
+        { byteSize: expectedByteSize, sha256: row.sha256 }, cloudflareSha256);
+    } catch {
+      // In particular, do not turn a hash mismatch into a missing/size diagnosis
+      // or discard the stored hash. Inspection precedes the durable cleanup claim.
+      throw new FabubloxRecoveryProviderUnavailableError();
     }
-
-    const stat = await statBlob(env, locator(row));
-    if (stat.outcome === "provider_unavailable") {
-      throw new FabubloxRecoveryProviderUnavailableError(row.r2_key, stat.message);
-    }
-    if (stat.outcome === "missing") {
+    if (checked.outcome === "missing") {
       inspections.push(unavailable(row, "missing", null, trustedCanonical));
       continue;
     }
-    if (stat.byteSize === null) {
-      throw new FabubloxRecoveryProviderUnavailableError(
-        row.r2_key,
-        "R2 did not return a stable byte size",
-      );
-    }
-    if (stat.byteSize !== expectedByteSize) {
+    if (checked.outcome === "size_mismatch") {
       inspections.push(unavailable(
         row,
         "size_mismatch",
-        stat.byteSize,
+        checked.observedByteSize,
         trustedCanonical,
       ));
       continue;
     }
     inspections.push(availableInspection(
       row,
-      row.sha256,
+      checked.sha256,
       expectedByteSize,
-      trustedCanonical,
+      row.sha256 === null
+        ? await canonicalWinner(env, checked.sha256, expectedByteSize)
+        : trustedCanonical,
     ));
   }
   return inspections;

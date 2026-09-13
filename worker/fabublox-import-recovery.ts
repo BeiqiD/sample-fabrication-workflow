@@ -1,4 +1,5 @@
 import { inspectFabubloxRecoveryAssets } from "./fabublox-recovery-assets";
+import { fabubloxRecoverySnapshotGuard } from "./fabublox-recovery-guard";
 import { primaryD1 } from "./d1-primary";
 import type { Env } from "./types";
 
@@ -78,7 +79,7 @@ export async function queueFabubloxImportCleanup(
   );
   const inspectionPayload = JSON.stringify(inspections);
 
-  const results = await db.batch([
+  const [claimResult, , ...cleanupResults] = await db.batch([
     // Claim the exact unfinished operation. This also resumes legacy failed
     // rows that predate durable recovery identity. Every later statement is
     // gated by the persisted recovery ID, so a competing finalization cannot
@@ -104,6 +105,11 @@ export async function queueFabubloxImportCleanup(
       input.operationId,
       recoveryOperationId,
     ),
+    // Compare the exact source inventory and verified canonical identities
+    // after claiming, within the same transaction. Any stale evidence rolls
+    // back the claim before a consumer can be rebound or an asset published.
+    // Keep this adjacent to the claim: it consumes that UPDATE's changes().
+    fabubloxRecoverySnapshotGuard(db, input.importId, inspectionPayload),
     // A pending revision should never have been registered, but tombstone a
     // pre-existing row defensively before removing its partial source record.
     db.prepare(`
@@ -1070,6 +1076,8 @@ export async function queueFabubloxImportCleanup(
     ),
   ]);
 
+  // Preserve the existing cleanup-result positions; the assertion is read-only.
+  const results = [claimResult, ...cleanupResults];
   if (!Number(results[0].meta.changes ?? 0)) return emptyCleanupResult();
   const relationshipResultIndexes = [2, 3, 4];
   return {
