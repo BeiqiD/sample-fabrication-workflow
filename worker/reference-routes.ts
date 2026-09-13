@@ -10,6 +10,7 @@ import {
   type ResolveReferencesResponse,
 } from "../shared/reference-types";
 import { safeMediaResponseHeaders } from "./media-response";
+import { getBlob } from "./blob-lifecycle/storage";
 import {
   ReferenceChildrenInputError,
   listReferenceChildren,
@@ -68,17 +69,21 @@ routes.get("/assets/:key{.+}", async (c) => {
   `).bind(key).first<MediaSource>();
   if (!source) throw new HTTPException(404, { message: "Asset not found" });
 
-  const object = await c.env.ASSETS.get(source.r2_key);
-  if (!object) throw new HTTPException(404, { message: "Asset not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "r2", provider: "r2", objectKey: source.r2_key, blobRecordId: null,
+  });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Asset not found" });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "R2 is unavailable" });
+  }
 
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
+  const headers = new Headers(object.httpMetadata);
   safeMediaResponseHeaders({
     headers,
     mimeType: source.mime_type,
     filename: source.original_name || "asset",
     cacheControl: "private, max-age=3600",
-    etag: object.httpEtag,
+    etag: object.etag,
   });
   return new Response(object.body, { headers });
 });
@@ -214,17 +219,21 @@ routes.get("/references/media/execution_image/:encodedId", async (c) => {
     throw new HTTPException(404, { message: "Execution image not found in this Step context" });
   }
 
-  const object = await c.env.ASSETS.get(source.r2_key);
-  if (!object) throw new HTTPException(404, { message: "Execution image bytes are unavailable" });
+  const object = await getBlob(c.env, {
+    storeKind: "r2", provider: "r2", objectKey: source.r2_key, blobRecordId: null,
+  });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Execution image bytes are unavailable" });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "R2 is unavailable" });
+  }
 
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
+  const headers = new Headers(object.httpMetadata);
   safeMediaResponseHeaders({
     headers,
     mimeType: source.mime_type,
     filename: source.original_name || "execution-image",
     cacheControl: "private, no-store",
-    etag: object.httpEtag,
+    etag: object.etag,
   });
   return new Response(object.body, { headers });
 });

@@ -148,6 +148,8 @@ Containers, or a second Worker.
 - A legacy pre-blob-lifecycle migration rewires unfinished Comment items away from an orphaned managed object when an already-ready content-identical winner exists. This prevents the old partial uniqueness rule from blocking migration 0016.
 - Canonical recovery never physically merges stable execution-image or metrology-reference occurrences. An exact same-content duplicate is soft-superseded with an immutable successor/operation audit link; only that superseded edge stops retaining the old locator.
 - Provider absence is an integrity condition, not permission to remove source or occurrence rows.
+- [Instance-bound byte readers](./FP1_BYTE_READER_BOUNDARY.md) implement full-object read/stat behind the legacy locator bridge. Routes authorize first; definite absence stays distinct from provider failure. Reads do not publish File registry state, change retention or switch providers. Legacy writers and deletion claims retain their existing contracts.
+- Authenticated SWITCHdrive requests do not follow redirects. Post-upload validation failure leaves the registered candidate for reconciliation/GC rather than deleting provider bytes inside the adapter.
 
 ## Export invariants
 

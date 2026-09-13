@@ -14,6 +14,7 @@ import type {
   RunStepTarget,
 } from "../shared/types";
 import { managedObjectKey, managedStorage, managedStorageStatus } from "./managed-storage";
+import { getBlob } from "./blob-lifecycle/storage";
 import {
   listItemBlobLocators,
   listSubmissionBlobLocators,
@@ -1348,10 +1349,13 @@ routes.get("/exports/attachments/:itemId", async (c) => {
      WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Export attachment not found" });
-  const storage = managedStorage(c.env);
-  if (!storage || storage.provider !== row.provider) throw new HTTPException(503, { message: "Attachment storage is unavailable" });
-  const object = await storage.get(row.object_key);
-  if (!object) throw new HTTPException(404, { message: "Attachment object not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "managed", provider: row.provider, objectKey: row.object_key, blobRecordId: null,
+  });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  }
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
   const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
   const encoded = encodeURIComponent(row.filename);
   return new Response(object.body, {
@@ -1383,10 +1387,13 @@ routes.get("/attachments/:itemId/download", async (c) => {
        AND ${readableSubmissionTargetsSql("cs")}`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Attachment not found" });
-  const storage = managedStorage(c.env);
-  if (!storage || storage.provider !== row.provider) throw new HTTPException(503, { message: "Attachment storage is unavailable" });
-  const object = await storage.get(row.object_key);
-  if (!object) throw new HTTPException(404, { message: "Attachment object not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "managed", provider: row.provider, objectKey: row.object_key, blobRecordId: null,
+  });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  }
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
   const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
   const encoded = encodeURIComponent(row.filename);
   return new Response(object.body, {

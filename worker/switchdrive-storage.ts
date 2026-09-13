@@ -124,6 +124,14 @@ async function checkedResponse(response: Response, accepted: number[]) {
   return response;
 }
 
+async function discardResponseBody(response: Response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Releasing unused bytes must not replace the operation's HTTP outcome.
+  }
+}
+
 export function switchdriveConfiguration(input: {
   SWITCHDRIVE_WEBDAV_URL?: string;
   SWITCHDRIVE_USERNAME?: string;
@@ -168,8 +176,13 @@ export class SwitchdriveStorage implements ManagedStorage {
       const response = await fetch(objectUrl(this.baseUrl, segments.slice(0, length)), {
         method: "MKCOL",
         headers: this.headers(),
+        redirect: "manual",
       });
-      await checkedResponse(response, [201, 405]);
+      try {
+        await checkedResponse(response, [201, 405]);
+      } finally {
+        await discardResponseBody(response);
+      }
     }
   }
 
@@ -189,7 +202,7 @@ export class SwitchdriveStorage implements ManagedStorage {
     } finally {
       // Status probes never consume successful bodies; release unread bytes on
       // every path, including redirects, non-XML failures and truncated XML.
-      await response.body?.cancel().catch(() => undefined);
+      await discardResponseBody(response);
     }
   }
 
@@ -204,16 +217,21 @@ export class SwitchdriveStorage implements ManagedStorage {
         "content-type": input.contentType,
       }),
       body: input.body,
+      redirect: "manual",
     });
-    await checkedResponse(response, [200, 201, 204]);
+    try {
+      await checkedResponse(response, [200, 201, 204]);
+    } finally {
+      await discardResponseBody(response);
+    }
 
     const metadata = await this.stat(input.key);
+    // A failed observation does not authorize deleting uploaded bytes. The
+    // registration candidate remains tracked for lifecycle reconciliation/GC.
     if (!metadata) {
-      await this.delete(input.key);
       throw new Error("SWITCHdrive could not verify the attachment after upload");
     }
     if (metadata.byteSize !== null && metadata.byteSize !== input.byteSize) {
-      await this.delete(input.key);
       throw new Error("SWITCHdrive reported a different attachment size after upload");
     }
     return { byteSize: input.byteSize };
@@ -224,18 +242,23 @@ export class SwitchdriveStorage implements ManagedStorage {
     const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
       method: "HEAD",
       headers: this.headers(),
+      redirect: "manual",
     });
-    if (response.status === 404) return null;
-    await checkedResponse(response, [200]);
-    const sizeHeader = response.headers.get("content-length");
-    const parsedSize = sizeHeader === null ? null : Number(sizeHeader);
-    return {
-      byteSize: parsedSize !== null && Number.isSafeInteger(parsedSize) && parsedSize >= 0
-        ? parsedSize
-        : null,
-      contentType: response.headers.get("content-type") || "application/octet-stream",
-      etag: response.headers.get("etag"),
-    };
+    try {
+      if (response.status === 404) return null;
+      await checkedResponse(response, [200]);
+      const sizeHeader = response.headers.get("content-length");
+      const parsedSize = sizeHeader === null ? null : Number(sizeHeader);
+      return {
+        byteSize: parsedSize !== null && Number.isSafeInteger(parsedSize) && parsedSize >= 0
+          ? parsedSize
+          : null,
+        contentType: response.headers.get("content-type") || "application/octet-stream",
+        etag: response.headers.get("etag"),
+      };
+    } finally {
+      await discardResponseBody(response);
+    }
   }
 
   async get(key: string): Promise<ManagedStorageObject | null> {
@@ -243,15 +266,23 @@ export class SwitchdriveStorage implements ManagedStorage {
     const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
       method: "GET",
       headers: this.headers(),
+      redirect: "manual",
     });
-    if (response.status === 404) return null;
-    await checkedResponse(response, [200]);
-    if (!response.body) throw new Error("SWITCHdrive returned an empty response body");
-    return {
-      body: response.body,
-      contentType: response.headers.get("content-type") || "application/octet-stream",
-      etag: response.headers.get("etag"),
-    };
+    let bodyTransferred = false;
+    try {
+      if (response.status === 404) return null;
+      await checkedResponse(response, [200]);
+      if (!response.body) throw new Error("SWITCHdrive returned an empty response body");
+      const object = {
+        body: response.body,
+        contentType: response.headers.get("content-type") || "application/octet-stream",
+        etag: response.headers.get("etag"),
+      };
+      bodyTransferred = true;
+      return object;
+    } finally {
+      if (!bodyTransferred) await discardResponseBody(response);
+    }
   }
 
   async delete(key: string) {
@@ -259,7 +290,12 @@ export class SwitchdriveStorage implements ManagedStorage {
     const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
       method: "DELETE",
       headers: this.headers(),
+      redirect: "manual",
     });
-    await checkedResponse(response, [200, 204, 404]);
+    try {
+      await checkedResponse(response, [200, 204, 404]);
+    } finally {
+      await discardResponseBody(response);
+    }
   }
 }

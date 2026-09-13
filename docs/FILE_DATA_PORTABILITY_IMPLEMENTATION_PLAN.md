@@ -2,7 +2,9 @@
 
 Status: design reviewed and merged in PR #207; FP1 implementation in progress.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
-schema/mapping and archive slice. FP1 as a product milestone remains incomplete;
+schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
+instance-bound byte reader and converges legacy read routes; verified ingestion
+and complete consumer/lifecycle conversion remain open. FP1 remains incomplete;
 no deployment is certified by this document.
 
 Last reviewed: 2026-09-13 against `v2/backend-foundation` at
@@ -275,7 +277,8 @@ outside database transactions. No new ORM, PostgreSQL or distributed coordinatio
 prerequisite for introducing these narrow interfaces.
 
 Review FP1 in bounded slices: schema/profile mapping with matching recovery;
-provider-neutral ingestion/resolution and complete consumer/lifecycle conversion;
+provider-neutral ingestion/resolution and complete consumer/lifecycle conversion
+(including the separately reviewed FP1b read-transport precursor);
 then deployment defaults, readiness and basic Settings acceptance. These are
 review boundaries within FP1, not independently completed product milestones.
 Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
