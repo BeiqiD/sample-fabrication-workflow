@@ -83,6 +83,7 @@ The recommended workflow needs no persistent local checkout:
    ```
 
    The build generates an ignored `.wrangler/deploy.jsonc`. Do not add Worker names, D1/R2 identifiers, routes, hostnames, or credentials back to the checked-in base configuration.
+   It resolves the account from the standard `CLOUDFLARE_ACCOUNT_ID` variable or the sole account returned by the existing Wrangler build authentication; multi-account setups must provide the intended account. The same account and bucket are recorded in the runtime import storage namespace. See [deployment identity](docs/DEPLOYMENT.md#2-configure-the-deployment-environment).
 5. Configure Workers Builds:
 
    ```text

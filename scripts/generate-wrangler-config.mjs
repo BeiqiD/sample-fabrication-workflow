@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
+import { cloudflareR2Namespace, localInstallationId, localR2Namespace, resolveCloudflareAccountId } from "./lib/cloudflare-bootstrap.mjs";
 
 const root = process.cwd();
 const basePath = resolve(root, "wrangler.jsonc");
@@ -44,7 +45,7 @@ function relativeToOutput(path) {
   return value.startsWith(".") ? value : `./${value}`;
 }
 
-for (const key of ["name", "workers_dev", "vars", "d1_databases", "r2_buckets", "routes"]) {
+for (const key of ["name", "account_id", "workers_dev", "vars", "d1_databases", "r2_buckets", "routes"]) {
   if (key in base) {
     throw new Error(`wrangler.jsonc must not contain environment-specific key: ${key}`);
   }
@@ -68,13 +69,19 @@ const values = local
 
 assertDeploymentValues(values);
 
+const accountId = local ? undefined : await resolveCloudflareAccountId({ root });
+const namespace = local
+  ? localR2Namespace(await localInstallationId(root, argumentValue("--local-installation-id")), values.bucketName)
+  : cloudflareR2Namespace(accountId, values.bucketName);
+
 const generated = {
   ...base,
   $schema: relativeToOutput(base.$schema),
   main: relativeToOutput(base.main),
   name: values.workerName,
+  ...(local ? {} : { account_id: accountId }),
   workers_dev: values.workersDev,
-  ...(local ? { vars: { AUTH_MODE: "disabled" } } : {}),
+  vars: { ...(local ? { AUTH_MODE: "disabled" } : {}), R2_BOOTSTRAP_NAMESPACE: namespace },
   d1_databases: [
     {
       binding: "DB",

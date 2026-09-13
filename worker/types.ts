@@ -1,6 +1,7 @@
 export interface Env {
   DB: D1Database;
   ASSETS: R2Bucket;
+  R2_BOOTSTRAP_NAMESPACE?: string;
   MANAGED_STORAGE_PROVIDER?: string;
   SWITCHDRIVE_WEBDAV_URL?: string;
   SWITCHDRIVE_USERNAME?: string;

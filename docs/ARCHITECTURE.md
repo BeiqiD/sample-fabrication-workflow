@@ -156,7 +156,7 @@ Containers, or a second Worker.
 ## Export invariants
 
 - Full export reads all table/view snapshots through one D1 batch and keeps every active, archived, failed, cancelled, and soft-deleted database row.
-- The complete browser archive uses [schema 9 / writer 1, profile `fp1-legacy-overlap`](./FP1_FILE_REGISTRY_FOUNDATION.md#archive-and-recovery-boundary), including the four dormant file-registry tables. The same batch observes physical schema and retired compatibility values; the ZIP validates and preserves their provenance. Historical schema-7 and [schema-8 archives](./FULL_EXPORT_V8.md) remain supported by isolated offline recovery.
+- The complete browser archive uses [schema 10 / writer 1, profile `fp1-import-acceptance`](./FP1_DURABLE_IMPORT_ACCEPTANCE.md), including immutable import request receipts and the four dormant file-registry tables. The same batch observes physical schema and retired compatibility values; the archive validates and preserves their provenance. Historical schema-7, [schema-8](./FULL_EXPORT_V8.md), and [schema-9 archives](./FP1_FILE_REGISTRY_FOUNDATION.md#archive-and-recovery-boundary) retain their frozen validators and remain supported by isolated offline recovery before reviewed forward upgrades.
 - `reference_targets` is included in that same table-snapshot batch and does not create blob occurrences.
 - Physical blobs are deduplicated by provider locator and downloaded at most once.
 - Final outcomes include packaged, missing, provider unavailable, metadata not ready, download failed, size mismatch, and hash mismatch.

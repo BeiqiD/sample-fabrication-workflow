@@ -6,6 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { CompatibilitySchema, ExportRow, ExportTables, FullExportManifestV8, RetiredExportFields } from "../shared/contracts/export";
 import type { FullExportManifest } from "../shared/contracts/types";
@@ -140,6 +141,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
     if (migrationsDirectory === join(root, "migrations")) {
       expect(result.report.appliedForwardMigrations).toEqual([
         { name: "0002_fp1_file_registry.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0002_fp1_file_registry.sql"), "utf8"))) },
+        { name: "0003_fp1_import_acceptance.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0003_fp1_import_acceptance.sql"), "utf8"))) },
       ]);
     } else expect(result.report.appliedForwardMigrations).toEqual([]);
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite"));
@@ -149,6 +151,9 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
       for (const [name, original] of Object.entries(source.physicalTables)) {
         const expected = original.map((row) => {
           const copy = { ...row };
+          if (name === "imports" && migrationsDirectory === join(root, "migrations")) {
+            for (const column of IMPORT_ACCEPTANCE_EXPORT_COLUMNS) copy[column] = null;
+          }
           if (name === "samples" && target === "S2") delete copy.process_revision;
           if (name === "run_step_comments") {
             if (target !== "S0" && source.kind === "S0") copy.legacy_body = row.submission_id === null ? row.body : null;

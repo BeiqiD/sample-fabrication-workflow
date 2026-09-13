@@ -12,13 +12,42 @@ import { normalizedSubstrateStepName } from "../process-definition/substrate";
 import { digestSha256, reusableR2Asset, safeObjectName } from "../application/r2-upload-support";
 import { verifyR2Bytes, writeR2Bytes } from "../files/legacy-byte-writer";
 import { ByteVerificationError } from "../files/byte-verification";
+import { FABUBLOX_IMPORT_REQUEST_HEADER, MAX_FABUBLOX_REQUEST_INPUT_BYTES, normalizeFabubloxImportRequestId } from "../../shared/contracts/fabublox-import";
+import type { FabubloxImportInput } from "../../shared/contracts/fabublox-import-input";
+import { acceptFabubloxImport, acceptedImportState, readAcceptedImport, FabubloxImportAcceptanceUnavailableError, FabubloxImportRequestConflictError, type AcceptedFabubloxImportRow } from "./fabublox-acceptance";
+import { ensureR2BootstrapProfile, R2BootstrapUnavailableError } from "../files/r2-bootstrap-profile";
 
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 
 const MAX_FABUBLOX_IMPORT_STEPS = 180;
 const MAX_FABUBLOX_IMPORT_IMAGES = MAX_FABUBLOX_IMPORT_STEPS;
 
+function acceptanceError(error: unknown): never {
+  if (error instanceof FabubloxImportRequestConflictError) {
+    throw new HTTPException(409, { message: "This import request was already accepted with different input." });
+  }
+  if (error instanceof FabubloxImportAcceptanceUnavailableError || error instanceof R2BootstrapUnavailableError) {
+    throw new HTTPException(503, { message: error.message });
+  }
+  throw error;
+}
+
+routes.get("/imports/fabublox/requests/:requestId", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  const requestId = normalizeFabubloxImportRequestId(c.req.param("requestId"));
+  if (!requestId) throw new HTTPException(400, { message: "Invalid import request identity" });
+  try {
+    const row = await readAcceptedImport(c.env.DB, c.get("userEmail"), requestId);
+    if (!row) return c.json({ error: "Import request not found" }, 404);
+    return c.json(acceptedImportState(row));
+  } catch (error) { return acceptanceError(error); }
+});
+
 routes.post("/imports/fabublox", async (c) => {
+  const rawRequestId = c.req.header(FABUBLOX_IMPORT_REQUEST_HEADER);
+  if (!rawRequestId) throw new HTTPException(428, { message: "Refresh this page before importing a workbook." });
+  const requestId = normalizeFabubloxImportRequestId(rawRequestId);
+  if (!requestId) throw new HTTPException(400, { message: "Invalid import request identity" });
   if (!contentLengthWithin(c.req.raw, 50 * 1024 * 1024)) throw new HTTPException(413, { message: "FabuBlox imports are limited to 50 MB" });
   const form = await c.req.raw.formData();
   const workbook = form.get("workbook");
@@ -69,6 +98,14 @@ routes.post("/imports/fabublox", async (c) => {
   if (imageIds.size !== manifest.images.length || manifest.images.some((image) => typeof image.localId !== "string" || !image.localId)) {
     throw new HTTPException(400, { message: "Imported image identifiers must be unique" });
   }
+  const expectedFields = new Set(["workbook", "manifest", ...manifest.images.map((image) => `image:${image.localId}`)]);
+  const observedFields = new Set<string>();
+  for (const key of form.keys()) {
+    if (!expectedFields.has(key) || observedFields.has(key)) {
+      throw new HTTPException(400, { message: "Unexpected or duplicate import field" });
+    }
+    observedFields.add(key);
+  }
   if (new Set(manifest.initialStateImageIds).size !== manifest.initialStateImageIds.length
     || manifest.initialStateImageIds.some((id) => typeof id !== "string" || !imageIds.has(id))) {
     throw new HTTPException(400, { message: "Invalid initial substrate image selection" });
@@ -106,7 +143,7 @@ routes.post("/imports/fabublox", async (c) => {
   const actualSha = await digestSha256(workbookBuffer);
   if (actualSha !== manifest.source.fileSha256) throw new HTTPException(400, { message: "Workbook checksum does not match the preview" });
 
-  const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest, null, 2));
+  const manifestBytes = new TextEncoder().encode(stableJson(manifest));
   const manifestBuffer = manifestBytes.buffer.slice(manifestBytes.byteOffset, manifestBytes.byteOffset + manifestBytes.byteLength) as ArrayBuffer;
   const imageInputs: Array<{
     image: typeof manifest.images[number]; file: File; buffer: ArrayBuffer; sha256: string;
@@ -123,11 +160,38 @@ routes.post("/imports/fabublox", async (c) => {
     imageInputs.push(...prepared);
   }
 
+  const manifestSha256 = await digestSha256(manifestBuffer);
+  const workbookMimeType = workbook.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  const requestInput: FabubloxImportInput = {
+    schema: "fabublox-import-request/1",
+    workbook: { sha256: actualSha, byteSize: workbookBuffer.byteLength, mimeType: workbookMimeType, originalName: workbook.name, purpose: "provenance" },
+    manifest: { sha256: manifestSha256, byteSize: manifestBuffer.byteLength, mimeType: "application/json", originalName: "manifest.json", purpose: "provenance" },
+    images: imageInputs.map(({ image, file, buffer, sha256 }) => ({ localId: image.localId, sha256, byteSize: buffer.byteLength, mimeType: file.type || image.mimeType, originalName: file.name, purpose: "embedded_content" })),
+  };
+  const requestInputJson = stableJson(requestInput);
+  const requestInputBytes = new TextEncoder().encode(requestInputJson);
+  if (requestInputBytes.byteLength > MAX_FABUBLOX_REQUEST_INPUT_BYTES) throw new HTTPException(413, { message: "Import request metadata is too large" });
+  const requestSha256 = await digestSha256(requestInputBytes.buffer as ArrayBuffer);
+  const userEmail = c.get("userEmail");
+  const replay = (row: AcceptedFabubloxImportRow) => {
+    if (row.request_sha256 !== requestSha256 || row.request_input_json !== requestInputJson) throw new FabubloxImportRequestConflictError();
+    const request = acceptedImportState(row);
+    if (request.status === "ready") return c.json(request.result, 200);
+    return c.json({ error: request.status === "pending" ? "This import request is still pending." : "This import request failed. Start a new import to try again.", request }, 409);
+  };
+  // Replays consult the accepted operation before mutable family/default
+  // selection. A completed result remains available after target deletion or
+  // a deployment configuration change, and never performs provider I/O.
+  try {
+    const existing = await readAcceptedImport(c.env.DB, userEmail, requestId);
+    if (existing) return replay(existing);
+  } catch (error) { return acceptanceError(error); }
+
   const existingFamily = manifest.recipeFamilyId
     ? await c.env.DB.prepare("SELECT id, name, template_type FROM recipe_families WHERE id = ? AND archived_at IS NULL")
-      .bind(manifest.recipeFamilyId).first<{ id: string; name: string; template_type: string }>()
+      .bind(manifest.recipeFamilyId).first<{ id: string; name: string; template_type: "process" | "module" | "recipe" }>()
     : await c.env.DB.prepare("SELECT id, name, template_type FROM recipe_families WHERE name = ? AND template_type = 'process' AND archived_at IS NULL")
-      .bind(manifest.title.trim()).first<{ id: string; name: string; template_type: string }>();
+      .bind(manifest.title.trim()).first<{ id: string; name: string; template_type: "process" | "module" | "recipe" }>();
   if (manifest.recipeFamilyId && !existingFamily) throw new HTTPException(404, { message: "Process-template family not found" });
   const internalTemplateType = existingFamily?.template_type ?? "process";
   const recipeFamilyId = existingFamily?.id ?? crypto.randomUUID();
@@ -138,27 +202,18 @@ routes.post("/imports/fabublox", async (c) => {
   const startedAt = new Date();
   const now = startedAt.toISOString();
   const leaseExpiresAt = fabubloxImportLeaseExpiresAt(startedAt);
-  const userEmail = c.get("userEmail");
   const importDb = primaryD1(c.env.DB);
-  await importDb.prepare(
-    `INSERT INTO imports (
-       id, status, source_filename, source_sha256, sheet_name, template_type,
-       recipe_family_id, warning_count, actor_email, created_at,
-       operation_id, lease_expires_at
-     ) VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    importId,
-    workbook.name,
-    actualSha,
-    manifest.source.sheetName,
-    internalTemplateType,
-    recipeFamilyId,
-    manifest.warnings.length,
-    userEmail,
-    now,
-    importOperationId,
-    leaseExpiresAt,
-  ).run();
+  try {
+    const profile = await ensureR2BootstrapProfile(importDb, c.env, now);
+    const accepted = await acceptFabubloxImport(importDb, {
+      importId, operationId: importOperationId, requestId, requestSha256, requestInputJson,
+      actorEmail: userEmail, profileId: profile.id, profileRevision: profile.configurationRevision,
+      policyRevision: 1, sourceFilename: workbook.name, sourceSha256: actualSha,
+      sheetName: manifest.source.sheetName, templateType: internalTemplateType,
+      recipeFamilyId, warningCount: manifest.warnings.length, createdAt: now, leaseExpiresAt,
+    });
+    if (!accepted.owned) return replay(accepted.row);
+  } catch (error) { return acceptanceError(error); }
 
   let completedTemplateVersionId: string | null = null;
   let completedVersion: number | null = null;
@@ -174,8 +229,8 @@ routes.post("/imports/fabublox", async (c) => {
       image?: typeof manifest.images[number];
     };
     const candidates: Candidate[] = [
-      { kind: "workbook", localId: "workbook", originalName: workbook.name, mimeType: workbook.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: workbookBuffer, sha256: actualSha },
-      { kind: "manifest", localId: "manifest", originalName: "manifest.json", mimeType: "application/json", buffer: manifestBuffer, sha256: await digestSha256(manifestBuffer) },
+      { kind: "workbook", localId: "workbook", originalName: workbook.name, mimeType: workbookMimeType, buffer: workbookBuffer, sha256: actualSha },
+      { kind: "manifest", localId: "manifest", originalName: "manifest.json", mimeType: "application/json", buffer: manifestBuffer, sha256: manifestSha256 },
       ...imageInputs.map(({ image, file, buffer, sha256 }) => ({ kind: "image" as const, localId: image.localId, originalName: file.name, mimeType: file.type || image.mimeType, buffer, sha256, image })),
     ];
     const hashes = [...new Set(candidates.map((candidate) => candidate.sha256))];
@@ -424,7 +479,8 @@ routes.post("/imports/fabublox", async (c) => {
       finalizationDb.prepare(`
         UPDATE imports
         SET status = 'ready', workbook_asset_key = ?, manifest_asset_key = ?,
-            finalization_id = ?, completed_at = ?, lease_expires_at = NULL
+            finalization_id = ?, completed_at = ?, lease_expires_at = NULL,
+            accepted_result_json = ?
         WHERE id = ? AND status = 'pending' AND operation_id = ?
           AND template_version_id = ? AND lease_expires_at > ?
       `).bind(
@@ -432,6 +488,7 @@ routes.post("/imports/fabublox", async (c) => {
         manifestAsset.key,
         finalizationId,
         completedAt,
+        JSON.stringify({ id: importId, templateVersionId, version }),
         importId,
         importOperationId,
         templateVersionId,

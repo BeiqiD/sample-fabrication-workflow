@@ -6,7 +6,9 @@ import { crc32 } from "node:zlib";
 import JSZip from "jszip";
 import type { CompatibilitySchema, ExportTables, RetiredExportFields } from "../../shared/contracts/export";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
-import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9 } from "../../shared/contracts/export-protocol";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10 } from "../../shared/contracts/export-protocol";
+import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
+import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
 import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
 
 type Row = Record<string, string | number | null>;
@@ -185,7 +187,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && [7, 8, 9].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8, 9, 10].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -193,16 +195,20 @@ export async function restoreExportToIsolatedDirectory(options: {
     const migrationNames = (await readdir(options.migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort();
     ensure(migrationNames.length > 0, "No local migrations found");
     const migrations: Array<{ name: string; sha256: string }> = [];
-    // An old archive is first restored against the reviewed S2 baseline.
-    // Applying the additive dormant registry afterward is an explicit local
-    // forward upgrade, never an invented table snapshot under archive v7/v8.
-    const forwardNames = manifest.schemaVersion < 9
-      && canonical(migrationNames) === canonical(["0001_v3_baseline.sql", "0002_fp1_file_registry.sql"])
-      ? ["0002_fp1_file_registry.sql"] : [];
+    // Historical profiles first restore against their exact reviewed physical
+    // schema. Only this named chain admits the bounded forward transitions.
+    const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql"];
+    const knownChain = canonical(migrationNames) === canonical(reviewedChain)
+      || canonical(migrationNames) === canonical(reviewedChain.slice(0, 2));
+    const forwardNames = knownChain ? migrationNames.filter((name) =>
+      name === reviewedChain[1] && manifest.schemaVersion < 9
+      || name === reviewedChain[2] && manifest.schemaVersion < 10) : [];
     const forwardMigrations: Array<{ name: string; sha256: string; sql: string }> = [];
+    const migrationSql: string[] = [];
     for (const name of migrationNames) {
       const sql = await readFile(join(options.migrationsDirectory, name), "utf8");
       migrations.push({ name, sha256: hash(sql) });
+      migrationSql.push(sql);
       if (forwardNames.includes(name)) forwardMigrations.push({ name, sha256: hash(sql), sql });
       else database.exec(sql);
     }
@@ -254,7 +260,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       // has download URLs. Validate provenance against a reconstructed wire
       // plan here; the original archived blob catalog and bytes are checked
       // against that same table-derived plan below without dropping entries.
-      const validate = manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validate = manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
       const validated = await validate({ ...manifest, tables, artifacts, blobs: buildBlobExportPlan(tables) });
       retiredFields = validated.artifacts.retiredFields.value;
       tables = restoreCompatibilityRows(validated.tables, retiredFields, targetCompatibilitySchema);
@@ -385,21 +391,37 @@ export async function restoreExportToIsolatedDirectory(options: {
       database.exec("BEGIN IMMEDIATE");
       try {
         for (const migration of forwardMigrations) database.exec(migration.sql);
-        // The bounded forward migration creates only dormant empty metadata;
-        // old rows, relationships, retained bytes and observed provenance stay
-        // exactly as verified above. No job or provider action is replayed.
-        for (const name of tableNames) ensure(sameRows(database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[], tables[name]), `Forward migration changed recovered rows: ${name}`);
-        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
-          "Historical restore forward migration must leave file observations empty");
+        // Added acceptance fields are explicitly unknown on historical rows.
+        // All original cells, observations and byte roots remain unchanged.
+        const addsAcceptance = forwardNames.includes("0003_fp1_import_acceptance.sql");
+        for (const name of tableNames) {
+          const originalColumns = name === "imports" && addsAcceptance
+            ? sqliteTableColumns(expectedSchema.find((entry) => entry.type === "table" && entry.name === name)!.sql, name) : null;
+          const select = originalColumns ? originalColumns.map(identifier).join(", ") : "*";
+          ensure(sameRows(database.prepare(`SELECT ${select} FROM ${identifier(name)}`).all() as Row[], tables[name]),
+            `Forward migration changed recovered rows: ${name}`);
+        }
+        if (addsAcceptance) ensure(!database.prepare(`SELECT 1 FROM imports WHERE ${IMPORT_ACCEPTANCE_EXPORT_COLUMNS.map((name) => `${identifier(name)} IS NOT NULL`).join(" OR ")} LIMIT 1`).get(),
+          "Historical restore must leave import acceptance unknown");
+        if (forwardNames.includes("0002_fp1_file_registry.sql")) {
+          for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+            "Historical restore forward migration must leave file observations empty");
+        }
         ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Forward migration foreign-key check failed");
         ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
-        // Comparing the unchanged rows and complete old view SQL proves the
-        // same retention at any fixed clock. Do not compare two wall-clock
-        // projections: a valid retained edge may expire during this upgrade.
         const upgradedSchema = schema(database);
-        const registryNames = new Set(["storage_profiles", "files", "file_locations", "legacy_file_mappings"]);
-        ensure(canonical(upgradedSchema.filter((entry) => !registryNames.has(entry.tbl_name))) === canonical(expectedSchema),
-          "Historical restore forward migration changed the verified baseline schema");
+        // Every old view/index/trigger and non-import table keeps its SQL.
+        // In particular retention must remain identical at a fixed clock.
+        for (const entry of expectedSchema) {
+          if (addsAcceptance && entry.type === "table" && entry.name === "imports") continue;
+          ensure(upgradedSchema.some((current) => canonical(current) === canonical(entry)),
+            "Historical restore forward migration changed verified schema objects");
+        }
+        const reviewed = new DatabaseSync(":memory:");
+        try {
+          for (const sql of migrationSql) reviewed.exec(sql);
+          ensure(canonical(upgradedSchema) === canonical(schema(reviewed)), "Forward migration differs from the reviewed current schema");
+        } finally { reviewed.close(); }
         expectedSchema = upgradedSchema;
         database.exec("COMMIT");
       } catch (error) { database.exec("ROLLBACK"); throw error; }
@@ -407,7 +429,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const report = {
       kind: "isolated-versioned-export-rehearsal", schemaVersion: manifest.schemaVersion,
       targetCompatibilitySchema,
-      archiveProfile: manifest.schemaVersion === 9 ? manifest.archiveProfile : null,
+      archiveProfile: manifest.schemaVersion >= 9 ? manifest.archiveProfile : null,
       appliedForwardMigrations: forwardMigrations.map(({ name, sha256 }) => ({ name, sha256 })),
       originalArchivePath: "original-archive.zip",
       retainedArtifactPaths: retainedArtifacts.map((artifact) => artifact.path),

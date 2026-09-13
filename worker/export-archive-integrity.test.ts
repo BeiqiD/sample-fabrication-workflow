@@ -1,11 +1,15 @@
 import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
-import type { FullExportManifestV9 as FullExportManifest } from "../shared/contracts/export";
-import { buildFullExportArchiveV9 } from "../src/lib/exportAll";
+import type { FullExportManifestV10 as FullExportManifest } from "../shared/contracts/export";
+import { buildFullExportArchiveV10 } from "../src/lib/exportAll";
 import worker from "./index";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
+
+const IMPORT_NAMESPACE = JSON.stringify({
+  kind: "local-r2", installationId: "b72529f0-273b-4b72-9fc7-155a93461d83", bucketName: "fixture-assets",
+});
 
 const context = {
   waitUntil: () => undefined,
@@ -30,6 +34,7 @@ function localEnvironment(database: ReturnType<typeof referenceTestDatabase>) {
   });
   const env: Env = {
     AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
     DB: new SqliteD1Database(database) as unknown as D1Database,
     ASSETS: {
       get: read,
@@ -74,7 +79,7 @@ async function importImages(
   imageIds.forEach((id, index) => {
     form.set(`image:${id}`, new File([`synthetic image ${index}`], "image.png", { type: "image/png" }));
   });
-  const response = await request("/api/imports/fabublox", { method: "POST", body: form });
+  const response = await request("/api/imports/fabublox", { headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: form });
   expect(response.status, await response.clone().text()).toBe(201);
 }
 
@@ -88,10 +93,10 @@ describe("complete archive physical identity", () => {
       expect(stored.size).toBe(imageIds.length + 2); // workbook and import manifest
       read.mockClear();
 
-      const response = await request("/api/exports/all?archiveSchema=9&archiveWriter=1");
+      const response = await request("/api/exports/all?archiveSchema=10&archiveWriter=1");
       expect(response.status).toBe(200);
       const manifest = await response.json() as FullExportManifest;
-      const result = await buildFullExportArchiveV9(manifest, undefined,
+      const result = await buildFullExportArchiveV10(manifest, undefined,
         (async (url) => request(String(url))) as typeof fetch);
       expect(result.warnings).toEqual([]);
       expect(result.results).toHaveLength(stored.size);
@@ -101,7 +106,7 @@ describe("complete archive physical identity", () => {
 
       const zip = await JSZip.loadAsync(await result.archive.arrayBuffer());
       const archivedManifest = JSON.parse(await zip.file("export-manifest.json")!.async("string"));
-      expect(archivedManifest.schemaVersion).toBe(9);
+      expect(archivedManifest.schemaVersion).toBe(10);
       expect(archivedManifest.blobs).toEqual(result.results);
       expect(JSON.parse(await zip.file("export-warnings.json")!.async("string"))).toEqual([]);
       const paths = result.results.map((entry) => entry.path!);
@@ -124,7 +129,7 @@ describe("complete archive physical identity", () => {
       for (const [name, rows] of Object.entries(manifest.tables)) {
         expect(JSON.parse(await zip.file(archivedManifest.tables[name].path)!.async("string"))).toEqual(rows);
       }
-      const afterExport = await request("/api/exports/all?archiveSchema=9&archiveWriter=1");
+      const afterExport = await request("/api/exports/all?archiveSchema=10&archiveWriter=1");
       expect((await afterExport.json() as FullExportManifest).tables).toEqual(manifest.tables);
     } finally {
       database.close();
@@ -149,10 +154,10 @@ describe("complete archive physical identity", () => {
           VALUES (?, 'switchdrive', ?, ?, 'application/octet-stream', ?, ?, 'ready', '2026-09-13T00:00:00Z')`)
           .run(id, `managed/key-${index}`, filename, bytes.byteLength, await sha256Hex(buffer(bytes)));
       }
-      const response = await request("/api/exports/all?archiveSchema=9&archiveWriter=1");
+      const response = await request("/api/exports/all?archiveSchema=10&archiveWriter=1");
       expect(response.status).toBe(200);
       const manifest = await response.json() as FullExportManifest;
-      const result = await buildFullExportArchiveV9(manifest, undefined, (async (url) => {
+      const result = await buildFullExportArchiveV10(manifest, undefined, (async (url) => {
         const id = decodeURIComponent(String(url).split("/").at(-1)!);
         const bytes = bytesById.get(id);
         return bytes ? new Response(buffer(bytes)) : new Response("", { status: 404 });

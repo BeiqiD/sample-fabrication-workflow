@@ -43,6 +43,16 @@ In the Worker's **Settings → Builds → Variables and secrets**, add these Bui
 
 These identifiers are not credentials, so Build Variables are sufficient. The build generates `.wrangler/deploy.jsonc`, which is ignored by Git. Missing or malformed variables stop the build before migration or deployment; the generator never guesses or provisions a resource.
 
+The generator also pins the Cloudflare account and the R2 physical namespace for
+[durable import requests](./FP1_DURABLE_IMPORT_ACCEPTANCE.md). It reuses the standard
+`CLOUDFLARE_ACCOUNT_ID` (or legacy `CF_ACCOUNT_ID`) if supplied. Otherwise it runs
+the installed Wrangler's noninteractive `whoami --json` with the existing build
+authentication and accepts exactly one account. An ambiguous or unavailable
+account stops configuration; multi-account installations must supply the intended
+standard account variable. No additional login or credential is introduced.
+The generated `R2_BOOTSTRAP_NAMESPACE` runtime value contains only the account
+and bucket identity. Do not edit it independently of the actual R2 binding.
+
 Do not add deployment identifiers back to `wrangler.jsonc`. Do not commit authentication secrets, storage passwords, Access identifiers, generated configuration, or deployment hostnames.
 
 ## 3. Connect the fork to Cloudflare Workers Builds
@@ -64,7 +74,10 @@ In **Cloudflare Dashboard → Workers & Pages**:
 
 5. Under **Settings → Build → Branch control**, disable builds for non-production branches.
 
-The deploy command regenerates the configuration, applies D1 migrations with that file, and then deploys the Worker bundle and static assets produced by the Vite build. Because the commands are joined with `&&`, a failed migration prevents code that expects the new schema from being deployed.
+The deploy command runs the complete deployment gate, regenerates the configuration,
+and verifies that its account, Worker, D1, R2 bucket and namespace match the built
+Worker configuration before applying remote D1 migrations. It then deploys that
+Worker bundle and its static assets. A mismatch or failed migration stops deployment.
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
 

@@ -27,7 +27,10 @@ export const FULL_EXPORT_V8_TABLE_QUERIES = {
   state_verifications: "SELECT * FROM state_verifications ORDER BY sample_id, created_at, id",
   state_verification_steps: "SELECT * FROM state_verification_steps ORDER BY verification_id, ordinal",
   recipe_change_proposals: "SELECT * FROM recipe_change_proposals ORDER BY created_at, id",
-  imports: "SELECT * FROM imports ORDER BY created_at, id",
+  imports: `SELECT id, status, source_filename, source_sha256, sheet_name, template_type, recipe_family_id,
+    template_version_id, workbook_asset_key, manifest_asset_key, warning_count, error_message, actor_email,
+    created_at, completed_at, operation_id, lease_expires_at, finalization_id, recovery_operation_id
+    FROM imports ORDER BY created_at, id`,
   assets: "SELECT * FROM assets ORDER BY created_at, id",
   attachment_derivatives: `SELECT * FROM attachment_derivatives
     ORDER BY source_sha256, source_byte_size, derivative_kind, generator_version, id`,
@@ -50,10 +53,16 @@ export const FULL_EXPORT_V8_TABLE_QUERIES = {
 
 // Schema 9 classifies all four dormant, non-secret mapping tables as canonical
 // metadata. They neither add byte download roots nor authorize runtime writes.
-export const FULL_EXPORT_TABLE_QUERIES = {
+export const FULL_EXPORT_V9_TABLE_QUERIES = {
   ...FULL_EXPORT_V8_TABLE_QUERIES,
   storage_profiles: "SELECT * FROM storage_profiles ORDER BY id",
   files: "SELECT * FROM files ORDER BY id",
   file_locations: "SELECT * FROM file_locations ORDER BY id",
   legacy_file_mappings: "SELECT * FROM legacy_file_mappings ORDER BY file_id",
+} as const;
+
+// Schema 10 also preserves the durable import request and accepted result.
+export const FULL_EXPORT_TABLE_QUERIES = {
+  ...FULL_EXPORT_V9_TABLE_QUERIES,
+  imports: "SELECT * FROM imports ORDER BY created_at, id",
 } as const;

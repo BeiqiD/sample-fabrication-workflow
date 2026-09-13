@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -7,12 +8,12 @@ import { DatabaseSync } from "node:sqlite";
 import JSZip from "jszip";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
+import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
 import type { FullExportManifestV9 } from "../shared/contracts/export";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9 } from "../shared/contracts/export-protocol";
-import { api } from "../src/lib/api";
 import { buildFullExportArchiveV8, buildFullExportArchiveV9 } from "../src/lib/exportAll";
 import worker from "./index";
-import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
+import { seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
@@ -23,8 +24,15 @@ const context = { waitUntil: () => undefined, passThroughOnException: () => unde
 afterEach(() => vi.unstubAllGlobals());
 
 function fixture() {
-  const database = referenceTestDatabase();
+  const database = new DatabaseSync(":memory:");
+  for (const name of ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql"]) {
+    database.exec(readFileSync(join(migrationsDirectory, name), "utf8"));
+  }
   seedReferenceGraph(database);
+  database.prepare(`INSERT INTO imports (id, status, source_filename, source_sha256, sheet_name, template_type,
+    warning_count, actor_email, created_at, operation_id, error_message)
+    VALUES ('historical-import', 'failed', 'old.xlsx', ?, 'Sheet1', 'process', 2, 'old@example.com', ?,
+      'historical-operation', 'Retained historical failure')`).run("e".repeat(64), now);
   const provider = new Map<string, Uint8Array>();
   for (const asset of database.prepare("SELECT id, r2_key, byte_size FROM assets").all()) {
     const bytes = new Uint8Array(Number(asset.byte_size)).fill(Number(asset.byte_size));
@@ -57,13 +65,12 @@ function fixture() {
 }
 
 describe("v9 dormant file registry archive profile", () => {
-  it("negotiates the current browser contract and round-trips populated dormant observations and all legacy bytes", async () => {
+  it("retains the frozen historical browser contract and round-trips populated dormant observations and all legacy bytes", async () => {
     const f = fixture();
     const scratch = await mkdtemp(join(tmpdir(), "export-v9-"));
     try {
       vi.stubGlobal("fetch", f.fetcher);
-      const manifest = await api.getFullExport();
-      expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
+      const manifest = await f.manifest();
       expect(manifest).toMatchObject({ schemaVersion: 9, archiveWriter: 1, archiveProfile: "fp1-legacy-overlap" });
       expect(f.batch).toHaveBeenCalledTimes(1);
       expect(f.batch.mock.calls[0][0]).toHaveLength(Object.keys(manifest.tables).length + 3);
@@ -83,7 +90,7 @@ describe("v9 dormant file registry archive profile", () => {
       const archivePath = join(scratch, "v9.zip");
       await writeFile(archivePath, bytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
@@ -92,6 +99,9 @@ describe("v9 dormant file registry archive profile", () => {
           const target = database.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all();
           expect(target.map((row) => JSON.stringify(row)).sort()).toEqual(source.map((row) => JSON.stringify(row)).sort());
         }
+        const sourceImport = f.database.prepare("SELECT * FROM imports WHERE id = 'historical-import'").get()!;
+        const restoredImport = database.prepare("SELECT * FROM imports WHERE id = 'historical-import'").get()!;
+        expect(restoredImport).toEqual({ ...sourceImport, ...Object.fromEntries(IMPORT_ACCEPTANCE_EXPORT_COLUMNS.map((column) => [column, null])) });
         expect(() => database.exec("UPDATE files SET state = 'ready'")).toThrow();
       } finally { database.close(); }
       expect(await readFile(join(restored.restoredDirectory, "original-archive.zip"))).toEqual(bytes);
