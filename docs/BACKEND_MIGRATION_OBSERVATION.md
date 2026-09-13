@@ -1,9 +1,11 @@
 # Read-only D1 migration observations
 
 Status: local qualification of an input adapter for the read-only migration
-planner. No deployment command, package script, migration directory, provider
-binding or remote database changes in this slice. An observation is not migration
-or deployment authorization.
+planner. The separate [remote observation CLI](BACKEND_REMOTE_MIGRATION_OBSERVATION.md)
+has offline transport tests and actual local D1 parity; a real remote observation
+is still an operational gate. No deployment command, migration directory or
+provider binding is changed. An observation is not migration or deployment
+authorization.
 
 `observeD1Migrations(database)` in `scripts/d1-migration-observer.mjs` accepts a D1
 binding and returns the planner's `{ schema, ledger }` target input. The adapter
@@ -91,6 +93,10 @@ JSON was 338,984 bytes. These are fixture diagnostics, not production limits or 
 latency guarantee. The tests retain a dedicated 60-second budget for constructing
 and observing the complete real D1 fixture.
 
-This slice does not qualify remote transport, deployment serialization, recovery
-evidence, serving-version retirement, execution, or clean-baseline activation.
-Those remain separately reviewed implementation and operational gates.
+The binding adapter does not itself set up remote transport. Its companion
+[remote CLI](BACKEND_REMOTE_MIGRATION_OBSERVATION.md) preserves the validation
+contract while combining schema and ledger into a single SQL statement, because
+the REST documentation does not establish the binding batch's transaction
+guarantee. Real remote execution of that read, deployment serialization,
+recovery evidence, serving-version retirement, migration execution and
+clean-baseline activation remain separate operational or implementation gates.
