@@ -1,4 +1,4 @@
-import type { FullExportManifestV9 } from "../../shared/contracts/export";
+import type { FullExportManifestV10 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -10,8 +10,8 @@ import type {
   TemplateStepInput,
   MetrologyTemplateInput,
 } from "../../shared/contracts/template";
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
-import { compressLayerStackImage } from "./images";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import { submitFabubloxImport } from "./fabublox-import-client";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, init);
@@ -312,20 +312,8 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV9>("/exports/all?archiveSchema=9&archiveWriter=1"),
-  importFabublox: async (file: File, preview: FabubloxImportPreview, recipeFamilyId?: string) => {
-    const form = new FormData();
-    form.append("workbook", file, file.name);
-    const manifest = { ...preview, images: preview.images.map(({ data: _data, ...image }) => image), recipeFamilyId: recipeFamilyId || null };
-    form.append("manifest", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "manifest.json");
-    for (const image of preview.images) {
-      const sourceName = image.sourcePart.split("/").pop() || `${image.localId}.png`;
-      const source = new File([new Uint8Array(image.data)], sourceName, { type: image.mimeType });
-      const compressed = await compressLayerStackImage(source);
-      form.append(`image:${image.localId}`, compressed, compressed.name);
-    }
-    return request<{ id: string; templateVersionId: string; version: number }>("/imports/fabublox", { method: "POST", body: form });
-  },
+  getFullExport: () => request<FullExportManifestV10>("/exports/all?archiveSchema=10&archiveWriter=1"),
+  importFabublox: submitFabubloxImport,
 };
 
 export type {

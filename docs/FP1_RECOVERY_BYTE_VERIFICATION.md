@@ -52,7 +52,10 @@ a durable checksum-quarantine schema or a new automatic repair operation.
 
 No schema, archive format, profile/default, storage binding, credential or Cron
 change is part of this correction. The current schema 9 / writer 1 /
-`fp1-legacy-overlap` contract remains in force. ZIP-specific and browser ZIP
+`fp1-legacy-overlap` contract remains the FP1e release boundary. The subsequent
+[FP1f accepted-import slice](./FP1_DURABLE_IMPORT_ACCEPTANCE.md) advances current
+export/recovery to schema 10 / writer 1 / `fp1-import-acceptance` without changing
+this correction's byte verification guarantees. ZIP-specific and browser ZIP
 acceptance remain deferred at the owner's request. Mandatory existing restore
 regressions remain part of the normal gate.
 
@@ -74,11 +77,11 @@ still apply together. The audit identified these implementation requirements:
 | Forward schema | Rebuild the four FP1a tables under new constraints while preserving all original observations. Removing immutability triggers alone cannot change their dormant-state CHECK constraints. |
 | Typed consumers | Add explicit File foreign keys to relational occurrences and direct provenance/thumbnail roots. One `assets.file_id` cannot represent all purposes of a shared historical key. |
 | Shared legacy bytes | Preserve first observations; classify actual consumers. Different purposes need independent verified placements before becoming separately ready. Unclassified or unavailable sources retain their compatibility reads and retention holds. |
-| Accepted operations | Persist stable client retry identity, actor/scope, purpose, immutable input, destination profile and policy revision before dedup/I/O. Current per-request random FabuBlox operation IDs do not provide this retry contract. |
+| Accepted operations | FP1f now persists stable FabuBlox request identity, actor/scope, immutable input with purpose metadata and frozen profile/policy revision before dedup/I/O. Extend accepted operations to all File writers, with purpose-aware placement/dedup and guarded File publication; FabuBlox's legacy byte ownership is not that complete conversion. |
 | Dedup | Replace R2 global-SHA and managed provider/hash uniqueness together with complete consumer conversion. FabuBlox batch-local reuse must include purpose, scope, profile and size as well as hash. |
-| Namespace | Supply a trusted physical R2 account/bucket identity to runtime composition. Existing generated config knows the bucket name and D1 UUID, but neither establishes the R2 account namespace. Binding labels are insufficient. SWITCHdrive identity includes canonical endpoint/account/root, excluding the password. |
+| Namespace | FP1f supplies trusted physical R2 account/bucket identity from existing deployment credentials/configuration and freezes it for accepted FabuBlox requests and recovery. Complete File resolution must also bind every historical/new location to its exact instance. SWITCHdrive identity includes canonical endpoint/account/root, excluding the password. |
 | Reads and hashes | Preserve authorized business URLs such as Project content URLs. Change source guards that currently include `r2_key` to stable logical/content identities without changing research hash schemes. Comment original download paths must support both storage adapters. |
-| Recovery protocol | Introduce a new schema/profile with an exact catalog for active File/location/operation state. Keep V7/V8/V9 validators unchanged and restore each historical format before reviewed forward upgrades. Do not replay historical cleanup operations automatically. |
+| Recovery protocol | FP1f schema 10 / `fp1-import-acceptance` covers accepted import history while Files remain dormant. Active File/location authority will need its own exact schema/profile/catalog review. Preserve version-specific historical validators and restore each format before reviewed forward upgrades. Do not replay historical cleanup operations automatically. |
 
 Complete retention, quarantine, deletion fencing, recovery and compatibility
 coverage are required before enabling active File locations. R2 defaults for new

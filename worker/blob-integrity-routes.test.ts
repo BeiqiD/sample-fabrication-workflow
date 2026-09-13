@@ -13,6 +13,10 @@ import {
 } from "./reference-test-support";
 import type { Env } from "./types";
 
+const IMPORT_NAMESPACE = JSON.stringify({
+  kind: "local-r2", installationId: "b72529f0-273b-4b72-9fc7-155a93461d83", bucketName: "fixture-assets",
+});
+
 const executionContext = {
   waitUntil: () => undefined,
   passThroughOnException: () => undefined,
@@ -142,6 +146,7 @@ describe("quarantine-aware live delivery", () => {
       key === "reference/private/execution.png" ? r2Object(bytes, "image/png") : null);
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: new SqliteD1Database(database) as unknown as D1Database,
       ASSETS: { get } as unknown as R2Bucket,
     } satisfies Env;
@@ -214,6 +219,7 @@ describe("quarantine-aware live delivery", () => {
     vi.stubGlobal("fetch", fetchMock);
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: new SqliteD1Database(database) as unknown as D1Database,
       ASSETS: {} as R2Bucket,
       MANAGED_STORAGE_PROVIDER: "switchdrive",
@@ -262,6 +268,7 @@ describe("quarantine-aware live delivery", () => {
     `);
     const env = {
       AUTH_MODE: 'disabled',
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: new SqliteD1Database(database) as unknown as D1Database,
       ASSETS: {} as R2Bucket,
     } satisfies Env;
@@ -305,6 +312,7 @@ describe("quarantine-aware live delivery", () => {
     });
     const env = {
       AUTH_MODE: 'disabled',
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: d1 as unknown as D1Database,
       ASSETS: {} as R2Bucket,
     } satisfies Env;
@@ -375,6 +383,7 @@ describe("FabuBlox storage winner recovery", () => {
     });
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: d1 as unknown as D1Database,
       ASSETS: {
         put,
@@ -423,7 +432,7 @@ describe("FabuBlox storage winner recovery", () => {
 
     const response = await worker.fetch(new Request(
       "https://app.test/api/imports/fabublox",
-      { method: "POST", body: form },
+      { headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: form },
     ), env, executionContext);
     expect(response.status).toBe(201);
     expect(injected).toBe(true);
@@ -500,6 +509,7 @@ describe("FabuBlox storage winner recovery", () => {
     });
     const env = {
       AUTH_MODE: 'disabled',
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: d1 as unknown as D1Database,
       ASSETS: {
         put,
@@ -545,7 +555,7 @@ describe("FabuBlox storage winner recovery", () => {
 
     const importResponsePromise = worker.fetch(new Request(
       'https://app.test/api/imports/fabublox',
-      { method: 'POST', body: form },
+      { headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: 'POST', body: form },
     ), env, executionContext);
     await finalizationCommitted;
 
@@ -634,6 +644,7 @@ describe("FabuBlox storage winner recovery", () => {
     });
     const env = {
       AUTH_MODE: 'disabled',
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: d1 as unknown as D1Database,
       ASSETS: {
         put,
@@ -679,7 +690,7 @@ describe("FabuBlox storage winner recovery", () => {
 
     const importResponsePromise = worker.fetch(new Request(
       'https://app.test/api/imports/fabublox',
-      { method: 'POST', body: form },
+      { headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: 'POST', body: form },
     ), env, executionContext);
     await metadataReached;
     const pendingImport = database.prepare(`
@@ -793,6 +804,7 @@ describe("FabuBlox storage winner recovery", () => {
     });
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: d1 as unknown as D1Database,
       ASSETS: {
         put,
@@ -849,7 +861,7 @@ describe("FabuBlox storage winner recovery", () => {
 
     const firstImportPromise = worker.fetch(new Request(
       "https://app.test/api/imports/fabublox",
-      { method: "POST", body: importForm() },
+      { headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: importForm() },
     ), env, executionContext);
     await finalizationReached;
 
@@ -977,7 +989,7 @@ describe("FabuBlox storage winner recovery", () => {
 
     const retry = await worker.fetch(new Request(
       "https://app.test/api/imports/fabublox",
-      { method: "POST", body: importForm() },
+      { headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: importForm() },
     ), env, executionContext);
     expect(retry.status).toBe(201);
     const retried = await retry.json() as { id: string; templateVersionId: string; version: number };
@@ -1153,6 +1165,7 @@ describe("FabuBlox verified byte publication", () => {
     const remove = vi.fn(async (key: string) => { stored.delete(key); });
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: options.databaseAdapter ?? new SqliteD1Database(database) as unknown as D1Database,
       ASSETS: {
         put, get, delete: remove,
@@ -1172,7 +1185,7 @@ describe("FabuBlox verified byte publication", () => {
     const fixture = storageFixture(database);
     const { form } = await importForm(6);
     const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
-      method: "POST", body: form,
+      headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: form,
     }), fixture.env, executionContext);
     expect(response.status).toBe(201);
     expect(fixture.put).toHaveBeenCalledTimes(8);
@@ -1194,7 +1207,7 @@ describe("FabuBlox verified byte publication", () => {
       const fixture = storageFixture(database, { failure });
       const { form } = await importForm();
       const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
-        method: "POST", body: form,
+        headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: form,
       }), fixture.env, executionContext);
       expect(response.status).toBe(503);
       expect(await response.text()).not.toContain("secret provider");
@@ -1233,7 +1246,7 @@ describe("FabuBlox verified byte publication", () => {
       const fixture = storageFixture(database, options);
       const { form } = await importForm();
       const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
-        method: "POST", body: form,
+        headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: form,
       }), fixture.env, executionContext);
       expect(response.status).toBe(503);
       expect(await response.text()).not.toContain("secret provider");
@@ -1321,7 +1334,7 @@ describe("FabuBlox verified byte publication", () => {
         stored, databaseAdapter: adapter as unknown as D1Database,
       });
       const response = await worker.fetch(new Request("https://app.test/api/imports/fabublox", {
-        method: "POST", body: form,
+        headers: { "X-Import-Request-Id": crypto.randomUUID() }, method: "POST", body: form,
       }), fixture.env, executionContext);
       expect(response.status).toBe(503);
       expect(fixture.get).toHaveBeenCalledWith(key);
@@ -1377,6 +1390,7 @@ describe("ordinary asset registration reconciliation", () => {
     });
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: IMPORT_NAMESPACE,
       DB: d1 as unknown as D1Database,
       ASSETS: {
         put,

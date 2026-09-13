@@ -38,6 +38,7 @@ describe("deployment routing", () => {
 
   it("keeps installation-specific deployment values out of version control", () => {
     expect(configuration).not.toHaveProperty("name");
+    expect(configuration).not.toHaveProperty("account_id");
     expect(configuration).not.toHaveProperty("workers_dev");
     expect(configuration.routes).toBeUndefined();
     expect(configuration.vars).toBeUndefined();
@@ -57,6 +58,7 @@ describe("deployment routing", () => {
       execFileSync(process.execPath, [script, "--output", output], {
         cwd: projectRoot,
         env: {
+          CLOUDFLARE_ACCOUNT_ID: "0123456789abcdef0123456789abcdef",
           DEPLOY_WORKER_NAME: "example-worker",
           DEPLOY_D1_DATABASE_NAME: "example-database",
           DEPLOY_D1_DATABASE_ID: "12345678-1234-4234-8234-123456789abc",
@@ -70,7 +72,10 @@ describe("deployment routing", () => {
       expect(generated.name).toBe("example-worker");
       expect(generated.workers_dev).toBe(true);
       expect(generated.keep_vars).toBe(true);
-      expect(generated.vars).toBeUndefined();
+      expect(generated.account_id).toBe("0123456789abcdef0123456789abcdef");
+      expect(generated.vars).toEqual({ R2_BOOTSTRAP_NAMESPACE: JSON.stringify({
+        kind: "cloudflare-r2", accountId: generated.account_id, bucketName: "example-assets",
+      }) });
       expect(generated.d1_databases).toMatchObject([
         {
           binding: "DB",

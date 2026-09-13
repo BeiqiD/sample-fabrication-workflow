@@ -10,11 +10,16 @@ current writes and selected reuse; [FP1d](./FP1_FENCED_BYTE_DELETION.md) adds bo
 deletion and fenced GC reconciliation without releasing uncertain deletion
 claims. [FP1e](./FP1_RECOVERY_BYTE_VERIFICATION.md) closes the complete-byte
 verification gap in independently invoked import recovery and its canonical
-replacement selection. File authority remains dormant. FP1 remains incomplete; no deployment
-is certified by this document.
+replacement selection. [FP1f](./FP1_DURABLE_IMPORT_ACCEPTANCE.md) now adds durable
+FabuBlox request acceptance, original-result replay and frozen R2 namespace
+composition, with schema 10 export/recovery. File/location authority remains
+dormant and legacy global-SHA deduplication still applies. FP1 remains incomplete;
+no deployment is certified by this document.
 
-Last reviewed: 2026-09-13 against `v2/backend-foundation` at
+Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
+FP1f implementation base: `9f1ac38` (merged PR #212), 2026-09-13; its implementation
+PR records final verification and deployment evidence.
 
 ## Authority and reading order
 
@@ -63,8 +68,10 @@ works. R2 default behavior requires new non-empty live acceptance; no default
 change retroactively qualifies the old SWITCHdrive path. The new track is an
 intentional product/schema change, separate from behavior-preserving Phase 6A.
 
-The original design PR changed no runtime state. Implementation now starts with
-the explicitly bounded FP1a slice; it changes no live data or maintenance controls.
+The original design PR changed no runtime state. FP1a–FP1f introduce bounded
+forward schema, transport, recovery and accepted-import slices; the complete
+File/location authority transition remains open. FP1f captures a historical R2
+profile on first accepted import without changing the storage binding or defaults.
 The earlier disposable-reset authorization is not a standing reset
 strategy for FP. Keep the recorded Builds/Cron holds and their release owner
 visible until an accepted operational handoff; this plan neither releases them
@@ -75,6 +82,13 @@ nor establishes that they are still present through a fresh live check.
 Each FP milestone may contain several focused PRs. Every implementation starts
 from the latest integration head, preserves a usable frontend and carries its
 affected schema, export/restore, file-lifecycle and authorization checks.
+
+The current accepted-operation protocol applies to FabuBlox imports. Its request
+snapshot binds source/illustration purposes and a frozen physical destination,
+but does not replace legacy deduplication or satisfy the File publication contract
+for other writers. The [FP1f handoff](./FP1_DURABLE_IMPORT_ACCEPTANCE.md#qualification-and-remaining-file-authority-work)
+identifies the consumer, lifecycle and placement conversion that still needs to
+ship together before relaxing FP1a's dormant-state restrictions.
 
 | Milestone | Deliverable | Exit evidence |
 |---|---|---|

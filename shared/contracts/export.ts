@@ -1,8 +1,10 @@
 import type { FullExportBlobEntry } from "./types";
 
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V8 = 8 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = 9 as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-legacy-overlap" as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V9 = 9 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = 10 as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-import-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -61,6 +63,13 @@ export interface FullExportManifestV8 {
 // The first file schema is dormant metadata: existing locators own reads,
 // writes and retention until the separate runtime conversion is qualified.
 export interface FullExportManifestV9 extends Omit<FullExportManifestV8, "schemaVersion"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V9;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V9;
+}
+
+// Import acceptance remains on the existing import operation; File authority
+// is still dormant. The new profile preserves the immutable retry decision.
+export interface FullExportManifestV10 extends Omit<FullExportManifestV8, "schemaVersion"> {
   schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA;
   archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE;
 }
