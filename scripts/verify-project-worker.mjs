@@ -400,5 +400,5 @@ try {
 } finally {
   if (miniflare) await miniflare.dispose();
   await delay(500);
-  await rm(scratch, { recursive: true, force: true });
+  await rm(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
