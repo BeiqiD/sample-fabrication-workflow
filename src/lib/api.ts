@@ -1,3 +1,14 @@
+import type {
+  TemplateRecord,
+  ProcessTemplateVersionSummary,
+  ProcessTemplateFamilySummary,
+  ProcessTemplateFamilyOption,
+  MetrologyTemplateSummary,
+  TemplateDetail,
+  MetrologyTemplateReference,
+  TemplateStepInput,
+  MetrologyTemplateInput,
+} from "../../shared/contracts/template";
 import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { compressLayerStackImage } from "./images";
 
@@ -316,108 +327,15 @@ export const api = {
   },
 };
 
-export interface TemplateRecord {
-  id: string;
-  recipeFamilyId: string;
-  name: string;
-  templateType: "process" | "module" | "recipe";
-  templateKind: "process" | "metrology";
-  version: number;
-  manifestHash: string;
-  sourceFilename: string | null;
-  stepCount: number;
-  toolName: string | null;
-  parametersText: string | null;
-  commentsText: string | null;
-  initialStateHash: string | null;
-  initialStateImageKeys: string[];
-  initialSubstrateStep: FabubloxImportPreview["initialSubstrateStep"];
-  locked: boolean;
-  lockedAt: string | null;
-  createdAt: string;
-}
-
-export interface ProcessTemplateVersionSummary {
-  id: string;
-  recipeFamilyId: string;
-  name: string;
-  templateType: "process" | "module" | "recipe";
-  version: number;
-  sourceFilename: string | null;
-  stepCount: number;
-  initialStateHash: string | null;
-  hasInitialSubstrateStep: boolean;
-  initialStateImageCount: number;
-  locked: boolean;
-  createdAt: string;
-}
-
-export interface ProcessTemplateFamilySummary {
-  recipeFamilyId: string;
-  name: string;
-  templateType: ProcessTemplateVersionSummary["templateType"];
-  latestVersion: number;
-  versionCount: number;
-  latest: ProcessTemplateVersionSummary;
-}
-
-export interface ProcessTemplateFamilyOption {
-  recipeFamilyId: string;
-  name: string;
-  latestVersion: number;
-}
-
-export interface MetrologyTemplateSummary {
-  id: string;
-  name: string;
-  toolName: string | null;
-  hasDefaultContent: boolean;
-  createdAt: string;
-}
-
-export interface TemplateStepRecord {
-  id: string;
-  logicalStepKey: string;
-  definitionHash: string;
-  expectedStateHash: string | null;
-  position: number;
-  sourceRow: number | null;
-  stepNumber: string | null;
-  sectionName: string | null;
-  name: string;
-  toolName: string | null;
-  parametersText: string | null;
-  commentsText: string | null;
-  imageKeys: string[];
-}
-
-export interface TemplateDetail extends Omit<TemplateRecord, "stepCount"> {
-  archived: boolean;
-  metrologyNotes: string | null;
-  referenceAttachments: MetrologyTemplateReference[];
-  steps: TemplateStepRecord[];
-}
-
-export interface MetrologyTemplateReference {
-  id: string;
-  filename: string;
-  mimeType: string;
-  byteSize: number;
-  assetKey: string;
-  createdAt: string;
-}
-
-export interface TemplateStepInput {
-  name: string;
-  toolName: string;
-  parametersText: string;
-  commentsText: string;
-  assetKey?: string;
-}
-
-export interface MetrologyTemplateInput {
-  name: string;
-  toolName: string;
-  parametersText: string;
-  commentsText: string;
-}
+export type {
+  TemplateRecord,
+  ProcessTemplateVersionSummary,
+  ProcessTemplateFamilySummary,
+  ProcessTemplateFamilyOption,
+  MetrologyTemplateSummary,
+  TemplateStepRecord,
+  TemplateDetail,
+  MetrologyTemplateReference,
+  TemplateStepInput,
+  MetrologyTemplateInput,
+} from "../../shared/contracts/template";

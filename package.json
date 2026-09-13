@@ -63,7 +63,7 @@
     "test:project-map-performance-mounted": "vitest run --config vitest.mounted.config.ts src/project-map-performance.mount.test.tsx",
     "verify:project-map-performance": "npm run test:project-map-performance && npm run test:project-map-performance-mounted && npm run build && node scripts/verify-project-map-bundle.mjs",
     "test:source": "vitest run",
-    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs",
+    "test:verification-scripts": "node --test scripts/commit-status.test.mjs scripts/verification.test.mjs scripts/project-map-bundle.test.mjs scripts/shared-boundary.test.mjs && node scripts/verify-shared-boundary.mjs",
     "test:project-map-bundle": "node scripts/verify-project-map-bundle.mjs",
     "verify:project-worker-artifact": "node scripts/verify-project-worker.mjs --production-artifact",
     "verify:ci": "node scripts/run-verification.mjs --mode ci"

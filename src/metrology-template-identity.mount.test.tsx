@@ -8,8 +8,7 @@ function template(id: string): TemplateDetail {
   return {
     id, recipeFamilyId: `${id}-family`, name: `Template ${id}`,
     templateType: "module", templateKind: "metrology", version: 1,
-    manifestHash: `${id}-manifest`, sourceFilename: null, toolName: null,
-    parametersText: null, commentsText: null, initialStateHash: null,
+    manifestHash: `${id}-manifest`, sourceFilename: null, initialStateHash: null,
     initialStateImageKeys: [], initialSubstrateStep: null, locked: false,
     lockedAt: null, createdAt: "2026-09-12T00:00:00.000Z", archived: false,
     metrologyNotes: `Server notes ${id}`, referenceAttachments: [],

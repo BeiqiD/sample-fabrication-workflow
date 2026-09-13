@@ -1,4 +1,4 @@
-import { normalizedStepName } from "./content-addressing";
+import { normalizedStepName } from "../../shared/domain/content-addressing";
 
 export interface ExistingPlanSlot {
   id: string;

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { DEFAULT_SAMPLE_STATUS, isSampleStatus, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRunStepInput, type CreateStateVerificationInput, type DeleteRunInput, type FinishProcessRunInput, type RunStepAssetPresentationInput, type SampleStatus, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput } from "../../shared/types";
 import { hashStepDefinition, stableJson, STEP_HASH_SCHEME } from "../../shared/content-addressing";
-import { alignFuturePlan } from "../../shared/plan-alignment";
+import { alignFuturePlan } from "./plan-alignment";
 import { isCanonicalMimeType } from "../../shared/mime-type";
 import { bulkInsertStatements } from "../d1-bulk";
 import { insertionPosition } from "../run-position";
