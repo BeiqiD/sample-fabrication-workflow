@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
+import { FILE_AUTHORITY_CONSUMER_COLUMNS } from "../shared/contracts/export-file-authority";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { CompatibilitySchema, ExportRow, ExportTables, FullExportManifestV8, RetiredExportFields } from "../shared/contracts/export";
 import type { FullExportManifest } from "../shared/contracts/types";
@@ -145,6 +146,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         { name: "0004_r2_upload_acceptance.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0004_r2_upload_acceptance.sql"), "utf8"))) },
         { name: "0005_metrology_reference_acceptance.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0005_metrology_reference_acceptance.sql"), "utf8"))) },
         { name: "0006_comment_acceptance.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0006_comment_acceptance.sql"), "utf8"))) },
+        { name: "0007_fp1_file_authority_transition.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0007_fp1_file_authority_transition.sql"), "utf8"))) },
       ]);
     } else expect(result.report.appliedForwardMigrations).toEqual([]);
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite"));
@@ -156,6 +158,9 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
           const copy = { ...row };
           if (name === "imports" && migrationsDirectory === join(root, "migrations")) {
             for (const column of IMPORT_ACCEPTANCE_EXPORT_COLUMNS) copy[column] = null;
+          }
+          if (migrationsDirectory === join(root, "migrations") && name in FILE_AUTHORITY_CONSUMER_COLUMNS) {
+            for (const column of FILE_AUTHORITY_CONSUMER_COLUMNS[name as keyof typeof FILE_AUTHORITY_CONSUMER_COLUMNS]) copy[column] = null;
           }
           if (name === "samples" && target === "S2") delete copy.process_revision;
           if (name === "run_step_comments") {

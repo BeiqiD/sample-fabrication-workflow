@@ -287,14 +287,19 @@ authorize or reconstruct records. Do not fetch arbitrary embedded URLs as import
 Preserve pinned v7/v8 offline recovery tests and known archive fixtures. New schema
 support requires an explicit versioned converter and qualification; old backups must
 not silently inherit new field meanings. Existing recovery provenance remains intact.
-The [v8 protocol](./FULL_EXPORT_V8.md) remains its historical/current contract until
-a successor is implemented. Native website acceptance of old backups is not claimed.
+The [v8 protocol](./FULL_EXPORT_V8.md) remains its frozen historical contract.
+Current complete export uses schema 14, writer 1, profile
+`fp1-file-authority-transition`; its additive authority state remains in immutable
+`legacy` mode and recovery does not run conversion or provider I/O. Native website
+acceptance of old backups is not claimed.
 
 ## 12. Delivery and acceptance
 
-- **FP0:** approve this design, the file architecture, and the implementation plan.
-- **FP1:** universal file identities/locations, Registry, deployment defaults, and
-  basic Settings establish the file-resolution contract consumed by export.
+- **FP0 (complete):** this design, the file architecture, and the implementation
+  plan were reviewed and merged in PR #207.
+- **FP1 (in progress):** universal file identities/locations, Registry,
+  deployment defaults, and basic Settings establish the file-resolution contract
+  consumed by export.
 - **FP2:** external configuration, S3, administration, and secret handling establish
   the destination configuration and privilege boundaries.
 - **FP3:** durable jobs and all-file migration supply transfer, verification,

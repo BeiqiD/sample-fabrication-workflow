@@ -2,6 +2,7 @@ import type { CompatibilitySchema, ExportCell, ExportRow, ExportTables, Observed
 
 const sampleColumns = ["id", "code", "title", "description", "status", "location", "parent_id", "pinned", "process_revision", "created_by", "updated_by", "last_mutation_id", "created_at", "updated_at", "inherited_state_hash", "deleted_at", "deleted_by"];
 const occurrenceColumns = ["id", "run_step_id", "scope", "operation_group_id", "body", "asset_id", "actor_email", "created_at", "submission_id", "updated_at", "updated_by", "deleted_at", "deleted_by", "asset_deleted_at", "asset_deleted_by", "last_mutation_id", "deletion_operation_id", "asset_deletion_operation_id"];
+export type ExportCompatibilityProfile = "legacy" | "file-authority-v14";
 
 function ensure(value: unknown, message: string): asserts value {
   if (!value) throw new Error(`Export compatibility rejected: ${message}`);
@@ -17,6 +18,12 @@ export function exportCompatibilityColumns(schema: CompatibilitySchema) {
     ],
   };
 }
+function profiledCompatibilityColumns(schema: CompatibilitySchema, profile: ExportCompatibilityProfile) {
+  const columns = exportCompatibilityColumns(schema);
+  return profile === "file-authority-v14"
+    ? { ...columns, run_step_comments: [...columns.run_step_comments, "file_id"] }
+    : columns;
+}
 function inspectRows(rows: ExportRow[] | undefined, columns: string[], name: string) {
   ensure(Array.isArray(rows), `missing ${name} rows`);
   const ids = new Set<string>();
@@ -30,9 +37,9 @@ function inspectRows(rows: ExportRow[] | undefined, columns: string[], name: str
   return rows;
 }
 
-export function classifyExportCompatibilitySchema(columns: ObservedExportSchema["compatibilityColumns"]): CompatibilitySchema {
+export function classifyExportCompatibilitySchema(columns: ObservedExportSchema["compatibilityColumns"], profile: ExportCompatibilityProfile = "legacy"): CompatibilitySchema {
   for (const schema of ["S0", "S1", "S2"] as const) {
-    const expected = exportCompatibilityColumns(schema);
+    const expected = profiledCompatibilityColumns(schema, profile);
     if (sameKeys(columns.samples, expected.samples) && sameKeys(columns.run_step_comments, expected.run_step_comments)) return schema;
   }
   throw new Error("Export compatibility rejected: unrecognized physical compatibility columns");
@@ -49,9 +56,9 @@ function retired<T extends ExportCell>(rows: ExportRow[], key: string, present: 
 
 // Pure projection only: the caller owns the single database snapshot and the
 // artifact hashes. No retired value is inferred, defaulted or repaired here.
-export function projectCompatibilitySnapshot(tables: ExportTables, sourceSchema: Pick<ObservedExportSchema, "compatibilityColumns">) {
-  const schema = classifyExportCompatibilitySchema(sourceSchema.compatibilityColumns);
-  const columns = exportCompatibilityColumns(schema);
+export function projectCompatibilitySnapshot(tables: ExportTables, sourceSchema: Pick<ObservedExportSchema, "compatibilityColumns">, profile: ExportCompatibilityProfile = "legacy") {
+  const schema = classifyExportCompatibilitySchema(sourceSchema.compatibilityColumns, profile);
+  const columns = profiledCompatibilityColumns(schema, profile);
   const samples = inspectRows(tables.samples, columns.samples, "samples");
   const occurrences = inspectRows(tables.run_step_comments, columns.run_step_comments, "run_step_comments");
   const retiredFields: RetiredExportFields = {
@@ -92,10 +99,10 @@ function restoreField<T extends ExportCell>(field: RetiredExportField<T>, rows: 
 
 // Used by an isolated recovery tool after validating archive inventory,
 // artifacts, hashes and the explicitly selected target schema fingerprint.
-export function restoreCompatibilityRows(tables: ExportTables, retiredFields: RetiredExportFields, target: CompatibilitySchema): ExportTables {
+export function restoreCompatibilityRows(tables: ExportTables, retiredFields: RetiredExportFields, target: CompatibilitySchema, profile: ExportCompatibilityProfile = "legacy"): ExportTables {
   ensure(["S0", "S1", "S2"].includes(target), "unknown recovery target");
   ensure(retiredFields?.version === 1, "unsupported retired-field evidence");
-  const logicalColumns = exportCompatibilityColumns("S2");
+  const logicalColumns = profiledCompatibilityColumns("S2", profile);
   const samples = inspectRows(tables.samples, logicalColumns.samples, "samples");
   const occurrences = inspectRows(tables.run_step_comments, logicalColumns.run_step_comments, "run_step_comments");
   for (const row of occurrences) ensure(row.submission_id === null ? typeof row.legacy_body === "string" : typeof row.submission_id === "string" && row.submission_id.length > 0 && row.legacy_body === null, "invalid operational Comment text ownership");

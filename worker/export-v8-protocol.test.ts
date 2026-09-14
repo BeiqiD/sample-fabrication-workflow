@@ -50,7 +50,9 @@ function fixture() {
 }
 
 describe("negotiated v8 API, browser archive writer and isolated recovery", () => {
-  it.each(["", "?archiveSchema=7&archiveWriter=1", "?archiveSchema=8", "?archiveSchema=8&archiveWriter=2", "?archiveSchema=8&archiveWriter=1&archiveWriter=1", "?archiveSchema=8&archiveWriter=1&extra=1"])("rejects an old or unsupported writer request before any snapshot: %s", async (query) => {
+  it.each(["", "?archiveSchema=7&archiveWriter=1", "?archiveSchema=8", "?archiveSchema=8&archiveWriter=2", "?archiveSchema=8&archiveWriter=1&archiveWriter=1", "?archiveSchema=8&archiveWriter=1&extra=1",
+    ...[9, 10, 11, 12, 13, 14].map((version) => `?archiveSchema=${version}&archiveWriter=1`),
+  ])("rejects an old or unsupported writer request before any snapshot: %s", async (query) => {
     const f = fixture();
     try {
       const legacyWriter = vi.fn(buildFullExportArchive);
@@ -77,7 +79,9 @@ describe("negotiated v8 API, browser archive writer and isolated recovery", () =
       expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
       expect(f.batch).toHaveBeenCalledTimes(1);
       expect(f.batch.mock.calls[0][0]).toHaveLength(Object.keys(manifest.tables).length + 3);
-      expect(f.d1.queryCount).toBe(Object.keys(manifest.tables).length + 3);
+      // One route-level generation probe prevents every historical archive
+      // writer from snapshotting a different physical migration generation.
+      expect(f.d1.queryCount).toBe(Object.keys(manifest.tables).length + 4);
       expect(manifest.artifacts.retiredFields.value.samplesProcessRevision.values).toContainEqual({ id: "reference-sample-a", value: 37 });
       const result = await buildFullExportArchiveV8(manifest, undefined, f.fetcher);
       expect(result.warnings).toEqual([]);

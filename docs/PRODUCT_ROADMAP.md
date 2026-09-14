@@ -2,8 +2,9 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-13 at the documentation-planning checkpoint after PR #206
-(`4e78fa76b727f81b1431b60ff481bd686d83cb4c`). PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-14 for the additive File-authority transition based on the
+exact merged PR #219 head
+(`7e63a366663c47c830120abc77af1d174abaf5aa`). PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise are recorded, but do not establish
 non-empty file round-trip or full interactive acceptance. SWITCHdrive originals
@@ -26,8 +27,11 @@ verification, durable FabuBlox acceptance, the read-only consumer-conversion pla
 [metrology reference publication](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md).
 [FP1j Comment acceptance](./FP1_COMMENT_ACCEPTANCE.md) adds immutable inputs,
 original/preview upload ownership, cancellation fencing and atomic multi-target
-publication. The combined File transition remains open. FP1 is still in progress and
-no deployment is authorized by this document.
+publication. FP1a–FP1j are merged through PR #219. The
+[FP1k additive transition substrate](./FP1_FILE_AUTHORITY_TRANSITION.md) adds
+migration `0007` and schema-14 recovery while keeping authority mode immutably
+`legacy`; runtime File authority, R2 defaults and Settings remain open. FP1 is
+still in progress and no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -44,7 +48,7 @@ The behavior-preserving architecture cleanup, schema-baseline replacement, and
 release handoff are defined in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 
-## Backend-first and file/data-portability order — 2026-09-13
+## Backend-first and file/data-portability order — 2026-09-14
 
 The user has paused new frontend refinement and requested a documentation PR for
 systematic file storage, Settings, migration, readable/portable export and website
@@ -66,7 +70,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | FP1a–FP1j supply dormant identities, verified bytes/deletion/recovery, a consumer-conversion plan, accepted imports/uploads and metrology/Comment publication with v13 recovery. Next: the combined File consumer/lifecycle transition, then R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | FP1a–FP1j are merged through #219. FP1k adds an old-business-path-compatible `0007`/schema-14 substrate in immutable `legacy` mode, without runtime authority; the migration-first complete-export window still requires the V14 Worker. Next: the shadow writer/resolver and conversion ledger, then atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -890,28 +894,37 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Open **FP0 as a documentation-only Draft PR** for the user's review. Align the
-   [implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md), current
-   architecture contracts and this roadmap. Do not implement, merge or deploy
-   the proposed capabilities as part of that review task.
-2. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
+1. Review the **FP1k additive authority substrate**: migration `0007`, complete
+   archive schema 14 / writer 1 / `fp1-file-authority-transition`, typed consumer
+   slots and conversion metadata. It must install only immutable `legacy` mode;
+   it does not route runtime reads/writes/lifecycle, change defaults, expose
+   Settings, contact providers or activate authority.
+2. In the next PR, implement the **shadow writer/resolver and conversion ledger**
+   across every current consumer and writer. Re-read and fence the live baseline,
+   acquire durable holds, verify complete source and destination bytes, and create
+   independent placements when one legacy locator has cross-purpose consumers.
+   Keep legacy runtime authority and do not present this as final cutover.
+3. Only after complete catch-up and invariant qualification, propose a separately
+   reviewed **atomic authority activation** that fences old Workers and switches
+   reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
+   recovery together. Compatibility retirement remains a later explicit step.
+4. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
    non-empty/interactive acceptance. Keep #199/#200 inactive. No repeat reset or
    unreferenced-file cleanup follows from this plan. The activation checkpoint
    continues to own operator follow-up and temporary control restoration.
-3. **After design review**, implement FP1 then FP2 in focused PRs. Separate actual
-   storage-profile identity from provider type; establish provider-neutral files
-   for every persistent file class and both R2 role defaults. Add Settings,
-   authorized external configuration, encrypted secrets and S3 without requiring
-   SWITCHdrive credentials for development.
-4. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
+5. Finish FP1 with explicit Cloudflare R2 defaults for both roles and basic
+   authenticated storage status/Settings. Then implement **FP2** external
+   configuration, administrator and encrypted-secret boundaries, and S3 without
+   requiring SWITCHdrive credentials for development.
+6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
    exits. Do not ship an export-only native format or claim backup completeness
    from a zero-file exercise. Maintain current exporter/recovery and GC coverage
    throughout the model transition, not only at the final stage.
-5. Reconcile remaining late **6A6/S2 acceptance** against the deployed version and
+7. Reconcile remaining late **6A6/S2 acceptance** against the deployed version and
    enabled provider scope. Keep untested SWITCHdrive cases explicitly blocked;
    do not pass them by changing the default. Resume **C4**, then **5D → 5E → 5F**
    under the scope split above. Focused correctness repairs can occur throughout.
-6. Run **6B** against the final integrated result. Schedule complete
+8. Run **6B** against the final integrated result. Schedule complete
    **Docker/Node + SQLite + local** support as a later portability milestone,
    with actual cross-deployment package/restore verification there.
 
@@ -932,8 +945,9 @@ The next phase should not be:
 - real-time collaboration before the single-user save/revision model is stable;
 - one unbounded whole-product visual mega-PR or global selector-normalization
   pass;
-- implementing FP before the requested documentation review, or hiding capability
-  changes inside behavior-preserving Phase 6A/remaining Phase 5 PRs;
+- treating the additive FP1k schema as runtime authority, skipping the shadow/
+  catch-up ledger, or hiding capability changes inside behavior-preserving Phase
+  6A/remaining Phase 5 PRs;
 - a replacement V3 implementation or another long-lived integration branch;
 - a repository-wide `apps/` / `packages/` / workspaces move without an independent
   build or distribution requirement;

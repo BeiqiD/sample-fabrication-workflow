@@ -9,6 +9,7 @@ import JSZip from "jszip";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
+import { FILE_AUTHORITY_CONSUMER_COLUMNS } from "../shared/contracts/export-file-authority";
 import type { FullExportManifestV9 } from "../shared/contracts/export";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV8, buildFullExportArchiveV9 } from "../src/lib/exportAll";
@@ -90,7 +91,7 @@ describe("v9 dormant file registry archive profile", () => {
       const archivePath = join(scratch, "v9.zip");
       await writeFile(archivePath, bytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }, { name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }, { name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
@@ -101,7 +102,11 @@ describe("v9 dormant file registry archive profile", () => {
         }
         const sourceImport = f.database.prepare("SELECT * FROM imports WHERE id = 'historical-import'").get()!;
         const restoredImport = database.prepare("SELECT * FROM imports WHERE id = 'historical-import'").get()!;
-        expect(restoredImport).toEqual({ ...sourceImport, ...Object.fromEntries(IMPORT_ACCEPTANCE_EXPORT_COLUMNS.map((column) => [column, null])) });
+        expect(restoredImport).toEqual({
+          ...sourceImport,
+          ...Object.fromEntries(IMPORT_ACCEPTANCE_EXPORT_COLUMNS.map((column) => [column, null])),
+          ...Object.fromEntries(FILE_AUTHORITY_CONSUMER_COLUMNS.imports.map((column) => [column, null])),
+        });
         expect(() => database.exec("UPDATE files SET state = 'ready'")).toThrow();
       } finally { database.close(); }
       expect(await readFile(join(restored.restoredDirectory, "original-archive.zip"))).toEqual(bytes);
@@ -124,12 +129,14 @@ describe("v9 dormant file registry archive profile", () => {
     } finally { f.database.close(); }
   });
 
-  it("rejects old clients on the new schema and prevents v8 relabeling before provider download", async () => {
+  it("rejects incompatible clients on the V9 schema and prevents v8 relabeling before provider download", async () => {
     const f = fixture();
     try {
-      const response = await f.request("/api/exports/all?archiveSchema=8&archiveWriter=1");
-      expect(response.status).toBe(409);
-      expect(await response.json()).toMatchObject({ error: expect.stringContaining("Refresh the page") });
+      for (const version of [8, 10, 11, 12, 13, 14]) {
+        const response = await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`);
+        expect(response.status).toBe(409);
+        expect(await response.json()).toMatchObject({ error: expect.stringContaining("Refresh the page") });
+      }
       const manifest = await f.manifest();
       await expect(buildFullExportArchiveV8(manifest, undefined, f.fetcher)).rejects.toThrow("versions differ");
       await expect(buildFullExportArchiveV9({ ...manifest, schemaVersion: 8 }, undefined, f.fetcher)).rejects.toThrow("versions differ");

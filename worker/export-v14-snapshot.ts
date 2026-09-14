@@ -1,13 +1,15 @@
-import { FULL_EXPORT_ARCHIVE_SCHEMA_V13, FULL_EXPORT_ARCHIVE_PROFILE_V13, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV13, type ObservedExportSchema } from "../shared/contracts/export";
+import { FULL_EXPORT_ARCHIVE_PROFILE_V14, FULL_EXPORT_ARCHIVE_SCHEMA_V14, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV14, type ObservedExportSchema } from "../shared/contracts/export";
 import { projectCompatibilitySnapshot } from "../shared/contracts/export-compatibility";
-import { createExportArtifact, validateFullExportV13, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH } from "../shared/contracts/export-protocol";
-import { FULL_EXPORT_V13_TABLE_QUERIES } from "./export-catalog";
+import { createExportArtifact, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV14 } from "../shared/contracts/export-protocol";
+import { FULL_EXPORT_V14_TABLE_QUERIES } from "./export-catalog";
 import { buildBlobExportPlan } from "./export-data";
 
-// The negotiated route and browser writer share this complete snapshot contract.
-export async function snapshotFullExportV13(database: D1Database): Promise<FullExportManifestV13> {
-  const names = Object.keys(FULL_EXPORT_V13_TABLE_QUERIES);
-  const queries = Object.entries(FULL_EXPORT_V13_TABLE_QUERIES).map(([name, sql]) => name === "samples"
+// V14 deliberately keeps the legacy locator planner while the transition is
+// in legacy mode. File locations cannot become byte authority until a later,
+// separately negotiated publication gate.
+export async function snapshotFullExportV14(database: D1Database): Promise<FullExportManifestV14> {
+  const names = Object.keys(FULL_EXPORT_V14_TABLE_QUERIES);
+  const queries = Object.entries(FULL_EXPORT_V14_TABLE_QUERIES).map(([name, sql]) => name === "samples"
     ? "SELECT * FROM samples ORDER BY created_at, id"
     : name === "run_step_comments" ? "SELECT * FROM run_step_comments ORDER BY run_step_id, created_at, id" : sql);
   const results = await database.batch([
@@ -28,14 +30,14 @@ export async function snapshotFullExportV13(database: D1Database): Promise<FullE
       run_step_comments: results[names.length + 2].results.map((row) => String((row as { name: string }).name)),
     },
   };
-  const projected = projectCompatibilitySnapshot(physicalTables, schema);
+  const projected = projectCompatibilitySnapshot(physicalTables, schema, "file-authority-v14");
   const [sourceSchema, retiredFields] = await Promise.all([
     createExportArtifact(EXPORT_SOURCE_SCHEMA_PATH, schema),
     createExportArtifact(EXPORT_RETIRED_FIELDS_PATH, projected.retiredFields),
   ]);
-  return validateFullExportV13({
-    archiveProfile: FULL_EXPORT_ARCHIVE_PROFILE_V13,
-    schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA_V13,
+  return validateFullExportV14({
+    archiveProfile: FULL_EXPORT_ARCHIVE_PROFILE_V14,
+    schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA_V14,
     archiveWriter: FULL_EXPORT_ARCHIVE_WRITER,
     exportedAt: new Date().toISOString(),
     tables: projected.tables,

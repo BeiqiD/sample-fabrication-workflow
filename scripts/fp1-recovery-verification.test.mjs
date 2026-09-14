@@ -244,6 +244,7 @@ test("native workerd FabuBlox recovery verifies bytes before real D1 claims and 
     after.push(...splitSql(readFileSync(new URL("migrations/0004_r2_upload_acceptance.sql", root), "utf8")));
     after.push(...splitSql(readFileSync(new URL("migrations/0005_metrology_reference_acceptance.sql", root), "utf8")));
     after.push(...splitSql(readFileSync(new URL("migrations/0006_comment_acceptance.sql", root), "utf8")));
+    after.push(...splitSql(readFileSync(new URL("migrations/0007_fp1_file_authority_transition.sql", root), "utf8")));
     for (const mode of modes) {
       const db = await mf.getD1Database(bindings[mode]);
       await db.batch(before.map(sql => db.prepare(sql)));
@@ -314,7 +315,7 @@ test("native workerd FabuBlox recovery verifies bytes before real D1 claims and 
       assert.equal(result.cleanupError, null);
       assert.equal(result.inspections[0].canonicalAssetId, "canonical-winner");
       assert.deepEqual(result.afterCleanup.state_representation_assets,
-        [{ state_hash: "shared-state", asset_id: "canonical-winner", position: 0 }]);
+        [{ state_hash: "shared-state", asset_id: "canonical-winner", position: 0, file_id: null }]);
       assert.deepEqual(result.afterCleanup.samples, result.before.samples);
       assert.equal(asset(result).status, "failed");
       assert.equal(asset(result).sha256, null);

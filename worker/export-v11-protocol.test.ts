@@ -91,7 +91,7 @@ describe("v11 durable R2 upload acceptance archive profile", () => {
       const archivePath = join(scratch, "v11.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance", appliedForwardMigrations: [{ name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance", appliedForwardMigrations: [{ name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
@@ -109,7 +109,7 @@ describe("v11 durable R2 upload acceptance archive profile", () => {
   it("rejects older clients and profile relabeling before provider downloads, even for an empty receipt table", async () => {
     const f = await fixture();
     try {
-      for (const version of [8, 9, 10]) expect((await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`)).status).toBe(409);
+      for (const version of [8, 9, 10, 12, 13, 14]) expect((await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`)).status).toBe(409);
       const manifest = await f.manifest();
       await expect(buildFullExportArchiveV10(manifest, undefined, f.fetcher)).rejects.toThrow("versions differ");
       manifest.tables.r2_upload_requests = [];
