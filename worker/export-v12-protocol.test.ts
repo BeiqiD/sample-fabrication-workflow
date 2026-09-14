@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,10 +13,9 @@ import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV11,
 import { canonicalMetrologyReferenceUploadInput, type MetrologyReferencePublicationPlan } from "../shared/contracts/metrology-reference-upload";
 import { buildBlobExportPlan } from "../shared/contracts/export-blob-plan";
 import { stableJson } from "../shared/domain/content-addressing";
-import { api } from "../src/lib/api";
 import { buildFullExportArchiveV11, buildFullExportArchiveV12 } from "../src/lib/exportAll";
 import worker from "./index";
-import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
@@ -27,7 +27,10 @@ const context = { waitUntil: () => undefined, passThroughOnException: () => unde
 afterEach(() => vi.unstubAllGlobals());
 
 async function fixture() {
-  const database = referenceTestDatabase();
+  const database = new DatabaseSync(":memory:");
+  for (const name of ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql"]) {
+    database.exec(readFileSync(join(migrationsDirectory, name), "utf8"));
+  }
   database.prepare("INSERT INTO storage_profiles VALUES ('metrology-profile', 'r2', 'r2:historical-metrology-bucket', 'bootstrap', NULL, 1, 'historical', ?)").run(now);
   database.prepare("INSERT INTO recipe_families (id, name, template_type, created_at) VALUES ('family', 'Metrology family', 'module', ?)").run(previous);
   database.prepare(`INSERT INTO template_versions (id, recipe_family_id, name, template_type, version, manifest_hash, content_json, created_at, template_kind)
@@ -96,14 +99,13 @@ async function fixture() {
 }
 
 describe("v12 metrology reference business acceptance archive profile", () => {
-  it("negotiates the current writer and restores every terminal and pending decision with historical occurrence evidence and unchanged byte roots", async () => {
+  it("preserves the frozen V12 writer and restores every terminal and pending decision with historical occurrence evidence and unchanged byte roots", async () => {
     const f = await fixture(), scratch = await mkdtemp(join(tmpdir(), "export-v12-"));
     try {
       // Deleting a Template after publication must not invalidate its receipts.
       f.database.prepare("UPDATE template_versions SET deleted_at = ?, deleted_by = 'archive@example.com' WHERE id = 'template'").run(now);
       vi.stubGlobal("fetch", f.fetcher);
-      const manifest = await api.getFullExport();
-      expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
+      const manifest = await f.manifest();
       expect(manifest).toMatchObject({ schemaVersion: 12, archiveWriter: 1, archiveProfile: "fp1-metrology-reference-acceptance" });
       expect(manifest.tables.metrology_reference_upload_requests).toHaveLength(6);
       expect(manifest.tables.r2_upload_requests).toEqual([]);
@@ -114,10 +116,12 @@ describe("v12 metrology reference business acceptance archive profile", () => {
       const archivePath = join(scratch, "v12.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance", appliedForwardMigrations: [], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance", appliedForwardMigrations: [{ name: "0006_comment_acceptance.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
+        expect(database.prepare("SELECT * FROM comment_submission_acceptances").all()).toEqual([]);
+        expect(database.prepare("SELECT * FROM comment_item_acceptances").all()).toEqual([]);
         expect(database.prepare("SELECT * FROM metrology_reference_upload_requests ORDER BY id").all())
           .toEqual(f.database.prepare("SELECT * FROM metrology_reference_upload_requests ORDER BY id").all());
         expect(() => database.prepare("UPDATE metrology_reference_upload_requests SET accepted_result_json = '{}' WHERE id = ?").run(id(21))).toThrow();

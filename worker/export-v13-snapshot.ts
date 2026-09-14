@@ -1,13 +1,13 @@
-import { FULL_EXPORT_ARCHIVE_SCHEMA_V12, FULL_EXPORT_ARCHIVE_PROFILE_V12, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV12, type ObservedExportSchema } from "../shared/contracts/export";
+import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_PROFILE, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV13, type ObservedExportSchema } from "../shared/contracts/export";
 import { projectCompatibilitySnapshot } from "../shared/contracts/export-compatibility";
-import { createExportArtifact, validateFullExportV12, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH } from "../shared/contracts/export-protocol";
-import { FULL_EXPORT_V12_TABLE_QUERIES } from "./export-catalog";
+import { createExportArtifact, validateFullExportV13, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH } from "../shared/contracts/export-protocol";
+import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import { buildBlobExportPlan } from "./export-data";
 
 // The negotiated route and browser writer share this complete snapshot contract.
-export async function snapshotFullExportV12(database: D1Database): Promise<FullExportManifestV12> {
-  const names = Object.keys(FULL_EXPORT_V12_TABLE_QUERIES);
-  const queries = Object.entries(FULL_EXPORT_V12_TABLE_QUERIES).map(([name, sql]) => name === "samples"
+export async function snapshotFullExportV13(database: D1Database): Promise<FullExportManifestV13> {
+  const names = Object.keys(FULL_EXPORT_TABLE_QUERIES);
+  const queries = Object.entries(FULL_EXPORT_TABLE_QUERIES).map(([name, sql]) => name === "samples"
     ? "SELECT * FROM samples ORDER BY created_at, id"
     : name === "run_step_comments" ? "SELECT * FROM run_step_comments ORDER BY run_step_id, created_at, id" : sql);
   const results = await database.batch([
@@ -33,9 +33,9 @@ export async function snapshotFullExportV12(database: D1Database): Promise<FullE
     createExportArtifact(EXPORT_SOURCE_SCHEMA_PATH, schema),
     createExportArtifact(EXPORT_RETIRED_FIELDS_PATH, projected.retiredFields),
   ]);
-  return validateFullExportV12({
-    archiveProfile: FULL_EXPORT_ARCHIVE_PROFILE_V12,
-    schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA_V12,
+  return validateFullExportV13({
+    archiveProfile: FULL_EXPORT_ARCHIVE_PROFILE,
+    schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA,
     archiveWriter: FULL_EXPORT_ARCHIVE_WRITER,
     exportedAt: new Date().toISOString(),
     tables: projected.tables,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ExportRow, FullExportManifestV10, FullExportManifestV11, FullExportManifestV12 } from "./export";
+import type { ExportRow, FullExportManifestV10, FullExportManifestV11, FullExportManifestV12, FullExportManifestV13 } from "./export";
 import {
   MAX_FILE_MIGRATION_INPUT_BYTES, MAX_FILE_MIGRATION_INPUT_ROWS, MAX_FILE_MIGRATION_PLAN_BYTES,
   planFileMigration, serializeFileMigrationPlan,
@@ -42,6 +42,17 @@ function metrologyManifest(): FullExportManifestV12 {
   const historical = uploadManifest();
   return { ...historical, schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance",
     tables: { ...historical.tables, metrology_reference_upload_requests: [] } };
+}
+function commentManifest(): FullExportManifestV13 {
+  const historical = metrologyManifest();
+  return { ...historical, schemaVersion: 13, archiveProfile: "fp1-comment-acceptance",
+    tables: { ...historical.tables, comment_submission_acceptances: [], comment_item_acceptances: [] } };
+}
+function acceptedCommentItem(extra: ExportRow = {}): ExportRow {
+  return { item_id: "comment-item", submission_id: "comment-submission", actor_email: "PRIVATE-COMMENT-ACTOR",
+    purpose: "embedded_content", expected_sha256: hash, expected_byte_size: 5, storage_profile_id: "profile",
+    storage_profile_revision: 1, candidate_blob_id: "comment-candidate", candidate_object_key: "comment-candidate-key",
+    execution_token: null, started_at: null, status: "pending", accepted_result_json: null, created_at: now, ...extra };
 }
 function metrologyUpload(extra: ExportRow = {}): ExportRow {
   return upload({ id: "metrology-upload", ingress: "metrology_reference", purpose: "research_source",
@@ -203,6 +214,64 @@ describe("provider-free File migration planning", () => {
     expect(plan.groups).toHaveLength(1);
     expect(plan.groups[0].locator.objectKey).toBe("candidate-key");
     expect(plan.groups[0].blockers).toContain("accepted_metrology_reference_result_invalid");
+  });
+
+  it("observes V13 R2 and SWITCHdrive Comment receipts without new consumers, preview authority or equal-hash ownership", async () => {
+    const input = commentManifest();
+    const managedNamespace = '{"accountUrl":"https://drive.example/remote.php/dav/files/account","rootPath":"sample"}';
+    input.tables.storage_profiles.push(profile(), { ...profile("managed-profile", managedNamespace), adapter_type: "switchdrive",
+      configuration_source: "environment", credential_reference: "environment:SWITCHDRIVE" });
+    input.tables.assets.push(asset("unrelated", "same-sha-key"));
+    for (const [index, purpose] of ["embedded_content", "derived_preview", "research_source"].entries()) {
+      const managed = purpose === "research_source";
+      input.tables.comment_item_acceptances.push(acceptedCommentItem({ item_id: `comment-item-${index}`, purpose,
+        storage_profile_id: managed ? "managed-profile" : "profile", candidate_object_key: `comment-candidate-${index}`,
+        status: "ready", accepted_result_json: JSON.stringify({ storeKind: managed ? "managed" : "r2", provider: managed ? "switchdrive" : "r2",
+          blobRecordId: `accepted-${index}`, objectKey: `comment-accepted-${index}`, sha256: hash, byteSize: 5, deduplicated: true }) }));
+    }
+    const plan = await planFileMigration(input);
+    expect(plan.source).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance" });
+    for (const [index, provider] of ["r2", "r2", "switchdrive"].entries()) for (const suffix of ["candidate", "accepted"]) {
+      const group = plan.groups.find((entry) => entry.locator.objectKey === `comment-${suffix}-${index}`)!;
+      expect(group.locator.provider).toBe(provider);
+      expect(group.namespace).toMatchObject({ status: "resolved", identity: provider === "r2" ? namespace : managedNamespace,
+        evidence: [{ kind: "accepted_comment_upload", sourceId: `comment-item-${index}` }] });
+      expect(group.consumers).toEqual([]); expect(group.proposals).toEqual([]);
+      expect(group.blockers).toContain("no_typed_consumer"); expect(group.blockers).toContain("bytes_unverified");
+    }
+    expect(plan.groups.find((entry) => entry.locator.objectKey === "same-sha-key")?.namespace.status).toBe("unresolved");
+    expect(plan.summary.consumers).toBe(0);
+    expect(plan).toMatchObject({ executable: false, bytesVerified: false });
+    expect(serializeFileMigrationPlan(plan)).not.toContain("PRIVATE-");
+  });
+
+  it("binds V13 parent input, ordered publication and item execution to its digest without disclosing them", async () => {
+    const input = commentManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.comment_submission_acceptances.push({ submission_id: "comment-submission", request_input_json: '{"body":"PRIVATE-BODY"}',
+      publication_plan_json: '{"private":"PRIVATE-PLAN"}', accepted_result_json: null });
+    input.tables.comment_item_acceptances.push(acceptedCommentItem());
+    const before = structuredClone(input), first = await planFileMigration(input);
+    expect(input).toEqual(before);
+    expect(first.groups).toHaveLength(1);
+    expect(first.groups[0].blockers).toContain("accepted_comment_upload_unfinished");
+    input.tables.comment_submission_acceptances[0].publication_plan_json = '{"private":"PRIVATE-CHANGED-PLAN"}';
+    input.tables.comment_item_acceptances[0].execution_token = "PRIVATE-NEW-EXECUTION";
+    input.tables.comment_item_acceptances[0].accepted_result_json = '{"objectKey":"ignored-unfinished-key"}';
+    const changed = await planFileMigration(input);
+    expect(changed.source.inputSha256).not.toBe(first.source.inputSha256);
+    expect(changed.groups).toEqual(first.groups);
+    expect(serializeFileMigrationPlan(changed)).not.toContain("PRIVATE-");
+  });
+
+  it("blocks changed Comment profile revisions and malformed ready results without inventing locators", async () => {
+    const input = commentManifest(); input.tables.storage_profiles.push(profile());
+    input.tables.comment_item_acceptances.push(acceptedCommentItem({ storage_profile_revision: 2, status: "ready",
+      accepted_result_json: '{"storeKind":"r2","provider":"r2","objectKey":"ignored-invalid-key"}' }));
+    const plan = await planFileMigration(input);
+    expect(plan.groups).toHaveLength(1);
+    expect(plan.groups[0].namespace.status).toBe("unresolved");
+    expect(plan.groups[0].blockers).toEqual(expect.arrayContaining(["namespace_evidence_invalid", "accepted_comment_upload_result_invalid"]));
   });
 
   it("preserves pending candidate namespace evidence but never uses a result on an unfinished upload", async () => {

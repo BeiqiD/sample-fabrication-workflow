@@ -10,7 +10,7 @@ const root = new URL("../", import.meta.url);
 const sqlNames = (directory) => readdirSync(new URL(directory, root)).filter((name) => name.endsWith(".sql")).sort();
 
 test("the current chain admits the reviewed FP1 suffix and retains the S2 baseline and all 37 historical SQL files byte-for-byte", () => {
-  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql"]);
+  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql"]);
   const baseline = readFileSync(new URL("scripts/fixtures/backend-schema/s2-baseline.sql", root));
   assert.deepEqual(readFileSync(new URL("migrations/0001_v3_baseline.sql", root)), baseline);
   const recorded = [...baseline.toString("utf8").matchAll(/^-- Source migrations\/([^ /]+\.sql) sha256=([a-f0-9]{64})$/gm)];
@@ -96,6 +96,53 @@ test("metrology migration publishes all four guards before its tracking row unde
       "metrology_reference_upload_requests_publication_guard", "metrology_reference_upload_requests_update_guard",
     ]);
     assert.deepEqual(actual.prepare("SELECT * FROM samples").all(), rowsBefore);
+    assert.deepEqual(actual.prepare("SELECT name FROM d1_migrations").all().map(({ name }) => name), [filename]);
+    assert.deepEqual(actual.prepare("PRAGMA foreign_key_check").all(), []);
+  } finally { actual.close(); whole.close(); }
+});
+
+test("Comment migration installs every complete statement before tracking while preserving populated canonical state", () => {
+  const filename = "0006_comment_acceptance.sql";
+  const sql = readFileSync(new URL(`migrations/${filename}`, root), "utf8");
+  const tracked = splitSql(`${sql}\nINSERT INTO d1_migrations (name) VALUES ('${filename}');`);
+  const actual = new DatabaseSync(":memory:");
+  const whole = new DatabaseSync(":memory:");
+  const catalog = (db) => db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name")
+    .all().map((row) => ({ ...row, sql: row.sql === null ? null : normalizeSchemaSql(row.sql) }));
+  const key = (row) => `${row.type}:${row.name}`;
+  try {
+    for (const db of [actual, whole]) {
+      db.exec("PRAGMA foreign_keys = ON; CREATE TABLE d1_migrations (name TEXT NOT NULL UNIQUE);");
+      for (const name of sqlNames("migrations/").filter((name) => name < filename)) {
+        db.exec(readFileSync(new URL(`migrations/${name}`, root), "utf8"));
+      }
+      db.prepare("INSERT INTO samples (id, code, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .run("retained-before-fp1j", "FP1J", "Retained sample", "2026-09-14T00:00:00.000Z", "2026-09-14T00:00:00.000Z");
+      db.prepare("INSERT INTO comment_submissions (id, context_kind, sample_id, body, status, actor_email, created_at, updated_at) VALUES (?, 'sample', ?, ?, 'ready', ?, ?, ?)")
+        .run("retained-comment-fp1j", "retained-before-fp1j", "Historical ready comment", "fixture@example.test", "2026-09-14T00:00:00.000Z", "2026-09-14T00:00:00.000Z");
+    }
+    const before = catalog(actual);
+    const oldKeys = new Set(before.map(key));
+    const tables = before.filter((row) => row.type === "table").map((row) => row.name);
+    const beforeRows = new Map(tables.map((name) => [name, actual.prepare(`SELECT * FROM "${name}"`).all()]));
+    const retentionBefore = actual.prepare("SELECT * FROM blob_retention_edges").all();
+    whole.exec(sql);
+    const expected = catalog(whole);
+    const additions = expected.filter((row) => !oldKeys.has(key(row)));
+    assert.deepEqual(additions.filter((row) => row.type === "table").map((row) => row.name),
+      ["comment_item_acceptances", "comment_submission_acceptances"]);
+    assert.ok(additions.some((row) => row.type === "trigger" && row.tbl_name === "comment_submissions"), "Canonical cancellation/identity guards are part of the migration");
+    assert.equal(splitSql(sql).length, additions.length, "Each schema addition must be a complete Wrangler statement");
+    assert.equal(tracked.length, additions.length + 1, "Migration tracking must remain a distinct final statement");
+    for (const statement of tracked) actual.prepare(statement).run();
+    assert.deepEqual(catalog(actual), expected, "Prepared execution must install exactly the whole-file schema");
+    assert.deepEqual(expected.filter((row) => oldKeys.has(key(row))), before, "Every previous schema object keeps its definition");
+    for (const name of tables.filter((name) => name !== "d1_migrations")) {
+      assert.deepEqual(actual.prepare(`SELECT * FROM "${name}"`).all(), beforeRows.get(name), `Retained rows: ${name}`);
+    }
+    assert.deepEqual(actual.prepare("SELECT * FROM blob_retention_edges").all(), retentionBefore);
+    assert.deepEqual(actual.prepare("SELECT * FROM comment_submission_acceptances").all(), []);
+    assert.deepEqual(actual.prepare("SELECT * FROM comment_item_acceptances").all(), []);
     assert.deepEqual(actual.prepare("SELECT name FROM d1_migrations").all().map(({ name }) => name), [filename]);
     assert.deepEqual(actual.prepare("PRAGMA foreign_key_check").all(), []);
   } finally { actual.close(); whole.close(); }

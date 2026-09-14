@@ -6,7 +6,7 @@ import { crc32 } from "node:zlib";
 import JSZip from "jszip";
 import type { CompatibilitySchema, ExportTables, RetiredExportFields } from "../../shared/contracts/export";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
-import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12 } from "../../shared/contracts/export-protocol";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13 } from "../../shared/contracts/export-protocol";
 import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
 import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
@@ -187,7 +187,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && [7, 8, 9, 10, 11, 12].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -197,16 +197,18 @@ export async function restoreExportToIsolatedDirectory(options: {
     const migrations: Array<{ name: string; sha256: string }> = [];
     // Historical profiles first restore against their exact reviewed physical
     // schema. Only this named chain admits the bounded forward transitions.
-    const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql"];
+    const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql"];
     const knownChain = canonical(migrationNames) === canonical(reviewedChain)
       || canonical(migrationNames) === canonical(reviewedChain.slice(0, 2))
       || canonical(migrationNames) === canonical(reviewedChain.slice(0, 3))
-      || canonical(migrationNames) === canonical(reviewedChain.slice(0, 4));
+      || canonical(migrationNames) === canonical(reviewedChain.slice(0, 4))
+      || canonical(migrationNames) === canonical(reviewedChain.slice(0, 5));
     const forwardNames = knownChain ? migrationNames.filter((name) =>
       name === reviewedChain[1] && manifest.schemaVersion < 9
       || name === reviewedChain[2] && manifest.schemaVersion < 10
       || name === reviewedChain[3] && manifest.schemaVersion < 11
-      || name === reviewedChain[4] && manifest.schemaVersion < 12) : [];
+      || name === reviewedChain[4] && manifest.schemaVersion < 12
+      || name === reviewedChain[5] && manifest.schemaVersion < 13) : [];
     const forwardMigrations: Array<{ name: string; sha256: string; sql: string }> = [];
     const migrationSql: string[] = [];
     for (const name of migrationNames) {
@@ -264,7 +266,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       // has download URLs. Validate provenance against a reconstructed wire
       // plan here; the original archived blob catalog and bytes are checked
       // against that same table-derived plan below without dropping entries.
-      const validate = manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validate = manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
       const validated = await validate({ ...manifest, tables, artifacts, blobs: buildBlobExportPlan(tables) });
       retiredFields = validated.artifacts.retiredFields.value;
       tables = restoreCompatibilityRows(validated.tables, retiredFields, targetCompatibilitySchema);
@@ -415,6 +417,10 @@ export async function restoreExportToIsolatedDirectory(options: {
           "Historical restore must leave R2 upload acceptance empty");
         if (forwardNames.includes("0005_metrology_reference_acceptance.sql")) ensure(database.prepare("SELECT COUNT(*) AS count FROM metrology_reference_upload_requests").get()?.count === 0,
           "Historical restore must leave metrology reference acceptance empty");
+        if (forwardNames.includes("0006_comment_acceptance.sql")) {
+          for (const name of ["comment_submission_acceptances", "comment_item_acceptances"]) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+            "Historical restore must leave Comment acceptance empty");
+        }
         ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Forward migration foreign-key check failed");
         ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
         const upgradedSchema = schema(database);

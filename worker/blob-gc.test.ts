@@ -3,6 +3,7 @@ import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
 import worker from "./index";
+import { acceptCommentSubmission, acceptCommentUpload, uploadAcceptedCommentItem, commentManagedFetch } from "./comment-acceptance-test-support";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
 import { collectBlobGarbage, type BlobGarbageCollectionDependencies } from "./blob-lifecycle/gc";
 import { reclaimBlobDeletion, refreshOrphanGrace } from "./blob-lifecycle/reachability";
@@ -53,14 +54,14 @@ class SqliteD1Statement {
 class SqliteD1Database {
   constructor(
     readonly database: DatabaseSync,
-    private readonly beforeBatch?: () => void,
+    private readonly beforeBatch?: () => void | Promise<void>,
     private readonly beforeExecute?: (query: string, bindings: unknown[]) => void,
   ) {}
   prepare(query: string) {
     return new SqliteD1Statement(this.database, query, [], this.beforeExecute);
   }
   async batch(statements: SqliteD1Statement[]) {
-    this.beforeBatch?.();
+    await this.beforeBatch?.();
     this.database.exec("BEGIN");
     try {
       const results = statements.map((statement) => statement.execute());
@@ -92,7 +93,7 @@ function envFor(
   options: {
     assetPut?: ReturnType<typeof vi.fn>;
     initialAssets?: ReadonlyMap<string, Uint8Array>;
-    beforeBatch?: () => void;
+    beforeBatch?: () => void | Promise<void>;
     beforeExecute?: (query: string, bindings: unknown[]) => void;
   } = {},
 ): Env {
@@ -287,144 +288,89 @@ describe("blob garbage collection", () => {
     expect(assetDelete).toHaveBeenCalledTimes(2);
     database.close();
   });
-  it("keeps shared R2 and managed bytes while another unfinished submission can finalize", async () => {
+  it("keeps shared R2 and managed bytes while another accepted submission can finalize", async () => {
     const database = migratedDatabase();
-    database.exec(`
-      INSERT INTO assets
-        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
-      VALUES ('asset-shared', 'comments/shared.webp', 'shared.webp', 'image/webp', 4,
-        'ready', '${"a".repeat(64)}', '2026-07-01T00:00:00.000Z');
-      INSERT INTO managed_storage_objects
-        (id, provider, object_key, original_name, mime_type, byte_size, sha256,
-         status, created_at)
-      VALUES ('managed-shared', 'switchdrive', 'comments/shared.bin', 'shared.bin',
-        'application/octet-stream', 4, '${"b".repeat(64)}', 'ready',
-        '2026-07-01T00:00:00.000Z');
-      INSERT INTO comment_submissions
-        (id, context_kind, sample_id, body, status, created_at, updated_at, retry_until)
-      VALUES
-        ('submission-a', 'sample', 'sample-1', 'A', 'uploading',
-          '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z',
-          '2026-08-20T00:00:00.000Z'),
-        ('submission-b', 'sample', 'sample-1', 'B', 'uploading',
-          '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z',
-          '2026-08-20T00:00:00.000Z');
-      INSERT INTO comment_submission_items
-        (id, submission_id, kind, status, position, asset_id, created_at, updated_at)
-      VALUES
-        ('image-a', 'submission-a', 'comment_image', 'ready', 0, 'asset-shared',
-          '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z'),
-        ('image-b', 'submission-b', 'comment_image', 'ready', 0, 'asset-shared',
-          '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z');
-      INSERT INTO comment_submission_items
-        (id, submission_id, kind, status, position, storage_object_id, created_at, updated_at)
-      VALUES
-        ('file-a', 'submission-a', 'attachment', 'ready', 1, 'managed-shared',
-          '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z'),
-        ('file-b', 'submission-b', 'attachment', 'ready', 1, 'managed-shared',
-          '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z');
-    `);
+    const imageBytes = new TextEncoder().encode("img1"), fileBytes = new TextEncoder().encode("data");
+    vi.stubGlobal("fetch", vi.fn(commentManagedFetch()));
     const env = envFor(database);
-
+    for (const suffix of ["a", "b"]) {
+      await acceptCommentSubmission(env, {
+        id: `submission-${suffix}`, body: "Shared bytes",
+        context: { kind: "sample", sampleId: "sample-1", expectedUpdatedAt: "2026-07-01T00:00:00.000Z" },
+        items: [
+          { id: `image-item-${suffix}`, kind: "comment_image", filename: "shared.png", mimeType: "image/png",
+            byteSize: imageBytes.byteLength, sha256: await sha256Hex(imageBytes.buffer),
+            originalFilename: "shared.png", originalMimeType: "image/png", originalByteSize: imageBytes.byteLength },
+          { id: `file-item-${suffix}`, kind: "attachment", filename: "shared.bin", mimeType: "application/octet-stream",
+            byteSize: fileBytes.byteLength, sha256: await sha256Hex(fileBytes.buffer) },
+        ],
+      });
+      await uploadAcceptedCommentItem(env, `submission-${suffix}`, `image-item-${suffix}`, "comment_image", imageBytes);
+      await uploadAcceptedCommentItem(env, `submission-${suffix}`, `file-item-${suffix}`, "attachment", fileBytes);
+    }
+    expect(database.prepare("SELECT COUNT(*) AS count FROM assets").get()).toEqual({ count: 1 });
+    expect(database.prepare("SELECT COUNT(*) AS count FROM managed_storage_objects").get()).toEqual({ count: 1 });
     expect((await cancel(env, "submission-a")).status).toBe(200);
-    expect(database.prepare("SELECT COUNT(*) AS count FROM blob_gc_ledger").get())
-      .toEqual({ count: 0 });
-    expect(database.prepare(
-      "SELECT status FROM managed_storage_objects WHERE id = 'managed-shared'",
-    ).get()).toEqual({ status: "ready" });
-
+    expect(database.prepare("SELECT COUNT(*) AS count FROM blob_gc_ledger").get()).toEqual({ count: 0 });
+    expect(database.prepare("SELECT status FROM managed_storage_objects").get()).toEqual({ status: "ready" });
     expect((await cancel(env, "submission-b")).status).toBe(200);
-    expect(database.prepare(
-      "SELECT store_kind, state FROM blob_gc_ledger ORDER BY store_kind",
-    ).all()).toEqual([
-      { store_kind: "managed", state: "orphaned" },
-      { store_kind: "r2", state: "orphaned" },
+    await cleanupCommentUploads(env, new Date(Date.now() + 2 * 24 * 60 * 60 * 1_000));
+    expect(database.prepare("SELECT store_kind, state FROM blob_gc_ledger ORDER BY store_kind").all()).toEqual([
+      { store_kind: "managed", state: "orphaned" }, { store_kind: "r2", state: "orphaned" },
     ]);
     database.close();
   });
 
-  it("keeps Cancel atomic when Finalize wins the transition", async () => {
+  it("keeps Cancel atomic when Finalize wins the accepted transition", async () => {
     const database = migratedDatabase();
-    database.exec(`
-      INSERT INTO managed_storage_objects
-        (id, provider, object_key, original_name, mime_type, byte_size, sha256,
-         status, created_at)
-      VALUES ('managed-finalize', 'switchdrive', 'comments/finalize.bin', 'finalize.bin',
-        'application/octet-stream', 4, '${"1".repeat(64)}', 'ready',
-        '2026-07-01T00:00:00.000Z');
-      INSERT INTO comment_submissions
-        (id, context_kind, sample_id, body, status, created_at, updated_at, retry_until)
-      VALUES ('finalize-wins', 'sample', 'sample-1', 'Ready', 'uploading',
-        '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z',
-        '2026-08-20T00:00:00.000Z');
-      INSERT INTO comment_submission_items
-        (id, submission_id, kind, status, position, storage_object_id, created_at, updated_at)
-      VALUES ('finalize-item', 'finalize-wins', 'attachment', 'ready', 0,
-        'managed-finalize', '2026-07-01T00:00:00.000Z', '2026-08-08T00:00:00.000Z');
-    `);
+    const bytes = new TextEncoder().encode("data");
+    vi.stubGlobal("fetch", vi.fn(commentManagedFetch()));
+    const plainEnv = envFor(database);
+    await acceptCommentUpload(database, plainEnv, { kind: "attachment", bytes,
+      sampleId: "sample-1", submissionId: "finalize-wins", itemId: "finalize-item" });
+    await uploadAcceptedCommentItem(plainEnv, "finalize-wins", "finalize-item", "attachment", bytes);
     let raced = false;
+    let published: unknown;
     const env = envFor(database, undefined, {
-      beforeBatch: () => {
+      beforeBatch: async () => {
         if (raced) return;
         raced = true;
-        database.prepare(
-          `UPDATE comment_submissions
-           SET status = 'ready', completed_at = '2026-08-08T00:01:00.000Z',
-               retry_closed_at = '2026-08-08T00:01:00.000Z', retry_closed_by = 'finalize',
-               last_mutation_id = 'finalize-won', updated_at = '2026-08-08T00:01:00.000Z'
-           WHERE id = 'finalize-wins'`,
-        ).run();
+        const finalized = await worker.fetch(new Request("https://samples.run/api/comment-submissions/finalize-wins/finalize",
+          { method: "POST" }), plainEnv, {} as ExecutionContext);
+        expect(finalized.status, await finalized.text()).toBe(200);
+        published = database.prepare("SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'finalize-wins'").get();
       },
     });
-
     expect((await cancel(env, "finalize-wins")).status).toBe(409);
-    expect(database.prepare(
-      "SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'finalize-wins'",
-    ).get()).toEqual({ status: "ready", last_mutation_id: "finalize-won" });
-    expect(database.prepare("SELECT COUNT(*) AS count FROM blob_gc_ledger").get())
-      .toEqual({ count: 0 });
+    expect(raced).toBe(true);
+    expect(published).toMatchObject({ status: "ready", last_mutation_id: expect.any(String) });
+    expect(database.prepare("SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'finalize-wins'").get()).toEqual(published);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM blob_gc_ledger").get()).toEqual({ count: 0 });
     database.close();
   });
 
   it("retains bytes when Cancel wins while an upload completion is being recorded", async () => {
     const database = migratedDatabase();
-    database.exec(`
-      INSERT INTO comment_submissions
-        (id, context_kind, sample_id, body, status, created_at, updated_at, retry_until)
-      VALUES ('upload-race', 'sample', 'sample-1', 'Image', 'uploading',
-        '2026-08-08T00:00:00.000Z', '2026-08-08T00:00:00.000Z',
-        '2026-08-20T00:00:00.000Z');
-      INSERT INTO comment_submission_items
-        (id, submission_id, kind, status, position, filename, mime_type, byte_size,
-         created_at, updated_at)
-      VALUES ('upload-race-item', 'upload-race', 'comment_image', 'pending', 0,
-        'image.png', 'image/png', 4, '2026-08-08T00:00:00.000Z',
-        '2026-08-08T00:00:00.000Z');
-    `);
+    const bytes = new TextEncoder().encode("data");
+    await acceptCommentUpload(database, envFor(database), { kind: "comment_image", bytes,
+      sampleId: "sample-1", submissionId: "upload-race", itemId: "upload-race-item" });
     let cancelled = false;
     const assetDelete = vi.fn(async () => undefined);
     const assetPut = vi.fn(async () => undefined);
+    let providerWritten = false;
     const env = envFor(database, assetDelete, {
-      assetPut,
-      beforeExecute: (query) => {
-        if (cancelled || !query.includes("SET status = CASE")) return;
+      assetPut: async (...args: unknown[]) => { providerWritten = true; await assetPut(...args); },
+      beforeBatch: async () => {
+        if (cancelled || !providerWritten) return;
         cancelled = true;
-        database.exec(`
-          UPDATE comment_submissions
-          SET status = 'cancelled', cancelled_at = '2026-08-08T00:01:00.000Z',
-              retry_closed_at = '2026-08-08T00:01:00.000Z', retry_closed_by = 'cancel',
-              updated_at = '2026-08-08T00:01:00.000Z'
-          WHERE id = 'upload-race';
-          UPDATE comment_submission_items SET status = 'cancelled'
-          WHERE id = 'upload-race-item';
-        `);
+        expect((await cancel(envFor(database), "upload-race")).status).toBe(200);
       },
     });
     const response = await worker.fetch(new Request(
       "https://samples.run/api/comment-submissions/upload-race/items/upload-race-item/content",
       {
         method: "PUT",
-        headers: { "content-type": "image/png", "x-upload-size": "4" },
+        headers: { "content-type": "image/png", "x-upload-size": "4", "x-content-sha256": await sha256Hex(bytes.buffer) },
         body: "data",
       },
     ), env, {} as ExecutionContext);
@@ -434,13 +380,13 @@ describe("blob garbage collection", () => {
     expect(assetDelete).not.toHaveBeenCalled();
     expect(database.prepare(
       "SELECT status, asset_id IS NOT NULL AS linked FROM comment_submission_items WHERE id = 'upload-race-item'",
-    ).get()).toEqual({ status: "cancelled", linked: 1 });
+    ).get()).toEqual({ status: "cancelled", linked: 0 });
     expect(database.prepare("SELECT COUNT(*) AS count FROM blob_retention_edges").get())
       .toEqual({ count: 0 });
 
     await cleanupCommentUploads(env, new Date(Date.now() + 2 * 24 * 60 * 60 * 1_000));
     expect(database.prepare(
-      "SELECT state FROM blob_gc_ledger WHERE blob_record_id = (SELECT asset_id FROM comment_submission_items WHERE id = 'upload-race-item')",
+      "SELECT state FROM blob_gc_ledger WHERE blob_record_id = (SELECT candidate_blob_id FROM comment_item_acceptances WHERE item_id = 'upload-race-item')",
     ).get()).toEqual({ state: "orphaned" });
     database.close();
   });

@@ -28,7 +28,10 @@ namespace evidence for V11; neither version can authorize migration execution.
 [FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) adds complete V12 input
 (`archiveSchema=12&archiveWriter=1`, `fp1-metrology-reference-acceptance`). Its
 metrology acceptance history also participates in the fingerprint and explicit
-namespace evidence. All three versions remain read-only plans.
+namespace evidence. [FP1j](./FP1_COMMENT_ACCEPTANCE.md) adds complete V13 input
+(`archiveSchema=13&archiveWriter=1`, `fp1-comment-acceptance`), including Comment
+request/upload history and its frozen namespaces. All four versions remain
+read-only plans; recorded purposes do not resolve ambiguous historical consumers.
 
 Limits are **16 MiB input**, **20,000 aggregate table rows** (including views) and
 **8 MiB output**. Changing inputs, non-regular files, invalid UTF-8/JSON and

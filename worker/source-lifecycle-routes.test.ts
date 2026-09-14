@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "./index";
+import { acceptCommentSubmission, acceptCommentUpload, uploadAcceptedCommentItem, commentManagedFetch } from "./comment-acceptance-test-support";
 import type { Env } from "./types";
 
 class SqliteD1Statement {
@@ -53,7 +54,7 @@ afterEach(() => vi.unstubAllGlobals());
 class SqliteD1Database {
   constructor(
     readonly database: DatabaseSync,
-    private readonly beforeBatch?: () => void,
+    private readonly beforeBatch?: () => void | Promise<void>,
     private readonly beforeRun?: () => void,
   ) {}
 
@@ -62,7 +63,7 @@ class SqliteD1Database {
   }
 
   async batch(statements: SqliteD1Statement[]) {
-    this.beforeBatch?.();
+    await this.beforeBatch?.();
     this.database.exec("BEGIN");
     try {
       const results = statements.map((statement) => statement.execute());
@@ -182,7 +183,7 @@ function addReadyManagedAttachment(
 
 function testEnv(
   database: DatabaseSync,
-  beforeBatch?: () => void,
+  beforeBatch?: () => void | Promise<void>,
   beforeRun?: () => void,
 ): Env {
   return {
@@ -198,7 +199,7 @@ function request(env: Env, path: string, init?: RequestInit) {
 
 function managedStorageEnv(
   database: DatabaseSync,
-  beforeBatch?: () => void,
+  beforeBatch?: () => void | Promise<void>,
 ) {
   return {
     ...testEnv(database, beforeBatch),
@@ -420,7 +421,7 @@ describe("source lifecycle routes", () => {
       })));
       const env = managedStorageEnv(database);
 
-      const manifestResponse = await request(env, "/exports/all?archiveSchema=12&archiveWriter=1");
+      const manifestResponse = await request(env, "/exports/all?archiveSchema=13&archiveWriter=1");
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
@@ -984,19 +985,12 @@ describe("source lifecycle routes", () => {
     const database = createDatabase();
     addSample(database);
     addRun(database);
-    database.exec(`
-      INSERT INTO comment_submissions
-        (id, context_kind, scope, body, status, actor_email, created_at, updated_at)
-      VALUES
-        ('submission-finalize-race', 'run_steps', 'individual', 'Uploaded observation',
-         'uploading', 'local-development',
-         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
-      INSERT INTO comment_submission_targets
-        (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
-      VALUES
-        ('submission-finalize-race', 'sample-1', 'run-1', 'step-1',
-         '2026-08-07T10:05:00.000Z');
-    `);
+    await acceptCommentSubmission(testEnv(database), {
+      id: "submission-finalize-race", body: "Uploaded observation",
+      context: { kind: "run_steps", scope: "individual", targets: [{ sampleId: "sample-1",
+        runId: "run-1", stepId: "step-1", expectedUpdatedAt: "2026-08-07T10:05:00.000Z" }] },
+      items: [],
+    });
     let postRaceState: { step_updated_at: string; sample_updated_at: string } | undefined;
     const env = testEnv(database, () => {
       database.prepare(
@@ -1039,75 +1033,33 @@ describe("source lifecycle routes", () => {
   it("does not orphan a ready Comment attachment when Finalize wins a Cancel race", async () => {
     const database = createDatabase();
     addSample(database);
-    database.exec(`
-      INSERT INTO managed_storage_objects
-        (id, provider, object_key, original_name, mime_type, byte_size,
-         sha256, status, created_at)
-      VALUES
-        ('cancel-storage', 'switchdrive', 'comments/result.dat', 'result.dat',
-         'application/octet-stream', 11, 'cancel-hash', 'ready',
-         '2026-08-07T10:06:00.000Z');
-
-      INSERT INTO comment_submissions
-        (id, context_kind, sample_id, scope, body, status, actor_email,
-         created_at, updated_at)
-      VALUES
-        ('cancel-race', 'sample', 'sample-1', NULL, 'Uploaded result',
-         'uploading', 'local-development',
-         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
-
-      INSERT INTO comment_submission_items
-        (id, submission_id, kind, status, position, filename, mime_type,
-         byte_size, sha256, storage_object_id, created_at, updated_at)
-      VALUES
-        ('cancel-item', 'cancel-race', 'attachment', 'ready', 0, 'result.dat',
-         'application/octet-stream', 11, 'cancel-hash', 'cancel-storage',
-         '2026-08-07T10:06:00.000Z', '2026-08-07T10:06:00.000Z');
-    `);
+    const bytes = new TextEncoder().encode("ready-bytes");
+    vi.stubGlobal("fetch", vi.fn(commentManagedFetch()));
+    const plainEnv = managedStorageEnv(database);
+    await acceptCommentUpload(database, plainEnv, { kind: "attachment", bytes,
+      sampleId: "sample-1", submissionId: "cancel-race", itemId: "cancel-item" });
+    await uploadAcceptedCommentItem(plainEnv, "cancel-race", "cancel-item", "attachment", bytes);
+    const item = database.prepare("SELECT storage_object_id FROM comment_submission_items WHERE id = 'cancel-item'")
+      .get() as { storage_object_id: string };
     let finalized = false;
-    const env = managedStorageEnv(database, () => {
+    let published: unknown;
+    const env = managedStorageEnv(database, async () => {
       if (finalized) return;
       finalized = true;
-      database.prepare(
-        `UPDATE comment_submissions
-         SET status = 'ready', completed_at = '2026-08-07T10:07:00.000Z',
-             last_mutation_id = 'finalize-won', updated_at = '2026-08-07T10:07:00.000Z'
-         WHERE id = 'cancel-race'`,
-      ).run();
-      database.prepare(
-        `INSERT INTO events
-          (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-         VALUES
-          ('cancel-race-event', 'sample-1', 'comment', 'Uploaded result',
-           '{"action":"comment_submission","submissionId":"cancel-race"}',
-           'local-development', '2026-08-07T10:07:00.000Z')`,
-      ).run();
+      const response = await request(plainEnv, "/comment-submissions/cancel-race/finalize", { method: "POST" });
+      expect(response.status, await response.text()).toBe(200);
+      published = database.prepare("SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'cancel-race'").get();
     });
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("ready-bytes", {
-      status: 200,
-      headers: { "content-type": "application/octet-stream" },
-    })));
-
-    const cancelResponse = await request(
-      env,
-      "/comment-submissions/cancel-race/cancel",
-      { method: "POST" },
-    );
-
+    const cancelResponse = await request(env, "/comment-submissions/cancel-race/cancel", { method: "POST" });
     expect(cancelResponse.status).toBe(409);
-    expect(database.prepare(
-      "SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'cancel-race'",
-    ).get()).toEqual({ status: "ready", last_mutation_id: "finalize-won" });
-    expect(database.prepare(
-      "SELECT status FROM comment_submission_items WHERE id = 'cancel-item'",
-    ).get()).toEqual({ status: "ready" });
-    expect(database.prepare(
-      "SELECT status, orphaned_at FROM managed_storage_objects WHERE id = 'cancel-storage'",
-    ).get()).toEqual({ status: "ready", orphaned_at: null });
-    expect(database.prepare(
-      "SELECT COUNT(*) AS count FROM events WHERE id = 'cancel-race-event'",
-    ).get()).toEqual({ count: 1 });
-
+    expect(finalized).toBe(true);
+    expect(published).toMatchObject({ status: "ready", last_mutation_id: expect.any(String) });
+    expect(database.prepare("SELECT status, last_mutation_id FROM comment_submissions WHERE id = 'cancel-race'").get()).toEqual(published);
+    expect(database.prepare("SELECT status FROM comment_submission_items WHERE id = 'cancel-item'").get()).toEqual({ status: "ready" });
+    expect(database.prepare("SELECT status, orphaned_at FROM managed_storage_objects WHERE id = ?").get(item.storage_object_id))
+      .toEqual({ status: "ready", orphaned_at: null });
+    expect(database.prepare("SELECT count(*) count FROM events WHERE json_extract(metadata_json, '$.submissionId') = 'cancel-race'").get())
+      .toEqual({ count: 1 });
     const downloadResponse = await request(env, "/attachments/cancel-item/download");
     expect(downloadResponse.status).toBe(200);
     expect(await downloadResponse.text()).toBe("ready-bytes");

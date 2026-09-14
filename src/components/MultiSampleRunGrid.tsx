@@ -17,6 +17,7 @@ import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
 import { pendingRunStepActionTargets } from "../lib/runGridActions";
 import { CommentAttachmentList } from "./CommentAttachmentList";
 import { CommentBody } from "./CommentBody";
+import { commentComposerSource } from "../lib/comment-submission-client";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { DialogCloseIcon } from "./DialogCloseIcon";
@@ -366,6 +367,7 @@ function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepC
 }
 
 function ProcessPlanCommentDialog({
+  sourceKey,
   stepName,
   commentContext,
   targets,
@@ -377,6 +379,7 @@ function ProcessPlanCommentDialog({
   onDelete,
   onDeleteAsset,
 }: {
+  sourceKey: string;
   stepName: string;
   commentContext: "process-plan" | "metrology";
   targets: RunStepCommentContext["targets"];
@@ -411,6 +414,7 @@ function ProcessPlanCommentDialog({
       <div className="process-plan-comment-content">
         {!readOnly && targets.length > 0 && <CommentComposer
           label="Add to checked samples"
+          sourceKey={sourceKey}
           context={{ kind: "run_steps", scope: "common", targets }}
           onCancel={onClose}
           onSubmitted={async () => {
@@ -419,7 +423,7 @@ function ProcessPlanCommentDialog({
           }}
         />}
         {!readOnly && targets.length === 0 && <p className="muted process-plan-comment-empty-selection">Check one or more samples in the grid to add a common comment.</p>}
-        <CommentSubmissionRecovery submissions={recovery} onSubmitted={onSubmitted} />
+        <CommentSubmissionRecovery localSourceKey={!readOnly && targets.length > 0 ? sourceKey : undefined} submissions={recovery} onSubmitted={onSubmitted} />
         <section className="process-plan-comment-history" aria-label={`Existing ${commentContext} comments`}>
           <div className="process-plan-comment-history-heading">
             <small>Execution comments</small>
@@ -1266,6 +1270,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               {!mobileRunGrid && <div className="process-plan-comment-inline">
                 {!readOnly && commonCommentsOpen && <CommentComposer
                   label="Add to checked samples"
+                  sourceKey={`common-row:${row.key}`}
                   context={{ kind: "run_steps", scope: "common", targets: commonTargets }}
                   adaptiveToolbarLayout
                   onCancel={() => setCommonCommentRow(null)}
@@ -1274,7 +1279,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                     await onSaved();
                   }}
                 />}
-                <CommentSubmissionRecovery submissions={commonRecovery} onSubmitted={onSaved} />
+                <CommentSubmissionRecovery localSourceKey={!readOnly && commonCommentsOpen && !mobileRunGrid ? `common-row:${row.key}` : undefined} submissions={commonRecovery} onSubmitted={onSaved} />
                 {readyCommonGroups.length > 0 && <div className="common-comments">
                   <small>Common execution comments</small>
                   {readyCommonGroups.map(({ comment, codes }) => <CommentCard
@@ -1289,6 +1294,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 </div>}
               </div>}
               {mobileRunGrid && commonCommentsOpen && <ProcessPlanCommentDialog
+                sourceKey={`common-row:${row.key}`}
                 stepName={stepName}
                 commentContext={commonCommentContext}
                 targets={commonTargets}
@@ -1378,7 +1384,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
-    <CommentSubmissionRecovery submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
+    <CommentSubmissionRecovery localSourceKey={!readOnly ? commentComposerSource(commentContext) : undefined} submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
     <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
     {showMismatchDialog && <StateMismatchDialog
       sampleCode={column.sample.code}

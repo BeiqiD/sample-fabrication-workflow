@@ -101,8 +101,8 @@ Production acceptance covers a new reference upload, page reload, byte access
 and reference deletion/restoration behavior. ZIP-specific and browser ZIP testing
 remain deferred at the owner's request; mandatory archive regressions remain.
 
-Comment still needs its complete original/preview, provider, cancellation and
-multi-target publication protocol. Only after all writers are qualified can the
+[FP1j](./FP1_COMMENT_ACCEPTANCE.md) supplies Comment's original/preview, provider,
+cancellation and multi-target publication protocol. Only after all writers are qualified can the
 combined File transition change consumer foreign keys, purpose-aware reuse,
 verified independent placement, authorized resolution, retention/deletion fencing
 and recovery together. R2 defaults and authenticated storage Settings follow that

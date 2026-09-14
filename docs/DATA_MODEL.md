@@ -8,12 +8,12 @@ requires preserving business identities, classifying existing file uses and
 updating export/recovery with every schema slice. [FP1a](./FP1_FILE_REGISTRY_FOUNDATION.md)
 adds four dormant identity/observation tables; provider-neutral runtime publication
 and consumer conversion remain later work. Subsequent accepted-operation ledgers
-preserve import, byte-upload and metrology-reference publication history alongside
+preserve import, byte-upload, metrology-reference and Comment publication history alongside
 the business tables and required exported retention view.
 
 Original S2 review: integration commit
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c`; accepted-operation additions through
-[FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) extend that retained schema. The
+[FP1j](./FP1_COMMENT_ACCEPTANCE.md) extend that retained schema. The
 [repository compatibility audit](./FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md)
 maps the proposed transition to existing modules, schema guards and test gates.
 
@@ -37,6 +37,8 @@ maps the proposed transition to existing modules, schema guards and test gates.
 | `comment_submissions` | Canonical logical Comments and their upload/finalization lifecycle. A ready row owns body, author, and attached items once. |
 | `comment_submission_targets` | Canonical Comment targets in Sample/Run/Step context. A common Comment may own several target contexts. |
 | `comment_submission_items` | Stable inline-image, original-file, or link occurrences owned by a canonical Comment. |
+| `comment_submission_acceptances` | Immutable actor-bound Comment input, fixed seven-day deadline, frozen multi-target publication plan and original result. Auxiliary history preserves the canonical submission identity and adds no byte-retention root. |
+| `comment_item_acceptances` | Per-item checksum, purpose, frozen physical profile/candidate, one execution owner and original verified upload result. Cancellation does not rewrite the original submission manifest. |
 | `run_step_comments` | Stable occurrence of a canonical Comment in one Run Step; legacy rows may directly carry an image asset. |
 | `metrology_template_references` | Stable reference-file occurrences attached to a metrology template. |
 | `reference_targets` | Sparse, idempotent polymorphic registry for durable external source identities. Its registry identity and source target are immutable; it stores validation metadata rather than copied source content. |
