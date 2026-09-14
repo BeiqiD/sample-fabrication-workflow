@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -101,7 +101,8 @@ try {
     compatibilityDate: "2026-07-20",
     modules: true,
     scriptPath: bundlePath,
-    bindings: { AUTH_MODE: "disabled" },
+    bindings: { AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: JSON.parse(await readFile(configPath, "utf8")).vars.R2_BOOTSTRAP_NAMESPACE },
     d1Databases: { DB: "00000000-0000-4000-8000-000000000000" },
     d1Persist: resolve(persistPath, "v3/d1"),
     r2Buckets: ["ASSETS"],
@@ -156,6 +157,7 @@ try {
     headers: {
       "content-type": "application/octet-stream",
       "x-project-filename-uri": encodeURIComponent("   "),
+      "x-upload-request-id": randomUUID(),
     },
     body: bytes,
   });
@@ -166,6 +168,7 @@ try {
     headers: {
       "content-type": "application/octet-stream",
       "x-project-filename-uri": encodeURIComponent("smoke.bin"),
+      "x-upload-request-id": randomUUID(),
     },
     body: bytes,
   });
@@ -179,6 +182,7 @@ try {
     headers: {
       "content-type": "application/octet-stream",
       "x-project-filename-uri": encodeURIComponent("smoke.bin"),
+      "x-upload-request-id": randomUUID(),
     },
     body: bytes,
   });
