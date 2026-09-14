@@ -53,11 +53,15 @@ describe("mounted ordinary-image request recovery", () => {
     const requestIds: Array<string | null> = [];
     const uploads: Array<{ body: RequestInit["body"]; filename: string | null }> = [];
     const domainInputs: Array<Record<string, unknown>> = [];
+    let templateReads = 0;
     const json = (payload: unknown) => new Response(JSON.stringify(payload), {
       headers: { "content-type": "application/json" },
     });
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (path, init) => {
-      if (String(path) === "/api/templates/upload-template" && !init?.method) return json({ template: template() });
+      if (String(path) === "/api/templates/upload-template" && !init?.method) {
+        templateReads += 1;
+        return json({ template: { ...template(), name: templateReads > 1 ? "Reloaded upload template" : "Upload template" } });
+      }
       if (String(path) === "/api/assets") {
         requestIds.push(new Headers(init?.headers).get(R2_UPLOAD_REQUEST_HEADER));
         uploads.push({ body: init?.body, filename: new Headers(init?.headers).get("X-Filename-Uri") });
@@ -74,35 +78,44 @@ describe("mounted ordinary-image request recovery", () => {
     const router = createMemoryRouter([{
       path: "/templates/:templateId", element: <TemplatePage />,
     }], { initialEntries: ["/templates/upload-template"] });
-    render(<RouterProvider router={router} />);
-    fireEvent.click(await screen.findByRole("button", { name: "+ Add template step" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Step name" }), { target: { value: "Replacement diagram step" } });
-    fireEvent.change(screen.getByRole("button", { name: "Drop a diagram" }).querySelector('input[type="file"]')!, {
-      target: { files: [original] },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add step" }));
-    await screen.findByText("The upload response was lost. Retry to check the same request.");
-    expect(screen.getByText("The previous upload may still finish. Discarding lets you choose a new upload.")).toBeTruthy();
-    expect(requestIds).toHaveLength(1);
-    expect(domainInputs).toHaveLength(0);
+    try {
+      render(<RouterProvider router={router} />);
+      fireEvent.click(await screen.findByRole("button", { name: "+ Add template step" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "Step name" }), { target: { value: "Replacement diagram step" } });
+      fireEvent.change(screen.getByRole("button", { name: "Drop a diagram" }).querySelector('input[type="file"]')!, {
+        target: { files: [original] },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add step" }));
+      await screen.findByText("The upload response was lost. Retry to check the same request.");
+      expect(screen.getByText("The previous upload may still finish. Discarding lets you choose a new upload.")).toBeTruthy();
+      expect(requestIds).toHaveLength(1);
+      expect(domainInputs).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Discard upload" }));
-    expect(screen.queryByRole("button", { name: "Discard upload" })).toBeNull();
-    expect(screen.queryByRole("img", { name: "Selected upload preview" })).toBeNull();
-    fireEvent.change(screen.getByRole("button", { name: "Drop a diagram" }).querySelector('input[type="file"]')!, {
-      target: { files: [replacement] },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add step" }));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Add step" })).toBeNull());
-    expect(requestIds).toHaveLength(2);
-    for (const requestId of requestIds) expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    expect(requestIds[1]).not.toBe(requestIds[0]);
-    expect(uploads[1].body).toBe(replacement);
-    expect(uploads[1].filename).toBe(encodeURIComponent(replacement.name));
-    expect(domainInputs).toEqual([expect.objectContaining({ assetKey: "diagrams/replacement.png" })]);
-    expect(compressLayerStackImage).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls.some(([path]) => String(path).startsWith("/api/r2-upload-requests/"))).toBe(false);
-    router.dispose();
+      fireEvent.click(screen.getByRole("button", { name: "Discard upload" }));
+      expect(screen.queryByRole("button", { name: "Discard upload" })).toBeNull();
+      expect(screen.queryByRole("img", { name: "Selected upload preview" })).toBeNull();
+      fireEvent.change(screen.getByRole("button", { name: "Drop a diagram" }).querySelector('input[type="file"]')!, {
+        target: { files: [replacement] },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Add step" }));
+      // The save button temporarily reads "Adding…" while upload is still in
+      // flight. Wait for the completed domain write and its rendered reload.
+      await waitFor(() => expect(domainInputs).toHaveLength(1));
+      await screen.findByRole("heading", { name: "Reloaded upload template" });
+      expect(screen.getByRole("button", { name: "+ Add template step" })).toBeTruthy();
+      expect(screen.queryByRole("textbox", { name: "Step name" })).toBeNull();
+      expect(templateReads).toBe(2);
+      expect(requestIds).toHaveLength(2);
+      for (const requestId of requestIds) expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(requestIds[1]).not.toBe(requestIds[0]);
+      expect(uploads[1].body).toBe(replacement);
+      expect(uploads[1].filename).toBe(encodeURIComponent(replacement.name));
+      expect(domainInputs).toEqual([expect.objectContaining({ assetKey: "diagrams/replacement.png" })]);
+      expect(compressLayerStackImage).toHaveBeenCalledTimes(2);
+      expect(fetchMock.mock.calls.some(([path]) => String(path).startsWith("/api/r2-upload-requests/"))).toBe(false);
+    } finally {
+      router.dispose();
+    }
   });
 
   it.each(["new", "edit"] as const)("prepares the %s-step diagram once and revalidates the upload on every retry", async (mode) => {
@@ -122,7 +135,7 @@ describe("mounted ordinary-image request recovery", () => {
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (path, init) => {
       if (String(path) === "/api/templates/upload-template" && !init?.method) {
         templateReads += 1;
-        return json({ template: template() });
+        return json({ template: { ...template(), name: templateReads > 1 ? "Reloaded upload template" : "Upload template" } });
       }
       if (String(path) === "/api/assets") {
         operations.push("upload");
@@ -157,42 +170,47 @@ describe("mounted ordinary-image request recovery", () => {
     const router = createMemoryRouter([{
       path: "/templates/:templateId", element: <TemplatePage />,
     }], { initialEntries: ["/templates/upload-template"] });
-    render(<RouterProvider router={router} />);
-    await screen.findByRole("heading", { name: "Upload template" });
-    fireEvent.click(screen.getByRole("button", { name: mode === "new" ? "+ Add template step" : "Edit" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Step name" }), { target: { value: "Prepared step" } });
-    const dropzone = screen.getByRole("button", { name: mode === "new" ? "Drop a diagram" : "Drop another diagram" });
-    fireEvent.change(dropzone.querySelector('input[type="file"]')!, { target: { files: [selected] } });
-    const saveLabel = mode === "new" ? "Add step" : "Save step";
+    try {
+      render(<RouterProvider router={router} />);
+      await screen.findByRole("heading", { name: "Upload template" });
+      fireEvent.click(screen.getByRole("button", { name: mode === "new" ? "+ Add template step" : "Edit" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "Step name" }), { target: { value: "Prepared step" } });
+      const dropzone = screen.getByRole("button", { name: mode === "new" ? "Drop a diagram" : "Drop another diagram" });
+      fireEvent.change(dropzone.querySelector('input[type="file"]')!, { target: { files: [selected] } });
+      const saveLabel = mode === "new" ? "Add step" : "Save step";
 
-    fireEvent.click(screen.getByRole("button", { name: saveLabel }));
-    await screen.findByText("The upload response was lost. Retry to check the same request.");
-    // Assertions belong outside the intentionally rejected fetch: the client
-    // correctly catches all fetch errors, including an assertion thrown there.
-    expect(uploads).toHaveLength(1);
-    expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    expect(uploads[0].method).toBe("POST");
-    expect(uploads[0].body).toBe(prepared);
-    expect(uploads[0].filename).toBe(encodeURIComponent(prepared.name));
-    expect(JSON.parse(uploads[0].checkpoint!)).toMatchObject({
-      requestId, ingress: "ordinary_image", filename: prepared.name,
-      mimeType: prepared.type, byteSize: prepared.size,
-    });
-    expect(domainInputs).toHaveLength(0);
-    fireEvent.click(screen.getByRole("button", { name: saveLabel }));
-    await screen.findByText("Step save temporarily unavailable");
-    expect(domainInputs).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: saveLabel }));
-    await waitFor(() => expect(templateReads).toBe(2));
-    await waitFor(() => expect(screen.queryByRole("button", { name: saveLabel })).toBeNull());
+      fireEvent.click(screen.getByRole("button", { name: saveLabel }));
+      await screen.findByText("The upload response was lost. Retry to check the same request.");
+      // Assertions belong outside the intentionally rejected fetch: the client
+      // correctly catches all fetch errors, including an assertion thrown there.
+      expect(uploads).toHaveLength(1);
+      expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(uploads[0].method).toBe("POST");
+      expect(uploads[0].body).toBe(prepared);
+      expect(uploads[0].filename).toBe(encodeURIComponent(prepared.name));
+      expect(JSON.parse(uploads[0].checkpoint!)).toMatchObject({
+        requestId, ingress: "ordinary_image", filename: prepared.name,
+        mimeType: prepared.type, byteSize: prepared.size,
+      });
+      expect(domainInputs).toHaveLength(0);
+      fireEvent.click(screen.getByRole("button", { name: saveLabel }));
+      await screen.findByText("Step save temporarily unavailable");
+      expect(domainInputs).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: saveLabel }));
+      await screen.findByRole("heading", { name: "Reloaded upload template" });
+      expect(templateReads).toBe(2);
+      expect(screen.getByRole("button", { name: mode === "new" ? "+ Add template step" : "Edit" })).toBeTruthy();
+      expect(screen.queryByRole("textbox", { name: "Step name" })).toBeNull();
 
-    expect(operations).toEqual(["upload", "status", "domain", "status", "domain"]);
-    expect(compressLayerStackImage).toHaveBeenCalledOnce();
-    expect(compressLayerStackImage).toHaveBeenCalledWith(selected);
-    expect(domainInputs).toHaveLength(2);
-    expect(domainInputs[0]).toMatchObject({ name: "Prepared step", assetKey: "diagrams/prepared.png" });
-    expect(domainInputs[1]).toEqual(domainInputs[0]);
-    expect(fetchMock.mock.calls.filter(([path]) => String(path) === "/api/assets")).toHaveLength(1);
-    router.dispose();
+      expect(operations).toEqual(["upload", "status", "domain", "status", "domain"]);
+      expect(compressLayerStackImage).toHaveBeenCalledOnce();
+      expect(compressLayerStackImage).toHaveBeenCalledWith(selected);
+      expect(domainInputs).toHaveLength(2);
+      expect(domainInputs[0]).toMatchObject({ name: "Prepared step", assetKey: "diagrams/prepared.png" });
+      expect(domainInputs[1]).toEqual(domainInputs[0]);
+      expect(fetchMock.mock.calls.filter(([path]) => String(path) === "/api/assets")).toHaveLength(1);
+    } finally {
+      router.dispose();
+    }
   });
 });
