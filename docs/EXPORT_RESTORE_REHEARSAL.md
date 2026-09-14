@@ -18,16 +18,51 @@ remain empty in that upgrade, while original archived rows and schema definition
 are preserved. No historical byte verification is upgraded by adding metadata.
 See [FP1a](./FP1_FILE_REGISTRY_FOUNDATION.md) for the dormant-state restrictions.
 
-Current full export uses schema 13, writer 1,
-`fp1-comment-acceptance`. Subsequent forward suffixes preserve import
+Current full export uses schema 14, writer 1,
+`fp1-file-authority-transition`. Subsequent forward suffixes preserve import
 acceptance (`0003`), ordinary/Project upload acceptance (`0004`), metrology
-reference publication (`0005`), and Comment acceptance (`0006`). V7–V12 archives keep their exact historical
-validation before the remaining reviewed suffix is applied. New receipt tables
-stay empty when absent from an older archive; captured requests in newer archives
-remain historical and cannot restart pending provider work during restore.
+reference publication (`0005`), Comment acceptance (`0006`) and the additive
+File-authority substrate (`0007`). V7–V13 archives keep their exact historical
+validation before the remaining reviewed suffix is applied. New receipt and
+operational transition ledgers stay empty when absent from an older archive;
+`0007` still seeds the `legacy` control singleton and one `read_only` runtime
+companion for each storage profile. Captured requests in newer archives remain
+historical and cannot restart pending provider work during restore.
 See [FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) and
 [FP1j](./FP1_COMMENT_ACCEPTANCE.md) for business receipts and their separation
-from current byte availability and retention.
+from current byte availability and retention. See
+[FP1k](./FP1_FILE_AUTHORITY_TRANSITION.md) for the old-business-path-compatible
+expand/shadow/activate sequence, excluding the migration-first complete-export
+window before the V14 Worker is live; schema-14 recovery neither runs the later
+resolver nor contacts a provider.
+
+V14 is deliberately limited to the expand checkpoint. Admission requires the
+control singleton in revision-1 `legacy` mode, one `read_only` runtime companion
+per historical storage profile, null typed consumer File columns, and empty
+publication, hold, File-location lifecycle, derivation, conversion-decision and
+acceptance-candidate tables. Its new projections are included in the canonical
+snapshot, while blob packaging continues to use the still-authoritative legacy
+locators. A later `overlap`/active snapshot must negotiate a successor archive
+schema rather than weakening this V14 contract.
+
+The export route first probes the exact installed physical generation. Complete
+schema mismatch is a refreshable archive-version conflict; an incomplete or mixed
+migration fails before the D1 snapshot. V14 then validates a deterministic
+fingerprint of the transition-relevant `sqlite_schema` objects, including owned
+tables, views, indexes and triggers, and the restore target must reproduce the
+same fingerprint. The normalization and object-selection policy are shared by
+whole-file SQLite, Wrangler-split/D1 migration execution, source admission and
+restore verification. V14's terminal trigger is only its own completion marker;
+future archive schemas require a new marker and fingerprint.
+
+The usual package rollout applies migrations before the new Worker. Consequently,
+ordinary legacy reads/writes remain compatible after `0007`, but a V13 export
+request against the old Worker returns 500 during the short interval before the
+V14 Worker is serving. Under the V14 Worker, a stale V13 page receives 409 and must
+refresh. Zero export interruption
+requires a separate two-stage compatibility Worker before the migration; the
+current rollout does not provide that bridge and must never emit a partially
+labelled archive instead.
 
 Phase 6A1 verifies that a trusted complete export can recreate its current-schema
 rows, identities and available physical bytes in disposable local resources.
@@ -46,7 +81,7 @@ npm run verify:export-restore -- --archive /path/to/backup.zip --destination /pa
 The destination must not exist, including as an empty directory or symlink.
 There is no overwrite, force or remote option. The current repository's SQL
 migrations provide the schema; the archive cannot supply executable SQL.
-V8 through V13 require an explicit `--target-schema S0|S1|S2`; the recorded original
+V8 through V14 require an explicit `--target-schema S0|S1|S2`; the recorded original
 rehearsals below target S0. S2 is now the active integration schema, as recorded
 in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 Offline qualification can select an independently reviewed migration
@@ -95,6 +130,13 @@ triggers are reinstalled, and SQLite integrity, foreign keys, schema equality,
 canonical row equality and selected Project ownership/sequence/placement
 relations are checked before the result is published. Future writes again use
 the original triggers; fixture tests exercise their identity and deletion guards.
+
+For V14, row equality is supplemented by the exact transition schema fingerprint
+and recomputation of all File consumer projections from canonical business rows.
+Legacy lifecycle correlation follows `legacy_file_mappings.location_id`; identical
+object keys in different storage profiles remain distinct. The recovered expand
+checkpoint cannot synthesize publications, typed bindings, conversion decisions
+or verified hashes and cannot resume an acceptance candidate.
 
 `blob_retention_edges` is rebuilt from canonical rows. Every currently retained
 edge must be present in the archive. An additional historical edge is accepted

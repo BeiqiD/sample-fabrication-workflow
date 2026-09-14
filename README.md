@@ -162,7 +162,9 @@ npm run verify:v3-deployment
 produces a bounded, read-only historical file consumer and purpose-conversion report.
 It accepts a complete schema-10 through schema-13 JSON snapshot; see the
 [FP1g input contract and limits](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md).
-The report does not migrate files or verify their bytes.
+The report does not migrate files or verify their bytes. Schema 14 is deliberately
+not planner input: it is the post-expansion recovery contract, still in immutable
+`legacy` authority mode.
 
 Ordinary image and Project uploads now use
 [durable request acceptance](./docs/FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), with stable
@@ -171,15 +173,24 @@ also use [durable business publication](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANC
 binding upload recovery to the original reference occurrence. [Comment acceptance](./docs/FP1_COMMENT_ACCEPTANCE.md)
 freezes complete submissions and file hashes before upload, fences cancellation,
 and atomically publishes all retained items and targets within a fixed seven-day
-window. Current full export uses schema 13 and preserves these operation histories.
+window. The [additive File-authority transition](./docs/FP1_FILE_AUTHORITY_TRANSITION.md)
+advances the complete export to schema 14, writer 1, profile
+`fp1-file-authority-transition`. It preserves the transition substrate and all
+earlier operation histories while authority mode remains immutably `legacy`; it
+does not change runtime storage behavior. The normal migration-first rollout can
+briefly reject an old V13 complete-export request after `0007` and before the V14
+Worker is live with status 500; once the V14 Worker is live, a stale V13 page gets
+409 and must refresh. Legacy business reads/writes remain compatible. See the
+transition document for the separate two-stage bridge required if export must be
+uninterrupted.
 
 A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
 
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated complete archive (current schema 13,
-`fp1-comment-acceptance`, with historical readers retained) against the current migrations in a newly
+rehearses a trusted negotiated complete archive (current schema 14,
+`fp1-file-authority-transition`, with historical readers retained) against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote
@@ -199,7 +210,12 @@ retention paths remain in use. The byte-read/write boundaries now extend to
 deletion keeps the locator claimed until guarded reconciliation. Qualified v7/v8 archives can be restored against
 the reviewed S2 target and then upgraded by the same additive suffix, with the
 applied forward migration recorded in the report. Settings, universal upload
-routing and native website import remain later slices.
+routing and native website import remain later slices. FP1a–FP1j are merged
+through PR #219 at `7e63a366663c47c830120abc77af1d174abaf5aa`.
+Migration `0007` adds typed authority/conversion metadata and matched schema-14
+recovery but installs only immutable `legacy` mode. The next PR is the shadow
+writer/resolver and conversion ledger; final authority cutover, R2 role defaults
+and authenticated Settings remain separate work.
 
 ## Further documentation
 
@@ -216,6 +232,12 @@ routing and native website import remain later slices.
 - [FP1c verified writes and bounded hashing](./docs/FP1_VERIFIED_BYTE_WRITES.md)
 - [FP1d deletion and fenced GC recovery](./docs/FP1_FENCED_BYTE_DELETION.md)
 - [FP1e import recovery byte verification](./docs/FP1_RECOVERY_BYTE_VERIFICATION.md)
+- [FP1f durable import acceptance](./docs/FP1_DURABLE_IMPORT_ACCEPTANCE.md)
+- [FP1g historical consumer conversion plan](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md)
+- [FP1h durable ordinary/Project upload acceptance](./docs/FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md)
+- [FP1i metrology reference acceptance](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md)
+- [FP1j durable Comment acceptance](./docs/FP1_COMMENT_ACCEPTANCE.md)
+- [FP1k additive File-authority transition](./docs/FP1_FILE_AUTHORITY_TRANSITION.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

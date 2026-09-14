@@ -8,6 +8,12 @@ recover every historical consumer from a time-dependent retention view alone.
 FP1g adds a complete typed projection and an offline deterministic report. This
 prepares the combined File authority transition; it does not execute it or close FP1.
 
+Current handoff: FP1a–FP1j are merged through PR #219 at exact integration head
+`7e63a366663c47c830120abc77af1d174abaf5aa`. The
+[FP1k additive transition](./FP1_FILE_AUTHORITY_TRANSITION.md) installs migration
+`0007` and schema-14 export/recovery, but its authority mode is immutably
+`legacy`. It does not turn this read-only report into execution authority.
+
 ## Input and command
 
 ```bash
@@ -32,6 +38,12 @@ namespace evidence. [FP1j](./FP1_COMMENT_ACCEPTANCE.md) adds complete V13 input
 (`archiveSchema=13&archiveWriter=1`, `fp1-comment-acceptance`), including Comment
 request/upload history and its frozen namespaces. All four versions remain
 read-only plans; recorded purposes do not resolve ambiguous historical consumers.
+[FP1k](./FP1_FILE_AUTHORITY_TRANSITION.md) deliberately does **not** add V14 as
+planner input. Schema 14 is the post-expansion recovery contract and contains
+additive authority-transition state; treating it as a pre-expansion planning
+snapshot would blur the captured baseline. The CLI therefore remains bounded to
+V10–V13 and must reject V14 explicitly. Schema-14 export is still in immutable
+`legacy` authority mode, but it is not an execution-authorizing plan.
 
 Limits are **16 MiB input**, **20,000 aggregate table rows** (including views) and
 **8 MiB output**. Changing inputs, non-regular files, invalid UTF-8/JSON and
@@ -120,17 +132,23 @@ workerd/D1, and isolated V10 recovery preserving plan semantics. The native
 planning Worker has no provider binding. Mandatory archive/restore regressions
 remain; ZIP-specific/browser ZIP acceptance stays deferred at the owner's request.
 
-FP1g changes no schema, archive version, HTTP route or UI behavior. FP1a registry
-tables remain dormant under existing guards. Legacy consumers, deduplication and
-retention still own live bytes.
+FP1g itself changes no schema, archive version, HTTP route or UI behavior.
+FP1h–FP1j subsequently added accepted ordinary/Project, metrology and Comment
+operations without activating File authority. FP1k now adds typed consumer and
+conversion substrate, but immutable `legacy` mode keeps the legacy consumers,
+global-SHA deduplication, retention and lifecycle rules authoritative.
 
-The next transition must implement consumer foreign keys, explicit unresolved-case
-admission, purpose/scope/profile-aware accepted writes and deduplication, verified
-copy/publication, authorized resolution, complete retention/quarantine/deletion
-fencing and matching recovery together. Execution must re-read/compare the live
-baseline, acquire durable holds and fence concurrent changes. A saved FP1g report
-cannot authorize it. Only the combined transition can relax dormant guards; R2
-defaults for new originals and authenticated storage Settings follow conversion.
+The next PR must implement the complete shadow writer/resolver and conversion
+ledger across every writer and consumer. Execution must re-read and compare the
+live baseline, acquire durable holds, fence concurrent changes and record explicit
+unresolved outcomes. It must use purpose/scope/profile-aware candidates and
+complete-byte verification. When one locator serves more than one purpose, the
+resolver must create and verify independent physical placements rather than
+aliasing one location across logical Files. A saved FP1g report, an acceptance
+receipt or the presence of `0007` cannot authorize publication.
 
-The subsequent FP1h slice implements ordinary-image and Project upload acceptance
-before that combined transition, retaining all dormant-state restrictions.
+Final cutover is later: after complete ledgered catch-up, a separately reviewed
+atomic activation must fence old Workers and switch consumer reads/writes,
+deduplication, retention, quarantine, deletion and recovery authority together.
+Only then may compatibility retirement be scheduled. R2 defaults for both roles
+and authenticated storage Settings follow conversion.

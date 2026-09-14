@@ -78,6 +78,9 @@ async function fixture() {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("backend reliability scale characterization", () => {
+  // Full-suite workers contend while each fixture applies the complete reviewed
+  // migration chain. Keep the measured request diagnostics non-gating, as the
+  // characterization contract above specifies, without a 5 s harness race.
   it.each([200, 201, 500])("retains %i distinct references across resolver batches", async (count) => {
     const f = await fixture();
     try {
@@ -106,7 +109,7 @@ describe("backend reliability scale characterization", () => {
         sqlStatements: f.queryCount(), responseBytes: new TextEncoder().encode(bytes).length, elapsedMs,
       }));
     } finally { f.database.close(); }
-  });
+  }, 15_000);
 
   it.each([[250, 400], [500, 800]])("retains %i nodes/%i edges and waits for every placement ACK", async (count, edgeCount) => {
     vi.stubGlobal("matchMedia", vi.fn(() => ({

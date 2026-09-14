@@ -21,13 +21,21 @@ adds metrology reference acceptance and atomic occurrence publication, with
 schema 12 recovery. [FP1j](./FP1_COMMENT_ACCEPTANCE.md) strengthens canonical
 Comment acceptance, image/original placement, cancellation and atomic multi-target
 publication, with schema 13 recovery. File/location authority remains
-dormant and legacy global-SHA deduplication still applies. FP1 remains incomplete;
-no deployment is certified by this document.
+dormant and legacy global-SHA deduplication still applies. FP1a–FP1j are merged
+through PR #219 at exact head
+`7e63a366663c47c830120abc77af1d174abaf5aa`. The
+[FP1k additive transition](./FP1_FILE_AUTHORITY_TRANSITION.md) adds migration
+`0007` and schema-14 recovery in immutable `legacy` mode. It is substrate for the
+old-business-path-compatible expand/shadow/activate sequence, excluding the
+migration-first complete-export window before the V14 Worker is live; it is not
+runtime File authority. FP1 remains incomplete; no deployment is certified by
+this document.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
-FP1j implementation base: `13c5f8f` (merged PR #218), 2026-09-14; its implementation
-PR records final verification and deployment evidence.
+FP1k implementation base: `7e63a366663c47c830120abc77af1d174abaf5aa`
+(merged PR #219), 2026-09-14. This implementation PR records its own final
+verification and deployment evidence.
 
 ## Authority and reading order
 
@@ -44,7 +52,9 @@ Read these documents together:
 3. [Data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md): reports, portable
    packages, backup/recovery and their shared machinery.
 4. This plan: delivery dependencies, compatibility and acceptance.
-5. [Long-term roadmap](./LONG_TERM_ROADMAP.md): Docker, small-group collaboration
+5. [FP1k additive transition](./FP1_FILE_AUTHORITY_TRANSITION.md): the installed
+   legacy-mode substrate and required expand/shadow/activate sequence.
+6. [Long-term roadmap](./LONG_TERM_ROADMAP.md): Docker, small-group collaboration
    and optional capabilities beyond this track.
 
 Existing architecture/data-model documents describe deployed implementation.
@@ -77,8 +87,10 @@ change retroactively qualifies the old SWITCHdrive path. The new track is an
 intentional product/schema change, separate from behavior-preserving Phase 6A.
 
 The original design PR changed no runtime state. FP1a–FP1j introduce bounded
-forward schema, transport, recovery, accepted-import and offline planning slices; the complete
-File/location authority transition remains open. FP1f captures a historical R2
+forward schema, transport, recovery, accepted-operation and offline planning
+slices. FP1k expands the schema and archive in immutable `legacy` mode; it still
+changes no runtime authority. The shadow/catch-up and atomic activation steps of
+the File/location authority transition remain open. FP1f captures a historical R2
 profile on first accepted import without changing the storage binding or defaults.
 The earlier disposable-reset authorization is not a standing reset
 strategy for FP. Keep the recorded Builds/Cron holds and their release owner
@@ -106,12 +118,17 @@ attachments. FP1i adds metrology's accepted business operation and atomic refere
 publication. FP1j adds Comment's immutable accepted input, one upload owner,
 fixed seven-day deadline and guarded publication of all retained items/targets.
 The complete consumer, deduplication, retention and recovery conversion remains
-the next authority transition; accepted-operation ledgers alone do not complete it.
-Captured purposes do not change legacy global-SHA reuse or activate File placement.
+open; accepted-operation ledgers and the FP1k additive substrate do not complete
+it. Captured purposes do not change legacy global-SHA reuse or activate File
+placement. The next PR after FP1k is the complete shadow writer/resolver and
+conversion ledger, not final cutover. It must independently verify and copy bytes
+when one legacy locator serves consumers with different purposes. A later atomic
+activation switches reads, writes and lifecycle authority together only after
+catch-up and old-Worker fencing.
 
 | Milestone | Deliverable | Exit evidence |
 |---|---|---|
-| FP0 — design review | This architecture, export/import design, compatibility matrix and updated roadmaps | Owner can review a coherent target; unresolved implementation choices are bounded below. No implementation acceptance is claimed. |
+| FP0 — design review | This architecture, export/import design, compatibility matrix and updated roadmaps | Completed in PR #207. This remains historical design acceptance, not implementation acceptance. |
 | FP1 — universal file foundation | Files/locations/profile identities; both existing storage paths behind the registry; all direct-key consumers inventoried and adapted; R2 defaults for both roles on Cloudflare; basic authenticated storage status/Settings | Ordinary images, originals, previews, import/provenance and experimental images use the same location contract. Existing records keep their identities and locations. New originals round-trip through R2 without SWITCHdrive. Export/recovery preserves the new schema before activation. |
 | FP2 — configurable storage | Minimal administrator capability; versioned application settings; encrypted secret store; test/activate flow; external S3 adapter; separate internal/original defaults | Two real provider instances coexist; defaults affect only new uploads; invalid candidates do not replace active settings. Credential rotation, namespace-change rejection, permissions and failed-provider behavior are exercised. |
 | FP3 — jobs and migration | Persisted bounded job execution; migration planning/dry run, copy/verify/conditional switch, per-file retries and progress; GC/read holds and explicit source cleanup | Interrupted jobs resume safely; corruption never cuts over; concurrent delete/read/migration is safe; all file purposes can migrate. R2/S3 same-type and cross-type instances are exercised. SWITCHdrive live cases remain explicitly pending if inaccessible. |
@@ -315,11 +332,13 @@ the actual server adapter before declaring Docker support. Object-store I/O stay
 outside database transactions. No new ORM, PostgreSQL or distributed coordination service is a
 prerequisite for introducing these narrow interfaces.
 
-Review FP1 in bounded slices: schema/profile mapping with matching recovery;
-provider-neutral ingestion/resolution and complete consumer/lifecycle conversion
-(including the FP1b reader, FP1c verified-write and FP1d fenced-deletion precursors);
-then deployment defaults, readiness and basic Settings acceptance. These are
-review boundaries within FP1, not independently completed product milestones.
+Review FP1 in bounded slices: schema/profile mapping with matching recovery; the
+FP1k additive expansion in immutable `legacy` mode; complete shadow writing,
+resolution and ledgered catch-up; separately reviewed atomic consumer/lifecycle
+activation (including the FP1b reader, FP1c verified-write and FP1d
+fenced-deletion precursors); then deployment defaults, readiness and basic
+Settings acceptance. These are review boundaries within FP1, not independently
+completed product milestones.
 Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
 FP4 graph import into the first schema PR. Before FP3 implementation, record a
 runtime/provider capability matrix and an executable transfer spike, including
@@ -327,12 +346,15 @@ hashing and interrupted archive output. Estimates depend on those results.
 
 The [FP1d handoff inventory](./FP1_FENCED_BYTE_DELETION.md#next-authority-transition-complete-inventory)
 identifies the concrete relational, direct-key, import/recovery, API and
-export/restore consumers for the next authority conversion. Bound read/write/
-delete adapters do not themselves convert those consumers. Preserve the FP1a
-unresolved-state guards until accepted operation identity, profile/default races,
-guarded publication and the complete retention/dedup/quarantine/recovery
-transition are reviewed together. R2 original defaults and basic Settings follow
-that conversion.
+export/restore consumers for the authority conversion. Bound read/write/delete
+adapters and the FP1k schema do not themselves convert those consumers. FP1k's
+authority mode stays immutably `legacy`. A later resolver must re-read the live
+baseline, acquire durable holds, record every resolution outcome and independently
+verify source/destination bytes; purpose conflicts require separate verified
+placements rather than cross-purpose aliasing. Only after complete shadow catch-up
+may a separate atomic activation make File-aware retention, deduplication,
+quarantine and recovery authoritative together. R2 defaults and basic Settings
+follow that conversion.
 
 ### Bootstrap, configuration authority and health
 

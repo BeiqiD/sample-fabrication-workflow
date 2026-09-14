@@ -11,6 +11,7 @@ import { snapshotFullExportV10 } from "../../worker/export-v10-snapshot";
 import { snapshotFullExportV13 } from "../../worker/export-v13-snapshot";
 import { snapshotFullExportV12 } from "../../worker/export-v12-snapshot";
 import { snapshotFullExportV11 } from "../../worker/export-v11-snapshot";
+import { snapshotFullExportV14 } from "../../worker/export-v14-snapshot";
 import { canonicalCommentAcceptanceInput } from "../../shared/contracts/comment-acceptance";
 import { canonicalMetrologyReferenceUploadInput } from "../../shared/contracts/metrology-reference-upload";
 import { stableJson } from "../../shared/domain/content-addressing";
@@ -23,10 +24,10 @@ afterEach(async () => {
   for (const path of temporaryDirectories.splice(0)) await rm(path, { recursive: true, force: true });
 });
 
-function historicalDatabase(version: 10 | 11 | 12) {
+function historicalDatabase(version: 10 | 11 | 12 | 13) {
   const database = new DatabaseSync(":memory:");
   const directory = new URL("../../migrations/", import.meta.url);
-  for (const name of readdirSync(directory).filter((name) => (version === 12 ? /^000[12345]_.*\.sql$/ : version === 11 ? /^000[1234]_.*\.sql$/ : /^000[123]_.*\.sql$/).test(name)).sort()) {
+  for (const name of readdirSync(directory).filter((name) => (version === 13 ? /^000[123456]_.*\.sql$/ : version === 12 ? /^000[12345]_.*\.sql$/ : version === 11 ? /^000[1234]_.*\.sql$/ : /^000[123]_.*\.sql$/).test(name)).sort()) {
     database.exec(readFileSync(new URL(name, directory), "utf8"));
   }
   return database;
@@ -35,7 +36,7 @@ function historicalDatabase(version: 10 | 11 | 12) {
 async function fixture(version: 10 | 11 | 12 | 13 = 13) {
   const directory = await mkdtemp(join(tmpdir(), "file-plan-cli-test-"));
   temporaryDirectories.push(directory);
-  const database = version === 13 ? referenceTestDatabase() : historicalDatabase(version);
+  const database = historicalDatabase(version);
   try {
     database.exec(`INSERT INTO samples (id, code, title, created_at, updated_at)
       VALUES ('plan-sample', 'PLAN-CLI', 'Private sample title', '2026-09-13T00:00:00.000Z', '2026-09-13T00:00:00.000Z');
@@ -154,6 +155,26 @@ describe("offline File migration planning boundary", () => {
       source: { schemaVersion: version, archiveProfile: version === 10 ? "fp1-import-acceptance" : version === 11 ? "fp1-r2-upload-acceptance" : "fp1-metrology-reference-acceptance" } });
     expect(output).toContain("unregistered/image");
     expect(await readFile(f.inputPath, "utf8")).toBe(f.encoded);
+  });
+
+  it("rejects a valid V14 post-expansion snapshot without publishing a report", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "file-plan-v14-rejection-"));
+    temporaryDirectories.push(directory);
+    const inputPath = join(directory, "snapshot.json");
+    const outputPath = join(directory, "plan.json");
+    const database = referenceTestDatabase();
+    try {
+      const snapshot = await snapshotFullExportV14(
+        new SqliteD1Database(database) as unknown as D1Database,
+      );
+      await writeFile(inputPath, JSON.stringify(snapshot));
+      await expect(planFileMigrationSnapshot({ snapshotPath: inputPath, outputPath }))
+        .rejects.toThrow("schema-10, schema-11, schema-12 or schema-13");
+      await expect(stat(outputPath)).rejects.toMatchObject({ code: "ENOENT" });
+      expect((await readdir(directory)).sort()).toEqual(["snapshot.json"]);
+    } finally {
+      database.close();
+    }
   });
 
   it("never overwrites a previous report or its input, including two writers racing for one path", async () => {

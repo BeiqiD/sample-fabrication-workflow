@@ -22,6 +22,24 @@ const modes = ["ordinary-replay", "project-replay", "concurrent", "held-pending"
   "missing-namespace", "namespace-change", "expired", "gc-unavailable", "quarantine-unavailable", "cross-ingress", "actor-independent", "deduplicated"];
 const bindings = Object.fromEntries(modes.map((mode, index) => [mode, `DB_${index}`]));
 const migrations = readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql")).sort();
+const typedFileSlots = [
+  ["state_representation_assets", "file_id"], ["run_step_assets", "file_id"],
+  ["metrology_template_references", "file_id"], ["run_step_comments", "file_id"],
+  ["state_verifications", "evidence_file_id"], ["comment_submission_items", "file_id"],
+  ["project_content_attachments", "file_id"], ["attachment_derivatives", "derived_file_id"],
+  ["events", "asset_file_id"], ["events", "thumbnail_file_id"],
+  ["imports", "workbook_file_id"], ["imports", "manifest_file_id"], ["template_versions", "source_file_id"],
+];
+
+function assertLegacyFileAuthority(database) {
+  assert.deepEqual(plain(database.prepare("SELECT singleton, mode, revision, activated_at FROM file_authority_control").get()),
+    { singleton: 1, mode: "legacy", revision: 1, activated_at: null });
+  assert.equal(typedFileSlots.length, 13);
+  for (const [table, column] of typedFileSlots) {
+    assert.equal(database.prepare(`SELECT COUNT(*) AS count FROM "${table}" WHERE "${column}" IS NOT NULL`).get().count, 0,
+      `${table}.${column} remains null after restore`);
+  }
+}
 
 function hostAdapter(database) {
   const prepare = (sql, values = []) => ({
@@ -136,7 +154,7 @@ import { Hono } from "hono";
 import { routes as imageRoutes } from "./worker/blob-lifecycle/attachment-routes.ts";
 import { routes as projectRoutes } from "./worker/project-foundation-routes.ts";
 import { handleError } from "./worker/platform/http.ts";
-import { snapshotFullExportV13 } from "./worker/export-v13-snapshot.ts";
+import { snapshotFullExportV14 } from "./worker/export-v14-snapshot.ts";
 const app = new Hono().basePath("/api");
 app.onError(handleError);
 app.use("*", async (c, next) => { c.set("userEmail", c.req.header("X-Fixture-Actor") || "owner@example.com"); await next(); });
@@ -259,7 +277,7 @@ export default { async fetch(request, env, ctx) {
     }
     return Response.json({ before, missing, first, pending, pendingPoll, pendingIo, afterFirst, firstIo, retryBefore, state, otherActor,
       retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats,
-      archive: mode === "ordinary-replay" ? await snapshotFullExportV13(rawDb) : null });
+      archive: mode === "ordinary-replay" ? await snapshotFullExportV14(rawDb) : null });
   } finally { globalThis.Date = originalDate; }
 } };
 `;
@@ -344,27 +362,34 @@ test("production R2 upload routes preserve durable ownership on real workerd, D1
       if (mode === "deduplicated") { assert.equal(saved.id, "reusable-asset"); assert.equal(saved.deduplicated, true); }
       if (result.conflicts.length) assert(result.conflicts.every((response) => response.status === 409));
       if (mode === "ordinary-replay") {
-        const source = `export { snapshotFullExportV13 } from './worker/export-v13-snapshot.ts'; export { buildFullExportArchiveV13 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
+        const source = `export { snapshotFullExportV14 } from './worker/export-v14-snapshot.ts'; export { buildFullExportArchiveV14 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
         const modulePath = join(scratch, "restore-qualification.mjs"); await writeFile(modulePath, await bundle(source, "node"));
         const service = await import(pathToFileURL(modulePath).href);
         const byUrl = new Map(result.archive.blobs.map((blob) => [blob.downloadUrl, blob]));
-        const archive = await service.buildFullExportArchiveV13(result.archive, undefined, async (url) => {
+        const sourceBucket = await mf.getR2Bucket("BUCKET");
+        const sourceObjectsBeforeRestore = plain((await sourceBucket.list()).objects);
+        const archive = await service.buildFullExportArchiveV14(result.archive, undefined, async (url) => {
           const blob = byUrl.get(String(url));
-          const stored = blob && await (await mf.getR2Bucket("BUCKET")).get(blob.objectKey);
+          const stored = blob && await sourceBucket.get(blob.objectKey);
           return stored ? new Response(await stored.arrayBuffer()) : new Response(null, { status: 404 });
         });
         const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
         const originalHash = hash(await readFile(archivePath));
         const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
-        assert.equal(restored.report.schemaVersion, 13); assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
+        assert.equal(restored.report.schemaVersion, 14); assert.equal(restored.report.archiveProfile, "fp1-file-authority-transition");
+        assert.deepEqual(restored.report.appliedForwardMigrations, []);
+        assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
         assert(restored.report.restoredBlobCount > 0);
         const recovered = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
         try {
-          const snapshot = await service.snapshotFullExportV13(hostAdapter(recovered));
+          assertLegacyFileAuthority(recovered);
+          const snapshot = await service.snapshotFullExportV14(hostAdapter(recovered));
           assert.deepEqual(snapshot.tables, result.archive.tables, "nonempty D1 archive restores all historical rows and accepted identity exactly");
           assert.deepEqual(snapshot.tables.r2_upload_requests, result.afterFirst.r2_upload_requests);
           assert.throws(() => recovered.exec("DELETE FROM r2_upload_requests"), /cannot be deleted/);
         } finally { recovered.close(); }
+        assert.deepEqual(plain((await sourceBucket.list()).objects), sourceObjectsBeforeRestore,
+          "V14 packaging and isolated restore do not execute provider uploads");
         assert.equal(hash(await readFile(archivePath)), originalHash);
       }
     });

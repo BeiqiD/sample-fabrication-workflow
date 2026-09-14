@@ -1,4 +1,27 @@
-import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_SCHEMA_V8, FULL_EXPORT_ARCHIVE_SCHEMA_V9, FULL_EXPORT_ARCHIVE_SCHEMA_V10, FULL_EXPORT_ARCHIVE_SCHEMA_V11, FULL_EXPORT_ARCHIVE_SCHEMA_V12, FULL_EXPORT_ARCHIVE_PROFILE, FULL_EXPORT_ARCHIVE_PROFILE_V9, FULL_EXPORT_ARCHIVE_PROFILE_V10, FULL_EXPORT_ARCHIVE_PROFILE_V11, FULL_EXPORT_ARCHIVE_PROFILE_V12, FULL_EXPORT_ARCHIVE_WRITER, type ExportJsonArtifact, type FullExportManifestV8, type FullExportManifestV9, type FullExportManifestV10, type FullExportManifestV11, type FullExportManifestV12, type FullExportManifestV13 } from "./export";
+import {
+  FULL_EXPORT_ARCHIVE_PROFILE_V9,
+  FULL_EXPORT_ARCHIVE_PROFILE_V10,
+  FULL_EXPORT_ARCHIVE_PROFILE_V11,
+  FULL_EXPORT_ARCHIVE_PROFILE_V12,
+  FULL_EXPORT_ARCHIVE_PROFILE_V13,
+  FULL_EXPORT_ARCHIVE_PROFILE_V14,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V8,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V9,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V10,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V11,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V12,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V13,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V14,
+  FULL_EXPORT_ARCHIVE_WRITER,
+  type ExportJsonArtifact,
+  type FullExportManifestV8,
+  type FullExportManifestV9,
+  type FullExportManifestV10,
+  type FullExportManifestV11,
+  type FullExportManifestV12,
+  type FullExportManifestV13,
+  type FullExportManifestV14,
+} from "./export";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "./export-compatibility";
 import { buildBlobExportPlan } from "./export-blob-plan";
@@ -7,6 +30,7 @@ import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS, validateImportAcceptance } from "./ex
 import { R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS, validateR2UploadAcceptance } from "./export-r2-upload-acceptance";
 import { METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS, validateMetrologyReferenceAcceptance } from "./export-metrology-reference-acceptance";
 import { COMMENT_ACCEPTANCE_EXPORT_COLUMNS, validateCommentAcceptance } from "./export-comment-acceptance";
+import { FILE_AUTHORITY_EXPORTED_VIEWS, FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, observesFileAuthorityTransition, validateFileAuthorityExport } from "./export-file-authority";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 
 export const EXPORT_SOURCE_SCHEMA_PATH = "provenance/source-schema.json";
@@ -26,7 +50,7 @@ export function supportedExportRequest(url: URL) {
   return entries.length === 2
     && url.searchParams.getAll("archiveSchema").length === 1
     && url.searchParams.getAll("archiveWriter").length === 1
-    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA_V9), String(FULL_EXPORT_ARCHIVE_SCHEMA_V10), String(FULL_EXPORT_ARCHIVE_SCHEMA_V11), String(FULL_EXPORT_ARCHIVE_SCHEMA_V12), String(FULL_EXPORT_ARCHIVE_SCHEMA)].includes(url.searchParams.get("archiveSchema") ?? "")
+    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA_V9), String(FULL_EXPORT_ARCHIVE_SCHEMA_V10), String(FULL_EXPORT_ARCHIVE_SCHEMA_V11), String(FULL_EXPORT_ARCHIVE_SCHEMA_V12), String(FULL_EXPORT_ARCHIVE_SCHEMA_V13), String(FULL_EXPORT_ARCHIVE_SCHEMA_V14)].includes(url.searchParams.get("archiveSchema") ?? "")
     && url.searchParams.get("archiveWriter") === String(FULL_EXPORT_ARCHIVE_WRITER);
 }
 
@@ -37,7 +61,7 @@ function object(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 | 13): Promise<FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13> {
+async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 | 13 | 14): Promise<FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14> {
   // In particular an E client reaching the previous A Worker must stop here,
   // before downloading any bytes or creating a ZIP from an unnegotiated v7.
   ensure(object(value) && value.schemaVersion === version && value.archiveWriter === FULL_EXPORT_ARCHIVE_WRITER,
@@ -60,6 +84,8 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
   for (const entry of schema.objects) {
     ensure(object(entry) && ["table", "view", "index", "trigger"].includes(entry.type) && typeof entry.name === "string"
       && entry.name.length > 0 && typeof entry.tableName === "string" && entry.tableName.length > 0
+      && Reflect.ownKeys(entry).length === 4
+      && Object.keys(entry).sort().join(",") === "name,sql,tableName,type"
       && (typeof entry.sql === "string" || entry.type === "index" && entry.sql === null), "invalid observed schema object");
     ensure(!["table", "view"].includes(entry.type) || entry.tableName === entry.name, "invalid observed schema object ownership");
     const key = `${entry.type}:${entry.name}`;
@@ -73,11 +99,19 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
       && JSON.stringify(sqliteTableColumns(entry.sql, name)) === JSON.stringify(schema.compatibilityColumns[name]),
     "physical schema columns disagree with recorded SQL");
   }
+  if (version < 14) ensure(!observesFileAuthorityTransition(schema.objects),
+    "the File authority transition requires archive schema 14");
   const platform = new Set(["d1_migrations", "_cf_KV", "_cf_METADATA"]);
   const inventory = schema.objects.filter((entry: { type: string; name: string }) => entry.type === "table"
     && !entry.name.startsWith("sqlite_") && !platform.has(entry.name)).map((entry: { name: string }) => entry.name);
   ensure(objectIds.has("view:blob_retention_edges"), "source schema is missing its exported retention view");
   inventory.push("blob_retention_edges");
+  if (version === 14) {
+    for (const name of FILE_AUTHORITY_EXPORTED_VIEWS) {
+      ensure(objectIds.has(`view:${name}`), `source schema is missing its ${name} view`);
+      inventory.push(name);
+    }
+  }
   if (version < 13) ensure(!Object.keys(COMMENT_ACCEPTANCE_EXPORT_COLUMNS).some((name) => objectIds.has(`table:${name}`)), "Comment acceptance requires archive schema 13");
   else {
     for (const [name, columns] of Object.entries(COMMENT_ACCEPTANCE_EXPORT_COLUMNS)) {
@@ -108,15 +142,20 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
     "id", "status", "source_filename", "source_sha256", "sheet_name", "template_type", "recipe_family_id",
     "template_version_id", "workbook_asset_key", "manifest_asset_key", "warning_count", "error_message", "actor_email",
     "created_at", "completed_at", "operation_id", "lease_expires_at", "finalization_id", "recovery_operation_id",
+    ...(version === 14 ? ["workbook_file_id", "manifest_file_id"] : []),
     ...IMPORT_ACCEPTANCE_EXPORT_COLUMNS,
   ].sort()), "import acceptance schema columns differ from the archive profile");
   const logicalColumns = exportCompatibilityColumns("S2");
+  const runStepCommentColumns = version === 14 ? [...logicalColumns.run_step_comments, "file_id"] : logicalColumns.run_step_comments;
   const retentionColumns = ["store_kind", "provider", "object_key", "blob_record_id", "source_type", "source_id", "occurrence_type", "occurrence_id", "retention_reason", "retain_until"];
   for (const [name, rows] of Object.entries(value.tables)) {
     ensure(/^[a-z][a-z0-9_]*$/.test(name) && Array.isArray(rows), "invalid snapshot table inventory");
     const entry = schema.objects.find((entry: { type: string; name: string }) => entry.type === "table" && entry.name === name);
-    const columns = name === "samples" ? logicalColumns.samples : name === "run_step_comments" ? logicalColumns.run_step_comments
-      : name === "blob_retention_edges" ? retentionColumns : sqliteTableColumns(entry.sql, name);
+    const columns = name === "samples" ? logicalColumns.samples : name === "run_step_comments" ? runStepCommentColumns
+      : name === "blob_retention_edges" ? retentionColumns
+        : Object.hasOwn(FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, name)
+          ? FILE_AUTHORITY_EXPORT_VIEW_COLUMNS[name as keyof typeof FILE_AUTHORITY_EXPORT_VIEW_COLUMNS]
+          : sqliteTableColumns(entry.sql, name);
     for (const row of rows) {
       ensure(object(row) && (Object.getPrototypeOf(row) === Object.prototype || Object.getPrototypeOf(row) === null)
       && Reflect.ownKeys(row).length === Object.keys(row).length
@@ -126,10 +165,11 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
       ensure(JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...columns].sort()), "table row columns differ from source contract");
     }
   }
-  const manifest = value as FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13;
-  const physical = classifyExportCompatibilitySchema(manifest.artifacts.sourceSchema.value.compatibilityColumns);
-  const restored = restoreCompatibilityRows(manifest.tables, manifest.artifacts.retiredFields.value, physical);
-  const replayed = projectCompatibilitySnapshot(restored, manifest.artifacts.sourceSchema.value);
+  const manifest = value as FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14;
+  const compatibilityProfile = version === 14 ? "file-authority-v14" : "legacy";
+  const physical = classifyExportCompatibilitySchema(manifest.artifacts.sourceSchema.value.compatibilityColumns, compatibilityProfile);
+  const restored = restoreCompatibilityRows(manifest.tables, manifest.artifacts.retiredFields.value, physical, compatibilityProfile);
+  const replayed = projectCompatibilitySnapshot(restored, manifest.artifacts.sourceSchema.value, compatibilityProfile);
   ensure(stableJson(replayed.tables) === stableJson(manifest.tables)
     && stableJson(replayed.retiredFields) === stableJson(manifest.artifacts.retiredFields.value), "logical rows and provenance describe different snapshots");
   // The wire catalog includes download decisions. Require every locator and its
@@ -146,20 +186,24 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
   if (version === 8) ensure(!registryTables.some((name) => Object.hasOwn(manifest.tables, name)),
     "the file foundation requires archive schema 9");
   else {
-    ensure((manifest as FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13).archiveProfile === (version === 9 ? FULL_EXPORT_ARCHIVE_PROFILE_V9 : version === 10 ? FULL_EXPORT_ARCHIVE_PROFILE_V10 : version === 11 ? FULL_EXPORT_ARCHIVE_PROFILE_V11 : version === 12 ? FULL_EXPORT_ARCHIVE_PROFILE_V12 : FULL_EXPORT_ARCHIVE_PROFILE),
+    ensure((manifest as FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14).archiveProfile === (version === 9 ? FULL_EXPORT_ARCHIVE_PROFILE_V9 : version === 10 ? FULL_EXPORT_ARCHIVE_PROFILE_V10 : version === 11 ? FULL_EXPORT_ARCHIVE_PROFILE_V11 : version === 12 ? FULL_EXPORT_ARCHIVE_PROFILE_V12 : version === 13 ? FULL_EXPORT_ARCHIVE_PROFILE_V13 : FULL_EXPORT_ARCHIVE_PROFILE_V14),
       "unsupported archive schema profile");
     ensure(physical === "S2" && registryTables.every((name) => Object.hasOwn(manifest.tables, name)),
       "the file foundation requires the complete S2 registry schema");
-    for (const [name, columns] of Object.entries(FILE_FOUNDATION_EXPORT_COLUMNS)) {
-      const entry = schema.objects.find((entry: { type: string; name: string }) => entry.type === "table" && entry.name === name);
-      ensure(JSON.stringify(sqliteTableColumns(entry.sql, name).sort()) === JSON.stringify([...columns].sort()),
-        "file foundation schema columns differ from the archive profile");
+    if (version < 14) {
+      for (const [name, columns] of Object.entries(FILE_FOUNDATION_EXPORT_COLUMNS)) {
+        const entry = schema.objects.find((entry: { type: string; name: string }) => entry.type === "table" && entry.name === name);
+        ensure(JSON.stringify(sqliteTableColumns(entry.sql, name).sort()) === JSON.stringify([...columns].sort()),
+          "file foundation schema columns differ from the archive profile");
+      }
+      validateLegacyOverlap(manifest.tables);
+    } else {
+      await validateFileAuthorityExport(manifest.tables, schema.objects);
     }
-    validateLegacyOverlap(manifest.tables);
     if (version >= 10) await validateImportAcceptance(manifest.tables);
     if (version >= 11) await validateR2UploadAcceptance(manifest.tables);
     if (version >= 12) await validateMetrologyReferenceAcceptance(manifest.tables);
-    if (version === 13) await validateCommentAcceptance(manifest.tables);
+    if (version >= 13) await validateCommentAcceptance(manifest.tables);
   }
   return manifest;
 }
@@ -185,5 +229,9 @@ export async function validateFullExportV12(value: unknown): Promise<FullExportM
 }
 
 export async function validateFullExportV13(value: unknown): Promise<FullExportManifestV13> {
-  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA) as FullExportManifestV13;
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA_V13) as FullExportManifestV13;
+}
+
+export async function validateFullExportV14(value: unknown): Promise<FullExportManifestV14> {
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA_V14) as FullExportManifestV14;
 }

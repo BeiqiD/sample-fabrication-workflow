@@ -80,8 +80,41 @@ export const FULL_EXPORT_V12_TABLE_QUERIES = {
 } as const;
 
 // Schema 13 records Comment acceptance separately from canonical Comment rows.
-export const FULL_EXPORT_TABLE_QUERIES = {
+// Keep this catalog frozen: a v13 request must never silently describe a
+// post-transition physical schema.
+export const FULL_EXPORT_V13_TABLE_QUERIES = {
   ...FULL_EXPORT_V12_TABLE_QUERIES,
   comment_submission_acceptances: "SELECT * FROM comment_submission_acceptances ORDER BY created_at, submission_id",
   comment_item_acceptances: "SELECT * FROM comment_item_acceptances ORDER BY submission_id, item_id",
 } as const;
+
+// Schema 14 additions are appended below once the transition migration has
+// established their exact physical contract.
+export const FULL_EXPORT_V14_TABLE_QUERIES = {
+  ...FULL_EXPORT_V13_TABLE_QUERIES,
+  file_authority_control: "SELECT * FROM file_authority_control ORDER BY singleton",
+  storage_profile_runtime: "SELECT * FROM storage_profile_runtime ORDER BY storage_profile_id",
+  file_location_publications: "SELECT * FROM file_location_publications ORDER BY location_id",
+  file_publications: "SELECT * FROM file_publications ORDER BY file_id",
+  file_derivations: "SELECT * FROM file_derivations ORDER BY id",
+  file_holds: "SELECT * FROM file_holds ORDER BY id",
+  file_location_holds: "SELECT * FROM file_location_holds ORDER BY id",
+  file_location_gc_ledger: "SELECT * FROM file_location_gc_ledger ORDER BY location_id",
+  file_location_integrity_quarantine: "SELECT * FROM file_location_integrity_quarantine ORDER BY location_id",
+  file_consumer_migration_decisions: "SELECT * FROM file_consumer_migration_decisions ORDER BY id",
+  file_acceptance_candidates: "SELECT * FROM file_acceptance_candidates ORDER BY acceptance_kind, acceptance_id, item_id",
+  file_consumer_relational_projection: "SELECT * FROM file_consumer_relational_projection ORDER BY consumer_kind, consumer_id, consumer_sub_id, file_slot",
+  file_consumer_content_projection: "SELECT * FROM file_consumer_content_projection ORDER BY consumer_kind, consumer_id, consumer_sub_id, file_slot",
+  file_consumer_direct_projection: "SELECT * FROM file_consumer_direct_projection ORDER BY consumer_kind, consumer_id, consumer_sub_id, file_slot",
+  file_consumer_projection: "SELECT * FROM file_consumer_projection ORDER BY consumer_kind, consumer_id, consumer_sub_id, file_slot",
+  file_relational_retention_edges: "SELECT * FROM file_relational_retention_edges ORDER BY file_id, source_type, source_id, occurrence_type, occurrence_id",
+  file_content_retention_edges: "SELECT * FROM file_content_retention_edges ORDER BY file_id, source_type, source_id, occurrence_type, occurrence_id",
+  file_direct_retention_edges: "SELECT * FROM file_direct_retention_edges ORDER BY file_id, source_type, source_id, occurrence_type, occurrence_id",
+  file_retention_edges: "SELECT * FROM file_retention_edges ORDER BY file_id, source_type, source_id, occurrence_type, occurrence_id",
+  file_location_retention_edges: "SELECT * FROM file_location_retention_edges ORDER BY location_id, source_type, source_id, occurrence_type, occurrence_id",
+  file_location_availability: "SELECT * FROM file_location_availability ORDER BY location_id",
+} as const;
+
+// The unversioned catalog names the current writer without redefining its
+// schema contract. Historical and current snapshotters use frozen catalogs.
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V14_TABLE_QUERIES;
