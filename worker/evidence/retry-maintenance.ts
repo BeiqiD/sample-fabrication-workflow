@@ -12,7 +12,8 @@ export async function closeExpiredRetryWindows(env: Env, now: Date) {
       `UPDATE comment_submissions
        SET status = 'failed', error_message = 'Upload was abandoned before completion',
            last_mutation_id = ?, updated_at = ?
-       WHERE status = 'uploading' AND retry_closed_at IS NULL AND updated_at < ?`,
+       WHERE status = 'uploading' AND retry_closed_at IS NULL AND updated_at < ?
+         AND NOT EXISTS (SELECT 1 FROM comment_submission_acceptances ca WHERE ca.submission_id = comment_submissions.id)`,
     ).bind(abandonedMutationId, timestamp, abandonedCutoff),
     env.DB.prepare(
       `UPDATE comment_submission_items

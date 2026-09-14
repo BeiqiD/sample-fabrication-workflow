@@ -3,6 +3,13 @@
 All Sample notes and process-Step Comments use the same two-stage submission
 model.
 
+[FP1j accepted operations](./FP1_COMMENT_ACCEPTANCE.md) strengthen this model with
+immutable input, per-item execution ownership, frozen physical placement and
+atomic publication. New clients negotiate `comment-submission/1`, hash every
+prepared image/original before creation and recover uncertain responses through
+the authenticated acceptance status route. The seven-day acceptance deadline is
+fixed; status reads, retries and failure reports do not renew it.
+
 ## Body rendering boundary
 
 A Comment body remains one authoritative plain string entered through the existing textarea. Displayed Sample-note and process-Step Comment bodies are rendered client-side with the shared safe GFM/TeX renderer; generated HTML and MathML are never persisted or accepted from a caller.
@@ -114,16 +121,19 @@ user-supplied URLs.
 
 ## Deployment
 
-Apply `migrations/0005_comment_submissions.sql`. The rich-text presentation
-follow-up adds no migration, API field, or additional R2 bucket. Until all
+The original Comment schema is retained in the current S2 baseline; its original
+`0005_comment_submissions.sql` is historical provenance, not the next migration.
+Apply the current reviewed forward chain, including FP1j's `0006` acceptance
+suffix, through the deployment gate. The rich-text presentation
+follow-up added no migration, API field, or additional R2 bucket. Until all
 SWITCHdrive secrets are configured and the WebDAV credential check succeeds,
 users can submit text, compressed Comment images, and attachment links, but
 cannot upload original files.
 
-The v3 integration branch remains blocked from remote migration/deployment
-until the blob lifecycle gate in
-[v3 backend foundation](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate) is
-satisfied.
+The [S2 activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) records the
+completed baseline deployment. Each new suffix still requires the current
+verification, remote migration and browser acceptance gates. Existing file
+bindings are preserved.
 
 ## Upload integrity
 
@@ -132,8 +142,10 @@ satisfied.
 - Managed attachments are sent as the original `File` body without
   transformation. The browser supplies a SHA-256 hash, and the storage adapter
   streams the body unchanged.
-- Submission and item IDs make create, upload, retry, and Finalize operations
-  idempotent. Successfully uploaded items are not uploaded again.
+- Submission and item IDs bind the immutable accepted manifest, actual upload
+  hashes, candidate keys and physical profiles. Unknown outcomes are queried
+  before another action; an already claimed upload cannot acquire a second
+  execution owner. Successfully uploaded items are not uploaded again.
 - Ordinary Delete of a ready Comment or attachment occurrence is soft deletion;
   it does not remove the canonical submission, occurrence identity, or shared
   bytes needed for Restore and complete export.
@@ -155,6 +167,7 @@ satisfied.
 
 The authoritative reachability, export-warning, permanent-delete, test, and
 migration/deployment rules are maintained in
-[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). The next implementation
-PR is planned in
-[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). Its implementation history
+is recorded in [blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md);
+the current accepted-operation and next File-transition boundaries are in
+[FP1j](./FP1_COMMENT_ACCEPTANCE.md).

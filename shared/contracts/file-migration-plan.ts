@@ -1,7 +1,8 @@
-import type { ExportRow, FullExportManifestV10, FullExportManifestV11, FullExportManifestV12 } from "./export";
+import type { ExportRow, FullExportManifestV10, FullExportManifestV11, FullExportManifestV12, FullExportManifestV13 } from "./export";
 import type { FilePurpose } from "./files";
 import type { FileConsumerObservation, FileConsumerProjection, FileConsumerRegistryObservation } from "./file-consumers";
 import { projectFileConsumers } from "./file-consumer-projection";
+import { validateCommentAcceptedItemResult } from "./comment-acceptance";
 import { validateMetrologyReferenceUploadResult } from "./metrology-reference-upload";
 import { sha256Hex } from "../domain/content-addressing";
 
@@ -9,7 +10,7 @@ export const MAX_FILE_MIGRATION_INPUT_ROWS = 20_000;
 export const MAX_FILE_MIGRATION_INPUT_BYTES = 16 * 1024 * 1024;
 export const MAX_FILE_MIGRATION_PLAN_BYTES = 8 * 1024 * 1024;
 
-export type FileMigrationSnapshot = FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12;
+export type FileMigrationSnapshot = FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13;
 
 export interface FileMigrationLocator {
   storeKind: "r2" | "managed";
@@ -18,7 +19,7 @@ export interface FileMigrationLocator {
 }
 
 export interface FileMigrationNamespaceEvidence {
-  kind: "legacy_mapping" | "accepted_import" | "accepted_upload" | "accepted_metrology_reference";
+  kind: "legacy_mapping" | "accepted_import" | "accepted_upload" | "accepted_metrology_reference" | "accepted_comment_upload";
   sourceId: string;
   profileId: string;
   configurationRevision: number;
@@ -79,8 +80,8 @@ export interface FileMigrationPlan {
   bytesVerified: false;
   source: {
     basis: "archive-snapshot";
-    schemaVersion: 10 | 11 | 12;
-    archiveProfile: "fp1-import-acceptance" | "fp1-r2-upload-acceptance" | "fp1-metrology-reference-acceptance";
+    schemaVersion: 10 | 11 | 12 | 13;
+    archiveProfile: "fp1-import-acceptance" | "fp1-r2-upload-acceptance" | "fp1-metrology-reference-acceptance" | "fp1-comment-acceptance";
     exportedAt: string;
     inputSha256: string;
   };
@@ -151,8 +152,9 @@ function inputSnapshot(manifest: FileMigrationSnapshot) {
   if (manifest.archiveWriter !== 1
     || !(manifest.schemaVersion === 10 && manifest.archiveProfile === "fp1-import-acceptance"
       || manifest.schemaVersion === 11 && manifest.archiveProfile === "fp1-r2-upload-acceptance"
-      || manifest.schemaVersion === 12 && manifest.archiveProfile === "fp1-metrology-reference-acceptance")) {
-    throw new Error("File migration observation requires a validated schema 10, 11 or 12 archive");
+      || manifest.schemaVersion === 12 && manifest.archiveProfile === "fp1-metrology-reference-acceptance"
+      || manifest.schemaVersion === 13 && manifest.archiveProfile === "fp1-comment-acceptance")) {
+    throw new Error("File migration observation requires a validated schema 10, 11, 12 or 13 archive");
   }
   let rowCount = 0;
   for (const rows of Object.values(manifest.tables)) {
@@ -177,7 +179,7 @@ function inputSnapshot(manifest: FileMigrationSnapshot) {
   };
 }
 
-/** Accept only an archive already validated by the schema-10, schema-11 or schema-12 reader.
+/** Accept only an archive already validated by the schema-10, schema-11, schema-12 or schema-13 reader.
  * This module has no database/provider/settings capability and cannot execute a
  * migration. Expected metadata is historical evidence, never byte verification.
  */
@@ -296,7 +298,7 @@ export async function planFileMigration(manifest: FileMigrationSnapshot): Promis
       }
     }
   }
-  if (snapshot.schemaVersion === 12) {
+  if (snapshot.schemaVersion >= 12) {
     for (const row of tables.metrology_reference_upload_requests) {
       const candidate = ensure({ storeKind: "r2", provider: "r2", objectKey: String(row.candidate_object_key) });
       const observe = (group: FileMigrationGroup) => {
@@ -314,6 +316,29 @@ export async function planFileMigration(manifest: FileMigrationSnapshot): Promis
           validateMetrologyReferenceUploadResult(result);
           observe(ensure({ storeKind: "r2", provider: "r2", objectKey: result.reference.assetKey }));
         } catch { candidate.blockers.push("accepted_metrology_reference_result_invalid"); }
+      }
+    }
+  }
+  if (snapshot.schemaVersion === 13) {
+    for (const row of tables.comment_item_acceptances) {
+      // Provider identity follows this immutable accepted item purpose. This
+      // does not classify any legacy Comment consumer or add a retention root.
+      const managed = row.purpose === "research_source";
+      const candidate = ensure({ storeKind: managed ? "managed" : "r2", provider: managed ? "switchdrive" : "r2", objectKey: String(row.candidate_object_key) });
+      const observe = (group: FileMigrationGroup) => {
+        if (typeof row.storage_profile_id !== "string" || typeof row.storage_profile_revision !== "number") {
+          group.blockers.push("namespace_evidence_invalid");
+        } else {
+          addNamespace(group, "accepted_comment_upload", String(row.item_id), row.storage_profile_id, row.storage_profile_revision);
+        }
+        if (row.status !== "ready") group.blockers.push("accepted_comment_upload_unfinished");
+      };
+      observe(candidate);
+      if (row.status === "ready") {
+        try {
+          const result = validateCommentAcceptedItemResult(JSON.parse(String(row.accepted_result_json)));
+          observe(ensure({ storeKind: result.storeKind, provider: result.provider, objectKey: result.objectKey }));
+        } catch { candidate.blockers.push("accepted_comment_upload_result_invalid"); }
       }
     }
   }

@@ -160,7 +160,7 @@ npm run verify:v3-deployment
 
 `npm run plan:file-migration -- --snapshot COMPLETE_V10_SNAPSHOT.json --output NEW_REPORT.json`
 produces a bounded, read-only historical file consumer and purpose-conversion report.
-It accepts a complete schema-10, schema-11 or schema-12 JSON snapshot; see the
+It accepts a complete schema-10 through schema-13 JSON snapshot; see the
 [FP1g input contract and limits](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md).
 The report does not migrate files or verify their bytes.
 
@@ -168,16 +168,18 @@ Ordinary image and Project uploads now use
 [durable request acceptance](./docs/FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), with stable
 retry identities and a fixed 24-hour result window. Metrology reference uploads
 also use [durable business publication](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md),
-binding upload recovery to the original reference occurrence. Current full export
-uses schema 12 and preserves both byte-upload and reference-publication history.
+binding upload recovery to the original reference occurrence. [Comment acceptance](./docs/FP1_COMMENT_ACCEPTANCE.md)
+freezes complete submissions and file hashes before upload, fences cancellation,
+and atomically publishes all retained items and targets within a fixed seven-day
+window. Current full export uses schema 13 and preserves these operation histories.
 
 A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
 
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated complete archive (current schema 12,
-`fp1-metrology-reference-acceptance`, with historical readers retained) against the current migrations in a newly
+rehearses a trusted negotiated complete archive (current schema 13,
+`fp1-comment-acceptance`, with historical readers retained) against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote

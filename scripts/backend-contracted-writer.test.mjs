@@ -1,13 +1,15 @@
-// Explicit, inactive-stage qualification. This never changes the active migration
-// directory or deployment configuration and does not qualify C for the S0 schema.
+// Explicit, inactive-stage qualification of the immutable reviewed C writer.
+// Current protocols can require newer schema tables, so C/S1/S2 qualification
+// must never silently become a test of the current production entry points.
+// This never changes active migrations or qualifies C for the S0 schema.
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
-import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { installWorkerCryptoForHostTests } from "../test/worker-crypto.mjs";
+import { buildHistoricalCWorker } from "./lib/historical-e-worker.mjs";
 
 const restoreHostCrypto = installWorkerCryptoForHostTests();
 after(restoreHostCrypto);
@@ -264,9 +266,7 @@ async function qualifyGuards(f) {
 }
 
 before(async () => {
-  const bundle = await build({ entryPoints: [new URL("worker/index.ts", root).pathname], write: false, bundle: true,
-    format: "esm", platform: "browser", target: "es2022", conditions: ["workerd", "worker", "browser"], logLevel: "silent" });
-  const script = bundle.outputFiles[0].text;
+  const script = await buildHistoricalCWorker(root);
   worker = (await import(`data:text/javascript;base64,${Buffer.from(script).toString("base64")}`)).default;
   for (const stage of ["S1", "S2"]) runtimes.set(stage, new Miniflare({ modules: true, script, compatibilityDate: "2026-07-20",
     bindings: { AUTH_MODE: "disabled" }, d1Databases: ["DB"], r2Buckets: ["ASSETS"], log: new Log(LogLevel.ERROR) }));

@@ -104,7 +104,7 @@ describe("v10 durable import acceptance archive profile", () => {
       const archivePath = join(scratch, "v10.zip");
       await writeFile(archivePath, archiveBytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {

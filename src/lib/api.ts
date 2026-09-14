@@ -1,4 +1,4 @@
-import type { FullExportManifestV12 } from "../../shared/contracts/export";
+import type { FullExportManifestV13 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -11,6 +11,7 @@ import type {
   MetrologyTemplateInput,
 } from "../../shared/contracts/template";
 import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import { createDurableCommentSubmission, uploadDurableCommentItem, finalizeDurableCommentSubmission, cancelDurableCommentSubmission, removeDurableCommentItem, getCommentAcceptance } from "./comment-submission-client";
 import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
 import { uploadMetrologyReference } from "./metrology-reference-upload-client";
 import { submitFabubloxImport } from "./fabublox-import-client";
@@ -192,48 +193,9 @@ export const api = {
   }),
   uploadAsset: (file: Blob, filename: string, options?: R2UploadOptions) => uploadR2Asset(file, filename, "ordinary_image", options),
   getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status"),
-  createCommentSubmission: (input: CreateCommentSubmissionInput) => request<{ id: string; deduplicated: boolean }>("/comment-submissions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
-  }),
-  uploadCommentSubmissionItem: (
-    submissionId: string,
-    itemId: string,
-    file: File,
-    sha256: string | null,
-    onProgress: (progress: number) => void,
-    signal?: AbortSignal,
-  ) => new Promise<{ ok: true; deduplicated: boolean }>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", `/api/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}/content`);
-    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-upload-size", String(file.size));
-    if (sha256) xhr.setRequestHeader("x-content-sha256", sha256);
-    xhr.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable) onProgress(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
-    });
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress(100);
-        try { resolve(JSON.parse(xhr.responseText) as { ok: true; deduplicated: boolean }); }
-        catch { reject(new Error("The upload completed but returned an invalid response")); }
-        return;
-      }
-      try {
-        const payload = JSON.parse(xhr.responseText) as { error?: string };
-        reject(new Error(payload.error || `Upload failed (${xhr.status})`));
-      } catch { reject(new Error(`Upload failed (${xhr.status})`)); }
-    });
-    xhr.addEventListener("error", () => reject(new Error("Network error")));
-    xhr.addEventListener("abort", () => reject(new DOMException("Upload cancelled", "AbortError")));
-    if (signal) {
-      if (signal.aborted) xhr.abort();
-      else signal.addEventListener("abort", () => xhr.abort(), { once: true });
-    }
-    xhr.send(file);
-    onProgress(0);
-  }),
+  createCommentSubmission: createDurableCommentSubmission,
+  getCommentSubmissionAcceptance: getCommentAcceptance,
+  uploadCommentSubmissionItem: uploadDurableCommentItem,
   markCommentSubmissionItemFailed: (submissionId: string, itemId: string, error: string) => request<{ ok: true }>(
     `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}/fail`,
     {
@@ -242,18 +204,9 @@ export const api = {
       body: JSON.stringify({ error }),
     },
   ),
-  removeCommentSubmissionItem: (submissionId: string, itemId: string) => request<{ ok: true }>(
-    `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}`,
-    { method: "DELETE" },
-  ),
-  finalizeCommentSubmission: (submissionId: string) => request<{ ok: true; status: "ready" }>(
-    `/comment-submissions/${encodeURIComponent(submissionId)}/finalize`,
-    { method: "POST" },
-  ),
-  cancelCommentSubmission: (submissionId: string) => request<{ ok: true }>(
-    `/comment-submissions/${encodeURIComponent(submissionId)}/cancel`,
-    { method: "POST" },
-  ),
+  removeCommentSubmissionItem: removeDurableCommentItem,
+  finalizeCommentSubmission: finalizeDurableCommentSubmission,
+  cancelCommentSubmission: cancelDurableCommentSubmission,
   deleteCommentSubmission: (submissionId: string) => request<{ ok: true }>(
     `/comment-submissions/${encodeURIComponent(submissionId)}`,
     { method: "DELETE" },
@@ -306,7 +259,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV12>("/exports/all?archiveSchema=12&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV13>("/exports/all?archiveSchema=13&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

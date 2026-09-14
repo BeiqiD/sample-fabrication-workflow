@@ -243,6 +243,7 @@ test("native workerd FabuBlox recovery verifies bytes before real D1 claims and 
     after.push(...splitSql(readFileSync(new URL("migrations/0003_fp1_import_acceptance.sql", root), "utf8")));
     after.push(...splitSql(readFileSync(new URL("migrations/0004_r2_upload_acceptance.sql", root), "utf8")));
     after.push(...splitSql(readFileSync(new URL("migrations/0005_metrology_reference_acceptance.sql", root), "utf8")));
+    after.push(...splitSql(readFileSync(new URL("migrations/0006_comment_acceptance.sql", root), "utf8")));
     for (const mode of modes) {
       const db = await mf.getD1Database(bindings[mode]);
       await db.batch(before.map(sql => db.prepare(sql)));

@@ -1,12 +1,13 @@
 import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type {
-  CommentSubmissionItemInput,
   CommentSubmission,
   CommentImage,
   CommentAttachment,
   CreateCommentSubmissionInput,
 } from "../../shared/types";
+import type { AcceptedCommentSubmissionInput, AcceptedCommentItemInput } from "../../shared/contracts/comment-acceptance";
+import { commentCancellationPending, discardLocalCommentSubmission, commentFileSha256 as fileSha256, commentComposerSource, finishCommentSubmission, prepareDurableCommentSubmission, savedCommentSubmissions } from "../lib/comment-submission-client";
 import { MAX_COMMENT_SUBMISSION_ITEMS, MAX_MANAGED_ATTACHMENT_BYTES } from "../../shared/comment-submissions";
 import { isTiffMetadata } from "../../shared/tiff";
 import { api } from "../lib/api";
@@ -18,6 +19,7 @@ import { useManagedStorageStatus } from "../lib/useManagedStorageStatus";
 
 interface CommentComposerProps {
   label: string;
+  sourceKey?: string;
   context: CreateCommentSubmissionInput["context"];
   onSubmitted: () => Promise<void>;
   onCancel?: () => void;
@@ -38,14 +40,52 @@ function isRequiredTiffOriginal(
 export function CommentSubmissionRecovery({
   submissions,
   onSubmitted,
+  localSourceKey,
 }: {
   submissions: CommentSubmission[];
   onSubmitted: () => Promise<void>;
+  localSourceKey?: string;
 }) {
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const active = useRef(true);
+  const recoveryUploads = useRef(new Map<string, AbortController>());
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; for (const controller of recoveryUploads.current.values()) controller.abort(); };
+  }, []);
+  let tracked = new Set<string>();
+  try { if (localSourceKey) tracked = new Set(savedCommentSubmissions(localSourceKey).map((input) => input.id)); } catch { /* The composer reports unavailable local tracking. */ }
+  const visibleSubmissions = submissions.filter((submission) => !tracked.has(submission.id));
+  const [recoveryStates, setRecoveryStates] = useState<Record<string, string>>({});
+  const recoverySequence = useRef(0);
+  const visibleIds = visibleSubmissions.map((submission) => submission.id).sort().join(",");
+  useEffect(() => {
+    const sequence = ++recoverySequence.current;
+    for (const id of visibleIds.split(",").filter(Boolean)) {
+      void api.getCommentSubmissionAcceptance(id).then((state) => {
+        if (active.current && sequence === recoverySequence.current && state) setRecoveryStates((current) => ({ ...current, [id]: state.status }));
+      }).catch(() => undefined);
+    }
+    return () => { recoverySequence.current += 1; };
+  }, [visibleIds]);
+  async function refresh(submissionId: string) {
+    if (!active.current) return;
+    await onSubmitted();
+    finishCommentSubmission(submissionId);
+  }
+  async function finish(submissionId: string) {
+    try { await api.finalizeCommentSubmission(submissionId); await refresh(submissionId); }
+    catch (error) { if (active.current) setErrors((current) => ({ ...current, [submissionId]: (error as Error).message })); }
+  }
+  async function cancel(submissionId: string) {
+    try { await api.cancelCommentSubmission(submissionId); await refresh(submissionId); }
+    catch (error) { if (active.current) setErrors((current) => ({ ...current, [submissionId]: (error as Error).message })); }
+  }
 
   async function retryFile(submission: CommentSubmission, item: CommentImage | Extract<CommentAttachment, { kind: "file" }>, selected: File) {
+    if (recoveryUploads.current.has(item.id)) return;
+    const controller = new AbortController(); recoveryUploads.current.set(item.id, controller);
     try {
       let upload = selected;
       let sha256: string | null = null;
@@ -65,42 +105,49 @@ export function CommentSubmissionRecovery({
         }
         sha256 = await fileSha256(selected);
       }
+      sha256 = await fileSha256(upload);
+      if (!active.current) return;
       setErrors((current) => ({ ...current, [item.id]: "" }));
-      await commentUploadQueue.run(() => api.uploadCommentSubmissionItem(submission.id, item.id, upload, sha256, (value) => {
-        setProgress((current) => ({ ...current, [item.id]: value }));
-      }));
+      await commentUploadQueue.run(() => {
+        if (!active.current || controller.signal.aborted) throw new DOMException("Upload cancelled", "AbortError");
+        return api.uploadCommentSubmissionItem(submission.id, item.id, upload, sha256, (value) => {
+          if (active.current) setProgress((current) => ({ ...current, [item.id]: value }));
+        }, controller.signal);
+      }, controller.signal);
+      if (!active.current) return;
       await api.finalizeCommentSubmission(submission.id).catch(() => undefined);
-      await onSubmitted();
+      await refresh(submission.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Retry failed";
-      setErrors((current) => ({ ...current, [item.id]: message }));
-      await api.markCommentSubmissionItemFailed(submission.id, item.id, message).catch(() => undefined);
-    }
+      if (active.current) setErrors((current) => ({ ...current, [item.id]: message }));
+    } finally { if (recoveryUploads.current.get(item.id) === controller) recoveryUploads.current.delete(item.id); }
   }
 
   async function removeItem(submissionId: string, itemId: string) {
     try {
       await api.removeCommentSubmissionItem(submissionId, itemId);
+      if (!active.current) return;
       await api.finalizeCommentSubmission(submissionId).catch(() => undefined);
-      await onSubmitted();
+      await refresh(submissionId);
     } catch (error) {
-      setErrors((current) => ({ ...current, [itemId]: error instanceof Error ? error.message : "Remove failed" }));
+      if (active.current) setErrors((current) => ({ ...current, [itemId]: error instanceof Error ? error.message : "Remove failed" }));
     }
   }
 
-  if (!submissions.length) return null;
+  if (!visibleSubmissions.length) return null;
   return <section className="recovered-submission-list" aria-live="polite">
-    {submissions.map((submission) => {
+    {visibleSubmissions.map((submission) => {
+      const blocked = ["legacy", "expired", "unavailable"].includes(recoveryStates[submission.id] ?? "");
       const fileItems = [
         ...submission.images,
         ...submission.attachments.filter((attachment): attachment is Extract<CommentAttachment, { kind: "file" }> => attachment.kind === "file"),
       ];
       return <article className="uploading-comment-card status-failed" key={submission.id}>
         <div className="uploading-comment-heading">
-          <div><strong>Upload incomplete</strong>{submission.body && <p>{submission.body}</p>}<span className="recovery-hint">The upload state was restored. Reselect a failed local file to retry it.</span></div>
+          <div><strong>Upload incomplete</strong>{submission.body && <p>{submission.body}</p>}<span className="recovery-hint">{blocked ? "This older or unavailable upload cannot resume. Cancel it and submit a new comment." : "The upload state was restored. Reselect a failed local file to retry it."}</span></div>
           <div className="uploading-comment-actions">
-            <button type="button" onClick={() => void api.finalizeCommentSubmission(submission.id).then(onSubmitted).catch((error: Error) => setErrors((current) => ({ ...current, [submission.id]: error.message })))}>Finish</button>
-            <button type="button" onClick={() => void api.cancelCommentSubmission(submission.id).then(onSubmitted)}>Cancel</button>
+            {!blocked && <button type="button" onClick={() => void finish(submission.id)}>Finish</button>}
+            <button type="button" onClick={() => void cancel(submission.id)}>Cancel</button>
           </div>
         </div>
         <div className="upload-item-list">
@@ -112,7 +159,7 @@ export function CommentSubmissionRecovery({
               {(progress[item.id] ?? 0) > 0 && (progress[item.id] ?? 0) < 100 && <progress max={100} value={progress[item.id]} />}
               {(errors[item.id] || item.error) && <span className="upload-item-error">{errors[item.id] || item.error}</span>}
             </div>
-            {item.status !== "ready" && <div className="upload-item-actions">
+            {!blocked && item.status !== "ready" && <div className="upload-item-actions">
               <label className="text-button">Retry<input type="file" onChange={(event) => {
                 const selected = event.target.files?.[0];
                 if (selected) void retryFile(submission, item, selected);
@@ -180,7 +227,8 @@ interface LocalSubmission {
   status: "creating" | "uploading" | "failed";
   error: string;
   items: LocalUploadItem[];
-  input: CreateCommentSubmissionInput;
+  input: AcceptedCommentSubmissionInput;
+  cancelFailed?: boolean;
 }
 
 const formatSize = (bytes: number) => {
@@ -216,19 +264,22 @@ function textareaUsesMultipleVisualLines(textarea: HTMLTextAreaElement) {
   return textarea.scrollHeight > Math.ceil(lineHeight + paddingTop + paddingBottom) + 1;
 }
 
-async function fileSha256(file: File) {
-  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
+export function CommentComposer(props: CommentComposerProps) {
+  return <CommentComposerSession key={props.sourceKey ?? commentComposerSource(props.context)} {...props} />;
 }
 
-export function CommentComposer({
+function CommentComposerSession({
   label,
+  sourceKey,
   context,
   onSubmitted,
   onCancel,
   submitLabel = "Add",
   adaptiveToolbarLayout = false,
 }: CommentComposerProps) {
+  const sessionActive = useRef(true);
+  const discardedSubmissions = useRef(new Set<string>());
+  const sourceIdentity = sourceKey ?? commentComposerSource(context);
   const [body, setBody] = useState("");
   const [images, setImages] = useState<DraftImage[]>([]);
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
@@ -260,6 +311,22 @@ export function CommentComposer({
     : storageResult?.error ?? storage?.message ?? "";
   const hasDraftItems = images.length > 0 || attachments.length > 0 || links.length > 0 || rejected.length > 0;
 
+  useEffect(() => {
+    sessionActive.current = true;
+    try {
+      setSubmissions(savedCommentSubmissions(sourceIdentity).map((input): LocalSubmission => ({
+        id: input.id, body: input.body, status: "failed", error: "Check the saved comment request. Reselect any file that still needs uploading.", input, cancelFailed: commentCancellationPending(input.id),
+        items: input.items.map((item): LocalUploadItem => ({
+          id: item.id, kind: item.kind, filename: item.kind === "link" ? item.title : item.filename,
+          file: null, progress: item.kind === "link" ? 100 : 0, status: item.kind === "link" ? "ready" : "failed", error: "",
+          sha256: item.kind === "link" ? null : item.sha256 ?? null,
+          required: item.kind === "attachment" && Boolean(item.relatedCommentImageId && input.items.some((image) => image.id === item.relatedCommentImageId && image.kind === "comment_image" && isTiffMetadata(image.originalFilename, image.originalMimeType))),
+          pairedItemId: item.kind === "comment_image" ? item.relatedAttachmentId ?? null : item.kind === "attachment" ? item.relatedCommentImageId ?? null : null,
+        })),
+      })));
+    } catch (error) { setDraftError((error as Error).message); }
+    return () => { sessionActive.current = false; };
+  }, [sourceIdentity]);
   useEffect(() => { submissionsRef.current = submissions; }, [submissions]);
   useEffect(() => { imagesRef.current = images; }, [images]);
   useEffect(() => {
@@ -345,7 +412,7 @@ export function CommentComposer({
   }, [showAttachmentMenu]);
 
   function updateSubmission(id: string, update: (submission: LocalSubmission) => LocalSubmission) {
-    setSubmissions((current) => current.map((submission) => submission.id === id ? update(submission) : submission));
+    if (sessionActive.current && !discardedSubmissions.current.has(id)) setSubmissions((current) => current.map((submission) => submission.id === id ? update(submission) : submission));
   }
 
   function updateUploadItem(submissionId: string, itemId: string, update: (item: LocalUploadItem) => LocalUploadItem) {
@@ -460,11 +527,21 @@ export function CommentComposer({
   }
 
   async function uploadItem(submissionId: string, item: LocalUploadItem, submissionSignal?: AbortSignal) {
-    if (!item.file || item.kind === "link" || item.status === "removed" || item.status === "ready") return true;
+    if (!sessionActive.current || discardedSubmissions.current.has(submissionId)) return false;
+    if (item.kind === "link" || item.status === "removed") return true;
+    if (!item.file) {
+      const state = await api.getCommentSubmissionAcceptance(submissionId);
+      const saved = state?.items.find((candidate) => candidate.id === item.id);
+      if (saved?.status === "ready" || saved?.status === "cancelled") {
+        updateUploadItem(submissionId, item.id, (current) => ({ ...current, status: saved.status === "ready" ? "ready" : "removed", error: "", progress: 100 }));
+        return true;
+      }
+      return false;
+    }
     if (submissionSignal?.aborted) return false;
     let sha256 = item.sha256;
     try {
-      if (item.kind === "attachment" && !sha256) {
+      if (!sha256) {
         updateUploadItem(submissionId, item.id, (current) => ({ ...current, status: "hashing", error: "" }));
         sha256 = await fileSha256(item.file);
         updateUploadItem(submissionId, item.id, (current) => ({ ...current, sha256 }));
@@ -490,18 +567,18 @@ export function CommentComposer({
       uploadControllers.current.delete(`${submissionId}:${item.id}`);
       const message = error instanceof Error ? error.message : "Upload failed";
       updateUploadItem(submissionId, item.id, (current) => ({ ...current, status: "failed", error: message }));
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        await api.markCommentSubmissionItemFailed(submissionId, item.id, message).catch(() => undefined);
-      }
       return false;
     }
   }
 
   async function finalizeIfComplete(submissionId: string) {
+    if (!sessionActive.current || discardedSubmissions.current.has(submissionId)) return false;
     try {
       await api.finalizeCommentSubmission(submissionId);
+      if (!sessionActive.current || discardedSubmissions.current.has(submissionId)) return false;
       await onSubmitted();
-      setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
+      finishCommentSubmission(submissionId);
+      if (sessionActive.current) setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
       return true;
     } catch (error) {
       updateSubmission(submissionId, (submission) => ({
@@ -513,11 +590,12 @@ export function CommentComposer({
     }
   }
 
-  async function startSubmission(input: CreateCommentSubmissionInput, local: LocalSubmission) {
+  async function startSubmission(input: AcceptedCommentSubmissionInput, local: LocalSubmission) {
     const queueController = new AbortController();
     submissionQueueControllers.current.set(local.id, queueController);
     try {
       await api.createCommentSubmission(input);
+      if (!sessionActive.current || queueController.signal.aborted || discardedSubmissions.current.has(local.id)) return;
       updateSubmission(local.id, (submission) => ({ ...submission, status: "uploading", error: "" }));
       const results = await Promise.all(local.items.map(async (item) => {
         try {
@@ -546,7 +624,7 @@ export function CommentComposer({
     }
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     if (preparing || (!body.trim() && !images.length && !attachments.length && !links.length)) return;
     if (!storageReady && (attachments.length > 0 || images.some((image) => image.attachOriginal))) {
@@ -560,7 +638,7 @@ export function CommentComposer({
       return;
     }
     const submissionId = createUuid();
-    const itemInputs: CommentSubmissionItemInput[] = [];
+    const itemInputs: AcceptedCommentItemInput[] = [];
     const localItems: LocalUploadItem[] = [];
 
     for (const image of images) {
@@ -653,12 +731,26 @@ export function CommentComposer({
       });
     }
 
-    const input: CreateCommentSubmissionInput = context.kind === "sample"
-      ? { id: submissionId, body: body.trim(), context, items: itemInputs }
-      : { id: submissionId, body: body.trim(), context, items: itemInputs };
+    // Snapshot text and revision-bearing targets before any hashing can yield.
+    const frozenContext = JSON.parse(JSON.stringify(context)) as CreateCommentSubmissionInput["context"];
+    const frozenBody = body.trim();
+    setPreparing(true); setDraftError("");
+    let input: AcceptedCommentSubmissionInput;
+    try {
+      for (const item of localItems) {
+        if (!item.file) continue;
+        item.sha256 = await commentUploadQueue.run(() => fileSha256(item.file!));
+        const accepted = itemInputs.find((candidate) => candidate.id === item.id)!;
+        accepted.sha256 = item.sha256;
+        if (!sessionActive.current) return;
+      }
+      input = await prepareDurableCommentSubmission({ protocol: "comment-submission/1", id: submissionId, body: frozenBody, context: frozenContext, items: itemInputs }, sourceIdentity);
+      if (!sessionActive.current) return;
+    } catch (error) { if (sessionActive.current) setDraftError((error as Error).message); return; }
+    finally { if (sessionActive.current) setPreparing(false); }
     const local: LocalSubmission = {
       id: submissionId,
-      body: body.trim(),
+      body: frozenBody,
       status: "creating",
       error: "",
       items: localItems,
@@ -676,19 +768,33 @@ export function CommentComposer({
     void startSubmission(input, local);
   }
 
-  async function retryItem(submissionId: string, itemId: string) {
+  async function retryItem(submissionId: string, itemId: string, selected?: File) {
     const submission = submissionsRef.current.find((candidate) => candidate.id === submissionId);
-    const item = submission?.items.find((candidate) => candidate.id === itemId);
-    if (!item) return;
+    let item = submission?.items.find((candidate) => candidate.id === itemId);
+    if (!item || !submission) return;
+    if (selected) {
+      try {
+        const accepted = submission.input.items.find((candidate) => candidate.id === itemId);
+        if (!accepted || accepted.kind === "link") return;
+        if (accepted.kind === "comment_image" && (selected.name !== accepted.originalFilename || selected.size !== accepted.originalByteSize || (selected.type || "application/octet-stream") !== accepted.originalMimeType)) throw new Error("Select the same original image used for this comment.");
+        const upload = accepted.kind === "comment_image" ? await prepareCommentImage(selected) : selected;
+        const sha256 = await fileSha256(upload);
+        if (sha256 !== accepted.sha256 || upload.name !== accepted.filename || upload.size !== accepted.byteSize || (upload.type || "application/octet-stream") !== accepted.mimeType) throw new Error("The selected file does not match the accepted comment. Select its unchanged original file.");
+        if (!sessionActive.current) return;
+        item = { ...item, file: upload, sha256 };
+        updateUploadItem(submissionId, itemId, () => item!);
+      } catch (error) { updateUploadItem(submissionId, itemId, (current) => ({ ...current, error: (error as Error).message })); return; }
+    }
+    const retry = item;
     const queueController = new AbortController();
     submissionQueueControllers.current.set(submissionId, queueController);
     try {
       if (await commentUploadQueue.run(
-        () => uploadItem(submissionId, item, queueController.signal),
+        () => uploadItem(submissionId, retry, queueController.signal),
         queueController.signal,
       )) await finalizeIfComplete(submissionId);
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
+      if (!(error instanceof DOMException && error.name === "AbortError")) updateUploadItem(submissionId, itemId, (current) => ({ ...current, error: (error as Error).message }));
     } finally {
       if (submissionQueueControllers.current.get(submissionId) === queueController) {
         submissionQueueControllers.current.delete(submissionId);
@@ -736,13 +842,27 @@ export function CommentComposer({
         }
       }
       await api.cancelCommentSubmission(submissionId);
-      setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
+      if (!sessionActive.current) return;
+      await onSubmitted();
+      finishCommentSubmission(submissionId);
+      if (sessionActive.current) setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
     } catch (error) {
       updateSubmission(submissionId, (submission) => ({
         ...submission,
         error: error instanceof Error ? error.message : "The upload could not be cancelled",
+        cancelFailed: true,
       }));
     }
+  }
+
+  function discardSubmission(submissionId: string) {
+    try {
+      submissionQueueControllers.current.get(submissionId)?.abort();
+      for (const [key, controller] of uploadControllers.current) if (key.startsWith(`${submissionId}:`)) controller.abort();
+      discardLocalCommentSubmission(submissionId);
+      discardedSubmissions.current.add(submissionId);
+      setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
+    } catch (error) { updateSubmission(submissionId, (submission) => ({ ...submission, error: (error as Error).message })); }
   }
 
   return <form
@@ -755,7 +875,8 @@ export function CommentComposer({
       setDragging(false);
       void insertAsCommentImages([...event.dataTransfer.files]);
     }}
-    onSubmit={submit}
+    onSubmit={(event) => { void submit(event); }}
+    onClickCapture={(event) => { if (preparing) { event.preventDefault(); event.stopPropagation(); } }}
     onBlur={(event) => {
       if (!adaptiveToolbarLayout) return;
       if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
@@ -771,6 +892,7 @@ export function CommentComposer({
         rows={1}
         aria-label={label}
         value={body}
+        disabled={preparing}
         onInput={(event) => handleTextareaInput(event.currentTarget)}
         onChange={(event) => setBody(event.target.value)}
         onPaste={(event) => {
@@ -796,7 +918,7 @@ export function CommentComposer({
         className="comment-file-input"
         type="file"
         multiple
-        disabled={!storageReady}
+        disabled={!storageReady || preparing}
         onChange={(event) => {
           addAttachments([...(event.target.files ?? [])]);
           event.target.value = "";
@@ -950,12 +1072,14 @@ export function CommentComposer({
               {item.error && <span className="upload-item-error">{item.error}</span>}
             </div>
             {item.status === "failed" && <div className="upload-item-actions">
-              <button type="button" onClick={() => void retryItem(submission.id, item.id)}>Retry</button>
+              {item.file ? <button type="button" onClick={() => void retryItem(submission.id, item.id)}>Retry</button>
+                : <label className="text-button">Retry<input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) void retryItem(submission.id, item.id, file); event.target.value = ""; }} /></label>}
               {!item.required && <button type="button" onClick={() => void removeFailedItem(submission.id, item.id)}>Remove</button>}
             </div>}
           </div>)}
         </div>
         {submission.error && <p className="upload-submission-error">{submission.error}</p>}
+        {submission.cancelFailed && <div className="uploading-comment-actions"><small>This clears local tracking. An earlier request may still finish.</small><button type="button" onClick={() => discardSubmission(submission.id)}>Discard local request</button></div>}
       </article>)}
     </section>}
   </form>;

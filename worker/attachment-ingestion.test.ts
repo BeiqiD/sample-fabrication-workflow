@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
 import worker from "./index";
+import { acceptCommentUpload } from "./comment-acceptance-test-support";
 import {
   referenceTestDatabase,
   SqliteD1Database,
@@ -65,10 +66,15 @@ function envFor(database: ReturnType<typeof referenceTestDatabase>) {
   return { env, stored, put, head };
 }
 
-function request(env: Env, path: string, init?: RequestInit) {
+async function request(env: Env, path: string, init?: RequestInit) {
   if (init?.method === "POST" && ["/assets", "/project-assets"].includes(path)) {
     const headers = new Headers(init.headers);
     headers.set("x-upload-request-id", crypto.randomUUID());
+    init = { ...init, headers };
+  }
+  if (init?.method === "PUT" && path.startsWith("/comment-submissions/") && init.body instanceof Uint8Array) {
+    const headers = new Headers(init.headers);
+    headers.set("x-content-sha256", await sha256Hex(bytesBuffer(init.body)));
     init = { ...init, headers };
   }
   return worker.fetch(
@@ -78,28 +84,19 @@ function request(env: Env, path: string, init?: RequestInit) {
   );
 }
 
-function seedCommentImageUpload(
+async function seedCommentImageUpload(
   database: ReturnType<typeof referenceTestDatabase>,
-  byteSize: number,
+  env: Env,
+  bytes: Uint8Array,
   filename = "shared-comment.png",
 ) {
   database.exec(`
     INSERT INTO samples (id, code, title, status, created_at, updated_at)
     VALUES ('ingestion-sample', 'INGEST-1', 'Ingestion sample', 'stored',
       '2026-08-19T10:00:00.000Z', '2026-08-19T10:00:00.000Z');
-    INSERT INTO comment_submissions
-      (id, context_kind, sample_id, body, status, actor_email,
-       created_at, updated_at, retry_until)
-    VALUES ('ingestion-submission', 'sample', 'ingestion-sample', '', 'uploading',
-      'local-development', '2026-08-19T10:01:00.000Z', '2026-08-19T10:01:00.000Z',
-      strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day'));
-    INSERT INTO comment_submission_items
-      (id, submission_id, kind, status, position, filename, mime_type,
-       byte_size, created_at, updated_at)
-    VALUES ('ingestion-item', 'ingestion-submission', 'comment_image', 'pending', 0,
-      '${filename}', 'image/png', ${byteSize},
-      '2026-08-19T10:01:00.000Z', '2026-08-19T10:01:00.000Z');
   `);
+  await acceptCommentUpload(database, env, { kind: "comment_image", bytes, filename,
+    sampleId: "ingestion-sample", submissionId: "ingestion-submission", itemId: "ingestion-item" });
 }
 
 afterEach(() => {
@@ -186,7 +183,7 @@ describe("shared attachment ingestion adapters", () => {
     const database = referenceTestDatabase();
     const { env, put } = envFor(database);
     const bytes = Uint8Array.from([137, 80, 78, 71, 9, 10, 11, 12]);
-    seedCommentImageUpload(database, bytes.byteLength);
+    await seedCommentImageUpload(database, env, bytes);
 
     const ordinary = await request(env, "/assets", {
       method: "POST",
@@ -209,7 +206,8 @@ describe("shared attachment ingestion adapters", () => {
       },
     );
     expect(comment.status).toBe(200);
-    expect(await comment.json()).toEqual({ ok: true, deduplicated: true });
+    expect(await comment.json()).toMatchObject({ ok: true, deduplicated: true, request: { status: "pending",
+      items: [{ id: "ingestion-item", status: "ready" }] } });
     expect(database.prepare(`
       SELECT status, asset_id FROM comment_submission_items
       WHERE id = 'ingestion-item'
@@ -230,11 +228,10 @@ describe("shared attachment ingestion adapters", () => {
         VALUES ('provider-winner', 'shared/provider.png', 'provider.png', 'image/png',
           ?, 'ready', ?, '2026-08-19T10:00:00.000Z')
       `).run(bytes.byteLength, sha256);
-      if (adapter === "comment") {
-        seedCommentImageUpload(database, bytes.byteLength, "provider.png");
-      }
-
       const { env, put, head } = envFor(database);
+      if (adapter === "comment") {
+        await seedCommentImageUpload(database, env, bytes, "provider.png");
+      }
       head.mockRejectedValue(new Error("injected R2 outage"));
       const response = adapter === "ordinary"
         ? await request(env, "/assets", {
@@ -266,7 +263,7 @@ describe("shared attachment ingestion adapters", () => {
 
       expect(response.status).toBe(503);
       const payload = await response.json() as { error: string };
-      expect(payload.error).toContain("could not be verified before deduplication");
+      expect(payload.error).toContain(adapter === "comment" ? "Comment outcome could not be determined" : "could not be verified before deduplication");
       expect(put).not.toHaveBeenCalled();
       expect(database.prepare("SELECT COUNT(*) AS count FROM assets").get())
         .toEqual({ count: 1 });
@@ -287,9 +284,13 @@ describe("shared attachment ingestion adapters", () => {
     expect(project).not.toContain("registerR2Asset");
     expect(project).not.toContain("findReusableR2Asset");
 
-    expect(comment).toContain('from "./attachment-ingestion"');
-    expect(comment).toContain("ingestR2Attachment");
-    expect(comment).toContain("ingestManagedAttachment");
+    expect(comment).toContain('from "./uploads/comment-acceptance"');
+    expect(comment).toContain("uploadAcceptedCommentItem");
+    const acceptance = readFileSync(new URL("./uploads/comment-acceptance.ts", import.meta.url), "utf8");
+    expect(acceptance).toContain('from "../attachment-ingestion"');
+    expect(acceptance).toContain("ingestR2Attachment");
+    expect(acceptance).toContain("ingestManagedAttachment");
+    expect(acceptance).not.toMatch(/registerR2Asset|registerManagedObject|findReusableR2Asset|findReusableManagedObject/);
     expect(comment).not.toContain("registerR2Asset");
     expect(comment).not.toContain("registerManagedObject");
     expect(comment).not.toContain("findReusableR2Asset");

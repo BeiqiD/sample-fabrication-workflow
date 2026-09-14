@@ -74,7 +74,14 @@ export const FULL_EXPORT_V11_TABLE_QUERIES = {
 } as const;
 
 // Schema 12 preserves metrology occurrence publication without new byte roots.
-export const FULL_EXPORT_TABLE_QUERIES = {
+export const FULL_EXPORT_V12_TABLE_QUERIES = {
   ...FULL_EXPORT_V11_TABLE_QUERIES,
   metrology_reference_upload_requests: "SELECT * FROM metrology_reference_upload_requests ORDER BY created_at, id",
+} as const;
+
+// Schema 13 records Comment acceptance separately from canonical Comment rows.
+export const FULL_EXPORT_TABLE_QUERIES = {
+  ...FULL_EXPORT_V12_TABLE_QUERIES,
+  comment_submission_acceptances: "SELECT * FROM comment_submission_acceptances ORDER BY created_at, submission_id",
+  comment_item_acceptances: "SELECT * FROM comment_item_acceptances ORDER BY submission_id, item_id",
 } as const;

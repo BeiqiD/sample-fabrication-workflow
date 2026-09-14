@@ -136,7 +136,7 @@ import { Hono } from "hono";
 import { routes as imageRoutes } from "./worker/blob-lifecycle/attachment-routes.ts";
 import { routes as projectRoutes } from "./worker/project-foundation-routes.ts";
 import { handleError } from "./worker/platform/http.ts";
-import { snapshotFullExportV12 } from "./worker/export-v12-snapshot.ts";
+import { snapshotFullExportV13 } from "./worker/export-v13-snapshot.ts";
 const app = new Hono().basePath("/api");
 app.onError(handleError);
 app.use("*", async (c, next) => { c.set("userEmail", c.req.header("X-Fixture-Actor") || "owner@example.com"); await next(); });
@@ -259,7 +259,7 @@ export default { async fetch(request, env, ctx) {
     }
     return Response.json({ before, missing, first, pending, pendingPoll, pendingIo, afterFirst, firstIo, retryBefore, state, otherActor,
       retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats,
-      archive: mode === "ordinary-replay" ? await snapshotFullExportV12(rawDb) : null });
+      archive: mode === "ordinary-replay" ? await snapshotFullExportV13(rawDb) : null });
   } finally { globalThis.Date = originalDate; }
 } };
 `;
@@ -344,11 +344,11 @@ test("production R2 upload routes preserve durable ownership on real workerd, D1
       if (mode === "deduplicated") { assert.equal(saved.id, "reusable-asset"); assert.equal(saved.deduplicated, true); }
       if (result.conflicts.length) assert(result.conflicts.every((response) => response.status === 409));
       if (mode === "ordinary-replay") {
-        const source = `export { snapshotFullExportV12 } from './worker/export-v12-snapshot.ts'; export { buildFullExportArchiveV12 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
+        const source = `export { snapshotFullExportV13 } from './worker/export-v13-snapshot.ts'; export { buildFullExportArchiveV13 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
         const modulePath = join(scratch, "restore-qualification.mjs"); await writeFile(modulePath, await bundle(source, "node"));
         const service = await import(pathToFileURL(modulePath).href);
         const byUrl = new Map(result.archive.blobs.map((blob) => [blob.downloadUrl, blob]));
-        const archive = await service.buildFullExportArchiveV12(result.archive, undefined, async (url) => {
+        const archive = await service.buildFullExportArchiveV13(result.archive, undefined, async (url) => {
           const blob = byUrl.get(String(url));
           const stored = blob && await (await mf.getR2Bucket("BUCKET")).get(blob.objectKey);
           return stored ? new Response(await stored.arrayBuffer()) : new Response(null, { status: 404 });
@@ -356,11 +356,11 @@ test("production R2 upload routes preserve durable ownership on real workerd, D1
         const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
         const originalHash = hash(await readFile(archivePath));
         const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
-        assert.equal(restored.report.schemaVersion, 12); assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
+        assert.equal(restored.report.schemaVersion, 13); assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
         assert(restored.report.restoredBlobCount > 0);
         const recovered = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
         try {
-          const snapshot = await service.snapshotFullExportV12(hostAdapter(recovered));
+          const snapshot = await service.snapshotFullExportV13(hostAdapter(recovered));
           assert.deepEqual(snapshot.tables, result.archive.tables, "nonempty D1 archive restores all historical rows and accepted identity exactly");
           assert.deepEqual(snapshot.tables.r2_upload_requests, result.afterFirst.r2_upload_requests);
           assert.throws(() => recovered.exec("DELETE FROM r2_upload_requests"), /cannot be deleted/);

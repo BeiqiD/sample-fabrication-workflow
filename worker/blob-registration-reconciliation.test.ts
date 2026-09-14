@@ -3,6 +3,7 @@ import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
 import worker from "./index";
+import { acceptCommentUpload } from "./comment-acceptance-test-support";
 import {
   REFERENCE_FIXTURE_IDS,
   referenceTestDatabase,
@@ -165,10 +166,7 @@ const executionContext = {
   props: {},
 } as unknown as ExecutionContext;
 
-function databaseWithUpload(
-  kind: "comment_image" | "attachment",
-  byteSize: number,
-) {
+function databaseWithUpload() {
   const database = new DatabaseSync(":memory:");
   const migrationDirectory = new URL("../migrations/", import.meta.url);
   for (const filename of readdirSync(migrationDirectory)
@@ -178,29 +176,8 @@ function databaseWithUpload(
   }
   database.exec(`
     INSERT INTO samples (id, code, title, status, created_at, updated_at)
-    VALUES (
-      'sample-upload', 'UPLOAD-1', 'Upload sample', 'stored',
-      '2026-08-15T10:00:00.000Z', '2026-08-15T10:00:00.000Z'
-    );
-
-    INSERT INTO comment_submissions (
-      id, context_kind, sample_id, scope, body, status, actor_email,
-      created_at, updated_at, retry_until
-    ) VALUES (
-      'submission-upload', 'sample', 'sample-upload', NULL, '', 'uploading',
-      'local-development', '2026-08-15T10:01:00.000Z',
-      '2026-08-15T10:01:00.000Z', '2026-08-16T10:01:00.000Z'
-    );
-
-    INSERT INTO comment_submission_items (
-      id, submission_id, kind, status, position, filename, mime_type,
-      byte_size, created_at, updated_at
-    ) VALUES (
-      'item-upload', 'submission-upload', '${kind}', 'pending', 0,
-      '${kind === "comment_image" ? "image.png" : "result.dat"}',
-      '${kind === "comment_image" ? "image/png" : "application/octet-stream"}',
-      ${byteSize}, '2026-08-15T10:01:00.000Z', '2026-08-15T10:01:00.000Z'
-    );
+    VALUES ('sample-upload', 'UPLOAD-1', 'Upload sample', 'stored',
+      '2026-08-15T10:00:00.000Z', '2026-08-15T10:00:00.000Z');
   `);
   return database;
 }
@@ -236,7 +213,7 @@ afterEach(() => {
 describe("uncertain blob registration reconciliation", () => {
   it("keeps a committed Comment image after its ready-promotion response is lost", async () => {
     const bytes = Uint8Array.from([137, 80, 78, 71, 31, 32, 33]);
-    const database = databaseWithUpload("comment_image", bytes.byteLength);
+    const database = databaseWithUpload();
     const stored = new Map<string, Uint8Array>();
     const deleted: string[] = [];
     const put = vi.fn(async (key: string, value: unknown) => {
@@ -265,6 +242,7 @@ describe("uncertain blob registration reconciliation", () => {
       } as unknown as R2Bucket,
     } satisfies Env;
 
+    await acceptCommentUpload(database, env, { kind: "comment_image", bytes });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -272,12 +250,14 @@ describe("uncertain blob registration reconciliation", () => {
         headers: {
           "content-type": "image/png",
           "x-upload-size": String(bytes.byteLength),
+          "x-content-sha256": await sha256Hex(bytesBuffer(bytes)),
         },
         body: bytes,
       },
     ), env, executionContext);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, deduplicated: false });
+    expect(await response.json()).toMatchObject({ ok: true, deduplicated: false,
+      request: { status: "pending", items: [{ id: "item-upload", status: "ready" }] } });
 
     const row = database.prepare(`
       SELECT a.id, a.r2_key, a.status, csi.status AS item_status,
@@ -465,9 +445,9 @@ describe("uncertain blob registration reconciliation", () => {
     database.close();
   });
 
-  it("preserves the original 503 when Comment failure accounting is unavailable", async () => {
+  it("keeps accepted ownership on an uncertain upload without relying on legacy failure accounting", async () => {
     const bytes = Uint8Array.from([137, 80, 78, 71, 116, 117, 118]);
-    const database = databaseWithUpload("comment_image", bytes.byteLength);
+    const database = databaseWithUpload();
     const put = vi.fn();
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const env = {
@@ -490,6 +470,7 @@ describe("uncertain blob registration reconciliation", () => {
       } as unknown as R2Bucket,
     } satisfies Env;
 
+    await acceptCommentUpload(database, env, { kind: "comment_image", bytes });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -497,6 +478,7 @@ describe("uncertain blob registration reconciliation", () => {
         headers: {
           "content-type": "image/png",
           "x-upload-size": String(bytes.byteLength),
+          "x-content-sha256": await sha256Hex(bytesBuffer(bytes)),
         },
         body: bytes,
       },
@@ -504,13 +486,9 @@ describe("uncertain blob registration reconciliation", () => {
 
     expect(response.status).toBe(503);
     expect(put).not.toHaveBeenCalled();
-    expect(warning).toHaveBeenCalledWith(
-      "Could not record Comment upload failure",
-      expect.objectContaining({
-        submissionId: "submission-upload",
-        itemId: "item-upload",
-      }),
-    );
+    expect(warning).not.toHaveBeenCalled();
+    expect(database.prepare("SELECT status, execution_token IS NOT NULL AS claimed FROM comment_item_acceptances WHERE item_id = 'item-upload'").get())
+      .toEqual({ status: "pending", claimed: 1 });
     expect(database.prepare(
       "SELECT COUNT(*) AS count FROM assets",
     ).get()).toEqual({ count: 0 });
@@ -527,7 +505,7 @@ describe("uncertain blob registration reconciliation", () => {
   it("returns 503 when managed metadata staging fails twice before provider write", async () => {
     const bytes = Uint8Array.from([121, 122, 123, 124, 125]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
-    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const database = databaseWithUpload();
     const fetchMock = vi.fn(async () => {
       throw new Error("managed provider must not be called before staging");
     });
@@ -550,6 +528,7 @@ describe("uncertain blob registration reconciliation", () => {
       SWITCHDRIVE_APP_PASSWORD: "test-password",
     } satisfies Env;
 
+    await acceptCommentUpload(database, env, { kind: "attachment", bytes });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -575,7 +554,7 @@ describe("uncertain blob registration reconciliation", () => {
     const bytes = Uint8Array.from([17, 29, 43, 61, 79]);
     const claimedSha256 = "f".repeat(64);
     expect(await sha256Hex(bytesBuffer(bytes))).not.toBe(claimedSha256);
-    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const database = databaseWithUpload();
     const received: number[] = [];
     const methods: string[] = [];
     vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -608,6 +587,7 @@ describe("uncertain blob registration reconciliation", () => {
       SWITCHDRIVE_USERNAME: "test-user",
       SWITCHDRIVE_APP_PASSWORD: "test-password",
     } satisfies Env;
+    await acceptCommentUpload(database, env, { kind: "attachment", bytes, sha256: claimedSha256 });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -631,18 +611,20 @@ describe("uncertain blob registration reconciliation", () => {
       SELECT status, storage_object_id, error_message
       FROM comment_submission_items WHERE id = 'item-upload'
     `).get()).toEqual({
-      status: "failed", storage_object_id: null,
-      error_message: "Attachment checksum changed during upload",
+      status: "uploading", storage_object_id: null,
+      error_message: null,
     });
     expect(database.prepare("SELECT status, sha256 FROM managed_storage_objects").all())
       .toEqual([{ status: "failed", sha256: claimedSha256 }]);
+    expect(database.prepare("SELECT status, execution_token IS NOT NULL AS claimed, accepted_result_json FROM comment_item_acceptances WHERE item_id = 'item-upload'").get())
+      .toEqual({ status: "pending", claimed: 1, accepted_result_json: null });
     database.close();
   });
 
   it("keeps a committed managed Comment attachment and does not delete its own provider key after response loss", async () => {
     const bytes = Uint8Array.from([41, 42, 43, 44, 45]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
-    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const database = databaseWithUpload();
     const stored = new Map<string, Uint8Array>();
     const deletedUrls: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -700,6 +682,7 @@ describe("uncertain blob registration reconciliation", () => {
       SWITCHDRIVE_APP_PASSWORD: "test-password",
     } satisfies Env;
 
+    await acceptCommentUpload(database, env, { kind: "attachment", bytes });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -713,7 +696,8 @@ describe("uncertain blob registration reconciliation", () => {
       },
     ), env, executionContext);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, deduplicated: false });
+    expect(await response.json()).toMatchObject({ ok: true, deduplicated: false,
+      request: { status: "pending", items: [{ id: "item-upload", status: "ready" }] } });
 
     const row = database.prepare(`
       SELECT mso.id, mso.object_key, mso.status,
@@ -755,7 +739,7 @@ describe("uncertain blob registration reconciliation", () => {
   it("returns 503 and preserves committed managed bytes when primary reconciliation is unavailable", async () => {
     const bytes = Uint8Array.from([81, 82, 83, 84, 85]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
-    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const database = databaseWithUpload();
     const stored = new Map<string, Uint8Array>();
     const deletedUrls: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -808,6 +792,7 @@ describe("uncertain blob registration reconciliation", () => {
       SWITCHDRIVE_APP_PASSWORD: "test-password",
     } satisfies Env;
 
+    await acceptCommentUpload(database, env, { kind: "attachment", bytes });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -1053,7 +1038,7 @@ describe("uncertain blob registration reconciliation", () => {
   it("returns 503 and preserves managed bytes when both promotions fail before commit", async () => {
     const bytes = Uint8Array.from([121, 122, 123, 124, 125]);
     const sha256 = await sha256Hex(bytesBuffer(bytes));
-    const database = databaseWithUpload("attachment", bytes.byteLength);
+    const database = databaseWithUpload();
     const stored = new Map<string, Uint8Array>();
     const deletedUrls: string[] = [];
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -1109,6 +1094,7 @@ describe("uncertain blob registration reconciliation", () => {
       SWITCHDRIVE_APP_PASSWORD: "test-password",
     } satisfies Env;
 
+    await acceptCommentUpload(database, env, { kind: "attachment", bytes });
     const response = await worker.fetch(new Request(
       "https://app.test/api/comment-submissions/submission-upload/items/item-upload/content",
       {
@@ -1142,7 +1128,7 @@ describe("uncertain blob registration reconciliation", () => {
       FROM comment_submission_items
       WHERE id = 'item-upload'
     `).get()).toEqual({
-      status: "failed",
+      status: "uploading",
       storage_object_id: null,
     });
     const objectUrl = [

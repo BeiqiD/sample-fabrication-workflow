@@ -12,7 +12,7 @@ async function submit(payload: unknown) {
   return routes.request("http://local.test/comment-submissions", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ protocol: "comment-submission/1", ...(payload as Record<string, unknown>) }),
   });
 }
 
@@ -23,6 +23,9 @@ function failureEnvironment(recordMessage?: (message: string) => void) {
     prepare(sql: string) {
       return {
         bind(...values: unknown[]) {
+          if (sql.includes("FROM comment_submission_acceptances WHERE submission_id = ?")) {
+            return { first: async () => null };
+          }
           if (sql.includes("FROM comment_submissions WHERE id = ?")) {
             return {
               async first() {
@@ -76,6 +79,15 @@ async function reportFailure(
 }
 
 describe("Comment submission JSON validation", () => {
+  it("requires protocol negotiation before database access for older create payloads", async () => {
+    const response = await routes.request("http://local.test/comment-submissions", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: "submission-123", body: "Comment", context: sampleContext, items: [] }),
+    });
+    expect(response.status).toBe(428);
+    expect(await response.text()).toContain("Reload the application");
+  });
+
   it("returns 400 instead of throwing for malformed attachment presentation fields", async () => {
     const payloads = [
       {
@@ -120,7 +132,7 @@ describe("Comment submission JSON validation", () => {
         items: [payload.item],
       });
       expect(response.status).toBe(400);
-      expect(await response.text()).toContain(payload.expected);
+      expect(await response.text()).toContain("Comment input or prepared file checksum is invalid");
     }
   });
 
@@ -141,7 +153,7 @@ describe("Comment submission JSON validation", () => {
       items: [],
     });
     expect(response.status).toBe(400);
-    expect(await response.text()).toContain("Valid process-step targets are required");
+    expect(await response.text()).toContain("Comment input or prepared file checksum is invalid");
   });
 
   it("accepts a bounded string and preserves the empty-message default", async () => {

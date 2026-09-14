@@ -18,13 +18,15 @@ purpose-split conversion report. [FP1h](./FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md)
 adds actor-bound durable acceptance for ordinary images and Project uploads,
 with fixed replay windows and schema 11 recovery. [FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md)
 adds metrology reference acceptance and atomic occurrence publication, with
-schema 12 recovery. File/location authority remains
+schema 12 recovery. [FP1j](./FP1_COMMENT_ACCEPTANCE.md) strengthens canonical
+Comment acceptance, image/original placement, cancellation and atomic multi-target
+publication, with schema 13 recovery. File/location authority remains
 dormant and legacy global-SHA deduplication still applies. FP1 remains incomplete;
 no deployment is certified by this document.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
-FP1i implementation base: `c4b2ff6` (merged PR #217), 2026-09-14; its implementation
+FP1j implementation base: `13c5f8f` (merged PR #218), 2026-09-14; its implementation
 PR records final verification and deployment evidence.
 
 ## Authority and reading order
@@ -74,7 +76,7 @@ works. R2 default behavior requires new non-empty live acceptance; no default
 change retroactively qualifies the old SWITCHdrive path. The new track is an
 intentional product/schema change, separate from behavior-preserving Phase 6A.
 
-The original design PR changed no runtime state. FP1a–FP1i introduce bounded
+The original design PR changed no runtime state. FP1a–FP1j introduce bounded
 forward schema, transport, recovery, accepted-import and offline planning slices; the complete
 File/location authority transition remains open. FP1f captures a historical R2
 profile on first accepted import without changing the storage binding or defaults.
@@ -101,7 +103,10 @@ Its proposals require live revalidation, durable holds and independently verifie
 copying before future conversion can execute.
 FP1h extends durable byte-upload acceptance to ordinary images and Project
 attachments. FP1i adds metrology's accepted business operation and atomic reference
-publication; Comment's complete acceptance/publication remains a prerequisite.
+publication. FP1j adds Comment's immutable accepted input, one upload owner,
+fixed seven-day deadline and guarded publication of all retained items/targets.
+The complete consumer, deduplication, retention and recovery conversion remains
+the next authority transition; accepted-operation ledgers alone do not complete it.
 Captured purposes do not change legacy global-SHA reuse or activate File placement.
 
 | Milestone | Deliverable | Exit evidence |

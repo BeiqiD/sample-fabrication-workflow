@@ -86,16 +86,28 @@ export function SamplePage() {
   const notesListRef = useRef<HTMLDivElement>(null);
   const pendingNotesViewportTopRef = useRef<number | null>(null);
 
+  const sourceIdRef = useRef(sampleId);
+  sourceIdRef.current = sampleId;
+  const loadSequence = useRef(0);
   const load = useCallback(async () => {
+    const sequence = ++loadSequence.current;
     try {
-      setSample(await api.getSample(sampleId));
+      const result = await api.getSample(sampleId);
+      if (sourceIdRef.current !== sampleId || sequence !== loadSequence.current) return;
+      setSample(result);
       setError("");
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) {
+      if (sourceIdRef.current !== sampleId || sequence !== loadSequence.current) return;
+      setError((error as Error).message);
+      throw error;
+    }
   }, [sampleId]);
 
   useEffect(() => {
     setShowAllNotes(false);
-    void load();
+    setSample(null);
+    void load().catch(() => undefined);
+    return () => { loadSequence.current += 1; };
   }, [load]);
 
   useLayoutEffect(() => {
@@ -315,11 +327,12 @@ export function SamplePage() {
           <p className="card-label">Add a note or observation</p>
           <CommentComposer
             label="Add a note or observation"
+            sourceKey={`sample:${sample.id}`}
             submitLabel="Add note"
             context={{ kind: "sample", sampleId: sample.id, expectedUpdatedAt: sample.updatedAt }}
             onSubmitted={refreshNotes}
           />
-          <CommentSubmissionRecovery submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={refreshNotes} />
+          <CommentSubmissionRecovery key={sample.id} localSourceKey={`sample:${sample.id}`} submissions={(sample.comments ?? []).filter((comment) => comment.status !== "ready" && comment.status !== "cancelled")} onSubmitted={refreshNotes} />
           <small>Saved directly to this sample.</small>
         </div>
         {notes.length ? <div ref={notesListRef} className={`sample-notes-list ${showAllNotes ? "is-expanded" : "is-collapsed"}`} id="sample-notes-list">{notes.map((note, index) => <Fragment key={note.id}>

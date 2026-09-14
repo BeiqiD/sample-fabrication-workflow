@@ -52,12 +52,14 @@ repair migrations.
 
 The historical E/B4 Worker assertions on S1 remain unchanged. A test-only
 esbuild overlay reconstructs its five exact source files from reviewed patches:
-C → B, then B → E. It checks the current C and reconstructed E file hashes and
-does not require Git history, mutate production files, or replace API handlers.
-The patches and hash manifests are the exact qualification fixtures from the
-separate B preparation. Canonical read regression tests also run the current C
-reader against retained S1 rows, so stale duplicated text remains an actual
-stored value that the reader must not expose.
+Reviewed reconstruction inputs → C → B → E. It checks the frozen C and E
+source hashes; the C API matrix uses that same reviewed C overlay on S1/S2.
+When a current protocol requires newer schema, the historical matrix continues
+to qualify its original writer. Reviewed input snapshots and patches keep this
+independent of Git history without mutating production files or replacing API
+handlers. The original C/E hashes remain unchanged. Canonical read regression
+tests also run the current reader against retained S1 rows, so stale duplicated
+text remains an actual stored value that the reader must not expose.
 
 ## Complete local gate
 

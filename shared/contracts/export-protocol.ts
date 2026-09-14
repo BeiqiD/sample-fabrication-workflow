@@ -1,4 +1,4 @@
-import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_SCHEMA_V8, FULL_EXPORT_ARCHIVE_SCHEMA_V9, FULL_EXPORT_ARCHIVE_SCHEMA_V10, FULL_EXPORT_ARCHIVE_SCHEMA_V11, FULL_EXPORT_ARCHIVE_PROFILE, FULL_EXPORT_ARCHIVE_PROFILE_V9, FULL_EXPORT_ARCHIVE_PROFILE_V10, FULL_EXPORT_ARCHIVE_PROFILE_V11, FULL_EXPORT_ARCHIVE_WRITER, type ExportJsonArtifact, type FullExportManifestV8, type FullExportManifestV9, type FullExportManifestV10, type FullExportManifestV11, type FullExportManifestV12 } from "./export";
+import { FULL_EXPORT_ARCHIVE_SCHEMA, FULL_EXPORT_ARCHIVE_SCHEMA_V8, FULL_EXPORT_ARCHIVE_SCHEMA_V9, FULL_EXPORT_ARCHIVE_SCHEMA_V10, FULL_EXPORT_ARCHIVE_SCHEMA_V11, FULL_EXPORT_ARCHIVE_SCHEMA_V12, FULL_EXPORT_ARCHIVE_PROFILE, FULL_EXPORT_ARCHIVE_PROFILE_V9, FULL_EXPORT_ARCHIVE_PROFILE_V10, FULL_EXPORT_ARCHIVE_PROFILE_V11, FULL_EXPORT_ARCHIVE_PROFILE_V12, FULL_EXPORT_ARCHIVE_WRITER, type ExportJsonArtifact, type FullExportManifestV8, type FullExportManifestV9, type FullExportManifestV10, type FullExportManifestV11, type FullExportManifestV12, type FullExportManifestV13 } from "./export";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "./export-compatibility";
 import { buildBlobExportPlan } from "./export-blob-plan";
@@ -6,6 +6,7 @@ import { FILE_FOUNDATION_EXPORT_COLUMNS, validateLegacyOverlap } from "./export-
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS, validateImportAcceptance } from "./export-import-acceptance";
 import { R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS, validateR2UploadAcceptance } from "./export-r2-upload-acceptance";
 import { METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS, validateMetrologyReferenceAcceptance } from "./export-metrology-reference-acceptance";
+import { COMMENT_ACCEPTANCE_EXPORT_COLUMNS, validateCommentAcceptance } from "./export-comment-acceptance";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 
 export const EXPORT_SOURCE_SCHEMA_PATH = "provenance/source-schema.json";
@@ -25,7 +26,7 @@ export function supportedExportRequest(url: URL) {
   return entries.length === 2
     && url.searchParams.getAll("archiveSchema").length === 1
     && url.searchParams.getAll("archiveWriter").length === 1
-    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA_V9), String(FULL_EXPORT_ARCHIVE_SCHEMA_V10), String(FULL_EXPORT_ARCHIVE_SCHEMA_V11), String(FULL_EXPORT_ARCHIVE_SCHEMA)].includes(url.searchParams.get("archiveSchema") ?? "")
+    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA_V9), String(FULL_EXPORT_ARCHIVE_SCHEMA_V10), String(FULL_EXPORT_ARCHIVE_SCHEMA_V11), String(FULL_EXPORT_ARCHIVE_SCHEMA_V12), String(FULL_EXPORT_ARCHIVE_SCHEMA)].includes(url.searchParams.get("archiveSchema") ?? "")
     && url.searchParams.get("archiveWriter") === String(FULL_EXPORT_ARCHIVE_WRITER);
 }
 
@@ -36,7 +37,7 @@ function object(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12): Promise<FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12> {
+async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 | 13): Promise<FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13> {
   // In particular an E client reaching the previous A Worker must stop here,
   // before downloading any bytes or creating a ZIP from an unnegotiated v7.
   ensure(object(value) && value.schemaVersion === version && value.archiveWriter === FULL_EXPORT_ARCHIVE_WRITER,
@@ -77,6 +78,14 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12)
     && !entry.name.startsWith("sqlite_") && !platform.has(entry.name)).map((entry: { name: string }) => entry.name);
   ensure(objectIds.has("view:blob_retention_edges"), "source schema is missing its exported retention view");
   inventory.push("blob_retention_edges");
+  if (version < 13) ensure(!Object.keys(COMMENT_ACCEPTANCE_EXPORT_COLUMNS).some((name) => objectIds.has(`table:${name}`)), "Comment acceptance requires archive schema 13");
+  else {
+    for (const [name, columns] of Object.entries(COMMENT_ACCEPTANCE_EXPORT_COLUMNS)) {
+      const entry = schema.objects.find((entry: { type: string; name: string }) => entry.type === "table" && entry.name === name);
+      ensure(entry && typeof entry.sql === "string" && JSON.stringify(sqliteTableColumns(entry.sql, name).sort())
+        === JSON.stringify([...columns].sort()), "Comment acceptance schema columns differ from the archive profile");
+    }
+  }
   if (version < 12) ensure(!objectIds.has("table:metrology_reference_upload_requests"), "metrology reference acceptance requires archive schema 12");
   else {
     const metrologySchema = schema.objects.find((entry: { type: string; name: string }) => entry.type === "table" && entry.name === "metrology_reference_upload_requests");
@@ -117,7 +126,7 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12)
       ensure(JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...columns].sort()), "table row columns differ from source contract");
     }
   }
-  const manifest = value as FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12;
+  const manifest = value as FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13;
   const physical = classifyExportCompatibilitySchema(manifest.artifacts.sourceSchema.value.compatibilityColumns);
   const restored = restoreCompatibilityRows(manifest.tables, manifest.artifacts.retiredFields.value, physical);
   const replayed = projectCompatibilitySnapshot(restored, manifest.artifacts.sourceSchema.value);
@@ -137,7 +146,7 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12)
   if (version === 8) ensure(!registryTables.some((name) => Object.hasOwn(manifest.tables, name)),
     "the file foundation requires archive schema 9");
   else {
-    ensure((manifest as FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12).archiveProfile === (version === 9 ? FULL_EXPORT_ARCHIVE_PROFILE_V9 : version === 10 ? FULL_EXPORT_ARCHIVE_PROFILE_V10 : version === 11 ? FULL_EXPORT_ARCHIVE_PROFILE_V11 : FULL_EXPORT_ARCHIVE_PROFILE),
+    ensure((manifest as FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13).archiveProfile === (version === 9 ? FULL_EXPORT_ARCHIVE_PROFILE_V9 : version === 10 ? FULL_EXPORT_ARCHIVE_PROFILE_V10 : version === 11 ? FULL_EXPORT_ARCHIVE_PROFILE_V11 : version === 12 ? FULL_EXPORT_ARCHIVE_PROFILE_V12 : FULL_EXPORT_ARCHIVE_PROFILE),
       "unsupported archive schema profile");
     ensure(physical === "S2" && registryTables.every((name) => Object.hasOwn(manifest.tables, name)),
       "the file foundation requires the complete S2 registry schema");
@@ -149,7 +158,8 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12)
     validateLegacyOverlap(manifest.tables);
     if (version >= 10) await validateImportAcceptance(manifest.tables);
     if (version >= 11) await validateR2UploadAcceptance(manifest.tables);
-    if (version === 12) await validateMetrologyReferenceAcceptance(manifest.tables);
+    if (version >= 12) await validateMetrologyReferenceAcceptance(manifest.tables);
+    if (version === 13) await validateCommentAcceptance(manifest.tables);
   }
   return manifest;
 }
@@ -171,5 +181,9 @@ export async function validateFullExportV11(value: unknown): Promise<FullExportM
 }
 
 export async function validateFullExportV12(value: unknown): Promise<FullExportManifestV12> {
-  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA) as FullExportManifestV12;
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA_V12) as FullExportManifestV12;
+}
+
+export async function validateFullExportV13(value: unknown): Promise<FullExportManifestV13> {
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA) as FullExportManifestV13;
 }

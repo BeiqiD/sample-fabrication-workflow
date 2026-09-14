@@ -38,8 +38,9 @@ See the [repository compatibility audit](../docs/FILE_DATA_PORTABILITY_REPOSITOR
 Later forward migrations add accepted FabuBlox requests (`0003`), ordinary and
 Project byte uploads (`0004`), and
 [metrology reference publication](../docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md)
-(`0005`). These ledgers preserve operation history without activating File tables
-or changing storage bindings. Current full export/recovery uses schema 12;
+(`0005`), and [Comment acceptance](../docs/FP1_COMMENT_ACCEPTANCE.md) (`0006`).
+These ledgers preserve operation history without activating File tables
+or changing storage bindings. Current full export/recovery uses schema 13;
 historical archive validators remain specific to their original suffixes.
 
 Keep CASE endings separated from punctuation (`END )` and inline `END ;`) and

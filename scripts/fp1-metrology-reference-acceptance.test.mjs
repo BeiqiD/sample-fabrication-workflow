@@ -98,7 +98,7 @@ const workerSource = `
 import { Hono } from "hono";
 import { routes } from "./worker/process-definition/routes.ts";
 import { handleError } from "./worker/platform/http.ts";
-import { snapshotFullExportV12 } from "./worker/export-v12-snapshot.ts";
+import { snapshotFullExportV13 } from "./worker/export-v13-snapshot.ts";
 const app = new Hono().basePath("/api"); app.onError(handleError);
 app.use("*", async (c, next) => { c.set("userEmail", c.req.header("X-Fixture-Actor") || "owner@example.com"); await next(); });
 app.route("/", routes);
@@ -106,7 +106,7 @@ export default { async fetch(request, env, ctx) {
   const { mode, binding, missingBytes } = await request.json(); const rawDb = env[binding];
   if (mode === "restored") {
     let puts = 0;
-    const before = (await snapshotFullExportV12(rawDb)).tables;
+    const before = (await snapshotFullExportV13(rawDb)).tables;
     const routeEnv = { DB: rawDb, R2_BOOTSTRAP_NAMESPACE: ${JSON.stringify(namespace)}, ASSETS: {
       get(key) { return missingBytes ? null : env.RESTORED_BUCKET.get(key); },
       head(key) { return missingBytes ? null : env.RESTORED_BUCKET.head(key); },
@@ -119,7 +119,7 @@ export default { async fetch(request, env, ctx) {
       body: new TextEncoder().encode("native metrology fixture replay"),
     }), routeEnv, ctx);
     return Response.json({ get: { status: getResponse.status, body: await getResponse.json() }, post: { status: postResponse.status, body: await postResponse.json() },
-      puts, before, after: (await snapshotFullExportV12(rawDb)).tables });
+      puts, before, after: (await snapshotFullExportV13(rawDb)).tables });
   }
   const stats = { puts: [], gets: [], heads: [], deletes: 0, insertAttempts: 0, sessions: [], lostAcceptance: 0, lostFinalization: 0,
     acceptedBeforeEachPut: [], raceMutations: 0, sqlErrors: [] };
@@ -250,7 +250,7 @@ export default { async fetch(request, env, ctx) {
       physical.push({ id: result.assetId, size: blob?.size ?? null, sha256: blob ? await sha(await blob.arrayBuffer()) : null });
     }
     return Response.json({ before, missing, first, pending, pendingPoll, pendingIo, afterFirst, firstIo, retryBefore, state, otherActor, otherTemplate,
-      retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats, archive: mode === "replay" ? await snapshotFullExportV12(rawDb) : null });
+      retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats, archive: mode === "replay" ? await snapshotFullExportV13(rawDb) : null });
   } finally { globalThis.Date = originalDate; }
 } };
 `;
@@ -298,22 +298,22 @@ async function qualifySqlGuards(db, fixture) {
   assert.deepEqual(retained, [{ occurrence_type: "metrology_template_reference" }], "only the domain occurrence retains bytes");
 }
 async function qualifyRestore(mf, scratch, fixture) {
-  const source = `export { snapshotFullExportV12 } from './worker/export-v12-snapshot.ts'; export { buildFullExportArchiveV12 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
+  const source = `export { snapshotFullExportV13 } from './worker/export-v13-snapshot.ts'; export { buildFullExportArchiveV13 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
   const modulePath = join(scratch, "restore-qualification.mjs"); await writeFile(modulePath, await bundle(source, "node"));
   const service = await import(pathToFileURL(modulePath).href); const byUrl = new Map(fixture.archive.blobs.map((blob) => [blob.downloadUrl, blob]));
-  const archive = await service.buildFullExportArchiveV12(fixture.archive, undefined, async (url) => {
+  const archive = await service.buildFullExportArchiveV13(fixture.archive, undefined, async (url) => {
     const blob = byUrl.get(String(url)); const stored = blob && await (await mf.getR2Bucket("BUCKET")).get(blob.objectKey);
     return stored ? new Response(await stored.arrayBuffer()) : new Response(null, { status: 404 });
   });
   const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
   const originalHash = hash(await readFile(archivePath));
   const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
-  assert.equal(restored.report.schemaVersion, 12); assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
+  assert.equal(restored.report.schemaVersion, 13); assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
   assert(restored.report.restoredBlobCount > 0);
   const recovered = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
   try {
-    const snapshot = await service.snapshotFullExportV12(hostAdapter(recovered));
-    assert.deepEqual(snapshot.tables, fixture.archive.tables, "nonempty D1 V12 restores previous history and new receipt rows exactly");
+    const snapshot = await service.snapshotFullExportV13(hostAdapter(recovered));
+    assert.deepEqual(snapshot.tables, fixture.archive.tables, "nonempty D1 V13 restores previous history and new receipt rows exactly");
     assert.deepEqual(snapshot.tables[table], fixture.afterFirst[table]);
     const providerManifest = JSON.parse(await readFile(join(restored.restoredDirectory, "provider-manifest.json"), "utf8"));
     const restoredBucket = await mf.getR2Bucket("RESTORED_BUCKET");
@@ -362,7 +362,10 @@ test("production metrology upload routes qualify durable publication on real wor
     d1Databases: [...Object.values(bindings), "DB_GUARDS", "DB_RESTORED"], log: new Log(LogLevel.ERROR) });
   const scratch = await mkdtemp(join(tmpdir(), "fp1-metrology-reference-")); let replayFixture;
   try {
-    for (const binding of [...Object.values(bindings), "DB_GUARDS"]) { const db = await mf.getD1Database(binding); await seedBeforeUpgrade(db); await upgrade(db); }
+    for (const binding of [...Object.values(bindings), "DB_GUARDS"]) {
+      const db = await mf.getD1Database(binding); await seedBeforeUpgrade(db); await upgrade(db);
+      for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+    }
     for (const mode of modes) await t.test(mode, async () => {
       const response = await mf.dispatchFetch("https://qualification.test/", { method: "POST", body: JSON.stringify({ mode, binding: bindings[mode] }) });
       assert.equal(response.status, 200, await response.clone().text()); const result = await response.json();
@@ -429,6 +432,6 @@ test("production metrology upload routes qualify durable publication on real wor
       finally { host.close(); }
       const db = await mf.getD1Database("DB_GUARDS"); await db.prepare("PRAGMA recursive_triggers = OFF").run(); await qualifySqlGuards(db, replayFixture);
     });
-    await t.test("nonempty V12 archive preserves historical receipts and installed guards on isolated restore", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
+    await t.test("nonempty V13 archive preserves historical receipts and installed guards on isolated restore", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
   } finally { await mf.dispose(); await rm(scratch, { recursive: true, force: true }); }
 });
