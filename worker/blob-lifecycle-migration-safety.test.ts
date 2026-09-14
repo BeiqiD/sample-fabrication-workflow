@@ -28,7 +28,7 @@ function recoveryFixture(byteSize: number) {
 function migrationRecoveryEnv(database: DatabaseSync, stored: Map<string, Uint8Array>) {
   // Preserve the historical seed and original S0 upgrade, then qualify current
   // recovery against its additive FP1 columns without altering old SQL.
-  for (const filename of ["0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql"]) {
+  for (const filename of ["0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql"]) {
     database.exec(readFileSync(new URL(`../migrations/${filename}`, import.meta.url), "utf8"));
   }
   const head = async (key: string) => {

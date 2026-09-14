@@ -171,7 +171,7 @@ function legacyDatabase() {
 
 function finishRecoveryMigrations(database: DatabaseSync) {
   applyMigrations(database, (name) => name > "0024_blob_integrity_quarantine.sql");
-  for (const filename of ["0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql"]) {
+  for (const filename of ["0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql"]) {
     database.exec(readFileSync(new URL(`../migrations/${filename}`, import.meta.url), "utf8"));
   }
 }

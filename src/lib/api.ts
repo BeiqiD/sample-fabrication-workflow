@@ -1,4 +1,4 @@
-import type { FullExportManifestV11 } from "../../shared/contracts/export";
+import type { FullExportManifestV12 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -12,6 +12,7 @@ import type {
 } from "../../shared/contracts/template";
 import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
+import { uploadMetrologyReference } from "./metrology-reference-upload-client";
 import { submitFabubloxImport } from "./fabublox-import-client";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -288,11 +289,7 @@ export const api = {
   updateMetrologyTemplateNotes: (id: string, notes: string) => request<{ ok: true }>(`/metrology-templates/${id}/notes`, {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ notes }),
   }),
-  uploadMetrologyTemplateReference: (id: string, file: File) => request<{ reference: MetrologyTemplateReference }>(`/metrology-templates/${id}/references`, {
-    method: "POST",
-    headers: { "content-type": file.type || "application/octet-stream", "x-filename": file.name },
-    body: file,
-  }),
+  uploadMetrologyTemplateReference: (id: string, file: File) => uploadMetrologyReference(id, file),
   deleteMetrologyTemplateReference: (id: string, referenceId: string) => request<{ ok: true }>(`/metrology-templates/${id}/references/${referenceId}`, {
     method: "DELETE",
   }),
@@ -309,7 +306,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV11>("/exports/all?archiveSchema=11&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV12>("/exports/all?archiveSchema=12&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

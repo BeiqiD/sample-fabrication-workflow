@@ -114,8 +114,9 @@ exercise real workerd/D1/R2 with controlled faults. PR evidence distinguishes th
 from production browser acceptance. Mandatory archive regressions remain; ZIP
 specialist and browser ZIP testing remain deferred at the owner's request.
 
-Comment and metrology writers still require their own complete acceptance and
-publication treatment. The combined File transition must also change typed
+[FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) subsequently adds metrology's
+complete accepted reference publication. Comment still requires its own complete
+acceptance and publication treatment. The combined File transition must also change typed
 consumer foreign keys, unresolved-purpose admission, purpose/scope/profile reuse,
 verified independent placement, authorized reads, retention/deletion fencing and
 recovery together. FP1a stays dormant until that transition is qualified. R2 defaults

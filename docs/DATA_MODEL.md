@@ -7,11 +7,13 @@ The tables below describe the current schema. The proposed provider-neutral
 requires preserving business identities, classifying existing file uses and
 updating export/recovery with every schema slice. [FP1a](./FP1_FILE_REGISTRY_FOUNDATION.md)
 adds four dormant identity/observation tables; provider-neutral runtime publication
-and consumer conversion remain later work. The current source schema contains
-38 application tables and the required exported retention view.
+and consumer conversion remain later work. Subsequent accepted-operation ledgers
+preserve import, byte-upload and metrology-reference publication history alongside
+the business tables and required exported retention view.
 
-Current-state review: integration commit
-`4e78fa76b727f81b1431b60ff481bd686d83cb4c` (S2). The
+Original S2 review: integration commit
+`4e78fa76b727f81b1431b60ff481bd686d83cb4c`; accepted-operation additions through
+[FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) extend that retained schema. The
 [repository compatibility audit](./FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md)
 maps the proposed transition to existing modules, schema guards and test gates.
 
@@ -40,6 +42,8 @@ maps the proposed transition to existing modules, schema guards and test gates.
 | `reference_targets` | Sparse, idempotent polymorphic registry for durable external source identities. Its registry identity and source target are immutable; it stores validation metadata rather than copied source content. |
 | `managed_storage_objects` | Metadata for unchanged original files stored through the provider-neutral `ManagedStorage` adapter. |
 | `assets` | R2 object metadata and readiness state for imported and ordinary uploads. |
+| `r2_upload_requests` | Actor-bound ordinary-image/Project byte-upload acceptance with fixed identity and replay lifetime; no new byte-retention root. |
+| `metrology_reference_upload_requests` | Actor- and Template-bound metrology upload, frozen occurrence publication plan and immutable business result; no asset/occurrence retention root. |
 | `storage_profiles` | Immutable, explicitly identified historical storage namespace; fixed configuration source and environment credential reference, without credentials. |
 | `files` | First legacy metadata observation with purpose or explicit unresolved classification, expected bytes and no verified hash or active location. |
 | `file_locations` | Immutable unresolved legacy physical address scoped to a storage profile. Not an independent retention root or published file. |
@@ -57,7 +61,7 @@ maps the proposed transition to existing modules, schema guards and test gates.
 | `state_verifications` | Sparse observed-state anchors connected to the previous verification. |
 | `state_verification_steps` | Immutable ordered snapshot of the actual Steps covered by a verification interval. |
 | `recipe_change_proposals` | Evidence opened by mismatched verification; included in export and used as a historical reference blocker. |
-| `imports` | Pending/ready/failed state and provenance for one confirmed FabuBlox workbook import. |
+| `imports` | Pending/ready/failed state and provenance for a FabuBlox import, including immutable accepted request input, frozen placement and original result. |
 
 ## Identity and lifecycle layers
 

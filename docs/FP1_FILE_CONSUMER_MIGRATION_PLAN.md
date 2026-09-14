@@ -25,6 +25,10 @@ After [FP1h](./FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), the same command also accep
 complete V11 JSON snapshots (`archiveSchema=11&archiveWriter=1`, profile
 `fp1-r2-upload-acceptance`). It preserves V10 admission and adds recorded upload
 namespace evidence for V11; neither version can authorize migration execution.
+[FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) adds complete V12 input
+(`archiveSchema=12&archiveWriter=1`, `fp1-metrology-reference-acceptance`). Its
+metrology acceptance history also participates in the fingerprint and explicit
+namespace evidence. All three versions remain read-only plans.
 
 Limits are **16 MiB input**, **20,000 aggregate table rows** (including views) and
 **8 MiB output**. Changing inputs, non-regular files, invalid UTF-8/JSON and

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -11,10 +12,9 @@ import type { ExportRow, FullExportManifestV11 } from "../shared/contracts/expor
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV10, validateFullExportV11 } from "../shared/contracts/export-protocol";
 import { canonicalR2UploadInput } from "../shared/contracts/r2-upload";
 import { stableJson } from "../shared/domain/content-addressing";
-import { api } from "../src/lib/api";
 import { buildFullExportArchiveV10, buildFullExportArchiveV11 } from "../src/lib/exportAll";
 import worker from "./index";
-import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
@@ -26,7 +26,10 @@ const context = { waitUntil: () => undefined, passThroughOnException: () => unde
 afterEach(() => vi.unstubAllGlobals());
 
 async function fixture() {
-  const database = referenceTestDatabase();
+  const database = new DatabaseSync(":memory:");
+  for (const name of ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql"]) {
+    database.exec(readFileSync(join(migrationsDirectory, name), "utf8"));
+  }
   database.prepare("INSERT INTO storage_profiles VALUES ('upload-profile', 'r2', 'r2:historical-upload-bucket', 'bootstrap', NULL, 1, 'historical', ?)").run(now);
   const bytes = new TextEncoder().encode("historically accepted upload bytes");
   const provider = new Map<string, Uint8Array>();
@@ -73,12 +76,11 @@ async function fixture() {
 }
 
 describe("v11 durable R2 upload acceptance archive profile", () => {
-  it("negotiates the current writer and restores pending, failed, ready, deduplicated and collected historical receipts without new byte roots", async () => {
+  it("preserves the frozen V11 writer and restores pending, failed, ready, deduplicated and collected historical receipts without new byte roots", async () => {
     const f = await fixture(), scratch = await mkdtemp(join(tmpdir(), "export-v11-"));
     try {
       vi.stubGlobal("fetch", f.fetcher);
-      const manifest = await api.getFullExport();
-      expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
+      const manifest = await f.manifest();
       expect(manifest).toMatchObject({ schemaVersion: 11, archiveWriter: 1, archiveProfile: "fp1-r2-upload-acceptance" });
       expect(manifest.tables.r2_upload_requests).toHaveLength(5);
       expect(manifest.blobs).toHaveLength(1);
@@ -89,10 +91,11 @@ describe("v11 durable R2 upload acceptance archive profile", () => {
       const archivePath = join(scratch, "v11.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance", appliedForwardMigrations: [], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance", appliedForwardMigrations: [{ name: "0005_metrology_reference_acceptance.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
+        expect(database.prepare("SELECT * FROM metrology_reference_upload_requests").all()).toEqual([]);
         expect(database.prepare("SELECT * FROM r2_upload_requests ORDER BY id").all())
           .toEqual(f.database.prepare("SELECT * FROM r2_upload_requests ORDER BY id").all());
         expect(() => database.prepare("UPDATE r2_upload_requests SET accepted_result_json = '{}' WHERE id = ?").run(id(21))).toThrow();

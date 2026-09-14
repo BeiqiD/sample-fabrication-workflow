@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { supportedExportRequest } from "../shared/contracts/export-protocol";
 import { snapshotFullExportV8 } from "./export-v8-snapshot";
 import { snapshotFullExportV9 } from "./export-v9-snapshot";
+import { snapshotFullExportV12 } from "./export-v12-snapshot";
 import { snapshotFullExportV11 } from "./export-v11-snapshot";
 import { snapshotFullExportV10 } from "./export-v10-snapshot";
 import { getBlob } from "./blob-lifecycle/storage";
@@ -20,13 +21,14 @@ snapshotRoutes.get("/exports/all", async (c) => {
     throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
   }
   try {
+    if (c.req.query("archiveSchema") === "12") return c.json(await snapshotFullExportV12(c.env.DB));
     if (c.req.query("archiveSchema") === "11") return c.json(await snapshotFullExportV11(c.env.DB));
     if (c.req.query("archiveSchema") === "10") return c.json(await snapshotFullExportV10(c.env.DB));
     if (c.req.query("archiveSchema") === "9") return c.json(await snapshotFullExportV9(c.env.DB));
     return c.json(await snapshotFullExportV8(c.env.DB));
   }
   catch (error) {
-    if (error instanceof Error && /requires archive schema (9|10|11)/.test(error.message)) {
+    if (error instanceof Error && /requires archive schema (9|10|11|12)/.test(error.message)) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
     throw error;

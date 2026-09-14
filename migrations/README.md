@@ -34,3 +34,16 @@ new SQL. Qualify both fresh baseline-plus-suffix installation and populated S2
 upgrade. See the [FP1a implementation boundary](../docs/FP1_FILE_REGISTRY_FOUNDATION.md).
 No remote migration, reset or deployment is performed by this implementation PR.
 See the [repository compatibility audit](../docs/FILE_DATA_PORTABILITY_REPOSITORY_COMPATIBILITY.md).
+
+Later forward migrations add accepted FabuBlox requests (`0003`), ordinary and
+Project byte uploads (`0004`), and
+[metrology reference publication](../docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md)
+(`0005`). These ledgers preserve operation history without activating File tables
+or changing storage bindings. Current full export/recovery uses schema 12;
+historical archive validators remain specific to their original suffixes.
+
+Keep CASE endings separated from punctuation (`END )` and inline `END ;`) and
+retain standalone terminal trigger `END;`. Qualification executes Wrangler-split
+statements individually and checks that all schema objects exist before the
+migration tracking INSERT. Whole-file SQLite execution alone did not detect the
+original `0004` deployment failure; remote migration remains a deployment gate.

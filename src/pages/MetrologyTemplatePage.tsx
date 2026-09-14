@@ -5,6 +5,7 @@ import { FileDropzone } from "../components/FileDropzone";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { MetrologyReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { api, type MetrologyTemplateInput, type TemplateDetail } from "../lib/api";
+import { discardMetrologyReferenceUpload, finishMetrologyReferenceUpload, MetrologyReferenceUploadError, savedMetrologyReferenceUploadFilename } from "../lib/metrology-reference-upload-client";
 import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import { templateDetailPath } from "../lib/templateRoutes";
 
@@ -31,6 +32,8 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   const [referenceNotes, setReferenceNotes] = useState("");
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [savingReference, setSavingReference] = useState(false);
+  const [referenceUploadProblem, setReferenceUploadProblem] = useState(false);
+  const [referenceUploadRecoveryName, setReferenceUploadRecoveryName] = useState<string | null>(null);
   const [referenceToDelete, setReferenceToDelete] = useState<{ id: string; filename: string } | null>(null);
   const [referenceDeleteError, setReferenceDeleteError] = useState("");
   const sessionActive = useRef(true);
@@ -55,9 +58,15 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
     }
     setTemplate(result.template);
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
+    return result.template;
   }, [navigate, templateId]);
   useEffect(() => {
     sessionActive.current = true;
+    try {
+      const pendingFilename = savedMetrologyReferenceUploadFilename(templateId);
+      setReferenceUploadRecoveryName(pendingFilename);
+      setReferenceUploadProblem(pendingFilename !== null);
+    } catch (caught) { setError((caught as Error).message); setReferenceUploadProblem(true); }
     void load(true).catch((error: Error) => {
       if (sessionActive.current) setError(error.message);
     });
@@ -65,7 +74,7 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
       sessionActive.current = false;
       loadSequence.current += 1;
     };
-  }, [load]);
+  }, [load, templateId]);
 
   async function update(input: MetrologyTemplateInput) {
     await api.updateMetrologyTemplate(templateId, input);
@@ -91,13 +100,24 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
     if (!referenceFile) return;
     setSavingReference(true); setError(""); setNotice("");
     try {
-      await api.uploadMetrologyTemplateReference(templateId, referenceFile);
+      const result = await api.uploadMetrologyTemplateReference(templateId, referenceFile);
       if (!sessionActive.current) return;
+      const refreshed = await load(false);
+      if (!sessionActive.current) return;
+      if (!refreshed?.referenceAttachments.some((reference) => reference.id === result.reference.id)) {
+        throw new Error("The uploaded reference is not visible yet. Check the same upload again to refresh the template.");
+      }
+      finishMetrologyReferenceUpload(templateId, result.requestId);
       setReferenceFile(null);
-      await load(false);
-      if (!sessionActive.current) return;
+      setReferenceUploadProblem(false);
+      setReferenceUploadRecoveryName(null);
       setNotice("Reference file attached.");
-    } catch (error) { if (sessionActive.current) setError((error as Error).message); }
+    } catch (error) {
+      if (sessionActive.current) {
+        setError((error as Error).message);
+        setReferenceUploadProblem(true);
+      }
+    }
     finally { if (sessionActive.current) setSavingReference(false); }
   }
 
@@ -164,8 +184,18 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
         <button type="button" className="button primary" disabled={savingReference} onClick={() => void saveReferenceNotes()}>{savingReference ? "Saving…" : "Save reference notes"}</button>
       </div>
       <div className="metrology-reference-upload">
-        <FileDropzone accept="*/*" file={referenceFile} onFile={setReferenceFile} label="Attach an equipment manual or reference file" hint="PDF, image, spreadsheet, document, or other reference file · up to 25 MB" />
-        {referenceFile && <button type="button" className="button" disabled={savingReference} onClick={() => void uploadReference()}>{savingReference ? "Uploading…" : "Upload reference"}</button>}
+        <FileDropzone accept="*/*" file={referenceFile} disabled={savingReference} onFile={setReferenceFile} label="Attach an equipment manual or reference file" hint="PDF, image, spreadsheet, document, or other reference file · up to 25 MB" />
+        {referenceFile && <button type="button" className="button" disabled={savingReference} onClick={() => void uploadReference()}>{savingReference ? "Uploading…" : referenceUploadProblem ? "Check reference upload" : "Upload reference"}</button>}
+        {referenceUploadRecoveryName && !referenceFile && <small>Reselect {referenceUploadRecoveryName} to check the previous upload, or discard it to start another.</small>}
+        {referenceUploadProblem && <div className="form-actions">
+          <small>The previous upload may still finish. Discarding lets you choose a new upload.</small>
+          <button type="button" className="button" disabled={savingReference} onClick={() => {
+            try {
+              discardMetrologyReferenceUpload(templateId);
+              setReferenceFile(null); setReferenceUploadProblem(false); setReferenceUploadRecoveryName(null); setError("");
+            } catch (caught) { setError(caught instanceof MetrologyReferenceUploadError ? caught.message : "The reference upload could not be discarded."); }
+          }}>Discard reference upload</button>
+        </div>}
       </div>
       {template.referenceAttachments.length > 0 && <div className="metrology-reference-list">
         <small>Reference files</small>
