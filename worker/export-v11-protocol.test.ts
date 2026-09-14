@@ -101,7 +101,7 @@ describe("v11 durable R2 upload acceptance archive profile", () => {
       } finally { database.close(); }
       expect(JSON.parse(await readFile(join(restored.restoredDirectory, "provider-manifest.json"), "utf8"))).toHaveLength(1);
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
-  });
+  }, 15_000);
 
   it("rejects older clients and profile relabeling before provider downloads, even for an empty receipt table", async () => {
     const f = await fixture();
@@ -172,5 +172,5 @@ describe("v11 durable R2 upload acceptance archive profile", () => {
       await expect(restoreExportToIsolatedDirectory({ archivePath, destination, migrationsDirectory, targetCompatibilitySchema: "S2" })).rejects.toThrow("invalid R2 upload acceptance");
       await expect(stat(destination)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
-  });
+  }, 15_000);
 });

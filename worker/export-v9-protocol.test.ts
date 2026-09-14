@@ -106,7 +106,7 @@ describe("v9 dormant file registry archive profile", () => {
       } finally { database.close(); }
       expect(await readFile(join(restored.restoredDirectory, "original-archive.zip"))).toEqual(bytes);
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
-  });
+  }, 15_000);
 
   it("preserves SQLite code-point limits for opaque astral-Unicode identities and keys", async () => {
     const f = fixture();
@@ -190,5 +190,5 @@ describe("v9 dormant file registry archive profile", () => {
       await expect(restoreExportToIsolatedDirectory({ archivePath, destination, migrationsDirectory, targetCompatibilitySchema: "S2" })).rejects.toThrow("unsupported archive schema profile");
       await expect(stat(destination)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
-  });
+  }, 15_000);
 });

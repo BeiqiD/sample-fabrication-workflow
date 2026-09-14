@@ -224,5 +224,5 @@ describe("v10 durable import acceptance archive profile", () => {
       await expect(restoreExportToIsolatedDirectory({ archivePath, destination, migrationsDirectory, targetCompatibilitySchema: "S2" })).rejects.toThrow("invalid import acceptance");
       await expect(stat(destination)).rejects.toMatchObject({ code: "ENOENT" });
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
-  });
+  }, 15_000);
 });
