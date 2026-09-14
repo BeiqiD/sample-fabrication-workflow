@@ -1,3 +1,4 @@
+import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
 import { createUuid } from "./uuid";
 import type {
   CreateAttachmentProjectItemInput,
@@ -117,17 +118,7 @@ export const projectApi = {
     `/projects/${encodeURIComponent(projectId)}/items/attachment/copy`,
     jsonRequest("POST", input),
   ),
-  uploadAttachmentAsset: (file: File) => projectRequest<{ id: string; key: string; deduplicated: boolean }>(
-    "/project-assets",
-    {
-      method: "POST",
-      headers: {
-        "content-type": file.type || "application/octet-stream",
-        "x-project-filename-uri": encodeURIComponent(file.name),
-      },
-      body: file,
-    },
-  ),
+  uploadAttachmentAsset: (file: File, options?: R2UploadOptions) => uploadR2Asset(file, file.name, "project_attachment", options),
   createReferenceItem: (
     projectId: string,
     input: CreateReferenceProjectItemInput,

@@ -160,9 +160,14 @@ npm run verify:v3-deployment
 
 `npm run plan:file-migration -- --snapshot COMPLETE_V10_SNAPSHOT.json --output NEW_REPORT.json`
 produces a bounded, read-only historical file consumer and purpose-conversion report.
-It accepts a complete schema-10 JSON snapshot; see the
+It accepts a complete schema-10 or schema-11 JSON snapshot; see the
 [FP1g input contract and limits](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md).
 The report does not migrate files or verify their bytes.
+
+Ordinary image and Project uploads now use
+[durable request acceptance](./docs/FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), with stable
+retry identities and a fixed 24-hour result window. Current full export uses
+schema 11 and preserves the new upload history.
 
 A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
 

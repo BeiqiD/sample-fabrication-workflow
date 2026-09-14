@@ -316,6 +316,7 @@ describe("uncertain blob registration reconciliation", () => {
     const stored = new Map<string, Uint8Array>();
     const deleted: string[] = [];
     const env = {
+      R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
       AUTH_MODE: "disabled",
       DB: new FaultD1Database(
         database,
@@ -348,6 +349,7 @@ describe("uncertain blob registration reconciliation", () => {
       {
         method: "POST",
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           "content-type": "image/png",
           "x-filename": "primary-unavailable.png",
         },
@@ -380,6 +382,7 @@ describe("uncertain blob registration reconciliation", () => {
     const database = referenceTestDatabase();
     const put = vi.fn();
     const env = {
+      R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
       AUTH_MODE: "disabled",
       DB: new FaultD1Database(
         database,
@@ -402,6 +405,7 @@ describe("uncertain blob registration reconciliation", () => {
       {
         method: "POST",
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           "content-type": "image/png",
           "x-filename": "uncommitted-primary-unavailable.png",
         },
@@ -422,6 +426,7 @@ describe("uncertain blob registration reconciliation", () => {
     const database = referenceTestDatabase();
     const put = vi.fn();
     const env = {
+      R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
       AUTH_MODE: "disabled",
       DB: new FaultD1Database(
         database,
@@ -444,6 +449,7 @@ describe("uncertain blob registration reconciliation", () => {
       {
         method: "POST",
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           "content-type": "image/png",
           "x-filename": "staging-failure.png",
         },
@@ -917,6 +923,7 @@ describe("uncertain blob registration reconciliation", () => {
     const stored = new Map<string, Uint8Array>();
     const deleted: string[] = [];
     const env = {
+      R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
       AUTH_MODE: "disabled",
       DB: new FaultD1Database(database, "assets") as unknown as D1Database,
       ASSETS: {
@@ -945,6 +952,7 @@ describe("uncertain blob registration reconciliation", () => {
       {
         method: "POST",
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           "content-type": "application/pdf",
           "x-project-filename-uri": encodeURIComponent("response-loss.pdf"),
         },
@@ -980,6 +988,7 @@ describe("uncertain blob registration reconciliation", () => {
       stored.delete(key);
     });
     const env = {
+      R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
       AUTH_MODE: "disabled",
       DB: new FaultD1Database(
         database,
@@ -1012,6 +1021,7 @@ describe("uncertain blob registration reconciliation", () => {
       {
         method: "POST",
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           "content-type": "image/png",
           "x-filename": "persistent-promotion.png",
         },

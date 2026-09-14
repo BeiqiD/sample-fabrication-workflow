@@ -5,6 +5,7 @@ import { DiagramGallery } from "../components/MultiSampleRunGrid";
 import { SubstrateStepDetails } from "../components/SubstrateStepDetails";
 import { FileDropzone } from "../components/FileDropzone";
 import { api, type TemplateDetail, type TemplateStepRecord } from "../lib/api";
+import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
 import { compressLayerStackImage } from "../lib/images";
 import { templateDetailPath } from "../lib/templateRoutes";
 import { sectionHeaderAtGroupStart } from "../lib/template-sections";
@@ -19,6 +20,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadProblem, setUploadProblem] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
@@ -28,6 +30,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
     setParametersText(step.parametersText || "");
     setCommentsText(step.commentsText || "");
     setImage(null);
+    setUploadProblem(false);
     setError("");
     setEditing(true);
   }
@@ -39,20 +42,22 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
     setCommentsText(step.commentsText || "");
     setImage(null);
     setError("");
+    setUploadProblem(false);
     setEditing(false);
   }
 
   async function save() {
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
       if (image) {
-        const compressed = await compressLayerStackImage(image);
-        assetKey = (await api.uploadAsset(compressed, compressed.name)).key;
+        const context = `template-step:${template.id}:${step.id}`;
+        const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
+        assetKey = (await api.uploadAsset(compressed, compressed.name, { context })).key;
       }
       await api.updateTemplateStep(template.id, step.id, { name, toolName, parametersText, commentsText, assetKey });
       setImage(null); setEditing(false); await onSaved();
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setError((error as Error).message); setUploadProblem(error instanceof R2UploadRequestError); }
     finally { setSaving(false); }
   }
 
@@ -110,6 +115,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
         {step.imageKeys.length > 0 && <DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" />}
       </div>
       {error && <p className="error-banner">{error}</p>}
+      {uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `template-step:${template.id}:${step.id}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}
     </div>
     {confirmingDelete && <ConfirmDeleteDialog title="Delete this template step?" description="The complete step, including all of its diagrams, will be removed from this unused template version. Shared file data will remain unchanged." summary={step.name} deleting={saving} error={deleteError} eyebrow="Delete step" confirmLabel="Delete step" onCancel={() => { setConfirmingDelete(false); setDeleteError(""); }} onConfirm={() => void deleteStep()} />}
   </article>;
@@ -124,23 +130,25 @@ function NewTemplateStep({ templateId, onSaved }: { templateId: string; onSaved:
   const [image, setImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadProblem, setUploadProblem] = useState(false);
 
   async function add() {
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
       if (image) {
-        const compressed = await compressLayerStackImage(image);
-        assetKey = (await api.uploadAsset(compressed, compressed.name)).key;
+        const context = `template-new-step:${templateId}`;
+        const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
+        assetKey = (await api.uploadAsset(compressed, compressed.name, { context })).key;
       }
       await api.createTemplateStep(templateId, { name, toolName, parametersText, commentsText, assetKey });
       setName(""); setToolName(""); setParametersText(""); setCommentsText(""); setImage(null); setOpen(false); await onSaved();
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setError((error as Error).message); setUploadProblem(error instanceof R2UploadRequestError); }
     finally { setSaving(false); }
   }
 
   if (!open) return <button type="button" className="button wide" onClick={() => setOpen(true)}>+ Add template step</button>;
-  return <div className="card step-form new-template-step"><h3 className="card-title">Add template step</h3><label>Step name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} /></label><label>Parameters<textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} /></label><label>Comments<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} /></label><FileDropzone compact accept="image/*" file={image} onFile={setImage} label="Drop a diagram" />{error && <p className="error-banner">{error}</p>}<div className="form-actions"><button type="button" className="button" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="button primary" disabled={saving || !name.trim()} onClick={() => void add()}>{saving ? "Adding…" : "Add step"}</button></div></div>;
+  return <div className="card step-form new-template-step"><h3 className="card-title">Add template step</h3><label>Step name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} /></label><label>Parameters<textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} /></label><label>Comments<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} /></label><FileDropzone compact accept="image/*" file={image} onFile={setImage} label="Drop a diagram" />{error && <p className="error-banner">{error}</p>}{uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `template-new-step:${templateId}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}<div className="form-actions"><button type="button" className="button" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="button primary" disabled={saving || !name.trim()} onClick={() => void add()}>{saving ? "Adding…" : "Add step"}</button></div></div>;
 }
 
 export function TemplatePage() {

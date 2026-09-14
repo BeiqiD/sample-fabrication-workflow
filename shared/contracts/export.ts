@@ -2,9 +2,11 @@ import type { FullExportBlobEntry } from "./types";
 
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V8 = 8 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V9 = 9 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = 10 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V10 = 10 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = 11 as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-import-acceptance" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V10 = "fp1-import-acceptance" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-r2-upload-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -70,6 +72,13 @@ export interface FullExportManifestV9 extends Omit<FullExportManifestV8, "schema
 // Import acceptance remains on the existing import operation; File authority
 // is still dormant. The new profile preserves the immutable retry decision.
 export interface FullExportManifestV10 extends Omit<FullExportManifestV8, "schemaVersion"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V10;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V10;
+}
+
+// Durable R2 upload decisions remain historical receipts, not File authority
+// or a new retention root.
+export interface FullExportManifestV11 extends Omit<FullExportManifestV8, "schemaVersion"> {
   schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA;
   archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE;
 }

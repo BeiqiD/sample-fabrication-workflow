@@ -57,6 +57,7 @@ function fixture() {
     DB: adapter as unknown as D1Database,
     ASSETS: bucket,
     AUTH_MODE: "disabled",
+    R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
   } satisfies Env;
   const app = new Hono<AppBindings>();
   app.use("*", async (c, next) => {
@@ -98,6 +99,7 @@ function attachmentUploadRequest(
     headers: {
       "content-type": mimeType,
       "x-project-filename-uri": encodeURIComponent(filename),
+      "x-upload-request-id": crypto.randomUUID(),
     },
     body,
   }, env);

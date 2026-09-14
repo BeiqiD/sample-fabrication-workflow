@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import { webcrypto } from "node:crypto";
 import { forwardRef, useImperativeHandle } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectItemMutationResponse } from "../shared/project-api";
+import { R2_UPLOAD_REQUEST_HEADER } from "../shared/contracts/r2-upload";
 import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
@@ -130,8 +132,10 @@ describe("mounted Phase 3B3 Project-owned content", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
+    sessionStorage.clear();
     mapViewport.center = { x: 400, y: 300 };
     mapViewport.reveal.mockClear();
+    vi.stubGlobal("crypto", webcrypto);
     vi.stubGlobal("matchMedia", desktopMatchMedia());
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -228,6 +232,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
       headers: {
         "content-type": "application/pdf",
         "x-project-filename-uri": encodeURIComponent(file.name),
+        [R2_UPLOAD_REQUEST_HEADER]: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
       },
     });
     expect(fetchMock.mock.calls[2][0]).toBe("/api/projects/project-a/items/attachment");
@@ -242,6 +247,73 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     expect(createBody.geometry.y).toBeCloseTo(244, 8);
   });
 
+  it("recovers a lost upload response by checking the same request until ready before creating one attachment", async () => {
+    const file = new File(["result bytes"], "recovered.pdf", { type: "application/pdf" });
+    const creates: Array<Record<string, any>> = [];
+    let requestId: string | null = null;
+    let statusChecks = 0;
+    let postBody: BodyInit | null | undefined;
+    let checkpointsAtPost: Array<string | null> = [];
+    const json = (payload: unknown) => new Response(JSON.stringify(payload), {
+      headers: { "content-type": "application/json" },
+    });
+    fetchMock.mockImplementation(async (path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return json(projectTestSnapshot());
+      if (String(path) === "/api/project-assets") {
+        requestId = new Headers(init?.headers).get(R2_UPLOAD_REQUEST_HEADER);
+        postBody = init?.body;
+        checkpointsAtPost = Array.from({ length: sessionStorage.length }, (_, index) =>
+          sessionStorage.getItem(sessionStorage.key(index)!));
+        throw new TypeError("Lost upload acknowledgement");
+      }
+      if (String(path) === `/api/r2-upload-requests/${requestId}`) {
+        expect(init).toEqual({ cache: "no-store" });
+        statusChecks += 1;
+        return json({
+          requestId,
+          ingress: "project_attachment",
+          expiresAt: "2099-01-01T00:00:00.000Z",
+          ...(statusChecks === 1 ? { status: "pending" } : {
+            status: "ready",
+            result: { id: "asset-recovered", key: "uploads/recovered.pdf", deduplicated: false },
+          }),
+        });
+      }
+      if (String(path) === "/api/projects/project-a/items/attachment") {
+        const input = JSON.parse(String(init?.body));
+        creates.push(input);
+        return json(mutationResponse(input, "attachment", file));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate attachment request" }));
+    fireEvent.change(screen.getByLabelText("Choose Project attachment"), { target: { files: [file] } });
+    const retry = await screen.findByRole("button", { name: "Retry exact attachment" });
+    expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(postBody).toBe(file);
+    expect(checkpointsAtPost.some((value) => value?.includes(requestId!))).toBe(true);
+    fireEvent.click(retry);
+    await screen.findByText("The upload is still processing. Retry to check its status; the file will not be uploaded again.");
+    expect(statusChecks).toBe(1);
+    expect(creates).toHaveLength(0);
+    expect(fetchMock.mock.calls.filter(([path]) => String(path) === "/api/project-assets")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact attachment" }));
+    await waitFor(() => expect(creates).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Retry exact attachment" })).toBeNull());
+    expect(statusChecks).toBe(2);
+    expect(creates[0]).toMatchObject({
+      locator: { assetId: "asset-recovered" },
+      presentation: { originalName: file.name, mimeType: file.type, byteSize: file.size },
+      expectedProjectRevision: 2,
+      geometry: { x: 130, width: 340, height: 170 },
+    });
+    expect(creates[0].geometry.y).toBeCloseTo(240 - 170 / 3, 8);
+    expect(fetchMock.mock.calls.filter(([path]) => String(path) === "/api/project-assets")).toHaveLength(1);
+  });
+
   it.each([403, 409])("keeps an uncertain attachment occurrence frozen after non-authoritative %s retry", async (retryStatus) => {
     const file = new File(["pdf"], "frozen.pdf", { type: "application/pdf" });
     const inputs: Record<string, any>[] = [];
@@ -250,7 +322,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
         return new Response(JSON.stringify(projectTestSnapshot()), { headers: { "content-type": "application/json" } });
       }
       if (String(path) === "/api/project-assets") {
-        return new Response(JSON.stringify({ id: "asset-frozen" }), { headers: { "content-type": "application/json" } });
+        return new Response(JSON.stringify({ id: "asset-frozen", key: "uploads/frozen.pdf", deduplicated: false }), { headers: { "content-type": "application/json" } });
       }
       const input = JSON.parse(String(init?.body));
       inputs.push(input);
@@ -317,7 +389,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     }));
     fetchMock.mockImplementation((path, init) => {
       if (String(path) === "/api/projects/project-a") return json(projectTestSnapshot());
-      if (String(path) === "/api/project-assets") return json({ id: `asset-${created.length}` });
+      if (String(path) === "/api/project-assets") return json({ id: `asset-${created.length}`, key: `uploads/asset-${created.length}`, deduplicated: false });
       if (String(path).endsWith("/items/markdown") || String(path).endsWith("/items/attachment")) {
         const input = JSON.parse(String(init?.body));
         const kind = String(path).endsWith("/markdown") ? "markdown" : "attachment";
@@ -369,7 +441,7 @@ describe("mounted Phase 3B3 Project-owned content", () => {
     let created: Record<string, any> | null = null;
     fetchMock.mockImplementation(async (path, init) => {
       const payload = String(path) === "/api/projects/project-a" ? projectTestSnapshot()
-        : String(path) === "/api/project-assets" ? { id: "exact-asset" }
+        : String(path) === "/api/project-assets" ? { id: "exact-asset", key: "uploads/exact.png", deduplicated: false }
         : (() => {
           created = JSON.parse(String(init?.body));
           return mutationResponse(created!, "attachment", file);

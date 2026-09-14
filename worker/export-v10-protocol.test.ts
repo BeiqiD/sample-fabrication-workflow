@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,11 +13,10 @@ import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, 
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
 import { buildBlobExportPlan } from "../shared/contracts/export-blob-plan";
 import { stableJson } from "../shared/domain/content-addressing";
-import { api } from "../src/lib/api";
 import { buildFullExportArchiveV9, buildFullExportArchiveV10 } from "../src/lib/exportAll";
 import { acceptFabubloxImport, acceptedImportState, readAcceptedImport } from "./imports/fabublox-acceptance";
 import worker from "./index";
-import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
@@ -27,7 +27,10 @@ const context = { waitUntil: () => undefined, passThroughOnException: () => unde
 afterEach(() => vi.unstubAllGlobals());
 
 async function fixture() {
-  const database = referenceTestDatabase();
+  const database = new DatabaseSync(":memory:");
+  for (const name of ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql"]) {
+    database.exec(readFileSync(join(migrationsDirectory, name), "utf8"));
+  }
   const d1 = new SqliteD1Database(database) as unknown as D1Database;
   database.prepare(`INSERT INTO storage_profiles VALUES ('accepted-profile', 'r2', 'r2:qualified-archive-bucket', 'bootstrap', NULL, 1, 'historical', ?)`).run(now);
   database.prepare(`INSERT INTO recipe_families (id, name, template_type, created_at)
@@ -78,15 +81,14 @@ async function fixture() {
 }
 
 describe("v10 durable import acceptance archive profile", () => {
-  it("negotiates the browser writer and restores populated legacy, pending, failed and ready receipts with exact bytes and restored write guards", async () => {
+  it("preserves the frozen V10 writer and restores populated legacy, pending, failed and ready receipts with exact bytes and restored write guards", async () => {
     const f = await fixture();
     const scratch = await mkdtemp(join(tmpdir(), "export-v10-"));
     try {
       // Current deletion is soft; the accepted result remains unchanged.
       f.database.prepare("UPDATE template_versions SET deleted_at = ?, deleted_by = 'archive@example.com' WHERE id = 'receipt-template'").run(now);
       vi.stubGlobal("fetch", f.fetcher);
-      const manifest = await api.getFullExport();
-      expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
+      const manifest = await f.manifest();
       expect(manifest).toMatchObject({ schemaVersion: 10, archiveWriter: 1, archiveProfile: "fp1-import-acceptance" });
       expect(manifest.tables.imports).toHaveLength(4);
       expect(manifest.tables.storage_profiles).toHaveLength(1);
@@ -102,10 +104,11 @@ describe("v10 durable import acceptance archive profile", () => {
       const archivePath = join(scratch, "v10.zip");
       await writeFile(archivePath, archiveBytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
+        expect(database.prepare("SELECT * FROM r2_upload_requests").all()).toEqual([]);
         expect(database.prepare("SELECT * FROM imports ORDER BY id").all()).toEqual(f.database.prepare("SELECT * FROM imports ORDER BY id").all());
         const row = await readAcceptedImport(new SqliteD1Database(database) as unknown as D1Database, "archive@example.com", "00000000-0000-4000-8000-000000000002");
         expect(acceptedImportState(row!)).toMatchObject({ status: "ready", result: { id: "accepted-ready", templateVersionId: "receipt-template", version: 3 } });

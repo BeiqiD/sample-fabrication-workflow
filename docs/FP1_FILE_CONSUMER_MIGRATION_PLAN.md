@@ -21,6 +21,11 @@ tables, blob observations and reviewed schema artifacts. An archive's
 `export-manifest.json` is not this input. The command does not read ZIPs, contact
 the endpoint or acquire credentials.
 
+After [FP1h](./FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), the same command also accepts
+complete V11 JSON snapshots (`archiveSchema=11&archiveWriter=1`, profile
+`fp1-r2-upload-acceptance`). It preserves V10 admission and adds recorded upload
+namespace evidence for V11; neither version can authorize migration execution.
+
 Limits are **16 MiB input**, **20,000 aggregate table rows** (including views) and
 **8 MiB output**. Changing inputs, non-regular files, invalid UTF-8/JSON and
 incompatible contracts are rejected. Output uses mode `0600` and exclusive atomic
@@ -119,3 +124,6 @@ fencing and matching recovery together. Execution must re-read/compare the live
 baseline, acquire durable holds and fence concurrent changes. A saved FP1g report
 cannot authorize it. Only the combined transition can relax dormant guards; R2
 defaults for new originals and authenticated storage Settings follow conversion.
+
+The subsequent FP1h slice implements ordinary-image and Project upload acceptance
+before that combined transition, retaining all dormant-state restrictions.

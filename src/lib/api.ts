@@ -1,4 +1,4 @@
-import type { FullExportManifestV10 } from "../../shared/contracts/export";
+import type { FullExportManifestV11 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -11,6 +11,7 @@ import type {
   MetrologyTemplateInput,
 } from "../../shared/contracts/template";
 import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
 import { submitFabubloxImport } from "./fabublox-import-client";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -188,11 +189,7 @@ export const api = {
   verifyState: (sampleId: string, runId: string, stepId: string, input: CreateStateVerificationInput) => request<{ verification: StateVerification }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/verify-state`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
-  uploadAsset: async (file: Blob, filename: string) => request<{ id: string; key: string; deduplicated: boolean }>("/assets", {
-    method: "POST",
-    headers: { "content-type": file.type || "application/octet-stream", "x-filename": filename },
-    body: file,
-  }),
+  uploadAsset: (file: Blob, filename: string, options?: R2UploadOptions) => uploadR2Asset(file, filename, "ordinary_image", options),
   getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status"),
   createCommentSubmission: (input: CreateCommentSubmissionInput) => request<{ id: string; deduplicated: boolean }>("/comment-submissions", {
     method: "POST",
@@ -312,7 +309,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV10>("/exports/all?archiveSchema=10&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV11>("/exports/all?archiveSchema=11&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

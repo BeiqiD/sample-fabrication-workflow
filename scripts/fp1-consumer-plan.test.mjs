@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -268,8 +268,15 @@ test("canonical consumer planning agrees on host SQLite, workerd/D1 and populate
       const archivePath = join(scratch, "protocol-fixture.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const archiveHash = hash(await readFile(archivePath));
+      // This qualification binds a frozen V10 snapshot to the same V10 target.
+      // V10-to-current forward restoration is covered by export-v10-protocol.
+      const migrationsDirectory = join(scratch, "v10-migrations");
+      await mkdir(migrationsDirectory);
+      for (const name of ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql"]) {
+        await writeFile(join(migrationsDirectory, name), read(`migrations/${name}`));
+      }
       const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored-plan"),
-        migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
+        migrationsDirectory, targetCompatibilitySchema: "S2" });
       assert.equal(restored.report.schemaVersion, 10);
       assert.equal(restored.report.verification.rowsEqual, true);
       assert.equal(restored.report.verification.foreignKeys, true);
