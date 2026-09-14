@@ -18,6 +18,16 @@ remain empty in that upgrade, while original archived rows and schema definition
 are preserved. No historical byte verification is upgraded by adding metadata.
 See [FP1a](./FP1_FILE_REGISTRY_FOUNDATION.md) for the dormant-state restrictions.
 
+Current full export uses schema 12, writer 1,
+`fp1-metrology-reference-acceptance`. Subsequent forward suffixes preserve import
+acceptance (`0003`), ordinary/Project upload acceptance (`0004`), and metrology
+reference publication (`0005`). V7–V11 archives keep their exact historical
+validation before the remaining reviewed suffix is applied. New receipt tables
+stay empty when absent from an older archive; captured requests in newer archives
+remain historical and cannot restart pending provider work during restore.
+See [FP1i](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md) for the business receipt and
+its separation from current byte availability and retention.
+
 Phase 6A1 verifies that a trusted complete export can recreate its current-schema
 rows, identities and available physical bytes in disposable local resources.
 This tool is a verification utility. It does not install a public import route,
@@ -35,7 +45,7 @@ npm run verify:export-restore -- --archive /path/to/backup.zip --destination /pa
 The destination must not exist, including as an empty directory or symlink.
 There is no overwrite, force or remote option. The current repository's SQL
 migrations provide the schema; the archive cannot supply executable SQL.
-V8 and v9 require an explicit `--target-schema S0|S1|S2`; the recorded original
+V8 through V12 require an explicit `--target-schema S0|S1|S2`; the recorded original
 rehearsals below target S0. S2 is now the active integration schema, as recorded
 in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 Offline qualification can select an independently reviewed migration

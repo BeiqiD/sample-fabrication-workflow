@@ -272,6 +272,8 @@ describe("blob lifecycle review fixes", () => {
       },
     });
 
+    env.R2_BOOTSTRAP_NAMESPACE = JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" });
+
     const response = await worker.fetch(new Request(
       "https://samples.run/api/metrology-templates/template-metrology/references",
       {
@@ -280,6 +282,7 @@ describe("blob lifecycle review fixes", () => {
           "content-type": "application/octet-stream",
           "content-length": "4",
           "x-filename": "manual.bin",
+          "x-upload-request-id": crypto.randomUUID(),
         },
         body: "data",
       },

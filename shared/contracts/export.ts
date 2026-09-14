@@ -3,10 +3,12 @@ import type { FullExportBlobEntry } from "./types";
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V8 = 8 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V9 = 9 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V10 = 10 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = 11 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V11 = 11 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = 12 as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V10 = "fp1-import-acceptance" as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-r2-upload-acceptance" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V11 = "fp1-r2-upload-acceptance" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-metrology-reference-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -79,6 +81,13 @@ export interface FullExportManifestV10 extends Omit<FullExportManifestV8, "schem
 // Durable R2 upload decisions remain historical receipts, not File authority
 // or a new retention root.
 export interface FullExportManifestV11 extends Omit<FullExportManifestV8, "schemaVersion"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V11;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V11;
+}
+
+// Metrology business publication receipts retain the accepted occurrence result
+// independently of its later lifecycle, without extending byte retention.
+export interface FullExportManifestV12 extends Omit<FullExportManifestV8, "schemaVersion"> {
   schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA;
   archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE;
 }

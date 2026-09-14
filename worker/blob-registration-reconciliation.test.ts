@@ -853,6 +853,7 @@ describe("uncertain blob registration reconciliation", () => {
     const deleted: string[] = [];
     const env = {
       AUTH_MODE: "disabled",
+      R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
       DB: new FaultD1Database(database, "assets") as unknown as D1Database,
       ASSETS: {
         put: vi.fn(async (key: string, value: unknown) => {
@@ -882,6 +883,7 @@ describe("uncertain blob registration reconciliation", () => {
         headers: {
           "content-type": "image/png",
           "x-filename": "response-loss.png",
+          "x-upload-request-id": crypto.randomUUID(),
         },
         body: bytes,
       },

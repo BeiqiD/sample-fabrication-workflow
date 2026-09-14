@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ExportRow, FullExportManifestV10, FullExportManifestV11 } from "./export";
+import type { ExportRow, FullExportManifestV10, FullExportManifestV11, FullExportManifestV12 } from "./export";
 import {
   MAX_FILE_MIGRATION_INPUT_BYTES, MAX_FILE_MIGRATION_INPUT_ROWS, MAX_FILE_MIGRATION_PLAN_BYTES,
   planFileMigration, serializeFileMigrationPlan,
@@ -37,6 +37,16 @@ function uploadManifest(): FullExportManifestV11 {
   const historical = manifest();
   return { ...historical, schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance",
     tables: { ...historical.tables, r2_upload_requests: [] } };
+}
+function metrologyManifest(): FullExportManifestV12 {
+  const historical = uploadManifest();
+  return { ...historical, schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance",
+    tables: { ...historical.tables, metrology_reference_upload_requests: [] } };
+}
+function metrologyUpload(extra: ExportRow = {}): ExportRow {
+  return upload({ id: "metrology-upload", ingress: "metrology_reference", purpose: "research_source",
+    template_version_id: "template", candidate_reference_id: "candidate-reference",
+    publication_plan_json: '{"private":"PRIVATE-PUBLICATION-PLAN"}', ...extra });
 }
 function upload(extra: ExportRow = {}): ExportRow {
   return { id: "upload", actor_email: "PRIVATE-ACTOR", client_request_id: "request", operation_id: "operation",
@@ -135,6 +145,64 @@ describe("provider-free File migration planning", () => {
     expect(plan.coverage).toMatchObject({ retentionEdges: 0, matchedEdges: 0, unmatchedEdges: [], ambiguousEdges: [] });
     expect(plan).toMatchObject({ executable: false, bytesVerified: false });
     expect(serializeFileMigrationPlan(plan)).not.toContain("PRIVATE-");
+  });
+
+  it("observes V12 metrology candidate and accepted occurrence keys without claiming purpose for legacy consumers or equal hashes", async () => {
+    const input = metrologyManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.assets.push(asset("accepted", "accepted-key"), asset("unrelated", "same-sha-key"));
+    input.tables.metrology_template_references.push({ id: "legacy-reference", template_version_id: "template", asset_id: "accepted",
+      display_name: "PRIVATE-FILENAME", position: 0, actor_email: "PRIVATE-ACTOR", created_at: now,
+      deleted_at: null, deleted_by: null, superseded_by_occurrence_id: null });
+    input.tables.template_versions.push({ id: "template", template_kind: "metrology", archived_at: null, deleted_at: null });
+    input.tables.metrology_reference_upload_requests.push(metrologyUpload({ status: "ready", completed_at: now,
+      accepted_result_json: JSON.stringify({ assetId: "accepted", deduplicated: true, reference: { id: "legacy-reference",
+        filename: "PRIVATE-FILENAME", mimeType: "application/pdf", byteSize: 5, assetKey: "accepted-key", createdAt: now } }) }));
+    const plan = await planFileMigration(input);
+    expect(plan.source).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance" });
+    for (const key of ["candidate-key", "accepted-key"]) {
+      const group = plan.groups.find((entry) => entry.locator.objectKey === key)!;
+      expect(group.namespace).toMatchObject({ status: "resolved", identity: namespace,
+        evidence: [{ kind: "accepted_metrology_reference", sourceId: "metrology-upload", profileId: "profile", configurationRevision: 1 }] });
+      expect(group.proposals).toEqual([]);
+      expect(group.blockers).toContain("bytes_unverified");
+    }
+    expect(plan.groups.find((entry) => entry.locator.objectKey === "candidate-key")?.consumers).toEqual([]);
+    const legacy = plan.groups.find((entry) => entry.locator.objectKey === "accepted-key")!.consumers;
+    expect(legacy).toHaveLength(1);
+    expect(legacy[0].purpose).toBeNull();
+    expect(plan.groups.find((entry) => entry.locator.objectKey === "same-sha-key")?.namespace.status).toBe("unresolved");
+    expect(plan.summary.consumers).toBe(1);
+    expect(plan).toMatchObject({ executable: false, bytesVerified: false });
+    expect(serializeFileMigrationPlan(plan)).not.toContain("PRIVATE-");
+  });
+
+  it("binds V12 business decisions to the fingerprint while redacting their content and withholding unfinished results", async () => {
+    const input = metrologyManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.metrology_reference_upload_requests.push(metrologyUpload());
+    const before = structuredClone(input);
+    const first = await planFileMigration(input);
+    expect(input).toEqual(before);
+    expect(first.groups).toHaveLength(1);
+    expect(first.groups[0].blockers).toContain("accepted_metrology_reference_unfinished");
+    input.tables.metrology_reference_upload_requests[0].publication_plan_json = '{"private":"PRIVATE-CHANGED-PLAN"}';
+    input.tables.metrology_reference_upload_requests[0].accepted_result_json = '{"private":"PRIVATE-UNFINISHED-RESULT"}';
+    const changed = await planFileMigration(input);
+    expect(changed.source.inputSha256).not.toBe(first.source.inputSha256);
+    expect(changed.groups).toEqual(first.groups);
+    expect(serializeFileMigrationPlan(changed)).not.toContain("PRIVATE-");
+  });
+
+  it("keeps malformed ready metrology evidence on its candidate without inventing a result locator", async () => {
+    const input = metrologyManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.metrology_reference_upload_requests.push(metrologyUpload({ status: "ready", completed_at: now,
+      accepted_result_json: '{"assetId":"ignored","deduplicated":true,"reference":{"assetKey":"ignored-key"}}' }));
+    const plan = await planFileMigration(input);
+    expect(plan.groups).toHaveLength(1);
+    expect(plan.groups[0].locator.objectKey).toBe("candidate-key");
+    expect(plan.groups[0].blockers).toContain("accepted_metrology_reference_result_invalid");
   });
 
   it("preserves pending candidate namespace evidence but never uses a result on an unfinished upload", async () => {

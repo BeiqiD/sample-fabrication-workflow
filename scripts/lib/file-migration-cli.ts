@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { link, mkdir, open, rm } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
-import { validateFullExportV10, validateFullExportV11 } from "../../shared/contracts/export-protocol";
+import { validateFullExportV10, validateFullExportV11, validateFullExportV12 } from "../../shared/contracts/export-protocol";
 import { stableJson } from "../../shared/domain/content-addressing";
 import { MAX_FILE_MIGRATION_INPUT_BYTES, MAX_FILE_MIGRATION_INPUT_ROWS,
   MAX_FILE_MIGRATION_PLAN_BYTES, planFileMigration } from "../../shared/contracts/file-migration-plan";
@@ -79,10 +79,11 @@ export async function planFileMigrationSnapshot(input: { snapshotPath: string; o
   const parsed = parseSnapshot(bytes);
   let manifest;
   try {
-    manifest = parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      && (parsed as { schemaVersion?: unknown }).schemaVersion === 11
-      ? await validateFullExportV11(parsed) : await validateFullExportV10(parsed);
-  } catch { throw new Error("Snapshot does not satisfy the complete schema-10 or schema-11 export contract"); }
+    const version = parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as { schemaVersion?: unknown }).schemaVersion : undefined;
+    manifest = version === 12 ? await validateFullExportV12(parsed)
+      : version === 11 ? await validateFullExportV11(parsed) : await validateFullExportV10(parsed);
+  } catch { throw new Error("Snapshot does not satisfy the complete schema-10, schema-11 or schema-12 export contract"); }
   const plan = await planFileMigration(manifest);
   const encoded = `${stableJson(plan)}\n`;
   if (Buffer.byteLength(encoded, "utf8") > MAX_FILE_MIGRATION_PLAN_BYTES) throw new Error("Report exceeds the file migration output byte limit");

@@ -8,7 +8,10 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../../worker/reference-test-support";
 import { snapshotFullExportV10 } from "../../worker/export-v10-snapshot";
+import { snapshotFullExportV12 } from "../../worker/export-v12-snapshot";
 import { snapshotFullExportV11 } from "../../worker/export-v11-snapshot";
+import { canonicalMetrologyReferenceUploadInput } from "../../shared/contracts/metrology-reference-upload";
+import { stableJson } from "../../shared/domain/content-addressing";
 import { canonicalR2UploadInput } from "../../shared/contracts/r2-upload";
 import { MAX_FILE_MIGRATION_INPUT_BYTES } from "../../shared/contracts/file-migration-plan";
 import { planFileMigrationSnapshot } from "./file-migration-cli";
@@ -18,26 +21,26 @@ afterEach(async () => {
   for (const path of temporaryDirectories.splice(0)) await rm(path, { recursive: true, force: true });
 });
 
-function historicalV10Database() {
+function historicalDatabase(version: 10 | 11) {
   const database = new DatabaseSync(":memory:");
   const directory = new URL("../../migrations/", import.meta.url);
-  for (const name of readdirSync(directory).filter((name) => /^000[123]_.*\.sql$/.test(name)).sort()) {
+  for (const name of readdirSync(directory).filter((name) => (version === 11 ? /^000[1234]_.*\.sql$/ : /^000[123]_.*\.sql$/).test(name)).sort()) {
     database.exec(readFileSync(new URL(name, directory), "utf8"));
   }
   return database;
 }
 
-async function fixture(version: 10 | 11 = 11) {
+async function fixture(version: 10 | 11 | 12 = 12) {
   const directory = await mkdtemp(join(tmpdir(), "file-plan-cli-test-"));
   temporaryDirectories.push(directory);
-  const database = version === 11 ? referenceTestDatabase() : historicalV10Database();
+  const database = version === 12 ? referenceTestDatabase() : historicalDatabase(version);
   try {
     database.exec(`INSERT INTO samples (id, code, title, created_at, updated_at)
       VALUES ('plan-sample', 'PLAN-CLI', 'Private sample title', '2026-09-13T00:00:00.000Z', '2026-09-13T00:00:00.000Z');
       INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, created_at)
       VALUES ('plan-event', 'plan-sample', 'image', 'PRIVATE_BODY_SENTINEL', 'unregistered/image',
         '{"privateCredential":"PRIVATE_SECRET_SENTINEL"}', '2026-09-13T00:00:00.000Z');`);
-    if (version === 11) {
+    if (version >= 11) {
       const input = await canonicalR2UploadInput("ordinary_image", {
         originalName: "PRIVATE_UPLOAD_FILENAME", mimeType: "image/png", byteSize: 5, sha256: "a".repeat(64),
       });
@@ -55,8 +58,27 @@ async function fixture(version: 10 | 11 = 11) {
           '11111111-1111-4111-8111-111111111115', 'upload/candidate', 'pending', NULL,
           '2026-09-13T00:00:00.000Z', NULL, '2026-09-14T00:00:00.000Z')`).run(input.sha256, input.json);
     }
+    if (version === 12) {
+      database.exec(`INSERT INTO recipe_families (id, name, template_type, created_at)
+        VALUES ('metrology-family', 'PRIVATE_METROLOGY_TITLE', 'module', '2026-09-13T00:00:00.000Z');
+        INSERT INTO template_versions (id, recipe_family_id, name, template_type, version, manifest_hash, content_json, template_kind, created_at)
+        VALUES ('metrology-template', 'metrology-family', 'PRIVATE_METROLOGY_TEMPLATE', 'module', 1, 'manifest', '{}', 'metrology', '2026-09-13T00:00:00.000Z');`);
+      const input = await canonicalMetrologyReferenceUploadInput("metrology-template", {
+        originalName: "PRIVATE_METROLOGY_FILENAME", mimeType: "application/pdf", byteSize: 5, sha256: "b".repeat(64),
+      });
+      database.prepare(`INSERT INTO metrology_reference_upload_requests (id, actor_email, client_request_id, operation_id,
+        template_version_id, candidate_reference_id, publication_plan_json, ingress, purpose, request_sha256, request_input_json,
+        request_scope, storage_profile_id, storage_profile_revision, storage_policy_revision, candidate_asset_id, candidate_object_key,
+        status, accepted_result_json, created_at, completed_at, expires_at)
+        VALUES ('22222222-2222-4222-8222-222222222221', 'PRIVATE_METROLOGY_ACTOR',
+          '22222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222223',
+          'metrology-template', '22222222-2222-4222-8222-222222222225', ?, 'metrology_reference', 'research_source', ?, ?,
+          'system', 'upload-profile', 1, 1, '22222222-2222-4222-8222-222222222224', 'metrology/candidate', 'pending', NULL,
+          '2026-09-13T00:00:00.000Z', NULL, '2026-09-14T00:00:00.000Z')`).run(
+        stableJson({ schema: "metrology-reference-publication/1", action: "create", reference: null }), input.sha256, input.json);
+    }
     const adapter = new SqliteD1Database(database) as unknown as D1Database;
-    const snapshot = version === 11 ? await snapshotFullExportV11(adapter) : await snapshotFullExportV10(adapter);
+    const snapshot = version === 12 ? await snapshotFullExportV12(adapter) : version === 11 ? await snapshotFullExportV11(adapter) : await snapshotFullExportV10(adapter);
     const inputPath = join(directory, "snapshot.json"), outputPath = join(directory, "plan.json");
     const encoded = JSON.stringify(snapshot);
     await writeFile(inputPath, encoded);
@@ -73,11 +95,14 @@ describe("offline File migration planning boundary", () => {
       snapshotSha256: createHash("sha256").update(f.encoded).digest("hex"),
       reportSha256: createHash("sha256").update(output).digest("hex") });
     expect(JSON.parse(output)).toMatchObject({ executable: false, bytesVerified: false,
-      source: { schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance" } });
+      source: { schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance" } });
     expect(output).toContain("unregistered/image");
     expect(output).not.toContain("PRIVATE_BODY_SENTINEL");
     expect(output).not.toContain("PRIVATE_SECRET_SENTINEL");
     expect(output).not.toContain("PRIVATE_UPLOAD_");
+    expect(output).not.toContain("PRIVATE_METROLOGY_");
+    expect(output).toContain("accepted_metrology_reference");
+    expect(output).toContain("metrology/candidate");
     expect(output).toContain("accepted_upload");
     expect(output).toContain("upload/candidate");
     expect(await readFile(f.inputPath, "utf8")).toBe(f.encoded);
@@ -88,13 +113,14 @@ describe("offline File migration planning boundary", () => {
     expect((await stat(f.outputPath)).mode & 0o777).toBe(0o600);
   });
 
-  it("continues to plan a complete historical V10 snapshot using the frozen contract", async () => {
-    const f = await fixture(10);
-    expect(f.snapshot.tables).not.toHaveProperty("r2_upload_requests");
+  it.each([10, 11] as const)("continues to plan a complete historical V%s snapshot using the frozen contract", async (version) => {
+    const f = await fixture(version);
+    expect(f.snapshot.tables).not.toHaveProperty("metrology_reference_upload_requests");
+    if (version === 10) expect(f.snapshot.tables).not.toHaveProperty("r2_upload_requests");
     await planFileMigrationSnapshot({ snapshotPath: f.inputPath, outputPath: f.outputPath });
     const output = await readFile(f.outputPath, "utf8");
     expect(JSON.parse(output)).toMatchObject({ executable: false, bytesVerified: false,
-      source: { schemaVersion: 10, archiveProfile: "fp1-import-acceptance" } });
+      source: { schemaVersion: version, archiveProfile: version === 10 ? "fp1-import-acceptance" : "fp1-r2-upload-acceptance" } });
     expect(output).toContain("unregistered/image");
     expect(await readFile(f.inputPath, "utf8")).toBe(f.encoded);
   });
@@ -117,8 +143,11 @@ describe("offline File migration planning boundary", () => {
     for (const input of [Buffer.from([0xff, 0xfe]), Buffer.from('{"private":"DO_NOT_PRINT_ME",'),
       Buffer.from(JSON.stringify({ ...f.snapshot, schemaVersion: 9 })),
       Buffer.from(JSON.stringify({ ...f.snapshot, schemaVersion: 10, archiveProfile: "fp1-import-acceptance" })),
+      Buffer.from(JSON.stringify({ ...f.snapshot, schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance" })),
       Buffer.from(JSON.stringify({ ...f.snapshot, tables: { ...f.snapshot.tables,
         r2_upload_requests: f.snapshot.tables.r2_upload_requests.map((row) => ({ ...row, request_sha256: "0".repeat(64) })) } })),
+      Buffer.from(JSON.stringify({ ...f.snapshot, tables: { ...f.snapshot.tables,
+        metrology_reference_upload_requests: f.snapshot.tables.metrology_reference_upload_requests.map((row) => ({ ...row, request_sha256: "0".repeat(64) })) } })),
       Buffer.from(JSON.stringify({ ...f.snapshot, tables: { ...f.snapshot.tables, assets: [] },
         artifacts: { ...f.snapshot.artifacts, sourceSchema: { ...f.snapshot.artifacts.sourceSchema, sha256: "0".repeat(64) } } }))]) {
       await writeFile(f.inputPath, input);

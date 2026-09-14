@@ -13,12 +13,13 @@ import type {
 import { hashRecipeManifest, hashStateRepresentation, hashStepDefinition, stableJson, STATE_HASH_SCHEME, STEP_HASH_SCHEME } from "../../shared/content-addressing";
 import { bulkInsertStatements } from "../d1-bulk";
 import { contentLengthWithin } from "../request-guards";
-import { BlobRegistrationAuthorityUnavailableError, registerR2Asset } from "../blob-lifecycle/registration";
 import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
 import { likeBindings, paginationMeta, readPagination, repeatedLikeSql, searchTokens } from "../directory-query";
 import type { Env } from "../types";
 import { parseInitialSubstrateStep } from "./substrate";
-import { digestSha256, reusableR2Asset, safeObjectName } from "../application/r2-upload-support";
+import { requireR2UploadRequestId } from "../uploads/r2-upload-acceptance";
+import { acceptAndUploadMetrologyReference, boundedMetrologyReferenceUploadBody,
+  getMetrologyReferenceUploadRequestState, rethrowMetrologyReferenceUploadError } from "../uploads/metrology-reference-acceptance";
 
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 
@@ -489,114 +490,37 @@ routes.patch("/metrology-templates/:id/notes", async (c) => {
 });
 
 routes.post("/metrology-templates/:id/references", async (c) => {
-  const templateId = c.req.param("id");
-  await requirePublishedTemplateVersion(c.env.DB, templateId);
+  c.header("Cache-Control", "no-store");
+  const requestId = requireR2UploadRequestId(c.req.header("x-upload-request-id"));
   if (!contentLengthWithin(c.req.raw, 25 * 1024 * 1024)) {
     throw new HTTPException(413, { message: "Template reference files are limited to 25 MB" });
   }
-  const filename = (c.req.header("x-filename") || "reference").trim();
+  let filename = (c.req.header("x-filename") || "reference").trim();
+  const encoded = c.req.header("x-filename-uri");
+  if (encoded !== undefined) {
+    try { filename = decodeURIComponent(encoded); }
+    catch { throw new HTTPException(400, { message: "Reference filename encoding is invalid" }); }
+  }
   const mimeType = (c.req.header("content-type") || "application/octet-stream").trim();
-  if (!filename || filename.length > 255 || mimeType.length > 200) {
+  if (!filename.trim() || filename.includes("\0") || [...filename].length > 255 || mimeType.length > 200) {
     throw new HTTPException(400, { message: "Reference-file metadata is invalid" });
   }
-  const template = await c.env.DB.prepare(
-    `SELECT id FROM template_versions
-     WHERE id = ? AND template_kind = 'metrology'
-       AND archived_at IS NULL AND deleted_at IS NULL`,
-  ).bind(templateId).first<{ id: string }>();
-  if (!template) throw new HTTPException(404, { message: "Metrology template not found" });
-  const buffer = await c.req.arrayBuffer();
-  if (!buffer.byteLength || buffer.byteLength > 25 * 1024 * 1024) {
-    throw new HTTPException(413, { message: "Template reference files must be between 1 byte and 25 MB" });
-  }
-  const sha256 = await digestSha256(buffer);
-  const existingReference = await c.env.DB.prepare(
-    `SELECT mtr.id, mtr.asset_id, mtr.display_name, mtr.created_at, mtr.deleted_at
-     FROM metrology_template_references mtr
-     JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
-     WHERE mtr.template_version_id = ? AND a.sha256 = ?
-       AND ${publishedAssetSql("a")}
-     ORDER BY mtr.created_at DESC LIMIT 1`,
-  ).bind(templateId, sha256).first<{
-    id: string; asset_id: string; display_name: string;
-    created_at: string; deleted_at: string | null;
-  }>();
+  const bytes = await boundedMetrologyReferenceUploadBody(c.req.raw);
+  const upload = await acceptAndUploadMetrologyReference(c.env, {
+    requestId, actorEmail: c.get("userEmail"), templateId: c.req.param("id"), originalName: filename, mimeType, bytes,
+  }).catch(rethrowMetrologyReferenceUploadError);
+  if (upload.state.status === "ready") return c.json({ request: upload.state, reference: upload.state.result.reference },
+    upload.fresh ? 201 : 200);
+  return c.json({ request: upload.state }, upload.state.status === "pending" ? 202 : 409);
+});
 
-  const now = new Date().toISOString();
-  const userEmail = c.get("userEmail");
-  const assetId = crypto.randomUUID();
-  const key = `metrology/${templateId}/${assetId}-${safeObjectName(filename)}`;
-  const registration = await registerR2Asset(c.env, {
-      id: assetId,
-      objectKey: key,
-      originalName: filename,
-      mimeType,
-      byteSize: buffer.byteLength,
-      sha256,
-      actorEmail: userEmail,
-      bytes: buffer,
-      findWinner: () => reusableR2Asset(c.env, sha256),
-    }).catch((error: unknown) => {
-      if (error instanceof BlobRegistrationAuthorityUnavailableError) {
-        throw new HTTPException(503, {
-          message: error.publicMessage,
-        });
-      }
-      throw error;
-    });
-  const asset = registration.asset;
-
-  if (existingReference) {
-    const displayName = existingReference.deleted_at ? filename : existingReference.display_name;
-    if (existingReference.deleted_at || existingReference.asset_id !== asset.id) {
-      try {
-        const updated = await c.env.DB.prepare(
-          `UPDATE metrology_template_references
-           SET asset_id = ?, display_name = ?, deleted_at = NULL, deleted_by = NULL
-           WHERE id = ? AND template_version_id = ?`,
-        ).bind(asset.id, displayName, existingReference.id, templateId).run();
-        if (!updated.meta.changes) throw new HTTPException(409, { message: "This reference file changed elsewhere" });
-      } catch (error) {
-        // A committed ready asset may already have been reused elsewhere.
-        // Leave an unattached row to the shared registration-grace/GC path.
-        throw error;
-      }
-    }
-    return c.json({ reference: {
-      id: existingReference.id,
-      filename: displayName,
-      mimeType: asset.mime_type,
-      byteSize: Number(asset.byte_size),
-      assetKey: asset.r2_key,
-      createdAt: existingReference.created_at,
-    } satisfies MetrologyTemplateReference });
-  }
-
-  const referenceId = crypto.randomUUID();
-  try {
-    await c.env.DB.prepare(
-      `INSERT INTO metrology_template_references
-       (id, template_version_id, asset_id, display_name, position, actor_email, created_at)
-       VALUES (?, ?, ?, ?, COALESCE((
-         SELECT MAX(position) + 1 FROM metrology_template_references WHERE template_version_id = ?
-       ), 0), ?, ?)`,
-    ).bind(referenceId, templateId, asset.id, filename, templateId, userEmail, now).run();
-  } catch (error) {
-    // Once ready registration commits, route-local rollback no longer owns the
-    // provider object. Unattached assets are reclaimed through shared GC.
-    if (String(error).includes("UNIQUE")) {
-      throw new HTTPException(409, { message: "This reference file is already attached" });
-    }
-    throw error;
-  }
-  return c.json({ reference: {
-    id: referenceId,
-    filename,
-    mimeType: asset.mime_type,
-    byteSize: Number(asset.byte_size),
-    assetKey: asset.r2_key,
-    createdAt: now,
-  } satisfies MetrologyTemplateReference }, 201);
+routes.get("/metrology-templates/:id/reference-upload-requests/:requestId", async (c) => {
+  c.header("Cache-Control", "no-store");
+  const requestId = requireR2UploadRequestId(c.req.param("requestId"));
+  const state = await getMetrologyReferenceUploadRequestState(c.env, c.get("userEmail"), c.req.param("id"), requestId)
+    .catch(rethrowMetrologyReferenceUploadError);
+  if (!state) throw new HTTPException(404, { message: "Reference upload request not found." });
+  return c.json({ request: state });
 });
 
 routes.delete("/metrology-templates/:id/references/:referenceId", async (c) => {

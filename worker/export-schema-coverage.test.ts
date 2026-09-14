@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { snapshotFullExportV11 } from "./export-v11-snapshot";
+import { snapshotFullExportV12 } from "./export-v12-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
@@ -63,11 +63,11 @@ describe("complete export schema coverage", () => {
   beforeEach(() => { database = referenceTestDatabase(); });
   afterEach(() => { database.close(); });
 
-  it("covers every migrated application table and required view with the actual v11 snapshot", async () => {
+  it("covers every migrated application table and required view with the actual v12 snapshot", async () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    const snapshot = await snapshotFullExportV11(new SqliteD1Database(database) as unknown as D1Database);
+    const snapshot = await snapshotFullExportV12(new SqliteD1Database(database) as unknown as D1Database);
     expect(Object.keys(snapshot.tables).sort()).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES).sort());
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.samples).not.toContain("process_revision");
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).toContain("legacy_body");

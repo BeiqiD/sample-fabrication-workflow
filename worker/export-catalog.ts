@@ -68,7 +68,13 @@ export const FULL_EXPORT_V10_TABLE_QUERIES = {
 } as const;
 
 // Schema 11 retains accepted ordinary R2 upload decisions without adding bytes.
-export const FULL_EXPORT_TABLE_QUERIES = {
+export const FULL_EXPORT_V11_TABLE_QUERIES = {
   ...FULL_EXPORT_V10_TABLE_QUERIES,
   r2_upload_requests: "SELECT * FROM r2_upload_requests ORDER BY created_at, id",
+} as const;
+
+// Schema 12 preserves metrology occurrence publication without new byte roots.
+export const FULL_EXPORT_TABLE_QUERIES = {
+  ...FULL_EXPORT_V11_TABLE_QUERIES,
+  metrology_reference_upload_requests: "SELECT * FROM metrology_reference_upload_requests ORDER BY created_at, id",
 } as const;

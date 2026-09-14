@@ -10,7 +10,7 @@ const root = new URL("../", import.meta.url);
 const sqlNames = (directory) => readdirSync(new URL(directory, root)).filter((name) => name.endsWith(".sql")).sort();
 
 test("the current chain admits the reviewed FP1 suffix and retains the S2 baseline and all 37 historical SQL files byte-for-byte", () => {
-  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql"]);
+  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql"]);
   const baseline = readFileSync(new URL("scripts/fixtures/backend-schema/s2-baseline.sql", root));
   assert.deepEqual(readFileSync(new URL("migrations/0001_v3_baseline.sql", root)), baseline);
   const recorded = [...baseline.toString("utf8").matchAll(/^-- Source migrations\/([^ /]+\.sql) sha256=([a-f0-9]{64})$/gm)];
@@ -62,4 +62,41 @@ test("upload migration has five complete statements and records its ledger only 
     actual.close();
     whole.close();
   }
+});
+
+test("metrology migration publishes all four guards before its tracking row under individual prepared execution", () => {
+  const filename = "0005_metrology_reference_acceptance.sql";
+  const sql = readFileSync(new URL(`migrations/${filename}`, root), "utf8");
+  assert.equal(splitSql(sql).length, 5, "One business receipt table and four complete guards");
+  const tracked = splitSql(`${sql}\nINSERT INTO d1_migrations (name) VALUES ('${filename}');`);
+  assert.equal(tracked.length, 6, "Tracking cannot be swallowed by a CASE or trigger body");
+  const actual = new DatabaseSync(":memory:");
+  const whole = new DatabaseSync(":memory:");
+  const catalog = (db) => db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name")
+    .all().map((row) => ({ ...row, sql: row.sql === null ? null : normalizeSchemaSql(row.sql) }));
+  try {
+    for (const db of [actual, whole]) {
+      db.exec("PRAGMA foreign_keys = ON; CREATE TABLE d1_migrations (name TEXT NOT NULL UNIQUE);");
+      for (const name of sqlNames("migrations/").filter((name) => name < filename)) {
+        db.exec(readFileSync(new URL(`migrations/${name}`, root), "utf8"));
+      }
+      db.prepare("INSERT INTO samples (id, code, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .run("retained-before-fp1i", "FP1I", "Retained sample", "2026-09-14T00:00:00.000Z", "2026-09-14T00:00:00.000Z");
+    }
+    const previous = catalog(actual);
+    const rowsBefore = actual.prepare("SELECT * FROM samples").all();
+    for (const statement of tracked) actual.prepare(statement).run();
+    whole.exec(sql);
+    assert.deepEqual(catalog(actual), catalog(whole));
+    assert.deepEqual(catalog(actual).filter((row) => row.tbl_name !== "metrology_reference_upload_requests"), previous,
+      "No old schema object may change in this additive migration");
+    assert.deepEqual(actual.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger' AND tbl_name = 'metrology_reference_upload_requests' ORDER BY name")
+      .all().map(({ name }) => name), [
+      "metrology_reference_upload_requests_delete_guard", "metrology_reference_upload_requests_insert_guard",
+      "metrology_reference_upload_requests_publication_guard", "metrology_reference_upload_requests_update_guard",
+    ]);
+    assert.deepEqual(actual.prepare("SELECT * FROM samples").all(), rowsBefore);
+    assert.deepEqual(actual.prepare("SELECT name FROM d1_migrations").all().map(({ name }) => name), [filename]);
+    assert.deepEqual(actual.prepare("PRAGMA foreign_key_check").all(), []);
+  } finally { actual.close(); whole.close(); }
 });
