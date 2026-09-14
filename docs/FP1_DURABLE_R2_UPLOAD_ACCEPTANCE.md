@@ -94,6 +94,17 @@ Rollback requires the matching data/export protocol; deploying an older binary
 alone cannot preserve this contract once accepted requests exist. No reset,
 storage rebinding, credential change or Cron release belongs to this slice.
 
+Migration SQL must retain the established D1-compatible spacing around CASE
+endings: `END )` within CHECK expressions and `END ;` for inline trigger CASE
+expressions, with a separate terminal `END;` for each trigger. The first FP1h
+deployment passed every local check but remote D1 rejected migration 0004 with
+`incomplete input`. Its original formatting also made the installed Wrangler
+splitter combine all five definitions into one statement. The whitespace-only
+correction preserves normalized SQL and the existing archive schema. A regression
+now verifies five definitions, six statements with Wrangler's tracking INSERT,
+all four guards and the ledger through individual SQLite prepared statements.
+Local parsing does not substitute for the remote deployment result.
+
 ## Qualification and remaining authority work
 
 Qualification covers actor isolation, altered inputs, concurrent first requests,

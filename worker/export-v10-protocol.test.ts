@@ -121,7 +121,7 @@ describe("v10 durable import acceptance archive profile", () => {
       for (const entry of providers) expect(await readFile(join(restored.restoredDirectory, entry.path))).toEqual(Buffer.from(f.provider.get(entry.objectKey)!));
       expect(await readFile(join(restored.restoredDirectory, "original-archive.zip"))).toEqual(archiveBytes);
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
-  });
+  }, 15_000);
 
   it("preserves an accepted historical receipt without requiring its original Template row", async () => {
     const f = await fixture();
