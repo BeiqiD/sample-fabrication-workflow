@@ -8,7 +8,7 @@ CREATE TABLE r2_upload_requests (
   ingress TEXT NOT NULL CHECK (ingress IN ('ordinary_image', 'project_attachment')),
   purpose TEXT NOT NULL CHECK ((ingress = 'ordinary_image' AND purpose = 'embedded_content') OR (ingress = 'project_attachment' AND purpose = 'research_source')),
   request_sha256 TEXT NOT NULL CHECK (typeof(request_sha256) = 'text' AND length(request_sha256) = 64 AND request_sha256 NOT GLOB '*[^0-9a-f]*' AND instr(request_sha256, char(0)) = 0),
-  request_input_json TEXT NOT NULL CHECK (typeof(request_input_json) = 'text' AND length(CAST(request_input_json AS BLOB)) <= 8192 AND CASE WHEN json_valid(request_input_json) THEN json_type(request_input_json) = 'object' ELSE 0 END),
+  request_input_json TEXT NOT NULL CHECK (typeof(request_input_json) = 'text' AND length(CAST(request_input_json AS BLOB)) <= 8192 AND CASE WHEN json_valid(request_input_json) THEN json_type(request_input_json) = 'object' ELSE 0 END ),
   request_scope TEXT NOT NULL CHECK (request_scope = 'system'),
   storage_profile_id TEXT NOT NULL REFERENCES storage_profiles(id) ON DELETE RESTRICT,
   storage_profile_revision INTEGER NOT NULL CHECK (typeof(storage_profile_revision) = 'integer' AND storage_profile_revision = 1),
@@ -16,7 +16,7 @@ CREATE TABLE r2_upload_requests (
   candidate_asset_id TEXT NOT NULL UNIQUE,
   candidate_object_key TEXT NOT NULL UNIQUE CHECK (typeof(candidate_object_key) = 'text' AND length(candidate_object_key) BETWEEN 1 AND 4096 AND instr(candidate_object_key, char(0)) = 0),
   status TEXT NOT NULL CHECK (status IN ('pending', 'ready', 'failed')),
-  accepted_result_json TEXT CHECK (accepted_result_json IS NULL OR (typeof(accepted_result_json) = 'text' AND length(CAST(accepted_result_json AS BLOB)) <= 8192 AND CASE WHEN json_valid(accepted_result_json) THEN json_type(accepted_result_json) = 'object' ELSE 0 END)),
+  accepted_result_json TEXT CHECK (accepted_result_json IS NULL OR (typeof(accepted_result_json) = 'text' AND length(CAST(accepted_result_json AS BLOB)) <= 8192 AND CASE WHEN json_valid(accepted_result_json) THEN json_type(accepted_result_json) = 'object' ELSE 0 END )),
   created_at TEXT NOT NULL CHECK (created_at IS strftime('%Y-%m-%dT%H:%M:%fZ', created_at)),
   completed_at TEXT CHECK (completed_at IS NULL OR (completed_at IS strftime('%Y-%m-%dT%H:%M:%fZ', completed_at) AND completed_at >= created_at)),
   expires_at TEXT NOT NULL CHECK (expires_at IS strftime('%Y-%m-%dT%H:%M:%fZ', created_at, '+1 day')),
@@ -33,7 +33,7 @@ BEGIN
     OR (old.actor_email = NEW.actor_email AND old.client_request_id = NEW.client_request_id)
     OR old.operation_id = NEW.operation_id OR old.candidate_asset_id = NEW.candidate_asset_id
     OR old.candidate_object_key = NEW.candidate_object_key)
-    THEN RAISE(ABORT, 'Accepted upload identity is immutable') END;
+    THEN RAISE(ABORT, 'Accepted upload identity is immutable') END ;
   SELECT CASE WHEN EXISTS (
     SELECT 1 FROM (SELECT NEW.id AS value UNION ALL SELECT NEW.client_request_id
       UNION ALL SELECT NEW.operation_id UNION ALL SELECT NEW.candidate_asset_id)
@@ -42,15 +42,15 @@ BEGIN
       OR substr(value, 19, 1) <> '-' OR substr(value, 24, 1) <> '-'
       OR length(replace(value, '-', '')) <> 32 OR replace(value, '-', '') GLOB '*[^0-9a-f]*'
       OR substr(value, 15, 1) <> '4' OR substr(value, 20, 1) NOT GLOB '[89ab]'
-  ) THEN RAISE(ABORT, 'Invalid upload request identity') END;
+  ) THEN RAISE(ABORT, 'Invalid upload request identity') END ;
   SELECT CASE WHEN NEW.status <> 'pending' OR NEW.completed_at IS NOT NULL OR NEW.accepted_result_json IS NOT NULL
-    THEN RAISE(ABORT, 'Accepted uploads must begin pending') END;
+    THEN RAISE(ABORT, 'Accepted uploads must begin pending') END ;
   SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM storage_profiles p WHERE p.id = NEW.storage_profile_id
     AND p.adapter_type = 'r2' AND p.configuration_revision = NEW.storage_profile_revision
     AND p.configuration_source = 'bootstrap' AND p.credential_reference IS NULL AND p.state = 'historical')
-    THEN RAISE(ABORT, 'Upload acceptance profile mismatch') END;
+    THEN RAISE(ABORT, 'Upload acceptance profile mismatch') END ;
   SELECT CASE WHEN NOT json_valid(NEW.request_input_json)
-    THEN RAISE(ABORT, 'Invalid upload request input') END;
+    THEN RAISE(ABORT, 'Invalid upload request input') END ;
   SELECT CASE WHEN json_type(NEW.request_input_json) IS NOT 'object'
     OR (SELECT count(*) FROM json_each(NEW.request_input_json)) <> 5
     OR json_extract(NEW.request_input_json, '$.schema') IS NOT 'r2-upload-request/1'
@@ -75,7 +75,7 @@ BEGIN
     OR json_extract(NEW.request_input_json, '$.file.sha256') GLOB '*[^0-9a-f]*'
     OR instr(json_extract(NEW.request_input_json, '$.file.sha256'), char(0)) <> 0
     OR (NEW.ingress = 'ordinary_image' AND lower(substr(json_extract(NEW.request_input_json, '$.file.mimeType'), 1, 6)) <> 'image/')
-    THEN RAISE(ABORT, 'Upload request input does not match acceptance') END;
+    THEN RAISE(ABORT, 'Upload request input does not match acceptance') END ;
 END;
 
 CREATE TRIGGER r2_upload_requests_update_guard BEFORE UPDATE ON r2_upload_requests
@@ -90,14 +90,14 @@ BEGIN
     OR NEW.candidate_asset_id IS NOT OLD.candidate_asset_id OR NEW.candidate_object_key IS NOT OLD.candidate_object_key
     OR NEW.created_at IS NOT OLD.created_at OR NEW.expires_at IS NOT OLD.expires_at
     OR NEW.status NOT IN ('ready', 'failed')
-    THEN RAISE(ABORT, 'Accepted upload identity or result is immutable') END;
+    THEN RAISE(ABORT, 'Accepted upload identity or result is immutable') END ;
 END;
 
 CREATE TRIGGER r2_upload_requests_publication_guard BEFORE UPDATE ON r2_upload_requests
 WHEN NEW.status = 'ready'
 BEGIN
   SELECT CASE WHEN NEW.accepted_result_json IS NULL OR NOT json_valid(NEW.accepted_result_json)
-    THEN RAISE(ABORT, 'Invalid accepted upload result') END;
+    THEN RAISE(ABORT, 'Invalid accepted upload result') END ;
   SELECT CASE WHEN json_type(NEW.accepted_result_json) IS NOT 'object'
     OR (SELECT count(*) FROM json_each(NEW.accepted_result_json)) <> 3
     OR json_type(NEW.accepted_result_json, '$.id') IS NOT 'text'
@@ -121,7 +121,7 @@ BEGIN
           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted'))
         AND NOT EXISTS (SELECT 1 FROM blob_integrity_quarantine biq WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
           AND biq.object_key = a.r2_key)
-    ) THEN RAISE(ABORT, 'Accepted upload result does not match publication') END;
+    ) THEN RAISE(ABORT, 'Accepted upload result does not match publication') END ;
 END;
 
 CREATE TRIGGER r2_upload_requests_delete_guard BEFORE DELETE ON r2_upload_requests
