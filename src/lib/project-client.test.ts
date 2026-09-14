@@ -1,5 +1,18 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { R2_UPLOAD_REQUEST_HEADER } from "../../shared/contracts/r2-upload";
 import { ProjectApiError, createProjectApiId, projectApi } from "./project-client";
+
+beforeEach(() => {
+  const values = new Map<string, string>();
+  vi.stubGlobal("sessionStorage", {
+    get length() { return values.size; },
+    key: (index: number) => [...values.keys()][index] ?? null,
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+    removeItem: (key: string) => { values.delete(key); },
+    clear: () => { values.clear(); },
+  });
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -204,6 +217,7 @@ describe("Project client", () => {
       headers: {
         "content-type": "application/pdf",
         "x-project-filename-uri": encodeURIComponent(file.name),
+        [R2_UPLOAD_REQUEST_HEADER]: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
       },
       body: file,
     });

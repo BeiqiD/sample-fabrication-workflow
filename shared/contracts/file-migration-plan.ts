@@ -1,4 +1,4 @@
-import type { ExportRow, FullExportManifestV10 } from "./export";
+import type { ExportRow, FullExportManifestV10, FullExportManifestV11 } from "./export";
 import type { FilePurpose } from "./files";
 import type { FileConsumerObservation, FileConsumerProjection, FileConsumerRegistryObservation } from "./file-consumers";
 import { projectFileConsumers } from "./file-consumer-projection";
@@ -8,6 +8,8 @@ export const MAX_FILE_MIGRATION_INPUT_ROWS = 20_000;
 export const MAX_FILE_MIGRATION_INPUT_BYTES = 16 * 1024 * 1024;
 export const MAX_FILE_MIGRATION_PLAN_BYTES = 8 * 1024 * 1024;
 
+export type FileMigrationSnapshot = FullExportManifestV10 | FullExportManifestV11;
+
 export interface FileMigrationLocator {
   storeKind: "r2" | "managed";
   provider: string;
@@ -15,7 +17,7 @@ export interface FileMigrationLocator {
 }
 
 export interface FileMigrationNamespaceEvidence {
-  kind: "legacy_mapping" | "accepted_import";
+  kind: "legacy_mapping" | "accepted_import" | "accepted_upload";
   sourceId: string;
   profileId: string;
   configurationRevision: number;
@@ -76,8 +78,8 @@ export interface FileMigrationPlan {
   bytesVerified: false;
   source: {
     basis: "archive-snapshot";
-    schemaVersion: 10;
-    archiveProfile: "fp1-import-acceptance";
+    schemaVersion: 10 | 11;
+    archiveProfile: "fp1-import-acceptance" | "fp1-r2-upload-acceptance";
     exportedAt: string;
     inputSha256: string;
   };
@@ -144,10 +146,11 @@ function sorted<T>(values: T[]): T[] {
     .sort((a, b) => compare(a.key, b.key)).map(({ value }) => value);
 }
 
-function inputSnapshot(manifest: FullExportManifestV10) {
-  if (manifest.schemaVersion !== 10 || manifest.archiveWriter !== 1
-    || manifest.archiveProfile !== "fp1-import-acceptance") {
-    throw new Error("File migration observation requires a validated schema 10 archive");
+function inputSnapshot(manifest: FileMigrationSnapshot) {
+  if (manifest.archiveWriter !== 1
+    || !(manifest.schemaVersion === 10 && manifest.archiveProfile === "fp1-import-acceptance"
+      || manifest.schemaVersion === 11 && manifest.archiveProfile === "fp1-r2-upload-acceptance")) {
+    throw new Error("File migration observation requires a validated schema 10 or 11 archive");
   }
   let rowCount = 0;
   for (const rows of Object.values(manifest.tables)) {
@@ -172,15 +175,15 @@ function inputSnapshot(manifest: FullExportManifestV10) {
   };
 }
 
-/** Accept only an archive already validated by the schema-10 archive reader.
+/** Accept only an archive already validated by the schema-10 or schema-11 reader.
  * This module has no database/provider/settings capability and cannot execute a
  * migration. Expected metadata is historical evidence, never byte verification.
  */
-export async function planFileMigration(manifest: FullExportManifestV10): Promise<FileMigrationPlan> {
+export async function planFileMigration(manifest: FileMigrationSnapshot): Promise<FileMigrationPlan> {
   const snapshotJson = canonical(inputSnapshot(manifest), MAX_FILE_MIGRATION_INPUT_BYTES);
   // Detach before the first await. Caller mutations while hashing must not
   // produce a plan from rows different from those bound by inputSha256.
-  const snapshot = JSON.parse(snapshotJson) as FullExportManifestV10;
+  const snapshot = JSON.parse(snapshotJson) as FileMigrationSnapshot;
   const inputSha256 = await sha256Hex(snapshotJson);
   const tables = snapshot.tables;
   const projection = projectFileConsumers(tables);
@@ -256,6 +259,38 @@ export async function planFileMigration(manifest: FullExportManifestV10): Promis
     for (const column of ["workbook_asset_key", "manifest_asset_key"]) {
       if (typeof row[column] === "string" && row[column]) {
         acceptedNamespace(ensure({ storeKind: "r2", provider: "r2", objectKey: row[column] as string }), row);
+      }
+    }
+  }
+  // Acceptance freezes a destination independently of current settings. A
+  // deduplicated result can use another key, so observe only that explicit
+  // result in addition to the reserved candidate. Neither receipt is a typed
+  // consumer or a new retention root, and equal hashes establish no ownership.
+  if (snapshot.schemaVersion === 11) {
+    for (const row of tables.r2_upload_requests) {
+      const candidate = ensure({ storeKind: "r2", provider: "r2", objectKey: String(row.candidate_object_key) });
+      const observe = (group: FileMigrationGroup) => {
+        if (typeof row.storage_profile_id !== "string" || typeof row.storage_profile_revision !== "number") {
+          group.blockers.push("namespace_evidence_invalid");
+        } else {
+          addNamespace(group, "accepted_upload", String(row.id), row.storage_profile_id, row.storage_profile_revision);
+        }
+        if (row.status !== "ready") group.blockers.push("accepted_upload_unfinished");
+      };
+      observe(candidate);
+      if (row.status === "ready") {
+        let result: unknown;
+        try { result = JSON.parse(String(row.accepted_result_json)); }
+        catch { /* Keep invalid ready evidence visible on its candidate. */ }
+        if (!result || typeof result !== "object" || Array.isArray(result)
+          || Object.keys(result).sort(compare).join(",") !== "deduplicated,id,key"
+          || typeof (result as Record<string, unknown>).id !== "string" || !(result as { id: string }).id
+          || typeof (result as Record<string, unknown>).key !== "string" || !(result as { key: string }).key
+          || typeof (result as Record<string, unknown>).deduplicated !== "boolean") {
+          candidate.blockers.push("accepted_upload_result_invalid");
+        } else {
+          observe(ensure({ storeKind: "r2", provider: "r2", objectKey: (result as { key: string }).key }));
+        }
       }
     }
   }
@@ -345,7 +380,7 @@ export async function planFileMigration(manifest: FullExportManifestV10): Promis
   }
   const plan: FileMigrationPlan = {
     version: 1, kind: "file-migration-observation", executable: false, bytesVerified: false,
-    source: { basis: "archive-snapshot", schemaVersion: 10, archiveProfile: "fp1-import-acceptance",
+    source: { basis: "archive-snapshot", schemaVersion: snapshot.schemaVersion, archiveProfile: snapshot.archiveProfile,
       exportedAt: snapshot.exportedAt, inputSha256 },
     coverage: projection.coverage, groups: resultGroups,
     unresolvedConsumers: projection.consumers.filter((consumer) => !consumer.locator),

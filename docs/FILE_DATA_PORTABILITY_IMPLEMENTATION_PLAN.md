@@ -14,13 +14,15 @@ replacement selection. [FP1f](./FP1_DURABLE_IMPORT_ACCEPTANCE.md) now adds durab
 FabuBlox request acceptance, original-result replay and frozen R2 namespace
 composition, with schema 10 export/recovery. [FP1g](./FP1_FILE_CONSUMER_MIGRATION_PLAN.md)
 adds complete historical consumer projection and a deterministic read-only
-purpose-split conversion report. File/location authority remains
+purpose-split conversion report. [FP1h](./FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md)
+adds actor-bound durable acceptance for ordinary images and Project uploads,
+with fixed replay windows and schema 11 recovery. File/location authority remains
 dormant and legacy global-SHA deduplication still applies. FP1 remains incomplete;
 no deployment is certified by this document.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
-FP1g implementation base: `0e7d3f6` (merged PR #213), 2026-09-13; its implementation
+FP1h implementation base: `9225237` (merged PR #214), 2026-09-14; its implementation
 PR records final verification and deployment evidence.
 
 ## Authority and reading order
@@ -70,7 +72,7 @@ works. R2 default behavior requires new non-empty live acceptance; no default
 change retroactively qualifies the old SWITCHdrive path. The new track is an
 intentional product/schema change, separate from behavior-preserving Phase 6A.
 
-The original design PR changed no runtime state. FP1a–FP1g introduce bounded
+The original design PR changed no runtime state. FP1a–FP1h introduce bounded
 forward schema, transport, recovery, accepted-import and offline planning slices; the complete
 File/location authority transition remains open. FP1f captures a historical R2
 profile on first accepted import without changing the storage binding or defaults.
@@ -85,8 +87,8 @@ Each FP milestone may contain several focused PRs. Every implementation starts
 from the latest integration head, preserves a usable frontend and carries its
 affected schema, export/restore, file-lifecycle and authorization checks.
 
-The current accepted-operation protocol applies to FabuBlox imports. Its request
-snapshot binds source/illustration purposes and a frozen physical destination,
+The FabuBlox accepted-operation protocol binds its import request
+snapshot to source/illustration purposes and a frozen physical destination,
 but does not replace legacy deduplication or satisfy the File publication contract
 for other writers. The [FP1f handoff](./FP1_DURABLE_IMPORT_ACCEPTANCE.md#qualification-and-remaining-file-authority-work)
 identifies the consumer, lifecycle and placement conversion that still needs to
@@ -95,6 +97,9 @@ The [FP1g planner](./FP1_FILE_CONSUMER_MIGRATION_PLAN.md) now enumerates histori
 consumer slots and retention mismatches without changing those restrictions.
 Its proposals require live revalidation, durable holds and independently verified
 copying before future conversion can execute.
+FP1h extends durable byte-upload acceptance to ordinary images and Project
+attachments. Comment and metrology publication remain separate prerequisites;
+captured purposes do not change legacy global-SHA reuse or activate File placement.
 
 | Milestone | Deliverable | Exit evidence |
 |---|---|---|

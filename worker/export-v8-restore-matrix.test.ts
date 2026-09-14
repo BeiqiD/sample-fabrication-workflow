@@ -142,6 +142,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
       expect(result.report.appliedForwardMigrations).toEqual([
         { name: "0002_fp1_file_registry.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0002_fp1_file_registry.sql"), "utf8"))) },
         { name: "0003_fp1_import_acceptance.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0003_fp1_import_acceptance.sql"), "utf8"))) },
+        { name: "0004_r2_upload_acceptance.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0004_r2_upload_acceptance.sql"), "utf8"))) },
       ]);
     } else expect(result.report.appliedForwardMigrations).toEqual([]);
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite"));

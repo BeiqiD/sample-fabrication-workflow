@@ -49,6 +49,7 @@ function envFor(database: ReturnType<typeof referenceTestDatabase>) {
   });
   const env = {
     AUTH_MODE: "disabled",
+    R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
     DB: new SqliteD1Database(database) as unknown as D1Database,
     ASSETS: {
       put,
@@ -65,6 +66,11 @@ function envFor(database: ReturnType<typeof referenceTestDatabase>) {
 }
 
 function request(env: Env, path: string, init?: RequestInit) {
+  if (init?.method === "POST" && ["/assets", "/project-assets"].includes(path)) {
+    const headers = new Headers(init.headers);
+    headers.set("x-upload-request-id", crypto.randomUUID());
+    init = { ...init, headers };
+  }
   return worker.fetch(
     new Request(`https://app.test/api${path}`, init),
     env,
@@ -276,8 +282,8 @@ describe("shared attachment ingestion adapters", () => {
       "utf8",
     );
 
-    expect(project).toContain('from "./attachment-ingestion"');
-    expect(project).toContain("ingestR2Attachment");
+    expect(project).toContain('from "./uploads/r2-upload-acceptance"');
+    expect(project).toContain("acceptAndUploadR2Asset");
     expect(project).not.toContain("registerR2Asset");
     expect(project).not.toContain("findReusableR2Asset");
 
@@ -289,7 +295,7 @@ describe("shared attachment ingestion adapters", () => {
     expect(comment).not.toContain("findReusableR2Asset");
     expect(comment).not.toContain("findReusableManagedObject");
 
-    expect(ordinaryRoute).toContain("ingestR2Attachment");
+    expect(ordinaryRoute).toContain("acceptAndUploadR2Asset");
     expect(ordinaryRoute).not.toContain("registerR2Asset");
     expect(ordinaryRoute).not.toContain("findReusableR2Asset");
   });

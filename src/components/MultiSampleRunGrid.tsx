@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
+import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
 import { compressLayerStackImage } from "../lib/images";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import {
@@ -479,6 +480,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   const [image, setImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadProblem, setUploadProblem] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
   const initialFieldRef = useRef<HTMLElement>(null);
   const metrology = step?.entryKind === "metrology";
@@ -489,13 +491,14 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
     event.preventDefault();
     if (!state.column.run) return;
     if (!isTemplateStep && !title.trim()) { setError("Step name is required."); return; }
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
       let assetMetadata: RunStepAssetPresentationInput | undefined;
       if (image) {
-        const compressed = await compressLayerStackImage(image);
-        assetKey = (await api.uploadAsset(compressed, compressed.name)).key;
+        const context = `run-step:${state.column.sample.id}:${state.column.run.id}:${editing ? state.step.id : `new:${state.afterStepId || "start"}`}`;
+        const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
+        assetKey = (await api.uploadAsset(compressed, compressed.name, { context })).key;
         assetMetadata = {
           filename: compressed.name,
           mimeType: compressed.type || "application/octet-stream",
@@ -529,7 +532,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
       }
       await onSaved();
       onClose();
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setError((error as Error).message); setUploadProblem(error instanceof R2UploadRequestError); }
     finally { setSaving(false); }
   }
 
@@ -545,7 +548,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
         <label>{metrology ? "Result note" : "What happened"}<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder={metrology ? "Optional result summary" : "Execution detail, not a plan edit"} /></label>
         {!metrology && <label>Reason for deviation<textarea rows={3} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} /></label>}
         <FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label={metrology ? "Add a result image" : "Add an execution image"} />
-        {error && <p className="error-banner">{error}</p>}
+        {error && <p className="error-banner">{error}</p>}{uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `run-step:${state.column.sample.id}:${state.column.run?.id}:${editing ? state.step.id : `new:${state.afterStepId || "start"}`}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}
         <div className="form-actions"><button type="button" className="button" disabled={saving} onClick={onClose}>Cancel</button><button className="button primary" disabled={saving}>{saving ? "Saving…" : editing ? "Save correction" : "Add step"}</button></div>
       </form>
     </aside>

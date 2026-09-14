@@ -62,7 +62,13 @@ export const FULL_EXPORT_V9_TABLE_QUERIES = {
 } as const;
 
 // Schema 10 also preserves the durable import request and accepted result.
-export const FULL_EXPORT_TABLE_QUERIES = {
+export const FULL_EXPORT_V10_TABLE_QUERIES = {
   ...FULL_EXPORT_V9_TABLE_QUERIES,
   imports: "SELECT * FROM imports ORDER BY created_at, id",
+} as const;
+
+// Schema 11 retains accepted ordinary R2 upload decisions without adding bytes.
+export const FULL_EXPORT_TABLE_QUERIES = {
+  ...FULL_EXPORT_V10_TABLE_QUERIES,
+  r2_upload_requests: "SELECT * FROM r2_upload_requests ORDER BY created_at, id",
 } as const;

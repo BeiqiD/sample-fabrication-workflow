@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ExportRow, FullExportManifestV10 } from "./export";
+import type { ExportRow, FullExportManifestV10, FullExportManifestV11 } from "./export";
 import {
   MAX_FILE_MIGRATION_INPUT_BYTES, MAX_FILE_MIGRATION_INPUT_ROWS, MAX_FILE_MIGRATION_PLAN_BYTES,
   planFileMigration, serializeFileMigrationPlan,
@@ -32,6 +32,19 @@ function manifest(): FullExportManifestV10 {
           runStepCommentsBody: { presentInSourceSchema: false, complete: true, sourceRowCount: 0, values: [] } } },
     },
   };
+}
+function uploadManifest(): FullExportManifestV11 {
+  const historical = manifest();
+  return { ...historical, schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance",
+    tables: { ...historical.tables, r2_upload_requests: [] } };
+}
+function upload(extra: ExportRow = {}): ExportRow {
+  return { id: "upload", actor_email: "PRIVATE-ACTOR", client_request_id: "request", operation_id: "operation",
+    ingress: "ordinary_image", purpose: "embedded_content", request_scope: "system", request_sha256: hash,
+    request_input_json: '{"private":"PRIVATE-UPLOAD-INPUT"}', storage_profile_id: "profile",
+    storage_profile_revision: 1, storage_policy_revision: 1, candidate_asset_id: "candidate",
+    candidate_object_key: "candidate-key", status: "pending", accepted_result_json: null,
+    created_at: now, completed_at: null, expires_at: "2026-09-14T12:00:00.000Z", ...extra };
 }
 function asset(id = "asset", key = "bytes/asset", extra: ExportRow = {}): ExportRow {
   return { id, r2_key: key, status: "ready", byte_size: 5, sha256: hash, import_id: null, ...extra };
@@ -98,6 +111,85 @@ describe("provider-free File migration planning", () => {
     expect(groups.find((group) => group.locator.objectKey === "owned-key")?.namespace.status).toBe("resolved");
     expect(groups.find((group) => group.locator.objectKey === "bytes/asset")?.namespace.status).toBe("resolved");
     expect(groups.find((group) => group.locator.objectKey === "unrelated-key")?.namespace.status).toBe("unresolved");
+  });
+
+  it("observes V11 upload candidate and explicit ready keys without adding consumers or following hashes", async () => {
+    const input = uploadManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.assets.push(asset("accepted", "accepted-key"), asset("unrelated", "same-sha-key"));
+    input.tables.r2_upload_requests.push(upload({ status: "ready", completed_at: now,
+      accepted_result_json: JSON.stringify({ id: "accepted", key: "accepted-key", deduplicated: true }) }));
+    const plan = await planFileMigration(input);
+    expect(plan.source).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance" });
+    for (const key of ["candidate-key", "accepted-key"]) {
+      const group = plan.groups.find((entry) => entry.locator.objectKey === key)!;
+      expect(group.namespace).toMatchObject({ status: "resolved", identity: namespace,
+        evidence: [{ kind: "accepted_upload", sourceId: "upload", profileId: "profile", configurationRevision: 1 }] });
+      expect(group.consumers).toEqual([]);
+      expect(group.proposals).toEqual([]);
+      expect(group.blockers).toContain("no_typed_consumer");
+      expect(group.blockers).toContain("bytes_unverified");
+    }
+    expect(plan.groups.find((entry) => entry.locator.objectKey === "same-sha-key")?.namespace.status).toBe("unresolved");
+    expect(plan.summary.consumers).toBe(0);
+    expect(plan.coverage).toMatchObject({ retentionEdges: 0, matchedEdges: 0, unmatchedEdges: [], ambiguousEdges: [] });
+    expect(plan).toMatchObject({ executable: false, bytesVerified: false });
+    expect(serializeFileMigrationPlan(plan)).not.toContain("PRIVATE-");
+  });
+
+  it("preserves pending candidate namespace evidence but never uses a result on an unfinished upload", async () => {
+    const input = uploadManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.r2_upload_requests.push(upload({
+      accepted_result_json: JSON.stringify({ id: "ignore", key: "ignore-unfinished-result", deduplicated: true }),
+    }));
+    const plan = await planFileMigration(input);
+    expect(plan.groups).toHaveLength(1);
+    expect(plan.groups[0].locator.objectKey).toBe("candidate-key");
+    expect(plan.groups[0].namespace.status).toBe("resolved");
+    expect(plan.groups[0].blockers).toContain("accepted_upload_unfinished");
+    expect(plan.groups[0].consumers).toEqual([]);
+  });
+
+  it("blocks stale upload profile revisions on both the candidate and the ready result", async () => {
+    const input = uploadManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.r2_upload_requests.push(upload({ storage_profile_revision: 2, status: "ready", completed_at: now,
+      accepted_result_json: JSON.stringify({ id: "accepted", key: "accepted-key", deduplicated: true }) }));
+    const plan = await planFileMigration(input);
+    expect(plan.groups).toHaveLength(2);
+    for (const group of plan.groups) {
+      expect(group.namespace).toEqual({ status: "unresolved", identity: null, evidence: [] });
+      expect(group.blockers).toContain("namespace_evidence_invalid");
+    }
+  });
+
+  it("binds complete V11 receipts to the input digest while keeping receipt payloads out of the report", async () => {
+    const input = uploadManifest();
+    input.tables.storage_profiles.push(profile());
+    input.tables.r2_upload_requests.push(upload());
+    const before = structuredClone(input);
+    const first = await planFileMigration(input);
+    expect(input).toEqual(before);
+    input.tables.r2_upload_requests[0].actor_email = "PRIVATE-CHANGED-ACTOR";
+    input.tables.r2_upload_requests[0].request_input_json = '{"private":"PRIVATE-CHANGED-INPUT"}';
+    const changed = await planFileMigration(input);
+    expect(changed.source.inputSha256).not.toBe(first.source.inputSha256);
+    expect(changed.groups).toEqual(first.groups);
+    expect(serializeFileMigrationPlan(changed)).not.toContain("PRIVATE-");
+  });
+
+  it("keeps malformed ready receipt evidence visible without inventing a result locator", async () => {
+    for (const receipt of ['{"id":"accepted","key":"bad","deduplicated":true,"extra":"PRIVATE"}',
+      '{"id":"accepted","key":"bad"}', '{"id":"accepted","key":"","deduplicated":true}', "INVALID"]) {
+      const input = uploadManifest();
+      input.tables.storage_profiles.push(profile());
+      input.tables.r2_upload_requests.push(upload({ status: "ready", completed_at: now, accepted_result_json: receipt }));
+      const plan = await planFileMigration(input);
+      expect(plan.groups).toHaveLength(1);
+      expect(plan.groups[0].locator.objectKey).toBe("candidate-key");
+      expect(plan.groups[0].blockers).toContain("accepted_upload_result_invalid");
+    }
   });
 
   it("blocks competing captured namespaces instead of selecting a default", async () => {

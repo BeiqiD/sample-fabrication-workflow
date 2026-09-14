@@ -99,6 +99,7 @@ function envFor(
   const uploaded = new Map<string, Uint8Array>(options.initialAssets);
   return {
     AUTH_MODE: "disabled",
+    R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "test-assets" }),
     DB: new SqliteD1Database(database, options.beforeBatch, options.beforeExecute),
     ASSETS: {
       delete: assetDelete,
@@ -270,7 +271,7 @@ describe("blob garbage collection", () => {
       'https://samples.run/api/assets',
       {
         method: 'POST',
-        headers: { 'content-type': 'image/png', 'x-filename': 'replacement.png' },
+        headers: { "x-upload-request-id": crypto.randomUUID(), 'content-type': 'image/png', 'x-filename': 'replacement.png' },
         body: bytes,
       },
     ), env, {} as ExecutionContext);

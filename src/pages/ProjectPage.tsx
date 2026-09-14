@@ -1,3 +1,4 @@
+import { discardR2Upload, R2UploadRequestError } from "../lib/r2-upload-client";
 import { findAvailableProjectPlacementPoint } from "../lib/project-placement-position";
 import {
   lazy,
@@ -2093,7 +2094,7 @@ export function ProjectPage() {
       message: null,
     });
     try {
-      const asset = await projectApi.uploadAttachmentAsset(file);
+      const asset = await projectApi.uploadAttachmentAsset(file, { context: `project:${projectId}` });
       if (!ownedContentMutationIsActive(generation)) return;
       const input: CreateAttachmentProjectItemInput = {
         contentId: createProjectApiId("content"),
@@ -2121,12 +2122,12 @@ export function ProjectPage() {
         filename: file.name,
         mimeType: file.type || "application/octet-stream",
         geometry: attachmentGeometry,
-        status: projectOwnedContentFailureStatus(caught),
+        status: caught instanceof R2UploadRequestError && caught.terminal ? "error" : projectOwnedContentFailureStatus(caught),
         message,
       });
       setOwnedContentActionError(message);
     }
-  }, [ownedContentMutationIsActive, performAttachmentProjectCreate, snapshot, updatePendingAttachment]);
+  }, [ownedContentMutationIsActive, performAttachmentProjectCreate, projectId, snapshot, updatePendingAttachment]);
 
   const handleAttachmentFile = useCallback((file: File | null) => {
     const point = attachmentRequestPointRef.current;
@@ -2172,13 +2173,17 @@ export function ProjectPage() {
     const current = pendingAttachmentRef.current;
     if (!current || current.status === "uploading" || current.status === "saving"
       || (current.status === "uncertain" && pendingAttachmentInputRef.current)) return;
+    if (!pendingAttachmentInputRef.current) {
+      try { discardR2Upload("project_attachment", `project:${projectId}`); }
+      catch (caught) { setOwnedContentActionError((caught as Error).message); return; }
+    }
     ownedContentGenerationRef.current += 1;
     pendingAttachmentInputRef.current = null;
     pendingAttachmentFileRef.current = null;
     updatePendingAttachment(null);
     setOwnedContentActionError("");
     continueReferenceNavigation(leave);
-  }, [continueReferenceNavigation, updatePendingAttachment]);
+  }, [continueReferenceNavigation, projectId, updatePendingAttachment]);
 
   const startAttachmentEdit = useCallback((itemId: string, requestedHost: "surface" | "inspector" = "surface") => {
     if (ownedContentReloadPending || !snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
@@ -3101,7 +3106,9 @@ export function ProjectPage() {
           ? "Finishing the Project attachment operation before leaving this Project…"
           : pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current
             ? "The Project attachment creation outcome is uncertain. Retry the exact creation before leaving."
-            : "The attachment operation failed deterministically. Cancel it before leaving, then start a new attachment operation if needed."
+            : pendingAttachment.status === "uncertain"
+              ? "The file upload outcome is uncertain. Retry to check the saved request, or explicitly cancel this upload before leaving."
+              : "The attachment operation failed deterministically. Cancel it before leaving, then start a new attachment operation if needed."
         : markdownEditor
           ? markdownEditor.status === "saving"
             ? "Finishing the Project Markdown save before leaving…"
@@ -3693,6 +3700,7 @@ export function ProjectPage() {
             {pendingAttachment.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
             {(pendingAttachment.status !== "uncertain" || !pendingAttachmentInputRef.current) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(false)}>Cancel</button>}
           </div>}
+          {pendingAttachment.status === "uncertain" && !pendingAttachmentInputRef.current && <small className="muted">Retry checks the same upload. Cancel discards its saved request; the previous upload may still finish.</small>}
           {pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current && <small className="muted">The Project occurrence may already be committed. Retry replays the exact original creation request.</small>}
         </div>}
 

@@ -570,6 +570,7 @@ describe("FabuBlox storage winner recovery", () => {
       {
         method: 'POST',
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           'content-type': 'image/png',
           'x-filename': 'concurrent.png',
         },
@@ -715,6 +716,7 @@ describe("FabuBlox storage winner recovery", () => {
       {
         method: 'POST',
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           'content-type': 'image/png',
           'x-filename': 'concurrent.png',
         },
@@ -1406,6 +1408,7 @@ describe("ordinary asset registration reconciliation", () => {
       {
         method: "POST",
         headers: {
+          "x-upload-request-id": crypto.randomUUID(),
           "content-type": "image/png",
           "x-filename": "committed.png",
         },

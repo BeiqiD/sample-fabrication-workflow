@@ -6,7 +6,7 @@ import { build } from "esbuild";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
-const usage = "Usage: npm run plan:file-migration -- --snapshot COMPLETE_V10_SNAPSHOT.json --output NEW_REPORT.json";
+const usage = "Usage: npm run plan:file-migration -- --snapshot COMPLETE_SNAPSHOT.json --output NEW_REPORT.json";
 
 async function main() {
   if (args.length === 1 && args[0] === "--help") { console.log(usage); return; }
