@@ -1,3 +1,5 @@
+import { FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_EXPORTED_VIEW_COLUMNS } from "../shared/contracts/file-shadow-schema";
+
 // The full-system export inventories every canonical application table and
 // the retention projection in stable order within one D1 snapshot batch.
 export const FULL_EXPORT_V8_TABLE_QUERIES = {
@@ -118,4 +120,9 @@ export const FULL_EXPORT_V14_TABLE_QUERIES = {
 
 // The unversioned catalog names the current writer without redefining its
 // schema contract. Historical and current snapshotters use frozen catalogs.
-export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V14_TABLE_QUERIES;
+export const FULL_EXPORT_V15_TABLE_QUERIES = {
+  ...FULL_EXPORT_V14_TABLE_QUERIES,
+  ...Object.fromEntries(Object.entries({ ...FILE_SHADOW_EXPORT_COLUMNS, ...FILE_SHADOW_EXPORTED_VIEW_COLUMNS })
+    .map(([name, columns]) => [name, `SELECT * FROM ${name} ORDER BY ${columns.join(", ")}`])),
+} as const;
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V15_TABLE_QUERIES;

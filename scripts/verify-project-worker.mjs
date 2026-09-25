@@ -116,11 +116,11 @@ try {
   const oldExport = await miniflare.dispatchFetch("https://app.test/api/exports/all");
   assert.equal(oldExport.status, 409);
   assert.match((await oldExport.json()).error, /Refresh the page/);
-  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=14&archiveWriter=1");
+  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=15&archiveWriter=1");
   const fullExport = await exportResponse.json();
   assert.equal(exportResponse.status, 200, JSON.stringify(fullExport));
-  assert.equal(fullExport.schemaVersion, 14);
-  assert.equal(fullExport.archiveProfile, "fp1-file-authority-transition");
+  assert.equal(fullExport.schemaVersion, 15);
+  assert.equal(fullExport.archiveProfile, "fp1-shadow-conversion");
   assert.equal(fullExport.archiveWriter, 1);
   assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
   const sourceSchema = fullExport.artifacts.sourceSchema.value;

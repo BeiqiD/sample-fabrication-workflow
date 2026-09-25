@@ -116,7 +116,7 @@ describe("v12 metrology reference business acceptance archive profile", () => {
       const archivePath = join(scratch, "v12.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance", appliedForwardMigrations: [{ name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance", appliedForwardMigrations: [{ name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {

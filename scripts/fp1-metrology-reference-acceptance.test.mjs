@@ -116,7 +116,7 @@ const workerSource = `
 import { Hono } from "hono";
 import { routes } from "./worker/process-definition/routes.ts";
 import { handleError } from "./worker/platform/http.ts";
-import { snapshotFullExportV14 } from "./worker/export-v14-snapshot.ts";
+import { snapshotFullExportV15 } from "./worker/export-v15-snapshot.ts";
 const app = new Hono().basePath("/api"); app.onError(handleError);
 app.use("*", async (c, next) => { c.set("userEmail", c.req.header("X-Fixture-Actor") || "owner@example.com"); await next(); });
 app.route("/", routes);
@@ -124,7 +124,7 @@ export default { async fetch(request, env, ctx) {
   const { mode, binding, missingBytes } = await request.json(); const rawDb = env[binding];
   if (mode === "restored") {
     let puts = 0;
-    const before = (await snapshotFullExportV14(rawDb)).tables;
+    const before = (await snapshotFullExportV15(rawDb)).tables;
     const routeEnv = { DB: rawDb, R2_BOOTSTRAP_NAMESPACE: ${JSON.stringify(namespace)}, ASSETS: {
       get(key) { return missingBytes ? null : env.RESTORED_BUCKET.get(key); },
       head(key) { return missingBytes ? null : env.RESTORED_BUCKET.head(key); },
@@ -137,7 +137,7 @@ export default { async fetch(request, env, ctx) {
       body: new TextEncoder().encode("native metrology fixture replay"),
     }), routeEnv, ctx);
     return Response.json({ get: { status: getResponse.status, body: await getResponse.json() }, post: { status: postResponse.status, body: await postResponse.json() },
-      puts, before, after: (await snapshotFullExportV14(rawDb)).tables });
+      puts, before, after: (await snapshotFullExportV15(rawDb)).tables });
   }
   const stats = { puts: [], gets: [], heads: [], deletes: 0, insertAttempts: 0, sessions: [], lostAcceptance: 0, lostFinalization: 0,
     acceptedBeforeEachPut: [], raceMutations: 0, sqlErrors: [] };
@@ -268,7 +268,7 @@ export default { async fetch(request, env, ctx) {
       physical.push({ id: result.assetId, size: blob?.size ?? null, sha256: blob ? await sha(await blob.arrayBuffer()) : null });
     }
     return Response.json({ before, missing, first, pending, pendingPoll, pendingIo, afterFirst, firstIo, retryBefore, state, otherActor, otherTemplate,
-      retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats, archive: mode === "replay" ? await snapshotFullExportV14(rawDb) : null });
+      retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats, archive: mode === "replay" ? await snapshotFullExportV15(rawDb) : null });
   } finally { globalThis.Date = originalDate; }
 } };
 `;
@@ -316,38 +316,46 @@ async function qualifySqlGuards(db, fixture) {
   assert.deepEqual(retained, [{ occurrence_type: "metrology_template_reference" }], "only the domain occurrence retains bytes");
 }
 async function qualifyRestore(mf, scratch, fixture) {
-  const source = `export { snapshotFullExportV14 } from './worker/export-v14-snapshot.ts'; export { buildFullExportArchiveV14 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
+  const source = `export { snapshotFullExportV15 } from './worker/export-v15-snapshot.ts'; export { buildFullExportArchiveV15 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
   const modulePath = join(scratch, "restore-qualification.mjs"); await writeFile(modulePath, await bundle(source, "node"));
   const service = await import(pathToFileURL(modulePath).href); const byUrl = new Map(fixture.archive.blobs.map((blob) => [blob.downloadUrl, blob]));
-  const archive = await service.buildFullExportArchiveV14(fixture.archive, undefined, async (url) => {
+  const archive = await service.buildFullExportArchiveV15(fixture.archive, undefined, async (url) => {
     const blob = byUrl.get(String(url)); const stored = blob && await (await mf.getR2Bucket("BUCKET")).get(blob.objectKey);
     return stored ? new Response(await stored.arrayBuffer()) : new Response(null, { status: 404 });
   });
   const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
   const originalHash = hash(await readFile(archivePath));
   const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
-  assert.equal(restored.report.schemaVersion, 14); assert.equal(restored.report.archiveProfile, "fp1-file-authority-transition");
+  assert.equal(restored.report.schemaVersion, 15); assert.equal(restored.report.archiveProfile, "fp1-shadow-conversion");
   assert.deepEqual(restored.report.appliedForwardMigrations, []);
   assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
   assert(restored.report.restoredBlobCount > 0);
   const recovered = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
   try {
     assertLegacyFileAuthority(recovered);
-    const snapshot = await service.snapshotFullExportV14(hostAdapter(recovered));
-    assert.deepEqual(snapshot.tables, fixture.archive.tables, "nonempty D1 V14 restores previous history and new receipt rows exactly");
+    const snapshot = await service.snapshotFullExportV15(hostAdapter(recovered));
+    assert.deepEqual(snapshot.tables, fixture.archive.tables, "nonempty D1 V15 restores previous history and new receipt rows exactly");
     assert.deepEqual(snapshot.tables[table], fixture.afterFirst[table]);
     const providerManifest = JSON.parse(await readFile(join(restored.restoredDirectory, "provider-manifest.json"), "utf8"));
     const restoredBucket = await mf.getR2Bucket("RESTORED_BUCKET");
     for (const entry of providerManifest) if (entry.path) await restoredBucket.put(entry.objectKey, await readFile(join(restored.restoredDirectory, entry.path)));
     // Build a separate, empty D1 instance from the isolated restore's exact SQL
-    // and rows. Guards are installed after row loading, as in isolated restore;
-    // no guard is removed or disabled in an existing database.
+    // and rows, including the physical source identities preserved by V15.
+    // Guards are installed after row loading, as in isolated restore; no guard
+    // is removed or disabled in an existing database.
     const restoredDb = await mf.getD1Database("DB_RESTORED");
     const catalog = recovered.prepare("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY type, name").all();
+    const sourceTables = new Set(Object.keys(snapshot.artifacts.sourceRowids.value.tables));
+    const sourceRows = new Map();
     const statements = [restoredDb.prepare("PRAGMA defer_foreign_keys = ON")];
     for (const definition of catalog.filter((row) => row.type === "table")) statements.push(restoredDb.prepare(definition.sql));
     for (const definition of catalog.filter((row) => row.type === "table")) {
-      for (const row of recovered.prepare(`SELECT * FROM "${definition.name}"`).all()
+      const query = sourceTables.has(definition.name)
+        ? `SELECT CAST(rowid AS TEXT) AS rowid, * FROM "${definition.name}" ORDER BY rowid`
+        : `SELECT * FROM "${definition.name}"`;
+      const tableRows = plain(recovered.prepare(query).all());
+      if (sourceTables.has(definition.name)) sourceRows.set(definition.name, { query, rows: [...tableRows] });
+      for (const row of tableRows
         .sort((left, right) => JSON.stringify(left) < JSON.stringify(right) ? -1 : JSON.stringify(left) > JSON.stringify(right) ? 1 : 0)) {
         const columns = Object.keys(row);
         statements.push(restoredDb.prepare(`INSERT INTO "${definition.name}" (${columns.map((name) => `"${name}"`).join(",")}) VALUES (${columns.map(() => "?").join(",")})`)
@@ -357,6 +365,10 @@ async function qualifyRestore(mf, scratch, fixture) {
     for (const definition of catalog.filter((row) => row.type !== "table")) statements.push(restoredDb.prepare(definition.sql));
     await restoredDb.batch(statements);
     assert.deepEqual((await restoredDb.prepare("PRAGMA foreign_key_check").all()).results, []);
+    const copiedSourceRows = await restoredDb.batch([...sourceRows.values()].map(({ query }) => restoredDb.prepare(query)));
+    [...sourceRows.entries()].forEach(([name, expected], index) => {
+      assert.deepEqual(copiedSourceRows[index].results, expected.rows, `${name} preserves every restored source row and its exact physical rowid in D1`);
+    });
     for (const missingBytes of [false, true]) {
       const response = await mf.dispatchFetch("https://qualification.test/", { method: "POST", body: JSON.stringify({ mode: "restored", binding: "DB_RESTORED", missingBytes }) });
       assert.equal(response.status, 200, await response.clone().text()); const observed = await response.json();
@@ -458,6 +470,6 @@ test("production metrology upload routes qualify durable publication on real wor
       finally { host.close(); }
       const db = await mf.getD1Database("DB_GUARDS"); await db.prepare("PRAGMA recursive_triggers = OFF").run(); await qualifySqlGuards(db, replayFixture);
     });
-    await t.test("nonempty V14 archive preserves historical receipts, legacy File authority, and installed guards on isolated restore", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
+    await t.test("nonempty V15 archive preserves historical receipts, legacy File authority, and installed guards on isolated restore", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
   } finally { await mf.dispose(); await rm(scratch, { recursive: true, force: true }); }
 });

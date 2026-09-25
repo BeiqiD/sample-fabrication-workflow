@@ -7,14 +7,16 @@ export const FULL_EXPORT_ARCHIVE_SCHEMA_V11 = 11 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V12 = 12 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V13 = 13 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V14 = 14 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V14;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V15 = 15 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V15;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V10 = "fp1-import-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V11 = "fp1-r2-upload-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V12 = "fp1-metrology-reference-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V13 = "fp1-comment-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V14 = "fp1-file-authority-transition" as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V14;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V15 = "fp1-shadow-conversion" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V15;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -110,4 +112,27 @@ export interface FullExportManifestV13 extends Omit<FullExportManifestV8, "schem
 export interface FullExportManifestV14 extends Omit<FullExportManifestV8, "schemaVersion"> {
   schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V14;
   archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V14;
+}
+
+// Profile identities are part of a V15 location's byte address. A same-key
+// legacy entry and a new shadow placement must never alias in the archive.
+export interface FullExportBlobEntryV15 extends FullExportBlobEntry {
+  byteAuthority: "legacy" | "file_location";
+  storageProfileId: string | null;
+  storageProfileRevision: number | null;
+  locationId: string | null;
+}
+
+export interface FileShadowSourceRowids {
+  version: 1;
+  kind: "file-shadow-source-rowids";
+  // Entries have the same ordinal as their hashed logical archive table rows.
+  tables: Record<string, Array<{ rowid: string; rowSha256: string }>>;
+}
+
+export interface FullExportManifestV15 extends Omit<FullExportManifestV8, "schemaVersion" | "blobs" | "artifacts"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V15;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V15;
+  blobs: FullExportBlobEntryV15[];
+  artifacts: FullExportManifestV8["artifacts"] & { sourceRowids: ExportJsonArtifact<FileShadowSourceRowids> };
 }

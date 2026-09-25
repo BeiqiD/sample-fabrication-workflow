@@ -7,10 +7,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import {
-  FULL_EXPORT_ARCHIVE_PROFILE,
-  FULL_EXPORT_ARCHIVE_PROFILE_V14,
-  FULL_EXPORT_ARCHIVE_SCHEMA,
-  FULL_EXPORT_ARCHIVE_SCHEMA_V14,
   type ExportSchemaObject,
   type FullExportManifestV14,
 } from "../shared/contracts/export";
@@ -22,9 +18,7 @@ import {
   FILE_AUTHORITY_SCHEMA_V14_VIEW_NAMES,
 } from "../shared/contracts/export-file-authority";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV14 } from "../shared/contracts/export-protocol";
-import { api } from "../src/lib/api";
 import { buildFullExportArchiveV14 } from "../src/lib/exportAll";
-import { FULL_EXPORT_TABLE_QUERIES, FULL_EXPORT_V14_TABLE_QUERIES } from "./export-catalog";
 import worker from "./index";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
@@ -53,7 +47,7 @@ describe("V14 schema fingerprint normalization", () => {
     const whole = new DatabaseSync(":memory:");
     const split = new DatabaseSync(":memory:");
     databases.push(whole, split);
-    for (const name of (await readdir(migrationsDirectory)).filter((entry) => entry.endsWith(".sql")).sort()) {
+    for (const name of (await readdir(migrationsDirectory)).filter((entry) => entry.endsWith(".sql") && entry <= "0007_fp1_file_authority_transition.sql").sort()) {
       const sql = await readFile(join(migrationsDirectory, name), "utf8");
       whole.exec(sql);
       for (const statement of splitSql(sql)) split.exec(statement);
@@ -78,7 +72,7 @@ afterEach(() => {
 });
 
 function fixture() {
-  const database = referenceTestDatabase();
+  const database = referenceTestDatabase({ throughMigration: "0007_fp1_file_authority_transition.sql" });
   databases.push(database);
   database.exec(`
     INSERT INTO storage_profiles
@@ -105,13 +99,7 @@ async function manifestFrom(request: ReturnType<typeof fixture>["request"]) {
 describe("v14 additive File authority export profile", () => {
   it("negotiates only V14 on the transitioned schema and retains the legacy byte planner", async () => {
     const f = fixture();
-    expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(FULL_EXPORT_ARCHIVE_SCHEMA_V14);
-    expect(FULL_EXPORT_ARCHIVE_PROFILE).toBe(FULL_EXPORT_ARCHIVE_PROFILE_V14);
-    expect(FULL_EXPORT_TABLE_QUERIES).toBe(FULL_EXPORT_V14_TABLE_QUERIES);
-    const fetcher = vi.fn((path: string) => f.request(path)) as unknown as typeof fetch;
-    vi.stubGlobal("fetch", fetcher);
-    const manifest = await api.getFullExport();
-    expect(fetcher).toHaveBeenCalledWith(endpoint, undefined);
+    const manifest = await manifestFrom(f.request);
     expect(manifest).toMatchObject({
       schemaVersion: 14,
       archiveWriter: 1,
@@ -314,7 +302,7 @@ describe("v14 additive File authority export profile", () => {
       expect(restored.report).toMatchObject({
         schemaVersion: 14,
         archiveProfile: "fp1-file-authority-transition",
-        appliedForwardMigrations: [],
+        appliedForwardMigrations: [{ name: "0008_fp1_shadow_runtime.sql" }],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true,
           derivedTablesRebuilt: true },
       });

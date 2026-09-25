@@ -1,5 +1,6 @@
 import type JSZip from "jszip";
-import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14 } from "../../shared/contracts/export-protocol";
+import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15 } from "../../shared/contracts/export-protocol";
+import type { FullExportBlobEntryV15 } from "../../shared/contracts/export";
 import type {
   BlobExportOutcome,
   FullExportBlobEntry,
@@ -43,7 +44,13 @@ async function packageExportBlobs(
   const total = blobs.length;
   onProgress?.(0, total);
   let completed = 0;
-  const results: Array<{
+  type ShadowIdentity = Pick<FullExportBlobEntryV15, "byteAuthority" | "storageProfileId" | "storageProfileRevision" | "locationId">;
+  const identity = (entry: FullExportBlobEntry): Partial<ShadowIdentity> => "byteAuthority" in entry
+    ? { byteAuthority: (entry as FullExportBlobEntryV15).byteAuthority,
+      storageProfileId: (entry as FullExportBlobEntryV15).storageProfileId,
+      storageProfileRevision: (entry as FullExportBlobEntryV15).storageProfileRevision,
+      locationId: (entry as FullExportBlobEntryV15).locationId } : {};
+  const results: Array<Partial<ShadowIdentity> & {
     locatorId: string;
     storeKind: FullExportBlobEntry["storeKind"];
     provider: string;
@@ -87,6 +94,7 @@ async function packageExportBlobs(
       }
     }
     results.push({
+      ...identity(entry),
       locatorId: entry.locatorId,
       storeKind: entry.storeKind,
       provider: entry.provider,
@@ -104,6 +112,7 @@ async function packageExportBlobs(
   }
 
   const warnings = results.flatMap((entry) => entry.outcome === "packaged" ? [] : [{
+    ...identity(blobs.find((blob) => blob.locatorId === entry.locatorId)!),
     code: entry.outcome,
     locatorId: entry.locatorId,
     blobRecordIds: entry.blobRecordIds,
@@ -148,7 +157,7 @@ export async function buildFullExportArchive(
 }
 
 async function buildVersionedFullExportArchive(
-  version: 8 | 9 | 10 | 11 | 12 | 13 | 14,
+  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15,
   input: unknown,
   onProgress?: (completed: number, total: number) => void,
   fetcher: typeof fetch = fetch,
@@ -159,7 +168,8 @@ async function buildVersionedFullExportArchive(
         : version === 11 ? await validateFullExportV11(input)
           : version === 12 ? await validateFullExportV12(input)
             : version === 13 ? await validateFullExportV13(input)
-              : await validateFullExportV14(input);
+              : version === 14 ? await validateFullExportV14(input)
+                : await validateFullExportV15(input);
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = new Set(["export-manifest.json", "export-warnings.json"]);
@@ -224,9 +234,13 @@ export function buildFullExportArchiveV14(input: unknown, onProgress?: (complete
   return buildVersionedFullExportArchive(14, input, onProgress, fetcher);
 }
 
+export function buildFullExportArchiveV15(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(15, input, onProgress, fetcher);
+}
+
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const { archive } = await buildFullExportArchiveV14(manifest, onProgress);
+  const { archive } = await buildFullExportArchiveV15(manifest, onProgress);
   const url = URL.createObjectURL(archive);
   const anchor = document.createElement("a");
   anchor.href = url;
