@@ -148,7 +148,7 @@ describe("reference resolution route", () => {
     d1.resetCounts();
 
     const response = await worker.fetch(
-      new Request("https://app.test/api/exports/all?archiveSchema=13&archiveWriter=1"),
+      new Request("https://app.test/api/exports/all?archiveSchema=14&archiveWriter=1"),
       env,
       executionContext,
     );
@@ -160,7 +160,9 @@ describe("reference resolution route", () => {
 
     expect(response.status).toBe(200);
     expect(d1.batchCount).toBe(1);
-    expect(d1.directQueryCount).toBe(0);
+    // One bounded generation-marker probe runs before the one canonical
+    // table/schema snapshot batch. No canonical table escapes that batch.
+    expect(d1.directQueryCount).toBe(1);
     expect(payload.schemaVersion).toBe(FULL_EXPORT_ARCHIVE_SCHEMA);
     expect(payload.tables.reference_targets).toEqual([
       expect.objectContaining({

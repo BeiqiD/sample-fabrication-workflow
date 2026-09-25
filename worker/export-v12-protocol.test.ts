@@ -116,7 +116,7 @@ describe("v12 metrology reference business acceptance archive profile", () => {
       const archivePath = join(scratch, "v12.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance", appliedForwardMigrations: [{ name: "0006_comment_acceptance.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 12, archiveProfile: "fp1-metrology-reference-acceptance", appliedForwardMigrations: [{ name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
@@ -151,7 +151,7 @@ describe("v12 metrology reference business acceptance archive profile", () => {
   it("rejects old clients and relabeling even with no metrology receipts, before downloads", async () => {
     const f = await fixture();
     try {
-      for (const version of [8, 9, 10, 11]) expect((await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`)).status).toBe(409);
+      for (const version of [8, 9, 10, 11, 13, 14]) expect((await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`)).status).toBe(409);
       const manifest = await f.manifest();
       await expect(buildFullExportArchiveV11(manifest, undefined, f.fetcher)).rejects.toThrow("versions differ");
       manifest.tables.metrology_reference_upload_requests = [];

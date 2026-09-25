@@ -11,6 +11,7 @@ import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore"
 import type { ExportRow, FullExportManifestV10 } from "../shared/contracts/export";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10 } from "../shared/contracts/export-protocol";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
+import { FILE_AUTHORITY_CONSUMER_COLUMNS } from "../shared/contracts/export-file-authority";
 import { buildBlobExportPlan } from "../shared/contracts/export-blob-plan";
 import { stableJson } from "../shared/domain/content-addressing";
 import { buildFullExportArchiveV9, buildFullExportArchiveV10 } from "../src/lib/exportAll";
@@ -104,12 +105,17 @@ describe("v10 durable import acceptance archive profile", () => {
       const archivePath = join(scratch, "v10.zip");
       await writeFile(archivePath, archiveBytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
         expect(database.prepare("SELECT * FROM r2_upload_requests").all()).toEqual([]);
-        expect(database.prepare("SELECT * FROM imports ORDER BY id").all()).toEqual(f.database.prepare("SELECT * FROM imports ORDER BY id").all());
+        expect(database.prepare("SELECT * FROM imports ORDER BY id").all()).toEqual(
+          f.database.prepare("SELECT * FROM imports ORDER BY id").all().map((row) => ({
+            ...row,
+            ...Object.fromEntries(FILE_AUTHORITY_CONSUMER_COLUMNS.imports.map((column) => [column, null])),
+          })),
+        );
         const row = await readAcceptedImport(new SqliteD1Database(database) as unknown as D1Database, "archive@example.com", "00000000-0000-4000-8000-000000000002");
         expect(acceptedImportState(row!)).toMatchObject({ status: "ready", result: { id: "accepted-ready", templateVersionId: "receipt-template", version: 3 } });
         expect(() => database.exec("UPDATE imports SET request_sha256 = 'changed' WHERE id = 'accepted-ready'")).toThrow();
@@ -136,7 +142,7 @@ describe("v10 durable import acceptance archive profile", () => {
   it("rejects older clients and profile relabeling before any provider download", async () => {
     const f = await fixture();
     try {
-      for (const version of [8, 9]) {
+      for (const version of [8, 9, 11, 12, 13, 14]) {
         const response = await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`);
         expect(response.status).toBe(409);
         expect(await response.json()).toMatchObject({ error: expect.stringContaining("Refresh the page") });
@@ -145,6 +151,18 @@ describe("v10 durable import acceptance archive profile", () => {
       await expect(buildFullExportArchiveV9(manifest, undefined, f.fetcher)).rejects.toThrow("versions differ");
       await expect(validateFullExportV9({ ...manifest, schemaVersion: 9, archiveProfile: "fp1-legacy-overlap" })).rejects.toThrow("requires archive schema 10");
       await expect(validateFullExportV8({ ...manifest, schemaVersion: 8 })).rejects.toThrow("requires archive schema 10");
+      expect(f.read).not.toHaveBeenCalled();
+    } finally { f.database.close(); }
+  });
+
+  it("fails closed before snapshotting when the V10 acceptance marker set is incomplete", async () => {
+    const f = await fixture();
+    try {
+      f.database.exec("DROP TRIGGER imports_acceptance_insert_guard");
+      const batch = vi.spyOn(f.d1, "batch");
+      const response = await f.request(endpoint);
+      expect(response.status).toBe(500);
+      expect(batch).not.toHaveBeenCalled();
       expect(f.read).not.toHaveBeenCalled();
     } finally { f.database.close(); }
   });

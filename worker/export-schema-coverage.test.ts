@@ -1,19 +1,39 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { snapshotFullExportV13 } from "./export-v13-snapshot";
+import { snapshotFullExportV14 } from "./export-v14-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import { FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-authority";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
 // underscore-prefixed tables: a new application table must enter the export.
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
+// Hidden rowids are local physical identities. This derived guard table is
+// validated inside the V14 snapshot and rebuilt from restored registry rows;
+// serializing its host-specific rowids would make an archive less portable.
+const REBUILDABLE_TABLES = new Set<string>(FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES);
 
 // This time-dependent projection is part of the archive contract in addition to
 // its source tables. Other views are rebuildable only after an explicit decision
 // here; a newly introduced view must not silently disappear from the inventory.
-const EXPORTED_VIEWS = new Set(["blob_retention_edges"]);
+const EXPORTED_VIEWS = new Set([
+  "blob_retention_edges",
+  "file_consumer_relational_projection",
+  "file_consumer_content_projection",
+  "file_consumer_direct_projection",
+  "file_consumer_projection",
+  "file_relational_retention_edges",
+  "file_content_retention_edges",
+  "file_direct_retention_edges",
+  "file_retention_edges",
+  "file_location_retention_edges",
+  "file_location_availability",
+]);
 const REBUILDABLE_VIEWS = new Set([
+  // This has no clock-dependent rows; restore deterministically rebuilds it
+  // from the exported publication and availability relations.
+  "file_usable_publications",
   // The aggregate retention snapshot above already includes these branches.
   "blob_retention_edges_attachment_derivatives",
   "blob_retention_edges_comment_items",
@@ -38,8 +58,9 @@ function assertExportSchemaCoverage(database: DatabaseSync) {
     WHERE type IN ('table', 'view')
     ORDER BY name
   `).all() as Array<{ type: "table" | "view"; name: string }>;
-  const tables = schema.filter(({ type, name }) => type === "table"
+  const applicationTables = schema.filter(({ type, name }) => type === "table"
     && !name.startsWith("sqlite_") && !PLATFORM_TABLES.has(name));
+  const tables = applicationTables.filter(({ name }) => !REBUILDABLE_TABLES.has(name));
   const views = new Set(schema.filter(({ type }) => type === "view").map(({ name }) => name));
   const classifiedViews = new Set([...EXPORTED_VIEWS, ...REBUILDABLE_VIEWS]);
   const required = new Set([...tables.map(({ name }) => name), ...EXPORTED_VIEWS]);
@@ -53,6 +74,8 @@ function assertExportSchemaCoverage(database: DatabaseSync) {
       .map((name) => `Unclassified view: ${name}`),
     ...[...classifiedViews].filter((name) => !views.has(name))
       .map((name) => `Stale view classification: ${name}`),
+    ...[...REBUILDABLE_TABLES].filter((name) => !applicationTables.some((table) => table.name === name))
+      .map((name) => `Stale rebuildable table classification: ${name}`),
   ];
   if (issues.length) throw new Error(issues.join("\n"));
 }
@@ -63,11 +86,11 @@ describe("complete export schema coverage", () => {
   beforeEach(() => { database = referenceTestDatabase(); });
   afterEach(() => { database.close(); });
 
-  it("covers every migrated application table and required view with the actual v13 snapshot", async () => {
+  it("covers every migrated application table and required view with the actual v14 snapshot", async () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    const snapshot = await snapshotFullExportV13(new SqliteD1Database(database) as unknown as D1Database);
+    const snapshot = await snapshotFullExportV14(new SqliteD1Database(database) as unknown as D1Database);
     expect(Object.keys(snapshot.tables).sort()).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES).sort());
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.samples).not.toContain("process_revision");
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).toContain("legacy_body");

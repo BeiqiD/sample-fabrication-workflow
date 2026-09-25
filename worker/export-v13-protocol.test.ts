@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,10 +13,9 @@ import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV12,
 import { canonicalCommentAcceptanceInput } from "../shared/contracts/comment-acceptance";
 import { buildBlobExportPlan } from "../shared/contracts/export-blob-plan";
 import { stableJson } from "../shared/domain/content-addressing";
-import { api } from "../src/lib/api";
 import { buildFullExportArchiveV12, buildFullExportArchiveV13 } from "../src/lib/exportAll";
 import worker from "./index";
-import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
@@ -27,7 +27,10 @@ const namespace = JSON.stringify({ kind: "local-r2", installationId: "6d2b3589-c
 afterEach(() => vi.unstubAllGlobals());
 
 async function fixture(full = false) {
-  const database = referenceTestDatabase();
+  const database = new DatabaseSync(":memory:");
+  for (const name of ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql"]) {
+    database.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8"));
+  }
   database.exec(`INSERT INTO samples (id, code, title, created_at, updated_at) VALUES ('archive-sample', 'ARCHIVE-COMMENT', 'Archive Comment', '${previous}', '${previous}');
     INSERT INTO recipe_families (id, name, template_type, created_at) VALUES ('archive-family', 'Archive family', 'process', '${previous}');
     INSERT INTO template_versions (id, recipe_family_id, name, template_type, version, manifest_hash, content_json, created_at, template_kind)
@@ -120,8 +123,7 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
     const f = await fixture(true), scratch = await mkdtemp(join(tmpdir(), "export-v13-"));
     try {
       vi.stubGlobal("fetch", f.fetcher);
-      const manifest = await api.getFullExport();
-      expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
+      const manifest = await f.manifest();
       expect(manifest).toMatchObject({ schemaVersion: 13, archiveWriter: 1, archiveProfile: "fp1-comment-acceptance" });
       expect(manifest.tables.comment_submission_acceptances).toHaveLength(7);
       expect(manifest.tables.comment_item_acceptances).toHaveLength(5);
@@ -131,12 +133,14 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
       expect(JSON.parse(String(single.publication_plan_json))).toMatchObject({ operationGroupId: null, occurrences: [{ targetIndex: 0 }] });
       const { archive, restored } = await roundtrip(manifest, f.fetcher, scratch);
       expect(archive.warnings).toEqual([]);
-      expect(restored.report).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance", appliedForwardMigrations: [], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance",
+        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
         for (const [table, key] of [["comment_submission_acceptances", "submission_id"], ["comment_item_acceptances", "item_id"], ["comment_submissions", "id"], ["comment_submission_items", "id"], ["run_step_comments", "id"], ["events", "id"]]) {
-          expect(database.prepare(`SELECT * FROM ${table} ORDER BY ${key}`).all()).toEqual(f.database.prepare(`SELECT * FROM ${table} ORDER BY ${key}`).all());
+          const columns = (f.database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(({ name }) => `"${name}"`).join(", ");
+          expect(database.prepare(`SELECT ${columns} FROM ${table} ORDER BY ${key}`).all()).toEqual(f.database.prepare(`SELECT * FROM ${table} ORDER BY ${key}`).all());
         }
         expect(() => database.exec("UPDATE comment_submission_acceptances SET request_sha256 = 'changed' WHERE submission_id = 'archive-comment-ready'")).toThrow();
         expect(() => database.exec("DELETE FROM comment_item_acceptances WHERE item_id = 'archive-image-ready'")).toThrow();
@@ -149,10 +153,10 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
     } finally { f.database.close(); await rm(scratch, { recursive: true, force: true }); }
   }, 15_000);
 
-  it("rejects old clients, schema relabeling and unknown ledger columns before byte downloads", async () => {
+  it("rejects incompatible clients, schema relabeling and unknown ledger columns before byte downloads", async () => {
     const f = await fixture();
     try {
-      for (const version of [8, 9, 10, 11, 12]) expect((await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`)).status).toBe(409);
+      for (const version of [8, 9, 10, 11, 12, 14]) expect((await f.request(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`)).status).toBe(409);
       const manifest = await f.manifest();
       await expect(buildFullExportArchiveV12(manifest, undefined, f.fetcher)).rejects.toThrow("versions differ");
       manifest.tables.comment_submission_acceptances = []; manifest.tables.comment_item_acceptances = [];

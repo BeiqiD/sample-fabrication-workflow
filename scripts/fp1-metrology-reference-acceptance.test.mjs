@@ -29,6 +29,24 @@ const modes = ["replay", "concurrent", "concurrent-distinct", "held-pending", "l
 const bindings = Object.fromEntries(modes.map((mode, index) => [mode, `DB_${index}`]));
 const oldTables = ["samples", "assets", "events", "imports", "recipe_families", "template_versions", "metrology_template_references",
   "storage_profiles", "files", "file_locations", "legacy_file_mappings", "r2_upload_requests"];
+const typedFileSlots = [
+  ["state_representation_assets", "file_id"], ["run_step_assets", "file_id"],
+  ["metrology_template_references", "file_id"], ["run_step_comments", "file_id"],
+  ["state_verifications", "evidence_file_id"], ["comment_submission_items", "file_id"],
+  ["project_content_attachments", "file_id"], ["attachment_derivatives", "derived_file_id"],
+  ["events", "asset_file_id"], ["events", "thumbnail_file_id"],
+  ["imports", "workbook_file_id"], ["imports", "manifest_file_id"], ["template_versions", "source_file_id"],
+];
+
+function assertLegacyFileAuthority(database) {
+  assert.deepEqual(plain(database.prepare("SELECT singleton, mode, revision, activated_at FROM file_authority_control").get()),
+    { singleton: 1, mode: "legacy", revision: 1, activated_at: null });
+  assert.equal(typedFileSlots.length, 13);
+  for (const [name, column] of typedFileSlots) {
+    assert.equal(database.prepare(`SELECT COUNT(*) AS count FROM "${name}" WHERE "${column}" IS NOT NULL`).get().count, 0,
+      `${name}.${column} remains null after restore`);
+  }
+}
 function hostAdapter(database) {
   const prepare = (sql, values = []) => ({
     bind(...bindings) { return prepare(sql, bindings); },
@@ -98,7 +116,7 @@ const workerSource = `
 import { Hono } from "hono";
 import { routes } from "./worker/process-definition/routes.ts";
 import { handleError } from "./worker/platform/http.ts";
-import { snapshotFullExportV13 } from "./worker/export-v13-snapshot.ts";
+import { snapshotFullExportV14 } from "./worker/export-v14-snapshot.ts";
 const app = new Hono().basePath("/api"); app.onError(handleError);
 app.use("*", async (c, next) => { c.set("userEmail", c.req.header("X-Fixture-Actor") || "owner@example.com"); await next(); });
 app.route("/", routes);
@@ -106,7 +124,7 @@ export default { async fetch(request, env, ctx) {
   const { mode, binding, missingBytes } = await request.json(); const rawDb = env[binding];
   if (mode === "restored") {
     let puts = 0;
-    const before = (await snapshotFullExportV13(rawDb)).tables;
+    const before = (await snapshotFullExportV14(rawDb)).tables;
     const routeEnv = { DB: rawDb, R2_BOOTSTRAP_NAMESPACE: ${JSON.stringify(namespace)}, ASSETS: {
       get(key) { return missingBytes ? null : env.RESTORED_BUCKET.get(key); },
       head(key) { return missingBytes ? null : env.RESTORED_BUCKET.head(key); },
@@ -119,7 +137,7 @@ export default { async fetch(request, env, ctx) {
       body: new TextEncoder().encode("native metrology fixture replay"),
     }), routeEnv, ctx);
     return Response.json({ get: { status: getResponse.status, body: await getResponse.json() }, post: { status: postResponse.status, body: await postResponse.json() },
-      puts, before, after: (await snapshotFullExportV13(rawDb)).tables });
+      puts, before, after: (await snapshotFullExportV14(rawDb)).tables });
   }
   const stats = { puts: [], gets: [], heads: [], deletes: 0, insertAttempts: 0, sessions: [], lostAcceptance: 0, lostFinalization: 0,
     acceptedBeforeEachPut: [], raceMutations: 0, sqlErrors: [] };
@@ -250,7 +268,7 @@ export default { async fetch(request, env, ctx) {
       physical.push({ id: result.assetId, size: blob?.size ?? null, sha256: blob ? await sha(await blob.arrayBuffer()) : null });
     }
     return Response.json({ before, missing, first, pending, pendingPoll, pendingIo, afterFirst, firstIo, retryBefore, state, otherActor, otherTemplate,
-      retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats, archive: mode === "replay" ? await snapshotFullExportV13(rawDb) : null });
+      retry, conflicts, retryIo, otherAcceptance, afterRetry, physical, stats, archive: mode === "replay" ? await snapshotFullExportV14(rawDb) : null });
   } finally { globalThis.Date = originalDate; }
 } };
 `;
@@ -298,22 +316,25 @@ async function qualifySqlGuards(db, fixture) {
   assert.deepEqual(retained, [{ occurrence_type: "metrology_template_reference" }], "only the domain occurrence retains bytes");
 }
 async function qualifyRestore(mf, scratch, fixture) {
-  const source = `export { snapshotFullExportV13 } from './worker/export-v13-snapshot.ts'; export { buildFullExportArchiveV13 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
+  const source = `export { snapshotFullExportV14 } from './worker/export-v14-snapshot.ts'; export { buildFullExportArchiveV14 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`;
   const modulePath = join(scratch, "restore-qualification.mjs"); await writeFile(modulePath, await bundle(source, "node"));
   const service = await import(pathToFileURL(modulePath).href); const byUrl = new Map(fixture.archive.blobs.map((blob) => [blob.downloadUrl, blob]));
-  const archive = await service.buildFullExportArchiveV13(fixture.archive, undefined, async (url) => {
+  const archive = await service.buildFullExportArchiveV14(fixture.archive, undefined, async (url) => {
     const blob = byUrl.get(String(url)); const stored = blob && await (await mf.getR2Bucket("BUCKET")).get(blob.objectKey);
     return stored ? new Response(await stored.arrayBuffer()) : new Response(null, { status: 404 });
   });
   const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
   const originalHash = hash(await readFile(archivePath));
   const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
-  assert.equal(restored.report.schemaVersion, 13); assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
+  assert.equal(restored.report.schemaVersion, 14); assert.equal(restored.report.archiveProfile, "fp1-file-authority-transition");
+  assert.deepEqual(restored.report.appliedForwardMigrations, []);
+  assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
   assert(restored.report.restoredBlobCount > 0);
   const recovered = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
   try {
-    const snapshot = await service.snapshotFullExportV13(hostAdapter(recovered));
-    assert.deepEqual(snapshot.tables, fixture.archive.tables, "nonempty D1 V13 restores previous history and new receipt rows exactly");
+    assertLegacyFileAuthority(recovered);
+    const snapshot = await service.snapshotFullExportV14(hostAdapter(recovered));
+    assert.deepEqual(snapshot.tables, fixture.archive.tables, "nonempty D1 V14 restores previous history and new receipt rows exactly");
     assert.deepEqual(snapshot.tables[table], fixture.afterFirst[table]);
     const providerManifest = JSON.parse(await readFile(join(restored.restoredDirectory, "provider-manifest.json"), "utf8"));
     const restoredBucket = await mf.getR2Bucket("RESTORED_BUCKET");
@@ -326,7 +347,8 @@ async function qualifyRestore(mf, scratch, fixture) {
     const statements = [restoredDb.prepare("PRAGMA defer_foreign_keys = ON")];
     for (const definition of catalog.filter((row) => row.type === "table")) statements.push(restoredDb.prepare(definition.sql));
     for (const definition of catalog.filter((row) => row.type === "table")) {
-      for (const row of recovered.prepare(`SELECT * FROM "${definition.name}" ORDER BY rowid`).all()) {
+      for (const row of recovered.prepare(`SELECT * FROM "${definition.name}"`).all()
+        .sort((left, right) => JSON.stringify(left) < JSON.stringify(right) ? -1 : JSON.stringify(left) > JSON.stringify(right) ? 1 : 0)) {
         const columns = Object.keys(row);
         statements.push(restoredDb.prepare(`INSERT INTO "${definition.name}" (${columns.map((name) => `"${name}"`).join(",")}) VALUES (${columns.map(() => "?").join(",")})`)
           .bind(...columns.map((column) => row[column])));
@@ -428,10 +450,14 @@ test("production metrology upload routes qualify durable publication on real wor
     });
     await t.test("host and D1 reject identity replacement and invalid publication with recursive triggers disabled", async () => {
       assert(replayFixture); const host = new DatabaseSync(":memory:");
-      try { host.exec("PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = OFF"); const db = hostAdapter(host); await seedBeforeUpgrade(db); await upgrade(db); await qualifySqlGuards(db, replayFixture); }
+      try {
+        host.exec("PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = OFF"); const db = hostAdapter(host); await seedBeforeUpgrade(db); await upgrade(db);
+        for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+        await qualifySqlGuards(db, replayFixture);
+      }
       finally { host.close(); }
       const db = await mf.getD1Database("DB_GUARDS"); await db.prepare("PRAGMA recursive_triggers = OFF").run(); await qualifySqlGuards(db, replayFixture);
     });
-    await t.test("nonempty V13 archive preserves historical receipts and installed guards on isolated restore", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
+    await t.test("nonempty V14 archive preserves historical receipts, legacy File authority, and installed guards on isolated restore", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
   } finally { await mf.dispose(); await rm(scratch, { recursive: true, force: true }); }
 });

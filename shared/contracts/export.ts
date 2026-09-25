@@ -5,12 +5,16 @@ export const FULL_EXPORT_ARCHIVE_SCHEMA_V9 = 9 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V10 = 10 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V11 = 11 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V12 = 12 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = 13 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V13 = 13 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V14 = 14 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V14;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V10 = "fp1-import-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V11 = "fp1-r2-upload-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V12 = "fp1-metrology-reference-acceptance" as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = "fp1-comment-acceptance" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V13 = "fp1-comment-acceptance" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V14 = "fp1-file-authority-transition" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V14;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -97,6 +101,13 @@ export interface FullExportManifestV12 extends Omit<FullExportManifestV8, "schem
 // Comment acceptance preserves canonical submission and item identities plus
 // immutable execution decisions; its receipts do not extend byte retention.
 export interface FullExportManifestV13 extends Omit<FullExportManifestV8, "schemaVersion"> {
-  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA;
-  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE;
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V13;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V13;
+}
+
+// Schema 14 records the additive File-authority transition. Legacy locators
+// remain the sole byte authority until a separately reviewed publication gate.
+export interface FullExportManifestV14 extends Omit<FullExportManifestV8, "schemaVersion"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V14;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V14;
 }

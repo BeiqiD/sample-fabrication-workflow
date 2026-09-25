@@ -1,17 +1,22 @@
 # Long-term application roadmap
 
-Status: long-horizon direction and compatibility with the proposed FP track;
+Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-09-13 — file/data-portability documentation checkpoint
+Last reviewed: 2026-09-14 — additive File-authority transition checkpoint
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
-The newly requested [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-is at **FP0: documentation review**. This update deliberately brings universal
+The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+is in **FP1 implementation**. FP1a–FP1j are merged through PR #219 at exact
+integration head `7e63a366663c47c830120abc77af1d174abaf5aa`; FP1k adds an
+old-business-path-compatible schema-14 substrate while keeping authority mode
+immutably `legacy`; the migration-first complete-export window still requires
+the V14 Worker. This track deliberately brings universal
 file storage, essential Settings and export/import forward; the previous rule
 that only large originals were configurable and every small/derived blob need
 not be provider-neutral is superseded. Completed Project and stabilization work
-is preserved. New capabilities are not considered delivered by this document.
+is preserved. Runtime File authority, R2 defaults and Settings are not considered
+delivered by the additive substrate or by this document.
 
 ## Product scale and engineering stance
 
@@ -31,8 +36,9 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP0 design review | Documentation-only Draft PR; preserves outstanding S2/6A6 and C4 checks. Does not change credentials, data or operational holds. |
-| After review | FP1–FP3 file foundation, essential Settings and migration | All persistent files share logical identity/location/profile contracts; R2 defaults on Cloudflare; external configuration and S3; persisted bounded jobs and verified migration. |
+| Now | FP1 additive authority substrate | FP1a–FP1j are merged. FP1k adds `0007` and schema-14 recovery in immutable `legacy` mode; it changes no runtime authority, defaults, Settings, credentials, provider I/O or operational holds. |
+| Next | FP1 shadow/catch-up and activation | Add the complete shadow writer/resolver and conversion ledger first; only a later atomic cutover may make File-aware reads, writes, retention and lifecycle authoritative. Cross-purpose consumers require independently verified placements. |
+| Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and basic authenticated Settings; external configuration and S3; persisted bounded jobs and verified migration. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
 | Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual cross-deployment non-empty import/restore and runtime validation. |

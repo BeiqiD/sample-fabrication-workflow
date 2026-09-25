@@ -121,7 +121,8 @@ describe("isolated full export recovery rehearsal", () => {
       const inputHash = hash(await readFile(archivePath));
       const result = await restoreExportToIsolatedDirectory(options(scratch, archivePath));
       expect(result.report).toMatchObject({ archiveSha256: inputHash, tableCount: 34, restoredBlobCount: 5,
-        verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true, projectRelations: true } });
+        verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true,
+          derivedTablesRebuilt: false, projectRelations: true } });
       expect(result.report.verification.triggersReinstalled).toBeGreaterThan(100);
       expect(result.report.warnings.map((warning: { code: string }) => warning.code).sort()).toEqual(["metadata_not_ready", "missing"]);
       expect(result.report.packagedWithoutRecordedHash).toEqual([locator("r2", "r2", "legacy/opaque file.bin")]);
