@@ -91,7 +91,7 @@ describe("v9 dormant file registry archive profile", () => {
       const archivePath = join(scratch, "v9.zip");
       await writeFile(archivePath, bytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }, { name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }, { name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {

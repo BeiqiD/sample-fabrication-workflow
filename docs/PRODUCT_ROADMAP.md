@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-25 for the shadow-conversion preflight checkpoint based on
-merged PR #220 at integration head `4248deb5`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-25 for the shadow runtime implementation stacked on Draft
+PR #221 (`d1698b4`); merged integration base remains PR #220 (`4248deb5`). PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise are recorded, but do not establish
 non-empty file round-trip or full interactive acceptance. SWITCHdrive originals
@@ -32,7 +32,10 @@ migration `0007` and schema-14 recovery while keeping authority mode immutably
 `legacy`; runtime File authority, R2 defaults and Settings remain open. The
 [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) adds executable
 read-only inspection and qualification of four observed overlap protocol gaps.
-It does not complete the shadow writer/resolver or change its required scope.
+The successor [runtime implementation](./FP1_SHADOW_RUNTIME.md) adds all-13-slot
+transactional occurrence capture, owned conversion/reconciliation, legacy-visible
+holds, exact catch-up checkpoints and V15 recovery. It requires explicit overlap
+enablement and retains legacy business authority. Final cutover remains separate.
 FP1 is still in progress and no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -72,7 +75,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | FP1k is merged in #220 with `0007`/schema-14 in immutable `legacy` mode. Current checkpoint: executable read-only consumer preflight and qualification of occurrence mutation, legacy holds, acceptance replay and successor recovery. Next runtime PR: the complete 13-slot shadow writer/resolver and conversion ledger, then separate atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | FP1k is merged in #220 with `0007`/schema-14 in immutable `legacy` mode. Draft #221 provides the read-only preflight. The stacked runtime implementation adds complete 13-slot occurrence capture, owned shadow conversion and V15 recovery; qualification and review precede separate atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -896,21 +899,17 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Preserve merged **FP1k** (`#220`, `4248deb5`) and complete the executable
-   [shadow-conversion preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md)
-   under unchanged schema 14 and immutable `legacy` mode. Review the demonstrated
-   occurrence-mutation, legacy-GC hold, accepted-candidate/replay and successor
-   recovery gaps before changing guards. The complete shadow-conversion obligation remains open.
-2. In the next runtime PR, implement the complete **shadow writer/resolver and
-   conversion ledger** across all 13 slots and every current writer, including
-   accepted-result replay and independent recovery. Deliver the occurrence
-   generation/tombstone protocol, old-worker mutation bridge/fencing, holds visible
-   to legacy deletion and V15 populated recovery together. Re-read and fence the live baseline,
-   acquire durable holds, verify complete source and destination bytes, and create
-   independent placements when one legacy locator has cross-purpose consumers.
-   Keep legacy runtime authority and do not present this as final cutover.
-   A preflight page/report is not a durable catch-up cutoff or byte verification.
-   Recovery preserves unfinished-operation evidence without replaying provider I/O.
+1. Preserve merged **FP1k** (`#220`, `4248deb5`) and Draft #221's verified
+   [read-only preflight](./FP1_SHADOW_CONVERSION_PREFLIGHT.md). Its frozen V14
+   diagnostic contract remains separate from shadow operations.
+2. Qualify and review the stacked [shadow runtime](./FP1_SHADOW_RUNTIME.md): all
+   13 slots captured in every old/new business writer's transaction, immutable
+   generation/closure history, exact-profile legacy holds, single-owned verified
+   copying, reconciliation, explicit unresolved outcomes and populated V15
+   recovery. Conversion runs after durable pending capture; source changes create
+   successors rather than reusing an old decision. Current business File columns
+   stay empty and legacy runtime authority remains in force. An epoch-fenced
+   checkpoint reports catch-up; recovery preserves evidence and starts paused.
 3. Only after complete catch-up and invariant qualification, propose a separately
    reviewed **atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and

@@ -39,13 +39,14 @@ class SqliteD1Statement {
 
   execute() {
     const statement = this.statement();
-    if (statement.columns().length > 0) {
-      const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
-      const results = statement.all(...this.bindings);
-      return { success: true, meta: { changes: Number(this.database.prepare("SELECT total_changes() AS count").get()?.count) - before }, results };
-    }
-    const result = statement.run(...this.bindings);
-    return { success: true, meta: { changes: Number(result.changes) }, results: [] };
+    // Native D1 reports trigger writes too; use its connection-wide delta while
+    // retaining RETURNING rows for exact top-level mutation counts.
+    const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+    const results = statement.columns().length > 0
+      ? statement.all(...this.bindings)
+      : (statement.run(...this.bindings), []);
+    const changes = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count) - before;
+    return { success: true, meta: { changes }, results };
   }
 }
 
@@ -421,7 +422,7 @@ describe("source lifecycle routes", () => {
       })));
       const env = managedStorageEnv(database);
 
-      const manifestResponse = await request(env, "/exports/all?archiveSchema=14&archiveWriter=1");
+      const manifestResponse = await request(env, "/exports/all?archiveSchema=15&archiveWriter=1");
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
@@ -888,6 +889,46 @@ describe("source lifecycle routes", () => {
       { id: "preview-tiff", deleted_at: null },
       { id: "original-tiff", deleted_at: null },
     ]);
+    database.close();
+  });
+
+  it("counts legacy comment rows exactly despite shadow trigger writes", async () => {
+    const database = createDatabase();
+    addSample(database);
+    addSample(database, "sample-2", "S-2");
+    addRun(database);
+    addRun(database, "run-2", "sample-2", "step-2");
+    database.exec(`
+      INSERT INTO assets
+        (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
+      VALUES ('count-asset', 'comments/count.png', 'count.png', 'image/png', 4,
+        'ready', '${"a".repeat(64)}', '2026-08-07T10:06:00.000Z');
+      INSERT INTO run_step_comments
+        (id, run_step_id, scope, operation_group_id, legacy_body, asset_id, created_at)
+      VALUES
+        ('count-a', 'step-1', 'common', 'count-group', 'Observation', 'count-asset',
+          '2026-08-07T10:07:00.000Z'),
+        ('count-b', 'step-2', 'common', 'count-group', 'Observation', 'count-asset',
+          '2026-08-07T10:07:00.000Z');
+    `);
+    const env = testEnv(database);
+    const batches = vi.spyOn(env.DB, "batch");
+    for (const [suffix, method, expected] of [
+      ["/asset", "DELETE", { ok: true }],
+      ["/asset/restore", "POST", { ok: true }],
+      ["", "DELETE", { deleted: 2 }],
+      ["/restore", "POST", { restored: 2 }],
+    ] as const) {
+      const response = await request(env, `/run-step-comments/count-a${suffix}`, { method });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject(expected);
+      const results = await batches.mock.results.at(-1)!.value;
+      expect(results[0].results).toHaveLength(2);
+      expect(results[0].meta.changes).toBeGreaterThan(2);
+    }
+    expect(database.prepare(
+      "SELECT id FROM run_step_comments WHERE deleted_at IS NULL AND asset_deleted_at IS NULL ORDER BY id",
+    ).all()).toEqual([{ id: "count-a" }, { id: "count-b" }]);
     database.close();
   });
 

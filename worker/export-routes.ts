@@ -7,14 +7,18 @@ import { R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-
 import { METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-metrology-reference-acceptance";
 import { COMMENT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-comment-acceptance";
 import { FILE_AUTHORITY_CONSUMER_COLUMNS, FILE_AUTHORITY_EXPORT_COLUMNS } from "../shared/contracts/export-file-authority";
+import { FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_RUNTIME_GUARD_COLUMNS, FILE_SHADOW_RUNTIME_INCARNATION_COLUMNS } from "../shared/contracts/file-shadow-schema";
 import { snapshotFullExportV8 } from "./export-v8-snapshot";
 import { snapshotFullExportV9 } from "./export-v9-snapshot";
 import { snapshotFullExportV13 } from "./export-v13-snapshot";
 import { snapshotFullExportV14 } from "./export-v14-snapshot";
+import { snapshotFullExportV15 } from "./export-v15-snapshot";
 import { snapshotFullExportV12 } from "./export-v12-snapshot";
 import { snapshotFullExportV11 } from "./export-v11-snapshot";
 import { snapshotFullExportV10 } from "./export-v10-snapshot";
 import { getBlob } from "./blob-lifecycle/storage";
+import { primaryD1 } from "./d1-primary";
+import { openShadowProfile } from "./files/shadow-profile";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
@@ -100,6 +104,10 @@ const FILE_AUTHORITY_TABLE_MARKERS = Object.keys(FILE_AUTHORITY_EXPORT_COLUMNS)
 const FILE_AUTHORITY_COMPLETION_MARKERS = [
   ["trigger", "template_versions_file_replace_guard"],
 ] as const satisfies readonly SchemaMarker[];
+const FILE_SHADOW_COLUMNS = { ...FILE_SHADOW_EXPORT_COLUMNS, file_shadow_runtime_guard: FILE_SHADOW_RUNTIME_GUARD_COLUMNS,
+  file_shadow_runtime_incarnations: FILE_SHADOW_RUNTIME_INCARNATION_COLUMNS };
+const FILE_SHADOW_TABLE_MARKERS = Object.keys(FILE_SHADOW_COLUMNS).map((name) => ["table", name] as const);
+const FILE_SHADOW_COMPLETION_MARKERS = [["trigger", "file_shadow_generation_complete"]] as const satisfies readonly SchemaMarker[];
 
 const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
   ${markerCountSql(BASE_EXPORT_MARKERS)} AS base_markers,
@@ -116,7 +124,10 @@ const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
   ${markerCountSql(FILE_AUTHORITY_TABLE_MARKERS)} AS authority_markers,
   ${columnCountSql(FILE_AUTHORITY_EXPORT_COLUMNS)} AS authority_columns,
   ${columnCountSql(FILE_AUTHORITY_CONSUMER_COLUMNS)} AS authority_consumer_columns,
-  ${markerCountSql(FILE_AUTHORITY_COMPLETION_MARKERS)} AS authority_completion_markers`;
+  ${markerCountSql(FILE_AUTHORITY_COMPLETION_MARKERS)} AS authority_completion_markers,
+  ${markerCountSql(FILE_SHADOW_TABLE_MARKERS)} AS shadow_markers,
+  ${columnCountSql(FILE_SHADOW_COLUMNS)} AS shadow_columns,
+  ${markerCountSql(FILE_SHADOW_COMPLETION_MARKERS)} AS shadow_completion_markers`;
 
 type ExportSchemaGenerationProbe = {
   base_markers: number;
@@ -127,6 +138,7 @@ type ExportSchemaGenerationProbe = {
   comment_markers: number; comment_columns: number;
   authority_markers: number; authority_columns: number; authority_consumer_columns: number;
   authority_completion_markers: number;
+  shadow_markers: number; shadow_columns: number; shadow_completion_markers: number;
 };
 
 const COMPLETE_GENERATION_COUNTS = [
@@ -138,21 +150,22 @@ const COMPLETE_GENERATION_COUNTS = [
   COMMENT_ACCEPTANCE_MARKERS.length, totalColumns(COMMENT_ACCEPTANCE_EXPORT_COLUMNS),
   FILE_AUTHORITY_TABLE_MARKERS.length, totalColumns(FILE_AUTHORITY_EXPORT_COLUMNS),
   totalColumns(FILE_AUTHORITY_CONSUMER_COLUMNS), FILE_AUTHORITY_COMPLETION_MARKERS.length,
+  FILE_SHADOW_TABLE_MARKERS.length, totalColumns(FILE_SHADOW_COLUMNS), FILE_SHADOW_COMPLETION_MARKERS.length,
 ] as const;
-const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, COMPLETE_GENERATION_COUNTS.length] as const;
+const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, COMPLETE_GENERATION_COUNTS.length] as const;
 
 function generationCounts(row: ExportSchemaGenerationProbe) {
   return [row.base_markers, row.foundation_markers, row.foundation_columns, row.import_markers, row.import_columns,
     row.r2_markers, row.r2_columns, row.metrology_markers, row.metrology_columns, row.comment_markers,
     row.comment_columns, row.authority_markers, row.authority_columns, row.authority_consumer_columns,
-    row.authority_completion_markers];
+    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers];
 }
 
 async function installedExportSchema(database: D1Database) {
   const row = await database.prepare(EXPORT_SCHEMA_GENERATION_PROBE).first<ExportSchemaGenerationProbe>();
   if (!row || generationCounts(row).some((value) => !Number.isSafeInteger(value) || value < 0)) return null;
   const observed = generationCounts(row);
-  for (let index = 6; index >= 0; index -= 1) {
+  for (let index = 7; index >= 0; index -= 1) {
     const version = index + 8;
     const expected = COMPLETE_GENERATION_COUNTS.map((value, position) =>
       position < COMPLETE_FIELDS_BY_GENERATION[index] ? value : 0);
@@ -172,6 +185,7 @@ snapshotRoutes.get("/exports/all", async (c) => {
     if (Number(requestedSchema) !== installedSchema) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
+    if (requestedSchema === "15") return c.json(await snapshotFullExportV15(c.env.DB));
     if (requestedSchema === "14") return c.json(await snapshotFullExportV14(c.env.DB));
     if (c.req.query("archiveSchema") === "13") return c.json(await snapshotFullExportV13(c.env.DB));
     if (c.req.query("archiveSchema") === "12") return c.json(await snapshotFullExportV12(c.env.DB));
@@ -181,7 +195,7 @@ snapshotRoutes.get("/exports/all", async (c) => {
     return c.json(await snapshotFullExportV8(c.env.DB));
   }
   catch (error) {
-    if (error instanceof Error && /requires archive schema (9|10|11|12|13|14)/.test(error.message)) {
+    if (error instanceof Error && /requires archive schema (9|10|11|12|13|14|15)/.test(error.message)) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
     throw error;
@@ -258,4 +272,32 @@ blobRoutes.get("/exports/managed/:objectId", async (c) => {
       ...(object.etag ? { etag: object.etag } : {}),
     },
   });
+});
+
+// V15 locations have a profile-qualified physical identity. The legacy routes
+// cannot deliver them by key alone: two namespaces can contain the same key.
+blobRoutes.get("/exports/file-locations/:locationId", async (c) => {
+  const locationId = c.req.param("locationId"), profileId = c.req.query("profile");
+  const revisionText = c.req.query("revision");
+  if (!profileId || !revisionText || !/^[1-9][0-9]*$/.test(revisionText)
+    || !Number.isSafeInteger(Number(revisionText))) throw new HTTPException(400, { message: "A complete File location identity is required" });
+  const revision = Number(revisionText);
+  const row = await primaryD1(c.env.DB).prepare(`SELECT fl.object_key
+    FROM file_locations fl JOIN storage_profiles sp ON sp.id=fl.storage_profile_id
+    JOIN file_location_availability available ON available.location_id=fl.id
+    WHERE fl.id=? AND fl.storage_profile_id=? AND sp.configuration_revision=?
+      AND available.availability='available'`)
+    .bind(locationId, profileId, revision).first<{ object_key: string }>();
+  if (!row) throw new HTTPException(404, { message: "Export File location is unavailable" });
+  let storage;
+  try { storage = await openShadowProfile(c.env, { profileId, configurationRevision: revision }, "read"); }
+  catch { throw new HTTPException(503, { message: "The recorded File storage profile is unavailable" }); }
+  const object = await storage.reader.read(row.object_key);
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Export File bytes are missing" });
+  if (object.outcome !== "available") throw new HTTPException(503, { message: "The recorded File storage profile is unavailable" });
+  return new Response(object.body, { headers: {
+    "content-type": object.contentType,
+    "cache-control": "private, no-store",
+    "x-content-type-options": "nosniff",
+  } });
 });

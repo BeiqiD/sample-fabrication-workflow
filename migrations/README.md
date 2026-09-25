@@ -76,7 +76,7 @@ backfilling event asset/thumbnail File slots. Terminal migration decisions prese
 otherwise-valid historical TEXT evidence exactly, including values outside the
 new operation-field bounds.
 
-Current full export/recovery uses schema 14 and preserves this legacy authority
+The frozen 0007 full export/recovery generation uses schema 14 and preserves this legacy authority
 state; historical archive validators remain specific to their original suffixes.
 The route probes the expected bounded generation markers before snapshotting and V14 freezes
 a deterministic fingerprint of transition-relevant tables, views, indexes and
@@ -103,3 +103,24 @@ retain standalone terminal trigger `END;`. Qualification executes Wrangler-split
 statements individually and checks that all schema objects exist before the
 migration tracking INSERT. Whole-file SQLite execution alone did not detect the
 original `0004` deployment failure; remote migration remains a deployment gate.
+
+## Shadow runtime suffix
+
+`0008_fp1_shadow_runtime.sql` adds the all-13-slot occurrence capture and
+conversion protocol described in [FP1 shadow runtime](../docs/FP1_SHADOW_RUNTIME.md).
+Migration stays in legacy mode with a disabled local runtime. Explicit commands
+admit overlap and an exact destination profile; active authority remains blocked.
+Old Worker mutations capture successor generations in the same transaction, and
+legacy-visible holds fence uncertain source use against old GC.
+This is SQL capture compatibility, not a guarantee of old Worker response
+classification: D1 trigger writes inflate `meta.changes`. Apply `0008` with
+business writes paused, deploy the matching Worker with exact top-level
+affected-row checks, and verify normal and replayed mutations before resuming
+writes. Keep writes paused if that Worker deployment fails.
+
+Current complete export/recovery is schema 15, profile `fp1-shadow-conversion`.
+It preserves canonical shadow history and portable source rowid evidence, while
+recovery resets the non-portable execution gate and incarnation history. No
+restore or migration runs provider I/O. A post-0008 database requires the V15
+Worker for complete export. Keep V7–V14 validators frozen, and complete a failed
+migration-first rollout forward instead of downgrading or relabelling an archive.

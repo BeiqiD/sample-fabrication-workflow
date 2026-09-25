@@ -434,7 +434,9 @@ function sqliteJsonThumbnailKey(value: ExportRow[string]) {
 // V14 is intentionally legacy-authoritative. Recompute every diagnostic leaf
 // from canonical tables so a caller cannot forge a matching leaf/aggregate
 // pair and conceal a divergent consumer projection in the snapshot.
-function legacyConsumerProjections(tables: ExportTables) {
+// Shared pure projection, also used by the successor archive while its legacy
+// typed columns retain this exact frozen meaning. V14 validation is unchanged.
+export function legacyConsumerProjections(tables: ExportTables) {
   const assets = new Map(rows(tables, "assets").map((row) => [row.id, row]));
   const managed = new Map(rows(tables, "managed_storage_objects").map((row) => [row.id, row]));
   const assetKey = (id: ExportRow[string]) => assets.get(id)?.r2_key ?? null;

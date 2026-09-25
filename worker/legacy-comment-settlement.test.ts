@@ -46,7 +46,10 @@ describe("legacy Comment creation settlement", () => {
         const response = await f.request();
         expect(response.status).toBe(201);
         const payload = await response.json() as { operationGroupId: string };
-        expect(f.d1.insertedChanges).toBe(f.targets.length * 2);
+        // D1 reports trigger side effects as well as inserted business rows.
+        // Shadow capture adds its own writes; settlement still uses the exact
+        // RETURNING occurrence set checked below, never this inflated count.
+        expect(f.d1.insertedChanges).toBeGreaterThan(f.targets.length);
         const rows = f.database.prepare("SELECT id, run_step_id, scope, legacy_body AS body, actor_email FROM run_step_comments WHERE operation_group_id = ? ORDER BY run_step_id").all(payload.operationGroupId);
         expect(rows).toHaveLength(f.targets.length);
         expect(new Set(rows.map(({ id }) => id)).size).toBe(f.targets.length);

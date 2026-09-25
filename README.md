@@ -162,11 +162,10 @@ npm run verify:v3-deployment
 produces a bounded, read-only historical file consumer and purpose-conversion report.
 It accepts a complete schema-10 through schema-13 JSON snapshot; see the
 [FP1g input contract and limits](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md).
-The report does not migrate files or verify their bytes. Schema 14 is deliberately
-not planner input: it is the post-expansion recovery contract, still in immutable
-`legacy` authority mode.
+The report does not migrate files or verify their bytes. Schemas 14 and 15 are
+not planner inputs; their complete archives are versioned recovery contracts.
 
-To inspect current FP1k consumer metadata in a closed SQLite backup, use
+To inspect a frozen FP1k (migration 0007) SQLite backup, use
 `npm run inspect:file-consumers -- --database SNAPSHOT.sqlite --output NEW_REPORT.json`.
 This creates one read-only diagnostic page; `--limit` and `--after` control
 pagination. It rejects WAL/sidecar inputs and leaves the database unchanged.
@@ -182,25 +181,27 @@ binding upload recovery to the original reference occurrence. [Comment acceptanc
 freezes complete submissions and file hashes before upload, fences cancellation,
 and atomically publishes all retained items and targets within a fixed seven-day
 window. The [additive File-authority transition](./docs/FP1_FILE_AUTHORITY_TRANSITION.md)
-advances the complete export to schema 14, writer 1, profile
-`fp1-file-authority-transition`. It preserves the transition substrate and all
-earlier operation histories while authority mode remains immutably `legacy`; it
-does not change runtime storage behavior. The normal migration-first rollout can
-briefly reject an old V13 complete-export request after `0007` and before the V14
-Worker is live with status 500; once the V14 Worker is live, a stale V13 page gets
-409 and must refresh. Legacy business reads/writes remain compatible. See the
-transition document for the separate two-stage bridge required if export must be
-uninterrupted. If Worker deployment fails after `0007`, do not roll the migration
-back: retry the exact V14 Worker and verify V14 success plus the stale-V13 409;
-complete export remains unavailable until that forward deployment finishes.
+introduced schema 14. The [shadow conversion runtime](./docs/FP1_SHADOW_RUNTIME.md)
+now adds migration `0008` and complete export schema **15**, writer **1**, profile
+`fp1-shadow-conversion`. It captures all 13 consumer slots, records owned conversion
+and recovery operations, and preserves legacy business paths. Conversion requires
+explicit overlap/runtime/profile enablement; migration and restore perform no
+provider work. Restored execution starts paused. Final File authority activation
+remains a separate reviewed change.
 
-A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
+Migration-first rollout requires the matching V15 Worker after `0008`; stale V14
+pages must refresh. If Worker deployment fails, finish the reviewed V15 deployment
+and verify export success and stale-version rejection. Do not roll back the
+migration or relabel the archive. Complete export can remain unavailable during
+that forward deployment window.
+
+A full-system export preserves canonical database rows and packages available bytes with their exact locator identity. Local execution gates are rebuilt paused during recovery. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
 
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated complete archive (current schema 14,
-`fp1-file-authority-transition`, with historical readers retained) against the current migrations in a newly
+rehearses a trusted negotiated complete archive (current schema 15,
+`fp1-shadow-conversion`, with historical readers retained) against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote
@@ -223,9 +224,9 @@ applied forward migration recorded in the report. Settings, universal upload
 routing and native website import remain later slices. FP1a–FP1j are merged
 through PR #219 at `7e63a366663c47c830120abc77af1d174abaf5aa`.
 Migration `0007` adds typed authority/conversion metadata and matched schema-14
-recovery but installs only immutable `legacy` mode. The next PR is the shadow
-writer/resolver and conversion ledger; final authority cutover, R2 role defaults
-and authenticated Settings remain separate work.
+recovery and installs immutable `legacy` mode. Migration `0008` adds the complete
+shadow generation/operation pipeline and V15 recovery. Final authority cutover,
+R2 role defaults and authenticated Settings remain separate work.
 
 ## Further documentation
 
@@ -248,6 +249,7 @@ and authenticated Settings remain separate work.
 - [FP1i metrology reference acceptance](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md)
 - [FP1j durable Comment acceptance](./docs/FP1_COMMENT_ACCEPTANCE.md)
 - [FP1k additive File-authority transition](./docs/FP1_FILE_AUTHORITY_TRANSITION.md)
+- [File shadow runtime and V15 recovery](./docs/FP1_SHADOW_RUNTIME.md)
 - [Live File consumer preflight and shadow-conversion protocols](./docs/FP1_SHADOW_CONVERSION_PREFLIGHT.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)

@@ -4,9 +4,9 @@ import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { crc32 } from "node:zlib";
 import JSZip from "jszip";
-import type { CompatibilitySchema, ExportSchemaObject, ExportTables, RetiredExportFields } from "../../shared/contracts/export";
+import type { CompatibilitySchema, ExportSchemaObject, ExportTables, FileShadowSourceRowids, FullExportManifestV15, RetiredExportFields } from "../../shared/contracts/export";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
-import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14 } from "../../shared/contracts/export-protocol";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15 } from "../../shared/contracts/export-protocol";
 import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
 import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
@@ -16,9 +16,10 @@ import {
   FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL,
   fileAuthoritySchemaFingerprint,
 } from "../../shared/contracts/export-file-authority";
+import { buildFileShadowBlobExportPlan, FILE_SHADOW_HEAD_INTEGRITY_SQL, FILE_SHADOW_EXPORTED_VIEWS, FILE_SHADOW_REBUILDABLE_TABLE_NAMES, FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_SOURCE_ROWIDS_PATH, fileShadowSchemaFingerprint } from "../../shared/contracts/export-file-shadow";
 
 type Row = Record<string, string | number | null>;
-const EXPORTED_VIEWS = [
+const EXPORTED_VIEWS = [...new Set([
   "blob_retention_edges",
   "file_consumer_relational_projection",
   "file_consumer_content_projection",
@@ -30,9 +31,10 @@ const EXPORTED_VIEWS = [
   "file_retention_edges",
   "file_location_retention_edges",
   "file_location_availability",
-];
+  ...FILE_SHADOW_EXPORTED_VIEWS,
+])];
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
-const REBUILDABLE_TABLES = new Set<string>(FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES);
+const REBUILDABLE_TABLES = new Set<string>([...FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES, ...FILE_SHADOW_REBUILDABLE_TABLE_NAMES]);
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
 const MAX_ENTRY_BYTES = 64 * 1024 * 1024;
@@ -164,6 +166,22 @@ async function ensureFileAuthorityTargetSchema(database: DatabaseSync) {
     "Local File authority schema differs from the reviewed migration checkpoint");
 }
 
+async function ensureFileShadowTargetSchema(database: DatabaseSync) {
+  const observed = database.prepare("SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name").all() as unknown as ExportSchemaObject[];
+  ensure(await fileShadowSchemaFingerprint(observed) === FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256,
+    "Local File shadow schema differs from the reviewed migration checkpoint");
+}
+
+function ensureShadowExecutionSuspended(database: DatabaseSync) {
+  if (!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='file_shadow_runtime_guard'").get()) return false;
+  const rows = database.prepare("SELECT singleton, incarnation, enabled FROM file_shadow_runtime_guard").all();
+  ensure(rows.length === 1 && rows[0].singleton === 1 && rows[0].incarnation === null && rows[0].enabled === 0,
+    "Restored shadow execution must remain suspended");
+  ensure(database.prepare("SELECT COUNT(*) AS count FROM file_shadow_runtime_incarnations").get()?.count === 0,
+    "Restored shadow runtime incarnation history must be local and empty");
+  return true;
+}
+
 function fileRegistryRowidClaimsInstalled(database: DatabaseSync) {
   return database.prepare("SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'file_registry_rowid_claims'").get() !== undefined;
 }
@@ -201,7 +219,7 @@ function inspectProjectRelations(database: DatabaseSync) {
   for (const [name, sql] of Object.entries(checks)) ensure(!database.prepare(sql).get(), `${name} verification failed`);
 }
 
-function retentionAt(databasePath: string, inspectionTime: string) {
+function retentionAt(databasePath: string, inspectionTime: string, view = "blob_retention_edges") {
   const projection = new DatabaseSync(databasePath, { readOnly: true });
   const clock = new DatabaseSync(":memory:");
   try {
@@ -214,7 +232,7 @@ function retentionAt(databasePath: string, inspectionTime: string) {
         return Object.values(clock.prepare(`SELECT ${name}(${args.map(() => "?").join(",")})`).get(...args)!)[0];
       });
     }
-    return projection.prepare("SELECT * FROM blob_retention_edges").all() as Row[];
+    return projection.prepare(`SELECT * FROM ${identifier(view)}`).all() as Row[];
   } finally {
     projection.close();
     clock.close();
@@ -242,7 +260,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14, 15].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -252,7 +270,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const migrations: Array<{ name: string; sha256: string }> = [];
     // Historical profiles first restore against their exact reviewed physical
     // schema. Only this named chain admits the bounded forward transitions.
-    const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql"];
+    const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql"];
     const knownChain = migrationNames.length >= 2 && migrationNames.length <= reviewedChain.length
       && canonical(migrationNames) === canonical(reviewedChain.slice(0, migrationNames.length));
     const forwardNames = knownChain ? migrationNames.filter((name) =>
@@ -261,7 +279,8 @@ export async function restoreExportToIsolatedDirectory(options: {
       || name === reviewedChain[3] && manifest.schemaVersion < 11
       || name === reviewedChain[4] && manifest.schemaVersion < 12
       || name === reviewedChain[5] && manifest.schemaVersion < 13
-      || name === reviewedChain[6] && manifest.schemaVersion < 14) : [];
+      || name === reviewedChain[6] && manifest.schemaVersion < 14
+      || name === reviewedChain[7] && manifest.schemaVersion < 15) : [];
     const forwardMigrations: Array<{ name: string; sha256: string; sql: string }> = [];
     const migrationSql: string[] = [];
     for (const name of migrationNames) {
@@ -274,6 +293,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     let expectedSchema = schema(database);
     let derivedTablesRebuilt = false;
     if (manifest.schemaVersion === 14) await ensureFileAuthorityTargetSchema(database);
+    if (manifest.schemaVersion === 15) await ensureFileShadowTargetSchema(database);
     const tableNames = expectedSchema.filter((entry) => entry.type === "table"
       && !PLATFORM_TABLES.has(entry.name) && !REBUILDABLE_TABLES.has(entry.name)).map((entry) => entry.name);
     const schemaViewNames = new Set(expectedSchema.filter((entry) => entry.type === "view").map((entry) => entry.name));
@@ -281,7 +301,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const catalog = [...tableNames, ...exportedViews].sort();
     ensure(canonical(Object.keys(manifest.tables).sort()) === canonical(catalog), "Archive table catalog differs from the current local schema");
     const observedColumns = (name: string) => (database!.prepare(`PRAGMA table_xinfo(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name);
-    const compatibilityProfile = manifest.schemaVersion === 14 ? "file-authority-v14" : "legacy";
+    const compatibilityProfile = [14, 15].includes(manifest.schemaVersion) ? "file-authority-v14" : "legacy";
     const targetCompatibilitySchema = classifyExportCompatibilitySchema({
       samples: observedColumns("samples"), run_step_comments: observedColumns("run_step_comments"),
     }, compatibilityProfile);
@@ -308,11 +328,14 @@ export async function restoreExportToIsolatedDirectory(options: {
     }
 
     let retiredFields: RetiredExportFields;
+    let sourceRowids: FileShadowSourceRowids | undefined;
     const retainedArtifacts: Array<{ path: string; bytes: Buffer }> = [];
     if (manifest.schemaVersion >= 8) {
       ensure(manifest.archiveWriter === 1 && object(manifest.artifacts), "Unsupported complete-export writer");
       const artifacts: Record<string, any> = {};
-      for (const [name, path] of [["sourceSchema", EXPORT_SOURCE_SCHEMA_PATH], ["retiredFields", EXPORT_RETIRED_FIELDS_PATH]]) {
+      const artifactPaths = [["sourceSchema", EXPORT_SOURCE_SCHEMA_PATH], ["retiredFields", EXPORT_RETIRED_FIELDS_PATH]];
+      if (manifest.schemaVersion === 15) artifactPaths.push(["sourceRowids", FILE_SHADOW_SOURCE_ROWIDS_PATH]);
+      for (const [name, path] of artifactPaths) {
         const descriptor = manifest.artifacts[name];
         ensure(object(descriptor) && descriptor.path === path && Number.isSafeInteger(descriptor.byteSize), `Invalid ${name} artifact descriptor`);
         const artifactBytes = await archive.read(path);
@@ -320,13 +343,14 @@ export async function restoreExportToIsolatedDirectory(options: {
         artifacts[name] = { ...descriptor, value: JSON.parse(artifactBytes.toString("utf8")) };
         retainedArtifacts.push({ path, bytes: artifactBytes });
       }
-      ensure(Object.keys(manifest.artifacts).sort().join(",") === "retiredFields,sourceSchema", "Unknown or missing provenance artifacts");
+      ensure(Object.keys(manifest.artifacts).sort().join(",") === (manifest.schemaVersion === 15 ? "retiredFields,sourceRowids,sourceSchema" : "retiredFields,sourceSchema"), "Unknown or missing provenance artifacts");
       // Archive entries have final outcomes, while the negotiated wire catalog
       // has download URLs. Validate provenance against a reconstructed wire
       // plan here; the original archived blob catalog and bytes are checked
       // against that same table-derived plan below without dropping entries.
-      const validate = manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
-      const validated = await validate({ ...manifest, tables, artifacts, blobs: buildBlobExportPlan(tables) });
+      const validate = manifest.schemaVersion === 15 ? validateFullExportV15 : manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validated = await validate({ ...manifest, tables, artifacts, blobs: manifest.schemaVersion === 15 ? buildFileShadowBlobExportPlan(tables) : buildBlobExportPlan(tables) });
+      if (validated.schemaVersion === 15) sourceRowids = (validated as FullExportManifestV15).artifacts.sourceRowids.value;
       retiredFields = validated.artifacts.retiredFields.value;
       tables = restoreCompatibilityRows(validated.tables, retiredFields, targetCompatibilitySchema, compatibilityProfile);
     } else {
@@ -343,7 +367,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       const columns = observedColumns(name).sort();
       for (const row of tables[name]) ensure(canonical(Object.keys(row).sort()) === canonical(columns), `Table column mismatch: ${name}`);
     }
-    const plan = buildBlobExportPlan(tables);
+    const plan = manifest.schemaVersion === 15 ? buildFileShadowBlobExportPlan(tables) : buildBlobExportPlan(tables);
     const expectedBlobs = new Map(plan.map((entry) => [entry.locatorId, entry]));
     ensure(manifest.blobs.length === plan.length, "Archive blob catalog differs from exported tables");
     const seen = new Set<string>();
@@ -365,6 +389,11 @@ export async function restoreExportToIsolatedDirectory(options: {
         const recorded = field === "sourceOccurrences" ? expected[field].map(canonical).sort() : expected[field];
         ensure(canonical(observed) === canonical(recorded), `Blob metadata disagrees with table snapshot: ${field}`);
       }
+      if (manifest.schemaVersion === 15) {
+        for (const field of ["byteAuthority", "storageProfileId", "storageProfileRevision", "locationId"] as const) {
+          ensure(canonical(blob[field]) === canonical((expected as unknown as Record<string, unknown>)[field]), `Shadow blob identity differs: ${field}`);
+        }
+      }
       ensure(OUTCOMES.has(blob.outcome), "Unknown blob export outcome");
       ensure(expected.initialOutcome === null || blob.outcome === expected.initialOutcome, "Blob outcome disagrees with unavailable metadata");
       let localPath: string | null = null;
@@ -382,7 +411,9 @@ export async function restoreExportToIsolatedDirectory(options: {
         expectedWarnings.set(blob.locatorId, blob);
       }
       providerEntries.push({ locatorId: blob.locatorId, storeKind: blob.storeKind, provider: blob.provider,
-        objectKey: blob.objectKey, path: localPath, sha256: restoredSha256, outcome: blob.outcome });
+        objectKey: blob.objectKey, path: localPath, sha256: restoredSha256, outcome: blob.outcome,
+        ...(manifest.schemaVersion === 15 ? { byteAuthority: blob.byteAuthority, storageProfileId: blob.storageProfileId,
+          storageProfileRevision: blob.storageProfileRevision, locationId: blob.locationId } : {}) });
     }
     ensure(warnings.length === expectedWarnings.size, "Export warnings disagree with blob outcomes");
     for (const warning of warnings) {
@@ -391,6 +422,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       ensure(blob && warning.code === blob.outcome && typeof warning.message === "string"
         && canonical(warning.blobRecordIds) === canonical(blob.blobRecordIds)
         && canonical(warning.sourceOccurrences) === canonical(blob.sourceOccurrences), "Export warning disagrees with its blob");
+      if (manifest.schemaVersion === 15) for (const field of ["byteAuthority", "storageProfileId", "storageProfileRevision", "locationId"] as const) ensure(canonical(warning[field]) === canonical(blob[field]), "Shadow warning identity differs from its blob");
       expectedWarnings.delete(warning.locatorId);
     }
     archive.finish();
@@ -408,14 +440,27 @@ export async function restoreExportToIsolatedDirectory(options: {
         const rows = tables[name];
         if (!rows.length) continue;
         const columns = Object.keys(rows[0]);
-        const insert = database.prepare(`INSERT INTO ${identifier(name)} (${columns.map(identifier).join(",")}) VALUES (${columns.map(() => "?").join(",")})`);
-        for (const row of rows) insert.run(...columns.map((column) => row[column]));
+        const physicalRows = sourceRowids?.tables[name];
+        const insertColumns = physicalRows ? ["rowid", ...columns] : columns;
+        const insert = database.prepare(`INSERT INTO ${identifier(name)} (${insertColumns.map(identifier).join(",")}) VALUES (${insertColumns.map(() => "?").join(",")})`);
+        for (const [index, row] of rows.entries()) insert.run(...(physicalRows ? [BigInt(physicalRows[index].rowid)] : []), ...columns.map((column) => row[column]));
       }
       derivedTablesRebuilt = rebuildFileRegistryRowidClaims(database);
+      ensureShadowExecutionSuspended(database);
       for (const trigger of triggers) database.exec(trigger.sql);
       ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Restored database foreign-key check failed");
       ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Restored database integrity check failed");
       ensure(canonical(schema(database)) === canonical(expectedSchema), "Restored schema differs from the migrated schema");
+      if (sourceRowids) {
+        for (const [name, entries] of Object.entries(sourceRowids.tables)) {
+          for (const [index, entry] of entries.entries()) {
+            const recovered = database.prepare(`SELECT * FROM ${identifier(name)} WHERE rowid=?`).get(BigInt(entry.rowid));
+            ensure(recovered && canonical(recovered) === canonical(tables[name][index]), "Restored shadow source rowid differs");
+          }
+        }
+        const proof = database.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).get();
+        ensure(proof?.invalid_count === 0, "Restored shadow heads differ from their current physical source rows");
+      }
       inspectProjectRelations(database);
       for (const name of tableNames) ensure(sameRows(database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[], tables[name]), `Restored rows differ: ${name}`);
       database.exec("COMMIT; PRAGMA foreign_keys = ON");
@@ -453,8 +498,30 @@ export async function restoreExportToIsolatedDirectory(options: {
         candidates.splice(found, 1);
       }
     }
+    const expiredShadowRetentionEdges: Array<{ view: string; row: Row }> = [];
     for (const name of exportedViews) {
       if (name === "blob_retention_edges") continue;
+      if (manifest.schemaVersion === 15 && name.includes("retention_edges")) {
+        const current = (database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[]).map(canonical);
+        const expired: Row[] = [];
+        for (const row of tables[name]) {
+          const index = current.indexOf(canonical(row));
+          if (index >= 0) { current.splice(index, 1); continue; }
+          ensure(typeof row.retain_until === "string" && Number.isFinite(Date.parse(row.retain_until)) && Date.parse(row.retain_until) <= Date.parse(now), `A non-expired shadow retention edge was lost: ${name}`);
+          expired.push(row);
+        }
+        ensure(current.length === 0, `Restore introduced shadow retention edges: ${name}`);
+        if (expired.length) {
+          const inspectionTime = new Date(Math.min(...expired.map((row) => Date.parse(String(row.retain_until)))) - 1000).toISOString();
+          const candidates = retentionAt(join(staging, "database.sqlite"), inspectionTime, name).map(canonical);
+          for (const row of expired) {
+            const index = candidates.indexOf(canonical(row));
+            ensure(index >= 0, `Expired shadow retention edge cannot be reconstructed: ${name}`); candidates.splice(index, 1);
+            expiredShadowRetentionEdges.push({ view: name, row });
+          }
+        }
+        continue;
+      }
       ensure(sameRows(database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[], tables[name]),
         `Restored projection differs: ${name}`);
     }
@@ -466,6 +533,7 @@ export async function restoreExportToIsolatedDirectory(options: {
         // All original cells, observations and byte roots remain unchanged.
         const addsAcceptance = forwardNames.includes("0003_fp1_import_acceptance.sql");
         const addsFileAuthority = forwardNames.includes("0007_fp1_file_authority_transition.sql");
+        const addsFileShadow = forwardNames.includes("0008_fp1_shadow_runtime.sql");
         for (const name of tableNames) {
           const originalTable = expectedSchema.find((entry) => entry.type === "table" && entry.name === name)!;
           const originalColumns = sqliteTableColumns(originalTable.sql, name);
@@ -523,7 +591,12 @@ export async function restoreExportToIsolatedDirectory(options: {
         ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Forward migration foreign-key check failed");
         ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
         const upgradedSchema = schema(database);
-        if (addsFileAuthority) await ensureFileAuthorityTargetSchema(database);
+        if (addsFileShadow) {
+          await ensureFileShadowTargetSchema(database);
+          ensureShadowExecutionSuspended(database);
+          ensure(database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode === "legacy",
+            "Historical restore must not enable shadow overlap");
+        } else if (addsFileAuthority) await ensureFileAuthorityTargetSchema(database);
         // Every old view/index/trigger and unchanged table keeps its SQL, apart
         // from the two reviewed update guards extended for the new nullable
         // File slots. In particular retention remains identical at a fixed clock.
@@ -538,6 +611,11 @@ export async function restoreExportToIsolatedDirectory(options: {
           "trigger:template_versions_guard_unpublished_update",
         ]);
         for (const entry of expectedSchema) {
+          // The reviewed shadow suffix deliberately replaces occurrence and
+          // legacy-GC guards. Exact V15 fingerprint plus the independently
+          // rebuilt reviewed schema below qualifies those schema changes;
+          // every previously restored canonical cell was compared above.
+          if (addsFileShadow) continue;
           if (addsAcceptance && entry.type === "table" && entry.name === "imports") continue;
           if (addsFileAuthority && entry.type === "table" && fileAuthorityChangedTables.has(entry.name)) continue;
           if (addsFileAuthority && fileAuthorityReplacedObjects.has(`${entry.type}:${entry.name}`)) continue;
@@ -569,6 +647,10 @@ export async function restoreExportToIsolatedDirectory(options: {
       restoredBlobCount: providerEntries.filter((entry) => entry.path !== null).length,
       databasePath: "database.sqlite", providerManifestPath: "provider-manifest.json",
       warnings, packagedWithoutRecordedHash: missingHashes, expiredRetentionEdges: expiredEdges,
+      ...(ensureShadowExecutionSuspended(database) ? { shadowRecovery: { providerIO: false, runtimeExecutionEnabled: false,
+        unfinishedOperationsResumed: false, authorityActivationPerformed: false,
+        recordedAuthorityMode: database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode,
+        reconciliationRequired: true, expiredRetentionEdges: expiredShadowRetentionEdges } } : {}),
       verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", triggersReinstalled: triggers.length,
         schemaEqual: true, derivedTablesRebuilt, projectRelations: true, retentionDifferencesOnlyExpired: true,
         expiredEdgesReconstructed: true, exportedAtIsExactSnapshotClock: false },

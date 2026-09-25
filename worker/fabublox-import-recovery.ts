@@ -107,6 +107,7 @@ export async function queueFabubloxImportCleanup(
       WHERE id = ? AND operation_id = ? AND finalization_id IS NULL
         AND status IN ('pending', 'failed')
         AND (recovery_operation_id IS NULL OR recovery_operation_id = ?)
+      RETURNING 1 AS affected
     `).bind(
       message,
       timestamp,
@@ -194,6 +195,7 @@ export async function queueFabubloxImportCleanup(
         FROM state_verifications sv
         WHERE sv.expected_state_hash = state_representation_assets.state_hash
       )
+      RETURNING 1 AS affected
     `).bind(
       input.importId,
       recoveryOperationId,
@@ -215,6 +217,7 @@ export async function queueFabubloxImportCleanup(
         WHERE i.id = ? AND i.status = 'failed'
           AND i.recovery_operation_id = ?
       )
+      RETURNING 1 AS affected
     `).bind(input.importId, recoveryOperationId),
     db.prepare(`
       UPDATE run_steps
@@ -226,6 +229,7 @@ export async function queueFabubloxImportCleanup(
         WHERE i.id = ? AND i.status = 'failed'
           AND i.recovery_operation_id = ?
       )
+      RETURNING 1 AS affected
     `).bind(input.importId, recoveryOperationId),
     // Template revisions are stable identities and cannot be physically
     // deleted. Remove their cascade-owned step rows, then quarantine the
@@ -238,6 +242,7 @@ export async function queueFabubloxImportCleanup(
         WHERE id = ? AND status = 'failed'
           AND recovery_operation_id = ?
       )
+      RETURNING 1 AS affected
     `).bind(input.importId, recoveryOperationId),
     db.prepare(`
       UPDATE template_versions
@@ -252,6 +257,7 @@ export async function queueFabubloxImportCleanup(
         WHERE id = ? AND status = 'failed'
           AND recovery_operation_id = ?
       )
+      RETURNING 1 AS affected
     `).bind(timestamp, timestamp, input.importId, recoveryOperationId),
     // Restore provider-backed metadata before any availability transition.
     // Legacy failed rows may have lost both SHA and the authoritative byte
@@ -802,6 +808,7 @@ export async function queueFabubloxImportCleanup(
           WHERE json_extract(entry.value, '$.id') = assets.id
             AND json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
         )
+      RETURNING 1 AS affected
     `).bind(
       input.importId,
       input.importId,
@@ -894,6 +901,7 @@ export async function queueFabubloxImportCleanup(
           SELECT 1 FROM fabublox_recovery_public_asset_edges public_edge
           WHERE public_edge.asset_id = assets.id
         )
+      RETURNING 1 AS affected
     `).bind(
       input.importId,
       input.importId,
@@ -1012,6 +1020,7 @@ export async function queueFabubloxImportCleanup(
           WHERE json_extract(entry.value, '$.id') = assets.id
             AND json_extract(entry.value, '$.canonicalAssetId') IS NOT NULL
         )
+      RETURNING 1 AS affected
     `).bind(
       input.importId,
       input.importId,
@@ -1077,6 +1086,7 @@ export async function queueFabubloxImportCleanup(
         last_error = NULL,
         updated_at = excluded.updated_at
       WHERE blob_gc_ledger.state = 'orphaned'
+      RETURNING 1 AS affected
     `).bind(
       recoveryOperationId,
       timestamp,
@@ -1086,23 +1096,25 @@ export async function queueFabubloxImportCleanup(
     ),
   ]);
 
-  // Preserve the existing cleanup-result positions; the assertion is read-only.
+  // RETURNING counts only the top-level rows; D1 meta.changes also counts
+  // shadow-capture and other trigger writes. Preserve the result positions;
+  // the snapshot assertion remains immediately after the claim and read-only.
   const results = [claimResult, ...cleanupResults];
-  if (!Number(results[0].meta.changes ?? 0)) return emptyCleanupResult();
+  if (!results[0].results.length) return emptyCleanupResult();
   const relationshipResultIndexes = [2, 3, 4];
   return {
-    importsFailed: Number(results[0].meta.changes ?? 0),
+    importsFailed: results[0].results.length,
     relationshipsRemoved: relationshipResultIndexes.reduce(
-      (total, index) => total + Number(results[index].meta.changes ?? 0),
+      (total, index) => total + results[index].results.length,
       0,
     ),
-    templateStepsRemoved: Number(results[5].meta.changes ?? 0),
-    templatesQuarantined: Number(results[6].meta.changes ?? 0),
+    templateStepsRemoved: results[5].results.length,
+    templatesQuarantined: results[6].results.length,
     assetsReleased:
-      Number(results[22].meta.changes ?? 0)
-      + Number(results[25].meta.changes ?? 0)
-      + Number(results[27].meta.changes ?? 0),
-    objectsQueued: Number(results[29].meta.changes ?? 0),
+      results[22].results.length
+      + results[25].results.length
+      + results[27].results.length,
+    objectsQueued: results[29].results.length,
   };
 }
 
