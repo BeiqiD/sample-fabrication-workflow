@@ -174,7 +174,14 @@ describe("FabuBlox recovery publication snapshot on the current schema", () => {
     const state = fixture({ canonical });
     try {
       const result = await state.recover();
-      expect(result.importsFailed).toBe(1);
+      expect(result).toEqual({
+        importsFailed: 1,
+        relationshipsRemoved: 0,
+        templateStepsRemoved: 0,
+        templatesQuarantined: 0,
+        assetsReleased: canonical ? 1 : 0,
+        objectsQueued: canonical ? 1 : 0,
+      });
       expect(state.database.prepare(`SELECT status, recovery_operation_id
         FROM imports WHERE id = 'recovering-import'`).get()).toEqual({
         status: "failed", recovery_operation_id: "cleanup-operation",

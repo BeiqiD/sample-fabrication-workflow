@@ -5,6 +5,7 @@ import { routes as projectRoutes } from "./project-routes";
 import {
   referenceTestDatabase,
   SqliteD1Database,
+  SqliteD1Statement,
 } from "./reference-test-support";
 import { removeProjectItem } from "./projects/service";
 import type { Env } from "./types";
@@ -25,12 +26,27 @@ const geometry = { x: 40, y: 60, width: 320, height: 180, zIndex: 0 };
 
 class InterleavingSqliteD1Database extends SqliteD1Database {
   beforeNextBatch: (() => Promise<void>) | null = null;
+  includeTriggerChanges = false;
+  batchChanges: number[][] = [];
 
   override async batch(statements: D1PreparedStatement[]) {
     const interleave = this.beforeNextBatch;
     this.beforeNextBatch = null;
     if (interleave) await interleave();
-    return super.batch(statements);
+    if (!this.includeTriggerChanges) return super.batch(statements);
+    // D1 reports trigger writes in meta.changes; DatabaseSync.run reports only
+    // top-level writes. Use the actual connection delta to exercise that gap.
+    const counted = statements.map((statement) => ({
+      execute: () => {
+        const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+        const result = (statement as unknown as SqliteD1Statement).execute();
+        const after = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+        return { ...result, meta: { changes: after - before } };
+      },
+    })) as unknown as D1PreparedStatement[];
+    const results = await super.batch(counted);
+    this.batchChanges.push(results.map((result) => result.meta.changes));
+    return results;
   }
 }
 
@@ -188,8 +204,8 @@ function expectNoDestinationRows(
 }
 
 describe("Project attachment copy route", () => {
-  it("authorizes the source occurrence, reuses only its server-side asset binding, and replays exactly", async () => {
-    const { app, env, database } = fixture();
+  it("authorizes and copies with trigger-inclusive D1 counts, then replays exactly", async () => {
+    const { app, env, database, adapter } = fixture();
     await createProject(app, env, "project-copy");
     seedAsset(
       database,
@@ -203,6 +219,7 @@ describe("Project attachment copy route", () => {
       { assetId: "asset-copy-source" },
     );
 
+    adapter.includeTriggerChanges = true;
     const input = copyInput();
     const copied = await jsonRequest(
       app,
@@ -214,6 +231,10 @@ describe("Project attachment copy route", () => {
     expect(copied.status).toBe(201);
     const copiedPayload = await copied.json() as ProjectItemResponse;
     expect(copiedPayload).toMatchObject({ replayed: false, project: { revision: 3 } });
+    const copyChanges = adapter.batchChanges.find((changes) => changes.length === 5
+      && changes.every((count) => count > 0));
+    expect(copyChanges).toHaveLength(5);
+    expect(copyChanges![2]).toBeGreaterThan(1);
     expect(database.prepare(`
       SELECT project_content_id, asset_id, storage_object_id,
              original_name, mime_type, byte_size

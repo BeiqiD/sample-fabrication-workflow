@@ -50,7 +50,9 @@ function delay(milliseconds) {
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  // The frozen export protocol uses localeCompare for object keys, including
+  // V15 source-rowid entries whose rowid and rowSha256 keys differ in case.
+  if (value && typeof value === "object") return `{${Object.keys(value).sort((left, right) => left.localeCompare(right)).map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
   return JSON.stringify(value);
 }
 
@@ -130,8 +132,8 @@ try {
   assert(sourceSchema.compatibilityColumns.run_step_comments.includes("legacy_body"));
   for (const artifact of Object.values(fullExport.artifacts)) {
     const bytes = Buffer.from(`${canonicalJson(artifact.value)}\n`);
-    assert.equal(bytes.length, artifact.byteSize);
-    assert.equal(createHash("sha256").update(bytes).digest("hex"), artifact.sha256);
+    assert.equal(bytes.length, artifact.byteSize, `${artifact.path} byte size`);
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), artifact.sha256, `${artifact.path} SHA-256`);
   }
   assert.deepEqual(fullExport.artifacts.retiredFields.value.samplesProcessRevision, { presentInSourceSchema: false, complete: false, sourceRowCount: fullExport.tables.samples.length, values: [] });
   assert.deepEqual(fullExport.artifacts.retiredFields.value.runStepCommentsBody, { presentInSourceSchema: false, complete: false, sourceRowCount: fullExport.tables.run_step_comments.length, values: [] });

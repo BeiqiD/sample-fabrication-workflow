@@ -3,6 +3,7 @@ import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "./index";
 import { cleanupCommentUploads } from "./comment-upload-cleanup";
+import { closeExpiredRetryWindows } from "./evidence/retry-maintenance";
 import { listPermanentDeleteBlockers } from "./blob-lifecycle/permanent-delete";
 import type { Env } from "./types";
 
@@ -38,11 +39,14 @@ class SqliteD1Statement {
   execute() {
     this.beforeExecute?.(this.query, this.bindings);
     const statement = this.statement();
-    if (/^\s*SELECT\b/i.test(this.query)) {
-      return { success: true, meta: { changes: 0 }, results: statement.all(...this.bindings) };
-    }
-    const result = statement.run(...this.bindings);
-    return { success: true, meta: { changes: Number(result.changes) }, results: [] };
+    // Native D1 reports trigger writes too; use its connection-wide delta while
+    // retaining RETURNING rows for exact top-level mutation counts.
+    const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+    const results = statement.columns().length > 0
+      ? statement.all(...this.bindings)
+      : (statement.run(...this.bindings), []);
+    const changes = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count) - before;
+    return { success: true, meta: { changes }, results };
   }
 }
 
@@ -215,6 +219,39 @@ describe("blob lifecycle review fixes", () => {
     expect(database.prepare(
       "SELECT state FROM blob_gc_ledger WHERE object_key = 'comments/expired.bin'",
     ).get()).toEqual({ state: "orphaned" });
+    database.close();
+  });
+
+  it("reports exact retry-maintenance counts when shadow triggers also write", async () => {
+    const database = migratedDatabase();
+    addSample(database);
+    addAsset(database, "retry-count-asset", "comments/retry-count.bin", "5");
+    database.exec(`
+      INSERT INTO comment_submissions
+        (id, context_kind, sample_id, body, status, created_at, updated_at, retry_until)
+      VALUES
+        ('retry-abandoned', 'sample', 'sample-1', 'Abandoned', 'uploading',
+          '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z', NULL),
+        ('retry-expired', 'sample', 'sample-1', 'Expired', 'failed',
+          '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z',
+          '2026-08-01T00:00:00.000Z');
+      INSERT INTO comment_submission_items
+        (id, submission_id, kind, status, position, asset_id, created_at, updated_at)
+      VALUES
+        ('retry-abandoned-item', 'retry-abandoned', 'comment_image', 'uploading', 0,
+          'retry-count-asset', '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'),
+        ('retry-expired-item', 'retry-expired', 'comment_image', 'failed', 0,
+          'retry-count-asset', '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z');
+    `);
+    const env = envFor(database);
+    const batches = vi.spyOn(env.DB, "batch");
+    expect(await closeExpiredRetryWindows(env, new Date("2026-08-10T00:00:00.000Z")))
+      .toEqual({ abandonedSubmissions: 1, abandonedItems: 1, retryWindowsClosed: 1, retryItemsClosed: 1 });
+    const results = await batches.mock.results[0].value;
+    expect(results.map((result: D1Result) => result.results.length)).toEqual([1, 1, 1, 1]);
+    expect(results.every((result: D1Result) => result.meta.changes > 1)).toBe(true);
+    expect(await closeExpiredRetryWindows(env, new Date("2026-08-10T00:00:00.000Z")))
+      .toEqual({ abandonedSubmissions: 0, abandonedItems: 0, retryWindowsClosed: 0, retryItemsClosed: 0 });
     database.close();
   });
 

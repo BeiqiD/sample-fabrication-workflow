@@ -112,6 +112,11 @@ Migration stays in legacy mode with a disabled local runtime. Explicit commands
 admit overlap and an exact destination profile; active authority remains blocked.
 Old Worker mutations capture successor generations in the same transaction, and
 legacy-visible holds fence uncertain source use against old GC.
+This is SQL capture compatibility, not a guarantee of old Worker response
+classification: D1 trigger writes inflate `meta.changes`. Apply `0008` with
+business writes paused, deploy the matching Worker with exact top-level
+affected-row checks, and verify normal and replayed mutations before resuming
+writes. Keep writes paused if that Worker deployment fails.
 
 Current complete export/recovery is schema 15, profile `fp1-shadow-conversion`.
 It preserves canonical shadow history and portable source rowid evidence, while

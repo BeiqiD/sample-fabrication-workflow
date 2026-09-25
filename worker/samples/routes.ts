@@ -1319,7 +1319,8 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
            WHERE operation_group_id = ?
              AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
              AND deleted_at IS NULL AND asset_deleted_at IS NULL
-         )`,
+         )
+       RETURNING 1 AS affected`,
     ).bind(
       ...affectedEventIds,
       event.asset_key,
@@ -1382,7 +1383,8 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
              AND sv.evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)
              AND s.deleted_at IS NULL AND r.deleted_at IS NULL
              AND endpoint.deleted_at IS NULL
-         )`,
+         )
+       RETURNING 1 AS affected`,
     ).bind(
       now, userEmail, deletionOperationId,
       eventId, sampleId, event.asset_key,
@@ -1436,7 +1438,8 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          )
        WHERE id IN (SELECT id FROM candidate_events)
          AND (SELECT COUNT(*) FROM candidate_events) = ?
-         AND EXISTS (SELECT 1 FROM valid_occurrence)`,
+         AND EXISTS (SELECT 1 FROM valid_occurrence)
+       RETURNING 1 AS affected`,
     ).bind(
       sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
       executionOccurrenceId, stepId, event.asset_key, stepId, runId, sampleId,
@@ -1480,7 +1483,8 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          AND EXISTS (
            SELECT 1 FROM samples s
            WHERE s.id = events.sample_id AND s.deleted_at IS NULL
-         )`,
+         )
+       RETURNING 1 AS affected`,
     ).bind(
       JSON.stringify({
         ...retainedMetadata,
@@ -1571,7 +1575,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
     ));
   }
   const results = await c.env.DB.batch(statements);
-  if (results[0].meta.changes !== affectedEventIds.length) {
+  if (results[0].results.length !== affectedEventIds.length) {
     throw new HTTPException(409, { message: "The image attachment source changed before deletion" });
   }
   return c.json({ ok: true, updatedAt: now });

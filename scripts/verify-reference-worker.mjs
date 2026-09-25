@@ -289,7 +289,7 @@ try {
   )));
 
   // Real D1 counts trigger updates in meta.changes. Legacy creation must settle
-  // against the exact RETURNING IDs even when those counts are doubled.
+  // against the exact RETURNING IDs even when capture and other trigger writes inflate those counts.
   const db = await miniflare.getD1Database("DB");
   for (const timing of ["BEFORE", "AFTER"]) {
     await db.prepare(`CREATE TRIGGER qualification_legacy_noop ${timing} INSERT ON run_step_comments
@@ -299,7 +299,7 @@ try {
       const [proof] = await db.batch([db.prepare(`INSERT INTO run_step_comments
         (id, run_step_id, scope, legacy_body, created_at)
         VALUES (?, 'reference-step-a', 'individual', 'Trigger count proof', '2026-09-13') RETURNING id`).bind(proofId)]);
-      assert.equal(proof.meta.changes, 2);
+      assert(proof.meta.changes > 1, "trigger side effects must inflate the one inserted business row");
       assert.deepEqual(proof.results, [{ id: proofId }]);
       for (const scope of ["individual", "common"]) {
         const suffixes = scope === "common" ? ["a", "b"] : ["a"];

@@ -57,7 +57,7 @@ class SqliteD1Statement {
   execute() {
     this.beforeExecute?.(this.query, this.bindings);
     const statement = this.statement();
-    if (/^\s*SELECT\b/i.test(this.query)) {
+    if (statement.columns().length > 0) {
       return { success: true, meta: { changes: 0 }, results: statement.all(...this.bindings) };
     }
     const result = statement.run(...this.bindings);

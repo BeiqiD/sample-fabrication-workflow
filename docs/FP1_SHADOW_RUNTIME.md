@@ -25,6 +25,12 @@ business transaction. The old business File foreign-key columns and frozen
 `file_consumer_migration_decisions` stay empty. The mutable generation sidecars
 avoid activating the fill-once guards of migration `0007` on legacy event rows.
 Existing business reads and byte writes still use their established paths.
+The matching Worker obtains exact affected-row evidence from SQL `RETURNING`
+or an adjacent `SELECT changes()` in the same batch. D1 `meta.changes` also
+includes trigger writes and cannot establish a business operation's row count.
+Capture of old Worker SQL does not make its response or retry classification
+compatible: older Workers that compare that metadata to an exact count can
+misreport a committed operation as a replay or conflict.
 Resolved decisions belong to one occurrence, not to a reusable business ID.
 Deleting and recreating an ID cannot inherit its old decision.
 
@@ -137,11 +143,16 @@ profile and revision qualifiers. Pending, quarantined or otherwise unavailable
 candidates retain metadata and a warning rather than being presented as complete
 bytes. ZIP packaging verifies size and hash for each downloaded entry.
 
-Deployment remains migration-first. A post-0008 database requires the V15 Worker
-for a complete export; a stale V14 page must refresh. If migration succeeds but
-Worker deployment fails, finish deployment of the reviewed V15 Worker and verify
-V15 export plus stale-version rejection. Do not downgrade the schema or relabel a
-V15 archive. Neither this PR nor restore authorizes remote deployment or cleanup.
+Deployment remains migration-first within a coordinated maintenance window.
+Pause business writes before applying `0008` and keep them paused until the
+matching Worker with trigger-independent affected-row checks is running. Do not
+leave an older Worker serving writes against the upgraded schema. A post-0008
+database also requires the V15 Worker for complete export; a stale V14 page must
+refresh. If migration succeeds but Worker deployment fails, retain the write
+pause, finish deployment of the reviewed V15 Worker, and verify first creation,
+replay, deletion/restoration, V15 export and stale-version rejection before
+resuming writes. Do not downgrade the schema or relabel a V15 archive. Neither
+this PR nor restore authorizes remote deployment or cleanup.
 
 ## Qualification boundary
 

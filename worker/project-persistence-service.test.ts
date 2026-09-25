@@ -26,16 +26,35 @@ import {
   referenceTestDatabase,
   seedReferenceGraph,
   SqliteD1Database,
+  SqliteD1Statement,
 } from "./reference-test-support";
 
 const ACTOR = "researcher@example.com";
 const NOW = "2026-08-09T21:00:00.000Z";
 const geometry = { x: 0, y: 0, width: 320, height: 180, zIndex: 0 };
 
+class TriggerCountingD1Database extends SqliteD1Database {
+  override async batch(statements: D1PreparedStatement[]) {
+    // Native D1 reports all trigger writes in meta.changes, unlike run().changes
+    // from node:sqlite. Exercise the service with the production count semantics.
+    const totalChanges = this.database.prepare("SELECT total_changes() AS count");
+    return super.batch(statements.map((statement) => ({
+      execute: () => {
+        const before = Number(totalChanges.get()?.count);
+        const result = (statement as unknown as SqliteD1Statement).execute();
+        return {
+          ...result,
+          meta: { changes: Number(totalChanges.get()?.count) - before },
+        };
+      },
+    }) as unknown as D1PreparedStatement));
+  }
+}
+
 function fixture(seedReferences = false) {
   const database = referenceTestDatabase();
   if (seedReferences) seedReferenceGraph(database);
-  const adapter = new SqliteD1Database(database);
+  const adapter = new TriggerCountingD1Database(database);
   return {
     database,
     db: adapter as unknown as D1Database,
@@ -212,6 +231,7 @@ describe("Project persistence service", () => {
       NOW,
       "registry-reference-a",
     );
+    expect(first.replayed).toBe(false);
     expect(first.item).toMatchObject({ itemType: "reference", createdSequence: 1 });
 
     const second = await createReferenceProjectItem(db, "project-a", {
@@ -222,6 +242,7 @@ describe("Project persistence service", () => {
       expectedProjectRevision: 2,
       operationId: "insert-reference-b",
     }, ACTOR, "2026-08-09T21:01:00.000Z", "ignored-registry-id");
+    expect(second.replayed).toBe(false);
     expect(second.item.createdSequence).toBe(2);
     expect(database.prepare(`
       SELECT COUNT(*) AS count FROM reference_targets
@@ -339,6 +360,7 @@ describe("Project persistence service", () => {
       operationId: "create-attachment-a",
     } as const;
     const created = await createAttachmentProjectItem(db, "project-a", input, ACTOR, NOW);
+    expect(created.replayed).toBe(false);
     expect(created.attachment).toMatchObject({
       originalName: "asset-a.bin",
       mimeType: "application/octet-stream",

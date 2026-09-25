@@ -281,7 +281,8 @@ routes.delete("/run-step-comments/:id/asset", async (c) => {
                    AND cs.status = 'ready' AND cs.deleted_at IS NULL
                )
              )
-         ) = ?`,
+         ) = ?
+       RETURNING id`,
     ).bind(
       now,
       userEmail,
@@ -372,7 +373,7 @@ routes.delete("/run-step-comments/:id/asset", async (c) => {
     ));
   }
   const results = await c.env.DB.batch(statements);
-  if (results[0].meta.changes !== targetIds.length) {
+  if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment attachment changed while it was being deleted" });
   }
   return c.json({ ok: true, updatedAt: now });
@@ -501,7 +502,8 @@ routes.post("/run-step-comments/:id/asset/restore", async (c) => {
                    AND cs.status = 'ready' AND cs.deleted_at IS NULL
                )
              )
-         ) = ?`,
+         ) = ?
+       RETURNING id`,
     ).bind(
       mutationId,
       ...targetIds,
@@ -561,7 +563,7 @@ routes.post("/run-step-comments/:id/asset/restore", async (c) => {
     ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
   }
   const results = await c.env.DB.batch(statements);
-  if (results[0].meta.changes !== targetIds.length) {
+  if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment attachment changed while it was being restored" });
   }
   return c.json({ ok: true, updatedAt: now });
@@ -671,7 +673,8 @@ routes.delete("/run-step-comments/:id", async (c) => {
                    AND cs.status = 'ready' AND cs.deleted_at IS NULL
                )
              )
-         ) = ?`,
+         ) = ?
+       RETURNING id`,
     ).bind(
       now,
       userEmail,
@@ -765,7 +768,7 @@ routes.delete("/run-step-comments/:id", async (c) => {
   }
 
   const results = await c.env.DB.batch(statements);
-  const deleted = results[0].meta.changes ?? 0;
+  const deleted = results[0].results.length;
   if (deleted !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment changed while it was being deleted" });
   }
@@ -898,7 +901,8 @@ routes.post("/run-step-comments/:id/restore", async (c) => {
                    AND cs.status = 'ready' AND cs.deleted_at IS NULL
                )
              )
-         ) = ?`,
+         ) = ?
+       RETURNING id`,
     ).bind(
       mutationId,
       now,
@@ -974,8 +978,8 @@ routes.post("/run-step-comments/:id/restore", async (c) => {
     ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
   }
   const results = await c.env.DB.batch(statements);
-  if (results[0].meta.changes !== targetIds.length) {
+  if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }
-  return c.json({ ok: true, restored: results[0].meta.changes ?? 0, updatedAt: now });
+  return c.json({ ok: true, restored: results[0].results.length, updatedAt: now });
 });
