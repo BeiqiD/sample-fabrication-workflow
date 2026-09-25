@@ -28,13 +28,18 @@ through PR #219 at exact head
 `0007` and schema-14 recovery in immutable `legacy` mode. It is substrate for the
 old-business-path-compatible expand/shadow/activate sequence, excluding the
 migration-first complete-export window before the V14 Worker is live; it is not
-runtime File authority. FP1 remains incomplete; no deployment is certified by
-this document.
+runtime File authority. FP1k is merged in PR #220 at integration head `4248deb5`.
+The [shadow-conversion preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md)
+adds read-only live-database inspection and qualification before opening overlap.
+It addresses observed occurrence-mutation, legacy-hold, accepted-candidate and
+archive-generation gaps; it does not complete shadow conversion or reduce its
+scope. FP1 remains incomplete; no deployment is certified by this document.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
 FP1k implementation base: `7e63a366663c47c830120abc77af1d174abaf5aa`
-(merged PR #219), 2026-09-14. This implementation PR records its own final
+(merged PR #219), 2026-09-14. Preflight implementation base: merged PR #220 at
+`4248deb5`, reviewed 2026-09-25. Each implementation PR records its own final
 verification and deployment evidence.
 
 ## Authority and reading order
@@ -54,7 +59,9 @@ Read these documents together:
 4. This plan: delivery dependencies, compatibility and acceptance.
 5. [FP1k additive transition](./FP1_FILE_AUTHORITY_TRANSITION.md): the installed
    legacy-mode substrate and required expand/shadow/activate sequence.
-6. [Long-term roadmap](./LONG_TERM_ROADMAP.md): Docker, small-group collaboration
+6. [Shadow-conversion preflight](./FP1_SHADOW_CONVERSION_PREFLIGHT.md): executable
+   read-only inspection, complete slot inventory and remaining overlap protocols.
+7. [Long-term roadmap](./LONG_TERM_ROADMAP.md): Docker, small-group collaboration
    and optional capabilities beyond this track.
 
 Existing architecture/data-model documents describe deployed implementation.
@@ -120,8 +127,13 @@ fixed seven-day deadline and guarded publication of all retained items/targets.
 The complete consumer, deduplication, retention and recovery conversion remains
 open; accepted-operation ledgers and the FP1k additive substrate do not complete
 it. Captured purposes do not change legacy global-SHA reuse or activate File
-placement. The next PR after FP1k is the complete shadow writer/resolver and
-conversion ledger, not final cutover. It must independently verify and copy bytes
+placement. Inspection of the merged substrate identified four concrete protocol
+gaps, recorded in the [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md).
+An executable inspection/qualification PR precedes overlap so occurrence mutation,
+legacy-GC hold protection, historical acceptance replay and V15 recovery can be
+reviewed without relaxing guards prematurely. The next runtime PR remains the
+complete shadow writer/resolver and conversion ledger, not final cutover. It must
+cover all 13 slots on 11 tables and independently verify and copy bytes
 when one legacy locator serves consumers with different purposes. A later atomic
 activation switches reads, writes and lifecycle authority together only after
 catch-up and old-Worker fencing.
@@ -333,8 +345,10 @@ outside database transactions. No new ORM, PostgreSQL or distributed coordinatio
 prerequisite for introducing these narrow interfaces.
 
 Review FP1 in bounded slices: schema/profile mapping with matching recovery; the
-FP1k additive expansion in immutable `legacy` mode; complete shadow writing,
-resolution and ledgered catch-up; separately reviewed atomic consumer/lifecycle
+FP1k additive expansion in immutable `legacy` mode; its executable read-only
+preflight and protocol qualification checkpoint; complete shadow writing,
+resolution and ledgered catch-up with successor archive recovery; separately
+reviewed atomic consumer/lifecycle
 activation (including the FP1b reader, FP1c verified-write and FP1d
 fenced-deletion precursors); then deployment defaults, readiness and basic
 Settings acceptance. These are review boundaries within FP1, not independently
@@ -348,7 +362,12 @@ The [FP1d handoff inventory](./FP1_FENCED_BYTE_DELETION.md#next-authority-transi
 identifies the concrete relational, direct-key, import/recovery, API and
 export/restore consumers for the authority conversion. Bound read/write/delete
 adapters and the FP1k schema do not themselves convert those consumers. FP1k's
-authority mode stays immutably `legacy`. A later resolver must re-read the live
+authority mode stays immutably `legacy`. The current preflight reads coherent,
+bounded primary pages; it supplies neither holds nor an installation-wide cutoff.
+The [preflight protocol](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) requires occurrence
+generations/tombstones, hold protection in the legacy deletion authority,
+separate pending-acceptance and historical-conversion ownership, and V15 recovery
+without provider replay before overlap can ship. A later resolver must re-read the live
 baseline, acquire durable holds, record every resolution outcome and independently
 verify source/destination bytes; purpose conflicts require separate verified
 placements rather than cross-purpose aliasing. Only after complete shadow catch-up
