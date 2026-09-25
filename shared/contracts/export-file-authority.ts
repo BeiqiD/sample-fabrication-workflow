@@ -4,6 +4,7 @@ import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 
 export const FILE_AUTHORITY_CONTROL_TABLE = "file_authority_control" as const;
+export const FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES = ["file_registry_rowid_claims"] as const;
 
 export const FILE_AUTHORITY_EXPORT_COLUMNS = {
   file_authority_control: ["singleton", "mode", "revision", "updated_at", "activated_at"],
@@ -38,6 +39,7 @@ export const FILE_AUTHORITY_SCHEMA_V14_TABLE_NAMES = [
   "files",
   "file_locations",
   "legacy_file_mappings",
+  "file_registry_rowid_claims",
   "file_authority_control",
   "storage_profile_runtime",
   "file_location_publications",
@@ -61,6 +63,25 @@ export const FILE_AUTHORITY_SCHEMA_V14_TABLE_NAMES = [
   "imports",
   "template_versions",
 ] as const;
+
+// Hidden rowids are local physical identities and are deliberately absent from
+// the portable archive. The claim table is therefore verified in the source
+// snapshot and rebuilt from the restored registry rowids instead of exported.
+export const FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL = `WITH expected(registry_name, claimed_rowid) AS (
+  SELECT 'storage_profiles', rowid FROM storage_profiles
+  UNION ALL SELECT 'files', rowid FROM files
+  UNION ALL SELECT 'file_locations', rowid FROM file_locations
+  UNION ALL SELECT 'legacy_file_mappings', rowid FROM legacy_file_mappings
+)
+SELECT
+  (SELECT count(*) FROM expected e
+    LEFT JOIN file_registry_rowid_claims c
+      ON c.registry_name = e.registry_name AND c.claimed_rowid = e.claimed_rowid
+    WHERE c.registry_name IS NULL)
+  + (SELECT count(*) FROM file_registry_rowid_claims c
+    LEFT JOIN expected e
+      ON e.registry_name = c.registry_name AND e.claimed_rowid = c.claimed_rowid
+    WHERE e.registry_name IS NULL) AS invalid_count`;
 
 export const FILE_AUTHORITY_SCHEMA_V14_VIEW_NAMES = [
   "attachment_derivative_browser_safe_assets",
@@ -87,7 +108,7 @@ export const FILE_AUTHORITY_SCHEMA_V14_VIEW_NAMES = [
 // checkpoint installed by migrations 0001..0007. Recompute it only when that
 // reviewed migration chain intentionally changes.
 export const FILE_AUTHORITY_SCHEMA_FINGERPRINT_ALGORITHM = "file-authority-sqlite-schema/v1" as const;
-export const FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256 = "7ceede1dfbd921e6a5b082cf7a6b92cefb01f42354979368560845e7a2a8c775";
+export const FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256 = "af16d78ac480a15ca7dc2fd71c67269895385f7912e2e148c6187106f49ec31a";
 
 const FILE_AUTHORITY_SCHEMA_TABLES = new Set<string>(FILE_AUTHORITY_SCHEMA_V14_TABLE_NAMES);
 const FILE_AUTHORITY_SCHEMA_VIEWS = new Set<string>(FILE_AUTHORITY_SCHEMA_V14_VIEW_NAMES);

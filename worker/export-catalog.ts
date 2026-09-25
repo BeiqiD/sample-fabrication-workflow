@@ -89,7 +89,8 @@ export const FULL_EXPORT_V13_TABLE_QUERIES = {
 } as const;
 
 // Schema 14 additions are appended below once the transition migration has
-// established their exact physical contract.
+// established their exact physical contract. file_registry_rowid_claims is a
+// verified, rebuildable local-rowid guard and is deliberately not serialized.
 export const FULL_EXPORT_V14_TABLE_QUERIES = {
   ...FULL_EXPORT_V13_TABLE_QUERIES,
   file_authority_control: "SELECT * FROM file_authority_control ORDER BY singleton",

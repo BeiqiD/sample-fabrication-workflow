@@ -10,7 +10,12 @@ import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExpo
 import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
 import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
-import { FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256, fileAuthoritySchemaFingerprint } from "../../shared/contracts/export-file-authority";
+import {
+  FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES,
+  FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256,
+  FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL,
+  fileAuthoritySchemaFingerprint,
+} from "../../shared/contracts/export-file-authority";
 
 type Row = Record<string, string | number | null>;
 const EXPORTED_VIEWS = [
@@ -27,6 +32,7 @@ const EXPORTED_VIEWS = [
   "file_location_availability",
 ];
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
+const REBUILDABLE_TABLES = new Set<string>(FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES);
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
 const MAX_ENTRY_BYTES = 64 * 1024 * 1024;
@@ -158,6 +164,30 @@ async function ensureFileAuthorityTargetSchema(database: DatabaseSync) {
     "Local File authority schema differs from the reviewed migration checkpoint");
 }
 
+function fileRegistryRowidClaimsInstalled(database: DatabaseSync) {
+  return database.prepare("SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'file_registry_rowid_claims'").get() !== undefined;
+}
+
+function ensureFileRegistryRowidClaims(database: DatabaseSync) {
+  if (!fileRegistryRowidClaimsInstalled(database)) return;
+  const row = database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).get() as { invalid_count?: unknown } | undefined;
+  ensure(row?.invalid_count === 0, "File registry rowid claims differ from their registry rows");
+}
+
+function rebuildFileRegistryRowidClaims(database: DatabaseSync) {
+  if (!fileRegistryRowidClaimsInstalled(database)) return false;
+  database.exec(`
+    DELETE FROM file_registry_rowid_claims;
+    INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+    SELECT 'storage_profiles', rowid FROM storage_profiles
+    UNION ALL SELECT 'files', rowid FROM files
+    UNION ALL SELECT 'file_locations', rowid FROM file_locations
+    UNION ALL SELECT 'legacy_file_mappings', rowid FROM legacy_file_mappings;
+  `);
+  ensureFileRegistryRowidClaims(database);
+  return true;
+}
+
 function inspectProjectRelations(database: DatabaseSync) {
   // These final-state relations have trigger guards rather than complete
   // foreign keys. Historical/deleted rows are valid and remain in the checks.
@@ -242,8 +272,10 @@ export async function restoreExportToIsolatedDirectory(options: {
       else database.exec(sql);
     }
     let expectedSchema = schema(database);
+    let derivedTablesRebuilt = false;
     if (manifest.schemaVersion === 14) await ensureFileAuthorityTargetSchema(database);
-    const tableNames = expectedSchema.filter((entry) => entry.type === "table" && !PLATFORM_TABLES.has(entry.name)).map((entry) => entry.name);
+    const tableNames = expectedSchema.filter((entry) => entry.type === "table"
+      && !PLATFORM_TABLES.has(entry.name) && !REBUILDABLE_TABLES.has(entry.name)).map((entry) => entry.name);
     const schemaViewNames = new Set(expectedSchema.filter((entry) => entry.type === "view").map((entry) => entry.name));
     const exportedViews = EXPORTED_VIEWS.filter((name) => schemaViewNames.has(name));
     const catalog = [...tableNames, ...exportedViews].sort();
@@ -379,6 +411,7 @@ export async function restoreExportToIsolatedDirectory(options: {
         const insert = database.prepare(`INSERT INTO ${identifier(name)} (${columns.map(identifier).join(",")}) VALUES (${columns.map(() => "?").join(",")})`);
         for (const row of rows) insert.run(...columns.map((column) => row[column]));
       }
+      derivedTablesRebuilt = rebuildFileRegistryRowidClaims(database);
       for (const trigger of triggers) database.exec(trigger.sql);
       ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Restored database foreign-key check failed");
       ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Restored database integrity check failed");
@@ -484,6 +517,8 @@ export async function restoreExportToIsolatedDirectory(options: {
               AND runtime.activated_at IS NULL AND runtime.retired_at IS NULL`).get()?.count
             === database.prepare("SELECT COUNT(*) AS count FROM storage_profiles").get()?.count,
           "Historical restore must create read-only runtime state for every storage profile");
+          ensureFileRegistryRowidClaims(database);
+          derivedTablesRebuilt = true;
         }
         ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Forward migration foreign-key check failed");
         ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
@@ -535,7 +570,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       databasePath: "database.sqlite", providerManifestPath: "provider-manifest.json",
       warnings, packagedWithoutRecordedHash: missingHashes, expiredRetentionEdges: expiredEdges,
       verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", triggersReinstalled: triggers.length,
-        schemaEqual: true, projectRelations: true, retentionDifferencesOnlyExpired: true,
+        schemaEqual: true, derivedTablesRebuilt, projectRelations: true, retentionDifferencesOnlyExpired: true,
         expiredEdgesReconstructed: true, exportedAtIsExactSnapshotClock: false },
     };
     await mkdir(join(staging, "provenance"));

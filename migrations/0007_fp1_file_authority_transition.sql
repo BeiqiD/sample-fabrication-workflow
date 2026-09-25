@@ -71,6 +71,99 @@ BEFORE DELETE ON storage_profile_runtime BEGIN
   SELECT RAISE(ABORT, 'Storage profile runtime history cannot be deleted');
 END;
 
+-- The four FP1a registry tables retain historical rowids. SQLite replacement
+-- writes may otherwise delete a different immutable row through an explicit
+-- hidden-rowid conflict without firing its DELETE trigger when recursive
+-- triggers are disabled. BEFORE INSERT cannot distinguish an explicitly
+-- supplied rowid=-1 from SQLite's placeholder for an ordinary insert, and an
+-- ordinary insert may itself receive a negative rowid when all preserved rows
+-- are negative. Keep durable claims instead. An AFTER trigger sees the final
+-- rowid and aborts if that identity was already claimed; ABORT rolls back the
+-- replacement's implicit delete. New positive, zero and negative rowids remain
+-- valid and receive their own claim.
+CREATE TABLE file_registry_rowid_claims (
+  registry_name TEXT NOT NULL CHECK (registry_name IN (
+    'storage_profiles', 'files', 'file_locations', 'legacy_file_mappings'
+  )),
+  claimed_rowid INTEGER NOT NULL CHECK (typeof(claimed_rowid) = 'integer'),
+  PRIMARY KEY (registry_name, claimed_rowid)
+) WITHOUT ROWID;
+
+INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+SELECT 'storage_profiles', rowid FROM storage_profiles
+UNION ALL SELECT 'files', rowid FROM files
+UNION ALL SELECT 'file_locations', rowid FROM file_locations
+UNION ALL SELECT 'legacy_file_mappings', rowid FROM legacy_file_mappings;
+
+CREATE TRIGGER file_registry_rowid_claims_insert_guard
+BEFORE INSERT ON file_registry_rowid_claims BEGIN
+  SELECT RAISE(ABORT, 'FP1 registry rowid claim must reference an existing row')
+  WHERE NOT EXISTS (
+    SELECT 1 FROM storage_profiles
+      WHERE NEW.registry_name = 'storage_profiles' AND rowid = NEW.claimed_rowid
+    UNION ALL SELECT 1 FROM files
+      WHERE NEW.registry_name = 'files' AND rowid = NEW.claimed_rowid
+    UNION ALL SELECT 1 FROM file_locations
+      WHERE NEW.registry_name = 'file_locations' AND rowid = NEW.claimed_rowid
+    UNION ALL SELECT 1 FROM legacy_file_mappings
+      WHERE NEW.registry_name = 'legacy_file_mappings' AND rowid = NEW.claimed_rowid
+  );
+END;
+
+CREATE TRIGGER file_registry_rowid_claims_update_guard
+BEFORE UPDATE ON file_registry_rowid_claims BEGIN
+  SELECT RAISE(ABORT, 'FP1 registry rowid claims cannot be changed');
+END;
+
+CREATE TRIGGER file_registry_rowid_claims_delete_guard
+BEFORE DELETE ON file_registry_rowid_claims BEGIN
+  SELECT RAISE(ABORT, 'FP1 registry rowid claims cannot be deleted');
+END;
+
+CREATE TRIGGER storage_profiles_rowid_claim_guard
+AFTER INSERT ON storage_profiles BEGIN
+  SELECT RAISE(ABORT, 'FP1 immutable registry identity cannot reuse a claimed rowid')
+  WHERE EXISTS (
+    SELECT 1 FROM file_registry_rowid_claims
+    WHERE registry_name = 'storage_profiles' AND claimed_rowid = NEW.rowid
+  );
+  INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+  VALUES ('storage_profiles', NEW.rowid);
+END;
+
+CREATE TRIGGER files_rowid_claim_guard
+AFTER INSERT ON files BEGIN
+  SELECT RAISE(ABORT, 'FP1 immutable registry identity cannot reuse a claimed rowid')
+  WHERE EXISTS (
+    SELECT 1 FROM file_registry_rowid_claims
+    WHERE registry_name = 'files' AND claimed_rowid = NEW.rowid
+  );
+  INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+  VALUES ('files', NEW.rowid);
+END;
+
+CREATE TRIGGER file_locations_rowid_claim_guard
+AFTER INSERT ON file_locations BEGIN
+  SELECT RAISE(ABORT, 'FP1 immutable registry identity cannot reuse a claimed rowid')
+  WHERE EXISTS (
+    SELECT 1 FROM file_registry_rowid_claims
+    WHERE registry_name = 'file_locations' AND claimed_rowid = NEW.rowid
+  );
+  INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+  VALUES ('file_locations', NEW.rowid);
+END;
+
+CREATE TRIGGER legacy_file_mappings_rowid_claim_guard
+AFTER INSERT ON legacy_file_mappings BEGIN
+  SELECT RAISE(ABORT, 'FP1 immutable registry identity cannot reuse a claimed rowid')
+  WHERE EXISTS (
+    SELECT 1 FROM file_registry_rowid_claims
+    WHERE registry_name = 'legacy_file_mappings' AND claimed_rowid = NEW.rowid
+  );
+  INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+  VALUES ('legacy_file_mappings', NEW.rowid);
+END;
+
 -- Typed business relationships are nullable during expand so every explicit
 -- INSERT emitted by the preceding Worker continues to work unchanged.
 ALTER TABLE state_representation_assets ADD COLUMN file_id TEXT REFERENCES files(id) ON DELETE RESTRICT;
@@ -148,8 +241,8 @@ CREATE TABLE file_holds (
   expires_at TEXT CHECK (expires_at IS NULL OR (typeof(expires_at) = 'text' AND length(expires_at) BETWEEN 1 AND 200 AND instr(expires_at, char(0)) = 0 AND datetime(expires_at) IS NOT NULL)),
   released_at TEXT CHECK (released_at IS NULL OR (typeof(released_at) = 'text' AND length(released_at) BETWEEN 1 AND 200 AND instr(released_at, char(0)) = 0 AND datetime(released_at) IS NOT NULL)),
   UNIQUE (file_id, operation_id),
-  CHECK (expires_at IS NULL OR (datetime(expires_at) IS NOT NULL AND datetime(expires_at) > datetime(acquired_at))),
-  CHECK (released_at IS NULL OR (datetime(released_at) IS NOT NULL AND datetime(released_at) >= datetime(acquired_at)))
+  CHECK (expires_at IS NULL OR (datetime(expires_at) IS NOT NULL AND julianday(expires_at) > julianday(acquired_at))),
+  CHECK (released_at IS NULL OR (datetime(released_at) IS NOT NULL AND julianday(released_at) >= julianday(acquired_at)))
 ) WITHOUT ROWID;
 
 CREATE TABLE file_location_holds (
@@ -162,8 +255,8 @@ CREATE TABLE file_location_holds (
   expires_at TEXT CHECK (expires_at IS NULL OR (typeof(expires_at) = 'text' AND length(expires_at) BETWEEN 1 AND 200 AND instr(expires_at, char(0)) = 0 AND datetime(expires_at) IS NOT NULL)),
   released_at TEXT CHECK (released_at IS NULL OR (typeof(released_at) = 'text' AND length(released_at) BETWEEN 1 AND 200 AND instr(released_at, char(0)) = 0 AND datetime(released_at) IS NOT NULL)),
   UNIQUE (location_id, operation_id),
-  CHECK (expires_at IS NULL OR (datetime(expires_at) IS NOT NULL AND datetime(expires_at) > datetime(acquired_at))),
-  CHECK (released_at IS NULL OR (datetime(released_at) IS NOT NULL AND datetime(released_at) >= datetime(acquired_at)))
+  CHECK (expires_at IS NULL OR (datetime(expires_at) IS NOT NULL AND julianday(expires_at) > julianday(acquired_at))),
+  CHECK (released_at IS NULL OR (datetime(released_at) IS NOT NULL AND julianday(released_at) >= julianday(acquired_at)))
 ) WITHOUT ROWID;
 
 CREATE TABLE file_location_gc_ledger (
@@ -179,10 +272,10 @@ CREATE TABLE file_location_gc_ledger (
   CHECK ((state = 'orphaned' AND operation_id IS NULL AND deletion_started_at IS NULL AND deleted_at IS NULL
       AND attempt_count = 0 AND last_error IS NULL AND updated_at = orphaned_at)
     OR (state = 'deleting' AND operation_id IS NOT NULL AND datetime(deletion_started_at) IS NOT NULL
-      AND deleted_at IS NULL AND attempt_count > 0 AND datetime(updated_at) >= datetime(deletion_started_at))
+      AND deleted_at IS NULL AND attempt_count > 0 AND julianday(updated_at) >= julianday(deletion_started_at))
     OR (state = 'deleted' AND operation_id IS NOT NULL AND datetime(deletion_started_at) IS NOT NULL
       AND datetime(deleted_at) IS NOT NULL AND attempt_count > 0 AND last_error IS NULL
-      AND updated_at = deleted_at AND datetime(deleted_at) >= datetime(deletion_started_at)))
+      AND updated_at = deleted_at AND julianday(deleted_at) >= julianday(deletion_started_at)))
 ) WITHOUT ROWID;
 
 CREATE TABLE file_location_integrity_quarantine (
@@ -456,7 +549,7 @@ SELECT rsa.file_id, 'run_step', rsa.run_step_id, 'run_step_asset', rsa.id,
   CASE WHEN rsa.deleted_at IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', rsa.deleted_at, '+1 day') END
 FROM run_step_assets rsa
 WHERE rsa.file_id IS NOT NULL AND rsa.superseded_by_occurrence_id IS NULL
-  AND (rsa.deleted_at IS NULL OR datetime(rsa.deleted_at, '+1 day') > datetime('now'))
+  AND (rsa.deleted_at IS NULL OR julianday(rsa.deleted_at, '+1 day') > julianday('now'))
 
 UNION ALL
 SELECT mtr.file_id, 'template_version', mtr.template_version_id, 'metrology_template_reference', mtr.id,
@@ -481,7 +574,7 @@ SELECT csi.file_id, 'comment_submission' AS source_type, cs.id AS source_id,
   CASE WHEN csi.deleted_at IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', csi.deleted_at, '+1 day') END AS retain_until
 FROM comment_submission_items csi JOIN comment_submissions cs ON cs.id = csi.submission_id
 WHERE csi.file_id IS NOT NULL AND cs.status = 'ready' AND csi.status = 'ready'
-  AND (csi.deleted_at IS NULL OR datetime(csi.deleted_at, '+1 day') > datetime('now'))
+  AND (csi.deleted_at IS NULL OR julianday(csi.deleted_at, '+1 day') > julianday('now'))
 
 UNION ALL
 SELECT csi.file_id, 'comment_submission', cs.id, 'comment_submission_item', csi.id,
@@ -500,7 +593,7 @@ SELECT ad.derived_file_id, 'attachment_derivative', ad.id, 'attachment_derivativ
   'derivative_cache', ad.retain_until
 FROM attachment_derivatives ad
 WHERE ad.derived_file_id IS NOT NULL AND ad.status = 'ready' AND ad.retain_until IS NOT NULL
-  AND datetime(ad.retain_until) > datetime('now');
+  AND julianday(ad.retain_until) > julianday('now');
 
 CREATE VIEW file_direct_retention_edges AS
 SELECT e.asset_file_id AS file_id, 'sample' AS source_type, e.sample_id AS source_id,
@@ -546,7 +639,7 @@ SELECT fl.id, fl.file_id, 'file' AS source_type, fl.file_id AS source_id,
 FROM file_holds h
 JOIN file_publications fp ON fp.file_id = h.file_id AND fp.state = 'ready'
 JOIN file_locations fl ON fl.id = fp.active_location_id
-WHERE h.released_at IS NULL AND (h.expires_at IS NULL OR datetime(h.expires_at) > datetime('now'))
+WHERE h.released_at IS NULL AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now'))
 
 UNION ALL
 SELECT c.candidate_location_id, c.candidate_file_id, 'file_acceptance_candidate',
@@ -560,7 +653,7 @@ UNION ALL
 SELECT h.location_id, fl.file_id, 'file_location', h.location_id,
   'file_location_hold', h.id, h.hold_kind, h.expires_at
 FROM file_location_holds h JOIN file_locations fl ON fl.id = h.location_id
-WHERE h.released_at IS NULL AND (h.expires_at IS NULL OR datetime(h.expires_at) > datetime('now'));
+WHERE h.released_at IS NULL AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now'));
 
 CREATE VIEW file_location_availability AS
 SELECT flp.location_id, flp.file_id, flp.storage_profile_id, flp.object_key,
@@ -712,7 +805,7 @@ BEFORE UPDATE ON file_publications BEGIN
       OR NEW.active_location_id IS NOT NULL OR NEW.retired_at IS NULL
       OR EXISTS (SELECT 1 FROM file_retention_edges e WHERE e.file_id = OLD.file_id)
       OR EXISTS (SELECT 1 FROM file_holds h WHERE h.file_id = OLD.file_id AND h.released_at IS NULL
-        AND (h.expires_at IS NULL OR datetime(h.expires_at) > datetime('now')))
+        AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now')))
     ))
     OR (NEW.state = 'ready' AND NEW.active_location_id IS NOT OLD.active_location_id
       AND NOT EXISTS (
@@ -721,8 +814,8 @@ BEFORE UPDATE ON file_publications BEGIN
         WHERE source.location_id = OLD.active_location_id AND source.hold_kind = 'transition_source'
           AND destination.location_id = NEW.active_location_id AND destination.hold_kind = 'transition_destination'
           AND source.released_at IS NULL AND destination.released_at IS NULL
-          AND (source.expires_at IS NULL OR datetime(source.expires_at) > datetime('now'))
-          AND (destination.expires_at IS NULL OR datetime(destination.expires_at) > datetime('now'))
+          AND (source.expires_at IS NULL OR julianday(source.expires_at) > julianday('now'))
+          AND (destination.expires_at IS NULL OR julianday(destination.expires_at) > julianday('now'))
       ))
     OR (NEW.state = 'ready' AND NOT EXISTS (
       SELECT 1 FROM file_location_publications flp
@@ -901,7 +994,7 @@ BEFORE INSERT ON file_location_gc_ledger BEGIN
       WHERE lm.location_id = NEW.location_id
     )
     OR EXISTS (SELECT 1 FROM file_location_holds h WHERE h.location_id = NEW.location_id AND h.released_at IS NULL
-      AND (h.expires_at IS NULL OR datetime(h.expires_at) > datetime('now')));
+      AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now')));
 END;
 
 CREATE TRIGGER file_location_gc_legacy_update_guard
@@ -950,7 +1043,7 @@ BEFORE UPDATE ON file_location_gc_ledger BEGIN
         WHERE lm.location_id = NEW.location_id
       )
       OR EXISTS (SELECT 1 FROM file_location_holds h WHERE h.location_id = NEW.location_id AND h.released_at IS NULL
-        AND (h.expires_at IS NULL OR datetime(h.expires_at) > datetime('now')))
+        AND (h.expires_at IS NULL OR julianday(h.expires_at) > julianday('now')))
     ));
 END;
 

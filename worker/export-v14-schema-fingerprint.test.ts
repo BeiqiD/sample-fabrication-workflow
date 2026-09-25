@@ -50,7 +50,7 @@ describe("V14 File authority schema fingerprint", () => {
 
       expect(splitSlice).toEqual(wholeSlice);
       expect(d1Slice).toEqual(wholeSlice);
-      expect(wholeSlice).toHaveLength(404);
+      expect(wholeSlice).toHaveLength(412);
 
       const [wholeDigest, splitDigest, d1Digest] = await Promise.all([
         fileAuthoritySchemaFingerprint(wholeObjects),

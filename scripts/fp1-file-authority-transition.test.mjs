@@ -19,7 +19,7 @@ const authorityTables = [
   "file_holds", "file_location_gc_ledger", "file_location_holds",
   "file_location_integrity_quarantine", "file_location_publications", "file_publications",
 ];
-const withoutRowidTables = ["file_authority_control", "storage_profile_runtime", ...authorityTables];
+const withoutRowidTables = ["file_authority_control", "storage_profile_runtime", "file_registry_rowid_claims", ...authorityTables];
 const typedColumns = {
   state_representation_assets: ["file_id"], run_step_assets: ["file_id"],
   metrology_template_references: ["file_id"], run_step_comments: ["file_id"],
@@ -71,6 +71,11 @@ async function seedBeforeUpgrade(db) {
     "INSERT INTO storage_profiles (id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES ('authority-profile', 'r2', 'authority-fixture-bucket', 'bootstrap', NULL, 1, 'historical', '2026-09-14T00:00:00.000Z')",
     "INSERT INTO storage_profiles (id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES ('legacy-long-time-profile', 'r2', 'legacy-long-time-bucket', 'bootstrap', NULL, 1, 'historical', substr(hex(zeroblob(101)), 1, 201))",
     "INSERT INTO storage_profiles (id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES ('legacy-nul-time-profile', 'r2', 'legacy-nul-time-bucket', 'bootstrap', NULL, 1, 'historical', char(0) || 'legacy')",
+    "INSERT INTO storage_profiles (rowid, id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES (-1, 'negative-rowid-profile', 'r2', 'negative-rowid-bucket', 'bootstrap', NULL, 1, 'historical', '2026-09-14T00:00:00.000Z')",
+    `INSERT INTO files (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state, active_location_id, created_at)
+      VALUES (-1, 'negative-rowid-file', 'embedded_content', 'system', 3, '${hash("f")}', NULL, 'unresolved', NULL, '2026-09-14T00:00:00.000Z')`,
+    "INSERT INTO file_locations (rowid, id, file_id, storage_profile_id, object_key, state, created_at) VALUES (-1, 'negative-rowid-location', 'negative-rowid-file', 'negative-rowid-profile', 'legacy/negative-rowid', 'unresolved', '2026-09-14T00:00:00.000Z')",
+    "INSERT INTO legacy_file_mappings (rowid, store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at) VALUES (-1, 'r2', 'r2', 'legacy/negative-rowid', 'negative-rowid-file', 'negative-rowid-location', 'classified', '{}', '2026-09-14T00:00:00.000Z')",
     "CREATE TABLE d1_migrations (name TEXT PRIMARY KEY)",
     ...preceding.map((name) => `INSERT INTO d1_migrations VALUES ('${name}')`),
   ]);
@@ -82,6 +87,9 @@ async function verifyLegacyExpand(db) {
   const statements = splitSql(migrationSql);
   assert(statements.length > 100, "the complete substrate is Wrangler-split into bounded statements");
   assert(statements.every((statement) => Buffer.byteLength(statement) < 100_000));
+  assert.doesNotMatch(migrationSql,
+    /datetime\([^)]*\)\s*(?:>=|<=|>|<)|(?:>=|<=|>|<)\s*datetime\(/,
+    "authority deadlines and monotonic ordering must preserve sub-second precision");
 
   await assert.rejects(
     db.batch([...statements, `INSERT INTO d1_migrations VALUES ('${preceding[0]}')`]),
@@ -99,12 +107,33 @@ async function verifyLegacyExpand(db) {
   }]);
   assert.deepEqual(await db.all(`SELECT COUNT(*) AS count FROM storage_profile_runtime runtime
     JOIN storage_profiles profile ON profile.id = runtime.storage_profile_id
-    WHERE runtime.registered_at IS profile.created_at`), [{ count: 3 }]);
+    WHERE runtime.registered_at IS profile.created_at`), [{ count: 4 }]);
+  assert.deepEqual(await db.all(`SELECT rowid, location_id FROM legacy_file_mappings
+    WHERE location_id = 'negative-rowid-location'`), [{ rowid: -1, location_id: "negative-rowid-location" }],
+  "expand preserves a valid historical negative hidden identity");
+  assert.deepEqual(await db.all(`SELECT registry_name, claimed_rowid FROM file_registry_rowid_claims
+    WHERE claimed_rowid = -1 ORDER BY registry_name`), [
+    { registry_name: "file_locations", claimed_rowid: -1 },
+    { registry_name: "files", claimed_rowid: -1 },
+    { registry_name: "legacy_file_mappings", claimed_rowid: -1 },
+    { registry_name: "storage_profiles", claimed_rowid: -1 },
+  ], "expand claims every preserved hidden identity without changing it");
   for (const table of authorityTables) assert.deepEqual(await db.all(`SELECT * FROM ${table}`), [], `${table} is not backfilled`);
   for (const table of withoutRowidTables) {
     await assert.rejects(db.all(`SELECT rowid FROM ${table}`), /no such column.*rowid/i,
       `${table} has no hidden replacement identity`);
   }
+  assert.deepEqual((await db.all(`SELECT name FROM sqlite_schema
+      WHERE type = 'trigger' AND name LIKE '%rowid_claim%guard'
+      ORDER BY name`)).map(({ name }) => name), [
+    "file_locations_rowid_claim_guard",
+    "file_registry_rowid_claims_delete_guard",
+    "file_registry_rowid_claims_insert_guard",
+    "file_registry_rowid_claims_update_guard",
+    "files_rowid_claim_guard",
+    "legacy_file_mappings_rowid_claim_guard",
+    "storage_profiles_rowid_claim_guard",
+  ], "all FP1a rowid tables retain durable replacement claims");
   for (const [table, columns] of Object.entries(typedColumns)) {
     const predicate = columns.map((column) => `${column} IS NOT NULL`).join(" OR ");
     assert.deepEqual(await db.all(`SELECT 1 FROM ${table} WHERE ${predicate}`), [], `${table} typed slots remain null`);
@@ -146,6 +175,21 @@ async function verifyLegacyExpand(db) {
     [{ storage_profile_id: "post-upgrade-profile", state: "read_only" }]);
   assert.deepEqual(await db.all("SELECT asset_file_id, thumbnail_file_id FROM events WHERE id = 'post-upgrade-event'"),
     [{ asset_file_id: null, thumbnail_file_id: null }]);
+  await assert.rejects(db.batch([
+    "INSERT OR REPLACE INTO legacy_file_mappings (rowid, store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at) VALUES (-1, 'r2', 'r2', 'authority/embed', 'legacy-gated-file', 'legacy-gated-location', 'classified', '{}', '2026-09-14T00:00:02.000Z')",
+  ]), /claimed rowid|immutable registry identity/i,
+  "an explicit -1 replacement cannot erase a historical mapping");
+  assert.deepEqual(await db.all(`SELECT object_key, location_id FROM legacy_file_mappings
+    WHERE rowid = -1`), [{ object_key: "legacy/negative-rowid", location_id: "negative-rowid-location" }]);
+  await db.batch([
+    "INSERT INTO legacy_file_mappings (store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at) VALUES ('r2', 'r2', 'authority/embed', 'legacy-gated-file', 'legacy-gated-location', 'classified', '{}', '2026-09-14T00:00:02.000Z')",
+  ]);
+  for (const sql of [
+    "DELETE FROM file_registry_rowid_claims WHERE registry_name = 'files'",
+    "UPDATE file_registry_rowid_claims SET claimed_rowid = claimed_rowid + 1 WHERE registry_name = 'files'",
+    "INSERT INTO file_registry_rowid_claims VALUES ('files', 9000000000000000000)",
+  ]) await assert.rejects(db.batch([sql]), /cannot be deleted|cannot be changed|must reference/i,
+    "the derived claim inventory is fail-closed against direct mutation");
   await assert.rejects(db.batch(["UPDATE events SET asset_file_id = 'legacy-gated-file' WHERE id = 'post-upgrade-event'"]), /Legacy File authority/);
   await assert.rejects(db.batch([`INSERT INTO file_location_publications VALUES ('legacy-gated-location', 'legacy-gated-file', 'authority-profile', 'authority/embed', 5, '${hash("a")}', 'full_read_sha256', 'verify-legacy', '2026-09-14T00:00:02.000Z', '2026-09-14T00:00:02.000Z')`]), /Legacy File authority/);
   await assert.rejects(db.batch([
@@ -206,6 +250,8 @@ async function verifyLatentGuards(db) {
     "INSERT INTO blob_integrity_quarantine VALUES ('r2', 'r2', 'reference/private/comment.png', 'reference-comment-asset', 'missing', 10, NULL, 'legacy-quarantine', '2026-09-14T01:00:00.000Z', '2026-09-14T01:00:00.000Z')",
     ...baseFile("profile-isolated", "embedded_content", 10, hash("a"), "isolated-profile", "reference/private/comment.png"),
     ...baseFile("profile-alias", "embedded_content", 11, hash("b"), "isolated-profile", "reference/private/execution.png"),
+    ...baseFile("legacy-mapped", "embedded_content", 10, hash("a"), "authority-profile", "reference/private/comment.png"),
+    ...baseFile("mapping-replacement", "embedded_content", 13, hash("f"), "authority-profile", "authority/mapping-replacement"),
     ...baseFile("embed", "embedded_content", 5, hash("b"), "authority-profile", "authority/embed-ready"),
     ...baseFile("provenance", "provenance", 6, hash("c"), "authority-profile", "authority/provenance"),
     ...baseFile("preview", "derived_preview", 7, hash("d"), "authority-profile", "authority/preview"),
@@ -214,6 +260,7 @@ async function verifyLatentGuards(db) {
     locationPublication("embed", "authority-profile", "authority/embed-ready", 5, hash("b")),
     locationPublication("profile-isolated", "isolated-profile", "reference/private/comment.png", 10, hash("a")),
     locationPublication("profile-alias", "isolated-profile", "reference/private/execution.png", 11, hash("b")),
+    locationPublication("legacy-mapped", "authority-profile", "reference/private/comment.png", 10, hash("a")),
     locationPublication("provenance", "authority-profile", "authority/provenance", 6, hash("c")),
     locationPublication("preview", "authority-profile", "authority/preview", 7, hash("d")),
     locationPublication("preview2", "authority-profile", "authority/preview2", 11, hash("6")),
@@ -221,6 +268,96 @@ async function verifyLatentGuards(db) {
   ]);
   assert.deepEqual(await db.all("SELECT availability FROM file_location_availability WHERE location_id = 'loc-profile-isolated'"),
     [{ availability: "available" }], "legacy quarantine is bridged only through the exact legacy location identity");
+  assert.deepEqual(await db.all("SELECT availability FROM file_location_availability WHERE location_id = 'loc-legacy-mapped'"),
+    [{ availability: "available" }], "legacy lifecycle state is not joined by locator text alone");
+  assert.deepEqual(await db.all(`SELECT
+      julianday('2026-09-14T01:00:00.900Z') > julianday('2026-09-14T01:00:00.100Z') AS ordered`),
+    [{ ordered: 1 }], "authority timestamp ordering preserves milliseconds on SQLite and D1");
+  for (const sql of [
+    "INSERT INTO file_holds VALUES ('reversed-file-release', 'embed', 'read', 'reversed-file-release', 'must preserve milliseconds', '2026-09-14T01:00:00.900Z', NULL, '2026-09-14T01:00:00.100Z')",
+    "INSERT INTO file_location_holds VALUES ('reversed-location-release', 'loc-embed', 'read', 'reversed-location-release', 'must preserve milliseconds', '2026-09-14T01:00:00.900Z', NULL, '2026-09-14T01:00:00.100Z')",
+    "INSERT INTO file_holds VALUES ('reversed-file-expiry', 'embed', 'read', 'reversed-file-expiry', 'must preserve milliseconds', '2026-09-14T01:00:00.900Z', '2026-09-14T01:00:00.100Z', NULL)",
+    "INSERT INTO file_location_holds VALUES ('reversed-location-expiry', 'loc-embed', 'read', 'reversed-location-expiry', 'must preserve milliseconds', '2026-09-14T01:00:00.900Z', '2026-09-14T01:00:00.100Z', NULL)",
+  ]) await assert.rejects(db.batch([sql]), /CHECK|constraint/i,
+    "same-second hold ordering cannot be rounded to equality");
+  await db.batch([
+    "INSERT INTO file_holds VALUES ('precise-file-hold', 'embed', 'read', 'precise-file-hold', 'released after acquisition', '2026-09-14T01:00:00.100Z', '2026-09-14T01:00:00.900Z', '2026-09-14T01:00:00.900Z')",
+    "INSERT INTO file_location_holds VALUES ('precise-location-hold', 'loc-embed', 'read', 'precise-location-hold', 'released after acquisition', '2026-09-14T01:00:00.100Z', '2026-09-14T01:00:00.900Z', '2026-09-14T01:00:00.900Z')",
+    `INSERT INTO files VALUES ('rowid-file-anchor', 'embedded_content', 'system', 1, '${hash("4")}', NULL,
+      'unresolved', NULL, '2026-09-14T01:00:01.000Z')`,
+  ]);
+  await assert.rejects(db.batch([
+    `INSERT OR REPLACE INTO files
+      (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state,
+        active_location_id, created_at)
+      SELECT rowid, 'rowid-file-replacement', 'embedded_content', 'system', 1, '${hash("4")}', NULL,
+        'unresolved', NULL, '2026-09-14T01:00:01.000Z'
+      FROM files WHERE id = 'rowid-file-anchor'`,
+  ]), /conflicting rowid|immutable registry identity/i,
+  "a hidden-rowid replacement cannot erase an unreferenced immutable File");
+  await db.batch([
+    "INSERT INTO file_locations VALUES ('rowid-location-anchor', 'rowid-file-anchor', 'authority-profile', 'authority/rowid-location-anchor', 'unresolved', '2026-09-14T01:00:01.000Z')",
+  ]);
+  await assert.rejects(db.batch([
+    `INSERT OR REPLACE INTO file_locations
+      (rowid, id, file_id, storage_profile_id, object_key, state, created_at)
+      SELECT rowid, 'rowid-location-replacement', 'rowid-file-anchor', 'authority-profile',
+        'authority/rowid-location-replacement', 'unresolved', '2026-09-14T01:00:01.000Z'
+      FROM file_locations WHERE id = 'rowid-location-anchor'`,
+  ]), /conflicting rowid|immutable registry identity/i,
+  "a hidden-rowid replacement cannot erase an unreferenced immutable File location");
+  await assert.rejects(db.batch([
+    `INSERT OR REPLACE INTO storage_profiles
+      (rowid, id, adapter_type, namespace_identity, configuration_source, credential_reference,
+        configuration_revision, state, created_at)
+      SELECT rowid, 'rowid-profile-replacement', 'r2', 'rowid-profile-replacement-bucket',
+        'bootstrap', NULL, 1, 'historical', '2026-09-14T01:00:01.000Z'
+      FROM storage_profiles WHERE id = 'post-upgrade-profile'`,
+  ]), /claimed rowid|immutable registry identity|FOREIGN KEY/i,
+  "a hidden-rowid replacement cannot erase an immutable storage profile");
+  assert.deepEqual(await db.all("SELECT id FROM storage_profiles WHERE id IN ('post-upgrade-profile', 'rowid-profile-replacement') ORDER BY id"),
+    [{ id: "post-upgrade-profile" }]);
+  assert.deepEqual(await db.all("SELECT storage_profile_id FROM storage_profile_runtime WHERE storage_profile_id IN ('post-upgrade-profile', 'rowid-profile-replacement') ORDER BY storage_profile_id"),
+    [{ storage_profile_id: "post-upgrade-profile" }], "a failed replacement preserves the original runtime companion only");
+  await db.batch([
+    "INSERT INTO storage_profiles (rowid, id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES (-2, 'negative-new-profile', 'r2', 'negative-new-bucket', 'bootstrap', NULL, 1, 'historical', '2026-09-14T01:00:01.000Z')",
+    `INSERT INTO files (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state, active_location_id, created_at)
+      VALUES (-2, 'negative-new-file', 'embedded_content', 'system', 1, '${hash("4")}', NULL, 'unresolved', NULL, '2026-09-14T01:00:01.000Z')`,
+    "INSERT INTO file_locations (rowid, id, file_id, storage_profile_id, object_key, state, created_at) VALUES (-2, 'negative-new-location', 'negative-new-file', 'negative-new-profile', 'authority/negative-new-location', 'unresolved', '2026-09-14T01:00:01.000Z')",
+    "INSERT INTO legacy_file_mappings (rowid, store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at) VALUES (-2, 'r2', 'r2', 'authority/negative-new-location', 'negative-new-file', 'negative-new-location', 'classified', '{}', '2026-09-14T01:00:01.000Z')",
+  ]);
+  assert.deepEqual(await db.all(`SELECT registry_name, claimed_rowid FROM file_registry_rowid_claims
+    WHERE claimed_rowid = -2 ORDER BY registry_name`), [
+    { registry_name: "file_locations", claimed_rowid: -2 },
+    { registry_name: "files", claimed_rowid: -2 },
+    { registry_name: "legacy_file_mappings", claimed_rowid: -2 },
+    { registry_name: "storage_profiles", claimed_rowid: -2 },
+  ], "new negative identities are valid and receive durable claims");
+  await db.batch([
+    `INSERT INTO files (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state, active_location_id, created_at)
+      VALUES (-4, 'rowid-batch-anchor', 'embedded_content', 'system', 1, '${hash("4")}', NULL,
+        'unresolved', NULL, '2026-09-14T01:00:01.000Z')`,
+  ]);
+  await assert.rejects(db.batch([
+    `INSERT OR REPLACE INTO files
+      (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state,
+        active_location_id, created_at) VALUES
+      (-3, 'rowid-batch-prefix', 'embedded_content', 'system', 1, '${hash("4")}', NULL,
+        'unresolved', NULL, '2026-09-14T01:00:01.000Z'),
+      (-4, 'rowid-batch-replacement', 'embedded_content', 'system', 1, '${hash("4")}', NULL,
+        'unresolved', NULL, '2026-09-14T01:00:01.000Z')`,
+  ]), /claimed rowid|immutable registry identity/i,
+  "a later claimed-rowid conflict rolls back every row and claim in the statement");
+  assert.deepEqual(await db.all(`SELECT id FROM files
+    WHERE id IN ('rowid-batch-anchor', 'rowid-batch-prefix', 'rowid-batch-replacement') ORDER BY id`),
+  [{ id: "rowid-batch-anchor" }]);
+  assert.deepEqual(await db.all("SELECT registry_name FROM file_registry_rowid_claims WHERE registry_name = 'files' AND claimed_rowid = -3"), []);
+  assert.deepEqual(await db.all(`SELECT id FROM files
+    WHERE id IN ('rowid-file-anchor', 'rowid-file-replacement', 'negative-new-file') ORDER BY id`),
+  [{ id: "negative-new-file" }, { id: "rowid-file-anchor" }]);
+  assert.deepEqual(await db.all(`SELECT id FROM file_locations
+    WHERE id IN ('rowid-location-anchor', 'rowid-location-replacement', 'negative-new-location') ORDER BY id`),
+  [{ id: "negative-new-location" }, { id: "rowid-location-anchor" }]);
   await assert.rejects(db.batch([
     `INSERT INTO file_publications VALUES ('embed', 'embedded_content', 'system', 5, '${hash("b")}', 'loc-provenance', 'ready', '2026-09-14T01:00:02.000Z', NULL)`,
   ]), /FOREIGN KEY|owned|constraint/i);
@@ -233,7 +370,34 @@ async function verifyLatentGuards(db) {
     filePublication("preview", "derived_preview", 7, hash("d")),
     filePublication("preview2", "derived_preview", 11, hash("6")),
     filePublication("research", "research_source", 10, hash("a")),
+    filePublication("legacy-mapped", "embedded_content", 10, hash("a")),
   ]);
+  assert.deepEqual(await db.all("SELECT file_id FROM file_usable_publications WHERE file_id = 'legacy-mapped'"),
+    [{ file_id: "legacy-mapped" }], "the publication starts usable before exact legacy lifecycle evidence is linked");
+  await db.batch([
+    `INSERT INTO legacy_file_mappings
+      (store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at)
+      VALUES ('r2', 'r2', 'reference/private/comment.png', 'legacy-mapped', 'loc-legacy-mapped',
+        'classified', '{}', '2026-09-14T01:00:02.000Z')`,
+  ]);
+  assert.deepEqual(await db.all("SELECT availability FROM file_location_availability WHERE location_id = 'loc-legacy-mapped'"),
+    [{ availability: "quarantined" }], "an exact legacy mapping carries quarantine to its File location");
+  assert.deepEqual(await db.all("SELECT file_id FROM file_usable_publications WHERE file_id = 'legacy-mapped'"), [],
+    "legacy quarantine removes an already-published exact location from usable File authority");
+  await assert.rejects(db.batch([
+    `INSERT OR REPLACE INTO legacy_file_mappings
+      (rowid, store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at)
+      SELECT rowid, 'r2', 'r2', 'authority/mapping-replacement', 'mapping-replacement',
+        'loc-mapping-replacement', 'classified', '{}', '2026-09-14T01:00:03.000Z'
+      FROM legacy_file_mappings WHERE location_id = 'loc-legacy-mapped'`,
+  ]), /conflicting rowid|immutable registry identity/i,
+  "replacement cannot move exact legacy lifecycle authority to another location");
+  assert.deepEqual(await db.all(`SELECT object_key, file_id, location_id FROM legacy_file_mappings
+    WHERE location_id IN ('loc-legacy-mapped', 'loc-mapping-replacement') ORDER BY location_id`), [{
+    object_key: "reference/private/comment.png", file_id: "legacy-mapped", location_id: "loc-legacy-mapped",
+  }]);
+  assert.deepEqual(await db.all("SELECT file_id FROM file_usable_publications WHERE file_id = 'legacy-mapped'"), [],
+    "a rejected replacement cannot revive a quarantined publication");
   await db.batch([
     `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
       VALUES (substr(hex(zeroblob(2501)), 1, 5001) || char(0), 'reference-sample-a', 'image', NULL,
@@ -579,6 +743,73 @@ async function verifyLatentGuards(db) {
   };
 }
 
+async function verifyNegativeAutomaticRowids(db) {
+  for (const name of preceding) await apply(db, read(`migrations/${name}`));
+  await db.batch([
+    "INSERT INTO storage_profiles (rowid, id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES (-3, 'negative-max-profile', 'r2', 'negative-max-bucket', 'bootstrap', NULL, 1, 'historical', '2026-09-14T02:00:00.000Z')",
+    `INSERT INTO files (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state, active_location_id, created_at)
+      VALUES (-3, 'negative-max-file', 'embedded_content', 'system', 1, '${hash("5")}', NULL, 'unresolved', NULL, '2026-09-14T02:00:00.000Z')`,
+    "INSERT INTO file_locations (rowid, id, file_id, storage_profile_id, object_key, state, created_at) VALUES (-3, 'negative-max-location', 'negative-max-file', 'negative-max-profile', 'negative-max/object', 'unresolved', '2026-09-14T02:00:00.000Z')",
+    "INSERT INTO legacy_file_mappings (rowid, store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at) VALUES (-3, 'r2', 'r2', 'negative-max/object', 'negative-max-file', 'negative-max-location', 'classified', '{}', '2026-09-14T02:00:00.000Z')",
+  ]);
+  await apply(db, migrationSql);
+  await db.batch([
+    "INSERT INTO storage_profiles (id, adapter_type, namespace_identity, configuration_source, credential_reference, configuration_revision, state, created_at) VALUES ('negative-auto-profile', 'r2', 'negative-auto-bucket', 'bootstrap', NULL, 1, 'historical', '2026-09-14T02:00:01.000Z')",
+    `INSERT INTO files (id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state, active_location_id, created_at)
+      VALUES ('negative-auto-file', 'embedded_content', 'system', 1, '${hash("6")}', NULL, 'unresolved', NULL, '2026-09-14T02:00:01.000Z')`,
+    "INSERT INTO file_locations (id, file_id, storage_profile_id, object_key, state, created_at) VALUES ('negative-auto-location', 'negative-auto-file', 'negative-auto-profile', 'negative-auto/object', 'unresolved', '2026-09-14T02:00:01.000Z')",
+    "INSERT INTO legacy_file_mappings (store_kind, provider, object_key, file_id, location_id, classification, evidence_json, observed_at) VALUES ('r2', 'r2', 'negative-auto/object', 'negative-auto-file', 'negative-auto-location', 'classified', '{}', '2026-09-14T02:00:01.000Z')",
+  ]);
+  const assigned = await db.all(`
+    SELECT 'storage_profiles' AS registry_name, rowid AS assigned_rowid FROM storage_profiles WHERE id = 'negative-auto-profile'
+    UNION ALL SELECT 'files', rowid FROM files WHERE id = 'negative-auto-file'
+    UNION ALL SELECT 'file_locations', rowid FROM file_locations WHERE id = 'negative-auto-location'
+    UNION ALL SELECT 'legacy_file_mappings', rowid FROM legacy_file_mappings WHERE location_id = 'negative-auto-location'
+    ORDER BY registry_name`);
+  assert.deepEqual(assigned, [
+    { registry_name: "file_locations", assigned_rowid: -2 },
+    { registry_name: "files", assigned_rowid: -2 },
+    { registry_name: "legacy_file_mappings", assigned_rowid: -2 },
+    { registry_name: "storage_profiles", assigned_rowid: -2 },
+  ], "ordinary inserts remain valid when SQLite automatically allocates a negative rowid");
+  assert.deepEqual(await db.all("SELECT COUNT(*) AS count FROM file_registry_rowid_claims WHERE claimed_rowid IN (-3, -2)"),
+    [{ count: 8 }], "migration and runtime inserts claim both historical and newly allocated negative identities");
+  for (const [recursive, rowids] of [[0, [-1, 0, 1]], [1, [-11, 10, 11]]]) {
+    await db.batch([`PRAGMA recursive_triggers = ${recursive}`]);
+    assert.deepEqual(await db.all("PRAGMA recursive_triggers"), [{ recursive_triggers: recursive }]);
+    for (const rowid of rowids) {
+      const anchor = `rowid-mode-${recursive}-${rowid}`;
+      const replacement = `rowid-mode-replacement-${recursive}-${rowid}`;
+      const values = `(${rowid}, '${anchor}', 'embedded_content', 'system', 1, '${hash("7")}', NULL,
+        'unresolved', NULL, '2026-09-14T02:00:02.000Z')`;
+      await db.batch([`INSERT INTO files
+        (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state,
+          active_location_id, created_at) VALUES ${values}`]);
+      await db.batch([`INSERT OR REPLACE INTO files
+        (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state,
+          active_location_id, created_at) VALUES ${values}`]);
+      for (const prefix of ["INSERT OR REPLACE", "REPLACE"]) {
+        await assert.rejects(db.batch([`${prefix} INTO files
+          (rowid, id, purpose, access_scope, expected_byte_size, expected_sha256, verified_sha256, state,
+            active_location_id, created_at)
+          VALUES (${rowid}, '${replacement}', 'embedded_content', 'system', 1, '${hash("7")}', NULL,
+            'unresolved', NULL, '2026-09-14T02:00:02.000Z')`]),
+        /claimed rowid|cannot be deleted|immutable registry identity/i,
+        `${prefix} cannot reuse ${rowid} when recursive_triggers=${recursive}`);
+      }
+      assert.deepEqual(await db.all(`SELECT id FROM files WHERE rowid = ${rowid}`), [{ id: anchor }]);
+      assert.deepEqual(await db.all(`SELECT COUNT(*) AS count FROM file_registry_rowid_claims
+        WHERE registry_name = 'files' AND claimed_rowid = ${rowid}`), [{ count: 1 }]);
+    }
+  }
+  assert.deepEqual(await db.all("PRAGMA foreign_key_check"), []);
+  assert.deepEqual(await db.all("PRAGMA quick_check"), [{ quick_check: "ok" }]);
+  return {
+    assigned,
+    claims: await db.all("SELECT registry_name, claimed_rowid FROM file_registry_rowid_claims ORDER BY registry_name, claimed_rowid"),
+  };
+}
+
 test("0007 is an atomic populated expand with strict legacy gates and latent ownership/lifecycle guards on SQLite and D1", { timeout: 90_000 }, async () => {
   const host = new DatabaseSync(":memory:");
   const mf = new Miniflare({
@@ -595,6 +826,24 @@ test("0007 is an atomic populated expand with strict legacy gates and latent own
     await verifyLegacyExpand(d1Db);
     assert.deepEqual(await verifyLatentGuards(d1Db), await verifyLatentGuards(hostDb));
     assert.deepEqual(plain(host.prepare("PRAGMA integrity_check").all()), [{ integrity_check: "ok" }]);
+  } finally {
+    host.close();
+    await mf.dispose();
+  }
+});
+
+test("0007 preserves ordinary inserts when historical registry rowids remain below -1", { timeout: 60_000 }, async () => {
+  const host = new DatabaseSync(":memory:");
+  const mf = new Miniflare({
+    modules: true,
+    script: 'export default { fetch() { return new Response("negative rowid qualification") } }',
+    compatibilityDate: "2026-07-20",
+    d1Databases: ["NEGATIVE"],
+    log: new Log(LogLevel.ERROR),
+  });
+  try {
+    const d1 = d1Adapter(await mf.getD1Database("NEGATIVE"));
+    assert.deepEqual(await verifyNegativeAutomaticRowids(d1), await verifyNegativeAutomaticRowids(hostAdapter(host)));
   } finally {
     host.close();
     await mf.dispose();

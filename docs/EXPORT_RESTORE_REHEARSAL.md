@@ -45,9 +45,9 @@ snapshot, while blob packaging continues to use the still-authoritative legacy
 locators. A later `overlap`/active snapshot must negotiate a successor archive
 schema rather than weakening this V14 contract.
 
-The export route first probes the exact installed physical generation. Complete
-schema mismatch is a refreshable archive-version conflict; an incomplete or mixed
-migration fails before the D1 snapshot. V14 then validates a deterministic
+The export route first probes the selected bounded generation markers. A complete
+known-generation mismatch is a refreshable archive-version conflict; an incomplete
+or mixed migration fails before the D1 snapshot. V14 then validates a deterministic
 fingerprint of the transition-relevant `sqlite_schema` objects, including owned
 tables, views, indexes and triggers, and the restore target must reproduce the
 same fingerprint. The normalization and object-selection policy are shared by
@@ -169,8 +169,10 @@ The old-path archive SHA-256 was
 `0fbd0bf71919f164bf201761fbc20678ec014816d77951675360cebd88cdad26`;
 the ordinal-path archive SHA-256 was
 `d307331111f7c3dbdf80c20213605f0ab0829d74e3522e174879a5cecbefd278`.
-These are browser-download and local-recovery observations. They do not certify
-remote database replacement, provider writes or larger real research datasets.
+These are historical V7/V8 browser-download and local-recovery observations made
+before V14 existed. They do not constitute live-browser V14 acceptance and do not
+certify remote database replacement, provider writes or larger real research
+datasets.
 
 ## Limits and later work
 

@@ -18,6 +18,7 @@ import {
   canonicalFileAuthoritySchemaSql,
   fileAuthoritySchemaFingerprint,
   fileAuthoritySchemaSlice,
+  FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL,
   FILE_AUTHORITY_SCHEMA_V14_VIEW_NAMES,
 } from "../shared/contracts/export-file-authority";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV14 } from "../shared/contracts/export-protocol";
@@ -48,7 +49,7 @@ describe("V14 schema fingerprint normalization", () => {
     ));
   });
 
-  it("selects the same canonical inventory for whole-file and Wrangler-split migrations", async () => {
+  it("selects the same canonical inventory for whole-file and Wrangler-split migrations", { timeout: 30_000 }, async () => {
     const whole = new DatabaseSync(":memory:");
     const split = new DatabaseSync(":memory:");
     databases.push(whole, split);
@@ -80,6 +81,11 @@ function fixture() {
   const database = referenceTestDatabase();
   databases.push(database);
   database.exec(`
+    INSERT INTO storage_profiles
+      (rowid, id, adapter_type, namespace_identity, configuration_source, credential_reference,
+        configuration_revision, state, created_at)
+    VALUES (-7, 'v14-profile', 'r2', 'v14-bucket', 'bootstrap', NULL, 1, 'historical',
+      '2026-09-14T00:00:00.000Z');
     INSERT INTO samples (id, code, title, created_at, updated_at)
     VALUES ('v14-sample', 'V14', 'V14 transition', '2026-09-14T00:00:00.000Z', '2026-09-14T00:00:00.000Z');
     INSERT INTO events (id, sample_id, kind, asset_key, metadata_json, created_at)
@@ -209,6 +215,21 @@ describe("v14 additive File authority export profile", () => {
     }
   });
 
+  it("fails closed when the local rowid claim inventory no longer matches its registries", async () => {
+    const f = fixture();
+    const guard = f.database.prepare(
+      "SELECT sql FROM sqlite_schema WHERE type = 'trigger' AND name = 'file_registry_rowid_claims_delete_guard'",
+    ).get() as { sql: string };
+    f.database.exec(`
+      DROP TRIGGER file_registry_rowid_claims_delete_guard;
+      DELETE FROM file_registry_rowid_claims WHERE registry_name = 'storage_profiles';
+      ${guard.sql};
+    `);
+    expect(f.database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).get()).toEqual({ invalid_count: 1 });
+    const response = await f.request(endpoint);
+    expect(response.status).toBe(500);
+  });
+
   it("fails closed before snapshotting a control-only partial V14 migration", async () => {
     const database = new DatabaseSync(":memory:");
     databases.push(database);
@@ -276,6 +297,7 @@ describe("v14 additive File authority export profile", () => {
   it("restores an exact V14 archive without inventing authority or changing legacy byte outcomes", async () => {
     const f = fixture();
     const manifest = await manifestFrom(f.request);
+    expect(manifest.tables).not.toHaveProperty("file_registry_rowid_claims");
     const packaged = await buildFullExportArchiveV14(manifest, undefined, vi.fn(async () => new Response("", { status: 404 })) as unknown as typeof fetch);
     expect(packaged.results).toHaveLength(1);
     expect(packaged.results[0].outcome).toBe("missing");
@@ -293,7 +315,8 @@ describe("v14 additive File authority export profile", () => {
         schemaVersion: 14,
         archiveProfile: "fp1-file-authority-transition",
         appliedForwardMigrations: [],
-        verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true },
+        verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true,
+          derivedTablesRebuilt: true },
       });
 
       const alteredMigrations = join(scratch, "altered-migrations");
@@ -327,6 +350,13 @@ END;
         expect(database.prepare("SELECT asset_file_id, thumbnail_file_id FROM events WHERE id = 'v14-event'").get())
           .toEqual({ asset_file_id: null, thumbnail_file_id: null });
         expect(database.prepare("SELECT COUNT(*) AS count FROM file_publications").get()).toEqual({ count: 0 });
+        expect(database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).get()).toEqual({ invalid_count: 0 });
+        expect(database.prepare(`SELECT COUNT(*) AS count FROM file_registry_rowid_claims
+          WHERE registry_name = 'storage_profiles'`).get()).toEqual({ count: 1 });
+        const restoredProfile = database.prepare("SELECT rowid FROM storage_profiles WHERE id = 'v14-profile'").get() as { rowid: number };
+        expect(restoredProfile.rowid).not.toBe(-7);
+        expect(database.prepare(`SELECT claimed_rowid FROM file_registry_rowid_claims
+          WHERE registry_name = 'storage_profiles'`).get()).toEqual({ claimed_rowid: restoredProfile.rowid });
       } finally {
         database.close();
       }

@@ -70,7 +70,9 @@ describe("Full export route", () => {
     for (const name of ["attachment_derivatives", "projects", "project_contents", "project_content_attachments", "project_items", "project_map_placements", "project_edges"]) expect(body.tables[name]).toEqual([]);
     expect(body.blobs).toEqual([]);
     expect(batch).toHaveBeenCalledTimes(1);
-    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length + 3);
+    // Schema, two compatibility-column inventories, and the rebuildable
+    // registry-rowid claim check share the same D1 snapshot as every table.
+    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length + 4);
     database.close();
   });
 

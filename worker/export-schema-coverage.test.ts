@@ -3,11 +3,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
 import { snapshotFullExportV14 } from "./export-v14-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
+import { FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-authority";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
 // underscore-prefixed tables: a new application table must enter the export.
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
+// Hidden rowids are local physical identities. This derived guard table is
+// validated inside the V14 snapshot and rebuilt from restored registry rows;
+// serializing its host-specific rowids would make an archive less portable.
+const REBUILDABLE_TABLES = new Set<string>(FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES);
 
 // This time-dependent projection is part of the archive contract in addition to
 // its source tables. Other views are rebuildable only after an explicit decision
@@ -53,8 +58,9 @@ function assertExportSchemaCoverage(database: DatabaseSync) {
     WHERE type IN ('table', 'view')
     ORDER BY name
   `).all() as Array<{ type: "table" | "view"; name: string }>;
-  const tables = schema.filter(({ type, name }) => type === "table"
+  const applicationTables = schema.filter(({ type, name }) => type === "table"
     && !name.startsWith("sqlite_") && !PLATFORM_TABLES.has(name));
+  const tables = applicationTables.filter(({ name }) => !REBUILDABLE_TABLES.has(name));
   const views = new Set(schema.filter(({ type }) => type === "view").map(({ name }) => name));
   const classifiedViews = new Set([...EXPORTED_VIEWS, ...REBUILDABLE_VIEWS]);
   const required = new Set([...tables.map(({ name }) => name), ...EXPORTED_VIEWS]);
@@ -68,6 +74,8 @@ function assertExportSchemaCoverage(database: DatabaseSync) {
       .map((name) => `Unclassified view: ${name}`),
     ...[...classifiedViews].filter((name) => !views.has(name))
       .map((name) => `Stale view classification: ${name}`),
+    ...[...REBUILDABLE_TABLES].filter((name) => !applicationTables.some((table) => table.name === name))
+      .map((name) => `Stale rebuildable table classification: ${name}`),
   ];
   if (issues.length) throw new Error(issues.join("\n"));
 }

@@ -59,7 +59,11 @@ required order is:
    unresolved outcome. File purpose, scope, profile, active verified location,
    retention, quarantine, deletion fencing, recovery and deduplication invariants
    must agree. Shadow writes and old-worker writes must be reconciled through the
-   same captured cutoff.
+   same captured cutoff. Before the overlap implementation is approved, its
+   activation contract must also choose and test one explicit policy for those
+   admitted-unresolved rows: either a named legacy-read compatibility path remains
+   authoritative after activation, or activation requires their count to be zero.
+   `0007` deliberately makes neither choice.
 4. **Activate atomically.** Only a subsequent separately reviewed
    migration/operation may move the singleton from `overlap` to `active`. It must
    fence old Workers, prove the catch-up cutoff is current in the same database
@@ -90,6 +94,14 @@ export returns 500. Once the new V14 Worker is serving, stale V13 pages receive 
 incomplete or mixed physical migration returns an internal error before any
 snapshot is read.
 
+If Worker deployment fails after `0007` succeeds, treat the result as a
+forward-only deployment incident. Do not roll back `0007`, relabel schema-14 data
+as V13, or attempt an old-format complete export. Keep the still-compatible
+business paths available, retry deployment of the exact reviewed V14 Worker, then
+verify that a V14 export succeeds and a stale V13 request receives 409. A failure
+to deploy the new Worker can make the export outage longer than the normal short
+window; recovery is completion of the V14 deployment, not schema downgrade.
+
 If uninterrupted export is a release requirement, do not claim it from this
 single package rollout. Use a separately reviewed two-stage bridge: first deploy
 a Worker that understands both pre-`0007` and post-`0007` generations without
@@ -119,6 +131,7 @@ Migration `0007` installs the following exact expand-only surfaces:
 | --- | --- |
 | `file_authority_control` | Migration-owned singleton: `mode='legacy'`, revision 1. Insert, update and delete guards prevent runtime transition in this slice; later modes are named `overlap` and `active`. |
 | `storage_profile_runtime` | One read-only companion for each historical storage profile. The seed trigger keeps new dormant profile observations paired; updates and deletes are forbidden. |
+| `file_registry_rowid_claims` | Internal, rebuildable claims for the four older FP1a registry tables' local hidden rowids. They preserve immutable identity under SQLite replacement writes without rejecting valid historical or newly allocated negative rowids. |
 | Typed consumer columns | Nullable File FKs on the 11 real consumer tables, including separate event image/thumbnail and import workbook/manifest slots. Every existing row remains null. |
 | `file_location_publications`, `file_publications` | Future full-read verification and active-location publication evidence. Both are empty and non-authoritative in legacy mode. |
 | `file_holds`, `file_location_holds` | Future operation-scoped File and location protection. Empty here; they do not yet extend legacy retention. |
@@ -172,13 +185,16 @@ activation PR can be proposed.
 ### Latent-state safety rules
 
 The new authority and evidence tables are `WITHOUT ROWID`, so SQLite's hidden
-`rowid` conflict target cannot bypass their immutable identity guards. The 11
-legacy consumer tables still have rowids; `0007` therefore fences explicit
-`rowid=-1`, `INSERT OR REPLACE`, `UPDATE OR REPLACE`, delete, and locator-only
-mutation once a typed File binding or terminal migration decision exists. Normal
-legacy inserts remain valid, including in a database that already contains an
-unusual negative rowid. A later overlap writer must not weaken those fences to
-make backfill easier.
+`rowid` conflict target cannot bypass their immutable identity guards. The four
+older FP1a registry tables retain rowids; `0007` snapshots every occupied value
+into `file_registry_rowid_claims`, then claims each final rowid after future
+inserts. Reusing an occupied hidden identity aborts the complete replacement
+statement and restores its implicit delete, while ordinary and explicit new
+negative rowids remain valid. The 11 legacy consumer tables separately fence
+`INSERT OR REPLACE`, `UPDATE OR REPLACE`, delete, hidden-rowid conflict and
+locator-only mutation once a typed File binding or terminal migration decision
+exists. A later overlap writer must not weaken those fences to make backfill
+easier.
 
 A terminal consumer decision copies the exact pre-existing occurrence identity
 and locator evidence. Its legacy TEXT evidence is intentionally not narrowed to a
@@ -265,10 +281,17 @@ catalog still describes legacy physical locators because no File location has be
 published. A database in later `overlap` or `active` mode requires a successor
 archive schema rather than weakening V14 validation.
 
-Before snapshotting, the route runs one exact physical-generation probe covering
-the migration markers and typed columns from schemas 8 through 14. A complete but
-different generation returns an archive-version conflict; partial or mixed marker
-sets fail before snapshotting. V14 also fingerprints the complete transition-
+Hidden rowids are local physical identities, so their claim rows are not portable
+archive records. The source snapshot verifies in the same D1 batch that claims
+and all four registries have exact bidirectional coverage. Isolated recovery
+loads the portable registry rows, rebuilds claims from the restored local rowids
+while guards are temporarily removed, verifies the rebuilt set, and only then
+reinstalls the reviewed triggers.
+
+Before snapshotting, the route runs one bounded generation-marker probe covering
+the selected migration markers and typed columns from schemas 8 through 14. A
+complete but different known generation returns an archive-version conflict;
+partial or mixed marker sets fail before snapshotting. V14 also fingerprints the transition-
 relevant `sqlite_schema` catalog after deterministic SQL normalization, including
 tables, views, indexes and triggers owned by those surfaces. The source validator
 and isolated restore recompute the same fingerprint, so a forged view-owned
@@ -278,7 +301,8 @@ physical generation only. Every later archive schema must introduce its own
 generation marker and reviewed fingerprint rather than treating that trigger as a
 generic “14 or newer” signal.
 
-Recovery validates the exact schema-14 catalog and rows, recreates the reviewed
+Recovery validates the transition-relevant schema-14 catalog slice and canonical
+rows, recreates the reviewed
 forward suffix through `0007`, and must restore the authority mode as `legacy`.
 It does not execute a resolver, resume provider work, synthesize File identities,
 upgrade expected hashes to verified hashes, contact a storage provider, or switch

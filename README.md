@@ -182,7 +182,9 @@ briefly reject an old V13 complete-export request after `0007` and before the V1
 Worker is live with status 500; once the V14 Worker is live, a stale V13 page gets
 409 and must refresh. Legacy business reads/writes remain compatible. See the
 transition document for the separate two-stage bridge required if export must be
-uninterrupted.
+uninterrupted. If Worker deployment fails after `0007`, do not roll the migration
+back: retry the exact V14 Worker and verify V14 success plus the stale-V13 409;
+complete export remains unavailable until that forward deployment finishes.
 
 A full-system export preserves every database table row and packages each available physical locator once. Missing, unavailable, or integrity-mismatched bytes are recorded in `export-warnings.json` instead of aborting unrelated entries. Keep periodic verified ZIP exports outside the deployment account.
 

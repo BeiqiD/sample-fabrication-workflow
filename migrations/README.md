@@ -56,10 +56,13 @@ a later reviewed forward migration installs overlap-capable Worker behavior.
 There is no backfill,
 inferred verification, binding change, byte I/O, or reset in `0007`.
 
-All new authority/evidence tables are `WITHOUT ROWID`. Existing consumer tables
-retain their historical rowids, so typed/decided occurrences also guard hidden
-rowid conflicts, `INSERT OR REPLACE`, `UPDATE OR REPLACE`, deletion and locator
-mutation. The exact legacy-to-new lifecycle bridge is
+All new authority/evidence tables are `WITHOUT ROWID`. The four older FP1a
+registry tables retain historical rowids, so `0007` records each occupied value
+in the internal, rebuildable `file_registry_rowid_claims` table and rejects any
+replacement that tries to reuse it; valid new negative rowids remain supported.
+Existing consumer tables retain their historical rowids, so typed/decided
+occurrences also guard hidden rowid conflicts, `INSERT OR REPLACE`,
+`UPDATE OR REPLACE`, deletion and locator mutation. The exact legacy-to-new lifecycle bridge is
 `legacy_file_mappings.location_id`; equal object keys in separate storage profiles
 must never alias. Ready bindings require usable publication, and derivative
 bindings additionally require matching verified generator/version evidence.
@@ -75,10 +78,12 @@ new operation-field bounds.
 
 Current full export/recovery uses schema 14 and preserves this legacy authority
 state; historical archive validators remain specific to their original suffixes.
-The route probes the exact physical generation before snapshotting and V14 freezes
-a deterministic fingerprint of transition-owned tables, views, indexes and
-triggers. Future archive generations require a new completion marker and reviewed
-fingerprint.
+The route probes the expected bounded generation markers before snapshotting and V14 freezes
+a deterministic fingerprint of transition-relevant tables, views, indexes and
+triggers. Its same-batch snapshot also validates the local registry-rowid claim
+set; isolated recovery rebuilds that non-portable derived table from restored
+registry rowids. Future archive generations require a new completion marker and
+reviewed fingerprint.
 
 Package deployment is migration-first. After `0007` but before the V14 Worker is
 live, old business reads/writes remain compatible but an old V13 `/exports/all`
@@ -86,6 +91,12 @@ request returns 500. Once V14 is deployed, a stale V13 page receives 409 and mus
 refresh. Requiring zero
 export interruption implies a separately reviewed two-stage bridge Worker before
 the migration; this slice does not provide one.
+
+If the Worker deployment fails after `0007` has committed, do not roll the
+migration back or serve a relabelled V13 archive. Retry the exact reviewed V14
+Worker deployment, then verify a successful V14 export and a 409 response to a
+stale V13 request. Until that succeeds, legacy business paths remain compatible
+but the complete-export outage can outlast the normal migration-first window.
 
 Keep CASE endings separated from punctuation (`END )` and inline `END ;`) and
 retain standalone terminal trigger `END;`. Qualification executes Wrangler-split

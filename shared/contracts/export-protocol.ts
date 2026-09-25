@@ -30,7 +30,7 @@ import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS, validateImportAcceptance } from "./ex
 import { R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS, validateR2UploadAcceptance } from "./export-r2-upload-acceptance";
 import { METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS, validateMetrologyReferenceAcceptance } from "./export-metrology-reference-acceptance";
 import { COMMENT_ACCEPTANCE_EXPORT_COLUMNS, validateCommentAcceptance } from "./export-comment-acceptance";
-import { FILE_AUTHORITY_EXPORTED_VIEWS, FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, observesFileAuthorityTransition, validateFileAuthorityExport } from "./export-file-authority";
+import { FILE_AUTHORITY_EXPORTED_VIEWS, FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES, observesFileAuthorityTransition, validateFileAuthorityExport } from "./export-file-authority";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 
 export const EXPORT_SOURCE_SCHEMA_PATH = "provenance/source-schema.json";
@@ -102,11 +102,17 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
   if (version < 14) ensure(!observesFileAuthorityTransition(schema.objects),
     "the File authority transition requires archive schema 14");
   const platform = new Set(["d1_migrations", "_cf_KV", "_cf_METADATA"]);
+  const rebuildable = version === 14 ? new Set<string>(FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES) : new Set<string>();
   const inventory = schema.objects.filter((entry: { type: string; name: string }) => entry.type === "table"
-    && !entry.name.startsWith("sqlite_") && !platform.has(entry.name)).map((entry: { name: string }) => entry.name);
+    && !entry.name.startsWith("sqlite_") && !platform.has(entry.name) && !rebuildable.has(entry.name))
+    .map((entry: { name: string }) => entry.name);
   ensure(objectIds.has("view:blob_retention_edges"), "source schema is missing its exported retention view");
   inventory.push("blob_retention_edges");
   if (version === 14) {
+    for (const name of FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES) {
+      ensure(objectIds.has(`table:${name}`), `source schema is missing its rebuildable ${name} table`);
+      ensure(!Object.hasOwn(value.tables, name), `rebuildable ${name} must not be serialized`);
+    }
     for (const name of FILE_AUTHORITY_EXPORTED_VIEWS) {
       ensure(objectIds.has(`view:${name}`), `source schema is missing its ${name} view`);
       inventory.push(name);

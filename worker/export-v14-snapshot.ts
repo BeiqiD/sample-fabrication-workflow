@@ -1,6 +1,7 @@
 import { FULL_EXPORT_ARCHIVE_PROFILE_V14, FULL_EXPORT_ARCHIVE_SCHEMA_V14, FULL_EXPORT_ARCHIVE_WRITER, type ExportTables, type FullExportManifestV14, type ObservedExportSchema } from "../shared/contracts/export";
 import { projectCompatibilitySnapshot } from "../shared/contracts/export-compatibility";
 import { createExportArtifact, EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV14 } from "../shared/contracts/export-protocol";
+import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL } from "../shared/contracts/export-file-authority";
 import { FULL_EXPORT_V14_TABLE_QUERIES } from "./export-catalog";
 import { buildBlobExportPlan } from "./export-data";
 
@@ -17,9 +18,14 @@ export async function snapshotFullExportV14(database: D1Database): Promise<FullE
     database.prepare("SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name"),
     database.prepare("SELECT name FROM pragma_table_xinfo('samples') ORDER BY cid"),
     database.prepare("SELECT name FROM pragma_table_xinfo('run_step_comments') ORDER BY cid"),
+    database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL),
   ]);
-  if (results.length !== names.length + 3 || results.some((result) => !result.success || !Array.isArray(result.results))) {
+  if (results.length !== names.length + 4 || results.some((result) => !result.success || !Array.isArray(result.results))) {
     throw new Error("Complete export snapshot was incomplete");
+  }
+  const claimIntegrity = results[names.length + 3].results as Array<{ invalid_count: number }>;
+  if (claimIntegrity.length !== 1 || claimIntegrity[0].invalid_count !== 0) {
+    throw new Error("Complete export snapshot found invalid File registry rowid claims");
   }
   const physicalTables = Object.fromEntries(names.map((name, index) => [name, results[index].results])) as ExportTables;
   const schema: ObservedExportSchema = {
