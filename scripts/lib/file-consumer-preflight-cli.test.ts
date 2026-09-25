@@ -16,6 +16,9 @@ async function fixture(version = 7) {
   const databasePath = join(directory, "snapshot.sqlite"), outputPath = join(directory, "report.json");
   const db = new DatabaseSync(databasePath);
   try {
+    // Build the closed input in one transaction. Per-statement autocommit would
+    // fsync hundreds of schema objects and make filesystem speed the test gate.
+    db.exec("BEGIN");
     const source = new URL("../../migrations/", import.meta.url);
     for (const name of readdirSync(source).filter((name) => /^\d+.*\.sql$/.test(name) && Number(name.slice(0, 4)) <= version).sort()) {
       db.exec(readFileSync(new URL(name, source), "utf8"));
@@ -25,6 +28,7 @@ async function fixture(version = 7) {
       INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, created_at)
       VALUES ('preflight-event', 'preflight-sample', 'image', 'PRIVATE_BODY_SENTINEL', 'unregistered/image',
         '{"thumbnailKey":"unregistered/thumbnail","privateCredential":"PRIVATE_SECRET_SENTINEL"}', '2026-09-25T00:00:00.000Z');`);
+    db.exec("COMMIT");
   } finally { db.close(); }
   return { directory, databasePath, outputPath };
 }
@@ -42,7 +46,7 @@ describe("local File consumer preflight", () => {
     expect(encoded).not.toContain("PRIVATE_BODY_SENTINEL");
     expect(encoded).not.toContain("PRIVATE_SECRET_SENTINEL");
     expect(encoded).not.toContain("PRIVATE_TITLE");
-    expect(await readFile(f.databasePath)).toEqual(before);
+    expect((await readFile(f.databasePath)).equals(before)).toBe(true);
     expect((await readdir(f.directory)).sort()).toEqual(["report.json", "snapshot.sqlite"]);
     const next = join(f.directory, "repeat.json");
     await inspectFileConsumerSnapshot({ ...f, outputPath: next });
@@ -95,7 +99,7 @@ describe("local File consumer preflight", () => {
     for (const suffix of ["", "-wal", "-shm", "-journal"]) {
       await expect(inspectFileConsumerSnapshot({ ...f, outputPath: join(alias, `snapshot.sqlite${suffix}`) })).rejects.toThrow("different paths");
     }
-    expect(await readFile(f.databasePath)).toEqual(before);
+    expect((await readFile(f.databasePath)).equals(before)).toBe(true);
     expect((await readdir(f.directory)).sort()).toEqual(["alias", "snapshot.sqlite"]);
   });
 
@@ -105,7 +109,7 @@ describe("local File consumer preflight", () => {
     try { db.exec("PRAGMA journal_mode=WAL"); } finally { db.close(); }
     const before = await readFile(f.databasePath);
     await expect(inspectFileConsumerSnapshot(f)).rejects.toThrow("WAL databases");
-    expect(await readFile(f.databasePath)).toEqual(before);
+    expect((await readFile(f.databasePath)).equals(before)).toBe(true);
     const rollback = await fixture();
     await writeFile(rollback.databasePath + "-journal", "do not touch");
     await expect(inspectFileConsumerSnapshot(rollback)).rejects.toThrow("sidecars");
