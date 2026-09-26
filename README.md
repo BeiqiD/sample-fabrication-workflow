@@ -166,6 +166,14 @@ The report does not migrate files or verify their bytes. Schema 14 is deliberate
 not planner input: it is the post-expansion recovery contract, still in immutable
 `legacy` authority mode.
 
+To inspect current FP1k consumer metadata in a closed SQLite backup, use
+`npm run inspect:file-consumers -- --database SNAPSHOT.sqlite --output NEW_REPORT.json`.
+This creates one read-only diagnostic page; `--limit` and `--after` control
+pagination. It rejects WAL/sidecar inputs and leaves the database unchanged.
+The [live preflight contract](./docs/FP1_SHADOW_CONVERSION_PREFLIGHT.md) explains
+its source fingerprints, bounds and the remaining shadow-conversion protocols.
+The report does not verify bytes, authorize provider work or activate File authority.
+
 Ordinary image and Project uploads now use
 [durable request acceptance](./docs/FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), with stable
 retry identities and a fixed 24-hour result window. Metrology reference uploads
@@ -240,6 +248,7 @@ and authenticated Settings remain separate work.
 - [FP1i metrology reference acceptance](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md)
 - [FP1j durable Comment acceptance](./docs/FP1_COMMENT_ACCEPTANCE.md)
 - [FP1k additive File-authority transition](./docs/FP1_FILE_AUTHORITY_TRANSITION.md)
+- [Live File consumer preflight and shadow-conversion protocols](./docs/FP1_SHADOW_CONVERSION_PREFLIGHT.md)
 - [V3 architecture stabilization plan](./docs/V3_ARCHITECTURE_STABILIZATION_PLAN.md)
 - [Current Map-first Project design foundation](./docs/PROJECT_DESIGN_FOUNDATION.md)
 - [Project Canvas interaction contract](./docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md)

@@ -10,5 +10,8 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "files": ["scripts/lib/file-migration-cli.ts"]
+  "files": [
+    "scripts/lib/file-migration-cli.ts",
+    "scripts/lib/file-consumer-preflight-cli.ts"
+  ]
 }

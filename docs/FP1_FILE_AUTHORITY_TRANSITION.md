@@ -341,3 +341,40 @@ The following remain explicitly open after this PR:
 
 No database reset, storage rebinding, credential change, SWITCHdrive qualification,
 Cron/Build-control release or destructive legacy cleanup follows from this design.
+
+## Acceptance observation — 2026-09-25
+
+PR #220 is merged at integration commit
+`4248deb5fe8784a6eec444e30b0d3cc862d92430`. All 14 commit status contexts and
+both Verify / Project Map performance workflows reported success. The Cloudflare
+Workers build `03dcc2f1-ddf0-44cd-9484-feb755d71671` completed successfully with
+Worker version `873ba5a0-1e0e-4468-abaf-17fd39109e6f`.
+
+The following local checks passed against this merged substrate:
+
+| Check | Result | Boundary |
+| --- | --- | --- |
+| `npm run test:file-authority-transition` | 3/3 | Actual SQLite and workerd/D1 migrations and legacy guards |
+| `npm run test:export-restore` | 24/24 | Local export, isolated recovery and schema coverage |
+| V14 protocol and schema-fingerprint tests | 12/12 | Local V14 generation and recovery-contract qualification |
+
+At `https://sample-workflow-v3.clannadas.workers.dev`, Processing, Projects and
+Export pages loaded. No application console error was observed during those
+reads. This did not inspect the remote database schema directly or verify any
+provider bytes.
+
+A disposable Project named **FP1k acceptance 2026-09-25 disposable** was created
+and its UI showed **Saved**. Its identity is
+`project-247a522c-6d37-4c06-9251-a2324dc1a11d` and its
+[Project page](https://sample-workflow-v3.clannadas.workers.dev/projects/project-247a522c-6d37-4c06-9251-a2324dc1a11d)
+remains the cleanup reference. The browser connection stalled while selecting an
+attachment and again on a later read attempt. No subsequent DOM result or
+screenshot was obtained. Attachment publication, non-empty download/export,
+live isolated recovery, Project cleanup and any possible attachment residue are
+**unconfirmed**. Treat the test Project as still present until a later observed
+recoverable Trash action succeeds; no deletion or storage cleanup is claimed.
+
+These observations close neither full interactive acceptance nor non-empty file
+round-trip acceptance. The local checks remain useful evidence for the additive
+legacy-mode substrate, and the read-only consumer preflight does not activate
+shadow conversion or release operational cleanup controls.

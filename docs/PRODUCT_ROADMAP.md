@@ -2,9 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-14 for the additive File-authority transition based on the
-exact merged PR #219 head
-(`7e63a366663c47c830120abc77af1d174abaf5aa`). PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-25 for the shadow-conversion preflight checkpoint based on
+merged PR #220 at integration head `4248deb5`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise are recorded, but do not establish
 non-empty file round-trip or full interactive acceptance. SWITCHdrive originals
@@ -27,11 +26,14 @@ verification, durable FabuBlox acceptance, the read-only consumer-conversion pla
 [metrology reference publication](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md).
 [FP1j Comment acceptance](./FP1_COMMENT_ACCEPTANCE.md) adds immutable inputs,
 original/preview upload ownership, cancellation fencing and atomic multi-target
-publication. FP1a–FP1j are merged through PR #219. The
+publication. FP1a–FP1j are merged through PR #219. The merged PR #220
 [FP1k additive transition substrate](./FP1_FILE_AUTHORITY_TRANSITION.md) adds
 migration `0007` and schema-14 recovery while keeping authority mode immutably
-`legacy`; runtime File authority, R2 defaults and Settings remain open. FP1 is
-still in progress and no deployment is authorized by this document.
+`legacy`; runtime File authority, R2 defaults and Settings remain open. The
+[preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) adds executable
+read-only inspection and qualification of four observed overlap protocol gaps.
+It does not complete the shadow writer/resolver or change its required scope.
+FP1 is still in progress and no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -48,7 +50,7 @@ The behavior-preserving architecture cleanup, schema-baseline replacement, and
 release handoff are defined in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 
-## Backend-first and file/data-portability order — 2026-09-14
+## Backend-first and file/data-portability order — 2026-09-25
 
 The user has paused new frontend refinement and requested a documentation PR for
 systematic file storage, Settings, migration, readable/portable export and website
@@ -70,7 +72,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | FP1a–FP1j are merged through #219. FP1k adds an old-business-path-compatible `0007`/schema-14 substrate in immutable `legacy` mode, without runtime authority; the migration-first complete-export window still requires the V14 Worker. Next: the shadow writer/resolver and conversion ledger, then atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | FP1k is merged in #220 with `0007`/schema-14 in immutable `legacy` mode. Current checkpoint: executable read-only consumer preflight and qualification of occurrence mutation, legacy holds, acceptance replay and successor recovery. Next runtime PR: the complete 13-slot shadow writer/resolver and conversion ledger, then separate atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -894,16 +896,21 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Review the **FP1k additive authority substrate**: migration `0007`, complete
-   archive schema 14 / writer 1 / `fp1-file-authority-transition`, typed consumer
-   slots and conversion metadata. It must install only immutable `legacy` mode;
-   it does not route runtime reads/writes/lifecycle, change defaults, expose
-   Settings, contact providers or activate authority.
-2. In the next PR, implement the **shadow writer/resolver and conversion ledger**
-   across every current consumer and writer. Re-read and fence the live baseline,
+1. Preserve merged **FP1k** (`#220`, `4248deb5`) and complete the executable
+   [shadow-conversion preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md)
+   under unchanged schema 14 and immutable `legacy` mode. Review the demonstrated
+   occurrence-mutation, legacy-GC hold, accepted-candidate/replay and successor
+   recovery gaps before changing guards. The complete shadow-conversion obligation remains open.
+2. In the next runtime PR, implement the complete **shadow writer/resolver and
+   conversion ledger** across all 13 slots and every current writer, including
+   accepted-result replay and independent recovery. Deliver the occurrence
+   generation/tombstone protocol, old-worker mutation bridge/fencing, holds visible
+   to legacy deletion and V15 populated recovery together. Re-read and fence the live baseline,
    acquire durable holds, verify complete source and destination bytes, and create
    independent placements when one legacy locator has cross-purpose consumers.
    Keep legacy runtime authority and do not present this as final cutover.
+   A preflight page/report is not a durable catch-up cutoff or byte verification.
+   Recovery preserves unfinished-operation evidence without replaying provider I/O.
 3. Only after complete catch-up and invariant qualification, propose a separately
    reviewed **atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
