@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -482,6 +482,29 @@ test("native capture retains displaced owners through REPLACE, UPDATE OR REPLACE
       assert.equal((await assertHistory(db, key("event", moverId))).head.present, 0);
       assert((await assertHistory(db, key("event", newId))).head.generation > replaced.generation);
 
+      const sameMover = `native-identical-mover-${recursive}`, sameVictim = `native-identical-victim-${recursive}`;
+      for (const id of [sameMover, sameVictim]) await db.prepare(`INSERT INTO events(id,sample_id,kind,asset_key,created_at)
+        VALUES(?,'reference-sample-a','image','baseline/event-original',?)`).bind(id, NOW).run();
+      const prior = await currentHead(db, key("event", sameVictim));
+      const priorOperation = `native-identical-operation-${recursive}`;
+      await db.batch([
+        await operationStatement(db, priorOperation, key("event", sameVictim)),
+        db.prepare(`INSERT INTO file_shadow_decisions(occurrence_id,operation_id,decision,baseline_sha256,reason,decided_by,decided_at)
+          VALUES(?,?,'admitted_unresolved',?,'prior physical owner','fixture',?)`).bind(prior.occurrence_id, priorOperation, hash("a"), NOW),
+        db.prepare("UPDATE file_shadow_operations SET status='admitted_unresolved',completed_at=? WHERE id=?").bind(NOW, priorOperation),
+      ]);
+      await db.prepare("UPDATE OR REPLACE events SET id=?,rowid=? WHERE id=?").bind(sameVictim, prior.source_rowid, sameMover).run();
+      const successor = (await assertHistory(db, key("event", sameVictim))).head;
+      assert.equal(successor.source_rowid, prior.source_rowid);
+      assert.equal(successor.source_json, prior.source_json);
+      assert.notEqual(successor.occurrence_id, prior.occurrence_id,
+        "moving key and rowid together cannot inherit an indistinguishable replacement victim");
+      assert.equal(await db.prepare("SELECT 1 FROM file_shadow_decisions WHERE occurrence_id=?").bind(successor.occurrence_id).first(), null);
+      assert.equal((await assertHistory(db, key("event", sameMover))).head.present, 0);
+      await db.prepare("UPDATE events SET id=id,rowid=rowid WHERE id=?").bind(sameVictim).run();
+      assert.equal((await currentHead(db, key("event", sameVictim))).occurrence_id, successor.occurrence_id,
+        "an unchanged UPDATE still preserves its current occurrence");
+
       const derivativeId = `native-derivative-${recursive}`;
       const replacedDerivative = recursive === 0 ? "baseline:derivative" : "native-derivative-0";
       await db.prepare(`INSERT OR REPLACE INTO attachment_derivatives
@@ -655,6 +678,45 @@ test("GC-first fence cannot be undone by a new hold, mapping, replacement or reo
       .bind(ledgerRowid, NOW).run(), /claimed.*replaced/i);
     assert.deepEqual(await snapshot(db), beforeRowidReplacement,
       "a hidden-rowid ledger replacement cannot erase an already issued remote DELETE");
+  } finally { await mf.dispose(); }
+});
+
+test("receipt-only location holds and legacy deletion fence both acquisition orders", { timeout: 90_000 }, async () => {
+  const { db, mf } = await harness();
+  try {
+    await enable(db);
+    await db.prepare(`INSERT INTO storage_profiles(id,adapter_type,namespace_identity,configuration_source,
+      credential_reference,configuration_revision,state,created_at)
+      VALUES('receipt-other-profile','r2','r2:fixture:receipt-other','bootstrap',NULL,1,'historical',?)`).bind(NOW).run();
+    for (const order of ["hold-first", "gc-first"]) {
+      const objectKey = `native/receipt-only-${order}`;
+      const input = JSON.stringify({ schema: "r2-upload-request/1", ingress: "ordinary_image", purpose: "embedded_content", scope: "system",
+        file: { originalName: "source.png", mimeType: "image/png", byteSize: 1, sha256: hash("a") } });
+      await db.prepare(`INSERT INTO r2_upload_requests(id,actor_email,client_request_id,operation_id,ingress,purpose,request_sha256,
+        request_input_json,request_scope,storage_profile_id,storage_profile_revision,storage_policy_revision,candidate_asset_id,
+        candidate_object_key,status,created_at,expires_at)
+        VALUES(?,'fixture',?,?,'ordinary_image','embedded_content',?,?,'system','baseline-r2',1,1,?,?,'pending',?,?)`)
+        .bind(randomUUID(), randomUUID(), randomUUID(), hash("a"), input, randomUUID(), objectKey, NOW, "2026-09-15T00:00:00.000Z").run();
+      for (const profile of ["baseline-r2", "receipt-other-profile"]) {
+        const id = `${order}-${profile}`;
+        await db.prepare("INSERT INTO files(id,purpose,access_scope,state,created_at) VALUES(?,'embedded_content','system','unresolved',?)").bind(id, NOW).run();
+        await db.prepare("INSERT INTO file_locations VALUES(?,?,?,?,'unresolved',?)").bind(id, id, profile, objectKey, NOW).run();
+      }
+      assert.equal(await db.prepare("SELECT 1 FROM legacy_file_mappings WHERE object_key=?").bind(objectKey).first(), null);
+      const hold = (profile) => db.prepare(`INSERT INTO file_location_holds(id,location_id,hold_kind,operation_id,reason,acquired_at)
+        VALUES(?,?,'read','receipt-reader','Read exact namespace',?)`).bind(`${order}-${profile}`, `${order}-${profile}`, NOW).run();
+      const claim = () => db.prepare(`INSERT INTO blob_gc_ledger(store_kind,provider,object_key,state,operation_id,updated_at)
+        VALUES('r2','r2',?,'deleting','receipt-gc',?)`).bind(objectKey, NOW).run();
+      if (order === "hold-first") {
+        await hold("baseline-r2");
+        await assert.rejects(claim(), /retention fences legacy deletion/i);
+      } else {
+        await claim();
+        await assert.rejects(hold("baseline-r2"), /hold cannot cross legacy deletion/i);
+      }
+      await hold("receipt-other-profile");
+    }
+    assert.deepEqual((await db.prepare("PRAGMA foreign_key_check").all()).results, []);
   } finally { await mf.dispose(); }
 });
 

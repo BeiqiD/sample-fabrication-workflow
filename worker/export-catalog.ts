@@ -1,4 +1,5 @@
 import { FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_EXPORTED_VIEW_COLUMNS } from "../shared/contracts/file-shadow-schema";
+import { fileShadowArchiveColumn } from "../shared/contracts/file-shadow-rowid";
 
 // The full-system export inventories every canonical application table and
 // the retention projection in stable order within one D1 snapshot batch.
@@ -123,6 +124,6 @@ export const FULL_EXPORT_V14_TABLE_QUERIES = {
 export const FULL_EXPORT_V15_TABLE_QUERIES = {
   ...FULL_EXPORT_V14_TABLE_QUERIES,
   ...Object.fromEntries(Object.entries({ ...FILE_SHADOW_EXPORT_COLUMNS, ...FILE_SHADOW_EXPORTED_VIEW_COLUMNS })
-    .map(([name, columns]) => [name, `SELECT * FROM ${name} ORDER BY ${columns.join(", ")}`])),
+    .map(([name, columns]) => [name, `SELECT ${columns.map((column) => fileShadowArchiveColumn(name, column)).join(", ")} FROM ${name} ORDER BY ${columns.join(", ")}`])),
 } as const;
 export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V15_TABLE_QUERIES;

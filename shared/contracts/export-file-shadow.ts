@@ -1,6 +1,7 @@
 import type { ExportRow, ExportSchemaObject, ExportTables, FileShadowSourceRowids, FullExportBlobEntryV15 } from "./export";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
+import { isFileShadowRowid } from "./file-shadow-rowid";
 import { buildBlobExportPlan } from "./export-blob-plan";
 import { validateLegacyOverlap } from "./export-file-foundation";
 import {
@@ -32,7 +33,7 @@ SELECT COUNT(*) AS invalid_count FROM (
   WHERE h.occurrence_id IS NULL
 )`;
 // Replaced only from the reviewed whole-file/split/D1 0001–0008 checkpoint.
-export const FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256 = "8a1686e742e6306ab890121da672da199d0d1d33fd20556cbf4ef1cfd6c53788";
+export const FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256 = "deef45bdf72e430da0001925d8f3a54a6d7b32c0441eca68da5e10e3646bccd8";
 const PLATFORM = new Set(["d1_migrations", "_cf_KV", "_cf_METADATA"]);
 
 export function fileShadowSchemaSlice(objects: ExportSchemaObject[]) {
@@ -77,10 +78,8 @@ export async function validateFileShadowSourceRowids(tables: ExportTables, value
     const entries = value.tables[name], source = rows(tables, name), seen = new Set<string>();
     ensure(Array.isArray(entries) && entries.length === source.length, `${name} source-rowid coverage`);
     for (const [index, entry] of entries.entries()) {
-      ensure(entry && stableJson(Object.keys(entry).sort()) === stableJson(["rowSha256", "rowid"]) && typeof entry.rowid === "string"
-        && /^-?(?:0|[1-9][0-9]*)$/.test(entry.rowid) && !seen.has(entry.rowid) && hash(entry.rowSha256), `${name} source-rowid identity`);
-      const rowid = BigInt(entry.rowid);
-      ensure(rowid >= -(1n << 63n) && rowid < (1n << 63n) && rowid.toString() === entry.rowid, `${name} source-rowid range`);
+      ensure(entry && stableJson(Object.keys(entry).sort()) === stableJson(["rowSha256", "rowid"])
+        && isFileShadowRowid(entry.rowid) && !seen.has(entry.rowid) && hash(entry.rowSha256), `${name} source-rowid identity`);
       ensure(await sha256Hex(stableJson(source[index])) === entry.rowSha256, `${name} source-rowid row digest`);
       seen.add(entry.rowid);
     }
@@ -293,7 +292,7 @@ function validateShadowHistory(tables: ExportTables, graph: ReturnType<typeof va
       && size(occurrence.generation) && occurrence.generation > 0 && [0, 1].includes(Number(occurrence.present))
       && size(occurrence.observed_epoch) && occurrence.observed_epoch <= Number(epoch) && time(occurrence.observed_at), "occurrence generation");
     ensure(allowedSlots.has(stableJson([occurrence.consumer_kind, occurrence.file_slot]))
-      && (occurrence.present === 1 ? Number.isSafeInteger(occurrence.source_rowid)
+      && (occurrence.present === 1 ? isFileShadowRowid(occurrence.source_rowid)
         : occurrence.source_rowid === null && occurrence.source_json === "{}" && occurrence.legacy_store_kind === null
           && occurrence.legacy_provider === null && occurrence.legacy_object_key === null), "occurrence slot/source identity");
     const generation = stableJson([keyOf(occurrence), occurrence.generation]);
@@ -481,6 +480,19 @@ function validateShadowHistory(tables: ExportTables, graph: ReturnType<typeof va
       && (hold.released_at === null || time(hold.released_at) && operation.status !== "pending"
         && ![...attempts.values()].some((attempt) => attempt.operation_id === operation.id
           && ["staged", "write_started", "unknown", "verified"].includes(String(attempt.state)))), "legacy source hold identity");
+  }
+  // The write boundary requires both holds. Validating only the rows that are
+  // present would let an archive erase those roots together with its retention
+  // projections, then restore an unfinished provider write without protection.
+  const sourceHolds = rows(tables, "file_shadow_legacy_holds"), destinationHolds = rows(tables, "file_location_holds");
+  for (const attempt of attempts.values()) if (attempt.write_started_at !== null) {
+    const operation = operations.get(String(attempt.operation_id))!;
+    const retain = operation.status === "pending" || ["write_started", "unknown", "verified"].includes(String(attempt.state));
+    ensure(sourceHolds.some((hold) => hold.operation_id === operation.id && (!retain || hold.released_at === null)),
+      "attempt source hold coverage");
+    ensure(destinationHolds.some((hold) => hold.operation_id === operation.id && hold.location_id === attempt.candidate_location_id
+      && hold.hold_kind === "transition_destination" && (!retain || hold.released_at === null && hold.expires_at === null)),
+      "attempt destination hold coverage");
   }
   indexed(rows(tables, "file_shadow_reconciliations"), "id", "reconciliation");
   for (const reconciliation of rows(tables, "file_shadow_reconciliations")) {

@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { type ExportSchemaObject } from "../shared/contracts/export";
+import { fileShadowArchiveColumn } from "../shared/contracts/file-shadow-rowid";
 import { buildFileShadowBlobExportPlan, FILE_SHADOW_HEAD_INTEGRITY_SQL, fileShadowSchemaFingerprint, FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256 } from "../shared/contracts/export-file-shadow";
 import { createExportArtifact, validateFullExportV15 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV15 } from "../src/lib/exportAll";
@@ -18,7 +19,7 @@ const databases: DatabaseSync[] = [];
 const now = "2026-09-25T00:00:00.000Z", hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 afterEach(() => { vi.unstubAllGlobals(); while (databases.length) databases.pop()!.close(); });
 function snapshot(db: DatabaseSync) { return snapshotFullExportV15(new SqliteD1Database(db) as unknown as D1Database); }
-function fixture() {
+function fixture(attemptState: "staged" | "write_started" | "unknown" | "verified" = "unknown") {
   const db = referenceTestDatabase(); databases.push(db);
   db.exec(`
     INSERT INTO samples(id,code,title,created_at,updated_at) VALUES('reference-sample-a','V15','Archive fixture','${now}','${now}');
@@ -59,11 +60,14 @@ function fixture() {
       VALUES('shadow-attempt','shadow-operation',1,'original-owner','original-runtime','staged','2099-01-01T00:00:00.000Z','${now}');
     UPDATE file_shadow_attempts SET candidate_file_id='candidate-file',candidate_location_id='candidate-location',candidate_object_key='candidate/key',
       verified_byte_size=3,verified_sha256='${hash}',source_verified_at='${now}' WHERE id='shadow-attempt';
+  `);
+  if (attemptState !== "staged") db.exec(`
     INSERT INTO file_location_holds(id,location_id,hold_kind,operation_id,reason,acquired_at)
       VALUES('destination-hold','candidate-location','transition_destination','shadow-operation','archive fixture','${now}');
     UPDATE file_shadow_attempts SET state='write_started',write_started_at='${now}' WHERE id='shadow-attempt';
-    UPDATE file_shadow_attempts SET state='unknown' WHERE id='shadow-attempt';
   `);
+  if (attemptState === "unknown") db.exec("UPDATE file_shadow_attempts SET state='unknown' WHERE id='shadow-attempt'");
+  if (attemptState === "verified") db.exec(`UPDATE file_shadow_attempts SET state='verified',verified_at='${now}' WHERE id='shadow-attempt'`);
   return db;
 }
 
@@ -146,8 +150,8 @@ describe("V15 portable shadow checkpoint", () => {
     expect(manifest.tables.events.find((row) => row.id === "shadow-event")?.asset_file_id).toBeNull();
   });
 
-  it.each(["unknown", "published"])("round-trips rowid/generation history and %s ownership while disabling restored execution", async (state) => {
-    const source = fixture();
+  it.each(["write_started", "unknown", "verified", "published"] as const)("round-trips rowid/generation history and %s ownership while disabling restored execution", async (state) => {
+    const source = fixture(state === "published" ? "unknown" : state);
     if (state === "published") publish(source);
     const manifest = await snapshot(source);
     const packaged = await buildFullExportArchiveV15(manifest, undefined, vi.fn(async () => new Response("", { status: 404 })) as unknown as typeof fetch);
@@ -163,7 +167,10 @@ describe("V15 portable shadow checkpoint", () => {
         expect(db.prepare("SELECT incarnation,enabled FROM file_shadow_runtime_guard").get()).toEqual({ incarnation: null, enabled: 0 });
         expect(db.prepare("SELECT COUNT(*) AS count FROM file_shadow_runtime_incarnations").get()).toEqual({ count: 0 });
         expect(db.prepare("SELECT * FROM file_shadow_attempts").all()).toEqual(manifest.tables.file_shadow_attempts);
-        expect(db.prepare("SELECT * FROM file_shadow_occurrences ORDER BY id").all()).toEqual([...manifest.tables.file_shadow_occurrences].sort((a,b) => String(a.id).localeCompare(String(b.id))));
+        expect(db.prepare("SELECT * FROM file_shadow_legacy_holds").all()).toEqual(manifest.tables.file_shadow_legacy_holds);
+        expect(db.prepare("SELECT * FROM file_location_holds").all()).toEqual(manifest.tables.file_location_holds);
+        const occurrenceProjection = Object.keys(manifest.tables.file_shadow_occurrences[0]).map((column) => fileShadowArchiveColumn("file_shadow_occurrences", column)).join(", ");
+        expect(db.prepare(`SELECT ${occurrenceProjection} FROM file_shadow_occurrences ORDER BY id`).all()).toEqual([...manifest.tables.file_shadow_occurrences].sort((a,b) => String(a.id).localeCompare(String(b.id))));
         expect(restored.report.shadowRecovery).toMatchObject({ providerIO: false, runtimeExecutionEnabled: false, unfinishedOperationsResumed: false, recordedAuthorityMode: "overlap" });
         expect(() => db.exec(`UPDATE file_shadow_attempts SET state='verified',verified_at='${now}' WHERE id='shadow-attempt';
           UPDATE file_shadow_attempts SET state='published',completed_at='${now}' WHERE id='shadow-attempt'`)).toThrow();
@@ -258,6 +265,51 @@ describe("V15 portable shadow checkpoint", () => {
       parameters_sha256: hash, trust_state: "unverified", source_verified_sha256: null, derived_verified_sha256: null, verification_operation_id: null,
       evidence_json: "{}", created_at: now });
     await expect(validateFullExportV15(manifest)).rejects.toThrow(/legacy mode cannot contain executed shadow state/);
+  });
+
+  it.each(["write_started", "unknown", "verified"] as const)("requires pending %s attempt holds after the source is tombstoned", async (state) => {
+    const db = fixture(state);
+    db.exec("DELETE FROM events WHERE id='shadow-event'");
+    const original = await snapshot(db);
+    expect(original.tables.file_shadow_attempts[0].state).toBe(state);
+    for (const [tables, ids, reason] of [
+      [["file_shadow_legacy_holds"], ["source-hold"], /attempt source hold coverage/],
+      [["file_location_holds"], ["destination-hold"], /attempt destination hold coverage/],
+      [["file_shadow_legacy_holds", "file_location_holds"], ["source-hold", "destination-hold"], /attempt source hold coverage/],
+    ] as const) {
+      const altered = structuredClone(original);
+      for (const table of tables) altered.tables[table] = [];
+      const removedIds = new Set<string>(ids);
+      // Rebuild all affected projections and byte metadata so the rejection
+      // proves the canonical graph invariant, not an incidental catalog hash.
+      for (const name of Object.keys(altered.tables).filter((name) => name.includes("retention_edges"))) {
+        altered.tables[name] = altered.tables[name].filter((row) => !removedIds.has(String(row.occurrence_id)));
+      }
+      altered.blobs = buildFileShadowBlobExportPlan(altered.tables);
+      await expect(validateFullExportV15(altered)).rejects.toThrow(reason);
+      const fetcher = vi.fn(async () => new Response("", { status: 404 }));
+      await expect(buildFullExportArchiveV15(altered, undefined, fetcher as typeof fetch)).rejects.toThrow(reason);
+      expect(fetcher).not.toHaveBeenCalled();
+    }
+    for (const mutation of [
+      { released_at: now },
+      { expires_at: "2026-09-25T00:00:01.000Z" },
+    ]) {
+      const altered = structuredClone(original);
+      Object.assign(altered.tables.file_location_holds[0], mutation);
+      for (const name of Object.keys(altered.tables).filter((name) => name.includes("retention_edges"))) {
+        altered.tables[name] = altered.tables[name].filter((row) => row.occurrence_id !== "destination-hold");
+      }
+      altered.blobs = buildFileShadowBlobExportPlan(altered.tables);
+      await expect(validateFullExportV15(altered)).rejects.toThrow(/attempt destination hold coverage/);
+    }
+  });
+
+  it("accepts a staged attempt before its destination hold is acquired", async () => {
+    const manifest = await snapshot(fixture("staged"));
+    expect(manifest.tables.file_shadow_attempts[0]).toMatchObject({ state: "staged", write_started_at: null });
+    expect(manifest.tables.file_location_holds).toHaveLength(0);
+    await expect(validateFullExportV15(manifest)).resolves.toBe(manifest);
   });
 
   it("rejects rehashed rowid rebinding and operation history corruption", async () => {

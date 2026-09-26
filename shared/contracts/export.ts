@@ -127,6 +127,7 @@ export interface FileShadowSourceRowids {
   version: 1;
   kind: "file-shadow-source-rowids";
   // Entries have the same ordinal as their hashed logical archive table rows.
+  // Signed int64 decimal text, also used by V15 heads/occurrences.source_rowid.
   tables: Record<string, Array<{ rowid: string; rowSha256: string }>>;
 }
 

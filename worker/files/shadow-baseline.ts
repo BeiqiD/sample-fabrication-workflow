@@ -2,6 +2,7 @@ import { sha256Hex } from "../../shared/domain/content-addressing";
 import type { ExportSchemaObject } from "../../shared/contracts/export";
 import type { FilePurpose } from "../../shared/contracts/files";
 import { FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, fileShadowSchemaFingerprint } from "../../shared/contracts/export-file-shadow";
+import { isFileShadowRowid } from "../../shared/contracts/file-shadow-rowid";
 import { MAX_VERIFIED_BYTES } from "./byte-verification";
 import { liveConsumerMetadataSql, projectLiveConsumerMetadata, MAX_LIVE_CONSUMER_PAGE_BYTES,
   MAX_LIVE_CONSUMER_EVIDENCE_ROWS, MAX_LIVE_CONSUMER_SOURCE_ROWS, MAX_LIVE_CONSUMER_SOURCE_KEY_BYTES,
@@ -9,7 +10,7 @@ import { liveConsumerMetadataSql, projectLiveConsumerMetadata, MAX_LIVE_CONSUMER
 
 export interface ShadowHead {
   consumer_kind: string; consumer_id: string; consumer_sub_id: string; file_slot: string;
-  generation: number; occurrence_id: string; present: number; source_rowid: number | null;
+  generation: number; occurrence_id: string; present: number; source_rowid: string | null;
   source_sha256: string; observed_epoch: number;
 }
 export interface ShadowDecision {
@@ -44,12 +45,14 @@ export function checkedShadowKey(value: unknown): LiveConsumerKey {
   return JSON.parse(canonicalShadowMetadata(value)) as LiveConsumerKey;
 }
 const keyMatch = (alias: string) => `${alias}.consumer_kind=?2 AND ${alias}.consumer_id=?3 AND ${alias}.consumer_sub_id=?4 AND ${alias}.file_slot=?5`;
+// Project rowids as text before JSON: SQLite's signed int64 range exceeds the
+// exact integer range of JavaScript numbers.
 const EXTRA = `(SELECT epoch FROM file_shadow_control WHERE singleton=1) shadow_epoch,
   (SELECT json_object('storeKind',o.legacy_store_kind,'provider',o.legacy_provider,'objectKey',o.legacy_object_key)
     FROM file_shadow_occurrences o JOIN file_shadow_heads h ON h.occurrence_id=o.id WHERE ${keyMatch("h")}) shadow_locator,
   (SELECT json_object('incarnation',incarnation,'enabled',enabled,'enabled_by',enabled_by,'updated_at',updated_at) FROM file_shadow_runtime_guard WHERE singleton=1) shadow_runtime,
   (SELECT CASE WHEN length(CAST(source_json AS BLOB))<=524288 THEN json_object('consumer_kind',consumer_kind,'consumer_id',consumer_id,'consumer_sub_id',consumer_sub_id,'file_slot',file_slot,'generation',generation,
-    'occurrence_id',occurrence_id,'present',present,'source_rowid',source_rowid,'source_json',source_json,'observed_epoch',observed_epoch)
+    'occurrence_id',occurrence_id,'present',present,'source_rowid',CAST(source_rowid AS TEXT),'source_json',source_json,'observed_epoch',observed_epoch)
     END FROM file_shadow_heads h WHERE ${keyMatch("h")}) shadow_head,
   (SELECT length(CAST(source_json AS BLOB)) FROM file_shadow_heads h WHERE ${keyMatch("h")}) shadow_head_bytes,
   (SELECT json_object('occurrence_id',d.occurrence_id,'operation_id',d.operation_id,'decision',d.decision,'file_id',d.file_id,'location_id',d.location_id,
@@ -104,7 +107,7 @@ export async function readShadowBaseline(database: LiveConsumerDatabase, inputKe
   let head: ShadowHead | null = null;
   if (rawHead) {
     const { source_json, ...safeHead } = rawHead;
-    if (typeof source_json !== "string") throw new Error("Invalid shadow source metadata");
+    if (typeof source_json !== "string" || safeHead.source_rowid !== null && !isFileShadowRowid(safeHead.source_rowid)) throw new Error("Invalid shadow source metadata");
     head = { ...safeHead, source_sha256: await sha256Hex(source_json) };
   }
   const decision = row.shadow_decision === null ? null : JSON.parse(row.shadow_decision) as ShadowDecision;

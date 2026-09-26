@@ -33,6 +33,8 @@ compatible: older Workers that compare that metadata to an exact count can
 misreport a committed operation as a replay or conflict.
 Resolved decisions belong to one occurrence, not to a reusable business ID.
 Deleting and recreating an ID cannot inherit its old decision.
+Replacement capture also covers `UPDATE OR REPLACE` that takes a different
+row's logical key and reuses that victim's physical rowid in the same statement.
 
 Migration rejects any row in the 11 business source tables whose legacy TEXT
 primary-key component is NULL, including rows without a current file slot, before
@@ -74,6 +76,8 @@ because a lease expired. Holds protect against application GC; they do not lock
 provider versions or prevent external changes to provider objects. An explicit cancel command releases holds only when
 durable evidence proves no PUT started. A possibly started write requires
 reconciliation; stale-source outcomes remain retained for operator inspection.
+The reverse GC fence uses the same namespace evidence as retention, including
+upload and import receipts when no legacy mapping exists.
 
 Unknown namespace, source bytes, purpose or derivation are not guessed. An
 operator may record an `admitted_unresolved` decision with a reason for the
@@ -131,10 +135,22 @@ Isolated restore reconstructs them disabled, without replaying provider I/O.
 
 The `provenance/source-rowids.json` artifact records signed 64-bit source rowids
 in each exported table's stable row order, bound to a digest of that logical row.
+V15 head and occurrence rows, and the shadow baseline, also encode physical
+rowids as exact decimal text (or null for a tombstone), preserving the full
+SQLite integer range without passing through JavaScript numbers.
 Restore inserts these exact rowids and verifies current head/source projections.
 This prevents a logically identical table restore from inventing an occurrence
 replacement. Historical archives apply the new suffix after restoring their own
 admitted schema and then capture their restored source generations.
+
+Archives must preserve the source and destination holds for every attempt that
+crossed the provider-write boundary. Unfinished attempts require unreleased
+holds without destination expiry, even when their original source has since
+been deleted. The database forbids releasing these holds before a safe terminal
+state. Removing the hold
+rows and rebuilding the retention projections does not make such an archive
+valid. Published history may retain released holds; a staged attempt that never
+started writing does not require a destination hold.
 
 File-location bytes are enumerated by `(storage profile, revision, object key)`;
 they cannot alias equal legacy keys or keys in another profile. Available entries

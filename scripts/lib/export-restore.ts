@@ -8,6 +8,7 @@ import type { CompatibilitySchema, ExportSchemaObject, ExportTables, FileShadowS
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
 import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15 } from "../../shared/contracts/export-protocol";
 import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
+import { fileShadowArchiveColumn, isFileShadowRowidColumn } from "../../shared/contracts/file-shadow-rowid";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
 import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
 import {
@@ -442,7 +443,7 @@ export async function restoreExportToIsolatedDirectory(options: {
         const columns = Object.keys(rows[0]);
         const physicalRows = sourceRowids?.tables[name];
         const insertColumns = physicalRows ? ["rowid", ...columns] : columns;
-        const insert = database.prepare(`INSERT INTO ${identifier(name)} (${insertColumns.map(identifier).join(",")}) VALUES (${insertColumns.map(() => "?").join(",")})`);
+        const insert = database.prepare(`INSERT INTO ${identifier(name)} (${insertColumns.map(identifier).join(",")}) VALUES (${insertColumns.map((column) => isFileShadowRowidColumn(name, column) ? "CAST(? AS INTEGER)" : "?").join(",")})`);
         for (const [index, row] of rows.entries()) insert.run(...(physicalRows ? [BigInt(physicalRows[index].rowid)] : []), ...columns.map((column) => row[column]));
       }
       derivedTablesRebuilt = rebuildFileRegistryRowidClaims(database);
@@ -462,7 +463,12 @@ export async function restoreExportToIsolatedDirectory(options: {
         ensure(proof?.invalid_count === 0, "Restored shadow heads differ from their current physical source rows");
       }
       inspectProjectRelations(database);
-      for (const name of tableNames) ensure(sameRows(database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[], tables[name]), `Restored rows differ: ${name}`);
+      for (const name of tableNames) {
+        const columns = Object.keys(tables[name][0] ?? {});
+        const projection = columns.some((column) => isFileShadowRowidColumn(name, column))
+          ? columns.map((column) => fileShadowArchiveColumn(name, column)).join(", ") : "*";
+        ensure(sameRows(database.prepare(`SELECT ${projection} FROM ${identifier(name)}`).all() as Row[], tables[name]), `Restored rows differ: ${name}`);
+      }
       database.exec("COMMIT; PRAGMA foreign_keys = ON");
     } catch (error) {
       database.exec("ROLLBACK; PRAGMA foreign_keys = ON");
