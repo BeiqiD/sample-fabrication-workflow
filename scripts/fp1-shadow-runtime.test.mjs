@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
-import { unstable_splitSqlQuery as splitSql } from "wrangler";
+import { splitTestSql as splitSql } from "./lib/test-sql-split-cache.mjs";
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
