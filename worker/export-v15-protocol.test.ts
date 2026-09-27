@@ -150,6 +150,7 @@ describe("V15 portable shadow checkpoint", () => {
     expect(manifest.tables.events.find((row) => row.id === "shadow-event")?.asset_file_id).toBeNull();
   });
 
+  // Archive/SQLite round trips need room for CPU contention on shared CI runners.
   it.each(["write_started", "unknown", "verified", "published"] as const)("round-trips rowid/generation history and %s ownership while disabling restored execution", async (state) => {
     const source = fixture(state === "published" ? "unknown" : state);
     if (state === "published") publish(source);
@@ -176,8 +177,9 @@ describe("V15 portable shadow checkpoint", () => {
           UPDATE file_shadow_attempts SET state='published',completed_at='${now}' WHERE id='shadow-attempt'`)).toThrow();
       } finally { db.close(); }
     } finally { await rm(directory, { recursive: true, force: true }); }
-  });
+  }, 30_000);
 
+  // ZIP packaging and SQLite restore share the same CI contention budget.
   it("packages ready location bytes and retains missing location identity across equal keys in two profiles", async () => {
     const source = fixture(); publish(source);
     source.exec(`
@@ -240,7 +242,7 @@ describe("V15 portable shadow checkpoint", () => {
       expect(await readFile(join(restored.restoredDirectory, ready.path), "utf8")).toBe("abc");
       expect(providers.find((entry: { locationId: string }) => entry.locationId === "other-location")).toMatchObject({ ...exactMissing, outcome: "missing", objectKey: "candidate/key", path: null });
     } finally { await rm(directory, { recursive: true, force: true }); }
-  });
+  }, 30_000);
 
   it("preserves exact historical BLOB dependency evidence while keeping canonical table cells scalar", async () => {
     const db = referenceTestDatabase(); databases.push(db);
@@ -267,6 +269,7 @@ describe("V15 portable shadow checkpoint", () => {
     await expect(validateFullExportV15(manifest)).rejects.toThrow(/legacy mode cannot contain executed shadow state/);
   });
 
+  // Repeated archive validation also competes for CPU on shared CI runners.
   it.each(["write_started", "unknown", "verified"] as const)("requires pending %s attempt holds after the source is tombstoned", async (state) => {
     const db = fixture(state);
     db.exec("DELETE FROM events WHERE id='shadow-event'");
@@ -303,7 +306,7 @@ describe("V15 portable shadow checkpoint", () => {
       altered.blobs = buildFileShadowBlobExportPlan(altered.tables);
       await expect(validateFullExportV15(altered)).rejects.toThrow(/attempt destination hold coverage/);
     }
-  });
+  }, 30_000);
 
   it("accepts a staged attempt before its destination hold is acquired", async () => {
     const manifest = await snapshot(fixture("staged"));
