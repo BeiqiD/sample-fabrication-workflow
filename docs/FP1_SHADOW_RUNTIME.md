@@ -88,7 +88,8 @@ In particular, a preview locator alone does not prove derivation lineage.
 ## Operator protocol
 
 These routes inherit the application's existing authentication and same-origin
-mutation checks. They are administrative APIs, not a new public Settings UI.
+mutation checks. They are administrative APIs; the bounded maintenance page below
+is an operator client of this existing boundary, not the future Settings UI.
 There is no automatic shadow Cron or deployment-time provider work.
 
 | Route under `/api/files/shadow` | Purpose |
@@ -279,3 +280,66 @@ found 11 current generations: zero resolved decisions, 4 metadata-eligible
 unfinished attempts or pending operations. These are observations of that local
 snapshot, not a live D1 baseline. Existing attachment bytes and matching hashes
 do not supply the missing purpose or namespace evidence.
+
+## Single-item R2 pilot
+
+The Export page links to `/maintenance/file-shadow`. Opening or refreshing this
+page only reads status and bounded current-consumer pages. Inspecting one consumer
+reads its fresh baseline. The page renders a small review projection: exact
+consumer/generation, purpose, expected size/hash and recorded R2 profile/revision;
+it does not display provider keys, namespace configuration or raw source metadata.
+
+This pilot only offers a copy into the explicitly reviewed **same recorded R2
+source profile**. It does not infer a default, create a profile, edit credentials
+or namespaces, or admit unresolved history. An ambiguous or non-R2 source stays
+blocked. All backend baseline, namespace, byte, hold and publication checks still
+apply; client eligibility never grants a provider-write capability.
+
+The operator separately enables overlap, admits that exact existing profile for
+shadow writes, reads a new baseline, and requests one conversion. Enablement
+permanently advances authority mode from `legacy` to `overlap`; business reads and
+writes still use their existing authority. Pausing disables new guarded execution
+but does not restore `legacy` or revoke the profile's `read_write` admission. An
+already authorized provider call may finish after pause. No control on this page
+activates File authority, switches D1/R2 bindings or runs cleanup.
+
+Before conversion, the client durably saves the complete immutable request and
+operation ID in browser storage. Storage failure prevents submission. A browser
+lock serializes journal changes across tabs. Reload, a lost response, HTTP errors
+and an absent receipt retain the same request; none automatically retries a PUT
+or allocates a replacement operation ID. Saved-operation inspection remains
+available while paused. Every receipt action is bound to the operation displayed
+by its page; a newer ticket in another tab cannot become that action's target.
+Explicit reconciliation verifies the recorded candidate
+under the current enabled incarnation, without a second PUT. Cancellation is only
+offered for a recorded pre-write state and still requires the backend's proof
+that no PUT started. Only a terminal receipt can be dismissed to start new work.
+Keep the browser journal until the operation has been resolved or safely cancelled.
+An absent receipt after a rejected request remains an explicit recovery limitation:
+the current server protocol has no durable terminal no-claim receipt. For example,
+a pre-acceptance baseline conflict may leave this browser unable to start another
+pilot operation. Inspect the saved identity and server state; do not clear the
+journal or invent a new ID merely because one read returned 404. A general catch-up
+runner needs a separately qualified definitive-rejection recovery protocol.
+
+Pause uses its own fresh runtime read and does not wait for the conversion journal
+lock, usable storage or a pending conversion response. A failed epoch fence remains
+visible and requires a fresh operator action rather than an automatic retry.
+
+The page reuses the deployed authenticated/same-origin operator API. It does not
+claim to implement FP2's administrator/secret model; future configuration and role
+default mutations still require that separately reviewed server-side boundary.
+There is no automatic conversion on mount, refresh, deployment or profile admission.
+
+The initial live acceptance target is the existing 157-byte synthetic Project
+attachment: inspect its current generation, execute one verified copy, read back
+the saved receipt and aggregate status, then pause. Deployment and live results
+must be recorded against the exact accepted commit; page implementation alone
+does not establish that this pilot ran or that catch-up completed.
+
+Further inspection of the accepted ZIP confirmed that its seven ambiguous Project
+references map to five historical R2 assets without accepted upload receipts,
+import provenance, legacy mappings or same-asset semantic evidence. They remain
+unresolved. A future explicit evidence/adjudication ledger must be separately
+reviewed and bound to the current occurrence, baseline and exact profile revision;
+fabricating old receipts or choosing the only current profile is not a repair.
