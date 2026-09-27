@@ -91,9 +91,10 @@ function fixture() {
     INSERT INTO events (id, sample_id, kind, asset_key, metadata_json, created_at)
     VALUES ('v14-event', 'v14-sample', 'image', 'legacy/v14.png', '{}', '2026-09-14T00:00:00.000Z');
   `);
-  const env = { AUTH_MODE: "disabled", DB: new SqliteD1Database(database) as unknown as D1Database } satisfies Env;
+  const d1 = new SqliteD1Database(database);
+  const env = { AUTH_MODE: "disabled", DB: d1 as unknown as D1Database } satisfies Env;
   const request = (path: string, init?: RequestInit) => worker.fetch(new Request(new URL(path, "https://app.test"), init), env, context);
-  return { database, request };
+  return { database, d1, request };
 }
 
 async function manifestFrom(request: ReturnType<typeof fixture>["request"]) {
@@ -103,6 +104,34 @@ async function manifestFrom(request: ReturnType<typeof fixture>["request"]) {
 }
 
 describe("v14 additive File authority export profile", () => {
+  const shadowSchemaCases = [
+    ["table", "CREATE TABLE file_shadow_unexpected (id TEXT PRIMARY KEY); INSERT INTO file_shadow_unexpected VALUES ('unexported-row')"],
+    ["trigger", "CREATE TRIGGER file_shadow_unexpected AFTER INSERT ON events BEGIN SELECT 1; END"],
+    ["view with mixed-case name", "CREATE VIEW FILE_SHADOW_unexpected AS SELECT 1 AS id"],
+  ] as const;
+
+  it.each(shadowSchemaCases)("rejects an unexpected shadow %s with an explicit writer conflict", async (_kind, sql) => {
+    const f = fixture();
+    expect((await f.request(endpoint)).status).toBe(200);
+    f.database.exec(sql);
+    const response = await f.request(endpoint);
+    expect(response.status).toBe(409);
+    expect(await response.text()).toContain("archive writer is out of date");
+  });
+
+  it.each(shadowSchemaCases)("rejects a shadow %s committed between generation negotiation and the snapshot", async (_kind, sql) => {
+    const f = fixture();
+    const batch = f.d1.batch.bind(f.d1);
+    const snapshotBatch = vi.spyOn(f.d1, "batch").mockImplementationOnce(async (statements) => {
+      f.database.exec(sql);
+      return batch(statements);
+    });
+    const response = await f.request(endpoint);
+    expect(snapshotBatch).toHaveBeenCalledOnce();
+    expect(response.status).toBe(409);
+    expect(await response.text()).toContain("archive writer is out of date");
+  });
+
   it("negotiates only V14 on the transitioned schema and retains the legacy byte planner", async () => {
     const f = fixture();
     expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(FULL_EXPORT_ARCHIVE_SCHEMA_V14);

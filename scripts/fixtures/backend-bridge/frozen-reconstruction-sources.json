@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Frozen reviewed reconstruction input before FP1j replaced the production Comment route; existing reconstruction, C and E hashes remain authoritative.",
+  "source": "Frozen reviewed reconstruction inputs before FP1j Comment replacement and FP1 shadow-trigger count fixes; existing reconstruction, C and E hashes remain authoritative.",
   "files": {
     "worker/comment-submission-routes.ts": {
       "fixture": "scripts/fixtures/backend-bridge/reconstruction-sources/worker/comment-submission-routes.ts.txt",
@@ -8,6 +8,20 @@
       "sourceBlob": "d8997d9cc25d07a3406542d0b99673f98ad3be28",
       "sha256": "faa22f1111a88e91489b3a34647e6b627e273b46537dc6bac195694ef6e1b07a",
       "byteSize": 62512
+    },
+    "worker/evidence/legacy-routes.ts": {
+      "fixture": "scripts/fixtures/backend-bridge/reconstruction-sources/worker/evidence/legacy-routes.ts.txt",
+      "sourceCommit": "3119ef264fb337ec2bee523a86645f5b3691caa4",
+      "sourceBlob": "0b97bbf9e216615fd984e1725b5d2a0d6935b802",
+      "sha256": "4229f8ed4f56843d7af0d7f7de362fd329dc40f94eb3d5e60a6a9e755f74e860",
+      "byteSize": 45306
+    },
+    "worker/samples/routes.ts": {
+      "fixture": "scripts/fixtures/backend-bridge/reconstruction-sources/worker/samples/routes.ts.txt",
+      "sourceCommit": "3119ef264fb337ec2bee523a86645f5b3691caa4",
+      "sourceBlob": "9fcd54a993eff3ca2c468cab7a945c1e7f6f2c2d",
+      "sha256": "4072fa479d484155d7bf7b30450375e8f33f0d341e71dfcd9e71009e6039597f",
+      "byteSize": 78071
     }
   }
 }

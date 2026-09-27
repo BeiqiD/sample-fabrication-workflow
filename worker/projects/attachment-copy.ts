@@ -18,8 +18,8 @@ type AttachmentCopySourceRow = {
   source_active: number;
 };
 
-function resultChanges(result: unknown) {
-  return Number((result as { meta?: { changes?: number } } | undefined)?.meta?.changes ?? 0);
+function resultRows(result: unknown) {
+  return (result as { results?: unknown[] } | undefined)?.results?.length ?? 0;
 }
 
 function constraintConflict(error: unknown) {
@@ -86,6 +86,7 @@ function reserveProjectSequenceStatement(
         last_mutation_id = ?, updated_by = ?, updated_at = ?
     WHERE id = ? AND revision = ? AND deleted_at IS NULL
       AND revision < ? AND next_created_sequence < ?
+    RETURNING id
   `).bind(
     input.operationId,
     actor,
@@ -188,6 +189,7 @@ function sourceAuthorizedBindingStatement(
         )
     ) source
     LIMIT 1
+    RETURNING project_content_id
   `).bind(
     input.contentId,
     actor,
@@ -270,6 +272,7 @@ export async function copyAttachmentProjectItem(
         attachment_caption, attachment_source_url, format_version,
         revision, last_mutation_id, created_by, updated_by, created_at, updated_at
       ) VALUES (?, ?, 'attachment', NULL, ?, ?, 1, 1, ?, ?, ?, ?, ?)
+      RETURNING id
     `).bind(
       input.contentId,
       projectId,
@@ -299,6 +302,7 @@ export async function copyAttachmentProjectItem(
            )),
         1, ?, ?, ?, ?, ?
       )
+      RETURNING id
     `).bind(
       input.itemId,
       projectId,
@@ -318,6 +322,7 @@ export async function copyAttachmentProjectItem(
         id, project_item_id, x, y, width, height, z_index,
         revision, last_mutation_id, created_by, updated_by, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+      RETURNING id
     `).bind(
       input.placementId,
       input.itemId,
@@ -336,12 +341,9 @@ export async function copyAttachmentProjectItem(
 
   try {
     const results = await db.batch(statements);
-    if (results.length !== 5
-      || resultChanges(results[0]) !== 1
-      || resultChanges(results[1]) !== 1
-      || resultChanges(results[2]) !== 1
-      || resultChanges(results[3]) !== 1
-      || resultChanges(results[4]) !== 1) {
+    // D1 meta.changes also counts capture/dependency triggers. RETURNING keeps
+    // this exact atomic-write check scoped to each top-level business row.
+    if (results.length !== 5 || results.some((result) => resultRows(result) !== 1)) {
       throw new ProjectServiceError(
         "conflict",
         "Project attachment copy did not commit atomically",

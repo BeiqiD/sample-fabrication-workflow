@@ -181,7 +181,7 @@ snapshotRoutes.get("/exports/all", async (c) => {
     return c.json(await snapshotFullExportV8(c.env.DB));
   }
   catch (error) {
-    if (error instanceof Error && /requires archive schema (9|10|11|12|13|14)/.test(error.message)) {
+    if (error instanceof Error && /requires archive schema (9|10|11|12|13|14|15)/.test(error.message)) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
     throw error;
