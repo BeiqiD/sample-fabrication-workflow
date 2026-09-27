@@ -12,6 +12,7 @@
   },
   "files": [
     "scripts/lib/file-migration-cli.ts",
-    "scripts/lib/file-consumer-preflight-cli.ts"
+    "scripts/lib/file-consumer-preflight-cli.ts",
+    "scripts/lib/file-shadow-inspection-cli.ts"
   ]
 }
