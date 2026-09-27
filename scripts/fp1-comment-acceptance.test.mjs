@@ -510,7 +510,9 @@ test("Comment acceptance upgrades populated legacy Comment history without chang
   try { host.exec("PRAGMA foreign_keys=ON; PRAGMA recursive_triggers=OFF"); const db = hostAdapter(host); await seedBeforeUpgrade(db); await upgrade(db); }
   finally { host.close(); }
 });
-test("durable Comment publication qualifies on real workerd/D1/R2 and the production WebDAV adapter", { timeout: 300_000 }, async (t) => {
+// One parent budget covers 40 sequential scenarios, their independent schemas,
+// SQL guard checks and the final V15 restore rehearsal.
+test("durable Comment publication qualifies on real workerd/D1/R2 and the production WebDAV adapter", { timeout: 450_000 }, async (t) => {
   const mf = new Miniflare({ modules: true, script: await bundle(workerSource), compatibilityDate: "2026-07-20",
     r2Buckets: ["BUCKET", "RESTORED_BUCKET"], d1Databases: [...Object.values(bindings), "DB_GUARDS", "DB_RESTORED"], log: new Log(LogLevel.ERROR) });
   const scratch = await mkdtemp(join(tmpdir(), "fp1-comment-")); let replayFixture;
