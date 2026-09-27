@@ -47,7 +47,7 @@ class TriggerCountingD1Database extends SqliteD1Database {
           meta: { changes: Number(totalChanges.get()?.count) - before },
         };
       },
-    }) as unknown as D1PreparedStatement));
+    }) as unknown as D1PreparedStatement[]));
   }
 }
 

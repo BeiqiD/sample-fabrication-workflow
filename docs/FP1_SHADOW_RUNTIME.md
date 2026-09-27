@@ -159,16 +159,32 @@ profile and revision qualifiers. Pending, quarantined or otherwise unavailable
 candidates retain metadata and a warning rather than being presented as complete
 bytes. ZIP packaging verifies size and hash for each downloaded entry.
 
-Deployment remains migration-first within a coordinated maintenance window.
-Pause business writes before applying `0008` and keep them paused until the
-matching Worker with trigger-independent affected-row checks is running. Do not
-leave an older Worker serving writes against the upgraded schema. A post-0008
-database also requires the V15 Worker for complete export; a stale V14 page must
-refresh. If migration succeeds but Worker deployment fails, retain the write
-pause, finish deployment of the reviewed V15 Worker, and verify first creation,
-replay, deletion/restoration, V15 export and stale-version rejection before
-resuming writes. Do not downgrade the schema or relabel a V15 archive. Neither
-this PR nor restore authorizes remote deployment or cleanup.
+Deployment remains migration-first: apply `0008`, then deploy the matching V15
+Worker. The [trigger-compatible bridge rollout](./FP1_TRIGGER_COMPATIBLE_ROLLOUT.md)
+allows this sequence without an operator-imposed business-write pause only after
+the exact reviewed bridge commit and Worker version have been verified as
+actually serving all application traffic on `0007`, with older Worker writers
+and their in-flight work drained. A merged bridge or successful build alone does
+not satisfy this prerequisite. Keep authority in `legacy` mode and the local
+execution gate disabled throughout the rollout, and prevent an older queued
+build or rollback from reintroducing an incompatible Worker.
+
+With that prerequisite verified, the bridge can continue legacy business writes
+after `0008`. Its complete-export snapshots that observe the new schema return
+HTTP 409 until the V15 Worker is deployed; complete export resumes after V15
+export and stale-version rejection have been verified. A snapshot completed
+before migration remains valid. If migration succeeds but V15 deployment fails,
+finish deploying the reviewed V15 Worker while keeping conversion disabled.
+Verify first creation, replay, deletion/restoration, V15 export and stale-version
+rejection on the completed deployment.
+
+Without a verified active bridge, use the coordinated maintenance window: pause
+business writes before applying `0008` and keep them paused until the matching
+Worker with trigger-independent affected-row checks is running and those checks
+have passed. Retain the write pause if Worker deployment fails. Do not downgrade
+the schema, treat a V14 archive as a complete post-0008 backup, or relabel a V15
+archive. These are deployment prerequisites, not evidence that the bridge has
+been deployed. Neither this PR nor restore authorizes remote deployment or cleanup.
 
 ## Qualification boundary
 

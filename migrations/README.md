@@ -113,14 +113,37 @@ admit overlap and an exact destination profile; active authority remains blocked
 Old Worker mutations capture successor generations in the same transaction, and
 legacy-visible holds fence uncertain source use against old GC.
 This is SQL capture compatibility, not a guarantee of old Worker response
-classification: D1 trigger writes inflate `meta.changes`. Apply `0008` with
-business writes paused, deploy the matching Worker with exact top-level
-affected-row checks, and verify normal and replayed mutations before resuming
-writes. Keep writes paused if that Worker deployment fails.
+classification: D1 trigger writes inflate `meta.changes`.
+
+The `0008` to V15 deployment remains migration-first. It may proceed without an
+operator-imposed business-write pause only with the verified active
+[trigger-compatible bridge](../docs/FP1_TRIGGER_COMPATIBLE_ROLLOUT.md): record the
+exact reviewed bridge commit and Worker version, verify that version is actually
+serving all application traffic on `0007`, and drain older Worker writers and
+their in-flight work before applying `0008`. A merge or successful build alone is
+not deployment evidence. Keep authority in `legacy` mode and the local execution
+gate disabled, and prevent an older queued build or rollback from reintroducing
+an incompatible Worker. The bridge can then continue legacy business writes
+through the schema-to-Worker interval. Verify first creation, replay,
+deletion/restoration, V15 export and stale-version rejection after deploying the
+reviewed V15 Worker.
+
+Without that verified bridge prerequisite, use the coordinated maintenance
+window: pause business writes before `0008`, deploy the matching Worker with
+exact top-level affected-row checks, and complete those verification checks
+before resuming writes. Keep writes paused if that Worker deployment fails.
+These instructions do not establish that a bridge deployment has occurred.
 
 Current complete export/recovery is schema 15, profile `fp1-shadow-conversion`.
 It preserves canonical shadow history and portable source rowid evidence, while
 recovery resets the non-portable execution gate and incarnation history. No
 restore or migration runs provider I/O. A post-0008 database requires the V15
-Worker for complete export. Keep V7–V14 validators frozen, and complete a failed
+Worker for complete export. During the bridge's schema-to-Worker interval,
+complete-export snapshots that observe `0008` return HTTP 409; a snapshot
+completed before migration remains valid. Complete export resumes after V15 is
+deployed and its export and stale-version rejection checks pass. If migration
+succeeds but V15 deployment fails, finish deploying that reviewed Worker with
+conversion disabled; the write-pause requirement depends on the verified bridge
+prerequisite above. Keep V7–V14 validators frozen, and complete a failed
 migration-first rollout forward instead of downgrading or relabelling an archive.
+A V14 archive is not a complete backup of a post-0008 database.
