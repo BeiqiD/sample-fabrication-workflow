@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { appendFile } from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import { verificationPlan, executeVerification, contextOutcome } from "./verification-plan.mjs";
 import { publishCommitStatus } from "./publish-commit-status.mjs";
 
@@ -39,6 +40,7 @@ if (process.argv.includes("--list")) {
     if (!["pending", "skipped", "cancelled"].includes(statusOnly)) throw new Error(`Invalid status-only outcome: ${statusOnly}`);
     await report(Object.fromEntries(plan.leaves.map(({ id }) => [id, statusOnly])));
   } else {
+    console.log(`Verification runtime: Node ${process.version}; available CPUs: ${availableParallelism()}`);
     const result = await executeVerification(plan, (leaf) => new Promise((accept, reject) => {
       console.log(`Running ${leaf.id}: npm run ${leaf.script}`);
       const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", leaf.script], {
