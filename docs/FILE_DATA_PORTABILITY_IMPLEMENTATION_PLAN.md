@@ -34,9 +34,14 @@ adds read-only live-database inspection and qualification before opening overlap
 It addresses observed occurrence-mutation, legacy-hold, accepted-candidate and
 archive-generation gaps; it does not complete shadow conversion or reduce its
 scope. PR #221's preflight and #222's [shadow runtime](./FP1_SHADOW_RUNTIME.md)
-are now merged; `0008` and V15 are deployed through #226 (`5a86ab27`). An actual
+are now merged; `0008` and V15 are deployed through #227 (`f0c6367`). An actual
 9/9-blob ZIP passed isolated recovery on 2026-09-27. The separate V15 snapshot
 inspector explains pending-generation blockers while the V14 CLI stays frozen.
+The bounded maintenance client adds explicit single-item R2 pilot commands and
+durable saved-operation recovery without changing the backend protocol. Actual
+pilot evidence is recorded separately from implementation and deployment. Seven
+historical references remain blocked pending separately reviewed intent/namespace
+evidence; neither matching bytes nor an unresolved admission completes catch-up.
 Catch-up and atomic authority activation remain open; FP1 is incomplete.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at

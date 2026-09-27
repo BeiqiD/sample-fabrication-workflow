@@ -78,7 +78,7 @@ describe("complete export download feedback", () => {
     render(<ExportPage />);
     fireEvent.click(screen.getByRole("button", { name: "Download full ZIP" }));
     expect(screen.getByRole("status").textContent).toBe("Assets processed: 3 / 3. Building archive…");
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Download prepared ZIP" })).toBeNull();
     await act(async () => { pending.resolve(archiveResult(["packaged", "missing", "hash_mismatch"])); });
     expect(screen.getByText("Archive ready. Assets included: 1 / 3.")).toBeTruthy();
     expect(screen.getByText(/2 assets were not included/).textContent).toContain("export-warnings.json");
@@ -93,12 +93,12 @@ describe("complete export download feedback", () => {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Download full ZIP" })); });
     fireEvent.click(screen.getByRole("button", { name: "Download full ZIP" }));
     expect(revokeUrl.mock.calls).toEqual([["blob:first"]]);
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Download prepared ZIP" })).toBeNull();
     await act(async () => { failed.reject(new Error("Snapshot unavailable")); });
     expect(screen.getByRole("alert").textContent).toBe("Snapshot unavailable");
     expect(screen.queryByText(/Archive ready/)).toBeNull();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Download full ZIP" })); });
-    expect(screen.getByRole("link").getAttribute("href")).toBe("blob:replacement");
+    expect(screen.getByRole("link", { name: "Download prepared ZIP" }).getAttribute("href")).toBe("blob:replacement");
     expect(screen.getByRole("status").textContent).toBe("Archive ready. Assets included: 0 / 0.");
     expect(screen.queryByRole("alert")).toBeNull();
     view.unmount();
@@ -124,8 +124,8 @@ describe("complete export download feedback", () => {
     render(<ExportPage />);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Download full ZIP" })); });
     expect(screen.getByRole("alert").textContent).toContain("Use the download link below");
-    expect(screen.getByRole("link").getAttribute("href")).toBe("blob:prepared-archive");
-    expect(document.querySelectorAll("a")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Download prepared ZIP" }).getAttribute("href")).toBe("blob:prepared-archive");
+    expect(screen.getAllByRole("link", { name: "Download prepared ZIP" })).toHaveLength(1);
     expect(revokeUrl).not.toHaveBeenCalled();
   });
 });

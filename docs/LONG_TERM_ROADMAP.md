@@ -3,7 +3,7 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-09-27 — deployed V15 recovery and catch-up inspection
+Last reviewed: 2026-09-28 — bounded R2 pilot operator client after V15 inspection
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -43,7 +43,7 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP1 current-generation inspection and catch-up | #221/#222 are merged; `0008`/V15 are deployed and non-empty isolated recovery passed. The V15 snapshot inspector explains pending generations and unresolved evidence. Actual conversion still requires fresh live baselines and owned, verified copying. |
+| Now | FP1 current-generation inspection and catch-up | #227's V15 snapshot inspector is deployed; non-empty isolated recovery passed. A bounded maintenance client exposes explicit single-item R2 copying and durable receipt recovery. Actual pilot/catch-up evidence requires fresh live baselines, owned verified copying and readback; seven historical references still lack purpose/namespace evidence. |
 | Next | Separate FP1 authority activation | After complete catch-up and invariant qualification, a separate atomic cutover must fence old Workers and switch reads, writes, retention and lifecycle authority together. Recovery starts paused and never automatically replays provider work; compatibility retirement remains later. |
 | Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and basic authenticated Settings; external configuration and S3; persisted bounded jobs and verified migration. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |

@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-27 after #222–#226 deployment and actual V15 ZIP recovery;
-integration head is `5a86ab27`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-28 for the bounded R2 pilot operator client after #227;
+accepted integration head is `f0c6367`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -38,6 +38,10 @@ transactional occurrence capture, owned conversion/reconciliation, legacy-visibl
 holds, exact catch-up checkpoints and V15 recovery. It requires explicit overlap
 enablement and retains legacy business authority. The separate V15 closed-snapshot
 inspector explains current-generation blockers without executing conversion.
+The bounded maintenance client exposes explicit single-item R2 conversion and
+saved-operation recovery through the deployed protocol. Its live pilot acceptance
+is recorded separately; seven historical references still lack intent/namespace
+evidence and must not be inferred into eligibility.
 Complete catch-up and final cutover remain separate from archive acceptance.
 FP1 is still in progress and no deployment is authorized by this document.
 
@@ -914,6 +918,9 @@ Project-owned Markdown or attachment content only through explicit user action.
    runtime authority remains in force. An epoch-fenced checkpoint reports catch-up;
    recovery preserves evidence and starts paused. The actual V15 ZIP/restore gap
    is closed; live replay/stale-version and provider-specific gaps remain explicit.
+   Use the bounded maintenance client for the initial synthetic single-item R2
+   pilot and pause after receipt/status readback. This capability slice does not
+   reopen general frontend refinement or advance Settings/default configuration.
 3. Only after complete catch-up and invariant qualification, propose a separately
    reviewed **atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
