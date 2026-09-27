@@ -240,11 +240,6 @@ export function buildFullExportArchiveV15(input: unknown, onProgress?: (complete
 
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const { archive } = await buildFullExportArchiveV15(manifest, onProgress);
-  const url = URL.createObjectURL(archive);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `sample-log-${manifest.exportedAt.slice(0, 10)}.zip`;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const result = await buildFullExportArchiveV15(manifest, onProgress);
+  return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
 }
