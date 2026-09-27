@@ -39,17 +39,28 @@ function testDatabase() {
   for (const file of readdirSync(directory).filter(file => file.endsWith('.sql')).sort()) {
     database.exec(readFileSync(`${directory}/${file}`, 'utf8'));
   }
+  // Match observed native D1 repeated-SQL reuse while executing every query.
+  // Keep SQLite's automatic schema recompilation; no result or timing promise.
+  const compiled = new Map<string, ReturnType<DatabaseSync["prepare"]>>();
+  function prepared(sql: string) {
+    let result = compiled.get(sql);
+    if (result) compiled.delete(sql);
+    else result = database.prepare(sql);
+    compiled.set(sql, result);
+    if (compiled.size > 256) compiled.delete(compiled.keys().next().value!);
+    return result;
+  }
   function statement(sql: string, values: unknown[] = []) {
     const execute = () => {
       queryCount++;
-      const prepared = database.prepare(sql);
-      if (/^\s*SELECT\b/i.test(sql)) return { results:prepared.all(...values as []), success:true, meta:{changes:0} };
-      return { results:[], success:true, meta:{changes:Number(prepared.run(...values as []).changes)} };
+      const query = prepared(sql);
+      if (/^\s*SELECT\b/i.test(sql)) return { results:query.all(...values as []), success:true, meta:{changes:0} };
+      return { results:[], success:true, meta:{changes:Number(query.run(...values as []).changes)} };
     };
     return {
       bind:(...bindings: unknown[]) => statement(sql, bindings),
       execute, run:async () => execute(), all:async () => execute(),
-      first:async () => { queryCount++; return database.prepare(sql).get(...values as []) ?? null; },
+      first:async () => { queryCount++; return prepared(sql).get(...values as []) ?? null; },
     };
   }
   const db = {
@@ -85,9 +96,9 @@ describe("backend reliability scale characterization", () => {
     const f = await fixture();
     try {
       const targets = Array.from({ length: count }, (_, index) => ({ type: "sample" as const, id: `sample-${String(index).padStart(4, "0")}` }));
+      const insertSample = f.database.prepare("INSERT INTO samples (id, code, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
       for (const [index, target] of targets.entries()) {
-        f.database.prepare("INSERT INTO samples (id, code, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-          .run(target.id, `S-${index}`, `Synthetic sample ${index}`, NOW, NOW);
+        insertSample.run(target.id, `S-${index}`, `Synthetic sample ${index}`, NOW, NOW);
         await createReferenceProjectItem(f.db, PROJECT_ID, {
           itemId: `item-${index}`, placementId: `placement-${index}`, target, geometry: geometry(index),
           expectedProjectRevision: index + 1, operationId: `create-${index}`,

@@ -8,7 +8,7 @@ const NOW = "2026-09-25T12:00:00.000Z";
 const HASH = "a".repeat(64);
 const databases: DatabaseSync[] = [];
 function fixture() {
-  const sql = referenceTestDatabase(); databases.push(sql);
+  const sql = referenceTestDatabase({ throughMigration: "0007_fp1_file_authority_transition.sql" }); databases.push(sql);
   const local = new SqliteD1Database(sql);
   const sessions: string[] = [];
   const db: LiveConsumerDatabase = { prepare: (q) => local.prepare(q), withSession: (constraint) => { sessions.push(constraint); return local; } };

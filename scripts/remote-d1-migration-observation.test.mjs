@@ -206,7 +206,7 @@ test("replacement of the reserved output does not report success or remove the r
 
 for (const fixture of [
   { name: "complete 37-file S0 schema", directory: "../migrations-history/s0/", count: 37 },
-  { name: "current S2 plus FP1 chain", directory: "../migrations/", filenames: ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql"] },
+  { name: "current S2 plus FP1 chain", directory: "../migrations/", filenames: ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql"] },
 ]) {
 test(`single remote SELECT has parity with actual local D1 across the ${fixture.name}`, { timeout: 60_000 }, async (t) => {
   const miniflare = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response("offline D1 parity") } }', compatibilityDate: "2026-07-20", d1Databases: ["CURRENT"], log: new Log(LogLevel.ERROR) });

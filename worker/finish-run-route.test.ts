@@ -164,13 +164,6 @@ describe("finish process run route", () => {
 
   it("atomically skips the confirmed steps, completes the run, and records the batch", async () => {
     const database = createDatabase();
-    database.exec(`
-      CREATE TABLE test_run_step_audit (row_id TEXT NOT NULL);
-      CREATE TRIGGER test_run_step_audit_update AFTER UPDATE ON run_steps
-      BEGIN
-        INSERT INTO test_run_step_audit (row_id) VALUES (NEW.id);
-      END;
-    `);
     const env = testEnv(database);
 
     const response = await finishRequest(env, {
@@ -180,7 +173,7 @@ describe("finish process run route", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ ok: true, skippedStepCount: 2 });
-    // Native D1 includes trigger writes in meta.changes. Only the two
+    // Native D1 includes shadow trigger writes in meta.changes. Only the two
     // returned run_steps rows count towards the exact completion fence.
     const batch = (env.DB as unknown as SqliteD1Database).lastBatch;
     expect(batch[1].meta.changes).toBeGreaterThan(2);

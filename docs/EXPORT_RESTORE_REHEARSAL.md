@@ -1,5 +1,12 @@
 # Isolated complete-export recovery rehearsal
 
+Current generation: **V15**, writer **1**, profile `fp1-shadow-conversion`.
+See [shadow runtime recovery](./FP1_SHADOW_RUNTIME.md#v15-backup-and-recovery)
+for profile-qualified File bytes, portable source-rowid evidence, canonical
+conversion history and the mandatory paused execution state after restore.
+V7–V14 validation below remains specific to those historical generations.
+
+
 The proposed website package import and privileged system restore are separate
 future product capabilities; see [data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md)
 and [compatibility plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
@@ -81,7 +88,7 @@ npm run verify:export-restore -- --archive /path/to/backup.zip --destination /pa
 The destination must not exist, including as an empty directory or symlink.
 There is no overwrite, force or remote option. The current repository's SQL
 migrations provide the schema; the archive cannot supply executable SQL.
-V8 through V14 require an explicit `--target-schema S0|S1|S2`; the recorded original
+V8 through V15 require an explicit `--target-schema S0|S1|S2`; the recorded original
 rehearsals below target S0. S2 is now the active integration schema, as recorded
 in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 Offline qualification can select an independently reviewed migration

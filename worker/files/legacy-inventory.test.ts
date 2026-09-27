@@ -59,10 +59,15 @@ function managed(sql: DatabaseSync, id: string, key = id, status = "ready") {
 function sample(sql: DatabaseSync) {
   sql.prepare(`INSERT INTO samples (id, code, title, created_at, updated_at) VALUES ('s', 'S', 'Sample', ?, ?)`).run(NOW, NOW);
 }
-function imported(sql: DatabaseSync, id: string, workbook: string, manifest: string | null = null) {
-  sql.prepare(`INSERT INTO imports
+function importWriter(sql: DatabaseSync) {
+  const statement = sql.prepare(`INSERT INTO imports
     (id, status, source_filename, source_sha256, sheet_name, template_type, workbook_asset_key, manifest_asset_key, created_at)
-    VALUES (?, 'ready', 'source.xlsx', ?, 'sheet', 'process', ?, ?, ?)`).run(id, HASH, workbook, manifest, NOW);
+    VALUES (?, 'ready', 'source.xlsx', ?, 'sheet', 'process', ?, ?, ?)`);
+  return (id: string, workbook: string, manifest: string | null = null) =>
+    statement.run(id, HASH, workbook, manifest, NOW);
+}
+function imported(sql: DatabaseSync, id: string, workbook: string, manifest: string | null = null) {
+  importWriter(sql)(id, workbook, manifest);
 }
 function comment(sql: DatabaseSync, id: string, kind: "comment_image" | "attachment", assetId: string | null, managedId: string | null, position = 0) {
   sql.prepare(`INSERT OR IGNORE INTO comment_submissions
@@ -264,7 +269,10 @@ describe("FP1 dormant legacy metadata inventory", () => {
 
   it("refuses silently truncated live consumer evidence", async () => {
     const { sql, db } = fixture();
-    for (let i = 0; i <= MAX_INVENTORY_EVIDENCE_ROWS; i++) imported(sql, `import-${i}`, "shared-source");
+    // Reuse compilation while executing every insertion and its current-schema
+    // triggers; the boundary still contains one more consumer than the limit.
+    const insertImport = importWriter(sql);
+    for (let i = 0; i <= MAX_INVENTORY_EVIDENCE_ROWS; i++) insertImport(`import-${i}`, "shared-source");
     await expect(readLegacyInventoryPage(db, { observedAt: NOW })).rejects.toThrow("bounded inventory limit");
     expect(counts(sql)).toEqual([0, 0, 0, 0]);
   });

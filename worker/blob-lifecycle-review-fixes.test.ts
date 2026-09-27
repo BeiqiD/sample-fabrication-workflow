@@ -222,20 +222,11 @@ describe("blob lifecycle review fixes", () => {
     database.close();
   });
 
-  it("reports exact retry-maintenance counts when audit triggers also write", async () => {
+  it("reports exact retry-maintenance counts when shadow triggers also write", async () => {
     const database = migratedDatabase();
     addSample(database);
     addAsset(database, "retry-count-asset", "comments/retry-count.bin", "5");
     database.exec(`
-      CREATE TABLE test_retry_audit (row_id TEXT NOT NULL);
-      CREATE TRIGGER test_retry_submission_audit AFTER UPDATE ON comment_submissions
-      BEGIN
-        INSERT INTO test_retry_audit (row_id) VALUES (NEW.id);
-      END;
-      CREATE TRIGGER test_retry_item_audit AFTER UPDATE ON comment_submission_items
-      BEGIN
-        INSERT INTO test_retry_audit (row_id) VALUES (NEW.id);
-      END;
       INSERT INTO comment_submissions
         (id, context_kind, sample_id, body, status, created_at, updated_at, retry_until)
       VALUES

@@ -12,7 +12,7 @@ import {
 
 const migrationsDirectory = new URL("../migrations/", import.meta.url);
 const migrationNames = readdirSync(migrationsDirectory)
-  .filter((name) => name.endsWith(".sql"))
+  .filter((name) => name.endsWith(".sql") && name <= "0007_fp1_file_authority_transition.sql")
   .sort();
 const schemaQuery = "SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name";
 

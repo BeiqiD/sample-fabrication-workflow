@@ -134,7 +134,7 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
       const { archive, restored } = await roundtrip(manifest, f.fetcher, scratch);
       expect(archive.warnings).toEqual([]);
       expect(restored.report).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance",
-        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }], warnings: [],
+        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {

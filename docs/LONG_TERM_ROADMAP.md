@@ -3,7 +3,7 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-09-25 — executable shadow-conversion preflight checkpoint
+Last reviewed: 2026-09-25 — shadow runtime implementation and V15 recovery
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -19,7 +19,10 @@ is preserved. Runtime File authority, R2 defaults and Settings are not considere
 delivered by the additive substrate or by this document. The executable
 [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) inspects current
 consumer evidence and qualifies concrete overlap protocol gaps without changing
-authority. The complete shadow-conversion obligation remains open.
+authority. The stacked [shadow runtime](./FP1_SHADOW_RUNTIME.md) implements
+transactional capture for all 13 slots, owned conversion and V15 recovery.
+Qualification and review remain required before deployment; it does not switch
+legacy business authority.
 
 ## Product scale and engineering stance
 
@@ -39,8 +42,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP1 preflight and protocol qualification | FP1k is merged in #220 with `0007` and schema-14 recovery in immutable `legacy` mode. Executable read-only preflight qualifies the occurrence-mutation, legacy-hold, acceptance/replay and successor-archive boundaries before overlap. It changes no runtime authority or provider state. |
-| Next | FP1 complete shadow/catch-up, then separate activation | Deliver all 13 consumer slots, every writer/replay/recovery path, occurrence history, legacy-visible holds, verified copying, conversion ledger and V15 recovery together. A later atomic cutover must prove catch-up and fence old Workers before switching reads, writes, retention and lifecycle authority. Recovery never automatically replays provider work; compatibility retirement remains later. |
+| Now | FP1 shadow runtime qualification | Draft #221 preserves read-only V14 preflight. Its successor adds `0008`, all-13-slot transactional capture, owned conversion/reconciliation, legacy-visible holds and populated V15 recovery. Explicit overlap execution retains legacy business authority. |
+| Next | FP1 catch-up and separate activation | Review and qualify the complete shadow implementation, then catch up every current generation. A separate atomic cutover must fence old Workers and switch reads, writes, retention and lifecycle authority together. Recovery starts paused and never automatically replays provider work; compatibility retirement remains later. |
 | Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and basic authenticated Settings; external configuration and S3; persisted bounded jobs and verified migration. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |

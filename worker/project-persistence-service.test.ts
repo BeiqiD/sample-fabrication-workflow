@@ -54,20 +54,6 @@ class TriggerCountingD1Database extends SqliteD1Database {
 function fixture(seedReferences = false) {
   const database = referenceTestDatabase();
   if (seedReferences) seedReferenceGraph(database);
-  database.exec("CREATE TABLE test_project_mutation_audit (source_table TEXT NOT NULL)");
-  // Test-local audit writes exercise D1's trigger-inclusive counts on the
-  // current production schema, without depending on a shadow migration.
-  for (const table of ["projects", "project_contents", "project_content_attachments",
-    "reference_targets", "project_items", "project_map_placements"]) {
-    for (const operation of ["INSERT", "UPDATE"]) {
-      database.exec(`
-        CREATE TRIGGER test_${table}_${operation.toLowerCase()}_audit AFTER ${operation} ON ${table}
-        BEGIN
-          INSERT INTO test_project_mutation_audit (source_table) VALUES ('${table}');
-        END;
-      `);
-    }
-  }
   const adapter = new TriggerCountingD1Database(database);
   return {
     database,

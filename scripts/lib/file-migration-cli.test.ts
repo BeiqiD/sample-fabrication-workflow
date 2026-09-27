@@ -162,7 +162,7 @@ describe("offline File migration planning boundary", () => {
     temporaryDirectories.push(directory);
     const inputPath = join(directory, "snapshot.json");
     const outputPath = join(directory, "plan.json");
-    const database = referenceTestDatabase();
+    const database = referenceTestDatabase({ throughMigration: "0007_fp1_file_authority_transition.sql" });
     try {
       const snapshot = await snapshotFullExportV14(
         new SqliteD1Database(database) as unknown as D1Database,

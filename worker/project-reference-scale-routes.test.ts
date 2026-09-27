@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProjectSnapshot } from "../shared/project-api";
 import { REFERENCE_TARGET_TYPES, type ReferenceTarget } from "../shared/reference-types";
 import worker from "./index";
@@ -70,13 +70,28 @@ function seedSamples(database: ReturnType<typeof referenceTestDatabase>, count: 
 }
 
 describe("Project snapshots beyond one Reference resolver batch", () => {
-  it.each([200, 201, 500])("reads %i distinct references through the Worker without losing items", async (count) => {
-    const f = await fixture();
-    try {
-      const targets = seedSamples(f.database, count);
-      const itemIds: string[] = [];
+  describe.each([200, 201, 500])("%i distinct references", (count) => {
+    let f: Awaited<ReturnType<typeof fixture>>;
+    let targets: ReferenceTarget[];
+    let itemIds: string[];
+
+    // Keep the real mutation path and current-schema triggers in setup. The
+    // default test timeout then bounds the snapshot under test, independently
+    // of provisioning hundreds of references on a slower CI runner. Setup is
+    // still bounded by Vitest's unchanged default hook timeout.
+    beforeEach(async () => {
+      f = await fixture();
+      targets = seedSamples(f.database, count);
+      itemIds = [];
       for (const target of targets) itemIds.push(await f.append(target));
       f.adapter.resetQueryCount();
+    });
+
+    afterEach(() => {
+      f?.database.close();
+    });
+
+    it("reads through the Worker without losing items", async () => {
       const snapshot = await f.snapshot();
       expect(snapshot.items.map((item) => item.id)).toEqual(itemIds);
       expect(snapshot.placements).toHaveLength(count);
@@ -86,9 +101,7 @@ describe("Project snapshots beyond one Reference resolver batch", () => {
         .toEqual(targets.map((_, index) => `Scale sample ${index + 1}`));
       // Source queries scale with bounded batches, not individual occurrences.
       expect(f.adapter.queryCount).toBeLessThanOrEqual(7 + 2 * Math.ceil(count / 200));
-    } finally {
-      f.database.close();
-    }
+    });
   });
 
   it("preserves distinct mixed-type resolutions and repeated Project occurrences across batches", async () => {

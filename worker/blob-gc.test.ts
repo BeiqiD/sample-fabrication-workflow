@@ -11,6 +11,20 @@ import { ByteDeletionError } from "./files/byte-deleter";
 import type { BlobLocator } from "./blob-lifecycle/types";
 import type { Env } from "./types";
 
+// Match observed native D1 repeated-SQL reuse, never cached query results.
+// SQLite still recompiles automatically after schema or trigger changes.
+const compiledByDatabase = new WeakMap<DatabaseSync, Map<string, StatementSync>>();
+function compiledStatement(database: DatabaseSync, query: string) {
+  let compiled = compiledByDatabase.get(database);
+  if (!compiled) { compiled = new Map(); compiledByDatabase.set(database, compiled); }
+  let statement = compiled.get(query);
+  if (statement) compiled.delete(query);
+  else statement = database.prepare(query);
+  compiled.set(query, statement);
+  if (compiled.size > 256) compiled.delete(compiled.keys().next().value!);
+  return statement;
+}
+
 class SqliteD1Statement {
   constructor(
     private readonly database: DatabaseSync,
@@ -25,7 +39,7 @@ class SqliteD1Statement {
 
   private statement(): StatementSync {
     if (this.bindings.length > 100) throw new Error("D1 binding limit exceeded");
-    return this.database.prepare(this.query);
+    return compiledStatement(this.database, this.query);
   }
 
   async first<T>() {

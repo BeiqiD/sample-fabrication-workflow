@@ -422,7 +422,7 @@ describe("source lifecycle routes", () => {
       })));
       const env = managedStorageEnv(database);
 
-      const manifestResponse = await request(env, "/exports/all?archiveSchema=14&archiveWriter=1");
+      const manifestResponse = await request(env, "/exports/all?archiveSchema=15&archiveWriter=1");
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
@@ -892,18 +892,13 @@ describe("source lifecycle routes", () => {
     database.close();
   });
 
-  it("counts legacy comment rows exactly despite audit trigger writes", async () => {
+  it("counts legacy comment rows exactly despite shadow trigger writes", async () => {
     const database = createDatabase();
     addSample(database);
     addSample(database, "sample-2", "S-2");
     addRun(database);
     addRun(database, "run-2", "sample-2", "step-2");
     database.exec(`
-      CREATE TABLE test_comment_audit (row_id TEXT NOT NULL);
-      CREATE TRIGGER test_comment_audit_update AFTER UPDATE ON run_step_comments
-      BEGIN
-        INSERT INTO test_comment_audit (row_id) VALUES (NEW.id);
-      END;
       INSERT INTO assets
         (id, r2_key, original_name, mime_type, byte_size, status, sha256, created_at)
       VALUES ('count-asset', 'comments/count.png', 'count.png', 'image/png', 4,

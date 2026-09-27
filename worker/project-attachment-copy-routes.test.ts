@@ -206,13 +206,6 @@ function expectNoDestinationRows(
 describe("Project attachment copy route", () => {
   it("authorizes and copies with trigger-inclusive D1 counts, then replays exactly", async () => {
     const { app, env, database, adapter } = fixture();
-    database.exec(`
-      CREATE TABLE test_attachment_copy_audit (row_id TEXT NOT NULL);
-      CREATE TRIGGER test_attachment_copy_audit_insert AFTER INSERT ON project_content_attachments
-      BEGIN
-        INSERT INTO test_attachment_copy_audit (row_id) VALUES (NEW.project_content_id);
-      END;
-    `);
     await createProject(app, env, "project-copy");
     seedAsset(
       database,

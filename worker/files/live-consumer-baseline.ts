@@ -31,7 +31,8 @@ export interface LiveConsumerKey {
   fileSlot: string;
 }
 type Scalar = string | number | null;
-type Metadata = Record<string, Scalar>;
+export type ConsumerMetadata = Record<string, Scalar>;
+type Metadata = ConsumerMetadata;
 export type LiveConsumerStatus = "pending_no_locator" | "unavailable" | "ambiguous" | "ready_to_verify";
 export interface LiveConsumerRecord {
   key: LiveConsumerKey;
@@ -146,7 +147,10 @@ function hydrate(part: "source" | "related") {
 // Every dependency is read by this ONE SELECT. LIMIT+1 detects overflow before
 // classification; SQL also withholds payloads larger than the whole page budget.
 // No cursor encodes a concatenated or split relational identity.
-function query(evidenceLimit: number) {
+/** Shared SQL construction only. This does not qualify a schema or authority
+ * generation. Extra columns are internal, static SQL supplied by the V15 reader;
+ * no request value may be interpolated. The public V14 reader remains fixed. */
+export function liveConsumerMetadataSql(evidenceLimit: number, selection: "after" | "exact" = "after", extraColumns = "") {
   const array = (select: string) => `(SELECT json_group_array(json(value)) FROM (${select} LIMIT ${evidenceLimit + 1}))`;
   const same = (alias: string) => `((${alias}.store_kind='r2' AND ${alias}.provider='r2' AND ${alias}.object_key=p.r2_key)
     OR (${alias}.store_kind='managed' AND ${alias}.provider=p.managed_provider AND ${alias}.object_key=p.managed_key))`;
@@ -182,7 +186,7 @@ function query(evidenceLimit: number) {
   entries AS (SELECT * FROM entries_relational UNION ALL SELECT * FROM entries_content UNION ALL SELECT * FROM entries_direct), located AS (
     SELECT e.*,COALESCE(e.direct_key,a.r2_key) r2_key,m.provider managed_provider,m.object_key managed_key,a.import_id
     FROM entries e LEFT JOIN assets a ON a.id=e.asset_id OR (e.asset_id IS NULL AND a.r2_key=e.direct_key) LEFT JOIN managed_storage_objects m ON m.id=e.managed_id
-  ), page AS (SELECT * FROM located WHERE ?1=0 OR (consumer_kind,consumer_id,consumer_sub_id,file_slot)>(?2,?3,?4,?5)
+  ), page AS (SELECT * FROM located WHERE ?1=0 OR (consumer_kind,consumer_id,consumer_sub_id,file_slot)${selection === "exact" ? "=" : ">"}(?2,?3,?4,?5)
     ORDER BY consumer_kind COLLATE BINARY,consumer_id COLLATE BINARY,consumer_sub_id COLLATE BINARY,file_slot COLLATE BINARY LIMIT ?6),
   evidence AS (SELECT p.*,${registries} registries,${receipts} receipts,${mappings} mappings,${lifecycle} lifecycle,${retention} retention,${peers} peers FROM page p LIMIT ?7),
   payloads AS (SELECT json_object('key',json_object('consumerKind',consumer_kind,'consumerId',consumer_id,'consumerSubId',consumer_sub_id,'fileSlot',file_slot),
@@ -193,6 +197,7 @@ function query(evidenceLimit: number) {
   schema_rows AS (SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name LIMIT 1001),
   schema_payload AS (SELECT json_group_array(json_object('type',type,'name',name,'tableName',tbl_name,'sql',sql)) payload,count(*) count FROM schema_rows)
   SELECT (SELECT json_group_array(json_object(${fields("c", "singleton mode revision updated_at activated_at")})) FROM file_authority_control c) authority_json,
+    ${extraColumns}
     (SELECT CASE WHEN count<=1000 AND length(CAST(payload AS BLOB))<=2097152 THEN payload END FROM schema_payload) schema_json,
     (${FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL}) invalid_rowid_claims,
     (SELECT count FROM source_scope) source_row_count,
@@ -309,7 +314,7 @@ export async function readFileConsumerBaseline(database: LiveConsumerDatabase, i
   if (input.after !== undefined && (!after || typeof after !== "object" || Array.isArray(after) || Object.keys(after).sort().join(",") !== "consumerId,consumerKind,consumerSubId,fileSlot"
     || Object.values(after).some((value) => typeof value !== "string") || encoder.encode(canonical(after)).length > maxBytes)) throw new Error("Invalid live consumer cursor");
   const db = database.withSession ? database.withSession("first-primary") : database;
-  const result = await db.prepare(query(evidenceLimit)).bind(after ? 1 : 0, after?.consumerKind ?? "", after?.consumerId ?? "", after?.consumerSubId ?? "", after?.fileSlot ?? "", limit + 1, limit, maxBytes).all<{
+  const result = await db.prepare(liveConsumerMetadataSql(evidenceLimit)).bind(after ? 1 : 0, after?.consumerKind ?? "", after?.consumerId ?? "", after?.consumerSubId ?? "", after?.fileSlot ?? "", limit + 1, limit, maxBytes).all<{
     authority_json: string; schema_json: string | null; invalid_rowid_claims: number; source_row_count: number; source_key_bytes: number; page_count: number; record_count: number; payload_bytes: number; records_json: string | null;
   }>();
   if (!result.success || !Array.isArray(result.results) || result.results.length !== 1) throw new Error("Live consumer snapshot result is incomplete");
@@ -327,8 +332,23 @@ export async function readFileConsumerBaseline(database: LiveConsumerDatabase, i
     || encoder.encode(envelope.authority_json).length + encoder.encode(envelope.records_json).length > maxBytes) throw new Error("Live consumer snapshot byte bound exceeded");
   const authority = JSON.parse(envelope.authority_json) as Metadata[];
   if (!Array.isArray(authority) || authority.length !== 1 || authority[0].singleton !== 1 || authority[0].mode !== "legacy" || authority[0].revision !== 1 || authority[0].activated_at !== null) throw new Error("Unsupported or missing live File authority snapshot");
-  const raw = JSON.parse(envelope.records_json) as Array<Omit<LiveConsumerRecord, "locator" | "status" | "reasons" | "baselineSha256"> & { r2Key: string | null; managedProvider: string | null; managedKey: string | null }>;
-  if (!Array.isArray(raw) || raw.length !== envelope.record_count) throw new Error("Live consumer snapshot record mismatch");
+  const records = await projectLiveConsumerMetadata(envelope.records_json, authority[0], FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256, evidenceLimit);
+  if (records.length !== envelope.record_count) throw new Error("Live consumer snapshot record mismatch");
+  const nextCursor = envelope.page_count > limit ? records[records.length - 1].key : null;
+  const page = { version: 1 as const, kind: "file-consumer-live-baseline" as const, executable: false as const, bytesVerified: false as const,
+    authority: authority[0], schemaSha256: FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256, records, nextCursor };
+  const baselineSha256 = await sha256Hex(canonical({ ...page, boundary: { after, limit, maxEvidenceRows: evidenceLimit } }));
+  const output = { ...page, baselineSha256 };
+  if (encoder.encode(canonical(output)).length > maxBytes) throw new Error("Live consumer baseline output byte bound exceeded");
+  return output;
+}
+
+/** Common metadata projection. Callers must first independently qualify the
+ * exact installed schema, authority control and atomic envelope bounds. */
+export async function projectLiveConsumerMetadata(recordsJson: string, authority: ConsumerMetadata, schemaSha256: string, evidenceLimit: number): Promise<LiveConsumerRecord[]> {
+  if (new TextEncoder().encode(recordsJson).length > MAX_LIVE_CONSUMER_PAGE_BYTES) throw new Error("Live consumer snapshot byte bound exceeded");
+  const raw = JSON.parse(recordsJson) as Array<Omit<LiveConsumerRecord, "locator" | "status" | "reasons" | "baselineSha256"> & { r2Key: string | null; managedProvider: string | null; managedKey: string | null }>;
+  if (!Array.isArray(raw) || raw.length > MAX_LIVE_CONSUMER_PAGE_SIZE) throw new Error("Live consumer snapshot record mismatch");
   const records: LiveConsumerRecord[] = [];
   const seen = new Set<string>();
   for (const value of raw) {
@@ -353,13 +373,7 @@ export async function readFileConsumerBaseline(database: LiveConsumerDatabase, i
     const classification = classify(record);
     if (r2Key !== null && managedKey !== null) { classification.reasons.push("conflicting_registry_bindings"); if (classification.status !== "unavailable") classification.status = "ambiguous"; }
     const detached = JSON.parse(canonical({ ...record, ...classification })) as Omit<LiveConsumerRecord, "baselineSha256">;
-    records.push({ ...detached, baselineSha256: await sha256Hex(canonical({ version: 1, schemaSha256: FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256, authority: authority[0], record: detached })) });
+    records.push({ ...detached, baselineSha256: await sha256Hex(canonical({ version: 1, schemaSha256, authority, record: detached })) });
   }
-  const nextCursor = envelope.page_count > limit ? records[records.length - 1].key : null;
-  const page = { version: 1 as const, kind: "file-consumer-live-baseline" as const, executable: false as const, bytesVerified: false as const,
-    authority: authority[0], schemaSha256: FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256, records, nextCursor };
-  const baselineSha256 = await sha256Hex(canonical({ ...page, boundary: { after, limit, maxEvidenceRows: evidenceLimit } }));
-  const output = { ...page, baselineSha256 };
-  if (encoder.encode(canonical(output)).length > maxBytes) throw new Error("Live consumer baseline output byte bound exceeded");
-  return output;
+  return records;
 }

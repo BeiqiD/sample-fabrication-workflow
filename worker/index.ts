@@ -13,6 +13,7 @@ import { routes as legacyEvidenceRoutes } from "./evidence/legacy-routes";
 import { routes as fabubloxRoutes } from "./imports/fabublox-routes";
 import { routes as attachmentRoutes } from "./blob-lifecycle/attachment-routes";
 import { authenticateApiRequest, handleError, routes as platformRoutes } from "./platform/http";
+import { shadowRoutes } from "./files/shadow-routes";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
 
@@ -23,6 +24,7 @@ app.route("/", platformRoutes);
 app.route("/", commentSubmissionRoutes);
 app.route("/", projectFoundationRoutes);
 app.route("/", exportSnapshotRoutes);
+app.route("/", shadowRoutes);
 app.route("/", projectRoutes);
 app.route("/", referenceRoutes);
 app.route("/", sampleRoutes);
