@@ -23,6 +23,12 @@ export async function snapshotFullExportV14(database: D1Database): Promise<FullE
   if (results.length !== names.length + 4 || results.some((result) => !result.success || !Array.isArray(result.results))) {
     throw new Error("Complete export snapshot was incomplete");
   }
+  const schemaObjects = results[names.length].results as unknown as ObservedExportSchema["objects"];
+  // Inspect the schema from this same atomic snapshot: 0008 can commit after
+  // route negotiation, and V14 cannot preserve its shadow tables or triggers.
+  if (schemaObjects.some((entry) => /^file_shadow/i.test(entry.name) || /^file_shadow/i.test(entry.tableName))) {
+    throw new Error("File shadow schema requires archive schema 15");
+  }
   const claimIntegrity = results[names.length + 3].results as Array<{ invalid_count: number }>;
   if (claimIntegrity.length !== 1 || claimIntegrity[0].invalid_count !== 0) {
     throw new Error("Complete export snapshot found invalid File registry rowid claims");
@@ -30,7 +36,7 @@ export async function snapshotFullExportV14(database: D1Database): Promise<FullE
   const physicalTables = Object.fromEntries(names.map((name, index) => [name, results[index].results])) as ExportTables;
   const schema: ObservedExportSchema = {
     version: 1, kind: "observed-sqlite-schema",
-    objects: results[names.length].results as unknown as ObservedExportSchema["objects"],
+    objects: schemaObjects,
     compatibilityColumns: {
       samples: results[names.length + 1].results.map((row) => String((row as { name: string }).name)),
       run_step_comments: results[names.length + 2].results.map((row) => String((row as { name: string }).name)),

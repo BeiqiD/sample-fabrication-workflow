@@ -322,7 +322,8 @@ routes.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
          )
          AND EXISTS (
            SELECT 1 FROM samples WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL
-         )`,
+         )
+       RETURNING 1 AS affected`,
     ).bind(now, userEmail, mutationId, now, runId, runId, sampleId, sampleId, mutationId),
     c.env.DB.prepare(
       `UPDATE runs SET status = 'complete', completed_at = COALESCE(completed_at, ?)
@@ -366,7 +367,7 @@ routes.post("/samples/:sampleId/runs/:runId/finish", async (c) => {
     ),
   ]);
   if (!results[0].meta.changes
-    || Number(results[1].meta.changes ?? 0) !== unfinishedStepIds.length
+    || results[1].results.length !== unfinishedStepIds.length
     || !results[2].meta.changes
     || !results[3].meta.changes) {
     throw new HTTPException(409, { message: "The process run changed while it was being finished. Reload and try again." });

@@ -106,6 +106,20 @@ function resultChanges(result: unknown): number {
   return Number((result as { meta?: { changes?: number } } | undefined)?.meta?.changes ?? 0);
 }
 
+function topLevelChanges(result: unknown): number {
+  return Number(resultRows<{ affected_rows: number }>(result)[0]?.affected_rows ?? 0);
+}
+
+async function batchMutationChanges(db: D1Database, statements: D1PreparedStatement[]) {
+  // D1 meta.changes includes trigger writes. Read SQLite's top-level count
+  // immediately after each mutation, within the same atomic batch.
+  const results = await db.batch(statements.flatMap((statement) => [
+    statement,
+    db.prepare("SELECT changes() AS affected_rows"),
+  ]));
+  return statements.map((_, index) => topLevelChanges(results[index * 2 + 1]));
+}
+
 function conflict(message: string): never {
   throw new ProjectServiceError("conflict", message);
 }
@@ -429,11 +443,12 @@ export async function createProject(
         created_by, updated_by, created_at, updated_at
       ) VALUES (?, ?, 1, 1, ?, ?, ?, ?, ?)
     `).bind(input.id, input.title, input.operationId, actor, actor, now, now),
+    db.prepare("SELECT changes() AS affected_rows"),
     db.prepare("SELECT * FROM projects WHERE id = ? LIMIT 1").bind(input.id),
   ]);
-  const row = resultRows<ProjectRow>(results[1])[0];
+  const row = resultRows<ProjectRow>(results[2])[0];
   if (!row) throw new Error("Project creation did not return a row");
-  const inserted = resultChanges(results[0]) === 1;
+  const inserted = topLevelChanges(results[1]) === 1;
   if (!inserted && (
     row.title !== input.title
     || row.last_mutation_id !== input.operationId
@@ -741,8 +756,8 @@ export async function createMarkdownProjectItem(
   ];
 
   try {
-    const results = await db.batch(statements);
-    if (results.some((result) => resultChanges(result) !== 1)) {
+    const changes = await batchMutationChanges(db, statements);
+    if (changes.some((count) => count !== 1)) {
       return returnCreateReplayOrConflict(
         db,
         projectId,
@@ -849,10 +864,10 @@ export async function createReferenceProjectItem(
   ];
 
   try {
-    const results = await db.batch(statements);
-    const reservation = resultChanges(results[0]);
-    const item = resultChanges(results[3]);
-    const placement = resultChanges(results[4]);
+    const changes = await batchMutationChanges(db, statements);
+    const reservation = changes[0];
+    const item = changes[3];
+    const placement = changes[4];
     if (reservation !== 1 || item !== 1 || placement !== 1) {
       return returnCreateReplayOrConflict(
         db,
@@ -1073,21 +1088,21 @@ export async function createAttachmentProjectItem(
   ];
 
   try {
-    const results = await db.batch(statements);
+    const changes = await batchMutationChanges(db, statements);
     if (
-    resultChanges(results[0]) !== 1
-    || resultChanges(results[1]) !== 1
-    || resultChanges(results[2]) < 1
-    || resultChanges(results[3]) !== 1
-    || resultChanges(results[4]) !== 1
-  ) {
-    return returnCreateReplayOrConflict(
-      db,
-      projectId,
-      input.itemId,
-      (bundle) => bundleMatchesAttachmentCreate(bundle, input, presentation),
-    );
-  }
+      changes[0] !== 1
+      || changes[1] !== 1
+      || changes[2] < 1
+      || changes[3] !== 1
+      || changes[4] !== 1
+    ) {
+      return returnCreateReplayOrConflict(
+        db,
+        projectId,
+        input.itemId,
+        (bundle) => bundleMatchesAttachmentCreate(bundle, input, presentation),
+      );
+    }
   } catch (error) {
     const replay = await readItemBundle(db, projectId, input.itemId);
     if (replay && bundleMatchesAttachmentCreate(replay, input, presentation)) {
