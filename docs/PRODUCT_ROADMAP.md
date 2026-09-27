@@ -2,11 +2,12 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-25 for the shadow runtime implementation stacked on Draft
-PR #221 (`d1698b4`); merged integration base remains PR #220 (`4248deb5`). PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-27 after #222–#226 deployment and actual V15 ZIP recovery;
+integration head is `5a86ab27`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
-a zero-blob export/isolated-restore exercise are recorded, but do not establish
-non-empty file round-trip or full interactive acceptance. SWITCHdrive originals
+a zero-blob export/isolated-restore exercise remain historical evidence. Later
+R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
+full interactive acceptance remains broader than these cases. SWITCHdrive originals
 remain blocked by authentication; #206 adds diagnostics, not working credentials.
 The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) remains the
 source of operational evidence and temporary control state. Backend ownership and
@@ -32,10 +33,12 @@ migration `0007` and schema-14 recovery while keeping authority mode immutably
 `legacy`; runtime File authority, R2 defaults and Settings remain open. The
 [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) adds executable
 read-only inspection and qualification of four observed overlap protocol gaps.
-The successor [runtime implementation](./FP1_SHADOW_RUNTIME.md) adds all-13-slot
+The merged and deployed [runtime implementation](./FP1_SHADOW_RUNTIME.md) adds all-13-slot
 transactional occurrence capture, owned conversion/reconciliation, legacy-visible
 holds, exact catch-up checkpoints and V15 recovery. It requires explicit overlap
-enablement and retains legacy business authority. Final cutover remains separate.
+enablement and retains legacy business authority. The separate V15 closed-snapshot
+inspector explains current-generation blockers without executing conversion.
+Complete catch-up and final cutover remain separate from archive acceptance.
 FP1 is still in progress and no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -53,7 +56,7 @@ The behavior-preserving architecture cleanup, schema-baseline replacement, and
 release handoff are defined in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 
-## Backend-first and file/data-portability order — 2026-09-25
+## Backend-first and file/data-portability order — 2026-09-27
 
 The user has paused new frontend refinement and requested a documentation PR for
 systematic file storage, Settings, migration, readable/portable export and website
@@ -73,9 +76,9 @@ The canonical new boundaries and stage gates are:
 | Phase order | Work | Current state and boundary |
 | --- | --- | --- |
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
-| 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved; final interactive/non-empty file checks and 6A6 remain open. Zero-blob and schema-only probes cannot close them. No new reset, cleanup, credential change or deployment is authorized here. |
+| 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | FP1k is merged in #220 with `0007`/schema-14 in immutable `legacy` mode. Draft #221 provides the read-only preflight. The stacked runtime implementation adds complete 13-slot occurrence capture, owned shadow conversion and V15 recovery; qualification and review precede separate atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | #221/#222 are merged; `0008`/V15 are deployed through #226. The V15 inspector explains current-generation conversion blockers while preserving frozen V14 inspection. Catch-up and invariant qualification precede separate atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -899,23 +902,24 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Preserve merged **FP1k** (`#220`, `4248deb5`) and Draft #221's verified
+1. Preserve merged **FP1k** (`#220`, `4248deb5`) and merged #221's verified
    [read-only preflight](./FP1_SHADOW_CONVERSION_PREFLIGHT.md). Its frozen V14
    diagnostic contract remains separate from shadow operations.
-2. Qualify and review the stacked [shadow runtime](./FP1_SHADOW_RUNTIME.md): all
-   13 slots captured in every old/new business writer's transaction, immutable
-   generation/closure history, exact-profile legacy holds, single-owned verified
-   copying, reconciliation, explicit unresolved outcomes and populated V15
-   recovery. Conversion runs after durable pending capture; source changes create
-   successors rather than reusing an old decision. Current business File columns
-   stay empty and legacy runtime authority remains in force. An epoch-fenced
-   checkpoint reports catch-up; recovery preserves evidence and starts paused.
+2. Inspect and catch up the current generations using the deployed
+   [shadow runtime](./FP1_SHADOW_RUNTIME.md). The V15 closed-snapshot command
+   explains missing intent/namespace evidence and unfinished operations; its
+   metadata report never authorizes conversion. Read fresh live baselines before
+   owned full-byte verification/copying. Source changes create successors rather
+   than reusing old decisions. Current business File columns stay empty and legacy
+   runtime authority remains in force. An epoch-fenced checkpoint reports catch-up;
+   recovery preserves evidence and starts paused. The actual V15 ZIP/restore gap
+   is closed; live replay/stale-version and provider-specific gaps remain explicit.
 3. Only after complete catch-up and invariant qualification, propose a separately
    reviewed **atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
    recovery together. Compatibility retirement remains a later explicit step.
 4. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
-   non-empty/interactive acceptance. Keep #199/#200 inactive. No repeat reset or
+   interactive/provider-specific acceptance. Keep #199/#200 inactive. No repeat reset or
    unreferenced-file cleanup follows from this plan. The activation checkpoint
    continues to own operator follow-up and temporary control restoration.
 5. Finish FP1 with explicit Cloudflare R2 defaults for both roles and basic

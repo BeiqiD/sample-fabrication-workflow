@@ -1,10 +1,11 @@
 # FP1 shadow conversion runtime
 
-Implementation base: Draft PR #221, `d1698b4ec12e612cfd31b29280c8e60f4b6104d4`.
+Implementation base: PR #221, `d1698b4ec12e612cfd31b29280c8e60f4b6104d4`.
 This slice adds migration `0008_fp1_shadow_runtime.sql`, explicit shadow
 conversion operations and complete archive schema **15**, writer **1**, profile
-`fp1-shadow-conversion`. It is a reviewable implementation, not evidence of a
-remote migration, production conversion or completed FP1 authority activation.
+`fp1-shadow-conversion`. PR #222 is merged and deployed; the latest deployment
+and actual archive acceptance are recorded below. Conversion and FP1 authority
+activation remain separate from deployment and recovery acceptance.
 
 ## Business writes and occurrence identity
 
@@ -192,6 +193,89 @@ The accompanying suites cover host SQLite and native workerd/D1/R2, all 13 legac
 slots, replacement and ABA, exact-profile GC races, owned copying, lost-response
 reconciliation, strict HTTP boundaries and populated archive/restore. Executed
 results and the exact commit are recorded in the PR after the final gate.
-Live SWITCHdrive authentication and the disposable Project upload/cleanup remain
-as recorded in the [FP1k acceptance appendix](./FP1_FILE_AUTHORITY_TRANSITION.md).
-Those operational gaps are not converted into successful production acceptance.
+The [FP1k acceptance appendix](./FP1_FILE_AUTHORITY_TRANSITION.md) retains its
+historical observations. The newer acceptance below closes its R2 upload and
+non-empty recovery gaps; live SWITCHdrive authentication and disposable Project
+cleanup remain open.
+
+## Deployment and archive acceptance — 2026-09-27
+
+The trigger-compatible bridge #223 deployed before #222 applied `0008` and
+deployed V15. Follow-ups #224–#226 preserve the migration and archive contract;
+#225 adds actual packaged-asset feedback and a reusable ZIP download link, and
+#226 reduces qualification overhead after a confirmed Cloudflare build timeout.
+Integration commit `5a86ab27d2d049057c1f6cb241a661f36f64de57` passed all 14
+status contexts and both merge Actions checks. Cloudflare Build
+`9f35ce6d-89a5-4bd1-ba3a-afd751fcab55` succeeded at
+`2026-09-27T20:31:20Z`, Worker version
+`bdfe4916-8fca-4cf8-9850-f6abd772be54`. D1 and R2 bindings were preserved.
+
+Post-migration browser checks passed Markdown creation/edit/trash/restore/reload
+and attachment upload/trash/restore/download. The operator's actual V15 ZIP,
+exported at `2026-09-27T20:48:27.593Z`, passed independent archive inspection and
+local S2 isolated restore: 9/9 packaged blobs, matching sizes and hashes, no
+warnings, matching canonical rows/schema, zero foreign-key violations and SQLite
+integrity `ok`. The 157-byte synthetic fixture matched its original upload hash.
+The archive's 78 datasets / 243 rows include 11 view snapshots / 33 rows; the
+67 canonical tables / 210 rows restore alongside three local/derived tables.
+Every restored view matches. This closes the earlier non-empty ZIP and isolated
+restore gap, not catch-up or authority activation. Full evidence is in
+[PR #226](https://github.com/BeiqiD/sample-fabrication-workflow/pull/226).
+
+Live same-operation replay and a stale archive-version request against the V15
+deployment were not independently observed in the browser session. SWITCHdrive
+authentication and disposable Project cleanup remain open. No remote conversion
+or File authority activation was enabled. Restored runtime state is deliberately
+paused and does not establish the current remote execution gate.
+
+## Read-only V15 catch-up inspection
+
+The V14 `inspect:file-consumers` command retains its original contract. Use the
+separate V15 command on a closed SQLite backup or the isolated restored database:
+
+```sh
+npm run inspect:file-shadow -- --database CLOSED_V15.sqlite --output NEW_REPORT.json
+```
+
+This command explains the current generations in one read-only SQLite transaction.
+It validates the V15 generation and source/head correspondence even for an empty
+snapshot, then reuses the runtime's exact per-consumer baseline. The report
+separates recorded decisions from currently usable resolutions; a formerly
+resolved decision whose exact publication is unavailable remains pending with
+`published_location_unusable`. Unfinished operations are counted even when their
+source generation is no longer current.
+
+The report contains typed consumer keys, generation/occurrence identity, purpose,
+baseline hashes and fixed diagnostic reason codes. It omits source bytes, raw
+metadata, object keys, provider namespaces, actor identities and free-text
+decision reasons. Consumer IDs remain operational metadata: keep the full report
+with the source snapshot and publish only aggregates in acceptance records.
+
+Input must be a regular, closed rollback-journal SQLite file without journal,
+WAL or shared-memory sidecars. The command rejects changed input, an existing
+output, and output aliases of the database or its sidecars. It opens SQLite
+read-only with extensions disabled and publishes a new report only after the
+complete inspection succeeds. Bounds fail without publishing a partial report.
+The command admits at most 1,000 present consumers and 20,000 total heads,
+8 MiB of head-key metadata and an 8 MiB final report. Existing baseline limits
+also apply: 20,000 physical source rows, 8 MiB of source-key metadata, 100 rows
+per dependency collection and 512 KiB per baseline. Per-consumer baseline reads
+repeat schema/dependency inspection; this is a bounded diagnostic for small
+snapshots, not a qualified large-database catch-up runner.
+
+`ready_to_verify` means metadata eligibility only. Every report records
+`executable: false`, `providerIO: false`, `bytesVerified: false` and
+`activationReady: false`. It does not authorize provider writes, resolve missing
+intent/namespace evidence, change a profile, resume an operation or certify an
+installation-wide activation cutoff. Before any online conversion, read a fresh
+live baseline and use the existing guarded operation/hold/reconciliation protocol.
+Complete current-generation catch-up and separate atomic lifecycle activation
+remain the next operational and implementation gates.
+
+Inspection of the isolated database restored from the accepted 2026-09-27 ZIP
+found 11 current generations: zero resolved decisions, 4 metadata-eligible
+`ready_to_verify` records and 7 ambiguous records with
+`consumer_purpose_unresolved` and `namespace_evidence_missing`. There were no
+unfinished attempts or pending operations. These are observations of that local
+snapshot, not a live D1 baseline. Existing attachment bytes and matching hashes
+do not supply the missing purpose or namespace evidence.

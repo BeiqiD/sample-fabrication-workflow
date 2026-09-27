@@ -33,7 +33,11 @@ The [shadow-conversion preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.m
 adds read-only live-database inspection and qualification before opening overlap.
 It addresses observed occurrence-mutation, legacy-hold, accepted-candidate and
 archive-generation gaps; it does not complete shadow conversion or reduce its
-scope. FP1 remains incomplete; no deployment is certified by this document.
+scope. PR #221's preflight and #222's [shadow runtime](./FP1_SHADOW_RUNTIME.md)
+are now merged; `0008` and V15 are deployed through #226 (`5a86ab27`). An actual
+9/9-blob ZIP passed isolated recovery on 2026-09-27. The separate V15 snapshot
+inspector explains pending-generation blockers while the V14 CLI stays frozen.
+Catch-up and atomic authority activation remain open; FP1 is incomplete.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).
@@ -61,7 +65,9 @@ Read these documents together:
    legacy-mode substrate and required expand/shadow/activate sequence.
 6. [Shadow-conversion preflight](./FP1_SHADOW_CONVERSION_PREFLIGHT.md): executable
    read-only inspection, complete slot inventory and remaining overlap protocols.
-7. [Long-term roadmap](./LONG_TERM_ROADMAP.md): Docker, small-group collaboration
+7. [Shadow runtime](./FP1_SHADOW_RUNTIME.md): deployed occurrence/conversion
+   protocol, V15 recovery acceptance and read-only catch-up inspection.
+8. [Long-term roadmap](./LONG_TERM_ROADMAP.md): Docker, small-group collaboration
    and optional capabilities beyond this track.
 
 Existing architecture/data-model documents describe deployed implementation.
@@ -80,8 +86,10 @@ multiple configured storage instances, application-managed secrets, universal
 file locations or native website package import.
 
 The [S2 activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) records
-the completed in-place test-database rebuild and retained file bindings. Phase
-6A6 and non-empty S2 file/browser acceptance remain open. PR #206 improves
+the completed in-place test-database rebuild and retained file bindings. Later
+R2 attachment browser round trips and non-empty V15 recovery passed as recorded
+in the shadow-runtime acceptance appendix. Phase 6A6 and broader interactive
+and provider-specific acceptance remain open. PR #206 improves
 SWITCHdrive diagnostics; it does not repair credentials. The existing full
 archive has bounded offline recovery; Sample/Project readable exports do not
 constitute a native package import contract.
@@ -131,9 +139,10 @@ placement. Inspection of the merged substrate identified four concrete protocol
 gaps, recorded in the [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md).
 An executable inspection/qualification PR precedes overlap so occurrence mutation,
 legacy-GC hold protection, historical acceptance replay and V15 recovery can be
-reviewed without relaxing guards prematurely. The next runtime PR remains the
-complete shadow writer/resolver and conversion ledger, not final cutover. It must
-cover all 13 slots on 11 tables and independently verify and copy bytes
+reviewed without relaxing guards prematurely. PR #222 delivers the complete
+shadow runtime and conversion ledger across all 13 slots on 11 tables. Current
+generation catch-up remains operational work: the V15 snapshot inspector exposes
+metadata blockers, then live conversion must independently verify and copy bytes
 when one legacy locator serves consumers with different purposes. A later atomic
 activation switches reads, writes and lifecycle authority together only after
 catch-up and old-Worker fencing.

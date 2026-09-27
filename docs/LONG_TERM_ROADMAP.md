@@ -3,7 +3,7 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-09-25 — shadow runtime implementation and V15 recovery
+Last reviewed: 2026-09-27 — deployed V15 recovery and catch-up inspection
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -19,10 +19,11 @@ is preserved. Runtime File authority, R2 defaults and Settings are not considere
 delivered by the additive substrate or by this document. The executable
 [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) inspects current
 consumer evidence and qualifies concrete overlap protocol gaps without changing
-authority. The stacked [shadow runtime](./FP1_SHADOW_RUNTIME.md) implements
-transactional capture for all 13 slots, owned conversion and V15 recovery.
-Qualification and review remain required before deployment; it does not switch
-legacy business authority.
+authority. The [shadow runtime](./FP1_SHADOW_RUNTIME.md) is merged in #222 and
+deployed through integration #226 (`5a86ab27`). Transactional capture covers all
+13 slots; actual V15 ZIP and isolated restore acceptance passed with 9/9 blobs.
+The separate V15 closed-snapshot inspector explains conversion blockers without
+provider I/O. Catch-up remains open and business authority remains `legacy`.
 
 ## Product scale and engineering stance
 
@@ -42,8 +43,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP1 shadow runtime qualification | Draft #221 preserves read-only V14 preflight. Its successor adds `0008`, all-13-slot transactional capture, owned conversion/reconciliation, legacy-visible holds and populated V15 recovery. Explicit overlap execution retains legacy business authority. |
-| Next | FP1 catch-up and separate activation | Review and qualify the complete shadow implementation, then catch up every current generation. A separate atomic cutover must fence old Workers and switch reads, writes, retention and lifecycle authority together. Recovery starts paused and never automatically replays provider work; compatibility retirement remains later. |
+| Now | FP1 current-generation inspection and catch-up | #221/#222 are merged; `0008`/V15 are deployed and non-empty isolated recovery passed. The V15 snapshot inspector explains pending generations and unresolved evidence. Actual conversion still requires fresh live baselines and owned, verified copying. |
+| Next | Separate FP1 authority activation | After complete catch-up and invariant qualification, a separate atomic cutover must fence old Workers and switch reads, writes, retention and lifecycle authority together. Recovery starts paused and never automatically replays provider work; compatibility retirement remains later. |
 | Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and basic authenticated Settings; external configuration and S3; persisted bounded jobs and verified migration. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
