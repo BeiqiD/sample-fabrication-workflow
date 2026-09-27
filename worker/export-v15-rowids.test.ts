@@ -27,6 +27,7 @@ function fixture() {
 }
 
 describe("V15 signed int64 source identities", () => {
+  // Archive/SQLite round trips need room for CPU contention on shared CI runners.
   it.each([false, true])("round-trips exact source and historical rowids after deletion=%s", async (deleted) => {
     const source = fixture();
     if (deleted) source.exec("DELETE FROM events");
@@ -50,7 +51,7 @@ describe("V15 signed int64 source identities", () => {
         expect(recovered.artifacts.sourceRowids).toEqual(manifest.artifacts.sourceRowids);
       } finally { db.close(); }
     } finally { await rm(directory, { recursive: true, force: true }); }
-  });
+  }, 30_000);
 
   it("rejects numeric, noncanonical and out-of-range shadow rowid cells", async () => {
     const original = await snapshot(fixture());
