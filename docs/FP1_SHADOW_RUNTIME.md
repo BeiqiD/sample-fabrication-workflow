@@ -315,12 +315,9 @@ under the current enabled incarnation, without a second PUT. Cancellation is onl
 offered for a recorded pre-write state and still requires the backend's proof
 that no PUT started. Only a terminal receipt can be dismissed to start new work.
 Keep the browser journal until the operation has been resolved or safely cancelled.
-An absent receipt after a rejected request remains an explicit recovery limitation:
-the current server protocol has no durable terminal no-claim receipt. For example,
-a pre-acceptance baseline conflict may leave this browser unable to start another
-pilot operation. Inspect the saved identity and server state; do not clear the
-journal or invent a new ID merely because one read returned 404. A general catch-up
-runner needs a separately qualified definitive-rejection recovery protocol.
+The initial V15 pilot retained absent receipts after rejected requests. The
+withdrawal protocol below closes that gap with a durable, server-confirmed outcome;
+a 404, conflict or lost response alone still never authorizes clearing the journal.
 
 Pause uses its own fresh runtime read and does not wait for the conversion journal
 lock, usable storage or a pending conversion response. A failed epoch fence remains
@@ -343,3 +340,60 @@ import provenance, legacy mappings or same-asset semantic evidence. They remain
 unresolved. A future explicit evidence/adjudication ledger must be separately
 reviewed and bound to the current occurrence, baseline and exact profile revision;
 fabricating old receipts or choosing the only current profile is not a repair.
+
+
+## Accepted single-item pilot and next recovery boundary
+
+PR #228 merged as `9ca6b581c126cbbfe53457c4f729ae5ce0769089` and deployed as
+Worker `e625197b-ae1f-462d-93da-9ce474dc6451`. The existing 157-byte synthetic
+Project attachment completed exactly one conversion: receipt `resolved`, attempt
+`published`. Explicit receipt inspection and reload passed; the original Project
+remained saved and its ordinary attachment download retained the expected SHA-256.
+Final observed state was **11 current, 1 resolved, 10 pending, 0 admitted unresolved,
+0 unfinished attempts**, with overlap retained and conversions paused. This is
+single-item acceptance, not complete catch-up or authority activation. The seven
+ambiguous historical references remain blocked.
+
+## Withdrawal before acceptance — 0009 and V16
+
+Migration `0009_fp1_shadow_withdrawals.sql` adds only an immutable withdrawal
+ledger and database guards. It preserves the same D1/R2 bindings, existing rows,
+runtime pause, profile admission and business authority. Migration `0008` and the
+V15 archive contract remain frozen. The matching Worker emits V16 with the complete
+ledger; a V15-only Worker cannot export the newer schema as a complete V15 backup.
+The deployment must pair the forward migration with the matching Worker. No reset,
+provider cleanup or File authority activation belongs to this change.
+
+`POST /api/files/shadow/withdraw` takes the complete originally saved conversion
+request: operation ID, exact typed consumer key, expected baseline digest,
+destination profile/revision and original runtime incarnation. The authenticated
+actor and server timestamp are recorded with canonical request JSON and its SHA-256.
+The request may be withdrawn while conversions are paused, or after its consumer
+has changed, disappeared or acquired another decision. The endpoint neither
+reinterprets that old baseline nor opens a storage provider.
+
+The withdrawal ledger and accepted-operation table exclude the same operation ID
+in both directions. The database transaction determines which arrives first:
+
+- If withdrawal commits first, the original ID is permanently sealed. Delayed
+  conversion attempts cannot insert a claim, including an old Worker already past
+  its initial read. No attempt, hold, candidate File or provider write is created.
+- If conversion committed first, withdrawal returns the matching real operation
+  for inspection. It does not cancel a claimed write or release its holds.
+- A changed actor or request using that ID conflicts. A lost acknowledgement is
+  recovered by authoritative readback of the same identity; absence remains unknown.
+
+A withdrawn receipt has no occurrence, attempt, File or location. It returns the
+frozen request and digest rather than fabricating a cancelled conversion. Inspection
+can read the terminal receipt independently of current runtime enablement. The
+browser compares the complete saved request, verifies the digest on receipt, keeps
+it across reload and offers an explicit dismissal only after a terminal result.
+Withdrawal and dismissal keep the existing displayed-operation and cross-tab locks;
+pause remains independent of those locks. There is no automatic withdrawal or retry.
+
+V16 export and isolated recovery preserve every withdrawal and reject malformed
+digests or an operation/withdrawal identity collision. Recovery starts paused and
+never replays a request. Older archives retain their original versioned validation;
+forward migration cannot invent withdrawals absent from that older snapshot. An
+older backup is therefore not evidence that a later request was never accepted.
+Exact-head automated and deployed acceptance for this slice is recorded in its PR.

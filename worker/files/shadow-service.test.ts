@@ -5,7 +5,7 @@ import { referenceTestDatabase, SqliteD1Database } from "../reference-test-suppo
 import { registerLegacyInventory } from "./legacy-inventory";
 import { readFileConsumerBaseline, type LiveConsumerKey } from "./live-consumer-baseline";
 import { readShadowBaseline } from "./shadow-baseline";
-import { admitShadowUnresolved, cancelShadowOperation, convertShadowConsumer, reconcileShadowOperation, type ShadowServiceContext } from "./shadow-service";
+import { admitShadowUnresolved, cancelShadowOperation, convertShadowConsumer, readShadowOperation, reconcileShadowOperation, withdrawShadowOperation, type ShadowServiceContext } from "./shadow-service";
 import type { ByteReadResult } from "./byte-reader";
 import type { ByteWriteInput } from "./byte-writer";
 import type { Sha256Factory } from "./byte-verification";
@@ -52,6 +52,195 @@ async function fixture() {
   return { sql, local, db, context, objects, read, write, openProfile, request };
 }
 afterEach(() => databases.splice(0).forEach((db) => db.close()));
+
+describe("durable withdrawal of never-accepted File shadow requests", () => {
+  const fullRequest = async (f: Awaited<ReturnType<typeof fixture>>) => ({ ...await f.request(), runtimeIncarnation: f.context.runtimeIncarnation });
+  function noExecution(f: Awaited<ReturnType<typeof fixture>>) {
+    for (const table of ["file_shadow_operations", "file_shadow_attempts", "file_shadow_legacy_holds", "file_location_holds", "file_shadow_decisions"])
+      expect(f.sql.prepare(`SELECT count(*) n FROM ${table}`).get()!.n).toBe(0);
+    expect(f.openProfile).not.toHaveBeenCalled(); expect(f.read).not.toHaveBeenCalled(); expect(f.write).not.toHaveBeenCalled();
+  }
+
+  it("withdraws an absent request while paused and preserves its original full request across replay and inspection", async () => {
+    const f = await fixture(), request = await fullRequest(f);
+    f.sql.prepare("UPDATE file_shadow_runtime_guard SET enabled=0,updated_at=?").run(new Date().toISOString());
+    const receipt = await withdrawShadowOperation(f.context, request);
+    expect(receipt).toMatchObject({ operationId: request.operationId, status: "withdrawn", request, occurrenceId: null,
+      attemptId: null, attemptState: null, fileId: null, locationId: null, nextAction: "none" });
+    expect(await withdrawShadowOperation(f.context, request)).toEqual(receipt);
+    expect(await readShadowOperation(f.context, request)).toEqual(receipt);
+    expect(await convertShadowConsumer(f.context, request)).toEqual(receipt);
+    expect(await cancelShadowOperation(f.context, request)).toEqual(receipt);
+    expect(await reconcileShadowOperation(f.context, request)).toEqual(receipt);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_withdrawals").get()!.n).toBe(1); noExecution(f);
+  });
+
+  it.each(["replaced", "deleted", "decided"])("withdraws the original request after its occurrence is %s", async (change) => {
+    const f = await fixture(), request = await fullRequest(f);
+    if (change === "replaced") {
+      const before = await readShadowBaseline(f.db, eventKey);
+      f.sql.prepare("UPDATE events SET asset_key='replacement' WHERE id='event'").run();
+      f.sql.prepare("UPDATE events SET asset_key='source' WHERE id='event'").run();
+      expect((await readShadowBaseline(f.db, eventKey)).head!.occurrence_id).not.toBe(before.head!.occurrence_id);
+    } else if (change === "deleted") f.sql.prepare("DELETE FROM events WHERE id='event'").run();
+    else await admitShadowUnresolved(f.context, { ...request, operationId: crypto.randomUUID(), reason: "Reviewed blocker" });
+    expect(await withdrawShadowOperation(f.context, request)).toMatchObject({ status: "withdrawn", request, occurrenceId: null });
+    expect(await convertShadowConsumer(f.context, request)).toMatchObject({ status: "withdrawn" });
+    expect(f.read).not.toHaveBeenCalled(); expect(f.write).not.toHaveBeenCalled();
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_attempts").get()!.n).toBe(0);
+  });
+
+  it("keeps withdrawal identity exact across actors, original runtime, profile, baseline and typed keys", async () => {
+    const f = await fixture(), request = await fullRequest(f);
+    request.key = { consumerKind: "", consumerId: "historic\0文件", consumerSubId: "", fileSlot: "" };
+    const receipt = await withdrawShadowOperation(f.context, request);
+    expect(receipt).toMatchObject({ request });
+    for (const changed of [
+      { ...request, key: { ...request.key, consumerSubId: "changed" } },
+      { ...request, expectedBaselineSha256: "0".repeat(64) },
+      { ...request, destinationProfile: { ...request.destinationProfile, profileId: "other" } },
+      { ...request, runtimeIncarnation: crypto.randomUUID() },
+    ]) {
+      await expect(withdrawShadowOperation({ ...f.context, runtimeIncarnation: changed.runtimeIncarnation }, changed)).rejects.toThrow(/different input/);
+      await expect(convertShadowConsumer({ ...f.context, runtimeIncarnation: changed.runtimeIncarnation }, changed)).rejects.toThrow(/different input/);
+    }
+    const otherActor = { ...f.context, actor: "other" };
+    await expect(withdrawShadowOperation(otherActor, request)).rejects.toThrow(/another actor/);
+    await expect(readShadowOperation(otherActor, request)).rejects.toThrow(/another actor/);
+    await expect(convertShadowConsumer(otherActor, request)).rejects.toThrow(/another actor/);
+    noExecution(f);
+  });
+
+  it("reads back a committed withdrawal after acknowledgement loss and never invents one after an uncommitted failure", async () => {
+    const f = await fixture(), request = await fullRequest(f), prepare = f.local.prepare.bind(f.local);
+    let loseAck = true;
+    vi.spyOn(f.local, "prepare").mockImplementation((query) => {
+      const statement = prepare(query);
+      if (query.includes("INSERT INTO file_shadow_withdrawals") && loseAck) {
+        loseAck = false;
+        const bind = statement.bind.bind(statement);
+        vi.spyOn(statement, "bind").mockImplementation((...values) => {
+          const bound = bind(...values), run = bound.run.bind(bound);
+          vi.spyOn(bound, "run").mockImplementation(async () => { await run(); throw new Error("Lost INSERT ACK"); });
+          return bound;
+        });
+      }
+      return statement;
+    });
+    expect(await withdrawShadowOperation(f.context, request)).toMatchObject({ status: "withdrawn" });
+    expect(await readShadowOperation(f.context, request)).toMatchObject({ status: "withdrawn" });
+    const g = await fixture(), uncommitted = await fullRequest(g), original = g.local.prepare.bind(g.local);
+    vi.spyOn(g.local, "prepare").mockImplementation((query) => {
+      if (query.includes("INSERT INTO file_shadow_withdrawals")) throw new Error("Unavailable before INSERT");
+      return original(query);
+    });
+    await expect(withdrawShadowOperation(g.context, uncommitted)).rejects.toThrow(/outcome is unavailable/);
+    expect(await readShadowOperation(g.context, uncommitted)).toBeNull(); noExecution(g);
+  });
+
+  it("lets withdrawal win against a conversion waiting before durable claim", async () => {
+    const f = await fixture(), request = await fullRequest(f);
+    let release!: () => void, entered!: () => void;
+    const waiting = new Promise<void>((resolve) => { entered = resolve; }), gate = new Promise<void>((resolve) => { release = resolve; });
+    const open = f.openProfile.getMockImplementation()!; let first = true;
+    f.openProfile.mockImplementation(async (profile) => { if (first) { first = false; entered(); await gate; } return open(profile); });
+    const converting = convertShadowConsumer(f.context, request); await waiting;
+    const withdrawn = await withdrawShadowOperation(f.context, request); release();
+    expect(await converting).toEqual(withdrawn);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_operations").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_attempts").get()!.n).toBe(0);
+    expect(f.read).not.toHaveBeenCalled(); expect(f.write).not.toHaveBeenCalled();
+  });
+
+  it.each(["source-read", "provider-write"])("observes the accepted operation when conversion wins at %s without cancelling it", async (boundary) => {
+    const f = await fixture(), request = await fullRequest(f);
+    let release!: () => void, entered!: () => void;
+    const waiting = new Promise<void>((resolve) => { entered = resolve; }), gate = new Promise<void>((resolve) => { release = resolve; });
+    if (boundary === "source-read") {
+      const read = f.read.getMockImplementation()!; let first = true;
+      f.read.mockImplementation(async (key) => { if (first) { first = false; entered(); await gate; } return read(key); });
+    } else {
+      const write = f.write.getMockImplementation()!;
+      f.write.mockImplementation(async (value) => { entered(); await gate; return write(value); });
+    }
+    const converting = convertShadowConsumer(f.context, request); await waiting;
+    expect(await withdrawShadowOperation(f.context, request)).toMatchObject({ status: "pending", attemptState: boundary === "source-read" ? "staged" : "write_started" });
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_withdrawals").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_legacy_holds WHERE released_at IS NULL").get()!.n).toBe(1);
+    release(); expect(await converting).toMatchObject({ status: "resolved" });
+    expect(f.write).toHaveBeenCalledOnce();
+  });
+
+  it.each(["already-accepted", "claim-during-withdrawal"])("rejects a changed original incarnation when %s wins", async (order) => {
+    const f = await fixture(), original = await fullRequest(f);
+    const changed = { ...original, runtimeIncarnation: crypto.randomUUID() };
+    if (order === "already-accepted") await convertShadowConsumer(f.context, original);
+    else {
+      const prepare = f.local.prepare.bind(f.local);
+      vi.spyOn(f.local, "prepare").mockImplementation((query) => {
+        const statement = prepare(query);
+        if (query.includes("INSERT INTO file_shadow_withdrawals")) {
+          const bind = statement.bind.bind(statement);
+          vi.spyOn(statement, "bind").mockImplementation((...values) => {
+            const bound = bind(...values), run = bound.run.bind(bound);
+            vi.spyOn(bound, "run").mockImplementation(async () => { await convertShadowConsumer(f.context, original); return run(); });
+            return bound;
+          });
+        }
+        return statement;
+      });
+    }
+    await expect(withdrawShadowOperation({ ...f.context, runtimeIncarnation: changed.runtimeIncarnation }, changed)).rejects.toThrow(/accepted with different input/);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_withdrawals").get()!.n).toBe(0);
+    expect(await withdrawShadowOperation(f.context, original)).toMatchObject({ status: "resolved" });
+    // Existing convert replay deliberately remains an observation across incarnations.
+    expect(await convertShadowConsumer({ ...f.context, runtimeIncarnation: changed.runtimeIncarnation }, changed)).toMatchObject({ status: "resolved" });
+    expect(f.write).toHaveBeenCalledOnce();
+  });
+
+  it("matches the first attempt incarnation when valid history has a later attempt in another runtime", async () => {
+    const f = await fixture(), original = await fullRequest(f);
+    f.objects.set("source", new Uint8Array(bytes.length));
+    expect(await convertShadowConsumer(f.context, original)).toMatchObject({ status: "pending", attemptState: "failed" });
+    const incarnation = crypto.randomUUID(), created = new Date().toISOString();
+    f.sql.prepare("UPDATE file_shadow_runtime_guard SET incarnation=?,enabled=1,enabled_by='operator',updated_at=?").run(incarnation, created);
+    const secondAttempt = crypto.randomUUID();
+    f.sql.prepare(`INSERT INTO file_shadow_attempts(id,operation_id,attempt_number,owner_token,runtime_incarnation,state,lease_expires_at,created_at)
+      VALUES(?,?,2,?,?,'staged',?,?)`).run(secondAttempt, original.operationId, crypto.randomUUID(), incarnation,
+        new Date(Date.parse(created) + 15 * 60 * 1000).toISOString(), created);
+    expect(await withdrawShadowOperation(f.context, original)).toMatchObject({ status: "pending", attemptId: secondAttempt, attemptState: "staged" });
+    await expect(withdrawShadowOperation({ ...f.context, runtimeIncarnation: incarnation }, { ...original, runtimeIncarnation: incarnation }))
+      .rejects.toThrow(/accepted with different input/);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_withdrawals").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT attempt_number,runtime_incarnation FROM file_shadow_attempts ORDER BY attempt_number").all())
+      .toEqual([{ attempt_number: 1, runtime_incarnation: original.runtimeIncarnation }, { attempt_number: 2, runtime_incarnation: incarnation }]);
+    expect(f.write).not.toHaveBeenCalled();
+  });
+
+  it("does not affirm an accepted request whose first attempt identity is absent", async () => {
+    const f = await fixture(), original = await fullRequest(f), baseline = await readShadowBaseline(f.db, eventKey);
+    f.sql.prepare(`INSERT INTO file_shadow_operations(id,occurrence_id,captured_epoch,baseline_sha256,access_scope,
+      source_store_kind,source_provider,source_object_key,destination_profile_id,destination_profile_revision,status,created_by,created_at)
+      VALUES(?,?,?,?,'system','r2','r2','source','profile',1,'pending','operator',?)`)
+      .run(original.operationId, baseline.head!.occurrence_id, baseline.epoch, original.expectedBaselineSha256, new Date().toISOString());
+    await expect(withdrawShadowOperation(f.context, original)).rejects.toThrow(/accepted with different input/);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_withdrawals").get()!.n).toBe(0);
+    expect(f.openProfile).not.toHaveBeenCalled(); expect(f.read).not.toHaveBeenCalled(); expect(f.write).not.toHaveBeenCalled();
+  });
+
+  it("keeps a late legacy claim out through the database guard, without trusting a new-worker precheck", async () => {
+    const f = await fixture(), request = await fullRequest(f), baseline = await readShadowBaseline(f.db, eventKey);
+    await withdrawShadowOperation(f.context, request);
+    const legacyClaim = f.local.prepare(`INSERT INTO file_shadow_operations(id,occurrence_id,captured_epoch,baseline_sha256,purpose,access_scope,
+      source_store_kind,source_provider,source_object_key,source_profile_id,source_profile_revision,source_expected_byte_size,source_expected_sha256,
+      destination_profile_id,destination_profile_revision,status,created_by,created_at)
+      VALUES(?,?,?,?,?,'system','r2','r2','source','profile',1,?,?,'profile',1,'pending','operator',?)`)
+      .bind(request.operationId, baseline.head!.occurrence_id, baseline.epoch, request.expectedBaselineSha256, baseline.purpose,
+        bytes.length, SHA, new Date().toISOString());
+    await expect(legacyClaim.run()).rejects.toThrow();
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_operations").get()!.n).toBe(0); noExecution(f);
+  });
+});
 
 describe("File shadow runtime against the complete SQLite schema", () => {
   it("qualifies exact V15 metadata while preserving the V14 protocol and private source metadata", async () => {

@@ -204,6 +204,11 @@ function validateFoundation(tables: ExportTables) {
 /** A portable record of overlap, never permission to execute restored work. */
 export async function validateFileShadowExport(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids) {
   ensure(await fileShadowSchemaFingerprint(schemaObjects) === FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, "schema fingerprint");
+  await validateFileShadowRows(tables, schemaObjects, sourceRowids);
+}
+
+/** Shared row semantics; callers must first authenticate the exact reviewed schema. */
+export async function validateFileShadowRows(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids) {
   for (const [name, columns] of Object.entries({ ...FILE_AUTHORITY_EXPORT_COLUMNS, ...FILE_SHADOW_EXPORT_COLUMNS })) {
     const entry = schemaObjects.find((object) => object.type === "table" && object.name === name);
     ensure(entry && typeof entry.sql === "string" && stableJson(sqliteTableColumns(entry.sql, name).sort()) === stableJson([...columns].sort()), `${name} columns`);

@@ -7,6 +7,8 @@ import { MAX_VERIFIED_BYTES, type ByteExpectation, type Sha256Factory } from "./
 import { copyShadowBytes, reconcileShadowDestination, verifyExistingShadowBytes,
   ShadowByteTransferError, type ShadowStorageIdentity } from "./shadow-byte-transfer";
 import { checkedShadowKey, readShadowBaseline, type ShadowBaseline } from "./shadow-baseline";
+import { stableJson } from "../../shared/domain/content-addressing";
+import { checkedShadowWithdrawalRequest, shadowWithdrawalRequestSha256, type ShadowWithdrawalRequest } from "../../shared/contracts/file-shadow-withdrawal";
 
 export interface ShadowFrozenProfile { profileId: string; configurationRevision: number }
 export interface ShadowOpenedProfile { storage: ShadowStorageIdentity; reader: ByteReader; writer?: ByteWriter; createHash: Sha256Factory }
@@ -24,13 +26,18 @@ export interface ShadowConvertInput {
 }
 export type ShadowOperationStatus = "pending" | "resolved" | "admitted_unresolved" | "cancelled";
 export type ShadowAttemptState = "staged" | "write_started" | "unknown" | "verified" | "published" | "failed" | "cancelled";
-export interface ShadowOperationResult {
+export interface ShadowAcceptedOperationResult {
   operationId: string; occurrenceId: string; status: ShadowOperationStatus;
   attemptId: string | null; attemptState: ShadowAttemptState | null;
   fileId: string | null; locationId: string | null;
   /** A pending result grants no retry or publication ownership. */
   nextAction: "none" | "reconcile" | "inspect";
 }
+export interface ShadowWithdrawalResult {
+  operationId: string; status: "withdrawn"; request: ShadowWithdrawalRequest; requestSha256: string;
+  occurrenceId: null; attemptId: null; attemptState: null; fileId: null; locationId: null; nextAction: "none";
+}
+export type ShadowOperationResult = ShadowAcceptedOperationResult | ShadowWithdrawalResult;
 export class ShadowConflictError extends Error {
   constructor(message = "The File shadow baseline changed. Read the current state before continuing.") { super(message); this.name = "ShadowConflictError"; }
 }
@@ -45,6 +52,7 @@ interface Operation {
   destination_profile_id: string | null; destination_profile_revision: number | null;
   status: ShadowOperationStatus; created_by: string; created_at: string; completed_at: string | null;
   consumer_kind: string; consumer_id: string; consumer_sub_id: string; file_slot: string;
+  first_attempt_runtime_incarnation: string | null;
 }
 interface Attempt {
   id: string; operation_id: string; attempt_number: number; owner_token: string; runtime_incarnation: string;
@@ -79,12 +87,32 @@ function expectation(operation: Operation): ByteExpectation {
     || typeof operation.source_expected_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(operation.source_expected_sha256)) throw new ShadowConflictError("The source byte expectation is unresolved.");
   return { byteSize: operation.source_expected_byte_size as number, sha256: operation.source_expected_sha256 };
 }
-function publicResult(observed: Observed): ShadowOperationResult {
+function publicResult(observed: Observed): ShadowAcceptedOperationResult {
   return { operationId: observed.operation.id, occurrenceId: observed.operation.occurrence_id, status: observed.operation.status,
     attemptId: observed.attempt?.id ?? null, attemptState: observed.attempt?.state ?? null,
     fileId: observed.decision?.file_id ?? null, locationId: observed.decision?.location_id ?? null,
     nextAction: observed.operation.status !== "pending" ? "none"
       : observed.attempt && ["write_started", "unknown", "verified"].includes(observed.attempt.state) ? "reconcile" : "inspect" };
+}
+async function observedWithdrawal(context: ShadowServiceContext, operationId: string): Promise<ShadowWithdrawalResult | null> {
+  try {
+    const row = await primaryD1(context.db).prepare(`SELECT request_json,request_sha256,created_by
+      FROM file_shadow_withdrawals WHERE operation_id=?`).bind(operationId)
+      .first<{ request_json: string; request_sha256: string; created_by: string }>();
+    if (!row) return null;
+    if (row.created_by !== context.actor) throw new ShadowConflictError("The File shadow operation belongs to another actor.");
+    const request = checkedShadowWithdrawalRequest(JSON.parse(row.request_json));
+    if (request.operationId !== operationId || stableJson(request) !== row.request_json
+      || await shadowWithdrawalRequestSha256(request) !== row.request_sha256) throw new ShadowUnavailableError();
+    return { operationId, status: "withdrawn", request, requestSha256: row.request_sha256,
+      occurrenceId: null, attemptId: null, attemptState: null, fileId: null, locationId: null, nextAction: "none" };
+  } catch (error) {
+    if (error instanceof ShadowConflictError) throw error;
+    throw new ShadowUnavailableError();
+  }
+}
+function matchWithdrawal(receipt: ShadowWithdrawalResult, request: ShadowWithdrawalRequest) {
+  if (stableJson(receipt.request) !== stableJson(request)) throw new ShadowConflictError("The same File shadow operation was withdrawn with different input.");
 }
 async function observedOperation(context: ShadowServiceContext, operationId: string): Promise<Observed | null> {
   try {
@@ -92,7 +120,9 @@ async function observedOperation(context: ShadowServiceContext, operationId: str
     // cannot create a public resolved result from a stale attempt projection.
     const db = primaryD1(context.db);
     const result = await db.batch([
-      db.prepare(`SELECT o.*,c.consumer_kind,c.consumer_id,c.consumer_sub_id,c.file_slot FROM file_shadow_operations o
+      db.prepare(`SELECT o.*,c.consumer_kind,c.consumer_id,c.consumer_sub_id,c.file_slot,
+        (SELECT a.runtime_incarnation FROM file_shadow_attempts a WHERE a.operation_id=o.id AND a.attempt_number=1) first_attempt_runtime_incarnation
+        FROM file_shadow_operations o
         JOIN file_shadow_occurrences c ON c.id=o.occurrence_id WHERE o.id=?`).bind(operationId),
       db.prepare("SELECT * FROM file_shadow_attempts WHERE operation_id=? ORDER BY attempt_number DESC LIMIT 1").bind(operationId),
       db.prepare("SELECT file_id,location_id,reason FROM file_shadow_decisions WHERE operation_id=?").bind(operationId),
@@ -109,7 +139,31 @@ export async function readShadowOperation(context: ShadowServiceContext, input: 
   context = snapshotContext(context); input = { operationId: input.operationId };
   requestIdentity(context, input.operationId);
   const observed = await observedOperation(context, input.operationId);
-  return observed ? publicResult(observed) : null;
+  return observed ? publicResult(observed) : observedWithdrawal(context, input.operationId);
+}
+
+/** Reserve a never-accepted operation ID permanently. The database arbitrates
+ * against old and new conversion workers, including requests already in flight.
+ * No current generation, enabled runtime or provider capability is required. */
+export async function withdrawShadowOperation(context: ShadowServiceContext, input: ShadowWithdrawalRequest): Promise<ShadowOperationResult> {
+  context = snapshotContext(context); input = checkedShadowWithdrawalRequest(input);
+  requestIdentity(context, input.operationId);
+  if (input.runtimeIncarnation !== context.runtimeIncarnation) throw new ShadowConflictError("The withdrawal must retain the original request incarnation.");
+  const prior = await observedWithdrawal(context, input.operationId);
+  if (prior) { matchWithdrawal(prior, input); return prior; }
+  const existing = await observedOperation(context, input.operationId);
+  if (existing) { matchAcceptedWithdrawal(existing, input); return publicResult(existing); }
+  const digest = await shadowWithdrawalRequestSha256(input), created = now(context);
+  try {
+    await primaryD1(context.db).prepare(`INSERT INTO file_shadow_withdrawals
+      (operation_id,request_json,request_sha256,created_by,created_at) VALUES(?,?,?,?,?)`)
+      .bind(input.operationId, stableJson(input), digest, context.actor, created).run();
+  } catch { /* A competing conversion or a lost acknowledgement is read back. */ }
+  const receipt = await observedWithdrawal(context, input.operationId);
+  if (receipt) { matchWithdrawal(receipt, input); return receipt; }
+  const accepted = await observedOperation(context, input.operationId);
+  if (accepted) { matchAcceptedWithdrawal(accepted, input); return publicResult(accepted); }
+  throw new ShadowUnavailableError();
 }
 function guard(db: D1Database, operation: Pick<Operation, "id">, context: ShadowServiceContext, freshEpoch?: number, publication = false): D1PreparedStatement {
   const epoch = freshEpoch !== undefined ? "c.epoch=?" : publication ? `(c.epoch=o.captured_epoch OR EXISTS(
@@ -136,6 +190,13 @@ function matchExisting(observed: Observed, input: ShadowConvertInput, baseline?:
     || op.destination_profile_id !== input.destinationProfile.profileId || op.destination_profile_revision !== input.destinationProfile.configurationRevision
     || baseline && op.occurrence_id !== baseline.head?.occurrence_id) throw new ShadowConflictError("The same File shadow operation was accepted with different input.");
 }
+function matchAcceptedWithdrawal(observed: Observed, input: ShadowWithdrawalRequest) {
+  matchExisting(observed, input);
+  // Later attempts and reconciliation can use another runtime. Only the first
+  // immutable attempt records the incarnation of the accepted original request.
+  if (observed.operation.first_attempt_runtime_incarnation !== input.runtimeIncarnation)
+    throw new ShadowConflictError("The same File shadow operation was accepted with different input.");
+}
 async function recoverRequired(context: ShadowServiceContext, id: string): Promise<Observed> {
   const result = await observedOperation(context, id); if (!result) throw new ShadowUnavailableError(); return result;
 }
@@ -149,6 +210,11 @@ export async function convertShadowConsumer(context: ShadowServiceContext, input
   requestIdentity(context, input.operationId);
   const key = checkedShadowKey(input.key);
   if (!input.destinationProfile || input.destinationProfile.configurationRevision !== 1 || !input.destinationProfile.profileId) throw new ShadowConflictError("Invalid destination profile.");
+  const withdrawal = await observedWithdrawal(context, input.operationId);
+  if (withdrawal) {
+    matchWithdrawal(withdrawal, checkedShadowWithdrawalRequest({ ...input, runtimeIncarnation: context.runtimeIncarnation }));
+    return withdrawal;
+  }
   const existing = await observedOperation(context, input.operationId);
   if (existing) { matchExisting(existing, input); return publicResult(existing); }
   const baseline = await readShadowBaseline(context.db, key);
@@ -180,7 +246,14 @@ export async function convertShadowConsumer(context: ShadowServiceContext, input
       VALUES(?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(), input.operationId, baseline.record.locator.storeKind, baseline.record.locator.provider,
         baseline.record.locator.objectKey, baseline.sourceProfile.profileId, baseline.sourceProfile.configurationRevision, created),
   ]); } catch { /* Primary readback distinguishes a committed claim from response loss. */ }
-  let observed = await recoverRequired(context, input.operationId);
+  const claimed = await observedOperation(context, input.operationId);
+  if (!claimed) {
+    const withdrawn = await observedWithdrawal(context, input.operationId);
+    if (!withdrawn) throw new ShadowUnavailableError();
+    matchWithdrawal(withdrawn, checkedShadowWithdrawalRequest({ ...input, runtimeIncarnation: context.runtimeIncarnation }));
+    return withdrawn;
+  }
+  let observed = claimed;
   matchExisting(observed, input, baseline);
   if (observed.attempt?.id !== attemptId || observed.attempt.owner_token !== ownerToken || observed.attempt.state !== "staged") return publicResult(observed);
   const source = await openBoundProfile(context, baseline.sourceProfile, "read");
@@ -287,6 +360,8 @@ async function publishVerified(context: ShadowServiceContext, observed: Observed
 export async function reconcileShadowOperation(context: ShadowServiceContext, input: { operationId: string }): Promise<ShadowOperationResult> {
   context = snapshotContext(context); input = { operationId: input.operationId };
   requestIdentity(context, input.operationId);
+  const withdrawal = await observedWithdrawal(context, input.operationId);
+  if (withdrawal) return withdrawal;
   let observed = await recoverRequired(context, input.operationId);
   if (observed.operation.status !== "pending") return publicResult(observed);
   const { operation: op, attempt } = observed;
@@ -375,6 +450,8 @@ export async function admitShadowUnresolved(context: ShadowServiceContext, input
 export async function cancelShadowOperation(context: ShadowServiceContext, input: { operationId: string }): Promise<ShadowOperationResult> {
   context = snapshotContext(context); input = { operationId: input.operationId };
   requestIdentity(context, input.operationId);
+  const withdrawal = await observedWithdrawal(context, input.operationId);
+  if (withdrawal) return withdrawal;
   const observed = await recoverRequired(context, input.operationId);
   if (observed.operation.status === "cancelled") return publicResult(observed);
   if (observed.operation.status !== "pending" || !observed.attempt || !["staged", "failed", "cancelled"].includes(observed.attempt.state)

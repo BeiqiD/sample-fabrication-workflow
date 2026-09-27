@@ -207,7 +207,7 @@ test("V15 inspection fails closed on missing, stale and extra current heads", as
 });
 
 test("resolved history becomes pending when its exact published location is quarantined", async () => {
-  const f = await fixture(), runtime = await enableFixture(f);
+  const f = await fixture({ through: "0009" }), runtime = await enableFixture(f);
   let result;
   try {
     result = await api.convertShadowConsumer(runtime.context, await runtime.request());
@@ -237,7 +237,7 @@ test("resolved history becomes pending when its exact published location is quar
 });
 
 test("unfinished provider-write history remains counted after its source becomes a tombstone", async () => {
-  const f = await fixture(), runtime = await enableFixture(f, { loseAcknowledgement: true });
+  const f = await fixture({ through: "0009" }), runtime = await enableFixture(f, { loseAcknowledgement: true });
   try {
     const result = await api.convertShadowConsumer(runtime.context, await runtime.request());
     assert.equal(result.status, "pending");
@@ -259,7 +259,7 @@ test("unfinished provider-write history remains counted after its source becomes
 });
 
 test("explicit unresolved outcomes remain blockers without disclosing their free-text explanation", async () => {
-  const f = await fixture(), runtime = await enableFixture(f);
+  const f = await fixture({ through: "0009" }), runtime = await enableFixture(f);
   try {
     const request = await runtime.request();
     const result = await api.admitShadowUnresolved(runtime.context, { operationId: request.operationId, key: request.key,

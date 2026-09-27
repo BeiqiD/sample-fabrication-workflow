@@ -20,7 +20,7 @@ const now = "2026-09-25T00:00:00.000Z", hash = "ba7816bf8f01cfea414140de5dae2223
 afterEach(() => { vi.unstubAllGlobals(); while (databases.length) databases.pop()!.close(); });
 function snapshot(db: DatabaseSync) { return snapshotFullExportV15(new SqliteD1Database(db) as unknown as D1Database); }
 function fixture(attemptState: "staged" | "write_started" | "unknown" | "verified" = "unknown") {
-  const db = referenceTestDatabase(); databases.push(db);
+  const db = referenceTestDatabase({ throughMigration: "0008_fp1_shadow_runtime.sql" }); databases.push(db);
   db.exec(`
     INSERT INTO samples(id,code,title,created_at,updated_at) VALUES('reference-sample-a','V15','Archive fixture','${now}','${now}');
     INSERT INTO storage_profiles(id,adapter_type,namespace_identity,configuration_source,credential_reference,configuration_revision,state,created_at)
@@ -90,7 +90,7 @@ function publish(db: DatabaseSync) {
 describe("V15 portable shadow checkpoint", () => {
   it("pins the same exact schema after whole-file and Wrangler-split migration execution", { timeout: 120_000 }, async () => {
     const whole = new DatabaseSync(":memory:"), split = new DatabaseSync(":memory:"); databases.push(whole, split);
-    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort()) {
+    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql") && name <= "0008_fp1_shadow_runtime.sql").sort()) {
       const sql = await readFile(join(migrationsDirectory, name), "utf8"); whole.exec(sql);
       for (const statement of splitSql(sql)) split.exec(statement);
     }
@@ -245,7 +245,7 @@ describe("V15 portable shadow checkpoint", () => {
   }, 30_000);
 
   it("preserves exact historical BLOB dependency evidence while keeping canonical table cells scalar", async () => {
-    const db = referenceTestDatabase(); databases.push(db);
+    const db = referenceTestDatabase({ throughMigration: "0008_fp1_shadow_runtime.sql" }); databases.push(db);
     db.exec(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,created_at)
       VALUES(x'00FF','history/blob','old.bin','application/octet-stream',0,'ready','${now}')`);
     await expect(snapshot(db)).rejects.toThrow(/table rows contain unsupported values/);
@@ -259,7 +259,7 @@ describe("V15 portable shadow checkpoint", () => {
   });
 
   it("retains the dormant legacy mode boundary when archive rows are forged", async () => {
-    const db = referenceTestDatabase(); databases.push(db);
+    const db = referenceTestDatabase({ throughMigration: "0008_fp1_shadow_runtime.sql" }); databases.push(db);
     db.exec(`INSERT INTO files(id,purpose,access_scope,state,created_at)
       VALUES('source','embedded_content','system','unresolved','${now}'),('derived','job_output','system','unresolved','${now}')`);
     const manifest = await snapshot(db);

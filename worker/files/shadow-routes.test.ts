@@ -70,6 +70,7 @@ describe("File shadow HTTP boundary through the root application", () => {
       ["/status", undefined], ["/consumers", undefined],
       ["/enable", { method: "POST", body: "{}" }],
       ["/convert", { method: "POST", body: "{}" }],
+      ["/withdraw", { method: "POST", body: "{}" }],
       ["/reconcile", { method: "POST", body: "{}" }],
     ] as const) {
       const response = await request(env, path, init);
@@ -214,5 +215,36 @@ describe("File shadow HTTP boundary through the root application", () => {
     expect((await f.post("/checkpoint", { requestId: crypto.randomUUID(), expectedEpoch: f.epoch(), runtimeIncarnation: runtime })).status).toBe(409);
     expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_checkpoints").get()!.n).toBe(0);
     f.noProvider();
+  });
+
+  it("seals a full original request while the runtime is inert and exposes the terminal receipt through normal inspection", async () => {
+    const f = fixture();
+    const original = { operationId: crypto.randomUUID(), key: { consumerKind: "", consumerId: "deleted\0文件", consumerSubId: "", fileSlot: "" },
+      expectedBaselineSha256: "a".repeat(64), destinationProfile: { profileId: "gone-profile", configurationRevision: 1 }, runtimeIncarnation: crypto.randomUUID() };
+    const response = await f.post("/withdraw", original);
+    expect(response.status).toBe(200);
+    const receipt = await response.json();
+    expect(receipt).toMatchObject({ operationId: original.operationId, status: "withdrawn", request: original,
+      occurrenceId: null, attemptId: null, fileId: null, nextAction: "none" });
+    expect(await (await f.post("/withdraw", original)).json()).toEqual(receipt);
+    expect(await (await f.post("/operation", { operationId: original.operationId, runtimeIncarnation: original.runtimeIncarnation })).json()).toEqual(receipt);
+    expect(await (await f.post("/convert", original)).json()).toEqual(receipt);
+    expect((await f.post("/withdraw", { ...original, runtimeIncarnation: crypto.randomUUID() })).status).toBe(409);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_operations").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT enabled FROM file_shadow_runtime_guard").get()!.enabled).toBe(0);
+    expect(f.sql.prepare("SELECT created_by FROM file_shadow_withdrawals").get()!.created_by).toBe("local-development");
+    f.noProvider();
+  });
+
+  it("validates withdrawal fields and same-origin policy before database work", async () => {
+    const f = fixture(), original = { operationId: crypto.randomUUID(), key: key(), expectedBaselineSha256: "a".repeat(64),
+      destinationProfile: { profileId: "http-profile", configurationRevision: 1 }, runtimeIncarnation: crypto.randomUUID() };
+    f.local.resetQueryCount();
+    for (const invalid of [
+      { ...original, extra: true }, { ...original, expectedBaselineSha256: "invalid" }, { ...original, runtimeIncarnation: null },
+      { ...original, key: { ...key(), consumerId: 2 } }, { ...original, destinationProfile: { ...original.destinationProfile, configurationRevision: 2 } },
+    ]) expect((await f.post("/withdraw", invalid)).status).toBe(400);
+    expect((await f.post("/withdraw", original, { origin: "https://attacker.example" })).status).toBe(403);
+    expect(f.local.queryCount).toBe(0); f.noProvider();
   });
 });

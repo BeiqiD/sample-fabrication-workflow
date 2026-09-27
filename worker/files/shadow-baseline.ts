@@ -1,3 +1,4 @@
+import { FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-withdrawals";
 import { sha256Hex } from "../../shared/domain/content-addressing";
 import type { ExportSchemaObject } from "../../shared/contracts/export";
 import type { FilePurpose } from "../../shared/contracts/files";
@@ -91,7 +92,9 @@ export async function readShadowBaseline(database: LiveConsumerDatabase, inputKe
     || !Number.isSafeInteger(row.source_key_bytes) || row.source_key_bytes < 0 || row.source_key_bytes > MAX_LIVE_CONSUMER_SOURCE_KEY_BYTES) throw new Error("Shadow baseline source bound exceeded");
   if (row.invalid_rowid_claims !== 0 || typeof row.schema_json !== "string" || encoder.encode(row.schema_json).length > 2 * 1024 * 1024) throw new Error("Incomplete shadow schema snapshot");
   const schema = JSON.parse(row.schema_json) as ExportSchemaObject[];
-  if (!Array.isArray(schema) || schema.length > 1000 || await fileShadowSchemaFingerprint(schema) !== FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256) throw new Error("Unsupported shadow schema generation");
+  if (!Array.isArray(schema) || schema.length > 1000) throw new Error("Unsupported shadow schema generation");
+  const schemaSha256 = await fileShadowSchemaFingerprint(schema);
+  if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
   if (!Number.isSafeInteger(row.shadow_epoch) || Number(row.shadow_epoch) < 0 || typeof row.shadow_runtime !== "string") throw new Error("Incomplete shadow runtime snapshot");
   if (row.page_count !== row.record_count || ![0, 1].includes(row.record_count) || !Number.isSafeInteger(row.payload_bytes)
     || row.payload_bytes < 0 || row.payload_bytes > MAX_LIVE_CONSUMER_PAGE_BYTES || typeof row.records_json !== "string"
@@ -114,7 +117,7 @@ export async function readShadowBaseline(database: LiveConsumerDatabase, inputKe
   const rawLocator = row.shadow_locator === null ? null : JSON.parse(row.shadow_locator) as { storeKind: string | null; provider: string | null; objectKey: string | null };
   const sourceLocator = rawLocator && typeof rawLocator.storeKind === "string" && typeof rawLocator.provider === "string" && typeof rawLocator.objectKey === "string"
     ? { storeKind: rawLocator.storeKind, provider: rawLocator.provider, objectKey: rawLocator.objectKey } : null;
-  const records = await projectLiveConsumerMetadata(row.records_json, authority[0], FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, MAX_LIVE_CONSUMER_EVIDENCE_ROWS);
+  const records = await projectLiveConsumerMetadata(row.records_json, authority[0], schemaSha256, MAX_LIVE_CONSUMER_EVIDENCE_ROWS);
   if (records.length !== row.record_count || head && (head.consumer_kind !== key.consumerKind || head.consumer_id !== key.consumerId
     || head.consumer_sub_id !== key.consumerSubId || head.file_slot !== key.fileSlot || !Number.isSafeInteger(head.generation)
     || head.generation < 1 || ![0, 1].includes(head.present))) throw new Error("Shadow generation identity mismatch");
@@ -137,7 +140,7 @@ export async function readShadowBaseline(database: LiveConsumerDatabase, inputKe
   else if (status === "ready_to_verify") status = "ambiguous";
   if (decision) status = decision.decision;
   const baseline = { version: 1 as const, kind: "file-shadow-baseline" as const, bytesVerified: false as const, key,
-    schemaSha256: FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, authority: authority[0], epoch: row.shadow_epoch as number,
+    schemaSha256, authority: authority[0], epoch: row.shadow_epoch as number,
     runtime, head, record, decision, purpose, sourceLocator, sourceProfile, status, reasons: [...new Set(blockers)].sort() };
   const baselineSha256 = await sha256Hex(canonicalShadowMetadata(baseline));
   const report = { ...baseline, baselineSha256 };

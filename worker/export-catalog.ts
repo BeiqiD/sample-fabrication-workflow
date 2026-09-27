@@ -1,3 +1,4 @@
+import { FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-withdrawal";
 import { FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_EXPORTED_VIEW_COLUMNS } from "../shared/contracts/file-shadow-schema";
 import { fileShadowArchiveColumn } from "../shared/contracts/file-shadow-rowid";
 
@@ -126,4 +127,10 @@ export const FULL_EXPORT_V15_TABLE_QUERIES = {
   ...Object.fromEntries(Object.entries({ ...FILE_SHADOW_EXPORT_COLUMNS, ...FILE_SHADOW_EXPORTED_VIEW_COLUMNS })
     .map(([name, columns]) => [name, `SELECT ${columns.map((column) => fileShadowArchiveColumn(name, column)).join(", ")} FROM ${name} ORDER BY ${columns.join(", ")}`])),
 } as const;
-export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V15_TABLE_QUERIES;
+// V16 preserves the durable no-claim ledger without adding byte roots.
+export const FULL_EXPORT_V16_TABLE_QUERIES = {
+  ...FULL_EXPORT_V15_TABLE_QUERIES,
+  ...Object.fromEntries(Object.entries(FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS)
+    .map(([name, columns]) => [name, `SELECT ${columns.join(", ")} FROM ${name} ORDER BY operation_id`])),
+} as const;
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V16_TABLE_QUERIES;

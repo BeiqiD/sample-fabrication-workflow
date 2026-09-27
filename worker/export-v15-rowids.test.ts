@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { createExportArtifact, validateFullExportV15 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV15 } from "../src/lib/exportAll";
+import { snapshotFullExportV16 } from "./export-v16-snapshot";
 import { snapshotFullExportV15 } from "./export-v15-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 
@@ -18,7 +19,7 @@ afterEach(() => { while (databases.length) databases.pop()!.close(); });
 const snapshot = (db: DatabaseSync) => snapshotFullExportV15(new SqliteD1Database(db) as unknown as D1Database);
 
 function fixture() {
-  const db = referenceTestDatabase(); databases.push(db);
+  const db = referenceTestDatabase({ throughMigration: "0008_fp1_shadow_runtime.sql" }); databases.push(db);
   db.prepare("INSERT INTO samples(id,code,title,created_at,updated_at) VALUES('sample','R','Rowids',?,?)").run(now, now);
   const insert = db.prepare(`INSERT INTO events(rowid,id,sample_id,kind,asset_key,metadata_json,created_at)
     VALUES(? ,?,'sample','image',?,'{"action":"sample_record"}',?)`);
@@ -45,7 +46,7 @@ describe("V15 signed int64 source identities", () => {
       try {
         expect(db.prepare("SELECT CAST(rowid AS TEXT) AS rowid FROM events ORDER BY id").all().map((row) => row.rowid)).toEqual(deleted ? [] : rowids);
         expect(db.prepare("SELECT COUNT(*) AS n FROM file_shadow_occurrences WHERE present=1 AND typeof(source_rowid)<>'integer'").get()).toEqual({ n: 0 });
-        const recovered = await snapshot(db);
+        const recovered = await snapshotFullExportV16(new SqliteD1Database(db) as unknown as D1Database);
         expect(recovered.tables.file_shadow_occurrences).toEqual(manifest.tables.file_shadow_occurrences);
         expect(recovered.tables.file_shadow_heads).toEqual(manifest.tables.file_shadow_heads);
         expect(recovered.artifacts.sourceRowids).toEqual(manifest.artifacts.sourceRowids);

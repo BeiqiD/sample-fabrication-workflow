@@ -243,6 +243,9 @@ async function harness({ migrate = true, seedAfterMigration = false, runtime = f
     await seedLegacy(db, { populate: !seedAfterMigration });
     if (migrate) await apply(db, read(`migrations/${shadowMigration}`));
     if (seedAfterMigration) await seedLegacyFixture(db);
+    // The archived 0008 fingerprint and old-Worker SQL qualification stay V15.
+    // Only scenarios executing the current service require its 0009 refusal ledger.
+    if (runtime) await apply(db, read("migrations/0009_fp1_shadow_withdrawals.sql"));
     return { db, mf, async gc(action, objectKey = "baseline/event-original") {
       const response = await mf.dispatchFetch("https://qualification.invalid/", {
         method: "POST", body: JSON.stringify({ action, key: objectKey }), headers: { "content-type": "application/json" },

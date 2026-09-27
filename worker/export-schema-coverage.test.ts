@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { snapshotFullExportV15 } from "./export-v15-snapshot";
+import { snapshotFullExportV16 } from "./export-v16-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import { FILE_SHADOW_SLOT_KEYS } from "../shared/contracts/file-shadow-schema";
 import { FILE_SHADOW_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-shadow";
@@ -11,7 +11,7 @@ import { FILE_SHADOW_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-
 // underscore-prefixed tables: a new application table must enter the export.
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
 // Hidden rowids are local physical identities. This derived guard table is
-// validated inside the V15 snapshot and rebuilt from restored registry rows;
+// validated inside the V16 snapshot and rebuilt from restored registry rows;
 // serializing its host-specific rowids would make an archive less portable.
 const REBUILDABLE_TABLES = new Set<string>(FILE_SHADOW_REBUILDABLE_TABLE_NAMES);
 
@@ -95,11 +95,11 @@ describe("complete export schema coverage", () => {
   beforeEach(() => { database = referenceTestDatabase(); });
   afterEach(() => { database.close(); });
 
-  it("covers every migrated application table and required view with the actual v15 snapshot", async () => {
+  it("covers every migrated application table and required view with the actual v16 snapshot", async () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    const snapshot = await snapshotFullExportV15(new SqliteD1Database(database) as unknown as D1Database);
+    const snapshot = await snapshotFullExportV16(new SqliteD1Database(database) as unknown as D1Database);
     expect(Object.keys(snapshot.tables).sort()).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES).sort());
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.samples).not.toContain("process_revision");
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).toContain("legacy_body");

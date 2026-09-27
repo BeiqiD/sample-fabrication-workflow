@@ -38,8 +38,10 @@ are now merged; `0008` and V15 are deployed through #227 (`f0c6367`). An actual
 9/9-blob ZIP passed isolated recovery on 2026-09-27. The separate V15 snapshot
 inspector explains pending-generation blockers while the V14 CLI stays frozen.
 The bounded maintenance client adds explicit single-item R2 pilot commands and
-durable saved-operation recovery without changing the backend protocol. Actual
-pilot evidence is recorded separately from implementation and deployment. Seven
+durable saved-operation recovery. PR #228's single-item live pilot passed and
+conversions remain paused at 1 resolved / 10 pending. The next bounded protocol
+slice adds immutable unaccepted-request withdrawals with forward migration `0009`
+and matched V16 export/recovery, preserving bindings and legacy business authority. Seven
 historical references remain blocked pending separately reviewed intent/namespace
 evidence; neither matching bytes nor an unresolved admission completes catch-up.
 Catch-up and atomic authority activation remain open; FP1 is incomplete.

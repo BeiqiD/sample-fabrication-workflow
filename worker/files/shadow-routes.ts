@@ -4,8 +4,9 @@ import { primaryD1 } from "../d1-primary";
 import type { Env } from "../types";
 import { checkedShadowKey, readShadowBaseline } from "./shadow-baseline";
 import { openShadowProfile } from "./shadow-profile";
-import { admitShadowUnresolved, cancelShadowOperation, convertShadowConsumer, readShadowOperation, reconcileShadowOperation,
+import { admitShadowUnresolved, cancelShadowOperation, convertShadowConsumer, readShadowOperation, reconcileShadowOperation, withdrawShadowOperation,
   ShadowConflictError, ShadowUnavailableError, type ShadowServiceContext } from "./shadow-service";
+import { checkedShadowWithdrawalRequest } from "../../shared/contracts/file-shadow-withdrawal";
 
 type Bindings = { Bindings: Env; Variables: { userEmail: string } };
 type Body = Record<string, unknown>;
@@ -157,6 +158,13 @@ shadowRoutes.post("/files/shadow/convert", async (c) => {
     operationId: id(input.operationId), key: consumerKey(input.key), expectedBaselineSha256: input.expectedBaselineSha256,
     destinationProfile: profile(input.destinationProfile),
   }));
+});
+
+shadowRoutes.post("/files/shadow/withdraw", async (c) => {
+  const raw = await body(c.req.raw);
+  let input;
+  try { input = checkedShadowWithdrawalRequest(raw); } catch { return badInput(); }
+  return c.json(await withdrawShadowOperation(context(c.env, c.get("userEmail"), input.runtimeIncarnation), input));
 });
 
 shadowRoutes.post("/files/shadow/reconcile", async (c) => {
