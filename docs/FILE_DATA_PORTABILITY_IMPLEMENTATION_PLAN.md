@@ -38,8 +38,8 @@ are now merged; `0008` and V15 are deployed through #227 (`f0c6367`). An actual
 9/9-blob ZIP passed isolated recovery on 2026-09-27. The separate V15 snapshot
 inspector explains pending-generation blockers while the V14 CLI stays frozen.
 The bounded maintenance client adds explicit single-item R2 pilot commands and
-durable saved-operation recovery. PR #228's single-item live pilot passed and
-conversions remain paused at 1 resolved / 10 pending. PR #229's immutable
+durable saved-operation recovery. PR #228's single-item live pilot passed; on 2026-09-28, three further accepted
+references were converted through the deployed flow, reaching 4 resolved / 7 pending. PR #229's immutable
 unaccepted-request withdrawals, forward migration `0009` and matched V16
 export/recovery are deployed and accepted, preserving bindings and legacy business
 authority. PR #230's [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md)
@@ -48,12 +48,16 @@ adjudication, durable withdrawal, conservative revocation/correction, immutable
 conversion bindings and matching `0010`/V17 recovery. #232 and #233 repaired
 deployment verification and File-location export transport; the post-fix actual
 V17 ZIP passed isolated recovery with all 10 blobs and no warnings. Seven
-historical references still need explicit classification/namespace evidence;
-the code does not nominate an operator or approve those records. Neither matching
-bytes nor an unresolved admission completes catch-up. The planned
-[basic Storage Settings](./FP1_STORAGE_SETTINGS.md) status-only subset proceeds
-in parallel: it adds no schema, provider activity or configuration mutation, and
-does not move File activation or R2 role defaults ahead of their gates.
+historical references belong to six obsolete FP1b–FP1g test Projects, which the
+owner explicitly authorized for permanent disposal. Data-only migration `0011`
+removes that exact trashed business graph while the existing shadow triggers
+record absent successors. It retains the same schema/V17 archive contract, shared
+assets and immutable history. Historical restore does not replay this cleanup.
+After deployment, capture a fresh current-generation checkpoint. The
+[basic Storage Settings](./FP1_STORAGE_SETTINGS.md) status-only subset shipped
+in #234 without provider activity or configuration mutation. The next
+implementation joins File-aware reads, accepted writes and lifecycle authority
+with one atomic activation; changing the mode alone is insufficient.
 Catch-up and atomic authority activation remain open; FP1 is incomplete.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at

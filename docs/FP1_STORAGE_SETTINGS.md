@@ -65,9 +65,9 @@ feature does not require another live ZIP export or restore. The evidence and
 major-change trigger are recorded in the
 [implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md#accepted-zip-and-validation-cadence).
 
-Seven historical Project references still require real purpose and original
-namespace evidence and an explicitly configured evidence operator. Settings
-does not fill those gaps or resume the paused conversions. Current-generation
-catch-up, whole-graph lifecycle qualification and atomic activation remain the
-next authority milestones. Privileged role/default editing and real connection
+The owner has authorized permanent disposal of the six old test Projects that
+contain the seven ambiguous references. Migration `0011` and a fresh catch-up
+checkpoint handle that separate operational step. Settings does not perform the
+cleanup or activate File authority. File-aware runtime integration and atomic
+activation remain the next authority milestone. Privileged role/default editing and real connection
 tests need their own reviewed authorization and lifecycle boundaries.

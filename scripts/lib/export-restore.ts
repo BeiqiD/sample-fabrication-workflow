@@ -65,6 +65,27 @@ function safeArchivePath(path: unknown): asserts path is string {
     && path.split("/").every((part) => part && part !== "." && part !== ".."), "Unsafe archive path");
 }
 
+export function planExportRestoreMigrations(migrationNames: string[], schemaVersion: number) {
+  const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql"];
+  // This deployment-only cleanup is not a schema transition. Restoring an older
+  // snapshot must preserve its rows, including the explicitly deleted QA data.
+  const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
+  const schemaNames = migrationNames.filter((name) => name !== cleanup);
+  const knownChain = schemaNames.length >= 2 && schemaNames.length <= reviewedChain.length
+    && canonical(schemaNames) === canonical(reviewedChain.slice(0, schemaNames.length));
+  const forwardNames = knownChain ? schemaNames.filter((name) =>
+    name === reviewedChain[1] && schemaVersion < 9
+    || name === reviewedChain[2] && schemaVersion < 10
+    || name === reviewedChain[3] && schemaVersion < 11
+    || name === reviewedChain[4] && schemaVersion < 12
+    || name === reviewedChain[5] && schemaVersion < 13
+    || name === reviewedChain[6] && schemaVersion < 14
+    || name === reviewedChain[7] && schemaVersion < 15
+    || name === reviewedChain[8] && schemaVersion < 16
+    || name === reviewedChain[9] && schemaVersion < 17) : [];
+  return { schemaNames, forwardNames };
+}
+
 // JSZip intentionally accepts duplicate ZIP member names. Reject them before
 // parsing so a shadowed table/manifest cannot silently replace an earlier one.
 function checkZipDirectory(bytes: Buffer) {
@@ -274,22 +295,10 @@ export async function restoreExportToIsolatedDirectory(options: {
     const migrations: Array<{ name: string; sha256: string }> = [];
     // Historical profiles first restore against their exact reviewed physical
     // schema. Only this named chain admits the bounded forward transitions.
-    const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql"];
-    const knownChain = migrationNames.length >= 2 && migrationNames.length <= reviewedChain.length
-      && canonical(migrationNames) === canonical(reviewedChain.slice(0, migrationNames.length));
-    const forwardNames = knownChain ? migrationNames.filter((name) =>
-      name === reviewedChain[1] && manifest.schemaVersion < 9
-      || name === reviewedChain[2] && manifest.schemaVersion < 10
-      || name === reviewedChain[3] && manifest.schemaVersion < 11
-      || name === reviewedChain[4] && manifest.schemaVersion < 12
-      || name === reviewedChain[5] && manifest.schemaVersion < 13
-      || name === reviewedChain[6] && manifest.schemaVersion < 14
-      || name === reviewedChain[7] && manifest.schemaVersion < 15
-      || name === reviewedChain[8] && manifest.schemaVersion < 16
-      || name === reviewedChain[9] && manifest.schemaVersion < 17) : [];
+    const { schemaNames, forwardNames } = planExportRestoreMigrations(migrationNames, manifest.schemaVersion);
     const forwardMigrations: Array<{ name: string; sha256: string; sql: string }> = [];
     const migrationSql: string[] = [];
-    for (const name of migrationNames) {
+    for (const name of schemaNames) {
       const sql = await readFile(join(options.migrationsDirectory, name), "utf8");
       migrations.push({ name, sha256: hash(sql) });
       migrationSql.push(sql);
