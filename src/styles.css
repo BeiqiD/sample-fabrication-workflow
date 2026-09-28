@@ -1159,6 +1159,11 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .metrology-template-row > .template-row-actions { padding: 14px 16px 14px 4px; }
 }
 
+@media (max-width: 900px) {
+  .topbar nav a { width: 40px; padding: 8px 10px; }
+  .nav-link-label { display: none; }
+}
+
 @media (max-width: 720px) {
   .topbar { height: 56px; padding: 0 10px; align-items: center; flex-wrap: nowrap; }
   .topbar-actions { width: auto; gap: 4px; }
@@ -1391,3 +1396,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 
 .page-heading h1 { overflow-wrap: anywhere; }
 .sample-description, .reference-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 360px) {
+  .topbar nav a { width: 36px; padding: 8px; }
+}

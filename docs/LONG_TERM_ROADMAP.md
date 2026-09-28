@@ -3,7 +3,7 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-09-28 — historical evidence review after accepted #229
+Last reviewed: 2026-09-28 — accepted #231–#233 and read-only Storage Settings
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -27,10 +27,14 @@ provider I/O. #228's single-item pilot passed; overlap is retained with conversi
 paused and business authority still on the legacy paths. #229's unaccepted-request
 withdrawal and V16 recovery are deployed and accepted. The
 [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) identifies missing
-facts without approving them. The next implementation adds separately authorized
-adjudication, durable withdrawal, conservative revocation/correction and V17
-recovery. It does not grant an operator or supply historical facts. Catch-up
-remains open; File activation, R2 defaults, basic Settings and FP2 S3 follow.
+facts without approving them. #231 delivered separately authorized adjudication,
+durable withdrawal, conservative revocation/correction and V17 recovery; #232
+and #233 repaired deployment verification and export transport. A real post-fix
+V17 ZIP passed 10/10-file isolated recovery with zero warnings. No operator or
+historical facts were supplied. Catch-up remains open. The already-planned
+[basic read-only Storage Settings](./FP1_STORAGE_SETTINGS.md) proceeds in parallel
+without changing defaults; File activation, R2 role defaults and FP2 S3 retain
+their existing dependencies.
 
 ## Product scale and engineering stance
 
@@ -50,9 +54,9 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP1 current-generation inspection and catch-up | The #228 pilot and #229 withdrawal/V16 recovery passed; conversions are paused at 1 resolved / 10 pending. Read-only historical review identifies attachments and missing facts. Explicit adjudication/revocation with complete recovery is the next write boundary; seven historical references remain blocked. Complete catch-up still needs fresh baselines and verified copying. |
+| Now | FP1 current-generation inspection and catch-up | The #228 pilot and #229 withdrawal/V16 recovery passed; conversions are paused at 1 resolved / 10 pending. Read-only historical review identifies attachments and missing facts. Operator adjudication/revocation and V17 recovery are delivered; seven historical references still require actual facts. Complete catch-up needs fresh baselines and verified copying. Basic read-only Storage Settings can proceed alongside it. |
 | Next | Separate FP1 authority activation | After complete catch-up and invariant qualification, a separate atomic cutover must fence old Workers and switch reads, writes, retention and lifecycle authority together. Recovery starts paused and never automatically replays provider work; compatibility retirement remains later. |
-| Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and basic authenticated Settings; external configuration and S3; persisted bounded jobs and verified migration. |
+| Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and privileged Settings mutations after activation; the read-only status subset may ship earlier. Then external configuration and S3; persisted bounded jobs and verified migration. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
 | Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual cross-deployment non-empty import/restore and runtime validation. |

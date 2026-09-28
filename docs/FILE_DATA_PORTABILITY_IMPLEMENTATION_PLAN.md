@@ -43,13 +43,17 @@ conversions remain paused at 1 resolved / 10 pending. PR #229's immutable
 unaccepted-request withdrawals, forward migration `0009` and matched V16
 export/recovery are deployed and accepted, preserving bindings and legacy business
 authority. PR #230's [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md)
-identifies each attachment and its missing facts. The next implementation adds
-operator-only adjudication, durable withdrawal, conservative revocation and
-correction, immutable conversion bindings and matching `0010`/V17 recovery.
-Qualification/deployment evidence is tracked in its implementation PR. Seven
+identifies each attachment and its missing facts. #231 delivered operator-only
+adjudication, durable withdrawal, conservative revocation/correction, immutable
+conversion bindings and matching `0010`/V17 recovery. #232 and #233 repaired
+deployment verification and File-location export transport; the post-fix actual
+V17 ZIP passed isolated recovery with all 10 blobs and no warnings. Seven
 historical references still need explicit classification/namespace evidence;
 the code does not nominate an operator or approve those records. Neither matching
-bytes nor an unresolved admission completes catch-up.
+bytes nor an unresolved admission completes catch-up. The planned
+[basic Storage Settings](./FP1_STORAGE_SETTINGS.md) status-only subset proceeds
+in parallel: it adds no schema, provider activity or configuration mutation, and
+does not move File activation or R2 role defaults ahead of their gates.
 Catch-up and atomic authority activation remain open; FP1 is incomplete.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
@@ -175,8 +179,11 @@ the milestone does not close while a supported file path bypasses it. FP1 may
 retain a documented compatibility adapter for old locators, with retirement
 criteria and no new legacy-key writers.
 
-FP1 basic Settings shows profiles, configuration source and health under the
-current authenticated boundary. Mutating defaults/configuration is enabled only
+FP1 basic Settings shows profiles and configuration source under the current
+authenticated boundary. Its read-only subset may ship alongside catch-up and
+reports connection health as not checked; configuration matching is not a live
+connection test. Active connection tests and later configuration controls retain
+their own capability and authorization gates. Mutating defaults/configuration is enabled only
 with the minimal server-side administrator checks delivered with or before that
 mutation; FP2 cannot be used to justify an unprotected FP1 write endpoint.
 
@@ -196,6 +203,23 @@ behavior. A single long browser request is not the runner.
 Current export must remain recoverable throughout FP1–FP3; FP5 is the improved
 product recovery experience, not permission to postpone schema export coverage.
 Existing complete archives and their isolated restore fixtures remain supported.
+
+### Accepted ZIP and validation cadence
+
+The owner-supplied `sample-log-2026-09-28(1).zip`, exported at
+`2026-09-28T19:02:40.879Z`, closes actual V17 recovery acceptance after #233.
+SHA-256: `9751370e5945e5dae02e8b04871269c5821520933d0544289b6e84246c18756a`.
+Isolated S2 recovery restored 72 canonical base tables / 245 rows, rebuilt derived
+state into 75 tables, reinstalled 618 triggers, and recovered all 10 blobs with
+zero warnings. Rows, schema, foreign keys, integrity and byte hashes passed.
+Recovery stayed paused, performed no provider I/O and activated no authority.
+
+Per the owner's 2026-09-28 direction, do not repeat routine live ZIP generation,
+download and isolated restore for unrelated feature work. Repeat that rehearsal
+only when a major underlying change to canonical persistence, file addressing,
+archive format or recovery semantics invalidates this evidence, or when an
+actual export failure needs investigation. Retain affected automated checks and
+required CI; this changes manual acceptance cadence, not data-integrity checks.
 
 ## Compatibility matrix
 
@@ -372,8 +396,10 @@ preflight and protocol qualification checkpoint; complete shadow writing,
 resolution and ledgered catch-up with successor archive recovery; separately
 reviewed atomic consumer/lifecycle
 activation (including the FP1b reader, FP1c verified-write and FP1d
-fenced-deletion precursors); then deployment defaults, readiness and basic
-Settings acceptance. These are review boundaries within FP1, not independently
+fenced-deletion precursors); then deployment defaults and complete storage
+readiness. Basic authenticated, read-only Settings may proceed in parallel with
+catch-up; privileged configuration stays behind its authorization gates. These
+are review boundaries within FP1, not independently
 completed product milestones.
 Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
 FP4 graph import into the first schema PR. Before FP3 implementation, record a
@@ -394,8 +420,9 @@ baseline, acquire durable holds, record every resolution outcome and independent
 verify source/destination bytes; purpose conflicts require separate verified
 placements rather than cross-purpose aliasing. Only after complete shadow catch-up
 may a separate atomic activation make File-aware retention, deduplication,
-quarantine and recovery authoritative together. R2 defaults and basic Settings
-follow that conversion.
+quarantine and recovery authoritative together. R2 role defaults follow that
+conversion. The read-only Settings status surface may ship earlier without
+changing that authority or any write policy.
 
 ### Bootstrap, configuration authority and health
 

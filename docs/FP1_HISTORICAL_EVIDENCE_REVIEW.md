@@ -1,14 +1,16 @@
 # Historical File evidence review
 
-Status: read-only review accepted in PR #230; the next implementation adds
-operator adjudication, withdrawal, conservative revocation/correction and V17
-recovery. Its verification and deployment evidence belongs to its implementation
-PR. Implementation alone does not resolve any historical evidence gap.
+Status: read-only review accepted in PR #230; operator adjudication, withdrawal,
+conservative revocation/correction and V17 recovery delivered in #231, with
+deployment/export fixes accepted through #233. Actual post-fix V17 recovery
+passed with 10/10 files and zero warnings. Implementation alone does not resolve
+any historical evidence gap; no operator has been granted or historical fact
+inferred by these changes.
 
 ## Why this boundary exists
 
-The single-item R2 pilot and unaccepted-request withdrawal are accepted. The last
-deployed observation after #229 was **overlap, paused, 11 current references,
+The single-item R2 pilot and unaccepted-request withdrawal are accepted. The latest
+accepted deployed observation after #233 remains **overlap, paused, 11 current references,
 1 resolved, 10 pending, 0 admitted unresolved and 0 unfinished attempts**.
 
 Seven historical Project references still lack both semantic-purpose and original
@@ -235,8 +237,11 @@ cannot recreate later operator decisions or prove later requests never existed.
   those facts. An unknown item stays blocked rather than being auto-approved.
 
 After that boundary, verified catch-up and invariant qualification still precede
-the separately reviewed atomic File authority activation. R2 defaults and basic
-Settings finish FP1; external S3 configuration remains FP2.
+the separately reviewed atomic File authority activation. R2 role defaults and
+privileged configuration remain after that gate. The planned
+[basic read-only Storage Settings](./FP1_STORAGE_SETTINGS.md) can proceed in
+parallel without classifying historical files, performing provider I/O or
+changing defaults. External S3 configuration remains FP2.
 
 The activation review must also include `file_shadow_retention_namespaces` when
 checking retained legacy business roots before location deletion. This overlay

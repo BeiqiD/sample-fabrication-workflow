@@ -16,12 +16,15 @@ import { authenticateApiRequest, handleError, routes as platformRoutes } from ".
 import { shadowRoutes } from "./files/shadow-routes";
 import { fileEvidenceAccessRoutes } from "./files/evidence-operator";
 import { shadowAdjudicationRoutes } from "./files/shadow-adjudication-routes";
+import { storageSettingsCacheControl, storageSettingsRoutes } from "./storage/routes";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
 
 app.onError(handleError);
+app.use("/settings/storage", storageSettingsCacheControl);
 app.use("*", authenticateApiRequest);
 app.route("/", platformRoutes);
+app.route("/", storageSettingsRoutes);
 
 app.route("/", commentSubmissionRoutes);
 app.route("/", projectFoundationRoutes);
