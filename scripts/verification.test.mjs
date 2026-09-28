@@ -1,9 +1,47 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { nativeTestArguments } from "./run-native-tests.mjs";
 import { contextOutcome, executeVerification, verificationPlan } from "./verification-plan.mjs";
 
 const { scripts } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+test("native qualification uses both CPUs only on two-CPU builders and preserves explicit files", () => {
+  const files = ["first test.mjs", "second.test.mjs"];
+  assert.deepEqual(nativeTestArguments(files, 2), ["--test", "--test-concurrency=2", ...files]);
+  for (const cpus of [1, 4, 8]) assert.deepEqual(nativeTestArguments(files, cpus), ["--test", ...files]);
+});
+
+test("native runner executes every selected file in isolation and propagates failures", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "native-runner-"));
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const run = (files) => spawnSync(process.execPath,
+    [fileURLToPath(new URL("./run-native-tests.mjs", import.meta.url)), ...files],
+    { env, encoding: "utf8", timeout: 10_000 });
+  try {
+    const files = [join(directory, "first test.mjs"), join(directory, "second.test.mjs")];
+    for (const [index, file] of files.entries()) await writeFile(file, `
+      import assert from 'node:assert/strict';
+      import { test } from 'node:test';
+      test('isolated fixture ${index}', () => {
+        assert.equal(globalThis.nativeRunnerFixture, undefined);
+        globalThis.nativeRunnerFixture = true;
+      });
+    `);
+    const passed = run(files);
+    assert.equal(passed.status, 0, passed.stderr + passed.stdout);
+    for (const index of [0, 1]) assert.match(passed.stdout, new RegExp('isolated fixture ' + index));
+    await writeFile(files[1], `import { test } from 'node:test'; test('expected failure', () => { throw new Error('runner failure fixture'); });`);
+    const failed = run(files);
+    assert.equal(failed.status, 1, failed.stderr + failed.stdout);
+    assert.match(failed.stdout, /runner failure fixture/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 
 test("CI and deployment cover the same unique leaves; only deployment build uses remote configuration", () => {
   const ci = verificationPlan("ci");
