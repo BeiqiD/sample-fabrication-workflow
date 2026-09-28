@@ -17,7 +17,10 @@ import {
   isUpdateProjectPlacementInput,
 } from "../shared/project-api";
 import { isCopyAttachmentProjectItemInput } from "../shared/project-copy-paste-api";
+import type { FilePurpose } from "../shared/contracts/files";
 import { getBlob } from "./blob-lifecycle/storage";
+import { primaryD1 } from "./d1-primary";
+import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import { safeMediaResponseHeaders } from "./media-response";
 import { copyAttachmentProjectItem } from "./projects/attachment-copy";
 import {
@@ -311,6 +314,29 @@ routes.patch("/projects/:projectId/contents/:contentId/attachment", async (c) =>
 routes.get("/projects/:projectId/contents/:contentId/file", async (c) => {
   const projectId = requireRouteId(c.req.param("projectId"), "Project");
   const contentId = requireRouteId(c.req.param("contentId"), "Project content");
+  const mode = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "Project attachment storage is unavailable" });
+  });
+  if (mode === "active") {
+    const source = await primaryD1(c.env.DB).prepare(`
+      SELECT pca.file_id, pca.original_name, pca.mime_type, fp.purpose
+      FROM project_content_attachments pca
+      JOIN file_publications fp ON fp.file_id=pca.file_id
+      JOIN project_contents pc ON pc.id=pca.project_content_id AND pc.content_type='attachment'
+      JOIN projects p ON p.id=pc.project_id
+      WHERE pc.id=? AND pc.project_id=? AND pc.deleted_at IS NULL AND p.deleted_at IS NULL
+        AND EXISTS (SELECT 1 FROM project_items pi WHERE pi.project_content_id=pc.id
+          AND pi.project_id=p.id AND pi.deleted_at IS NULL)
+    `).bind(contentId, projectId).first<{ file_id: string; original_name: string; mime_type: string; purpose: FilePurpose }>();
+    if (!source) throw new HTTPException(404, { message: "Project attachment not found" });
+    const blob = await readPublishedFile(c.env, { fileId: source.file_id, purpose: source.purpose });
+    if (blob.outcome === "missing") throw new HTTPException(404, { message: "Project attachment bytes are unavailable" });
+    if (blob.outcome !== "available") throw new HTTPException(503, { message: "Project attachment storage is unavailable" });
+    return new Response(blob.body, { headers: safeMediaResponseHeaders({
+      mimeType: source.mime_type || blob.contentType,
+      filename: source.original_name, cacheControl: "private, no-store", etag: blob.etag,
+    }) });
+  }
   const visibleOccurrence = await c.env.DB.prepare(`
     SELECT 1 AS visible
     FROM project_items pi

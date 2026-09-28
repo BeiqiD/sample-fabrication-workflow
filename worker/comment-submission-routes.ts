@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { managedStorageStatus } from "./managed-storage";
 import { getBlob } from "./blob-lifecycle/storage";
+import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import {
   listItemBlobLocators,
   markOrphanCandidate,
@@ -750,6 +751,29 @@ routes.get("/exports/attachments/:itemId", async (c) => {
 
 routes.get("/attachments/:itemId/download", async (c) => {
   const itemId = c.req.param("itemId");
+  const mode = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  });
+  if (mode === "active") {
+    const row = await c.env.DB.prepare(`
+      SELECT csi.file_id, csi.filename, csi.mime_type
+      FROM comment_submission_items csi
+      JOIN comment_submissions cs ON cs.id=csi.submission_id AND cs.status='ready' AND cs.deleted_at IS NULL
+      WHERE csi.id=? AND csi.kind='attachment' AND csi.status='ready' AND csi.deleted_at IS NULL
+        AND ${readableSubmissionTargetsSql("cs")}
+    `).bind(itemId).first<{ file_id: string | null; filename: string; mime_type: string }>();
+    if (!row) throw new HTTPException(404, { message: "Attachment not found" });
+    const object = await readPublishedFile(c.env, { fileId: row.file_id, purpose: "research_source" });
+    if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
+    if (object.outcome !== "available") throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+    const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+    return new Response(object.body, { headers: {
+      "content-type": object.contentType || row.mime_type,
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+      "cache-control": "private, no-store", "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    } });
+  }
   const row = await c.env.DB.prepare(
     `SELECT csi.filename, mso.provider, mso.object_key, mso.mime_type
      FROM comment_submission_items csi
