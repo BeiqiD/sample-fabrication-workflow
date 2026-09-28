@@ -110,6 +110,33 @@ function candidateStatement(db: D1Database, owner: AuthorityCandidateOwner) {
     WHERE acceptance_kind=? AND acceptance_id=? AND item_id=?`)
     .bind(owner.kind, owner.acceptanceId, owner.itemId ?? "");
 }
+
+/** Execute before provider I/O and again at the start of the publication batch.
+ * This checks the original owner's receipt, not a new execution lease. */
+export function authorityCandidatePublicationFence(database: D1Database, input: AuthorityCandidateOwner,
+  candidate: StagedAuthorityCandidate): D1PreparedStatement {
+  const owner = checkedOwner(input);
+  if (candidate.state !== "staged" || candidate.operationId !== owner.operationId
+    || candidate.acceptance.kind !== owner.kind || candidate.acceptance.id !== owner.acceptanceId
+    || candidate.acceptance.itemId !== (owner.itemId ?? "")) throw new AuthorityCandidateUnavailableError();
+  // Expiry is checked by the database when the statement executes, including
+  // when the returned statement is later included in the business batch.
+  const receipt = receiptSql(owner).replaceAll("?4", "strftime('%Y-%m-%dT%H:%M:%fZ','now')");
+  return database.prepare(`SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM (${receipt}) r JOIN file_acceptance_candidates c
+      ON c.purpose=r.purpose AND c.access_scope=r.access_scope AND c.storage_profile_id=r.storage_profile_id
+      AND c.expected_byte_size=r.expected_byte_size AND c.expected_sha256=r.expected_sha256
+      AND (r.candidate_object_key IS NULL OR c.candidate_object_key=r.candidate_object_key)
+    JOIN file_authority_control a ON a.singleton=1 AND a.mode='active'
+    WHERE c.acceptance_kind=? AND c.acceptance_id=? AND c.item_id=? AND c.state='candidate'
+      AND c.candidate_file_id=? AND c.candidate_location_id=? AND c.candidate_object_key=?
+      AND c.purpose=? AND c.access_scope=? AND c.storage_profile_id=? AND r.configuration_revision=?
+      AND c.expected_byte_size=? AND c.expected_sha256=?
+  ) THEN 1 ELSE json('Accepted File publication ownership changed') END`)
+    .bind(...receiptBindings(owner, ""), owner.kind, owner.acceptanceId, owner.itemId ?? "",
+      candidate.fileId, candidate.locationId, candidate.objectKey, candidate.purpose, candidate.accessScope,
+      candidate.profile.profileId, candidate.profile.configurationRevision, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256);
+}
 function staged(owner: AuthorityCandidateOwner, receipt: Receipt, candidate: Candidate | null | undefined): StagedAuthorityCandidate {
   if (!candidate || candidate.state !== "candidate" || candidate.purpose !== receipt.purpose || candidate.access_scope !== receipt.access_scope
     || candidate.storage_profile_id !== receipt.storage_profile_id || candidate.expected_byte_size !== receipt.expected_byte_size
