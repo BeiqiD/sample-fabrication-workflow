@@ -406,9 +406,24 @@ describe("File shadow pilot explicit command and recovery boundaries", () => {
     expect(JSON.parse(localStorage.getItem(journalKey)!).request).toEqual(original);
     expect(screen.queryByRole("button", { name: "Close unaccepted request" })).toBeNull();
     expect(writes().map(({ path }) => path)).toEqual(["/api/files/shadow/convert", "/api/files/shadow/withdraw"]);
+    // Dismissal revalidates the durable request with native Web Crypto. React
+    // act alone does not await that work; keep it pending until explicitly released.
+    const digestReady = pending<void>();
+    const nativeDigest = crypto.subtle.digest.bind(crypto.subtle);
+    const digest = vi.spyOn(crypto.subtle, "digest").mockImplementationOnce(async (...args) => {
+      const result = await nativeDigest(...args);
+      await digestReady.promise;
+      return result;
+    });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Dismiss completed operation" })); });
-    expect(localStorage.getItem(journalKey)).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Saved operation" })).toBeNull();
+    expect(digest).toHaveBeenCalledOnce();
+    expect(JSON.parse(localStorage.getItem(journalKey)!).receipt.status).toBe("withdrawn");
+    expect((screen.getByRole("button", { name: "Dismiss completed operation" }) as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => { digestReady.resolve(); });
+    await waitFor(() => {
+      expect(localStorage.getItem(journalKey)).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Saved operation" })).toBeNull();
+    });
   });
 
   it("keeps an accepted operation when the server cannot withdraw its request", async () => {
