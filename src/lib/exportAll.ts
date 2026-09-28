@@ -1,5 +1,5 @@
 import type JSZip from "jszip";
-import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16 } from "../../shared/contracts/export-protocol";
+import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17 } from "../../shared/contracts/export-protocol";
 import type { FullExportBlobEntryV15 } from "../../shared/contracts/export";
 import type {
   BlobExportOutcome,
@@ -157,7 +157,7 @@ export async function buildFullExportArchive(
 }
 
 async function buildVersionedFullExportArchive(
-  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16,
+  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17,
   input: unknown,
   onProgress?: (completed: number, total: number) => void,
   fetcher: typeof fetch = fetch,
@@ -169,7 +169,7 @@ async function buildVersionedFullExportArchive(
           : version === 12 ? await validateFullExportV12(input)
             : version === 13 ? await validateFullExportV13(input)
               : version === 14 ? await validateFullExportV14(input)
-                : version === 15 ? await validateFullExportV15(input) : await validateFullExportV16(input);
+                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : await validateFullExportV17(input);
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = new Set(["export-manifest.json", "export-warnings.json"]);
@@ -244,6 +244,10 @@ export function buildFullExportArchiveV16(input: unknown, onProgress?: (complete
 
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const result = await buildFullExportArchiveV16(manifest, onProgress);
+  const result = await buildFullExportArchiveV17(manifest, onProgress);
   return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
+}
+
+export function buildFullExportArchiveV17(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(17, input, onProgress, fetcher);
 }

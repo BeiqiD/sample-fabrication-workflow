@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FileShadowEvidenceReview, FileShadowReviewKey } from "../../shared/contracts/file-shadow-evidence-review";
 import { createFileShadowEvidenceClient, type EvidenceConsumerPage } from "../lib/file-shadow-evidence-client";
+import { FileEvidenceAdjudication } from "./FileEvidenceAdjudication";
 import "./file-evidence.css";
 
 const identity = (key: FileShadowReviewKey) => JSON.stringify(key);
@@ -66,9 +67,9 @@ export function FileEvidencePage() {
   const records = page?.records.filter(({ key }) => key.consumerKind === "project_content_attachment" && key.fileSlot === "primary") ?? [];
   return <div className="page file-evidence-page">
     <nav className="evidence-links" aria-label="File maintenance"><a className="back-link" href="/export">← Export</a><a href="/maintenance/file-shadow">File shadow pilot</a></nav>
-    <div className="page-heading"><div><p className="eyebrow">Maintenance · Read only</p><h1>Historical file evidence</h1>
+    <div className="page-heading"><div><p className="eyebrow">Maintenance · Evidence review</p><h1>Historical file evidence</h1>
       <p className="lead">Review the recorded identity of a Project attachment and identify the information needed to resolve its history.</p></div></div>
-    <p className="muted evidence-intro">This review reads database metadata. It does not verify stored bytes or record a classification. Each selected reference is read afresh.</p>
+    <p className="muted evidence-intro">Inspect recorded metadata and review each reference afresh. Reading evidence does not verify stored bytes or record a classification. Operators can record a separate decision below.</p>
 
     <div className="evidence-workspace">
       <section className="card evidence-panel" aria-labelledby="evidence-list-title">
@@ -129,6 +130,8 @@ export function FileEvidencePage() {
         </>}
       </section>
     </div>
+
+    <FileEvidenceAdjudication selected={evidence?.key ?? null} />
 
     <section className="card evidence-panel evidence-guidance" aria-labelledby="evidence-guidance-title"><h2 id="evidence-guidance-title" className="card-title">Information to gather</h2>
       <div><h3>Intended use of this reference</h3><p>Locate the original upload or acceptance record, or a contemporaneous note explaining how this attachment was intended to be used. A new decision about its purpose must be recorded separately from historical evidence.</p></div>

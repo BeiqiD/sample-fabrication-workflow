@@ -14,6 +14,11 @@ function ensure(value: unknown, reason: string): asserts value {
 export async function validateFileShadowWithdrawalExport(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids) {
   ensure(await fileShadowSchemaFingerprint(schemaObjects) === FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, "schema fingerprint");
   await validateFileShadowRows(tables, schemaObjects, sourceRowids);
+  await validateFileShadowWithdrawalRows(tables, schemaObjects);
+}
+
+/** Shared rows only: callers must authenticate their own exact schema checkpoint. */
+export async function validateFileShadowWithdrawalRows(tables: ExportTables, schemaObjects: ExportSchemaObject[]) {
   for (const [name, columns] of Object.entries(FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS)) {
     const schema = schemaObjects.find((entry) => entry.type === "table" && entry.name === name);
     ensure(schema && typeof schema.sql === "string" && stableJson(sqliteTableColumns(schema.sql, name).sort()) === stableJson([...columns].sort()), "schema columns");

@@ -42,12 +42,14 @@ durable saved-operation recovery. PR #228's single-item live pilot passed and
 conversions remain paused at 1 resolved / 10 pending. PR #229's immutable
 unaccepted-request withdrawals, forward migration `0009` and matched V16
 export/recovery are deployed and accepted, preserving bindings and legacy business
-authority. [Read-only historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md)
-now defines the identification workflow and the next adjudication/revocation write
-boundary. It adds no migration or approval. Seven historical references remain
-blocked pending explicit intent/namespace evidence and the matching native
-guards/recovery protocol; neither matching bytes nor an unresolved admission
-completes catch-up.
+authority. PR #230's [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md)
+identifies each attachment and its missing facts. The next implementation adds
+operator-only adjudication, durable withdrawal, conservative revocation and
+correction, immutable conversion bindings and matching `0010`/V17 recovery.
+Qualification/deployment evidence is tracked in its implementation PR. Seven
+historical references still need explicit classification/namespace evidence;
+the code does not nominate an operator or approve those records. Neither matching
+bytes nor an unresolved admission completes catch-up.
 Catch-up and atomic authority activation remain open; FP1 is incomplete.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at

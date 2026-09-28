@@ -163,10 +163,22 @@ function parseBaseline(value: unknown, requested: ShadowConsumerKey): PilotBasel
       const profileId = string(frozen.profileId);
       if (profileId.includes("\0") || frozen.configurationRevision !== 1) fail();
       const matches = record.profiles.map(object).filter((entry) => entry.id === profileId && entry.configuration_revision === 1);
-      if (matches.length !== 1) fail();
-      const profile = matches[0];
-      if (provider === "r2" && profile.adapter_type !== "r2") fail();
-      sourceProfile = { profileId, configurationRevision: 1, runtimeState: choice(profile.runtime_state, ["read_only", "read_write", "retired"] as const) };
+      if (matches.length === 1) {
+        const profile = matches[0];
+        if (provider === "r2" && profile.adapter_type !== "r2") fail();
+        sourceProfile = { profileId, configurationRevision: 1, runtimeState: choice(profile.runtime_state, ["read_only", "read_write", "retired"] as const) };
+      } else {
+        // V17 keeps legacy record.profiles unchanged. An occurrence-scoped
+        // adjudication can establish the missing profile separately, with its
+        // runtime state captured in that same primary baseline snapshot.
+        if (matches.length !== 0 || record.profiles.length !== 0 || provider !== "r2" || !head?.present || raw.adjudication == null) fail();
+        const evidence = object(raw.adjudication), profile = object(evidence.sourceProfile), source = object(raw.head);
+        uuid(evidence.requestId); sha(evidence.requestSha256); sha(evidence.sourceSha256);
+        if (evidence.sourceSha256 !== source.source_sha256 || evidence.purpose !== purpose
+          || profile.profileId !== profileId || profile.configurationRevision !== 1) fail();
+        sourceProfile = { profileId, configurationRevision: 1,
+          runtimeState: choice(evidence.sourceProfileRuntimeState, ["read_only", "read_write", "retired"] as const) };
+      }
     }
   }
   if (raw.decision !== null && status !== "resolved" && status !== "admitted_unresolved") fail();

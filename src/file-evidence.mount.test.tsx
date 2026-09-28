@@ -27,7 +27,8 @@ beforeEach(() => {
   network.mockImplementation(async (input, init) => {
     const path = new URL(String(input), "https://app.example").pathname;
     let value: unknown;
-    if (path === "/api/files/shadow/consumers" && init?.method === undefined) value = await listHandler();
+    if (path === "/api/files/shadow/evidence/capabilities") value = { canAdjudicate: false };
+    else if (path === "/api/files/shadow/consumers" && init?.method === undefined) value = await listHandler();
     else if (path === "/api/files/shadow/evidence-review" && init?.method === "POST") value = await reviewHandler(JSON.parse(String(init.body)).key.consumerId);
     else throw new Error(`Unexpected endpoint ${path}`);
     return value instanceof Response ? value : json(value);
@@ -43,20 +44,20 @@ async function mount(strict = false) {
 async function inspect(id = "reference-a") { await act(async () => { fireEvent.click(screen.getByRole("button", { name: inspectName(id) })); }); }
 
 describe("historical file evidence page", () => {
-  it("reads only the list on StrictMode mount and never accesses the conversion journal", async () => {
+  it("reads only the list and operator capability on StrictMode mount and never accesses the conversion journal", async () => {
     const journal = "preserved unknown operation";
     localStorage.setItem("file-shadow-pilot-operation-v1", journal);
     const get = vi.spyOn(Storage.prototype, "getItem");
     const set = vi.spyOn(Storage.prototype, "setItem");
     const remove = vi.spyOn(Storage.prototype, "removeItem");
     await mount(true);
-    expect(network.mock.calls.every(([path]) => String(path).startsWith("/api/files/shadow/consumers?"))).toBe(true);
+    expect(network.mock.calls.every(([path]) => (String(path).startsWith("/api/files/shadow/consumers?") || String(path).endsWith("/evidence/capabilities")))).toBe(true);
     expect(screen.queryByRole("button", { name: /other-kind/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /convert|pause|resume|save|admit|withdraw/i })).toBeNull();
     await inspect();
     expect(get).not.toHaveBeenCalled(); expect(set).not.toHaveBeenCalled(); expect(remove).not.toHaveBeenCalled();
     expect(localStorage.getItem("file-shadow-pilot-operation-v1")).toBe(journal);
-    expect(network.mock.calls.every(([path]) => /\/api\/files\/shadow\/(consumers\?|evidence-review$)/.test(String(path)))).toBe(true);
+    expect(network.mock.calls.every(([path]) => /\/api\/files\/shadow\/(consumers\?|evidence-review$|evidence\/capabilities$)/.test(String(path)))).toBe(true);
   });
 
   it("shows fresh labels, human evidence gaps and recorded expectations without treating them as verified bytes", async () => {
@@ -123,12 +124,12 @@ describe("historical file evidence page", () => {
     listHandler = () => ({ records: rows, nextCursor: { ...key("other-19"), consumerKind: "comment_submission_item" } });
     render(<FileEvidencePage />);
     await screen.findByText("No Project attachments on this page. Continue to the next page.");
-    expect(network).toHaveBeenCalledTimes(1);
+    expect(network.mock.calls.filter(([path]) => String(path).includes("/consumers?"))).toHaveLength(1);
     listHandler = () => ({ records: [row()], nextCursor: null });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Next page" })); });
     expect(screen.getByRole("button", { name: inspectName() })).toBeTruthy();
-    expect(network.mock.calls.every(([path]) => String(path).includes("/consumers?"))).toBe(true);
-    expect(String(network.mock.calls[1][0])).toContain("after=");
+    expect(network.mock.calls.every(([path]) => String(path).includes("/consumers?") || String(path).endsWith("/evidence/capabilities"))).toBe(true);
+    expect(String(network.mock.calls.filter(([path]) => String(path).includes("/consumers?"))[1][0])).toContain("after=");
   });
 
   it("clears old evidence on read error and renders only a fixed error", async () => {

@@ -1,11 +1,18 @@
 # Isolated complete-export recovery rehearsal
 
-Current generation: **V16**, writer **1**, profile `fp1-shadow-withdrawals`.
+Current generation: **V17**, writer **1**, profile `fp1-shadow-adjudications`.
 See [shadow runtime recovery](./FP1_SHADOW_RUNTIME.md#v15-backup-and-recovery)
 for profile-qualified File bytes, portable source-rowid evidence, canonical
 conversion history and the mandatory paused execution state after restore.
 V16 additionally preserves the immutable unaccepted-request withdrawal ledger
 from migration `0009`, including exact request digests and operation-ID exclusion.
+V17 adds exact-occurrence operator adjudications, durable withdrawals, append-only
+revocations/correction chains and immutable operation-to-adjudication bindings.
+Validation checks canonical requests and digests against retained historical
+occurrences, profile identities and byte expectations. Native recovery preserves
+those histories and reinstalls their guards; it starts paused and neither selects
+an operator nor approves/converts any reference. Earlier archives forward-recover
+with empty new ledgers, without inventing later decisions.
 V7–V15 validation below remains specific to those historical generations.
 
 
@@ -90,7 +97,7 @@ npm run verify:export-restore -- --archive /path/to/backup.zip --destination /pa
 The destination must not exist, including as an empty directory or symlink.
 There is no overwrite, force or remote option. The current repository's SQL
 migrations provide the schema; the archive cannot supply executable SQL.
-V8 through V16 require an explicit `--target-schema S0|S1|S2`; the recorded original
+V8 through V17 require an explicit `--target-schema S0|S1|S2`; the recorded original
 rehearsals below target S0. S2 is now the active integration schema, as recorded
 in the [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md).
 Offline qualification can select an independently reviewed migration
