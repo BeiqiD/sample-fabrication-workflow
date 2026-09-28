@@ -39,7 +39,8 @@ holds, exact catch-up checkpoints and V15 recovery. It requires explicit overlap
 enablement and retains legacy business authority. The separate V15 closed-snapshot
 inspector explains current-generation blockers without executing conversion.
 The bounded maintenance client exposes explicit single-item R2 conversion and
-saved-operation recovery through the deployed protocol. PR #228's live single-item pilot passed and conversions are paused at 1 resolved / 10 pending.
+saved-operation recovery through the deployed protocol. PR #228's live single-item pilot passed. On 2026-09-28, three more accepted
+references were converted through the deployed flow, reaching 4 resolved / 7 pending.
 PR #229's durable unaccepted-request withdrawal, migration `0009` and matched
 V16 export/recovery are deployed and accepted. Browser withdrawal/readback/reload
 passed without an additional successful conversion. PR #230's
@@ -50,11 +51,14 @@ recovery. #232 repaired deployment verification; #233 repaired File-location
 export transport. The owner-supplied post-fix V17 ZIP passed isolated recovery
 with 10/10 files and zero warnings on 2026-09-28. This closes that archive
 acceptance; routine feature changes do not require another live ZIP rehearsal.
-Seven historical references still need actual classification/namespace evidence;
-installing the mechanism does not approve them or configure an operator.
-The [basic Storage Settings](./FP1_STORAGE_SETTINGS.md) read-only surface can
-proceed in parallel with that evidence work. It shows deployment configuration
-and registered profiles, without changing destinations or checking providers.
+The owner authorized permanent disposal of the six obsolete FP1b–FP1g test
+Projects containing those seven pending references. Migration `0011` removes
+only that trashed Project graph, records absence through the existing shadow
+triggers and preserves the physical schema, shared assets and audit history.
+Its deployment and a fresh catch-up checkpoint replace further historical
+evidence work for these discarded fixtures. The [basic Storage Settings](./FP1_STORAGE_SETTINGS.md)
+read-only surface shipped in #234; it shows deployment configuration and
+registered profiles without changing destinations or checking providers.
 Complete catch-up and atomic cutover still precede File-authoritative defaults
 and configuration writes; archive or Settings acceptance does not replace them.
 FP1 is still in progress and no deployment is authorized by this document.
@@ -932,17 +936,20 @@ Project-owned Markdown or attachment content only through explicit user action.
    runtime authority remains in force. An epoch-fenced checkpoint reports catch-up;
    recovery preserves evidence and starts paused. The actual V15 ZIP/restore gap
    is closed; live replay/stale-version and provider-specific gaps remain explicit.
-   The synthetic single-item R2 pilot passed in #228 and remains paused. Durable
+   The synthetic R2 pilot passed in #228; #234 records three further successful
+   conversions. The owner authorized disposal of the remaining six old test
+   Projects through data-only migration `0011`; record a fresh checkpoint after
+   deployment. Durable
    unaccepted-request withdrawal and V16 recovery passed in #229. Use the
    [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) to identify
    missing facts. Explicit adjudication with correction/revocation, native
    admission/retention fencing and V17 recovery are delivered in #231–#233;
-   applying evidence still requires real facts and an explicitly configured
-   operator. Basic read-only [Storage Settings](./FP1_STORAGE_SETTINGS.md) is
+   applying evidence to any retained ambiguous occurrence still requires real
+   facts and an explicitly configured operator. Basic read-only [Storage Settings](./FP1_STORAGE_SETTINGS.md) is
    delivered in parallel. Configuration writes and role defaults retain their
    later gates; this does not reopen general frontend refinement.
-3. Only after complete catch-up and invariant qualification, propose a separately
-   reviewed **atomic authority activation** that fences old Workers and switches
+3. Only after complete catch-up and invariant qualification, implement a separately
+   reviewed **File runtime and atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
    recovery together. Compatibility retirement remains a later explicit step.
 4. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
