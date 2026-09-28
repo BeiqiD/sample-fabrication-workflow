@@ -39,11 +39,15 @@ are now merged; `0008` and V15 are deployed through #227 (`f0c6367`). An actual
 inspector explains pending-generation blockers while the V14 CLI stays frozen.
 The bounded maintenance client adds explicit single-item R2 pilot commands and
 durable saved-operation recovery. PR #228's single-item live pilot passed and
-conversions remain paused at 1 resolved / 10 pending. The next bounded protocol
-slice adds immutable unaccepted-request withdrawals with forward migration `0009`
-and matched V16 export/recovery, preserving bindings and legacy business authority. Seven
-historical references remain blocked pending separately reviewed intent/namespace
-evidence; neither matching bytes nor an unresolved admission completes catch-up.
+conversions remain paused at 1 resolved / 10 pending. PR #229's immutable
+unaccepted-request withdrawals, forward migration `0009` and matched V16
+export/recovery are deployed and accepted, preserving bindings and legacy business
+authority. [Read-only historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md)
+now defines the identification workflow and the next adjudication/revocation write
+boundary. It adds no migration or approval. Seven historical references remain
+blocked pending explicit intent/namespace evidence and the matching native
+guards/recovery protocol; neither matching bytes nor an unresolved admission
+completes catch-up.
 Catch-up and atomic authority activation remain open; FP1 is incomplete.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at

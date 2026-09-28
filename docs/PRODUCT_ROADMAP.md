@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-28 for durable unaccepted-request withdrawal after #228;
-accepted integration head is `9ca6b58`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-28 for historical evidence review after #229;
+accepted integration head is `4b4eb40`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -40,9 +40,14 @@ enablement and retains legacy business authority. The separate V15 closed-snapsh
 inspector explains current-generation blockers without executing conversion.
 The bounded maintenance client exposes explicit single-item R2 conversion and
 saved-operation recovery through the deployed protocol. PR #228's live single-item pilot passed and conversions are paused at 1 resolved / 10 pending.
-The next bounded slice adds durable withdrawal for an unaccepted request, migration
-`0009` and matched V16 export/recovery. Seven historical references still lack
-intent/namespace evidence and must not be inferred into eligibility.
+PR #229's durable unaccepted-request withdrawal, migration `0009` and matched
+V16 export/recovery are deployed and accepted. Browser withdrawal/readback/reload
+passed without an additional successful conversion. The next bounded workflow is
+[read-only historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md): identify
+attachments and their separate missing facts, then implement the reviewed
+adjudication, withdrawal/revocation and recovery protocol. Seven historical
+references still lack intent/namespace evidence and must not be inferred into
+eligibility. A read-only review does not resolve them or add a database migration.
 Complete catch-up and final cutover remain separate from archive acceptance.
 FP1 is still in progress and no deployment is authorized by this document.
 
@@ -919,9 +924,12 @@ Project-owned Markdown or attachment content only through explicit user action.
    runtime authority remains in force. An epoch-fenced checkpoint reports catch-up;
    recovery preserves evidence and starts paused. The actual V15 ZIP/restore gap
    is closed; live replay/stale-version and provider-specific gaps remain explicit.
-   The synthetic single-item R2 pilot passed in #228 and remains paused. Qualify
-   durable unaccepted-request withdrawal and V16 recovery before further catch-up;
-   then separately review the historical evidence/adjudication boundary. This
+   The synthetic single-item R2 pilot passed in #228 and remains paused. Durable
+   unaccepted-request withdrawal and V16 recovery passed in #229. Use the
+   [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) to identify
+   missing facts, then implement explicit adjudication with correction/revocation,
+   native admission/retention fencing and complete versioned recovery before
+   applying real operator evidence. This
    capability work does not reopen general frontend refinement or advance
    Settings/default configuration.
 3. Only after complete catch-up and invariant qualification, propose a separately

@@ -78,5 +78,6 @@ export function ExportPage() {
       {error && <p className="error-banner" role="alert">{error}</p>}
     </section>
     <p className="muted"><a href="/maintenance/file-shadow">File shadow maintenance</a> · Inspect references and run a reviewed conversion pilot.</p>
+    <p className="muted"><a href="/maintenance/file-evidence">Historical file evidence</a> · Review Project attachment history and missing evidence.</p>
   </div>;
 }

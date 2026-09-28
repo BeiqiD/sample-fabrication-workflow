@@ -397,3 +397,21 @@ never replays a request. Older archives retain their original versioned validati
 forward migration cannot invent withdrawals absent from that older snapshot. An
 older backup is therefore not evidence that a later request was never accepted.
 Exact-head automated and deployed acceptance for this slice is recorded in its PR.
+
+## Accepted withdrawal and historical evidence review
+
+PR #229 merged as `4b4eb40cd49013e48741b1f86ab7d154c9532ac8` and deployed as
+Worker `e89f7a61-8463-4f25-b566-b16676146d59`. The live UI retained a rejected
+request and its absent receipt, then closed it explicitly while paused. Independent
+receipt inspection and reload retained **Closed before acceptance**. The original
+Project remained saved and its 157-byte attachment matched the prior SHA-256.
+Final counts remained **11 / 1 / 10 / 0 / 0** (current / resolved / pending /
+admitted unresolved / unfinished), with overlap and pause retained. No additional
+successful conversion or database switch occurred.
+
+The [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) adds a
+read-only page for identifying Project attachments and their missing facts. It
+preserves V16, the saved conversion journal and existing eligibility. The seven
+ambiguous references still need actual operator evidence and a separately
+implemented adjudication/revocation protocol; metadata review does not approve
+them or verify provider bytes.

@@ -16,6 +16,7 @@ const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
 const FileShadowPilotPage = lazy(() => import("./pages/FileShadowPilotPage").then((module) => ({ default: module.FileShadowPilotPage })));
+const FileEvidencePage = lazy(() => import("./pages/FileEvidencePage").then((module) => ({ default: module.FileEvidencePage })));
 const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
 const MetrologyTemplatePage = lazy(() => import("./pages/MetrologyTemplatePage").then((module) => ({ default: module.MetrologyTemplatePage })));
 const ProcessingPage = lazy(() => import("./pages/ProcessingPage").then((module) => ({ default: module.ProcessingPage })));
@@ -93,6 +94,7 @@ export function App() {
             <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/maintenance/file-shadow" element={<FileShadowPilotPage />} />
+            <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
           </Routes>
         </Suspense>
       </main>

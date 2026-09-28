@@ -3,7 +3,7 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-09-28 — durable unaccepted-request withdrawal after the R2 pilot
+Last reviewed: 2026-09-28 — historical evidence review after accepted #229
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -24,7 +24,11 @@ deployed through integration #226 (`5a86ab27`). Transactional capture covers all
 13 slots; actual V15 ZIP and isolated restore acceptance passed with 9/9 blobs.
 The separate V15 closed-snapshot inspector explains conversion blockers without
 provider I/O. #228's single-item pilot passed; overlap is retained with conversions
-paused and business authority still on the legacy paths. Catch-up remains open.
+paused and business authority still on the legacy paths. #229's unaccepted-request
+withdrawal and V16 recovery are deployed and accepted. The
+[historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) identifies missing
+facts without approving them; durable adjudication/revocation is the next write
+boundary. Catch-up remains open.
 
 ## Product scale and engineering stance
 
@@ -44,7 +48,7 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP1 current-generation inspection and catch-up | #227's V15 snapshot inspector is deployed; non-empty isolated recovery passed. The #228 single-item R2 pilot passed; conversions are paused at 1 resolved / 10 pending. Durable unaccepted-request withdrawal and matched V16 recovery are the next bounded slice. Complete catch-up still needs fresh baselines and verified copying; seven historical references lack purpose/namespace evidence. |
+| Now | FP1 current-generation inspection and catch-up | The #228 pilot and #229 withdrawal/V16 recovery passed; conversions are paused at 1 resolved / 10 pending. Read-only historical review identifies attachments and missing facts. Explicit adjudication/revocation with complete recovery is the next write boundary; seven historical references remain blocked. Complete catch-up still needs fresh baselines and verified copying. |
 | Next | Separate FP1 authority activation | After complete catch-up and invariant qualification, a separate atomic cutover must fence old Workers and switch reads, writes, retention and lifecycle authority together. Recovery starts paused and never automatically replays provider work; compatibility retirement remains later. |
 | Then | Finish FP1, FP2 and FP3 | Add Cloudflare R2 role defaults and basic authenticated Settings; external configuration and S3; persisted bounded jobs and verified migration. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
