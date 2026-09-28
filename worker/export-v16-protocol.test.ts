@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,7 +35,7 @@ afterEach(async () => {
   while (directories.length) await rm(directories.pop()!, { recursive: true, force: true });
 });
 function database(throughMigration?: string) {
-  const db = referenceTestDatabase({ throughMigration }); databases.push(db); return db;
+  const db = referenceTestDatabase({ throughMigration: throughMigration ?? "0009_fp1_shadow_withdrawals.sql" }); databases.push(db); return db;
 }
 const adapter = (db: DatabaseSync) => new SqliteD1Database(db) as unknown as D1Database;
 async function fixture() {
@@ -48,7 +48,7 @@ async function fixture() {
 describe("V16 durable no-claim withdrawal archive", () => {
   it("pins an independent exact schema after whole-file and Wrangler-split execution", async () => {
     const whole = database(), split = new DatabaseSync(":memory:"); databases.push(split);
-    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort()) {
+    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql") && name <= "0009_fp1_shadow_withdrawals.sql").sort()) {
       for (const sql of splitSql(await readFile(join(migrationsDirectory, name), "utf8"))) split.exec(sql);
     }
     for (const db of [whole, split]) expect(await fileShadowSchemaFingerprint(db.prepare(
@@ -68,7 +68,11 @@ describe("V16 durable no-claim withdrawal archive", () => {
     const directory = await mkdtemp(join(tmpdir(), "shadow-withdrawal-archive-")); directories.push(directory);
     const archivePath = join(directory, "archive.zip");
     await writeFile(archivePath, Buffer.from(await packaged.archive.arrayBuffer()));
-    const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(directory, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
+    const frozenMigrations = join(directory, "v16-migrations"); await mkdir(frozenMigrations);
+    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql") && name <= "0009_fp1_shadow_withdrawals.sql")) {
+      await writeFile(join(frozenMigrations, name), await readFile(join(migrationsDirectory, name)));
+    }
+    const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(directory, "restored"), migrationsDirectory: frozenMigrations, targetCompatibilitySchema: "S2" });
     const databasePath = join(restored.restoredDirectory, "database.sqlite");
     const recovered = new DatabaseSync(databasePath);
     try {

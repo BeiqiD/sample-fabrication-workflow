@@ -134,7 +134,7 @@ exact top-level affected-row checks, and complete those verification checks
 before resuming writes. Keep writes paused if that Worker deployment fails.
 These instructions do not establish that a bridge deployment has occurred.
 
-Current complete export/recovery is schema 15, profile `fp1-shadow-conversion`.
+The `0008` complete export/recovery checkpoint is schema 15, profile `fp1-shadow-conversion`.
 It preserves canonical shadow history and portable source rowid evidence, while
 recovery resets the non-portable execution gate and incarnation history. No
 restore or migration runs provider I/O. A post-0008 database requires the V15
@@ -147,3 +147,20 @@ conversion disabled; the write-pause requirement depends on the verified bridge
 prerequisite above. Keep V7–V14 validators frozen, and complete a failed
 migration-first rollout forward instead of downgrading or relabelling an archive.
 A V14 archive is not a complete backup of a post-0008 database.
+
+`0009_fp1_shadow_withdrawals.sql` adds immutable withdrawal receipts and requires
+the matching V16 Worker for complete export. `0010_fp1_shadow_adjudications.sql`
+adds operator-evidence histories, revocations, withdrawals and immutable
+operation bindings, with matched V17 export/recovery. It preserves existing
+business paths, runtime pause state and storage bindings; it approves no
+reference and performs no provider I/O. V15/V16 archives remain frozen and
+recoverable. Forward recovery creates empty later ledgers and cannot invent
+decisions that were not present in the source archive.
+
+Deploy each migration with its matching Worker through the normal forward path.
+Complete export is unavailable between the new migration and its Worker;
+stale archive negotiation must reject instead of omitting the new history.
+No database reset or binding replacement is needed. The V17 operator boundary
+remains disabled until explicitly configured as documented in
+[Deployment](../docs/DEPLOYMENT.md). Positive adjudication requires real evidence,
+and File authority activation remains separate.

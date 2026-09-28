@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-28 for historical evidence review after #229;
-accepted integration head is `4b4eb40`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-28 for historical evidence adjudication after #230;
+accepted implementation base is `7f186385`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -42,12 +42,14 @@ The bounded maintenance client exposes explicit single-item R2 conversion and
 saved-operation recovery through the deployed protocol. PR #228's live single-item pilot passed and conversions are paused at 1 resolved / 10 pending.
 PR #229's durable unaccepted-request withdrawal, migration `0009` and matched
 V16 export/recovery are deployed and accepted. Browser withdrawal/readback/reload
-passed without an additional successful conversion. The next bounded workflow is
-[read-only historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md): identify
-attachments and their separate missing facts, then implement the reviewed
-adjudication, withdrawal/revocation and recovery protocol. Seven historical
-references still lack intent/namespace evidence and must not be inferred into
-eligibility. A read-only review does not resolve them or add a database migration.
+passed without an additional successful conversion. PR #230's
+[historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) is deployed.
+The next implementation adds explicit operator authorization, exact-occurrence
+adjudication, durable withdrawal, conservative revocation/correction, immutable
+conversion bindings and matched `0010`/V17 recovery. Its verification and deployment
+are tracked in its implementation PR. Seven historical references still need
+actual classification/namespace evidence; installing the mechanism does not
+approve them or configure an operator. Read-only review remains available.
 Complete catch-up and final cutover remain separate from archive acceptance.
 FP1 is still in progress and no deployment is authorized by this document.
 

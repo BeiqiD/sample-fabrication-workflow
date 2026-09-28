@@ -1,4 +1,4 @@
-import type { FullExportManifestV16 } from "../../shared/contracts/export";
+import type { FullExportManifestV17 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -259,7 +259,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV16>("/exports/all?archiveSchema=16&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV17>("/exports/all?archiveSchema=17&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

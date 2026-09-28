@@ -27,8 +27,10 @@ provider I/O. #228's single-item pilot passed; overlap is retained with conversi
 paused and business authority still on the legacy paths. #229's unaccepted-request
 withdrawal and V16 recovery are deployed and accepted. The
 [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) identifies missing
-facts without approving them; durable adjudication/revocation is the next write
-boundary. Catch-up remains open.
+facts without approving them. The next implementation adds separately authorized
+adjudication, durable withdrawal, conservative revocation/correction and V17
+recovery. It does not grant an operator or supply historical facts. Catch-up
+remains open; File activation, R2 defaults, basic Settings and FP2 S3 follow.
 
 ## Product scale and engineering stance
 

@@ -168,6 +168,21 @@ Before storing real sample data:
 
 `ALLOWED_EMAILS` is a second allowlist checked after the Access JWT has been validated. It is not a replacement for an Access policy.
 
+Historical File evidence adjudication has a separate operator boundary. To grant
+that capability to a reviewed operator, configure the Runtime Variable
+`FILE_EVIDENCE_OPERATOR_EMAILS` as a comma-separated list of exact email addresses.
+The server checks this list against the validated Access identity on every
+evidence command. Application access, `ALLOWED_EMAILS`, request headers and
+`AUTH_MODE=disabled` do not grant this capability. An absent, empty or malformed
+operator list disables adjudication; existing read-only evidence review remains
+available. The application reports only the current user's capability, never the
+configured list. Deploying code does not select or grant an operator.
+
+An operator's confirmation records a present-day classification and the cited
+basis for the original storage binding. It does not create an upload receipt or
+verify file bytes. Keep unknown history blocked and provide no credentials in
+the evidence statements. Conversion remains a separate explicit operation.
+
 These values describe the runtime environment but are not credentials. Actual tokens, passwords, and client secrets must use encrypted Secrets instead. The base Wrangler configuration sets `keep_vars: true`, so deployments preserve Runtime Variables managed in the Cloudflare dashboard.
 
 The application is fail-closed when `AUTH_MODE=access`: protected API routes reject requests if Access is absent, misconfigured, or supplies an invalid issuer/audience.

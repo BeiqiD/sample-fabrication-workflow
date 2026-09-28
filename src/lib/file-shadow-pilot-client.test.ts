@@ -51,6 +51,34 @@ async function withdrawn(request: PilotJournal["request"]) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("bounded File shadow pilot client", () => {
+  it("uses only the exact occurrence's adjudicated profile when historical namespace evidence was missing", async () => {
+    const old = rawBaseline();
+    const adjudicated = { ...old, head: { ...old.head, source_sha256: "d".repeat(64) }, record: { ...old.record, profiles: [] },
+      adjudication: { requestId: "33333333-3333-4333-8333-333333333333", requestSha256: "e".repeat(64),
+        sourceSha256: "d".repeat(64), purpose: "research_source", sourceProfile: { profileId: "recorded-r2", configurationRevision: 1 },
+        sourceProfileRuntimeState: "read_write" } };
+    const fixture = setup(), proof = await baseline(fixture, adjudicated);
+    expect(proof.eligible).toBe(true);
+    expect(proof.sourceProfile).toEqual({ profileId: "recorded-r2", configurationRevision: 1, runtimeState: "read_write" });
+    expect(JSON.stringify(proof)).not.toContain("PRIVATE/");
+    expect((await baseline(setup(), { ...adjudicated, adjudication: { ...adjudicated.adjudication, sourceProfileRuntimeState: "read_only" } })).eligible).toBe(false);
+    fixture.fetchMock.mockImplementationOnce(async (_path, init) => {
+      const request = JSON.parse(String(init?.body));
+      expect(request.destinationProfile).toEqual({ profileId: "recorded-r2", configurationRevision: 1 });
+      expect(request.expectedBaselineSha256).toBe(adjudicated.baselineSha256);
+      return json(receipt(request.operationId, "resolved", "published"));
+    });
+    expect((await fixture.client.convert(proof)).status).toBe("resolved");
+    for (const overlay of [null, { ...adjudicated.adjudication, sourceSha256: "f".repeat(64) },
+      { ...adjudicated.adjudication, sourceProfile: { profileId: "different-r2", configurationRevision: 1 } },
+      { ...adjudicated.adjudication, purpose: "embedded_content" }]) {
+      const f = setup();
+      f.fetchMock.mockResolvedValueOnce(json({ ...adjudicated, adjudication: overlay }));
+      await expect(f.client.getBaseline(consumer)).rejects.toThrow();
+      expect(f.saved.length).toBe(0);
+    }
+  });
+
   it("projects only reviewed proof fields and treats the exact recorded profile as destination", async () => {
     const fixture = setup(), proof = await baseline(fixture);
     expect(proof.eligible).toBe(true);

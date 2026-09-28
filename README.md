@@ -189,11 +189,15 @@ explicit overlap/runtime/profile enablement; migration and restore perform no
 provider work. Migration `0009` adds durable withdrawal of unaccepted requests,
 with matching complete export schema **16**, profile `fp1-shadow-withdrawals`.
 Database guards also block delayed old-Worker claims for a withdrawn ID. Restored
-execution starts paused. Final File authority activation remains a separate
-reviewed change.
+execution starts paused. Migration `0010` adds separately authorized historical
+evidence adjudication, durable withdrawal, conservative revocation/correction and
+immutable conversion bindings. Its matching complete export is schema **17**,
+profile `fp1-shadow-adjudications`. The operator allowlist defaults to disabled;
+deploying the mechanism approves no historical reference. Final File authority
+activation remains a separate reviewed change.
 
-Migration-first rollout requires the matching V16 Worker after `0009`; stale V15
-pages must refresh. If Worker deployment fails, finish the reviewed V16 deployment
+Migration-first rollout requires the matching V17 Worker after `0010`; stale export
+pages must refresh. If Worker deployment fails, finish the reviewed V17 deployment
 and verify export success and stale-version rejection. Do not roll back the
 migration or relabel the archive. Complete export can remain unavailable during
 that forward deployment window.
@@ -203,8 +207,8 @@ A full-system export preserves canonical database rows and packages available by
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated complete archive (current schema 16,
-`fp1-shadow-withdrawals`, with historical readers retained) against the current migrations in a newly
+rehearses a trusted negotiated complete archive (current schema 17,
+`fp1-shadow-adjudications`, with historical readers retained) against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote

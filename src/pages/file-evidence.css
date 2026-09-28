@@ -40,3 +40,14 @@
   .evidence-proof dd { margin-bottom: 10px; }
   .evidence-heading { align-items: start; }
 }
+.evidence-adjudication fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.evidence-adjudication label { display: grid; gap: 8px; margin: 18px 0; font-size: var(--font-body); font-weight: 600; }
+.evidence-adjudication textarea, .evidence-adjudication select { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; background: var(--panel, transparent); color: inherit; font: inherit; font-weight: 400; padding: 10px 12px; }
+.evidence-adjudication textarea { min-height: 100px; resize: vertical; }
+.evidence-adjudication .evidence-check { display: flex; align-items: flex-start; gap: 10px; font-weight: 400; line-height: 1.5; }
+.evidence-adjudication .evidence-check input { margin-top: 4px; flex-shrink: 0; }
+.evidence-saved-request, .evidence-active-decision { padding: 16px 20px; margin: 20px 0; border: 1px solid var(--line); border-radius: 8px; overflow-wrap: anywhere; }
+.evidence-saved-request h3, .evidence-active-decision h3 { margin-top: 0; }
+.evidence-saved-request details { margin: 18px 0; }
+.evidence-adjudication form { max-width: 850px; }
+.evidence-adjudication [disabled] { cursor: not-allowed; }

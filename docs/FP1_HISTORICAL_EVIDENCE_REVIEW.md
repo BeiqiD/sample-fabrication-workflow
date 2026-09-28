@@ -1,7 +1,9 @@
 # Historical File evidence review
 
-Status: read-only FP1 review workflow; adjudication writes remain a separate
-implementation boundary. Based on accepted integration `4b4eb40` (PR #229).
+Status: read-only review accepted in PR #230; the next implementation adds
+operator adjudication, withdrawal, conservative revocation/correction and V17
+recovery. Its verification and deployment evidence belongs to its implementation
+PR. Implementation alone does not resolve any historical evidence gap.
 
 ## Why this boundary exists
 
@@ -41,16 +43,59 @@ excluded. A metadata review does not perform HEAD/GET or verify bytes.
 The list and each subsequently selected detail have their own observation time;
 neither pagination nor a sequence of detail reads is one whole-database snapshot.
 
-This page has no adjudication, conversion, profile-admission or runtime command.
-It does not read, dismiss, overwrite or replay the browser's saved conversion
-journal. Its page selection is temporary. Reading or refreshing the page changes
-neither database state nor conversion eligibility.
+Ordinary review has no conversion, profile-admission or runtime command. It does
+not read, dismiss, overwrite or replay the browser's saved conversion journal.
+Its page selection is temporary. Reading or refreshing the page changes neither
+database state nor conversion eligibility. The separately authorized operator
+panel described below is the only evidence write surface.
 
-There is **no new database migration or archive generation** in this slice.
-Migration `0009`, V16 export/recovery and all previously accepted writer guards
-remain in place. No File authority activation or S3 configuration is included.
-Exact-head checks, deployment and browser acceptance are recorded in the PR as
-they complete.
+PR #230 introduced no migration. The operator implementation adds forward
+migration `0010_fp1_shadow_adjudications.sql` and matched V17 export/recovery;
+`0008`, `0009`, V15 and V16 remain frozen. No File authority activation or S3
+configuration is included. Exact-head checks, deployment and browser acceptance
+are recorded in the implementation PR as they complete.
+
+## Operator workflow and rollout
+
+`FILE_EVIDENCE_OPERATOR_EMAILS` is a deployment-owned, explicit list of validated
+Cloudflare Access identities. Missing or malformed configuration denies evidence
+commands; `ALLOWED_EMAILS` and local disabled authentication grant no operator
+capability. Deploying the new Worker does not populate that list or nominate an
+operator. Read-only review remains available under ordinary application access.
+
+An operator selects the exact attachment, reads fresh preconditions, explicitly
+selects a registered R2 profile and supplies three separate statements: current
+classification, original-namespace basis, and supporting source reference.
+No assertion is prefilled from the filename, bytes or current configuration.
+The server validates the selected profile against the deployed R2 binding without
+opening the provider. Acceptance requires paused overlap, a current occurrence
+and settled work. It does not perform a conversion or verify any bytes.
+
+The browser preserves the original command in its own journal before sending.
+An absent receipt cannot be dismissed: inspect again or durably withdraw the
+same request. Request identity and cross-tab exclusion protect that journal;
+the conversion pilot's existing journal is independent. Successful receipts can
+be explicitly dismissed from the browser without deleting server history.
+
+Revocation is conservative: it requires paused conversions and permits only
+unreferenced evidence or operations already safely cancelled before a provider
+write. Pending, unknown, verified or published conversions block revocation and
+must follow their existing recovery/publication protocol. The endpoint cannot
+undo a published File. A correction appends a new record on the same occurrence,
+linked to the latest revoked predecessor. The database retains each accepted
+operation's original evidence binding.
+
+Deploy `0010` and its V17 Worker through the ordinary forward-migration pipeline
+on the existing D1/R2 resources. The migration-first interval rejects complete
+V16 export and unsupported shadow snapshots until the matching Worker serves;
+ordinary business paths retain their existing authority and bindings. No reset,
+database switch, blanket classification, automatic conversion or cleanup is part
+of this rollout. Recovery starts paused and does not confer operator authority.
+
+Positive live adjudication still needs actual operator classification and
+namespace evidence. Until supplied, the seven historical references remain
+blocked. Local synthetic acceptance, archive round trips and deployed read-only
+checks must be reported separately from any real historical adjudication.
 
 ## Information needed for a real adjudication
 
@@ -74,9 +119,9 @@ asset-wide classification. The review page provides the concrete items to check.
 An operator can leave an unknown item blocked. No credentials or secret values
 should be entered into an evidence narrative.
 
-## Next write protocol — requirements, not implemented behavior
+## Adjudication protocol and acceptance requirements
 
-The next write slice must satisfy the following together. A metadata form or
+The write slice must satisfy the following together. A metadata form or
 ledger without its concurrency, correction and recovery behavior is not an
 accepted substitute.
 
@@ -158,8 +203,7 @@ source retention; deleting or revoking metadata cannot release those holds.
 
 ### Versioned archive and isolated recovery
 
-A future additive migration must ship with a new complete export generation
-(expected V17 if no intervening schema change), including adjudications,
+The additive migration ships with a new complete export generation (V17), including adjudications,
 withdrawals/revocations, correction chains and operation bindings. Freeze V15
 and V16. Old pages must not silently omit newer canonical history.
 
@@ -174,7 +218,7 @@ writers resume. It starts paused and performs no automatic adjudication or
 conversion. Forward recovery from V16 or older creates empty new ledgers; it
 cannot recreate later operator decisions or prove later requests never existed.
 
-## Required acceptance for the future write slice
+## Required implementation acceptance
 
 - Actual SQLite and workerd/D1 behavior, including migration statement splitting,
   immutable rows, `REPLACE`, two competing request IDs, source/profile/parent ABA,
@@ -193,3 +237,9 @@ cannot recreate later operator decisions or prove later requests never existed.
 After that boundary, verified catch-up and invariant qualification still precede
 the separately reviewed atomic File authority activation. R2 defaults and basic
 Settings finish FP1; external S3 configuration remains FP2.
+
+The activation review must also include `file_shadow_retention_namespaces` when
+checking retained legacy business roots before location deletion. This overlay
+only supplies conservative namespace aliases and creates no retention roots.
+Current overlap already blocks all location-GC transitions; authority activation
+must not relax that guard without qualifying the reverse alias lookup.

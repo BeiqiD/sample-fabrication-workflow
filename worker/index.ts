@@ -14,6 +14,8 @@ import { routes as fabubloxRoutes } from "./imports/fabublox-routes";
 import { routes as attachmentRoutes } from "./blob-lifecycle/attachment-routes";
 import { authenticateApiRequest, handleError, routes as platformRoutes } from "./platform/http";
 import { shadowRoutes } from "./files/shadow-routes";
+import { fileEvidenceAccessRoutes } from "./files/evidence-operator";
+import { shadowAdjudicationRoutes } from "./files/shadow-adjudication-routes";
 
 const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().basePath("/api");
 
@@ -25,6 +27,8 @@ app.route("/", commentSubmissionRoutes);
 app.route("/", projectFoundationRoutes);
 app.route("/", exportSnapshotRoutes);
 app.route("/", shadowRoutes);
+app.route("/", fileEvidenceAccessRoutes);
+app.route("/", shadowAdjudicationRoutes);
 app.route("/", projectRoutes);
 app.route("/", referenceRoutes);
 app.route("/", sampleRoutes);

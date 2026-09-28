@@ -105,7 +105,7 @@ describe("v10 durable import acceptance archive profile", () => {
       const archivePath = join(scratch, "v10.zip");
       await writeFile(archivePath, archiveBytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 10, archiveProfile: "fp1-import-acceptance", appliedForwardMigrations: [{ name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
