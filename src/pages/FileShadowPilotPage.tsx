@@ -211,17 +211,20 @@ export function FileShadowPilotPage() {
         <dt>Expected bytes</dt><dd>{journal.proof.expectedBytes.toLocaleString()}</dd>
         <dt>Expected SHA-256</dt><dd><code>{journal.proof.expectedSha256}</code></dd>
         <dt>R2 profile</dt><dd><code>{journal.request.destinationProfile.profileId}</code> · revision {journal.request.destinationProfile.configurationRevision}</dd>
-        <dt>Outcome</dt><dd>{receipt ? readable(receipt.status) : "Unknown — inspect saved operation"}</dd>
+        <dt>Outcome</dt><dd>{receipt?.status === "withdrawn" ? "Closed before acceptance" : receipt ? readable(receipt.status) : "Unknown — inspect saved operation"}</dd>
         {receipt?.attemptState && <><dt>Copy attempt</dt><dd>{readable(receipt.attemptState)}</dd></>}
       </dl>
       <p className={terminal ? "muted" : "warning-card"}>
         {receipt?.status === "resolved" ? "This operation resolved its recorded generation. Dismiss the receipt and reread the reference to check its current generation."
-          : terminal ? "This operation has a recorded terminal outcome. Dismiss the receipt before reviewing another conversion."
+          : receipt?.status === "withdrawn" ? "The server durably closed this unaccepted request. It cannot start a conversion later. Dismiss the receipt before reviewing another conversion."
+            : terminal ? "This operation has a recorded terminal outcome. Dismiss the receipt before reviewing another conversion."
             : receipt?.nextAction === "reconcile" ? "Inspect this operation, then reconcile its recorded copy. Reconciliation verifies the existing copy without starting another storage write."
               : "The outcome is still pending or unknown. Inspect this same operation; do not start another conversion."}
       </p>
+      {!receipt && <p className="muted">You can ask the server to close this request if it was never accepted, including while paused. If it was already accepted, its existing operation will be shown instead. A missing receipt alone does not confirm either outcome.</p>}
       <div className="shadow-actions">
         <button className="button" disabled={locked} onClick={() => void run("Reading saved operation", () => client.inspectOperation(journal.request.operationId), "Saved operation read. Review its outcome below.", false)}>Inspect saved operation</button>
+        {!receipt && <button className="button" disabled={locked} onClick={() => void run("Closing unaccepted request", () => client.withdrawOperation(journal.request.operationId), "Request checked. Review the saved outcome before continuing.")}>Close unaccepted request</button>}
         {receipt?.nextAction === "reconcile" && <button className="button" disabled={locked || !activeRuntime} onClick={() => status && void run("Reconciling recorded copy", () => client.reconcileOperation(status, journal.request.operationId), "Reconciliation finished. Review the saved outcome before continuing.")}>Reconcile recorded copy</button>}
         {canCancelReceipt(receipt) && <button className="button" disabled={locked || !activeRuntime} onClick={() => status && void run("Cancelling unstarted operation", () => client.cancelOperation(status, journal.request.operationId), "Cancellation checked. Review the saved outcome before continuing.")}>Cancel unstarted operation</button>}
         {terminal && <button className="button" disabled={locked} onClick={() => void run("Dismissing completed operation", () => client.clearTerminalReceipt(journal.request.operationId), "Completed receipt dismissed. Reread the reference before another conversion.", false)}>Dismiss completed operation</button>}

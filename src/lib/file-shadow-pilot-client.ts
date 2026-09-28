@@ -1,4 +1,5 @@
 import type { FilePurpose } from "../../shared/contracts/files";
+import { checkedShadowWithdrawalRequest, shadowWithdrawalRequestSha256, type ShadowWithdrawalRequest } from "../../shared/contracts/file-shadow-withdrawal";
 import { createUuid } from "./uuid";
 
 export interface ShadowConsumerKey { consumerKind: string; consumerId: string; consumerSubId: string; fileSlot: string }
@@ -17,15 +18,20 @@ export interface PilotBaseline {
   status: "absent" | "resolved" | "admitted_unresolved" | "pending_no_locator" | "unavailable" | "ambiguous" | "ready_to_verify";
   reasons: string[]; baselineSha256: string; eligible: boolean;
 }
-export interface PilotOperation {
+export type PilotConvertRequest = ShadowWithdrawalRequest;
+interface PilotAcceptedOperation {
   operationId: string; occurrenceId: string; status: "pending" | "resolved" | "admitted_unresolved" | "cancelled";
   attemptId: string | null; attemptState: "staged" | "write_started" | "unknown" | "verified" | "published" | "failed" | "cancelled" | null;
   fileId: string | null; locationId: string | null; nextAction: "none" | "reconcile" | "inspect";
 }
+interface PilotWithdrawnOperation {
+  operationId: string; status: "withdrawn"; request: PilotConvertRequest; requestSha256: string;
+  occurrenceId: null; attemptId: null; attemptState: null; fileId: null; locationId: null; nextAction: "none";
+}
+export type PilotOperation = PilotAcceptedOperation | PilotWithdrawnOperation;
 export interface PilotJournal {
   version: 1;
-  request: { operationId: string; key: ShadowConsumerKey; expectedBaselineSha256: string;
-    destinationProfile: { profileId: string; configurationRevision: 1 }; runtimeIncarnation: string };
+  request: PilotConvertRequest;
   proof: { generation: number; occurrenceId: string; purpose: FilePurpose; expectedBytes: number; expectedSha256: string };
   receipt: PilotOperation | null;
 }
@@ -40,6 +46,7 @@ export interface FileShadowPilotClient {
   inspectOperation(expectedOperationId: string): Promise<PilotOperation>;
   reconcileOperation(status: PilotStatus, expectedOperationId: string): Promise<PilotOperation>;
   cancelOperation(status: PilotStatus, expectedOperationId: string): Promise<PilotOperation>;
+  withdrawOperation(expectedOperationId: string): Promise<PilotOperation>;
   loadJournal(): PilotJournal | null;
   clearTerminalReceipt(expectedOperationId: string): Promise<void>;
 }
@@ -48,7 +55,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 const SHA = /^[a-f0-9]{64}$/;
 const MAX_BYTES = 100 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 512 * 1024;
-const MAX_JOURNAL_BYTES = 80 * 1024;
+// A withdrawal receipt echoes the complete request, including its bounded key.
+const MAX_JOURNAL_BYTES = 192 * 1024;
 const purposes = ["research_source", "embedded_content", "derived_preview", "provenance", "job_output"] as const;
 const baselineStates = ["absent", "resolved", "admitted_unresolved", "pending_no_locator", "unavailable", "ambiguous", "ready_to_verify"] as const;
 const knownReasons = new Set([
@@ -169,7 +177,16 @@ function parseBaseline(value: unknown, requested: ShadowConsumerKey): PilotBasel
 }
 function parseOperation(value: unknown, journal: Pick<PilotJournal, "request" | "proof">): PilotOperation {
   const raw = object(value);
-  const result: PilotOperation = { operationId: uuid(raw.operationId), occurrenceId: string(raw.occurrenceId),
+  if (raw.status === "withdrawn") {
+    exact(raw, ["operationId", "status", "request", "requestSha256", "occurrenceId", "attemptId", "attemptState", "fileId", "locationId", "nextAction"]);
+    const request = parseRequest(raw.request), operationId = uuid(raw.operationId);
+    if (operationId !== journal.request.operationId || JSON.stringify(request) !== JSON.stringify(journal.request)
+      || raw.occurrenceId !== null || raw.attemptId !== null || raw.attemptState !== null
+      || raw.fileId !== null || raw.locationId !== null || raw.nextAction !== "none") fail();
+    return { operationId, status: "withdrawn", request, requestSha256: sha(raw.requestSha256),
+      occurrenceId: null, attemptId: null, attemptState: null, fileId: null, locationId: null, nextAction: "none" };
+  }
+  const result: PilotAcceptedOperation = { operationId: uuid(raw.operationId), occurrenceId: string(raw.occurrenceId),
     status: choice(raw.status, ["pending", "resolved", "admitted_unresolved", "cancelled"] as const),
     attemptId: nullableId(raw.attemptId), attemptState: raw.attemptState === null ? null : choice(raw.attemptState, ["staged", "write_started", "unknown", "verified", "published", "failed", "cancelled"] as const),
     fileId: nullableId(raw.fileId), locationId: nullableId(raw.locationId), nextAction: choice(raw.nextAction, ["none", "reconcile", "inspect"] as const) };
@@ -181,16 +198,20 @@ function parseOperation(value: unknown, journal: Pick<PilotJournal, "request" | 
     || result.status === "admitted_unresolved") fail();
   return result;
 }
+async function parseResponseOperation(value: unknown, journal: Pick<PilotJournal, "request" | "proof">): Promise<PilotOperation> {
+  const receipt = parseOperation(value, journal);
+  if (receipt.status === "withdrawn" && receipt.requestSha256 !== await shadowWithdrawalRequestSha256(receipt.request)) fail();
+  return receipt;
+}
+function parseRequest(value: unknown): PilotConvertRequest {
+  try { return checkedShadowWithdrawalRequest(value); } catch { return fail(); }
+}
 function parseJournal(value: unknown): PilotJournal {
   const raw = object(value); exact(raw, ["version", "request", "proof", "receipt"]);
   if (raw.version !== 1 || bytes(raw) > MAX_JOURNAL_BYTES) fail();
-  const request = object(raw.request), proof = object(raw.proof), destination = object(request.destinationProfile);
-  exact(request, ["operationId", "key", "expectedBaselineSha256", "destinationProfile", "runtimeIncarnation"]);
+  const request = parseRequest(raw.request), proof = object(raw.proof);
   exact(proof, ["generation", "occurrenceId", "purpose", "expectedBytes", "expectedSha256"]);
-  exact(destination, ["profileId", "configurationRevision"]);
-  const profileId = string(destination.profileId); if (profileId.includes("\0") || destination.configurationRevision !== 1) fail();
-  const result: PilotJournal = { version: 1, request: { operationId: uuid(request.operationId), key: key(request.key),
-    expectedBaselineSha256: sha(request.expectedBaselineSha256), destinationProfile: { profileId, configurationRevision: 1 }, runtimeIncarnation: uuid(request.runtimeIncarnation) },
+  const result: PilotJournal = { version: 1, request,
     proof: { generation: integer(proof.generation, 1), occurrenceId: string(proof.occurrenceId), purpose: choice(proof.purpose, purposes),
       expectedBytes: integer(proof.expectedBytes, 0, MAX_BYTES), expectedSha256: sha(proof.expectedSha256) }, receipt: null };
   result.receipt = raw.receipt === null ? null : parseOperation(raw.receipt, result);
@@ -288,7 +309,7 @@ export function createFileShadowPilotClient(options: {
         if (journal.receipt?.status !== "pending" || (path === "reconcile" ? journal.receipt.nextAction !== "reconcile" : !canCancelReceipt(journal.receipt))) fail("Inspect the saved operation before choosing its next action.");
         invalidateBaselines();
       }
-      const receipt = parseOperation(await request(path, { operationId: journal.request.operationId,
+      const receipt = await parseResponseOperation(await request(path, { operationId: journal.request.operationId,
         runtimeIncarnation: path === "operation" ? journal.request.runtimeIncarnation : status!.incarnation }), journal);
       // Never regress a stored terminal receipt, even if a stale read arrives.
       if (isTerminalReceipt(journal.receipt) && JSON.stringify(receipt) !== JSON.stringify(journal.receipt)) fail("The saved terminal receipt changed. Keep it and inspect the current state.");
@@ -335,17 +356,30 @@ export function createFileShadowPilotClient(options: {
         destinationProfile: { profileId: baseline.sourceProfile!.profileId, configurationRevision: 1 }, runtimeIncarnation: baseline.runtime.incarnation! },
         proof: { generation: baseline.head!.generation, occurrenceId: baseline.head!.occurrenceId, purpose: baseline.purpose!, expectedBytes: baseline.expectedBytes!, expectedSha256: baseline.expectedSha256! }, receipt: null };
       saveJournal(journal, null); invalidateBaselines();
-      const receipt = parseOperation(await request("convert", journal.request), journal);
+      const receipt = await parseResponseOperation(await request("convert", journal.request), journal);
       saveJournal({ ...journal, receipt }, journal); return receipt;
     }),
     inspectOperation: (expectedOperationId) => observe("operation", expectedOperationId),
     reconcileOperation: (status, expectedOperationId) => observe("reconcile", expectedOperationId, status),
     cancelOperation: (status, expectedOperationId) => observe("cancel", expectedOperationId, status),
+    withdrawOperation: (expectedOperationId) => locked(async () => {
+      const journal = loadJournal(); if (!journal) return fail("There is no saved File operation to close.");
+      if (journal.request.operationId !== expectedOperationId) fail("The saved operation changed in another tab. Refresh and review it before continuing.");
+      if (journal.receipt !== null) fail("Inspect the saved operation before choosing its next action.");
+      probeStorage(); invalidateBaselines();
+      // The original request is the identity to withdraw, even after a pause or
+      // runtime change. An existing accepted operation is only observed here.
+      const receipt = await parseResponseOperation(await request("withdraw", journal.request), journal);
+      saveJournal({ ...journal, receipt }, journal);
+      return receipt;
+    }),
     loadJournal,
     clearTerminalReceipt: (expectedOperationId) => locked(async () => {
       const journal = loadJournal();
       if (journal && journal.request.operationId !== expectedOperationId) fail("The saved operation changed in another tab. Refresh and review it before continuing.");
       if (!journal || !isTerminalReceipt(journal.receipt)) return fail("Only a confirmed terminal receipt can be dismissed.");
+      if (journal.receipt?.status === "withdrawn"
+        && journal.receipt.requestSha256 !== await shadowWithdrawalRequestSha256(journal.request)) fail();
       try {
         if (JSON.stringify(loadJournal()) !== JSON.stringify(journal)) fail();
         storage().removeItem(FILE_SHADOW_PILOT_JOURNAL_KEY);

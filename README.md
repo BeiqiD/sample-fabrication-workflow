@@ -186,11 +186,14 @@ now adds migration `0008` and complete export schema **15**, writer **1**, profi
 `fp1-shadow-conversion`. It captures all 13 consumer slots, records owned conversion
 and recovery operations, and preserves legacy business paths. Conversion requires
 explicit overlap/runtime/profile enablement; migration and restore perform no
-provider work. Restored execution starts paused. Final File authority activation
-remains a separate reviewed change.
+provider work. Migration `0009` adds durable withdrawal of unaccepted requests,
+with matching complete export schema **16**, profile `fp1-shadow-withdrawals`.
+Database guards also block delayed old-Worker claims for a withdrawn ID. Restored
+execution starts paused. Final File authority activation remains a separate
+reviewed change.
 
-Migration-first rollout requires the matching V15 Worker after `0008`; stale V14
-pages must refresh. If Worker deployment fails, finish the reviewed V15 deployment
+Migration-first rollout requires the matching V16 Worker after `0009`; stale V15
+pages must refresh. If Worker deployment fails, finish the reviewed V16 deployment
 and verify export success and stale-version rejection. Do not roll back the
 migration or relabel the archive. Complete export can remain unavailable during
 that forward deployment window.
@@ -200,8 +203,8 @@ A full-system export preserves canonical database rows and packages available by
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated complete archive (current schema 15,
-`fp1-shadow-conversion`, with historical readers retained) against the current migrations in a newly
+rehearses a trusted negotiated complete archive (current schema 16,
+`fp1-shadow-withdrawals`, with historical readers retained) against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote
@@ -225,7 +228,9 @@ routing and native website import remain later slices. FP1a–FP1j are merged
 through PR #219 at `7e63a366663c47c830120abc77af1d174abaf5aa`.
 Migration `0007` adds typed authority/conversion metadata and matched schema-14
 recovery and installs immutable `legacy` mode. Migration `0008` adds the complete
-shadow generation/operation pipeline and V15 recovery. Final authority cutover,
+shadow generation/operation pipeline and V15 recovery. Migration `0009` seals
+unaccepted request identities and retains those receipts in V16 recovery.
+Final authority cutover,
 R2 role defaults and authenticated Settings remain separate work.
 
 ## Further documentation

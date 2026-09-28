@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileShadowPilotPage } from "./pages/FileShadowPilotPage";
+import { sha256Hex, stableJson } from "../shared/domain/content-addressing";
+import type { PilotJournal } from "./lib/file-shadow-pilot-client";
 
 const incarnation = "11111111-1111-4111-8111-111111111111";
 const hash = "a".repeat(64);
@@ -45,7 +47,7 @@ type Handler = (request: RequestRecord) => unknown | Promise<unknown>;
 const requests: RequestRecord[] = [];
 const handlers = new Map<string, Handler>();
 const network = vi.fn<typeof fetch>();
-const writes = () => requests.filter(({ path }) => ["enable", "disable", "profiles/enable", "convert", "reconcile", "cancel"].some((command) => path === `/api/files/shadow/${command}`));
+const writes = () => requests.filter(({ path }) => ["enable", "disable", "profiles/enable", "convert", "reconcile", "cancel", "withdraw"].some((command) => path === `/api/files/shadow/${command}`));
 
 beforeEach(() => {
   localStorage.clear(); requests.length = 0; handlers.clear(); network.mockReset();
@@ -59,6 +61,7 @@ beforeEach(() => {
     const handler = handlers.get(path);
     if (!handler) throw new Error(`Unexpected request: ${request.method} ${path}`);
     const response = await handler(request);
+    if (response instanceof Response) return response;
     return new Response(JSON.stringify(response), { status: 200, headers: { "content-type": "application/json" } });
   });
   vi.stubGlobal("fetch", network);
@@ -89,6 +92,19 @@ async function confirmConversion() {
 }
 function receipt(operationId: string, attemptState = "unknown", id = "reference-a") {
   return { operationId, occurrenceId: `occurrence-${id}`, status: "pending", attemptId: "22222222-2222-4222-8222-222222222222", attemptState, fileId: null, locationId: null, nextAction: ["staged", "failed"].includes(attemptState) ? "inspect" : "reconcile" };
+}
+function saveUnknownJournal() {
+  const journal: PilotJournal = { version: 1,
+    request: { operationId: "33333333-3333-4333-8333-333333333333", key: key(), expectedBaselineSha256: hash,
+      destinationProfile: frozenProfile as PilotJournal["request"]["destinationProfile"], runtimeIncarnation: incarnation },
+    proof: { generation: 1, occurrenceId: "occurrence-reference-a", purpose: "research_source", expectedBytes: 157, expectedSha256: hash },
+    receipt: null };
+  localStorage.setItem(journalKey, JSON.stringify(journal));
+  return journal;
+}
+async function withdrawn(request: PilotJournal["request"]) {
+  return { operationId: request.operationId, status: "withdrawn", request, requestSha256: await sha256Hex(stableJson(request)),
+    occurrenceId: null, attemptId: null, attemptState: null, fileId: null, locationId: null, nextAction: "none" };
 }
 
 describe("File shadow pilot explicit command and recovery boundaries", () => {
@@ -361,5 +377,94 @@ describe("File shadow pilot explicit command and recovery boundaries", () => {
     await act(async () => { oldStatus.resolve(status()); });
     expect(screen.getByRole("button", { name: "Resume conversions" })).toBeTruthy();
     expect(writes().map(({ path }) => path)).toEqual(["/api/files/shadow/convert", "/api/files/shadow/disable"]);
+  });
+
+  it("keeps a rejected request through 404 and only closes it on an explicit server confirmation while paused", async () => {
+    handlers.set("/api/files/shadow/convert", () => new Response("{}", { status: 409 }));
+    const view = await mount(); await inspect();
+    const convert = await confirmConversion();
+    await act(async () => { fireEvent.click(convert); });
+    expect(await screen.findByText(/The command was not confirmed/)).toBeTruthy();
+    const saved = localStorage.getItem(journalKey), original = (JSON.parse(saved!) as PilotJournal).request;
+    view.unmount(); handlers.set("/api/files/shadow/status", () => status(0));
+    handlers.set("/api/files/shadow/operation", () => new Response("{}", { status: 404 }));
+    await mount(true);
+    expect(writes().map(({ path }) => path)).toEqual(["/api/files/shadow/convert"]);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Inspect saved operation" })); });
+    expect(await screen.findByText(/No receipt is visible yet/)).toBeTruthy();
+    expect(localStorage.getItem(journalKey)).toBe(saved);
+    expect(screen.queryByRole("button", { name: "Dismiss completed operation" })).toBeNull();
+    handlers.set("/api/files/shadow/withdraw", async (request) => {
+      expect(request.body).toEqual(original);
+      return withdrawn(original);
+    });
+    const close = screen.getByRole("button", { name: "Close unaccepted request" }) as HTMLButtonElement;
+    expect(close.disabled).toBe(false);
+    await act(async () => { fireEvent.click(close); });
+    expect(await screen.findByText("Closed before acceptance")).toBeTruthy();
+    expect(screen.getByText("Paused")).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem(journalKey)!).request).toEqual(original);
+    expect(screen.queryByRole("button", { name: "Close unaccepted request" })).toBeNull();
+    expect(writes().map(({ path }) => path)).toEqual(["/api/files/shadow/convert", "/api/files/shadow/withdraw"]);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Dismiss completed operation" })); });
+    expect(localStorage.getItem(journalKey)).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Saved operation" })).toBeNull();
+  });
+
+  it("keeps an accepted operation when the server cannot withdraw its request", async () => {
+    const original = saveUnknownJournal().request;
+    handlers.set("/api/files/shadow/withdraw", () => receipt(original.operationId));
+    await mount();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Close unaccepted request" })); });
+    expect(screen.getByRole("button", { name: "Reconcile recorded copy" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Dismiss completed operation" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close unaccepted request" })).toBeNull();
+    expect(JSON.parse(localStorage.getItem(journalKey)!).receipt.status).toBe("pending");
+    expect(writes().map(({ path }) => path)).toEqual(["/api/files/shadow/withdraw"]);
+  });
+
+  it("retains a lost withdrawal response across reload and reads back the same terminal identity", async () => {
+    const original = saveUnknownJournal().request, saved = localStorage.getItem(journalKey);
+    handlers.set("/api/files/shadow/withdraw", () => { throw new Error("lost after commit"); });
+    const view = await mount();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Close unaccepted request" })); });
+    expect(await screen.findByText(/The response was lost/)).toBeTruthy();
+    expect(localStorage.getItem(journalKey)).toBe(saved);
+    view.unmount(); await mount();
+    expect(writes()).toHaveLength(1);
+    handlers.set("/api/files/shadow/operation", () => withdrawn(original));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Inspect saved operation" })); });
+    expect(await screen.findByText("Closed before acceptance")).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem(journalKey)!).request).toEqual(original);
+    expect(writes()).toHaveLength(1);
+  });
+
+  it("does not withdraw a newer journal using a stale displayed action", async () => {
+    const journal = saveUnknownJournal();
+    await mount();
+    const button = screen.getByRole("button", { name: "Close unaccepted request" });
+    journal.request.operationId = "44444444-4444-4444-8444-444444444444";
+    localStorage.setItem(journalKey, JSON.stringify(journal));
+    await act(async () => { fireEvent.click(button); });
+    expect(await screen.findByText(/changed in another tab/)).toBeTruthy();
+    expect(writes()).toEqual([]);
+    expect(JSON.parse(localStorage.getItem(journalKey)!).request.operationId).toBe(journal.request.operationId);
+  });
+
+  it("can pause while an explicit withdrawal owns the journal lock", async () => {
+    const original = saveUnknownJournal().request, response = pending<unknown>();
+    handlers.set("/api/files/shadow/withdraw", () => response.promise);
+    handlers.set("/api/files/shadow/disable", () => status(0));
+    await mount();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Close unaccepted request" })); });
+    const pause = screen.getByRole("button", { name: "Pause conversions" }) as HTMLButtonElement;
+    expect(pause.disabled).toBe(false);
+    await act(async () => { fireEvent.click(pause); });
+    expect(screen.getByText("Paused")).toBeTruthy();
+    await act(async () => { response.resolve(await withdrawn(original)); });
+    expect(screen.getByText("Paused")).toBeTruthy();
+    expect(await screen.findByText("Closed before acceptance")).toBeTruthy();
+    expect(writes().map(({ path }) => path)).toEqual(["/api/files/shadow/withdraw", "/api/files/shadow/disable"]);
+    expect(JSON.parse(localStorage.getItem(journalKey)!).request).toEqual(original);
   });
 });

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { canCancelReceipt, createFileShadowPilotClient, FILE_SHADOW_PILOT_JOURNAL_KEY, type PilotJournal, type ShadowConsumerKey } from "./file-shadow-pilot-client";
+import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 
 const incarnation = "11111111-1111-4111-8111-111111111111";
 const newerIncarnation = "22222222-2222-4222-8222-222222222222";
@@ -43,6 +44,10 @@ async function status(fixture: ReturnType<typeof setup>, raw = rawStatus()) {
   fixture.fetchMock.mockResolvedValueOnce(json(raw)); return fixture.client.getStatus();
 }
 function ticket(saved: Storage) { return JSON.parse(saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)!) as PilotJournal; }
+async function withdrawn(request: PilotJournal["request"]) {
+  return { operationId: request.operationId, status: "withdrawn", request, requestSha256: await sha256Hex(stableJson(request)),
+    occurrenceId: null, attemptId: null, attemptState: null, fileId: null, locationId: null, nextAction: "none" };
+}
 afterEach(() => vi.unstubAllGlobals());
 
 describe("bounded File shadow pilot client", () => {
@@ -215,6 +220,7 @@ describe("bounded File shadow pilot client", () => {
     await expect(first.client.inspectOperation(oldId)).rejects.toThrow("changed in another tab");
     await expect(first.client.reconcileOperation(current, oldId)).rejects.toThrow("changed in another tab");
     await expect(first.client.cancelOperation(current, oldId)).rejects.toThrow("changed in another tab");
+    await expect(first.client.withdrawOperation(oldId)).rejects.toThrow("changed in another tab");
     await expect(first.client.clearTerminalReceipt(oldId)).rejects.toThrow("changed in another tab");
     expect(first.fetchMock).toHaveBeenCalledTimes(requestsBefore);
     expect(first.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)).toBe(newerTicket);
@@ -241,5 +247,114 @@ describe("bounded File shadow pilot client", () => {
     await expect(fixture.client.convert(proof)).rejects.toThrow("incomplete");
     expect(fixture.client.loadJournal()?.receipt).toBeNull();
     expect(fixture.client.loadJournal()?.request.operationId).not.toBe(newerIncarnation);
+  });
+
+  it("closes only an explicitly withdrawn request after rejection, reload and a missing receipt", async () => {
+    const fixture = setup(), proof = await baseline(fixture);
+    fixture.fetchMock.mockResolvedValueOnce(json({ error: "baseline changed" }, 409));
+    await expect(fixture.client.convert(proof)).rejects.toThrow("not confirmed");
+    const frozen = fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY), original = ticket(fixture.saved).request;
+    const reload = setup(fixture.saved);
+    reload.fetchMock.mockResolvedValueOnce(json({}, 404));
+    await expect(reload.client.inspectOperation(original.operationId)).rejects.toThrow("No receipt is visible");
+    await expect(reload.client.clearTerminalReceipt(original.operationId)).rejects.toThrow("Only a confirmed terminal");
+    expect(fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)).toBe(frozen);
+    await status(reload, rawStatus(false, newerIncarnation));
+    reload.fetchMock.mockImplementationOnce(async (path, init) => {
+      expect(path).toBe("/api/files/shadow/withdraw");
+      expect(JSON.parse(String(init?.body))).toEqual(original);
+      return json(await withdrawn(original));
+    });
+    await expect(reload.client.withdrawOperation(original.operationId)).resolves.toMatchObject({ status: "withdrawn", occurrenceId: null });
+    expect(ticket(fixture.saved).request).toEqual(original);
+    const reread = setup(fixture.saved);
+    expect(reread.client.loadJournal()?.receipt?.status).toBe("withdrawn");
+    await reread.client.clearTerminalReceipt(original.operationId);
+    expect(reread.client.loadJournal()).toBeNull();
+    expect(reload.fetchMock.mock.calls.some(([path]) => /\/(convert|enable|cancel)$/.test(String(path)))).toBe(false);
+  });
+
+  it.each(["pending", "resolved"])("keeps an already accepted %s operation when withdrawal loses the claim race", async (state) => {
+    const fixture = setup(), proof = await baseline(fixture);
+    fixture.fetchMock.mockRejectedValueOnce(new Error("lost"));
+    await expect(fixture.client.convert(proof)).rejects.toThrow("response was lost");
+    const original = ticket(fixture.saved).request;
+    fixture.fetchMock.mockResolvedValueOnce(json(receipt(original.operationId, state, state === "resolved" ? "published" : "unknown")));
+    await expect(fixture.client.withdrawOperation(original.operationId)).resolves.toMatchObject({ status: state });
+    expect(ticket(fixture.saved).request).toEqual(original);
+    expect(fixture.fetchMock.mock.calls.filter(([path]) => String(path).endsWith("/convert"))).toHaveLength(1);
+    const calls = fixture.fetchMock.mock.calls.length;
+    await expect(fixture.client.withdrawOperation(original.operationId)).rejects.toThrow("Inspect the saved operation");
+    expect(fixture.fetchMock).toHaveBeenCalledTimes(calls);
+    if (state === "pending") await expect(fixture.client.clearTerminalReceipt(original.operationId)).rejects.toThrow("Only a confirmed terminal");
+  });
+
+  it("retains a lost withdrawal response and recovers its terminal receipt through inspection", async () => {
+    const fixture = setup(), proof = await baseline(fixture);
+    fixture.fetchMock.mockRejectedValueOnce(new Error("lost"));
+    await expect(fixture.client.convert(proof)).rejects.toThrow("response was lost");
+    const original = ticket(fixture.saved).request, frozen = fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY);
+    fixture.fetchMock.mockRejectedValueOnce(new Error("withdraw committed but response lost"));
+    await expect(fixture.client.withdrawOperation(original.operationId)).rejects.toThrow("response was lost");
+    expect(fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)).toBe(frozen);
+    const reload = setup(fixture.saved);
+    reload.fetchMock.mockResolvedValueOnce(json(await withdrawn(original)));
+    await reload.client.inspectOperation(original.operationId);
+    expect(ticket(fixture.saved).receipt?.status).toBe("withdrawn");
+    reload.fetchMock.mockResolvedValueOnce(json(receipt(original.operationId)));
+    await expect(reload.client.inspectOperation(original.operationId)).rejects.toThrow("terminal receipt changed");
+    expect(ticket(fixture.saved).receipt?.status).toBe("withdrawn");
+  });
+
+  it.each(["digest", "request", "occurrence", "attempt", "action", "status"])("rejects malformed withdrawal %s while retaining the original unknown request", async (field) => {
+    const fixture = setup(), proof = await baseline(fixture);
+    fixture.fetchMock.mockRejectedValueOnce(new Error("lost"));
+    await expect(fixture.client.convert(proof)).rejects.toThrow("response was lost");
+    const original = ticket(fixture.saved).request, frozen = fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY);
+    const result: Record<string, unknown> = await withdrawn(original);
+    if (field === "digest") result.requestSha256 = "0".repeat(64);
+    if (field === "request") result.request = { ...original, runtimeIncarnation: newerIncarnation };
+    if (field === "occurrence") result.occurrenceId = "invented-occurrence";
+    if (field === "attempt") result.attemptId = "invented-attempt";
+    if (field === "action") result.nextAction = "inspect";
+    if (field === "status") result.status = "not_found";
+    fixture.fetchMock.mockResolvedValueOnce(json(result));
+    await expect(fixture.client.withdrawOperation(original.operationId)).rejects.toThrow("incomplete");
+    expect(fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)).toBe(frozen);
+    await expect(fixture.client.clearTerminalReceipt(original.operationId)).rejects.toThrow("Only a confirmed terminal");
+  });
+
+  it("validates the echoed request on reload and retains large bounded keys in a terminal journal", async () => {
+    const fixture = setup(), proof = await baseline(fixture);
+    fixture.fetchMock.mockRejectedValueOnce(new Error("lost"));
+    await expect(fixture.client.convert(proof)).rejects.toThrow("response was lost");
+    const journal = ticket(fixture.saved);
+    journal.request.key.consumerId = "x".repeat(63 * 1024);
+    const result = await withdrawn(journal.request);
+    journal.receipt = { ...result, status: "withdrawn", nextAction: "none" };
+    fixture.saved.setItem(FILE_SHADOW_PILOT_JOURNAL_KEY, JSON.stringify(journal));
+    expect(fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)!.length).toBeGreaterThan(80 * 1024);
+    expect(fixture.client.loadJournal()?.receipt?.status).toBe("withdrawn");
+    journal.receipt.requestSha256 = "0".repeat(64);
+    fixture.saved.setItem(FILE_SHADOW_PILOT_JOURNAL_KEY, JSON.stringify(journal));
+    await expect(fixture.client.clearTerminalReceipt(journal.request.operationId)).rejects.toThrow("incomplete");
+    expect(fixture.saved.getItem(FILE_SHADOW_PILOT_JOURNAL_KEY)).not.toBeNull();
+    const corrupt = JSON.parse(JSON.stringify(journal)) as PilotJournal;
+    corrupt.request.key.consumerSubId = "changed";
+    fixture.saved.setItem(FILE_SHADOW_PILOT_JOURNAL_KEY, JSON.stringify(corrupt));
+    expect(() => fixture.client.loadJournal()).toThrow("saved operation cannot be read");
+  });
+
+  it("requires durable storage before withdrawal without preventing an independent pause", async () => {
+    const fixture = setup(), proof = await baseline(fixture);
+    fixture.fetchMock.mockRejectedValueOnce(new Error("lost"));
+    await expect(fixture.client.convert(proof)).rejects.toThrow("response was lost");
+    const original = ticket(fixture.saved).request, calls = fixture.fetchMock.mock.calls.length;
+    fixture.saved.setItem = () => { throw new Error("quota"); };
+    await expect(fixture.client.withdrawOperation(original.operationId)).rejects.toThrow("Persistent browser storage");
+    expect(fixture.fetchMock).toHaveBeenCalledTimes(calls);
+    const current = await status(fixture);
+    fixture.fetchMock.mockResolvedValueOnce(json(rawStatus(false)));
+    await expect(fixture.client.pause(current)).resolves.toMatchObject({ enabled: false });
   });
 });
