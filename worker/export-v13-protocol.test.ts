@@ -18,6 +18,14 @@ import worker from "./index";
 import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
+// V13 deliberately freezes the database at 0006, before authority metadata
+// existed. Model that writer's legacy mode only in this isolated test module;
+// keep its real routes, schema constraints and archive checks unchanged.
+vi.mock(import("./files/authority-reader"), async (original) => ({
+  ...await original(),
+  readFileAuthorityMode: async () => "legacy" as const,
+}));
+
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
 const endpoint = "/api/exports/all?archiveSchema=13&archiveWriter=1";
 const previous = "2026-08-01T00:00:00.000Z";

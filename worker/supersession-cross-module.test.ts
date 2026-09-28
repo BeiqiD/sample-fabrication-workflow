@@ -234,6 +234,15 @@ describe("supersession cross-module contract", () => {
       thumbnail_key: "ready/image.png",
     });
 
+    // Keep the historical supersession qualification above, then supply the
+    // current reader's additive authority singleton and typed consumer columns.
+    // Its native seed remains legacy; missing authority must still fail closed.
+    for (const filename of [
+      "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql",
+      "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql",
+      "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql",
+    ]) database.exec(readFileSync(new URL(`../migrations/${filename}`, import.meta.url), "utf8"));
+
     const stored = new Map([["ready/image.png", bytes]]);
     const env = {
       AUTH_MODE: "disabled",
