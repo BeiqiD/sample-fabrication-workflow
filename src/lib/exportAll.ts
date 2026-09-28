@@ -40,6 +40,7 @@ async function packageExportBlobs(
   blobs: FullExportBlobEntry[],
   onProgress: ((completed: number, total: number) => void) | undefined,
   fetcher: typeof fetch,
+  validatedFileLocationTransport = false,
 ) {
   const total = blobs.length;
   onProgress?.(0, total);
@@ -69,7 +70,13 @@ async function packageExportBlobs(
     let path: string | null = null;
     if (entry.downloadUrl) {
       try {
-        const response = await fetcher(entry.downloadUrl);
+        // V15–V17 freeze location URLs relative to the export router. Adapt
+        // only this validated plan at delivery time to the root Worker's /api
+        // mount; canonical manifests and already-prefixed legacy URLs stay intact.
+        const downloadUrl = validatedFileLocationTransport && "byteAuthority" in entry
+          && entry.byteAuthority === "file_location" && entry.downloadUrl.startsWith("/exports/file-locations/")
+          ? `/api${entry.downloadUrl}` : entry.downloadUrl;
+        const response = await fetcher(downloadUrl);
         if (!response.ok) {
           outcome = response.status === 404
             ? "missing"
@@ -185,7 +192,7 @@ async function buildVersionedFullExportArchive(
     paths.add(artifact.path);
     return [name, { path: artifact.path, byteSize: artifact.byteSize, sha256: artifact.sha256 }];
   }));
-  const { results, warnings } = await packageExportBlobs(zip, manifest.blobs, onProgress, fetcher);
+  const { results, warnings } = await packageExportBlobs(zip, manifest.blobs, onProgress, fetcher, version >= 15);
   for (const result of results) if (result.path) paths.add(result.path);
   zip.file("export-manifest.json", JSON.stringify({
     schemaVersion: manifest.schemaVersion,

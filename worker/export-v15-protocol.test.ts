@@ -224,8 +224,8 @@ describe("V15 portable shadow checkpoint", () => {
     const fetcher = vi.fn(async (url: RequestInfo | URL) => String(url).includes("/file-locations/candidate-location?")
       ? new Response("abc") : new Response("", { status: 404 }));
     const packaged = await buildFullExportArchiveV15(manifest, undefined, fetcher as typeof fetch);
-    expect(fetcher.mock.calls.map(([url]) => String(url))).toContain("/exports/file-locations/candidate-location?profile=shadow-profile&revision=1");
-    expect(fetcher.mock.calls.map(([url]) => String(url))).toContain("/exports/file-locations/other-location?profile=other-profile&revision=1");
+    expect(fetcher.mock.calls.map(([url]) => String(url))).toContain("/api/exports/file-locations/candidate-location?profile=shadow-profile&revision=1");
+    expect(fetcher.mock.calls.map(([url]) => String(url))).toContain("/api/exports/file-locations/other-location?profile=other-profile&revision=1");
     const exactReady = { byteAuthority: "file_location", storageProfileId: "shadow-profile", storageProfileRevision: 1, locationId: "candidate-location" };
     const exactMissing = { byteAuthority: "file_location", storageProfileId: "other-profile", storageProfileRevision: 1, locationId: "other-location" };
     expect(packaged.results.find((entry) => entry.locationId === "candidate-location")).toMatchObject({ ...exactReady, outcome: "packaged", expectedSha256: hash, expectedByteSize: 3 });
