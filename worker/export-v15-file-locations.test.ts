@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
+import JSZip from "jszip";
+import { buildFullExportArchiveV15, buildFullExportArchiveV16, buildFullExportArchiveV17 } from "../src/lib/exportAll";
+import type { FullExportManifestV15, FullExportManifestV16, FullExportManifestV17 } from "../shared/contracts/export";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "./index";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -12,8 +15,8 @@ const otherNamespace = JSON.stringify({ kind: "cloudflare-r2", accountId: "b".re
 const databases: DatabaseSync[] = [];
 const executionContext = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
 
-function fixture() {
-  const sql = referenceTestDatabase(); databases.push(sql);
+function fixture(throughMigration?: string) {
+  const sql = referenceTestDatabase({ throughMigration }); databases.push(sql);
   const now = new Date().toISOString();
   for (const [id, physical] of [["profile-one", namespace], ["profile-two", otherNamespace]]) {
     sql.prepare("INSERT INTO storage_profiles VALUES(?,'r2',?,'bootstrap',NULL,1,'historical',?)").run(id, physical, now);
@@ -99,6 +102,55 @@ afterEach(() => {
 });
 
 describe("V15 profile-qualified export delivery through the root application", () => {
+  it.each([
+    [15, "0008_fp1_shadow_runtime.sql", buildFullExportArchiveV15],
+    [16, "0009_fp1_shadow_withdrawals.sql", buildFullExportArchiveV16],
+    [17, "0010_fp1_shadow_adjudications.sql", buildFullExportArchiveV17],
+  ] as const)("packages V%i legacy and qualified location bytes through the actual Worker mount without rewriting the frozen manifest", async (version, migration, build) => {
+    const f = fixture(migration);
+    // Every request reaches the real Worker, including its /api basePath,
+    // authentication, profile checks and byte routes. Only R2 itself is a fixture.
+    const fetcher = vi.fn<typeof fetch>((input, init) => worker.fetch(
+      input instanceof Request ? input : new Request(new URL(String(input), "https://app.test"), init), f.env, executionContext));
+    const response = await fetcher(`/api/exports/all?archiveSchema=${version}&archiveWriter=1`);
+    expect(response.status, await response.clone().text()).toBe(200);
+    const manifest = await response.json() as FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17;
+    expect(manifest.schemaVersion).toBe(version);
+    const before = JSON.stringify(manifest);
+    const location = manifest.blobs.find((entry) => entry.locationId === "location-one")!;
+    const legacy = manifest.blobs.find((entry) => entry.byteAuthority === "legacy" && entry.objectKey === "legacy/source-key")!;
+    expect(location.downloadUrl).toBe("/exports/file-locations/location-one?profile=profile-one&revision=1");
+    expect(legacy.downloadUrl).toMatch(/^\/api\/exports\//);
+    f.noProvider(); fetcher.mockClear();
+
+    const packaged = await build(manifest, undefined, fetcher);
+    expect(JSON.stringify(manifest)).toBe(before);
+    expect(fetcher.mock.calls.map(([url]) => String(url))).toContain(`/api${location.downloadUrl}`);
+    expect(fetcher.mock.calls.map(([url]) => String(url))).toContain(legacy.downloadUrl);
+    expect(fetcher.mock.calls.some(([url]) => String(url).startsWith("/api/api/") || String(url).startsWith("/exports/"))).toBe(false);
+    const zip = await JSZip.loadAsync(await packaged.archive.arrayBuffer());
+    for (const locatorId of [legacy.locatorId, location.locatorId]) {
+      const entry = packaged.results.find((result) => result.locatorId === locatorId)!;
+      expect(entry.outcome).toBe("packaged"); expect(entry.path).not.toBeNull();
+      const delivered = await zip.file(entry.path!)!.async("uint8array");
+      expect(delivered).toEqual(bytes);
+      expect(createHash("sha256").update(delivered).digest("hex")).toBe(sha256);
+    }
+    // Routing the location does not relax namespace or publication checks.
+    expect(packaged.results.find((entry) => entry.locationId === "location-two")?.outcome).toBe("provider_unavailable");
+    expect(packaged.results.find((entry) => entry.locationId === "location-unverified")?.outcome).toBe("metadata_not_ready");
+    expect(f.get.mock.calls.map(([key]) => key).sort()).toEqual(["legacy/source-key", "same/opaque/%2F/key"].sort());
+    for (const call of [f.head, f.put, f.remove, f.providerFetch]) expect(call).not.toHaveBeenCalled();
+
+    // An API-prefixed modification of canonical metadata is still tampering;
+    // the transport adaptation never broadens the frozen manifest validator.
+    const altered = structuredClone(manifest);
+    altered.blobs.find((entry) => entry.locationId === "location-one")!.downloadUrl = `/api${location.downloadUrl}`;
+    fetcher.mockClear(); f.get.mockClear();
+    await expect(build(altered, undefined, fetcher)).rejects.toThrow();
+    expect(fetcher).not.toHaveBeenCalled(); f.noProvider();
+  }, 30_000);
+
   it("streams the exact registered namespace/key and applies private response headers", async () => {
     const f = fixture();
     const response = await request(f.env);
