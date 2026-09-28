@@ -1,3 +1,4 @@
+import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
 import type { FullExportManifestV17 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
@@ -79,6 +80,9 @@ function paginatedPath(path: string, options: { query?: string; page?: number; p
 }
 
 export const api = {
+  getStorageSettings: async (signal?: AbortSignal) => checkedStorageSettingsStatus(await request<unknown>("/settings/storage", {
+    method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error", signal,
+  })),
   listSamples: (options: SampleListOptions | string = {}) => {
     const signal = typeof options === "string" ? undefined : options.signal;
     return request<SampleListResponse>(sampleListPath(options), signal ? { signal } : undefined);

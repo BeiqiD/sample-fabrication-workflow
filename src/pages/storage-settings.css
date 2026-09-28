@@ -1,0 +1,37 @@
+.storage-settings-page { max-width: 1040px; }
+.storage-settings-page .page-heading { align-items: center; }
+.storage-settings-page .page-heading .lead { margin-bottom: 0; }
+.storage-settings-page .page-heading > .button { flex: 0 0 auto; }
+.storage-settings-page .error-banner p { margin: 0; }
+.storage-settings-observation { margin-bottom: 26px; padding-left: 16px; border-left: 3px solid var(--line); font-size: var(--font-body); }
+.storage-settings-observation strong { font-weight: 650; }
+.storage-settings-observation p { margin: 5px 0 0; max-width: 780px; }
+.storage-settings-section { padding: 24px; margin-bottom: 22px; }
+.storage-settings-section > .muted { margin: 10px 0 20px; font-size: var(--font-body); }
+.storage-section-heading { display: flex; gap: 12px; align-items: center; }
+.storage-upload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.storage-upload-destination { min-width: 0; border-top: 1px solid var(--line); padding-top: 20px; }
+.storage-upload-destination h3 { font-size: var(--font-body); font-weight: 650; }
+.storage-upload-destination .storage-destination-name { font-size: 20px; font-weight: 650; line-height: 1.4; margin: 10px 0; }
+.storage-upload-destination .muted { font-size: var(--font-body); }
+.storage-configuration-note { font-size: var(--font-meta); color: var(--muted); margin: 18px 0 0; }
+.storage-profile-list { list-style: none; margin: 0; padding: 0; }
+.storage-profile-list > li { border-top: 1px solid var(--line); padding: 20px 0; min-width: 0; }
+.storage-profile-list > li:last-child { padding-bottom: 0; }
+.storage-profile-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; }
+.storage-profile-heading h3 { min-width: 0; font-size: var(--font-body); font-weight: 650; overflow-wrap: anywhere; }
+.storage-profile-heading code { white-space: pre-wrap; }
+.storage-profile-heading > span { color: var(--muted); font-size: var(--font-meta); }
+.storage-profile-list dl { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 12px 24px; margin: 14px 0 0; font-size: var(--font-body); }
+.storage-profile-list dt { color: var(--muted); font-size: var(--font-meta); margin-bottom: 5px; }
+.storage-profile-list dd { margin: 0; overflow-wrap: anywhere; }
+.storage-settings-advanced { color: var(--muted); font-size: var(--font-meta); }
+.storage-settings-advanced summary { cursor: pointer; width: fit-content; }
+.storage-settings-advanced summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.storage-settings-advanced > div { display: flex; flex-wrap: wrap; gap: 12px 24px; padding-top: 14px; }
+@media (max-width: 720px) {
+  .storage-settings-page .page-heading { align-items: stretch; }
+  .storage-settings-page .page-heading > .button { align-self: flex-start; }
+  .storage-settings-section { padding: 20px; }
+  .storage-upload-grid, .storage-profile-list dl { grid-template-columns: minmax(0, 1fr); }
+}

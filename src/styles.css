@@ -1093,6 +1093,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 
 @media (max-width: 1200px) {
   .brand-title { display: none; }
+  .topbar nav a { width: 40px; padding: 8px 10px; }
+  .nav-link-label { display: none; }
   .sample-page { width: min(1740px, max(90vw, 692px)); }
   .sample-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sample-directory-head, .sample-directory-row { grid-template-columns: minmax(190px, 1.15fr) minmax(150px, .8fr) 90px; gap: 10px 18px; }
@@ -1163,7 +1165,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .topbar { height: 56px; padding: 0 10px; align-items: center; flex-wrap: nowrap; }
   .topbar-actions { width: auto; gap: 4px; }
   .topbar nav { min-width: 0; flex: 0 0 auto; gap: 0; overflow: visible; }
-  .topbar nav a { width: 40px; padding: 8px 10px; }
+  .topbar nav a { width: 36px; padding: 8px; }
   .nav-link-label { display: none; }
   .theme-toggle { min-width: 36px; width: 36px; padding: 0; }
   .theme-toggle small { display: none; }

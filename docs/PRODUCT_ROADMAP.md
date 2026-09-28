@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-28 for historical evidence adjudication after #230;
-accepted implementation base is `7f186385`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-28 after accepted adjudication and export repairs
+(#231–#233); implementation base is `6df9e1b4`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -44,13 +44,19 @@ PR #229's durable unaccepted-request withdrawal, migration `0009` and matched
 V16 export/recovery are deployed and accepted. Browser withdrawal/readback/reload
 passed without an additional successful conversion. PR #230's
 [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) is deployed.
-The next implementation adds explicit operator authorization, exact-occurrence
-adjudication, durable withdrawal, conservative revocation/correction, immutable
-conversion bindings and matched `0010`/V17 recovery. Its verification and deployment
-are tracked in its implementation PR. Seven historical references still need
-actual classification/namespace evidence; installing the mechanism does not
-approve them or configure an operator. Read-only review remains available.
-Complete catch-up and final cutover remain separate from archive acceptance.
+PR #231 delivered operator-scoped adjudication, durable withdrawal, conservative
+revocation/correction, immutable conversion bindings and matched `0010`/V17
+recovery. #232 repaired deployment verification; #233 repaired File-location
+export transport. The owner-supplied post-fix V17 ZIP passed isolated recovery
+with 10/10 files and zero warnings on 2026-09-28. This closes that archive
+acceptance; routine feature changes do not require another live ZIP rehearsal.
+Seven historical references still need actual classification/namespace evidence;
+installing the mechanism does not approve them or configure an operator.
+The [basic Storage Settings](./FP1_STORAGE_SETTINGS.md) read-only surface can
+proceed in parallel with that evidence work. It shows deployment configuration
+and registered profiles, without changing destinations or checking providers.
+Complete catch-up and atomic cutover still precede File-authoritative defaults
+and configuration writes; archive or Settings acceptance does not replace them.
 FP1 is still in progress and no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -90,7 +96,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | #221/#222 are merged; `0008`/V15 are deployed through #226. The V15 inspector explains current-generation conversion blockers while preserving frozen V14 inspection. Catch-up and invariant qualification precede separate atomic authority activation, R2 defaults and basic Settings. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | #221/#222 are merged; `0008`/V15 are deployed through #226. The V15 inspector explains current-generation conversion blockers while preserving frozen V14 inspection. Catch-up and invariant qualification precede separate atomic authority activation and R2 role defaults. Basic authenticated, read-only Storage Settings is delivered in parallel; configuration writes remain gated. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -929,11 +935,12 @@ Project-owned Markdown or attachment content only through explicit user action.
    The synthetic single-item R2 pilot passed in #228 and remains paused. Durable
    unaccepted-request withdrawal and V16 recovery passed in #229. Use the
    [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) to identify
-   missing facts, then implement explicit adjudication with correction/revocation,
-   native admission/retention fencing and complete versioned recovery before
-   applying real operator evidence. This
-   capability work does not reopen general frontend refinement or advance
-   Settings/default configuration.
+   missing facts. Explicit adjudication with correction/revocation, native
+   admission/retention fencing and V17 recovery are delivered in #231–#233;
+   applying evidence still requires real facts and an explicitly configured
+   operator. Basic read-only [Storage Settings](./FP1_STORAGE_SETTINGS.md) is
+   delivered in parallel. Configuration writes and role defaults retain their
+   later gates; this does not reopen general frontend refinement.
 3. Only after complete catch-up and invariant qualification, propose a separately
    reviewed **atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
@@ -942,8 +949,9 @@ Project-owned Markdown or attachment content only through explicit user action.
    interactive/provider-specific acceptance. Keep #199/#200 inactive. No repeat reset or
    unreferenced-file cleanup follows from this plan. The activation checkpoint
    continues to own operator follow-up and temporary control restoration.
-5. Finish FP1 with explicit Cloudflare R2 defaults for both roles and basic
-   authenticated storage status/Settings. Then implement **FP2** external
+5. Finish FP1 with explicit Cloudflare R2 defaults for both roles after activation;
+   basic authenticated, read-only storage status/Settings is delivered in
+   parallel. Then implement **FP2** external
    configuration, administrator and encrypted-secret boundaries, and S3 without
    requiring SWITCHdrive credentials for development.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
