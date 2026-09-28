@@ -9,6 +9,8 @@ import { normalizeR2UploadRequestId, R2_UPLOAD_RECEIPT_LIFETIME_MS } from "../..
 import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 import { ingestR2Attachment, safeAttachmentObjectName } from "../attachment-ingestion";
 import { primaryD1 } from "../d1-primary";
+import { resolveAcceptedUploadResultFile, verifyAcceptedResultFile } from "../files/accepted-result-reader";
+import { readFileAuthorityMode } from "../files/authority-reader";
 import { ByteVerificationError, verifyByteStream } from "../files/byte-verification";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
@@ -71,7 +73,7 @@ function parseInput(row: AcceptedMetrologyReferenceUploadRow) {
 function parsePlan(row: AcceptedMetrologyReferenceUploadRow) {
   try { return validateMetrologyReferencePublicationPlan(JSON.parse(row.publication_plan_json)); } catch { throw new MetrologyReferenceUploadUnavailableError(); }
 }
-async function liveResultEligible(db: D1Database, row: AcceptedMetrologyReferenceUploadRow, result: MetrologyReferenceUploadResult) {
+async function liveResultEligible(db: D1Database, row: AcceptedMetrologyReferenceUploadRow, result: MetrologyReferenceUploadResult, active = false) {
   const file = parseInput(row).file;
   const ref = result.reference;
   try {
@@ -80,7 +82,7 @@ async function liveResultEligible(db: D1Database, row: AcceptedMetrologyReferenc
       WHERE mtr.id = ? AND mtr.template_version_id = ? AND mtr.asset_id = ?
         AND mtr.display_name IS ? AND mtr.created_at IS ? AND mtr.deleted_at IS NULL AND mtr.superseded_by_occurrence_id IS NULL
         AND a.r2_key = ? AND a.mime_type = ? AND a.byte_size = ? AND a.sha256 = ?
-        AND ${activeTemplateSql} AND ${availableAssetSql}`)
+        AND ${activeTemplateSql} AND ${active ? `a.status='ready' AND ${publishedAssetSql("a")}` : availableAssetSql}`)
       .bind(ref.id, row.template_version_id, result.assetId, ref.filename, ref.createdAt, ref.assetKey, ref.mimeType, file.byteSize, file.sha256).first());
   } catch { throw new MetrologyReferenceUploadUnavailableError(); }
 }
@@ -91,6 +93,16 @@ export async function acceptedMetrologyReferenceUploadState(env: Env, row: Accep
   let result: MetrologyReferenceUploadResult;
   try { result = validateMetrologyReferenceUploadResult(JSON.parse(row.accepted_result_json ?? "null")); } catch { throw new MetrologyReferenceUploadUnavailableError(); }
   const expected = parseInput(row).file;
+  const active = await readFileAuthorityMode(env.DB).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); }) === "active";
+  if (active) {
+    if (!await liveResultEligible(env.DB, row, result, true)) return { ...base, status: "unavailable" };
+    const verified = await verifyAcceptedResultFile(env, { purpose: row.purpose, expectedBytes: expected,
+      resolveFileId: () => resolveAcceptedUploadResultFile(env.DB, { kind: "metrology_reference", receipt: row }),
+    }).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); });
+    if (row.expires_at <= new Date().toISOString()) return { ...base, status: "expired" };
+    if (!verified || !await liveResultEligible(env.DB, row, result, true)) return { ...base, status: "unavailable" };
+    return { ...base, status: "ready", result };
+  }
   await assertR2BootstrapProfile(primaryD1(env.DB), env, row.storage_profile_id, row.storage_profile_revision);
   if (!await liveResultEligible(env.DB, row, result)) return { ...base, status: "unavailable" };
   const opened = await r2ByteReader(env.ASSETS).read(result.reference.assetKey);

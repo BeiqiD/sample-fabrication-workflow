@@ -7,6 +7,8 @@ import {
 import { sha256Hex } from "../../shared/domain/content-addressing";
 import { AttachmentIngestionUnavailableError, ingestR2Attachment, safeAttachmentObjectName } from "../attachment-ingestion";
 import { primaryD1 } from "../d1-primary";
+import { resolveAcceptedUploadResultFile, verifyAcceptedResultFile } from "../files/accepted-result-reader";
+import { readFileAuthorityMode } from "../files/authority-reader";
 import { ByteVerificationError, verifyByteStream } from "../files/byte-verification";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
@@ -84,21 +86,21 @@ function resultFor(row: AcceptedR2UploadRow): R2UploadResult {
     return result;
   } catch { throw new R2UploadAcceptanceUnavailableError(); }
 }
-async function resultStillEligible(db: D1Database, result: R2UploadResult, expected: { sha256: string; byteSize: number }) {
+async function resultStillEligible(db: D1Database, result: R2UploadResult, expected: { sha256: string; byteSize: number }, active = false) {
   try {
     return Boolean(await primaryD1(db).prepare(`SELECT 1 AS available FROM assets a LEFT JOIN imports i ON i.id = a.import_id
       WHERE a.id = ? AND a.r2_key = ? AND a.status = 'ready' AND a.sha256 = ? AND a.byte_size = ?
         AND (a.import_id IS NULL OR i.status = 'ready')
-        AND NOT EXISTS (SELECT 1 FROM blob_gc_ledger bg WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
+        ${active ? "" : `AND NOT EXISTS (SELECT 1 FROM blob_gc_ledger bg WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted'))
         AND NOT EXISTS (SELECT 1 FROM blob_integrity_quarantine biq WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
-          AND biq.object_key = a.r2_key)`)
+          AND biq.object_key = a.r2_key)`}`)
       .bind(result.id, result.key, expected.sha256, expected.byteSize).first());
   } catch { throw new R2UploadAcceptanceUnavailableError(); }
 }
 
-/** Receipts do not retain bytes or renew registration grace. A successful read
- * requires the original namespace, verified bytes and current lifecycle state. */
+/** Receipts do not retain bytes or renew registration grace. Active replay uses
+ * its typed File result; legacy/overlap retain the original namespace checks. */
 export async function acceptedR2UploadState(env: Env, row: AcceptedR2UploadRow): Promise<R2UploadRequestState> {
   const base = identity(row);
   if (row.expires_at <= new Date().toISOString()) return { ...base, status: "expired" };
@@ -107,6 +109,16 @@ export async function acceptedR2UploadState(env: Env, row: AcceptedR2UploadRow):
   let expected;
   try { expected = validateR2UploadInput(JSON.parse(row.request_input_json)).file; }
   catch { throw new R2UploadAcceptanceUnavailableError(); }
+  const active = await readFileAuthorityMode(env.DB).catch(() => { throw new R2UploadAcceptanceUnavailableError(); }) === "active";
+  if (active) {
+    if (!await resultStillEligible(env.DB, result, expected, true)) return { ...base, status: "unavailable" };
+    const verified = await verifyAcceptedResultFile(env, { purpose: row.purpose, expectedBytes: expected,
+      resolveFileId: () => resolveAcceptedUploadResultFile(env.DB, { kind: "r2_upload", receipt: row }),
+    }).catch(() => { throw new R2UploadAcceptanceUnavailableError(); });
+    if (row.expires_at <= new Date().toISOString()) return { ...base, status: "expired" };
+    if (!verified || !await resultStillEligible(env.DB, result, expected, true)) return { ...base, status: "unavailable" };
+    return { ...base, status: "ready", result };
+  }
   await assertR2BootstrapProfile(primaryD1(env.DB), env, row.storage_profile_id, row.storage_profile_revision);
   if (!await resultStillEligible(env.DB, result, expected)) return { ...base, status: "unavailable" };
   const opened = await r2ByteReader(env.ASSETS).read(result.key);

@@ -15,6 +15,8 @@ import { verifyUploadBody } from "../files/legacy-byte-writer";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
 import { managedByteReader } from "../files/storage-adapters/managed-reader";
+import { readFileAuthorityMode } from "../files/authority-reader";
+import { verifyAcceptedResultFile } from "../files/accepted-result-reader";
 import type { Env } from "../types";
 
 type C = Context<{ Bindings: Env; Variables: { userEmail: string } }>;
@@ -71,10 +73,38 @@ async function itemStillEligible(db: D1Database, row: CommentItemAcceptanceRow, 
     .bind(row.item_id, row.submission_id, row.expected_sha256, result.blobRecordId, result.objectKey, row.expected_sha256, row.expected_byte_size,
       result.storeKind, result.provider, result.objectKey, result.storeKind, result.provider, result.objectKey).first());
 }
-async function verifiedItem(env: Env, row: CommentItemAcceptanceRow): Promise<boolean> {
+const activeItemAvailableSql = `ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
+  AND ((json_extract(ia.accepted_result_json,'$.storeKind')='r2' AND csi.asset_id=json_extract(ia.accepted_result_json,'$.blobRecordId'))
+    OR (json_extract(ia.accepted_result_json,'$.storeKind')='managed' AND csi.storage_object_id=json_extract(ia.accepted_result_json,'$.blobRecordId')))
+  AND EXISTS (SELECT 1 FROM file_usable_publications f WHERE f.file_id=csi.file_id AND f.purpose=ia.purpose
+    AND f.access_scope='system' AND f.verified_byte_size=ia.expected_byte_size AND f.verified_sha256=ia.expected_sha256)
+  AND NOT EXISTS (SELECT 1 FROM file_acceptance_candidates candidate
+    WHERE candidate.acceptance_kind='comment_item' AND candidate.acceptance_id=ia.item_id AND candidate.item_id=''
+      AND (candidate.state<>'ready' OR candidate.result_file_id IS NOT csi.file_id))`;
+
+async function activeItemFileId(db: D1Database, row: CommentItemAcceptanceRow): Promise<string | null> {
+  const source = await db.prepare(`SELECT csi.file_id FROM comment_submission_items csi
+    JOIN comment_submissions cs ON cs.id=csi.submission_id
+    JOIN comment_item_acceptances ia ON ia.item_id=csi.id
+    WHERE csi.id=? AND csi.submission_id=? AND ia.actor_email=? AND ia.accepted_result_json=?
+      AND csi.status='ready' AND csi.deleted_at IS NULL AND cs.status<>'cancelled' AND cs.deleted_at IS NULL
+      AND ${visibleCommentTargetsSql("cs")} AND ${activeItemAvailableSql}`)
+    .bind(row.item_id,row.submission_id,row.actor_email,row.accepted_result_json).first<{ file_id: string }>();
+  return source?.file_id ?? null;
+}
+
+async function verifiedItem(env: Env, row: CommentItemAcceptanceRow, active: boolean): Promise<boolean> {
   let result: CommentAcceptedItemResult;
   try { result = validateCommentAcceptedItemResult(JSON.parse(row.accepted_result_json ?? "null")); } catch { failClosed(); }
   const db = primaryD1(env.DB);
+  if (active) {
+    try {
+      return await verifyAcceptedResultFile(env, {
+        purpose: row.purpose, expectedBytes: { sha256: row.expected_sha256, byteSize: row.expected_byte_size },
+        resolveFileId: () => activeItemFileId(db, row),
+      });
+    } catch { failClosed(); }
+  }
   if (!await itemStillEligible(db, row, result)) return false;
   const check = () => result.storeKind === "r2" ? assertR2BootstrapProfile(db, env, row.storage_profile_id, row.storage_profile_revision)
     : assertManagedBootstrapProfile(db, env, row.storage_profile_id, row.storage_profile_revision);
@@ -94,6 +124,7 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
   const db = primaryD1(env.DB); const { parent, canonical } = await rows(db, id); requireAuthor(actor, canonical);
   if (!parent) return { submissionId: id, inputSha256: null, expiresAt: null, status: canonical!.status === "cancelled" ? "cancelled" : "legacy", input: null, items: [] };
   if (parent.actor_email !== actor) throw new HTTPException(404, { message: "Comment submission not found" });
+  const active = await readFileAuthorityMode(db).catch(() => failClosed()) === "active";
   const input = inputFor(parent);
   const state: CommentAcceptanceState = { submissionId: id, inputSha256: parent.request_sha256, expiresAt: parent.expires_at,
     status: parent.status === "cancelled" || canonical!.status === "cancelled" ? "cancelled" : parent.status !== "ready" && parent.expires_at <= new Date().toISOString() ? "expired"
@@ -110,7 +141,9 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
         : accepted.status === "cancelled" ? "cancelled" : accepted.status === "ready" ? "ready" : accepted.execution_token ? "uploading" : "pending";
     if (status === "ready" && item.kind !== "link" && !["expired", "unavailable", "cancelled"].includes(state.status)) {
       if (state.status === "ready" || verification.allPending || verification.itemId === item.id) {
-        if (!await verifiedItem(env, accepted!)) status = "unavailable";
+        if (!await verifiedItem(env, accepted!, active)) status = "unavailable";
+      } else if (active) {
+        if (!await activeItemFileId(db, accepted!)) status = "unavailable";
       } else {
         const result = validateCommentAcceptedItemResult(JSON.parse(accepted!.accepted_result_json ?? "null"));
         try {
@@ -128,6 +161,7 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
     db.prepare(`SELECT cs.status,cs.deleted_at,ca.status AS acceptance_status,ca.expires_at,${visibleCommentTargetsSql("cs")} AS visible
       FROM comment_submissions cs JOIN comment_submission_acceptances ca ON ca.submission_id=cs.id WHERE cs.id=?`).bind(id),
     db.prepare(`SELECT csi.id,csi.status,csi.deleted_at,ia.execution_token,CASE WHEN csi.kind='link' THEN 1
+      ${active ? `WHEN ${activeItemAvailableSql} THEN 1 WHEN 1=1 THEN 0` : ""}
       WHEN ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
         AND ((csi.kind='comment_image' AND EXISTS(SELECT 1 FROM assets a LEFT JOIN imports i ON i.id=a.import_id
           WHERE a.id=csi.asset_id AND a.id=json_extract(ia.accepted_result_json,'$.blobRecordId') AND a.r2_key=json_extract(ia.accepted_result_json,'$.objectKey')
