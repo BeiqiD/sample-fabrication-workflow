@@ -935,11 +935,12 @@ Project-owned Markdown or attachment content only through explicit user action.
    The synthetic single-item R2 pilot passed in #228 and remains paused. Durable
    unaccepted-request withdrawal and V16 recovery passed in #229. Use the
    [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) to identify
-   missing facts, then implement explicit adjudication with correction/revocation,
-   native admission/retention fencing and complete versioned recovery before
-   applying real operator evidence. This
-   capability work does not reopen general frontend refinement or advance
-   Settings/default configuration.
+   missing facts. Explicit adjudication with correction/revocation, native
+   admission/retention fencing and V17 recovery are delivered in #231–#233;
+   applying evidence still requires real facts and an explicitly configured
+   operator. Basic read-only [Storage Settings](./FP1_STORAGE_SETTINGS.md) is
+   delivered in parallel. Configuration writes and role defaults retain their
+   later gates; this does not reopen general frontend refinement.
 3. Only after complete catch-up and invariant qualification, propose a separately
    reviewed **atomic authority activation** that fences old Workers and switches
    reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
@@ -948,8 +949,9 @@ Project-owned Markdown or attachment content only through explicit user action.
    interactive/provider-specific acceptance. Keep #199/#200 inactive. No repeat reset or
    unreferenced-file cleanup follows from this plan. The activation checkpoint
    continues to own operator follow-up and temporary control restoration.
-5. Finish FP1 with explicit Cloudflare R2 defaults for both roles and basic
-   authenticated storage status/Settings. Then implement **FP2** external
+5. Finish FP1 with explicit Cloudflare R2 defaults for both roles after activation;
+   basic authenticated, read-only storage status/Settings is delivered in
+   parallel. Then implement **FP2** external
    configuration, administrator and encrypted-secret boundaries, and S3 without
    requiring SWITCHdrive credentials for development.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
