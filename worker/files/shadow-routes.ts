@@ -7,6 +7,9 @@ import { openShadowProfile } from "./shadow-profile";
 import { admitShadowUnresolved, cancelShadowOperation, convertShadowConsumer, readShadowOperation, reconcileShadowOperation, withdrawShadowOperation,
   ShadowConflictError, ShadowUnavailableError, type ShadowServiceContext } from "./shadow-service";
 import { checkedShadowWithdrawalRequest } from "../../shared/contracts/file-shadow-withdrawal";
+import { checkedFileShadowReviewKey } from "../../shared/contracts/file-shadow-evidence-review";
+import { readShadowEvidenceReview } from "./shadow-evidence-review";
+import { readShadowIdentification, SHADOW_IDENTIFICATION_COLUMN_SQL, SHADOW_IDENTIFICATION_JOINS_SQL } from "./shadow-identification";
 
 type Bindings = { Bindings: Env; Variables: { userEmail: string } };
 type Body = Record<string, unknown>;
@@ -15,7 +18,8 @@ export const shadowRoutes = new Hono<Bindings>();
 
 function badInput(): never { throw new HTTPException(400, { message: "Invalid File shadow request" }); }
 function keys(body: Body, allowed: string[]) {
-  if (Object.keys(body).sort().join(",") !== [...allowed].sort().join(",")) badInput();
+  const actual = Object.keys(body).sort(), expected = [...allowed].sort();
+  if (actual.length !== expected.length || actual.some((name, index) => name !== expected[index])) badInput();
 }
 function id(value: unknown): string { if (typeof value !== "string" || !UUID.test(value)) badInput(); return value; }
 function consumerKey(value: unknown) {
@@ -91,16 +95,18 @@ shadowRoutes.get("/files/shadow/consumers", async (c) => {
   try { after = cursorText === undefined ? null : checkedShadowKey(JSON.parse(cursorText)); }
   catch { return badInput(); }
   const rows = await primaryD1(c.env.DB).prepare(`SELECT h.consumer_kind,h.consumer_id,h.consumer_sub_id,h.file_slot,h.generation,h.occurrence_id,
+    ${SHADOW_IDENTIFICATION_COLUMN_SQL},
     CASE WHEN d.decision='resolved' AND f.file_id IS NOT NULL AND f.active_location_id=d.location_id THEN 'resolved'
       WHEN d.decision='admitted_unresolved' THEN 'admitted_unresolved' ELSE 'pending' END AS state
     FROM file_shadow_heads h LEFT JOIN file_shadow_decisions d ON d.occurrence_id=h.occurrence_id
     LEFT JOIN file_usable_publications f ON f.file_id=d.file_id
+    ${SHADOW_IDENTIFICATION_JOINS_SQL}
     WHERE h.present=1 AND (?=0 OR (h.consumer_kind,h.consumer_id,h.consumer_sub_id,h.file_slot)>(?,?,?,?))
     ORDER BY h.consumer_kind,h.consumer_id,h.consumer_sub_id,h.file_slot LIMIT ?`)
     .bind(after ? 1 : 0, after?.consumerKind ?? "", after?.consumerId ?? "", after?.consumerSubId ?? "", after?.fileSlot ?? "", limit + 1)
-    .all<{ consumer_kind: string; consumer_id: string; consumer_sub_id: string; file_slot: string; generation: number; occurrence_id: string; state: string }>();
+    .all<{ consumer_kind: string; consumer_id: string; consumer_sub_id: string; file_slot: string; generation: number; occurrence_id: string; state: string; identification_json: string | null }>();
   if (!rows.success) throw new ShadowUnavailableError();
-  const records = rows.results.slice(0, limit), last = records.at(-1);
+  const records = rows.results.slice(0, limit).map(({ identification_json, ...record }) => ({ ...record, identification: readShadowIdentification(identification_json) })), last = records.at(-1);
   const result = { records, nextCursor: rows.results.length > limit && last ? {
     consumerKind: last.consumer_kind, consumerId: last.consumer_id, consumerSubId: last.consumer_sub_id, fileSlot: last.file_slot,
   } : null };
@@ -111,6 +117,13 @@ shadowRoutes.get("/files/shadow/consumers", async (c) => {
 shadowRoutes.post("/files/shadow/baseline", async (c) => {
   const input = await body(c.req.raw); keys(input, ["key"]);
   return c.json(await readShadowBaseline(c.env.DB, consumerKey(input.key)));
+});
+
+shadowRoutes.post("/files/shadow/evidence-review", async (c) => {
+  const input = await body(c.req.raw); keys(input, ["key"]);
+  let key;
+  try { key = checkedFileShadowReviewKey(input.key); } catch { return badInput(); }
+  return c.json(await readShadowEvidenceReview(c.env.DB, key));
 });
 
 shadowRoutes.post("/files/shadow/enable", async (c) => {

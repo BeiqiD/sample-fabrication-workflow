@@ -5,6 +5,7 @@ import type { FilePurpose } from "../../shared/contracts/files";
 import { FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, fileShadowSchemaFingerprint } from "../../shared/contracts/export-file-shadow";
 import { isFileShadowRowid } from "../../shared/contracts/file-shadow-rowid";
 import { MAX_VERIFIED_BYTES } from "./byte-verification";
+import { readShadowIdentification, SHADOW_IDENTIFICATION_EXACT_SQL } from "./shadow-identification";
 import { liveConsumerMetadataSql, projectLiveConsumerMetadata, MAX_LIVE_CONSUMER_PAGE_BYTES,
   MAX_LIVE_CONSUMER_EVIDENCE_ROWS, MAX_LIVE_CONSUMER_SOURCE_ROWS, MAX_LIVE_CONSUMER_SOURCE_KEY_BYTES,
   type ConsumerMetadata, type LiveConsumerDatabase, type LiveConsumerKey, type LiveConsumerRecord } from "./live-consumer-baseline";
@@ -41,7 +42,9 @@ export function canonicalShadowMetadata(value: unknown): string {
   throw new Error("Invalid shadow metadata");
 }
 export function checkedShadowKey(value: unknown): LiveConsumerKey {
-  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "consumerId,consumerKind,consumerSubId,fileSlot"
+  const names = ["consumerId", "consumerKind", "consumerSubId", "fileSlot"];
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== names.length
+    || Object.keys(value).sort().some((name, index) => name !== names[index])
     || Object.values(value).some((v) => typeof v !== "string") || encoder.encode(canonicalShadowMetadata(value)).length > 64 * 1024) throw new Error("Invalid shadow consumer key");
   return JSON.parse(canonicalShadowMetadata(value)) as LiveConsumerKey;
 }
@@ -79,13 +82,23 @@ function qualifiedPurpose(record: LiveConsumerRecord): FilePurpose | null {
  * lease. The sidecar epoch and head are captured in the SAME primary SELECT as
  * every metadata dependency. The V14 preflight protocol remains frozen. */
 export async function readShadowBaseline(database: LiveConsumerDatabase, inputKey: LiveConsumerKey): Promise<ShadowBaseline> {
+  return (await readShadowSnapshot(database, inputKey, false)).baseline;
+}
+
+/** Label metadata is captured alongside the original baseline, without changing
+ * that baseline's shape, qualification rules, or digest. */
+export async function readShadowBaselineWithIdentification(database: LiveConsumerDatabase, inputKey: LiveConsumerKey) {
+  return readShadowSnapshot(database, inputKey, true);
+}
+async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: LiveConsumerKey, includeIdentification: boolean) {
   const key = checkedShadowKey(inputKey);
   const db = database.withSession ? database.withSession("first-primary") : database;
-  const result = await db.prepare(liveConsumerMetadataSql(MAX_LIVE_CONSUMER_EVIDENCE_ROWS, "exact", EXTRA))
+  const result = await db.prepare(liveConsumerMetadataSql(MAX_LIVE_CONSUMER_EVIDENCE_ROWS, "exact", EXTRA + (includeIdentification ? SHADOW_IDENTIFICATION_EXACT_SQL : "")))
     .bind(1, key.consumerKind, key.consumerId, key.consumerSubId, key.fileSlot, 2, 1, MAX_LIVE_CONSUMER_PAGE_BYTES)
     .all<{ authority_json: string; schema_json: string | null; invalid_rowid_claims: number; source_row_count: number; source_key_bytes: number;
       page_count: number; record_count: number; payload_bytes: number; records_json: string | null;
-      shadow_epoch: number | null; shadow_head: string | null; shadow_head_bytes: number | null; shadow_runtime: string | null; shadow_decision: string | null; shadow_locator: string | null }>();
+      shadow_epoch: number | null; shadow_head: string | null; shadow_head_bytes: number | null; shadow_runtime: string | null; shadow_decision: string | null; shadow_locator: string | null;
+      identification_json?: string | null }>();
   if (!result.success || result.results.length !== 1) throw new Error("Incomplete shadow baseline snapshot");
   const row = { ...result.results[0] };
   if (!Number.isSafeInteger(row.source_row_count) || row.source_row_count < 0 || row.source_row_count > MAX_LIVE_CONSUMER_SOURCE_ROWS
@@ -145,5 +158,5 @@ export async function readShadowBaseline(database: LiveConsumerDatabase, inputKe
   const baselineSha256 = await sha256Hex(canonicalShadowMetadata(baseline));
   const report = { ...baseline, baselineSha256 };
   if (encoder.encode(canonicalShadowMetadata(report)).length > MAX_LIVE_CONSUMER_PAGE_BYTES) throw new Error("Shadow baseline output byte bound exceeded");
-  return report;
+  return { baseline: report, identification: includeIdentification ? readShadowIdentification(row.identification_json) : null };
 }
