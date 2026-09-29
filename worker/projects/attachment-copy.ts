@@ -4,6 +4,7 @@ import type {
 } from "../../shared/project-api";
 import type { CopyAttachmentProjectItemInput } from "../../shared/project-copy-paste-api";
 import { MAX_PROJECT_SAFE_INTEGER } from "../../shared/project-types";
+import { readFileAuthorityMode } from "../files/authority-reader";
 import {
   createAttachmentProjectItem,
   ProjectServiceError,
@@ -104,23 +105,24 @@ function sourceAuthorizedBindingStatement(
   input: CopyAttachmentProjectItemInput,
   actor: string,
   now: string,
+  active: boolean,
 ) {
   return db.prepare(`
     INSERT INTO project_content_attachments (
       project_content_id, asset_id, storage_object_id,
       original_name, mime_type, byte_size,
-      created_by, created_at, creation_operation_id
+      created_by, created_at, creation_operation_id${active ? ', file_id' : ''}
     )
     SELECT ?, source.asset_id, source.storage_object_id,
            source.original_name, source.mime_type, source.byte_size,
-           ?, ?, ?
+           ?, ?, ?${active ? ', source.file_id' : ''}
     FROM (
       SELECT
         pca.asset_id AS asset_id,
         NULL AS storage_object_id,
         pca.original_name AS original_name,
         pca.mime_type AS mime_type,
-        pca.byte_size AS byte_size
+        pca.byte_size AS byte_size${active ? ', pca.file_id AS file_id' : ''}
       FROM project_contents pc
       JOIN projects p ON p.id = pc.project_id
       JOIN project_items source_item
@@ -158,7 +160,7 @@ function sourceAuthorizedBindingStatement(
         pca.storage_object_id AS storage_object_id,
         pca.original_name AS original_name,
         pca.mime_type AS mime_type,
-        pca.byte_size AS byte_size
+        pca.byte_size AS byte_size${active ? ', pca.file_id AS file_id' : ''}
       FROM project_contents pc
       JOIN projects p ON p.id = pc.project_id
       JOIN project_items source_item
@@ -284,7 +286,7 @@ export async function copyAttachmentProjectItem(
       now,
       now,
     ),
-    sourceAuthorizedBindingStatement(db, projectId, input, actor, now),
+    sourceAuthorizedBindingStatement(db, projectId, input, actor, now, await readFileAuthorityMode(db) === "active"),
     db.prepare(`
       INSERT INTO project_items (
         id, project_id, item_type, project_content_id, reference_target_id,

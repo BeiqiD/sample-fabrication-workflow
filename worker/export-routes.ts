@@ -1,3 +1,4 @@
+import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-adjudication";
 import { snapshotFullExportV17 } from "./export-v17-snapshot";
 import { FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-withdrawal";
@@ -124,6 +125,8 @@ const FILE_SHADOW_ADJUDICATION_MARKERS = [
   ["trigger", "file_shadow_adjudication_generation_complete"],
 ] as const satisfies readonly SchemaMarker[];
 
+const FILE_AUTHORITY_RUNTIME_MARKERS = [["trigger", "file_authority_runtime_generation_complete"]] as const satisfies readonly SchemaMarker[];
+
 const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
   ${markerCountSql(BASE_EXPORT_MARKERS)} AS base_markers,
   ${markerCountSql(FILE_FOUNDATION_MARKERS)} AS foundation_markers,
@@ -146,7 +149,8 @@ const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
   ${markerCountSql(FILE_SHADOW_WITHDRAWAL_MARKERS)} AS withdrawal_markers,
   ${columnCountSql(FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS)} AS withdrawal_columns,
   ${markerCountSql(FILE_SHADOW_ADJUDICATION_MARKERS)} AS adjudication_markers,
-  ${columnCountSql(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)} AS adjudication_columns`;
+  ${columnCountSql(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)} AS adjudication_columns,
+  ${markerCountSql(FILE_AUTHORITY_RUNTIME_MARKERS)} AS file_runtime_markers`;
 
 type ExportSchemaGenerationProbe = {
   base_markers: number;
@@ -159,7 +163,7 @@ type ExportSchemaGenerationProbe = {
   authority_completion_markers: number;
   shadow_markers: number; shadow_columns: number; shadow_completion_markers: number;
   withdrawal_markers: number; withdrawal_columns: number;
-  adjudication_markers: number; adjudication_columns: number;
+  adjudication_markers: number; adjudication_columns: number; file_runtime_markers: number;
 };
 
 const COMPLETE_GENERATION_COUNTS = [
@@ -174,21 +178,22 @@ const COMPLETE_GENERATION_COUNTS = [
   FILE_SHADOW_TABLE_MARKERS.length, totalColumns(FILE_SHADOW_COLUMNS), FILE_SHADOW_COMPLETION_MARKERS.length,
   FILE_SHADOW_WITHDRAWAL_MARKERS.length, totalColumns(FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS),
   FILE_SHADOW_ADJUDICATION_MARKERS.length, totalColumns(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS),
+  FILE_AUTHORITY_RUNTIME_MARKERS.length,
 ] as const;
-const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, COMPLETE_GENERATION_COUNTS.length] as const;
+const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, 22, COMPLETE_GENERATION_COUNTS.length] as const;
 
 function generationCounts(row: ExportSchemaGenerationProbe) {
   return [row.base_markers, row.foundation_markers, row.foundation_columns, row.import_markers, row.import_columns,
     row.r2_markers, row.r2_columns, row.metrology_markers, row.metrology_columns, row.comment_markers,
     row.comment_columns, row.authority_markers, row.authority_columns, row.authority_consumer_columns,
-    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns];
+    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns, row.file_runtime_markers];
 }
 
 async function installedExportSchema(database: D1Database) {
   const row = await database.prepare(EXPORT_SCHEMA_GENERATION_PROBE).first<ExportSchemaGenerationProbe>();
   if (!row || generationCounts(row).some((value) => !Number.isSafeInteger(value) || value < 0)) return null;
   const observed = generationCounts(row);
-  for (let index = 9; index >= 0; index -= 1) {
+  for (let index = 10; index >= 0; index -= 1) {
     const version = index + 8;
     const expected = COMPLETE_GENERATION_COUNTS.map((value, position) =>
       position < COMPLETE_FIELDS_BY_GENERATION[index] ? value : 0);
@@ -208,6 +213,7 @@ snapshotRoutes.get("/exports/all", async (c) => {
     if (Number(requestedSchema) !== installedSchema) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
+    if (requestedSchema === "18") return c.json(await snapshotFullExportV18(c.env.DB));
     if (requestedSchema === "17") return c.json(await snapshotFullExportV17(c.env.DB));
     if (requestedSchema === "16") return c.json(await snapshotFullExportV16(c.env.DB));
     if (requestedSchema === "15") return c.json(await snapshotFullExportV15(c.env.DB));

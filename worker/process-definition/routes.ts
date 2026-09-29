@@ -18,6 +18,7 @@ import { likeBindings, paginationMeta, readPagination, repeatedLikeSql, searchTo
 import type { Env } from "../types";
 import { parseInitialSubstrateStep } from "./substrate";
 import { requireR2UploadRequestId } from "../uploads/r2-upload-acceptance";
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { acceptAndUploadMetrologyReference, boundedMetrologyReferenceUploadBody,
   getMetrologyReferenceUploadRequestState, rethrowMetrologyReferenceUploadError } from "../uploads/metrology-reference-acceptance";
 
@@ -737,6 +738,7 @@ routes.post("/templates/:id/steps", async (c) => {
   if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }) : null;
   const stepId = crypto.randomUUID();
   const now = new Date().toISOString();
   const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
@@ -754,13 +756,14 @@ routes.post("/templates/:id/steps", async (c) => {
     ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
       definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
   ];
+  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }, fileId));
   if (state) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
      VALUES (?, ?, 'diagram', ?, ?)`,
   ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
   if (state && asset) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position) VALUES (?, ?, 0)",
-  ).bind(state.hash, asset.id));
+    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
+  ).bind(state.hash, asset.id, fileId));
   statements.push(c.env.DB.prepare(
     `INSERT INTO template_steps
      (id, template_version_id, logical_step_key, position, definition_hash, expected_state_hash)
@@ -805,6 +808,7 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
   if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }) : null;
   const now = new Date().toISOString();
   const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
   const expectedStateHash = state?.hash ?? step.expected_state_hash;
@@ -819,13 +823,14 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
     definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now)];
+  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }, fileId));
   if (state) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
      VALUES (?, ?, 'diagram', ?, ?)`,
   ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
   if (state && asset) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position) VALUES (?, ?, 0)",
-  ).bind(state.hash, asset.id));
+    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
+  ).bind(state.hash, asset.id, fileId));
   statements.push(c.env.DB.prepare(
     `UPDATE template_steps SET definition_hash = ?, expected_state_hash = ?
      WHERE id = ? AND template_version_id = ? AND EXISTS (

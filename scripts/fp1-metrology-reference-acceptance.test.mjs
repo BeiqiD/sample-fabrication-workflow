@@ -326,7 +326,7 @@ async function qualifyRestore(mf, scratch, fixture) {
   const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
   const originalHash = hash(await readFile(archivePath));
   const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
-  assert.equal(restored.report.schemaVersion, 17); assert.equal(restored.report.archiveProfile, "fp1-shadow-adjudications");
+  assert.equal(restored.report.schemaVersion, 18); assert.equal(restored.report.archiveProfile, "fp1-file-runtime");
   assert.deepEqual(restored.report.appliedForwardMigrations, []);
   assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
   assert(restored.report.restoredBlobCount > 0);

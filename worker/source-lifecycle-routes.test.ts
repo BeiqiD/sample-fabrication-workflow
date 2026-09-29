@@ -422,7 +422,7 @@ describe("source lifecycle routes", () => {
       })));
       const env = managedStorageEnv(database);
 
-      const manifestResponse = await request(env, "/exports/all?archiveSchema=17&archiveWriter=1");
+      const manifestResponse = await request(env, "/exports/all?archiveSchema=18&archiveWriter=1");
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;

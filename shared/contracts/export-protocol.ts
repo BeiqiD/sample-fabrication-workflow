@@ -1,3 +1,4 @@
+import { validateFileRuntimeExport } from "./export-file-runtime";
 import { validateFileShadowAdjudicationExport } from "./export-file-shadow-adjudications";
 import { validateFileShadowWithdrawalExport } from "./export-file-shadow-withdrawals";
 import {
@@ -10,6 +11,7 @@ import {
   FULL_EXPORT_ARCHIVE_PROFILE_V15,
   FULL_EXPORT_ARCHIVE_PROFILE_V16,
   FULL_EXPORT_ARCHIVE_PROFILE_V17,
+  FULL_EXPORT_ARCHIVE_PROFILE_V18,
   FULL_EXPORT_ARCHIVE_SCHEMA_V8,
   FULL_EXPORT_ARCHIVE_SCHEMA_V9,
   FULL_EXPORT_ARCHIVE_SCHEMA_V10,
@@ -20,6 +22,7 @@ import {
   FULL_EXPORT_ARCHIVE_SCHEMA_V15,
   FULL_EXPORT_ARCHIVE_SCHEMA_V16,
   FULL_EXPORT_ARCHIVE_SCHEMA_V17,
+  FULL_EXPORT_ARCHIVE_SCHEMA_V18,
   FULL_EXPORT_ARCHIVE_WRITER,
   type ExportJsonArtifact,
   type FullExportManifestV8,
@@ -32,6 +35,7 @@ import {
   type FullExportManifestV15,
   type FullExportManifestV16,
   type FullExportManifestV17,
+  type FullExportManifestV18,
 } from "./export";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "./export-compatibility";
@@ -62,7 +66,7 @@ export function supportedExportRequest(url: URL) {
   return entries.length === 2
     && url.searchParams.getAll("archiveSchema").length === 1
     && url.searchParams.getAll("archiveWriter").length === 1
-    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA_V9), String(FULL_EXPORT_ARCHIVE_SCHEMA_V10), String(FULL_EXPORT_ARCHIVE_SCHEMA_V11), String(FULL_EXPORT_ARCHIVE_SCHEMA_V12), String(FULL_EXPORT_ARCHIVE_SCHEMA_V13), String(FULL_EXPORT_ARCHIVE_SCHEMA_V14), String(FULL_EXPORT_ARCHIVE_SCHEMA_V15), String(FULL_EXPORT_ARCHIVE_SCHEMA_V16), String(FULL_EXPORT_ARCHIVE_SCHEMA_V17)].includes(url.searchParams.get("archiveSchema") ?? "")
+    && [String(FULL_EXPORT_ARCHIVE_SCHEMA_V8), String(FULL_EXPORT_ARCHIVE_SCHEMA_V9), String(FULL_EXPORT_ARCHIVE_SCHEMA_V10), String(FULL_EXPORT_ARCHIVE_SCHEMA_V11), String(FULL_EXPORT_ARCHIVE_SCHEMA_V12), String(FULL_EXPORT_ARCHIVE_SCHEMA_V13), String(FULL_EXPORT_ARCHIVE_SCHEMA_V14), String(FULL_EXPORT_ARCHIVE_SCHEMA_V15), String(FULL_EXPORT_ARCHIVE_SCHEMA_V16), String(FULL_EXPORT_ARCHIVE_SCHEMA_V17), String(FULL_EXPORT_ARCHIVE_SCHEMA_V18)].includes(url.searchParams.get("archiveSchema") ?? "")
     && url.searchParams.get("archiveWriter") === String(FULL_EXPORT_ARCHIVE_WRITER);
 }
 
@@ -73,7 +77,7 @@ function object(value: unknown): value is Record<string, any> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17): Promise<FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14 | FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17> {
+async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18): Promise<FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14 | FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17 | FullExportManifestV18> {
   // In particular an E client reaching the previous A Worker must stop here,
   // before downloading any bytes or creating a ZIP from an unnegotiated v7.
   ensure(object(value) && value.schemaVersion === version && value.archiveWriter === FULL_EXPORT_ARCHIVE_WRITER,
@@ -162,11 +166,11 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
     "id", "status", "source_filename", "source_sha256", "sheet_name", "template_type", "recipe_family_id",
     "template_version_id", "workbook_asset_key", "manifest_asset_key", "warning_count", "error_message", "actor_email",
     "created_at", "completed_at", "operation_id", "lease_expires_at", "finalization_id", "recovery_operation_id",
-    ...([14, 15, 16, 17].includes(version) ? ["workbook_file_id", "manifest_file_id"] : []),
+    ...([14, 15, 16, 17, 18].includes(version) ? ["workbook_file_id", "manifest_file_id"] : []),
     ...IMPORT_ACCEPTANCE_EXPORT_COLUMNS,
   ].sort()), "import acceptance schema columns differ from the archive profile");
   const logicalColumns = exportCompatibilityColumns("S2");
-  const runStepCommentColumns = [14, 15, 16, 17].includes(version) ? [...logicalColumns.run_step_comments, "file_id"] : logicalColumns.run_step_comments;
+  const runStepCommentColumns = [14, 15, 16, 17, 18].includes(version) ? [...logicalColumns.run_step_comments, "file_id"] : logicalColumns.run_step_comments;
   const viewColumns = version >= 15 ? FILE_SHADOW_EXPORT_VIEW_COLUMNS : FILE_AUTHORITY_EXPORT_VIEW_COLUMNS;
   const retentionColumns = ["store_kind", "provider", "object_key", "blob_record_id", "source_type", "source_id", "occurrence_type", "occurrence_id", "retention_reason", "retain_until"];
   for (const [name, rows] of Object.entries(value.tables)) {
@@ -186,10 +190,10 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
       ensure(JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...columns].sort()), "table row columns differ from source contract");
     }
   }
-  const manifest = value as FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14 | FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17;
+  const manifest = value as FullExportManifestV8 | FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14 | FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17 | FullExportManifestV18;
   // V15 keeps the same physical/logical compatibility columns as V14. Its
   // independent authority/schema validator below supplies the new semantics.
-  const compatibilityProfile = [14, 15, 16, 17].includes(version) ? "file-authority-v14" : "legacy";
+  const compatibilityProfile = [14, 15, 16, 17, 18].includes(version) ? "file-authority-v14" : "legacy";
   const physical = classifyExportCompatibilitySchema(manifest.artifacts.sourceSchema.value.compatibilityColumns, compatibilityProfile);
   const restored = restoreCompatibilityRows(manifest.tables, manifest.artifacts.retiredFields.value, physical, compatibilityProfile);
   const replayed = projectCompatibilitySnapshot(restored, manifest.artifacts.sourceSchema.value, compatibilityProfile);
@@ -209,7 +213,7 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
   if (version === 8) ensure(!registryTables.some((name) => Object.hasOwn(manifest.tables, name)),
     "the file foundation requires archive schema 9");
   else {
-    ensure((manifest as FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14 | FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17).archiveProfile === (version === 9 ? FULL_EXPORT_ARCHIVE_PROFILE_V9 : version === 10 ? FULL_EXPORT_ARCHIVE_PROFILE_V10 : version === 11 ? FULL_EXPORT_ARCHIVE_PROFILE_V11 : version === 12 ? FULL_EXPORT_ARCHIVE_PROFILE_V12 : version === 13 ? FULL_EXPORT_ARCHIVE_PROFILE_V13 : version === 14 ? FULL_EXPORT_ARCHIVE_PROFILE_V14 : version === 15 ? FULL_EXPORT_ARCHIVE_PROFILE_V15 : version === 16 ? FULL_EXPORT_ARCHIVE_PROFILE_V16 : FULL_EXPORT_ARCHIVE_PROFILE_V17),
+    ensure((manifest as FullExportManifestV9 | FullExportManifestV10 | FullExportManifestV11 | FullExportManifestV12 | FullExportManifestV13 | FullExportManifestV14 | FullExportManifestV15 | FullExportManifestV16 | FullExportManifestV17 | FullExportManifestV18).archiveProfile === (version === 9 ? FULL_EXPORT_ARCHIVE_PROFILE_V9 : version === 10 ? FULL_EXPORT_ARCHIVE_PROFILE_V10 : version === 11 ? FULL_EXPORT_ARCHIVE_PROFILE_V11 : version === 12 ? FULL_EXPORT_ARCHIVE_PROFILE_V12 : version === 13 ? FULL_EXPORT_ARCHIVE_PROFILE_V13 : version === 14 ? FULL_EXPORT_ARCHIVE_PROFILE_V14 : version === 15 ? FULL_EXPORT_ARCHIVE_PROFILE_V15 : version === 16 ? FULL_EXPORT_ARCHIVE_PROFILE_V16 : version === 17 ? FULL_EXPORT_ARCHIVE_PROFILE_V17 : FULL_EXPORT_ARCHIVE_PROFILE_V18),
       "unsupported archive schema profile");
     ensure(physical === "S2" && registryTables.every((name) => Object.hasOwn(manifest.tables, name)),
       "the file foundation requires the complete S2 registry schema");
@@ -227,7 +231,8 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
       await validateFileShadowSourceRowids(manifest.tables, sourceRowids);
       if (version === 15) await validateFileShadowExport(manifest.tables, schema.objects, sourceRowids);
       else if (version === 16) await validateFileShadowWithdrawalExport(manifest.tables, schema.objects, sourceRowids);
-      else await validateFileShadowAdjudicationExport(manifest.tables, schema.objects, sourceRowids);
+      else if (version === 17) await validateFileShadowAdjudicationExport(manifest.tables, schema.objects, sourceRowids);
+      else await validateFileRuntimeExport(manifest.tables, schema.objects, sourceRowids);
     }
     if (version >= 10) await validateImportAcceptance(manifest.tables);
     if (version >= 11) await validateR2UploadAcceptance(manifest.tables);
@@ -275,4 +280,8 @@ export async function validateFullExportV16(value: unknown): Promise<FullExportM
 
 export async function validateFullExportV17(value: unknown): Promise<FullExportManifestV17> {
   return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA_V17) as FullExportManifestV17;
+}
+
+export async function validateFullExportV18(value: unknown): Promise<FullExportManifestV18> {
+  return await validateFullExport(value, FULL_EXPORT_ARCHIVE_SCHEMA_V18) as FullExportManifestV18;
 }

@@ -1,4 +1,5 @@
 import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
+import { FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
 import { checkedShadowAdjudicationRequest, shadowAdjudicationRequestSha256, MAX_SHADOW_ADJUDICATION_REQUEST_BYTES } from "../../shared/contracts/file-shadow-adjudication";
 import { FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-withdrawals";
 import { sha256Hex } from "../../shared/domain/content-addressing";
@@ -137,8 +138,9 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
   const schema = JSON.parse(row.schema_json) as ExportSchemaObject[];
   if (!Array.isArray(schema) || schema.length > 1000) throw new Error("Unsupported shadow schema generation");
   const schemaSha256 = await fileShadowSchemaFingerprint(schema);
-  if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
-  if (!overlayRead && schemaSha256 === FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256) throw new Error("Shadow schema changed during baseline read");
+  if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
+  const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);
+  if (!overlayRead && hasAdjudications) throw new Error("Shadow schema changed during baseline read");
   if (!Number.isSafeInteger(row.shadow_epoch) || Number(row.shadow_epoch) < 0 || typeof row.shadow_runtime !== "string") throw new Error("Incomplete shadow runtime snapshot");
   if (row.page_count !== row.record_count || ![0, 1].includes(row.record_count) || !Number.isSafeInteger(row.payload_bytes)
     || row.payload_bytes < 0 || row.payload_bytes > MAX_LIVE_CONSUMER_PAGE_BYTES || typeof row.records_json !== "string"
@@ -217,7 +219,7 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
   if (decision) status = decision.decision;
   const baseline = { version: 1 as const, kind: "file-shadow-baseline" as const, bytesVerified: false as const, key,
     schemaSha256, authority: authority[0], epoch: row.shadow_epoch as number,
-    ...(schemaSha256 === FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 ? { adjudication } : {}),
+    ...(hasAdjudications ? { adjudication } : {}),
     runtime, head, record, decision, purpose, sourceLocator, sourceProfile, status, reasons: [...new Set(blockers)].sort() };
   const baselineSha256 = await sha256Hex(canonicalShadowMetadata(baseline));
   const report = { ...baseline, baselineSha256 };

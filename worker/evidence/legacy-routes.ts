@@ -1,3 +1,4 @@
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { CreateRunStepCommentsInput } from "../../shared/types";
@@ -47,6 +48,8 @@ routes.post("/run-step-comments", async (c) => {
   }
   if (assetKey && !commentAsset) throw new HTTPException(400, { message: "The uploaded comment image is unavailable" });
 
+  const fileInput = commentAsset ? { assetId: commentAsset.id, purpose: "embedded_content" as const } : null;
+  const fileId = fileInput ? await resolveConsumerFileId(c.env.DB, fileInput) : null;
   const operationGroupId = crypto.randomUUID();
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
@@ -80,8 +83,8 @@ routes.post("/run-step-comments", async (c) => {
        WHERE rs.updated_at = q.expected_updated_at
      )
      INSERT INTO run_step_comments
-       (id, run_step_id, scope, operation_group_id, legacy_body, asset_id, actor_email, created_at)
-     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?
+       (id, run_step_id, scope, operation_group_id, legacy_body, asset_id, file_id, actor_email, created_at)
+     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?, ?
      FROM valid
      WHERE (SELECT COUNT(*) FROM valid) = ?
      RETURNING id`,
@@ -91,6 +94,7 @@ routes.post("/run-step-comments", async (c) => {
     operationGroupId,
     body,
     commentAsset?.id ?? null,
+    fileId,
     userEmail,
     now,
     occurrenceTargets.length,
@@ -121,8 +125,8 @@ routes.post("/run-step-comments", async (c) => {
     const sampleOccurrenceIds = sampleTargets.map((target) => target.occurrenceId);
     const sampleOccurrencePlaceholders = sampleOccurrenceIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-       SELECT ?, ?, 'step', ?, ?, ?, ?, ?
+      `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'step', ?, ?, ?, ?, ?, ?
        WHERE (
          SELECT COUNT(*) FROM run_step_comments rsc
          WHERE rsc.id IN (${sampleOccurrencePlaceholders})
@@ -133,6 +137,7 @@ routes.post("/run-step-comments", async (c) => {
       crypto.randomUUID(), sampleId,
       input.scope === "common" ? `Common step comment: ${body || "Image attached"}` : `Step comment: ${body || "Image attached"}`,
       commentAsset?.r2_key ?? null,
+      fileId,
       JSON.stringify({ action: "step_comment", scope: input.scope, operationGroupId, stepIds }),
       userEmail, now,
       ...sampleOccurrenceIds,
@@ -157,7 +162,8 @@ routes.post("/run-step-comments", async (c) => {
       sampleOccurrenceIds.length,
     ));
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = fileInput ? [consumerFileBindingFence(c.env.DB, fileInput, fileId)] : [];
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   // D1 changes includes rows changed by triggers. RETURNING identifies only the
   // occurrences inserted by this statement, so require this exact generated set.
   const insertedRows = results[0]?.results;

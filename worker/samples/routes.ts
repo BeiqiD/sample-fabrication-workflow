@@ -1,3 +1,4 @@
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type CreateRecordInput, type DeleteSampleInput, type SampleDirectorySort, type SampleStatus, type SplitSampleInput } from "../../shared/types";
@@ -1054,6 +1055,15 @@ routes.post("/samples/:id/records", async (c) => {
     }
   }
 
+  const primaryInput = assetKey ? { assetKey, purpose: "embedded_content" as const } : null;
+  const fileId = primaryInput ? await resolveConsumerFileId(c.env.DB, primaryInput) : null;
+  const previewInput = thumbnailKey ? { assetKey: thumbnailKey, purpose: "derived_preview" as const, sourceFileId: fileId } : null;
+  const previewFileId = previewInput ? await resolveConsumerFileId(c.env.DB, previewInput) : null;
+  const fences = [
+    ...(primaryInput ? [consumerFileBindingFence(c.env.DB, primaryInput, fileId)] : []),
+    ...(previewInput ? [consumerFileBindingFence(c.env.DB, previewInput, previewFileId)] : []),
+  ];
+
   const current = await c.env.DB.prepare(
     "SELECT status, location, pinned, updated_at FROM samples WHERE id = ? AND deleted_at IS NULL",
   ).bind(sampleId).first<{ status: SampleStatus; location: string | null; pinned: number; updated_at: string }>();
@@ -1073,14 +1083,14 @@ routes.post("/samples/:id/records", async (c) => {
      WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
   ).bind(input.status, location, input.pinned ? 1 : 0, userEmail, mutationId, now, sampleId, input.expectedUpdatedAt)];
   if (body || assetKey) statements.push(c.env.DB.prepare(
-    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-     SELECT ?, id, ?, ?, ?, ?, ?, ? FROM samples
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, thumbnail_file_id, metadata_json, actor_email, created_at)
+     SELECT ?, id, ?, ?, ?, ?, ?, ?, ?, ? FROM samples
      WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL`,
   ).bind(
-    crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey,
+    crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey, fileId, previewFileId,
     JSON.stringify({ action: "sample_record", ...(thumbnailKey ? { thumbnailKey } : {}) }), userEmail, now, sampleId, mutationId,
   ));
-  const results = await c.env.DB.batch(statements);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This sample changed elsewhere. Review the current state and save again." });
   if (statements.length > 1 && !results[1].meta.changes) throw new Error("Atomic record event was not created");
   return c.json({ ok: true, updatedAt: now }, 201);

@@ -1,3 +1,4 @@
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { DEFAULT_SAMPLE_STATUS, isSampleStatus, type ApplyPlanUpdateInput, type ConfirmRunStepsInput, type CreateMetrologyRunEntryInput, type CreateRunStepInput, type CreateStateVerificationInput, type DeleteRunInput, type FinishProcessRunInput, type RunStepAssetPresentationInput, type SampleStatus, type StartMetrologyRunInput, type StartProcessRunInput, type StepStatus, type UpdateRunStepInput } from "../../shared/types";
@@ -979,6 +980,8 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
        )`,
   ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const assetFileInput = asset ? { assetId: asset.id, purpose: "embedded_content" as const } : null;
+  const assetFileId = assetFileInput ? await resolveConsumerFileId(c.env.DB, assetFileInput) : null;
   const assetPresentation = asset
     ? await resolveRunStepAssetPresentation(c.env.DB, asset.id, input.assetMetadata)
     : null;
@@ -1040,10 +1043,10 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   ];
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO run_step_assets (
-       id, run_step_id, asset_id, role, position,
+       id, run_step_id, asset_id, file_id, role, position,
        filename, mime_type, byte_size, actor_email, created_at
      )
-     SELECT ?, ?, ?, 'execution',
+     SELECT ?, ?, ?, ?, 'execution',
             COALESCE((SELECT MAX(position) FROM run_step_assets WHERE run_step_id = ? AND role = 'execution'), -1) + 1,
             ?, ?, ?, ?, ?
      WHERE EXISTS (
@@ -1055,6 +1058,7 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
     runStepAssetId,
     stepId,
     asset.id,
+    assetFileId,
     stepId,
     assetPresentation!.filename,
     assetPresentation!.mimeType,
@@ -1068,7 +1072,7 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   ));
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `UPDATE run_step_assets
-     SET filename = ?, mime_type = ?, byte_size = ?,
+     SET file_id = COALESCE(file_id, ?), filename = ?, mime_type = ?, byte_size = ?,
          deleted_at = NULL, deleted_by = NULL, last_mutation_id = ?
      WHERE id = ? AND run_step_id = ? AND asset_id = ? AND role = 'execution'
        AND superseded_by_occurrence_id IS NULL
@@ -1078,6 +1082,7 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
            AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        )`,
   ).bind(
+    assetFileId,
     assetPresentation!.filename,
     assetPresentation!.mimeType,
     assetPresentation!.byteSize,
@@ -1091,11 +1096,11 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
     mutationId,
   ));
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
-    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-     SELECT ?, r.sample_id, 'image', ?, ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, metadata_json, actor_email, created_at)
+     SELECT ?, r.sample_id, 'image', ?, ?, ?, ?, ?, ? FROM run_steps rs JOIN runs r ON r.id = rs.run_id
      WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
        AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
-  ).bind(crypto.randomUUID(), `Execution diagram for step: ${title}`, asset.r2_key,
+  ).bind(crypto.randomUUID(), `Execution diagram for step: ${title}`, asset.r2_key, assetFileId,
     JSON.stringify({ runId, stepId, runStepAssetId }), userEmail, now, stepId, runId, sampleId, mutationId));
   statements.push(c.env.DB.prepare(
     `UPDATE samples SET updated_by = ?, updated_at = ?
@@ -1105,7 +1110,8 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
          AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
      )`,
   ).bind(userEmail, now, sampleId, stepId, runId, sampleId, mutationId));
-  const results = await c.env.DB.batch(statements);
+  const fences = assetFileInput ? [consumerFileBindingFence(c.env.DB, assetFileInput, assetFileId)] : [];
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before saving." });
   if (!results[1].meta.changes || !results[results.length - 1].meta.changes) throw new Error("Atomic step record was not completed");
   return c.json({ ok: true });
@@ -1345,6 +1351,8 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const assetFileInput = asset ? { assetId: asset.id, purpose: "embedded_content" as const } : null;
+  const assetFileId = assetFileInput ? await resolveConsumerFileId(c.env.DB, assetFileInput) : null;
   const assetPresentation = asset
     ? await resolveRunStepAssetPresentation(c.env.DB, asset.id, input.assetMetadata)
     : null;
@@ -1422,9 +1430,9 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   ).bind(stepId, nextStepId, runId, stepId, runId, mutationId));
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
     `INSERT INTO run_step_assets
-     (id, run_step_id, asset_id, role, position,
+     (id, run_step_id, asset_id, file_id, role, position,
       filename, mime_type, byte_size, actor_email, created_at)
-     SELECT ?, inserted.id, ?, 'execution', 0, ?, ?, ?, ?, ?
+     SELECT ?, inserted.id, ?, ?, 'execution', 0, ?, ?, ?, ?, ?
      FROM run_steps inserted JOIN runs r ON r.id = inserted.run_id
      WHERE inserted.id = ? AND inserted.run_id = ?
        AND r.last_mutation_id = ? AND r.status = 'active'
@@ -1432,6 +1440,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   ).bind(
     runStepAssetId,
     asset.id,
+    assetFileId,
     assetPresentation!.filename,
     assetPresentation!.mimeType,
     assetPresentation!.byteSize,
@@ -1479,8 +1488,8 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     ).bind(userEmail, now, sampleId, stepId, runId, mutationId),
   );
   if (asset && runStepAssetId) statements.push(c.env.DB.prepare(
-    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-     SELECT ?, s.id, 'image', ?, ?, ?, ?, ?
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, metadata_json, actor_email, created_at)
+     SELECT ?, s.id, 'image', ?, ?, ?, ?, ?, ?
      FROM run_step_assets rsa
      JOIN run_steps inserted ON inserted.id = rsa.run_step_id
      JOIN runs r ON r.id = inserted.run_id
@@ -1491,7 +1500,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   ).bind(
     crypto.randomUUID(),
     `Execution diagram for step: ${title}`,
-    asset.r2_key,
+    asset.r2_key, assetFileId,
     JSON.stringify({ runId, stepId, runStepAssetId, action: "execution_attachment_added" }),
     userEmail,
     now,
@@ -1500,7 +1509,8 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     runId,
     mutationId,
   ));
-  const results = await c.env.DB.batch(statements);
+  const fences = assetFileInput ? [consumerFileBindingFence(c.env.DB, assetFileInput, assetFileId)] : [];
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes || !results[2].meta.changes) {
     throw new HTTPException(409, { message: "The process run changed while the step was being added" });
   }
@@ -1825,6 +1835,9 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
   if (target.updated_at !== input.expectedUpdatedAt) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before verifying its state." });
   if (input.assetKey && !evidence) throw new HTTPException(400, { message: "The verification image is unavailable" });
 
+  const evidenceFileInput = evidence ? { assetId: evidence.id, purpose: "embedded_content" as const } : null;
+  const evidenceFileId = evidenceFileInput ? await resolveConsumerFileId(c.env.DB, evidenceFileInput) : null;
+
   const targetIndex = chainRows.results.findIndex((step) => step.id === stepId);
   const previousIndex = previous ? chainRows.results.findIndex((step) => step.id === previous.after_run_step_id) : -1;
   if (targetIndex < 0 || previousIndex >= targetIndex) throw new HTTPException(409, { message: "The verification endpoint is not after the previous verified state" });
@@ -1885,8 +1898,8 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
     c.env.DB.prepare(
       `INSERT INTO state_verifications
        (id, sample_id, after_run_step_id, previous_verification_id, run_plan_revision_id,
-        expected_state_hash, result, evidence_asset_id, note, actor_email, created_at)
-       SELECT ?, s.id, rs.id, ?, ?, ?, ?, ?, ?, ?, ?
+        expected_state_hash, result, evidence_asset_id, evidence_file_id, note, actor_email, created_at)
+       SELECT ?, s.id, rs.id, ?, ?, ?, ?, ?, ?, ?, ?, ?
        FROM run_steps rs
        JOIN runs r ON r.id = rs.run_id
        JOIN samples s ON s.id = r.sample_id
@@ -1900,6 +1913,7 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
       target.expected_state_hash,
       input.result,
       evidence?.id ?? null,
+      evidenceFileId,
       note,
       userEmail,
       now,
@@ -1951,8 +1965,8 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
       covered.length,
     ),
     c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-       SELECT ?, s.id, 'verification', ?, ?, ?, ?, ?
+      `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, metadata_json, actor_email, created_at)
+       SELECT ?, s.id, 'verification', ?, ?, ?, ?, ?, ?
        FROM state_verifications sv
        JOIN samples s ON s.id = sv.sample_id
        JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
@@ -1961,6 +1975,7 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
     ).bind(crypto.randomUUID(),
       `State ${input.result === "matched" ? "verified" : "mismatch recorded"} after ${covered.length} step${covered.length === 1 ? "" : "s"}`,
       evidence?.r2_key ?? null,
+      evidenceFileId,
       JSON.stringify({ verificationId, runId, stepId, previousVerificationId: previous?.id ?? null, coveredStepIds: covered.map((step) => step.id), result: input.result }),
       userEmail, now, verificationId, verificationId),
     c.env.DB.prepare(
@@ -1992,7 +2007,8 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
     verificationId,
     verificationId,
   ));
-  const results = await c.env.DB.batch(statements);
+  const fences = evidenceFileInput ? [consumerFileBindingFence(c.env.DB, evidenceFileInput, evidenceFileId)] : [];
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before verifying its state." });
   return c.json({
     verification: {

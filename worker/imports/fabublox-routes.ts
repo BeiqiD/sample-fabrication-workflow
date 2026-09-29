@@ -16,6 +16,8 @@ import { FABUBLOX_IMPORT_REQUEST_HEADER, MAX_FABUBLOX_REQUEST_INPUT_BYTES, norma
 import type { FabubloxImportInput } from "../../shared/contracts/fabublox-import-input";
 import { acceptFabubloxImport, acceptedImportState, readAcceptedImport, FabubloxImportAcceptanceUnavailableError, FabubloxImportRequestConflictError, type AcceptedFabubloxImportRow } from "./fabublox-acceptance";
 import { ensureR2BootstrapProfile, R2BootstrapUnavailableError } from "../files/r2-bootstrap-profile";
+import { readFileAuthorityMode } from "../files/authority-reader";
+import { prepareAuthorityImportFiles } from "./fabublox-authority";
 
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 
@@ -218,6 +220,7 @@ routes.post("/imports/fabublox", async (c) => {
   let completedTemplateVersionId: string | null = null;
   let completedVersion: number | null = null;
   try {
+    const active = await readFileAuthorityMode(importDb) === "active";
     const prefix = `imports/${importId}`;
     type Candidate = {
       kind: "workbook" | "manifest" | "image";
@@ -233,6 +236,15 @@ routes.post("/imports/fabublox", async (c) => {
       { kind: "manifest", localId: "manifest", originalName: "manifest.json", mimeType: "application/json", buffer: manifestBuffer, sha256: manifestSha256 },
       ...imageInputs.map(({ image, file, buffer, sha256 }) => ({ kind: "image" as const, localId: image.localId, originalName: file.name, mimeType: file.type || image.mimeType, buffer, sha256, image })),
     ];
+    let resolved: Array<Candidate & { assetId: string; key: string; isNew: boolean; fileId?: string }>;
+    let authorityStatements: D1PreparedStatement[] = [];
+    if (active) {
+      const prepared = await prepareAuthorityImportFiles(c.env, {
+        importId, operationId: importOperationId, actorEmail: userEmail,
+      }, candidates);
+      resolved = prepared.assets;
+      authorityStatements = prepared.statements;
+    } else {
     const hashes = [...new Set(candidates.map((candidate) => candidate.sha256))];
     const existingByHash = new Map<string, { assetId: string; key: string }>();
     for (let index = 0; index < hashes.length; index += 5) {
@@ -258,7 +270,7 @@ routes.post("/imports/fabublox", async (c) => {
         }
       }
     }
-    const resolved = resolveAssetReferences(candidates, existingByHash, (candidate) => {
+    resolved = resolveAssetReferences(candidates, existingByHash, (candidate) => {
       const suffix = candidate.kind === "workbook" ? `source/${safeObjectName(candidate.originalName)}`
         : candidate.kind === "manifest" ? "manifest.json"
           : `images/${candidate.localId}-${safeObjectName(candidate.originalName)}`;
@@ -355,6 +367,7 @@ routes.post("/imports/fabublox", async (c) => {
       const failedUpload = uploadResults.find((result) => result.status === "rejected");
       if (failedUpload?.status === "rejected") throw failedUpload.reason;
     }
+    }
 
     const workbookAsset = resolved.find((asset) => asset.kind === "workbook")!;
     const manifestAsset = resolved.find((asset) => asset.kind === "manifest")!;
@@ -371,7 +384,7 @@ routes.post("/imports/fabublox", async (c) => {
     const occurrences = new Map<string, number>();
     const definitions = new Map<string, Awaited<ReturnType<typeof hashStepDefinition>>>();
     const states = new Map<string, { hash: string; canonical: Record<string, unknown> }>();
-    const stateAssetRows = new Map<string, [string, string, number]>();
+    const stateAssetRows = new Map<string, [string, string, number, string?]>();
     const initialStateAssets = imageAssets.filter((asset) => manifest.initialStateImageIds.includes(asset.localId));
     let initialStateHash: string | null = null;
     if (manifest.initialSubstrateStep) {
@@ -382,7 +395,7 @@ routes.post("/imports/fabublox", async (c) => {
       states.set(initialState.hash, initialState);
       initialStateHash = initialState.hash;
       initialStateAssets.forEach((asset, index) =>
-        stateAssetRows.set(`${initialState.hash}:${asset.assetId}`, [initialState.hash, asset.assetId, index]));
+        stateAssetRows.set(`${initialState.hash}:${asset.assetId}`, [initialState.hash, asset.assetId, index, asset.fileId]));
     }
     let inheritedStateHash: string | null = initialStateHash;
     const preparedSteps: Array<{
@@ -400,7 +413,7 @@ routes.post("/imports/fabublox", async (c) => {
         const state = await hashStateRepresentation(assignedAssets.map((asset) => asset.sha256));
         states.set(state.hash, state);
         inheritedStateHash = state.hash;
-        assignedAssets.forEach((asset, index) => stateAssetRows.set(`${state.hash}:${asset.assetId}`, [state.hash, asset.assetId, index]));
+        assignedAssets.forEach((asset, index) => stateAssetRows.set(`${state.hash}:${asset.assetId}`, [state.hash, asset.assetId, index, asset.fileId]));
       }
       preparedSteps.push({ source: step, logicalKey, definitionHash: definition.hash, expectedStateHash: inheritedStateHash });
     }
@@ -475,12 +488,25 @@ routes.post("/imports/fabublox", async (c) => {
     const completedAt = new Date().toISOString();
     const finalizationDb = primaryD1(c.env.DB);
     const finalizationAssetRows = JSON.stringify([...stateAssetRows.values()]);
-    const [finalizationResult] = await finalizationDb.batch([
+    const beforeFinalization = [
+      ...authorityStatements,
+      ...(active ? [
+        // Bind the compatibility locators before filling their immutable File
+        // columns, in this same transaction; no partially ready import escapes.
+        finalizationDb.prepare(`UPDATE imports SET workbook_asset_key=?,manifest_asset_key=?
+          WHERE id=? AND status='pending' AND operation_id=?`)
+          .bind(workbookAsset.key, manifestAsset.key, importId, importOperationId),
+        finalizationDb.prepare(`UPDATE template_versions SET source_file_id=? WHERE id=?`)
+          .bind(workbookAsset.fileId!, templateVersionId),
+      ] : []),
+    ];
+    const finalizationResults = await finalizationDb.batch([
+      ...beforeFinalization,
       finalizationDb.prepare(`
         UPDATE imports
         SET status = 'ready', workbook_asset_key = ?, manifest_asset_key = ?,
             finalization_id = ?, completed_at = ?, lease_expires_at = NULL,
-            accepted_result_json = ?
+            accepted_result_json = ?${active ? ', workbook_file_id = ?, manifest_file_id = ?' : ''}
         WHERE id = ? AND status = 'pending' AND operation_id = ?
           AND template_version_id = ? AND lease_expires_at > ?
       `).bind(
@@ -489,16 +515,17 @@ routes.post("/imports/fabublox", async (c) => {
         finalizationId,
         completedAt,
         JSON.stringify({ id: importId, templateVersionId, version }),
+        ...(active ? [workbookAsset.fileId!, manifestAsset.fileId!] : []),
         importId,
         importOperationId,
         templateVersionId,
         completedAt,
       ),
       finalizationDb.prepare(`
-        INSERT INTO state_representation_assets (state_hash, asset_id, position)
+        INSERT INTO state_representation_assets (state_hash, asset_id, position${active ? ', file_id' : ''})
         SELECT CAST(json_extract(entry.value, '$[0]') AS TEXT),
                CAST(json_extract(entry.value, '$[1]') AS TEXT),
-               CAST(json_extract(entry.value, '$[2]') AS INTEGER)
+               CAST(json_extract(entry.value, '$[2]') AS INTEGER)${active ? ", CAST(json_extract(entry.value, '$[3]') AS TEXT)" : ''}
         FROM json_each(?) entry
         WHERE EXISTS (
           SELECT 1 FROM imports owning_import
@@ -516,7 +543,14 @@ routes.post("/imports/fabublox", async (c) => {
         finalizationId,
         templateVersionId,
       ),
+      ...(active ? [finalizationDb.prepare(`SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM imports WHERE id=? AND operation_id=? AND finalization_id=?
+          AND template_version_id=? AND status='ready' AND workbook_file_id=? AND manifest_file_id=?
+      ) THEN 1 ELSE json('Import File publication did not complete') END`)
+        .bind(importId, importOperationId, finalizationId, templateVersionId,
+          workbookAsset.fileId!, manifestAsset.fileId!)] : []),
     ]);
+    const finalizationResult = finalizationResults[beforeFinalization.length];
     if (!finalizationResult.meta.changes) {
       throw new HTTPException(409, {
         message: "The import lease changed before finalization",

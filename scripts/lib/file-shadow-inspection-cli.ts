@@ -1,3 +1,4 @@
+import { FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
 import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
 import { FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-withdrawals";
 import { createHash, randomUUID } from "node:crypto";
@@ -167,7 +168,7 @@ async function readInspection(database: DatabaseSync) {
   const unfinishedAttempts = { total: boundedCount(Object.values(byState).reduce((a, b) => a + b, 0), Number.MAX_SAFE_INTEGER, "unfinished attempt count"), byState };
   const pendingOperations = boundedCount(database.prepare("SELECT count(*) count FROM file_shadow_operations WHERE status='pending'").get()?.count,
     Number.MAX_SAFE_INTEGER, "pending operation count");
-  return { version: 1 as const, kind: "file-shadow-inspection" as const, schemaVersion: installation.schemaSha256 === FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 ? 17 as const : installation.schemaSha256 === FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 ? 16 as const : 15 as const,
+  return { version: 1 as const, kind: "file-shadow-inspection" as const, schemaVersion: installation.schemaSha256 === FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 ? 18 as const : installation.schemaSha256 === FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 ? 17 as const : installation.schemaSha256 === FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 ? 16 as const : 15 as const,
     schemaSha256: installation.schemaSha256, executable: false as const, providerIO: false as const,
     bytesVerified: false as const, activationReady: false as const,
     authority: { mode: installation.authority.mode, revision: installation.authority.revision }, epoch: installation.epoch,

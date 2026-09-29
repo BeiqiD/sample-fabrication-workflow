@@ -30,6 +30,7 @@ import {
   PROJECT_SCHEMA_VERSION,
 } from "../../shared/project-types";
 import type { BlobLocator } from "../blob-lifecycle/types";
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { referenceResolutionIsEligible } from "../references/eligibility";
 import {
   referenceRegistrationStatements,
@@ -1002,8 +1003,11 @@ export async function createAttachmentProjectItem(
   const storageObjectId = "storageObjectId" in input.locator
     ? input.locator.storageObjectId
     : null;
+  const binding = { assetId: assetId ?? undefined, storageObjectId: storageObjectId ?? undefined, purpose: "research_source" as const };
+  const fileId = await resolveConsumerFileId(db, binding);
 
   const statements = [
+    ...(fileId ? [consumerFileBindingFence(db, binding, fileId)] : []),
     reserveProjectSequenceStatement(
       db,
       projectId,
@@ -1033,8 +1037,8 @@ export async function createAttachmentProjectItem(
       INSERT INTO project_content_attachments (
         project_content_id, asset_id, storage_object_id,
         original_name, mime_type, byte_size,
-        created_by, created_at, creation_operation_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_by, created_at, creation_operation_id${fileId ? ', file_id' : ''}
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${fileId ? ', ?' : ''})
     `).bind(
       input.contentId,
       assetId,
@@ -1045,6 +1049,7 @@ export async function createAttachmentProjectItem(
       actor,
       now,
       input.operationId,
+      ...(fileId ? [fileId] : []),
     ),
     db.prepare(`
       INSERT INTO project_items (
@@ -1088,7 +1093,7 @@ export async function createAttachmentProjectItem(
   ];
 
   try {
-    const changes = await batchMutationChanges(db, statements);
+    const changes = (await batchMutationChanges(db, statements)).slice(fileId ? 1 : 0);
     if (
       changes[0] !== 1
       || changes[1] !== 1

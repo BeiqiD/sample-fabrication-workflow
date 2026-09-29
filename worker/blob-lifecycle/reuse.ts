@@ -1,4 +1,5 @@
 import type { Env } from "../types";
+import { readFileAuthorityMode } from "../files/authority-reader";
 import { refreshOrphanGrace } from "./reachability";
 import { statBlob } from "./storage";
 import type { BlobLocator } from "./types";
@@ -83,6 +84,9 @@ export async function findReusableR2Asset(
   env: Env,
   sha256: string,
 ): Promise<ReusableR2Asset | null> {
+  if (await readFileAuthorityMode(env.DB) === "active") {
+    throw new BlobReuseProviderUnavailableError("R2", "active File authority requires purpose-scoped File reuse");
+  }
   const rows = await env.DB.prepare(`
     SELECT a.id, a.r2_key, a.original_name, a.mime_type,
            a.byte_size, a.sha256
@@ -146,6 +150,9 @@ export async function findReusableManagedObject(
   sha256: string,
   byteSize: number,
 ): Promise<ReusableManagedObject | null> {
+  if (await readFileAuthorityMode(env.DB) === "active") {
+    throw new BlobReuseProviderUnavailableError(provider, "active File authority requires purpose-scoped File reuse");
+  }
   const rows = await env.DB.prepare(`
     SELECT mso.id, mso.provider, mso.object_key, mso.original_name,
            mso.mime_type, mso.byte_size, mso.sha256

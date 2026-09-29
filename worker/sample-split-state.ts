@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import { hashStateRepresentation, stableJson, STATE_HASH_SCHEME } from "../shared/content-addressing";
 import { CURRENT_SAMPLE_STRUCTURE_SQL } from "./sample-structure-query";
 import { publishedAssetSql } from "./template-publication";
+import { consumerFileBindingFence, resolveConsumerFileId } from "./files/consumer-binding";
 
 export type SplitExecutionAsset = {
   occurrenceId: string;
@@ -94,7 +95,11 @@ export async function prepareSplitInheritedState(
   if (existing && !existing.valid) {
     throw new HTTPException(409, { message: "The recorded structure is inconsistent. Resolve it before splitting." });
   }
+  const files = await Promise.all(execution.map((asset) =>
+    resolveConsumerFileId(db, { assetId: asset.assetId, purpose: "embedded_content" })));
   const statements = [
+    ...execution.map((asset, index) => consumerFileBindingFence(db,
+      { assetId: asset.assetId, purpose: "embedded_content" }, files[index])),
     db.prepare(`INSERT OR IGNORE INTO state_representations
       (hash, hash_scheme, representation_type, content_json, created_at)
       SELECT ?, ?, 'diagram', ?, ? WHERE ${sourceGuard}`)
@@ -103,11 +108,11 @@ export async function prepareSplitInheritedState(
     // identifies a state created by the preceding INSERT, so a raced existing
     // empty representation cannot be silently repaired by this split.
     // One INSERT owns the whole ordered mapping, including all image positions.
-    db.prepare(`INSERT INTO state_representation_assets (state_hash, asset_id, position)
-      SELECT ?, value, CAST(key AS INTEGER) FROM json_each(?)
+    db.prepare(`INSERT INTO state_representation_assets (state_hash, asset_id, position, file_id)
+      SELECT ?, json_extract(value, '$.assetId'), CAST(key AS INTEGER), json_extract(value, '$.fileId') FROM json_each(?)
       WHERE changes() = 1 AND ${sourceGuard} AND ${canonicalGuard}
         AND NOT EXISTS (SELECT 1 FROM state_representation_assets WHERE state_hash = ?)`)
-      .bind(state.hash, JSON.stringify(execution.map((asset) => asset.assetId)),
+      .bind(state.hash, JSON.stringify(execution.map((asset, index) => ({ assetId: asset.assetId, fileId: files[index] }))),
         ...sourceBindings, ...canonicalBindings, state.hash),
   ];
   return {

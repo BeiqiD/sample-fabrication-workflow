@@ -14,6 +14,7 @@ import { validateFullExportV17 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV16, buildFullExportArchiveV17 } from "../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { snapshotFullExportV16 } from "./export-v16-snapshot";
+import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { snapshotFullExportV17 } from "./export-v17-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -26,7 +27,7 @@ const databases: DatabaseSync[] = [], directories: string[] = [];
 const now = "2026-09-28T08:00:00.000Z", sha = "a".repeat(64);
 const key = { consumerKind: "project_content_attachment" as const, consumerId: "attachment", consumerSubId: "", fileSlot: "primary" as const };
 const adapter = (db: DatabaseSync) => new SqliteD1Database(db) as unknown as D1Database;
-function database(throughMigration?: string) { const db = referenceTestDatabase({ throughMigration }); databases.push(db); return db; }
+function database(throughMigration = "0010_fp1_shadow_adjudications.sql") { const db = referenceTestDatabase({ throughMigration }); databases.push(db); return db; }
 afterEach(async () => {
   while (databases.length) databases.pop()!.close();
   while (directories.length) await rm(directories.pop()!, { recursive: true, force: true });
@@ -78,7 +79,7 @@ async function restore(manifest: Awaited<ReturnType<typeof snapshotFullExportV17
 describe("V17 occurrence-scoped adjudication archive", () => {
   it("pins independent whole-file and Wrangler-split schema checkpoints", async () => {
     const whole = database(), split = new DatabaseSync(":memory:"); databases.push(split);
-    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort()) {
+    for (const name of (await readdir(migrationsDirectory)).filter((name) => name.endsWith(".sql") && name <= "0010_fp1_shadow_adjudications.sql").sort()) {
       for (const statement of splitSql(await readFile(join(migrationsDirectory, name), "utf8"))) split.exec(statement);
     }
     for (const db of [whole, split]) expect(await fileShadowSchemaFingerprint(db.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name").all() as unknown as ExportSchemaObject[])).toBe(FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256);
@@ -106,7 +107,7 @@ describe("V17 occurrence-scoped adjudication archive", () => {
     expect(db.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(() => db.exec("DELETE FROM file_shadow_adjudications")).toThrow();
     expect(() => db.exec("DELETE FROM file_shadow_adjudication_revocations")).toThrow();
-    expect((await snapshotFullExportV17(adapter(db))).tables).toEqual(manifest.tables);
+    expect((await snapshotFullExportV18(adapter(db))).tables).toEqual(manifest.tables);
   }, 30_000);
 
   it.each(["request", "digest", "source", "baseline", "profile", "byte-expectation", "chain", "revocation", "withdrawal", "actor", "binding", "missing-binding", "rehashed-registry"])("rejects tampered %s before requesting bytes", async (kind) => {
@@ -154,6 +155,6 @@ describe("V17 occurrence-scoped adjudication archive", () => {
     const { db } = await restore(manifest);
     for (const name of Object.keys(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)) expect(db.prepare(`SELECT * FROM ${name}`).all()).toEqual([]);
     expect(db.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
-    expect((await snapshotFullExportV17(adapter(db))).schemaVersion).toBe(17);
+    expect((await snapshotFullExportV18(adapter(db))).schemaVersion).toBe(18);
   }, 30_000);
 });

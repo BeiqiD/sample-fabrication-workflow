@@ -9,6 +9,8 @@ import { AttachmentIngestionUnavailableError, ingestR2Attachment, safeAttachment
 import { primaryD1 } from "../d1-primary";
 import { resolveAcceptedUploadResultFile, verifyAcceptedResultFile } from "../files/accepted-result-reader";
 import { readFileAuthorityMode } from "../files/authority-reader";
+import { stageAuthorityCandidate } from "../files/authority-candidates";
+import { writeAuthorityCandidate } from "../files/authority-publication";
 import { ByteVerificationError, verifyByteStream } from "../files/byte-verification";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
@@ -191,6 +193,43 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
     || accepted.candidate_asset_id !== assetId || accepted.candidate_object_key !== objectKey) throw new R2UploadAcceptanceUnavailableError();
   if (accepted.expires_at <= new Date().toISOString()) return { state: { ...identity(accepted), status: "expired" }, fresh: false };
   await assertR2BootstrapProfile(primaryD1(env.DB), env, accepted.storage_profile_id, accepted.storage_profile_revision);
+  const active = await readFileAuthorityMode(env.DB).catch(() => { throw new R2UploadAcceptanceUnavailableError(); }) === "active";
+  if (active) {
+    const owner = { kind: "r2_upload" as const, acceptanceId: accepted.id, actorEmail: accepted.actor_email, operationId: accepted.operation_id };
+    let publication;
+    let candidate;
+    try {
+      candidate = await stageAuthorityCandidate(env.DB, owner);
+      publication = await writeAuthorityCandidate(env, owner, candidate, {
+        body: upload.bytes, contentType: upload.mimeType, filename: upload.originalName,
+      });
+    } catch { throw new R2UploadAcceptanceUnavailableError(); }
+    const db = primaryD1(env.DB), completedAt = new Date().toISOString();
+    // Preserve the public asset contract using the typed result's location.
+    // File purpose/profile/scope/bytes, never global asset SHA, choose reuse.
+    try {
+      await db.batch([
+        ...publication.statements,
+        db.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,sha256,actor_email,created_at)
+          SELECT ?,?,?,?,?,'ready',?,?,? WHERE NOT EXISTS(SELECT 1 FROM assets WHERE r2_key=?)`)
+          .bind(accepted.candidate_asset_id, publication.result.objectKey, upload.originalName, upload.mimeType,
+            candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256, accepted.actor_email, completedAt, publication.result.objectKey),
+        db.prepare(`UPDATE r2_upload_requests SET status='ready',completed_at=?,accepted_result_json=(
+          SELECT json_object('id',a.id,'key',a.r2_key,'deduplicated',json(CASE WHEN a.id<>? OR ?<>? THEN 'true' ELSE 'false' END))
+          FROM assets a WHERE a.r2_key=? AND a.status='ready' AND a.byte_size=? AND a.sha256=?
+        ) WHERE id=? AND operation_id=? AND status='pending' AND expires_at>?`)
+          .bind(completedAt, accepted.candidate_asset_id, publication.result.fileId, candidate.fileId,
+            publication.result.objectKey, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256,
+            accepted.id, accepted.operation_id, completedAt),
+        db.prepare(`SELECT CASE WHEN changes()=1 AND EXISTS(SELECT 1 FROM r2_upload_requests
+          WHERE id=? AND operation_id=? AND status='ready') THEN 1 ELSE json('Accepted File upload did not publish') END`)
+          .bind(accepted.id, accepted.operation_id),
+      ]);
+    } catch { /* Reconcile rejection or lost acknowledgement without repeating the owned PUT. */ }
+    const finalized = await readAcceptedR2Upload(env.DB, upload.actorEmail, upload.requestId);
+    if (!finalized || finalized.id !== accepted.id || finalized.operation_id !== accepted.operation_id) throw new R2UploadAcceptanceUnavailableError();
+    return { state: await acceptedR2UploadState(env, finalized), fresh: true };
+  }
   let result: R2UploadResult;
   try {
     const registration = await ingestR2Attachment(env, {

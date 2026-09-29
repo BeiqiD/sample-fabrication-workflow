@@ -1,4 +1,7 @@
 import type { Env } from "../types";
+import { primaryD1 } from "../d1-primary";
+import { readFileAuthorityMode } from "../files/authority-reader";
+import { runFileGarbageCollection } from "../files/authority-gc";
 import { ByteDeletionError } from "../files/byte-deleter";
 import type { BlobLifecycleDatabase } from "./gc-database";
 import {
@@ -256,14 +259,20 @@ async function deleteClaimedLocators(dependencies: BlobGarbageCollectionDependen
 }
 
 export async function collectBlobGarbage(dependencies: BlobGarbageCollectionDependencies, now: Date) {
+  // Active authority cannot delete through namespace-less legacy locators.
+  // The scheduled entry point below selects the profile-bound File collector.
+  if (await readFileAuthorityMode(dependencies.db as D1Database) === "active") {
+    return { orphanCandidatesMarked: 0, imageDeleted: 0, managedDeleted: 0, failures: 0 };
+  }
   const orphanCandidatesMarked = await markUnreachableLocators(dependencies, now);
   const deleted = await deleteClaimedLocators(dependencies, now);
   return { orphanCandidatesMarked, ...deleted };
 }
 
 export async function runBlobGarbageCollection(env: Env, now = new Date()) {
+  if (await readFileAuthorityMode(env.DB) === "active") return runFileGarbageCollection(env, now);
   return collectBlobGarbage({
-    db: env.DB,
+    db: primaryD1(env.DB),
     storage: {
       remove: (locator) => removeBlob(env, locator),
       stat: (locator) => statBlob(env, locator),

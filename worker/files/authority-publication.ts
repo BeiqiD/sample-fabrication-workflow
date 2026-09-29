@@ -6,6 +6,7 @@ import {
 } from "./authority-candidates";
 import { writeVerifiedBytes, type ByteWriteInput } from "./byte-writer";
 import { openShadowProfile } from "./shadow-profile";
+import { ByteVerificationError, verifyByteStream } from "./byte-verification";
 
 export interface VerifiedAuthorityPublication {
   /** Bytes are verified; no File or receipt has been published by this call. */
@@ -40,7 +41,20 @@ export async function writeAuthorityCandidate(
   const verified = await writeVerifiedBytes({ reader: profile.reader, writer: profile.writer, createHash: profile.createHash }, {
     ...payload, key: candidate.objectKey, ...candidate.expectedBytes,
   });
-  const reusable = await findReusableAuthorityFile(db, candidate);
+  // Accepted browser previews prove their bytes, not how they were derived.
+  // They must not enter the reusable, trusted derivative cache by hash alone.
+  let reusable = candidate.purpose === "derived_preview" ? null : await findReusableAuthorityFile(db, candidate);
+  if (reusable) {
+    const previous = await profile.reader.read(reusable.objectKey);
+    if (previous.outcome !== "available") reusable = null;
+    else {
+      try { await verifyByteStream(previous.body, candidate.expectedBytes, profile.createHash, "destination"); }
+      catch (error) {
+        if (!(error instanceof ByteVerificationError)) throw error;
+        reusable = null;
+      }
+    }
+  }
   const result = reusable ?? { fileId: candidate.fileId, locationId: candidate.locationId, objectKey: candidate.objectKey };
   const now = new Date().toISOString();
   const statements = [

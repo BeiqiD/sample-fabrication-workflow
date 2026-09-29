@@ -436,7 +436,7 @@ function sqliteJsonThumbnailKey(value: ExportRow[string]) {
 // pair and conceal a divergent consumer projection in the snapshot.
 // Shared pure projection, also used by the successor archive while its legacy
 // typed columns retain this exact frozen meaning. V14 validation is unchanged.
-export function legacyConsumerProjections(tables: ExportTables) {
+export function legacyConsumerProjections(tables: ExportTables, typedBindings = false) {
   const assets = new Map(rows(tables, "assets").map((row) => [row.id, row]));
   const managed = new Map(rows(tables, "managed_storage_objects").map((row) => [row.id, row]));
   const assetKey = (id: ExportRow[string]) => assets.get(id)?.r2_key ?? null;
@@ -488,27 +488,27 @@ export function legacyConsumerProjections(tables: ExportTables) {
   }));
 
   for (const row of rows(tables, "events")) {
-    if (sqlTextPresent(row.asset_key)) direct.push(projectedRow({
+    if (sqlTextPresent(row.asset_key) || typedBindings && row.asset_file_id !== null) direct.push(projectedRow({
       consumerKind: "event", consumerId: row.id, fileSlot: "primary", fileId: row.asset_file_id,
       expectedPurpose: "embedded_content", r2Key: row.asset_key,
     }));
     const thumbnailKey = sqliteJsonThumbnailKey(row.metadata_json);
-    if (sqlTextPresent(thumbnailKey)) direct.push(projectedRow({
+    if (sqlTextPresent(thumbnailKey) || typedBindings && row.thumbnail_file_id !== null) direct.push(projectedRow({
       consumerKind: "event", consumerId: row.id, fileSlot: "thumbnail", fileId: row.thumbnail_file_id,
       expectedPurpose: "derived_preview", r2Key: thumbnailKey,
     }));
   }
   for (const row of rows(tables, "imports")) {
-    if (sqlTextPresent(row.workbook_asset_key)) direct.push(projectedRow({
+    if (sqlTextPresent(row.workbook_asset_key) || typedBindings && row.workbook_file_id !== null) direct.push(projectedRow({
       consumerKind: "import", consumerId: row.id, fileSlot: "workbook", fileId: row.workbook_file_id,
       expectedPurpose: "provenance", r2Key: row.workbook_asset_key,
     }));
-    if (sqlTextPresent(row.manifest_asset_key)) direct.push(projectedRow({
+    if (sqlTextPresent(row.manifest_asset_key) || typedBindings && row.manifest_file_id !== null) direct.push(projectedRow({
       consumerKind: "import", consumerId: row.id, fileSlot: "manifest", fileId: row.manifest_file_id,
       expectedPurpose: "provenance", r2Key: row.manifest_asset_key,
     }));
   }
-  for (const row of rows(tables, "template_versions")) if (sqlTextPresent(row.source_asset_key)) direct.push(projectedRow({
+  for (const row of rows(tables, "template_versions")) if (sqlTextPresent(row.source_asset_key) || typedBindings && row.source_file_id !== null) direct.push(projectedRow({
     consumerKind: "template_version", consumerId: row.id, fileSlot: "source", fileId: row.source_file_id,
     expectedPurpose: "provenance", r2Key: row.source_asset_key,
   }));
