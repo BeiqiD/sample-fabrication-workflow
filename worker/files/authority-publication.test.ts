@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
+import { SqliteD1Database } from "../reference-test-support";
 import type { Env } from "../types";
 import { canonicalR2UploadInput } from "../../shared/contracts/r2-upload";
 import { stageAuthorityCandidate } from "./authority-candidates";
@@ -10,6 +9,7 @@ import { writeAuthorityCandidate } from "./authority-publication";
 import * as profiles from "./shadow-profile";
 import type { ByteWriteInput } from "./byte-writer";
 import type { Sha256Factory } from "./byte-verification";
+import { futureActiveRuntimeDatabase } from "./authority-runtime-test-support";
 
 const bytes = new TextEncoder().encode("future authority publication bytes");
 const sha = createHash("sha256").update(bytes).digest("hex");
@@ -17,22 +17,13 @@ const databases: DatabaseSync[] = [];
 const hash: Sha256Factory = () => { const h = createHash("sha256"); return { async write(value) { h.update(value); }, async finish() { return h.digest("hex"); }, async abort() {} }; };
 afterEach(() => { vi.restoreAllMocks(); for (const db of databases.splice(0)) db.close(); });
 
-async function futureSubstrateFixture(corruptDestination = false) {
-  // Explicit prospective fixture, NOT evidence that V17 accepts ordinary File
-  // publication. Only the two initial seed statements differ: all 0007 guards
-  // are installed unchanged, and no 0008+ shadow publication rules are loaded.
-  const sql = referenceTestDatabase({ throughMigration: "0006_comment_acceptance.sql" }); databases.push(sql);
-  sql.exec("PRAGMA foreign_keys=ON");
+async function runtimeFixture(corruptDestination = false) {
   const now = new Date().toISOString();
-  sql.prepare("INSERT INTO storage_profiles VALUES('profile','r2','r2:prospective:bucket','bootstrap',NULL,1,'historical',?)").run(now);
-  const migration = readFileSync(new URL("../../migrations/0007_fp1_file_authority_transition.sql", import.meta.url), "utf8");
-  const authoritySeed = "VALUES (1, 'legacy', 1, '2026-09-14T00:00:00.000Z', NULL);";
-  const runtimeSeed = "SELECT id, 'read_only', created_at, NULL, NULL FROM storage_profiles;";
-  expect(migration).toContain(authoritySeed); expect(migration).toContain(runtimeSeed);
-  sql.exec(migration.replace(authoritySeed, "VALUES (1, 'active', 1, '2026-09-14T00:00:00.000Z', '2026-09-14T00:00:00.000Z');")
-    .replace(runtimeSeed, "SELECT id, 'read_write', created_at, created_at, NULL FROM storage_profiles;"));
-  expect(sql.prepare("SELECT name FROM sqlite_schema WHERE name='file_shadow_operations'").all()).toEqual([]);
-  expect(() => sql.exec("UPDATE file_authority_control SET mode='overlap'")).toThrow(/reviewed forward migration/);
+  const sql = futureActiveRuntimeDatabase(database => {
+    database.prepare("INSERT INTO storage_profiles VALUES('profile','r2','r2:publication:bucket','bootstrap',NULL,1,'historical',?)").run(now);
+    database.prepare("INSERT INTO file_shadow_profile_enablements VALUES('profile',1,'publication-test',?)").run(now);
+  });
+  databases.push(sql);
   const db = new SqliteD1Database(sql) as unknown as D1Database;
   const id = crypto.randomUUID(), operationId = crypto.randomUUID(), assetId = crypto.randomUUID(), objectKey = `accepted/${crypto.randomUUID()}`;
   const input = await canonicalR2UploadInput("ordinary_image", { originalName: "image.png", mimeType: "image/png", byteSize: bytes.length, sha256: sha });
@@ -59,7 +50,7 @@ async function futureSubstrateFixture(corruptDestination = false) {
     } }, { highWaterMark: 0 }) } : { outcome: "missing" as const };
   });
   vi.spyOn(profiles, "openShadowProfile").mockResolvedValue({ storage: { profileId: "profile", configurationRevision: 1,
-    adapterType: "r2", namespaceIdentity: "r2:prospective:bucket" }, reader: { read, stat: vi.fn() },
+    adapterType: "r2", namespaceIdentity: "r2:publication:bucket" }, reader: { read, stat: vi.fn() },
     writer: { accepts: "both", write }, createHash: hash });
   const env = { DB: db } as Env;
   const payload = { body: bytes.buffer, contentType: "image/png", filename: "image.png" };
@@ -76,9 +67,9 @@ function durableState(sql: DatabaseSync) {
     .map(table => [table, sql.prepare(`SELECT * FROM ${table}`).all()]));
 }
 
-describe("future 0007 File publication substrate (not current V17 activation)", () => {
+describe("accepted File runtime publication", () => {
   it("verifies full destination bytes, then commits publications, candidate result and business receipt together", async () => {
-    const f = await futureSubstrateFixture();
+    const f = await runtimeFixture();
     const verified = await writeAuthorityCandidate(f.env, f.owner, f.candidate, f.payload);
     expect(verified).toMatchObject({ state: "verified_unpublished", result: { fileId: f.candidate.fileId,
       locationId: f.candidate.locationId, objectKey: f.candidate.objectKey } });
@@ -97,7 +88,7 @@ describe("future 0007 File publication substrate (not current V17 activation)", 
   });
 
   it("rolls back every publication and candidate transition when the business receipt fails", async () => {
-    const f = await futureSubstrateFixture();
+    const f = await runtimeFixture();
     const verified = await writeAuthorityCandidate(f.env, f.owner, f.candidate, f.payload), before = durableState(f.sql);
     f.sql.exec(`CREATE TRIGGER qualification_reject_business BEFORE UPDATE ON r2_upload_requests WHEN NEW.status='ready'
       BEGIN SELECT RAISE(ABORT,'qualification business receipt rejected'); END;`);
@@ -108,7 +99,7 @@ describe("future 0007 File publication substrate (not current V17 activation)", 
   });
 
   it("returns no publication statements for a same-size destination hash mismatch", async () => {
-    const f = await futureSubstrateFixture(true), before = durableState(f.sql);
+    const f = await runtimeFixture(true), before = durableState(f.sql);
     await expect(writeAuthorityCandidate(f.env, f.owner, f.candidate, f.payload)).rejects.toMatchObject({ phase: "destination", reason: "hash_mismatch" });
     expect(f.write).toHaveBeenCalledOnce(); expect(f.read).toHaveBeenCalledOnce(); expect(f.destinationEof()).toBe(true);
     expect(durableState(f.sql)).toEqual(before);

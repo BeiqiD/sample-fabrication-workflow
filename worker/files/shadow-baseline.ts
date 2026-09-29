@@ -42,6 +42,9 @@ export interface ShadowBaseline {
 }
 
 const encoder = new TextEncoder();
+// V18 has 1,033 reviewed schema objects. Keep a bounded complete inventory;
+// byte limits and the exact approved generation fingerprint still apply.
+const MAX_SHADOW_SCHEMA_OBJECTS = 2048;
 export function canonicalShadowMetadata(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalShadowMetadata).join(",")}]`;
   if (value && typeof value === "object") return "{" + Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
@@ -115,7 +118,7 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
   const key = checkedShadowKey(inputKey);
   const db = database.withSession ? database.withSession("first-primary") : database;
   const read = (overlay: boolean) => db.prepare(liveConsumerMetadataSql(MAX_LIVE_CONSUMER_EVIDENCE_ROWS, "exact", EXTRA
-    + (overlay ? ADJUDICATION_EXTRA : "NULL shadow_adjudication,") + (includeIdentification ? SHADOW_IDENTIFICATION_EXACT_SQL : "")))
+    + (overlay ? ADJUDICATION_EXTRA : "NULL shadow_adjudication,") + (includeIdentification ? SHADOW_IDENTIFICATION_EXACT_SQL : ""), MAX_SHADOW_SCHEMA_OBJECTS))
     .bind(1, key.consumerKind, key.consumerId, key.consumerSubId, key.fileSlot, 2, 1, MAX_LIVE_CONSUMER_PAGE_BYTES)
     .all<{ authority_json: string; schema_json: string | null; invalid_rowid_claims: number; source_row_count: number; source_key_bytes: number;
       page_count: number; record_count: number; payload_bytes: number; records_json: string | null;
@@ -136,7 +139,7 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
     || !Number.isSafeInteger(row.source_key_bytes) || row.source_key_bytes < 0 || row.source_key_bytes > MAX_LIVE_CONSUMER_SOURCE_KEY_BYTES) throw new Error("Shadow baseline source bound exceeded");
   if (row.invalid_rowid_claims !== 0 || typeof row.schema_json !== "string" || encoder.encode(row.schema_json).length > 2 * 1024 * 1024) throw new Error("Incomplete shadow schema snapshot");
   const schema = JSON.parse(row.schema_json) as ExportSchemaObject[];
-  if (!Array.isArray(schema) || schema.length > 1000) throw new Error("Unsupported shadow schema generation");
+  if (!Array.isArray(schema) || schema.length > MAX_SHADOW_SCHEMA_OBJECTS) throw new Error("Unsupported shadow schema generation");
   const schemaSha256 = await fileShadowSchemaFingerprint(schema);
   if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
   const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);

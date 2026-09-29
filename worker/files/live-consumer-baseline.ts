@@ -150,7 +150,7 @@ function hydrate(part: "source" | "related") {
 /** Shared SQL construction only. This does not qualify a schema or authority
  * generation. Extra columns are internal, static SQL supplied by the V15 reader;
  * no request value may be interpolated. The public V14 reader remains fixed. */
-export function liveConsumerMetadataSql(evidenceLimit: number, selection: "after" | "exact" = "after", extraColumns = "") {
+export function liveConsumerMetadataSql(evidenceLimit: number, selection: "after" | "exact" = "after", extraColumns = "", schemaObjectLimit = 1000) {
   const array = (select: string) => `(SELECT json_group_array(json(value)) FROM (${select} LIMIT ${evidenceLimit + 1}))`;
   const same = (alias: string) => `((${alias}.store_kind='r2' AND ${alias}.provider='r2' AND ${alias}.object_key=p.r2_key)
     OR (${alias}.store_kind='managed' AND ${alias}.provider=p.managed_provider AND ${alias}.object_key=p.managed_key))`;
@@ -194,11 +194,11 @@ export function liveConsumerMetadataSql(evidenceLimit: number, selection: "after
     'registries',json(registries),'receipts',json(receipts),'mappings',json(mappings),'lifecycle',json(lifecycle),'retention',json(retention),'peers',json(peers),'profiles',json(${profiles})) payload FROM evidence p),
   measured AS (SELECT payload,length(CAST(payload AS BLOB)) bytes FROM payloads),
   totals AS (SELECT count(*) count,COALESCE(sum(bytes),0) bytes FROM measured),
-  schema_rows AS (SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name LIMIT 1001),
+  schema_rows AS (SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name LIMIT ${schemaObjectLimit + 1}),
   schema_payload AS (SELECT json_group_array(json_object('type',type,'name',name,'tableName',tbl_name,'sql',sql)) payload,count(*) count FROM schema_rows)
   SELECT (SELECT json_group_array(json_object(${fields("c", "singleton mode revision updated_at activated_at")})) FROM file_authority_control c) authority_json,
     ${extraColumns}
-    (SELECT CASE WHEN count<=1000 AND length(CAST(payload AS BLOB))<=2097152 THEN payload END FROM schema_payload) schema_json,
+    (SELECT CASE WHEN count<=${schemaObjectLimit} AND length(CAST(payload AS BLOB))<=2097152 THEN payload END FROM schema_payload) schema_json,
     (${FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL}) invalid_rowid_claims,
     (SELECT count FROM source_scope) source_row_count,
     (SELECT key_bytes FROM source_scope) source_key_bytes,

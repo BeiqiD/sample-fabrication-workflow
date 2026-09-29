@@ -88,7 +88,10 @@ describe("V18 accepted File runtime archive", () => {
     expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(result.report.authorityRecovery).toMatchObject({ runtimeExecutionEnabled: false, installationAdmissionRequired: true, recordedAuthorityMode: "active" });
     const provider = vi.fn();
-    const response = await worker.fetch(new Request("https://app.test/api/assets", { method: "POST", body: bytes }), {
+    const response = await worker.fetch(new Request("https://app.test/api/assets", {
+      method: "POST", body: bytes,
+      headers: { "content-type": "image/png", "x-upload-request-id": crypto.randomUUID(), "x-filename": "recovered.png" },
+    }), {
       AUTH_MODE: "disabled", DB: adapter(sql), R2_BOOTSTRAP_NAMESPACE: namespace,
       ASSETS: { get: provider, head: provider, put: provider, delete: provider } as unknown as R2Bucket,
     }, { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext);
