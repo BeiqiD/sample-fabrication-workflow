@@ -44,6 +44,7 @@ describe("read-only storage Settings", () => {
     expect(uploads.getByText("SWITCHdrive")).toBeTruthy();
     expect(screen.getByText("Read and write")).toBeTruthy();
     expect(screen.getByText("Matches current configuration")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "File authority maintenance" }).getAttribute("href")).toBe("/maintenance/file-authority");
     expect(document.body.textContent).not.toMatch(/healthy|connected|default storage|S3|FP1/);
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage", expect.objectContaining({ method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error" }));

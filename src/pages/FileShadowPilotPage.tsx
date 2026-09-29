@@ -158,6 +158,7 @@ export function FileShadowPilotPage() {
 
   const locked = command !== null || pausing;
   const canConvert = !!baseline && canConvertBaseline(baseline) && !journal && !journalError && !statusLoading;
+  const authorityActive = status?.mode === "active";
   const activeRuntime = status?.mode === "overlap" && status.enabled;
   const receipt = journal?.receipt ?? null;
   const terminal = isTerminalReceipt(receipt);
@@ -167,7 +168,7 @@ export function FileShadowPilotPage() {
     <p className="muted"><a href="/maintenance/file-evidence">Review historical file evidence</a> · Identify missing purpose and original storage records.</p>
     <div className="page-heading">
       <div><p className="eyebrow">Maintenance</p><h1>File shadow pilot</h1>
-        <p className="lead">Inspect current file references and convert one reviewed reference at a time. Existing file access continues during overlap.</p></div>
+        <p className="lead">{authorityActive ? "File authority is active. Shadow conversion is complete." : "Inspect current file references and convert one reviewed reference at a time. Existing file access continues during overlap."}</p></div>
     </div>
     {commandError && <p className="error-banner" role="alert">{commandError}</p>}
     {journalError && <p className="error-banner" role="alert">{journalError} Conversion is blocked until the saved operation can be read.</p>}
@@ -181,13 +182,14 @@ export function FileShadowPilotPage() {
       {status && <>
         <dl className="shadow-summary">
           <div><dt>Authority</dt><dd>{readable(status.mode)}</dd></div>
-          <div><dt>Conversions</dt><dd>{status.enabled ? "Enabled" : "Paused"}</dd></div>
+          <div><dt>Conversions</dt><dd>{authorityActive ? "Complete" : status.enabled ? "Enabled" : "Paused"}</dd></div>
           <div><dt>Current references</dt><dd>{status.currentCount}</dd></div>
           <div><dt>Resolved</dt><dd>{status.resolvedCount}</dd></div>
           <div><dt>Pending</dt><dd>{status.pendingCount}</dd></div>
           <div><dt>Admitted unresolved</dt><dd>{status.unresolvedCount}</dd></div>
           <div><dt>Unfinished attempts</dt><dd>{status.unfinishedAttempts}</dd></div>
         </dl>
+        {authorityActive ? <p className="muted">Manage active File authority and recovery from <a href="/maintenance/file-authority">File authority</a>.</p> : <>
         <p className="muted">Enabling conversions permanently enters overlap. Pausing stops new work but retains overlap and admitted profiles; in-flight storage writes may still finish. This page cannot activate File authority.</p>
         {!status.enabled && <label className="shadow-check"><input type="checkbox" checked={overlapReviewed} disabled={locked} onChange={(event) => setOverlapReviewed(event.target.checked)} />
           <span>I understand that overlap remains enabled after pausing.</span></label>}
@@ -195,12 +197,13 @@ export function FileShadowPilotPage() {
           {!status.enabled && <button className="button" disabled={locked || !overlapReviewed} onClick={() => void run("Enabling conversions", () => client.enable(status), "Conversions enabled. Inspect a reference before admitting its exact R2 profile.")}>{status.mode === "legacy" ? "Enable overlap" : "Resume conversions"}</button>}
           <button className="button" disabled={pausing || !status.enabled} onClick={() => void pause()}>Pause conversions</button>
         </div>
+        </>}
       </>}
     </section>
 
     {journal && <section className="card shadow-panel shadow-saved" aria-labelledby="shadow-operation-title">
       <h2 id="shadow-operation-title" className="card-title">Saved operation</h2>
-      <p className="muted">The request was saved in this browser before conversion. Keep this operation until its outcome is confirmed; a new conversion is blocked.</p>
+      <p className="muted">The request was saved in this browser before conversion. Keep this operation until its outcome is confirmed.</p>
       <dl className="shadow-proof">
         <dt>Operation</dt><dd><code>{journal.request.operationId}</code></dd>
         <dt>Reference type</dt><dd><code>{exactKeyText(journal.request.key.consumerKind)}</code></dd>
@@ -216,24 +219,25 @@ export function FileShadowPilotPage() {
         {receipt?.attemptState && <><dt>Copy attempt</dt><dd>{readable(receipt.attemptState)}</dd></>}
       </dl>
       <p className={terminal ? "muted" : "warning-card"}>
-        {receipt?.status === "resolved" ? "This operation resolved its recorded generation. Dismiss the receipt and reread the reference to check its current generation."
+        {authorityActive ? "Inspect the saved operation to read its recorded outcome. Completed receipts can be dismissed."
+          : receipt?.status === "resolved" ? "This operation resolved its recorded generation. Dismiss the receipt and reread the reference to check its current generation."
           : receipt?.status === "withdrawn" ? "The server durably closed this unaccepted request. It cannot start a conversion later. Dismiss the receipt before reviewing another conversion."
             : terminal ? "This operation has a recorded terminal outcome. Dismiss the receipt before reviewing another conversion."
             : receipt?.nextAction === "reconcile" ? "Inspect this operation, then reconcile its recorded copy. Reconciliation verifies the existing copy without starting another storage write."
               : "The outcome is still pending or unknown. Inspect this same operation; do not start another conversion."}
       </p>
-      {!receipt && <p className="muted">You can ask the server to close this request if it was never accepted, including while paused. If it was already accepted, its existing operation will be shown instead. A missing receipt alone does not confirm either outcome.</p>}
+      {!authorityActive && !receipt && <p className="muted">You can ask the server to close this request if it was never accepted, including while paused. If it was already accepted, its existing operation will be shown instead. A missing receipt alone does not confirm either outcome.</p>}
       <div className="shadow-actions">
         <button className="button" disabled={locked} onClick={() => void run("Reading saved operation", () => client.inspectOperation(journal.request.operationId), "Saved operation read. Review its outcome below.", false)}>Inspect saved operation</button>
-        {!receipt && <button className="button" disabled={locked} onClick={() => void run("Closing unaccepted request", () => client.withdrawOperation(journal.request.operationId), "Request checked. Review the saved outcome before continuing.")}>Close unaccepted request</button>}
-        {receipt?.nextAction === "reconcile" && <button className="button" disabled={locked || !activeRuntime} onClick={() => status && void run("Reconciling recorded copy", () => client.reconcileOperation(status, journal.request.operationId), "Reconciliation finished. Review the saved outcome before continuing.")}>Reconcile recorded copy</button>}
-        {canCancelReceipt(receipt) && <button className="button" disabled={locked || !activeRuntime} onClick={() => status && void run("Cancelling unstarted operation", () => client.cancelOperation(status, journal.request.operationId), "Cancellation checked. Review the saved outcome before continuing.")}>Cancel unstarted operation</button>}
+        {!authorityActive && !receipt && <button className="button" disabled={locked} onClick={() => void run("Closing unaccepted request", () => client.withdrawOperation(journal.request.operationId), "Request checked. Review the saved outcome before continuing.")}>Close unaccepted request</button>}
+        {!authorityActive && receipt?.nextAction === "reconcile" && <button className="button" disabled={locked || !activeRuntime} onClick={() => status && void run("Reconciling recorded copy", () => client.reconcileOperation(status, journal.request.operationId), "Reconciliation finished. Review the saved outcome before continuing.")}>Reconcile recorded copy</button>}
+        {!authorityActive && canCancelReceipt(receipt) && <button className="button" disabled={locked || !activeRuntime} onClick={() => status && void run("Cancelling unstarted operation", () => client.cancelOperation(status, journal.request.operationId), "Cancellation checked. Review the saved outcome before continuing.")}>Cancel unstarted operation</button>}
         {terminal && <button className="button" disabled={locked} onClick={() => void run("Dismissing completed operation", () => client.clearTerminalReceipt(journal.request.operationId), "Completed receipt dismissed. Reread the reference before another conversion.", false)}>Dismiss completed operation</button>}
       </div>
-      {!activeRuntime && receipt?.status === "pending" && <p className="muted">Inspection is available while paused. Resume conversions before reconciliation or cancelling an unstarted operation.</p>}
+      {!authorityActive && !activeRuntime && receipt?.status === "pending" && <p className="muted">Inspection is available while paused. Resume conversions before reconciliation or cancelling an unstarted operation.</p>}
     </section>}
 
-    <div className="shadow-workspace">
+    {!authorityActive && <div className="shadow-workspace">
       <section className="card shadow-panel" aria-labelledby="shadow-consumers-title">
         <div className="shadow-heading"><h2 id="shadow-consumers-title" className="card-title">Current references</h2>
           <button className="button" disabled={locked || listLoading} onClick={() => void refreshList(cursor)}>Refresh list</button></div>
@@ -289,6 +293,6 @@ export function FileShadowPilotPage() {
           </>}
         </>}
       </section>
-    </div>
+    </div>}
   </div>;
 }

@@ -74,6 +74,13 @@ and export remain available when execution is paused. Recovered installations
 require explicit operator admission after stopping the previous installation;
 restoring an archive never authorizes writes or cleanup by itself.
 
+The operator maintenance page is available at `/maintenance/file-authority`,
+linked from Storage Settings. It displays the current authority, execution state
+and activation blockers. Commands use the displayed cutoff and the server's
+atomic admission; refreshing or reopening the page never sends a command.
+An uncertain response is followed by a status read. Recovery admission requires
+confirmation that the previous installation has stopped writes and maintenance.
+
 ## Archive and deployment boundary
 
 V18 (`fp1-file-runtime`) pins the `0012` schema and preserves accepted candidates,
