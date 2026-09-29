@@ -122,7 +122,7 @@ try {
   const fullExport = await exportResponse.json();
   assert.equal(exportResponse.status, 200, JSON.stringify(fullExport));
   assert.equal(fullExport.schemaVersion, 18);
-  assert.equal(fullExport.archiveProfile, "fp1-shadow-adjudications");
+  assert.equal(fullExport.archiveProfile, "fp1-file-runtime");
   assert.equal(fullExport.archiveWriter, 1);
   assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
   const sourceSchema = fullExport.artifacts.sourceSchema.value;
