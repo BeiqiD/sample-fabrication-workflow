@@ -18,6 +18,7 @@ const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ d
 const StorageSettingsPage = lazy(() => import("./pages/StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
 const FileShadowPilotPage = lazy(() => import("./pages/FileShadowPilotPage").then((module) => ({ default: module.FileShadowPilotPage })));
 const FileEvidencePage = lazy(() => import("./pages/FileEvidencePage").then((module) => ({ default: module.FileEvidencePage })));
+const FileAuthorityPage = lazy(() => import("./pages/FileAuthorityPage").then((module) => ({ default: module.FileAuthorityPage })));
 const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
 const MetrologyTemplatePage = lazy(() => import("./pages/MetrologyTemplatePage").then((module) => ({ default: module.MetrologyTemplatePage })));
 const ProcessingPage = lazy(() => import("./pages/ProcessingPage").then((module) => ({ default: module.ProcessingPage })));
@@ -98,6 +99,7 @@ export function App() {
             <Route path="/settings/storage" element={<StorageSettingsPage />} />
             <Route path="/maintenance/file-shadow" element={<FileShadowPilotPage />} />
             <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
+            <Route path="/maintenance/file-authority" element={<FileAuthorityPage />} />
           </Routes>
         </Suspense>
       </main>

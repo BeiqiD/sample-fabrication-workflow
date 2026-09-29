@@ -108,6 +108,25 @@ async function withdrawn(request: PilotJournal["request"]) {
 }
 
 describe("File shadow pilot explicit command and recovery boundaries", () => {
+  it("shows active authority without offering shadow conversion commands and preserves saved-operation inspection", async () => {
+    const original = saveUnknownJournal().request;
+    handlers.set("/api/files/shadow/status", () => ({ ...status(0, "active"), resolved_count: 2, pending_count: 0 }));
+    handlers.set("/api/files/shadow/operation", () => withdrawn(original));
+    render(<FileShadowPilotPage />);
+    expect(await screen.findByText("File authority is active. Shadow conversion is complete.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "File authority" }).getAttribute("href")).toBe("/maintenance/file-authority");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    for (const name of ["Enable overlap", "Resume conversions", "Pause conversions", "Convert this reference", "Admit exact R2 profile", "Reconcile recorded copy", "Cancel unstarted operation", "Close unaccepted request"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Inspect saved operation" })); });
+    expect(await screen.findByText("Closed before acceptance")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Dismiss completed operation" })).toBeTruthy();
+    expect(writes()).toEqual([]);
+    expect(requests.some(({ path }) => path.endsWith("/baseline"))).toBe(false);
+  });
+
   it("keeps StrictMode mounting, list refresh and baseline reads free of commands", async () => {
     await mount(true);
     expect(writes()).toEqual([]);

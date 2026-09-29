@@ -4,7 +4,7 @@ import { createUuid } from "./uuid";
 
 export interface ShadowConsumerKey { consumerKind: string; consumerId: string; consumerSubId: string; fileSlot: string }
 export interface PilotStatus {
-  mode: "legacy" | "overlap"; epoch: number; enabled: boolean; incarnation: string | null;
+  mode: "legacy" | "overlap" | "active"; epoch: number; enabled: boolean; incarnation: string | null;
   currentCount: number; resolvedCount: number; unresolvedCount: number; pendingCount: number; unfinishedAttempts: number;
 }
 export interface PilotConsumer { key: ShadowConsumerKey; generation: number; occurrenceId: string; state: "pending" | "resolved" | "admitted_unresolved" }
@@ -95,7 +95,7 @@ function key(value: unknown): ShadowConsumerKey {
 }
 const sameKey = (left: ShadowConsumerKey, right: ShadowConsumerKey) => JSON.stringify(left) === JSON.stringify(right);
 function parseStatus(value: unknown): PilotStatus {
-  const raw = object(value), mode = choice(raw.mode, ["legacy", "overlap"] as const), enabled = flag(raw.enabled);
+  const raw = object(value), mode = choice(raw.mode, ["legacy", "overlap", "active"] as const), enabled = flag(raw.enabled);
   const incarnation = raw.incarnation === null ? null : uuid(raw.incarnation);
   if (enabled && (mode !== "overlap" || incarnation === null)) fail();
   const result = { mode, enabled, incarnation, epoch: integer(raw.epoch), currentCount: integer(raw.current_count),

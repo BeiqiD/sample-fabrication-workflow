@@ -4,6 +4,7 @@ import type {
 } from "../../shared/project-api";
 import type { CopyAttachmentProjectItemInput } from "../../shared/project-copy-paste-api";
 import { MAX_PROJECT_SAFE_INTEGER } from "../../shared/project-types";
+import { readFileAuthorityMode } from "../files/authority-reader";
 import {
   createAttachmentProjectItem,
   ProjectServiceError,
@@ -104,23 +105,24 @@ function sourceAuthorizedBindingStatement(
   input: CopyAttachmentProjectItemInput,
   actor: string,
   now: string,
+  active: boolean,
 ) {
   return db.prepare(`
     INSERT INTO project_content_attachments (
       project_content_id, asset_id, storage_object_id,
       original_name, mime_type, byte_size,
-      created_by, created_at, creation_operation_id
+      created_by, created_at, creation_operation_id${active ? ', file_id' : ''}
     )
     SELECT ?, source.asset_id, source.storage_object_id,
            source.original_name, source.mime_type, source.byte_size,
-           ?, ?, ?
+           ?, ?, ?${active ? ', source.file_id' : ''}
     FROM (
       SELECT
         pca.asset_id AS asset_id,
         NULL AS storage_object_id,
         pca.original_name AS original_name,
         pca.mime_type AS mime_type,
-        pca.byte_size AS byte_size
+        pca.byte_size AS byte_size${active ? ', pca.file_id AS file_id' : ''}
       FROM project_contents pc
       JOIN projects p ON p.id = pc.project_id
       JOIN project_items source_item
@@ -139,7 +141,11 @@ function sourceAuthorizedBindingStatement(
         AND source_item.deleted_at IS NULL
         AND a.status = 'ready'
         AND (a.import_id IS NULL OR (i.id IS NOT NULL AND i.status = 'ready'))
-        AND NOT EXISTS (
+        AND ${active ? `EXISTS (
+          SELECT 1 FROM file_usable_publications fp
+          WHERE fp.file_id = pca.file_id AND fp.purpose = 'research_source'
+            AND fp.access_scope = 'system'
+        )` : `NOT EXISTS (
           SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
             AND bg.object_key = a.r2_key
@@ -149,7 +155,7 @@ function sourceAuthorizedBindingStatement(
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
             AND biq.object_key = a.r2_key
-        )
+        )`}
 
       UNION ALL
 
@@ -158,7 +164,7 @@ function sourceAuthorizedBindingStatement(
         pca.storage_object_id AS storage_object_id,
         pca.original_name AS original_name,
         pca.mime_type AS mime_type,
-        pca.byte_size AS byte_size
+        pca.byte_size AS byte_size${active ? ', pca.file_id AS file_id' : ''}
       FROM project_contents pc
       JOIN projects p ON p.id = pc.project_id
       JOIN project_items source_item
@@ -176,7 +182,11 @@ function sourceAuthorizedBindingStatement(
         AND pc.deleted_at IS NULL
         AND source_item.deleted_at IS NULL
         AND mso.status IN ('ready', 'orphaned')
-        AND NOT EXISTS (
+        AND ${active ? `EXISTS (
+          SELECT 1 FROM file_usable_publications fp
+          WHERE fp.file_id = pca.file_id AND fp.purpose = 'research_source'
+            AND fp.access_scope = 'system'
+        )` : `NOT EXISTS (
           SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
             AND bg.object_key = mso.object_key
@@ -186,7 +196,7 @@ function sourceAuthorizedBindingStatement(
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
             AND biq.object_key = mso.object_key
-        )
+        )`}
     ) source
     LIMIT 1
     RETURNING project_content_id
@@ -284,7 +294,7 @@ export async function copyAttachmentProjectItem(
       now,
       now,
     ),
-    sourceAuthorizedBindingStatement(db, projectId, input, actor, now),
+    sourceAuthorizedBindingStatement(db, projectId, input, actor, now, await readFileAuthorityMode(db) === "active"),
     db.prepare(`
       INSERT INTO project_items (
         id, project_id, item_type, project_content_id, reference_target_id,

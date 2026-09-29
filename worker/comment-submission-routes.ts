@@ -1,7 +1,9 @@
+import { prepareFileRestoration } from "./files/business-lifecycle";
 import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { managedStorageStatus } from "./managed-storage";
 import { getBlob } from "./blob-lifecycle/storage";
+import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import {
   listItemBlobLocators,
   markOrphanCandidate,
@@ -310,7 +312,8 @@ routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c
   ).bind(itemId, submissionId).first<{ deleted_at: string }>();
   if (!item) throw new HTTPException(404, { message: "Deleted attachment occurrence not found" });
   const now = new Date(Math.max(Date.now(), Date.parse(item.deleted_at) + 1)).toISOString();
-  const result = await c.env.DB.prepare(
+  const fences = await prepareFileRestoration(c.env.DB, "comment_item", [itemId]);
+  const mutation = c.env.DB.prepare(
     `UPDATE comment_submission_items
      SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
      WHERE id = ? AND submission_id = ? AND deleted_at = ?
@@ -320,7 +323,8 @@ routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c
            AND cs.status = 'ready' AND cs.deleted_at IS NULL
            AND ${visibleSubmissionTargetsSql("cs")}
        )`,
-  ).bind(now, itemId, submissionId, item.deleted_at).run();
+  ).bind(now, itemId, submissionId, item.deleted_at);
+  const result = fences.length ? (await c.env.DB.batch([...fences, mutation]))[fences.length] : await mutation.run();
   if (!result.meta.changes) {
     throw new HTTPException(409, { message: "The attachment changed while it was being restored" });
   }
@@ -711,7 +715,8 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
       ).bind(userEmail, now, sampleId, submissionId, mutationId));
     }
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = await prepareFileRestoration(c.env.DB, "comment_submission", [submissionId]);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }
@@ -750,6 +755,29 @@ routes.get("/exports/attachments/:itemId", async (c) => {
 
 routes.get("/attachments/:itemId/download", async (c) => {
   const itemId = c.req.param("itemId");
+  const mode = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  });
+  if (mode === "active") {
+    const row = await c.env.DB.prepare(`
+      SELECT csi.file_id, csi.filename, csi.mime_type
+      FROM comment_submission_items csi
+      JOIN comment_submissions cs ON cs.id=csi.submission_id AND cs.status='ready' AND cs.deleted_at IS NULL
+      WHERE csi.id=? AND csi.kind='attachment' AND csi.status='ready' AND csi.deleted_at IS NULL
+        AND ${readableSubmissionTargetsSql("cs")}
+    `).bind(itemId).first<{ file_id: string | null; filename: string; mime_type: string }>();
+    if (!row) throw new HTTPException(404, { message: "Attachment not found" });
+    const object = await readPublishedFile(c.env, { fileId: row.file_id, purpose: "research_source" });
+    if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
+    if (object.outcome !== "available") throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+    const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+    return new Response(object.body, { headers: {
+      "content-type": object.contentType || row.mime_type,
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+      "cache-control": "private, no-store", "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    } });
+  }
   const row = await c.env.DB.prepare(
     `SELECT csi.filename, mso.provider, mso.object_key, mso.mime_type
      FROM comment_submission_items csi

@@ -53,12 +53,17 @@ owner explicitly authorized for permanent disposal. Data-only migration `0011`
 removes that exact trashed business graph while the existing shadow triggers
 record absent successors. It retains the same schema/V17 archive contract, shared
 assets and immutable history. Historical restore does not replay this cleanup.
-After deployment, capture a fresh current-generation checkpoint. The
+The #235 deployment passed one live status read: 4 current / 4 resolved /
+0 pending / 0 admitted unresolved / 0 unfinished attempts. Atomic activation
+must capture and validate its own fresh transactional cutoff. The
 [basic Storage Settings](./FP1_STORAGE_SETTINGS.md) status-only subset shipped
-in #234 without provider activity or configuration mutation. The next
-implementation joins File-aware reads, accepted writes and lifecycle authority
-with one atomic activation; changing the mode alone is insufficient.
-Catch-up and atomic authority activation remain open; FP1 is incomplete.
+in #234 without provider activity or configuration mutation. Draft #236 now
+implements [File runtime reads, accepted writes and lifecycle support](./FP1_FILE_AUTHORITY_RUNTIME.md),
+with `0012` database admission rules and V18 recovery. It also implements
+binding-preserving deletion/restore, owned import recovery, atomic activation
+and separate recovered-installation execution admission. Deployment leaves
+authority in overlap; the live activation and role-default change remain open.
+FP1 is incomplete until the switch and new R2-original behavior are accepted.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).

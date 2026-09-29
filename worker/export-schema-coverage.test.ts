@@ -1,19 +1,19 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { snapshotFullExportV17 } from "./export-v17-snapshot";
+import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import { FILE_SHADOW_SLOT_KEYS } from "../shared/contracts/file-shadow-schema";
 import { FILE_SHADOW_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-shadow";
+import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-runtime";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
 // underscore-prefixed tables: a new application table must enter the export.
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
-// Hidden rowids are local physical identities. This derived guard table is
-// validated inside the V17 snapshot and rebuilt from restored registry rows;
-// serializing its host-specific rowids would make an archive less portable.
-const REBUILDABLE_TABLES = new Set<string>(FILE_SHADOW_REBUILDABLE_TABLE_NAMES);
+// Hidden rowid claims are rebuilt from restored registry rows. Execution gates
+// are installation-local and rebuilt disabled; neither belongs in portable rows.
+const REBUILDABLE_TABLES = new Set<string>([...FILE_SHADOW_REBUILDABLE_TABLE_NAMES, ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES]);
 
 // This time-dependent projection is part of the archive contract in addition to
 // its source tables. Other views are rebuildable only after an explicit decision
@@ -32,6 +32,11 @@ const EXPORTED_VIEWS = new Set([
   "file_location_availability",
 ]);
 const REBUILDABLE_VIEWS = new Set([
+  // Time-dependent executor fences are rebuilt over canonical accepted receipts;
+  // they are not portable authority or evidence of a live lease.
+  "file_authority_pending_receipt_items", "file_authority_pending_candidates", "file_authority_usable_candidate_results", "file_authority_ready_candidate_aliases",
+  // Recomputed from current shadow heads and usable File publications at cutoff.
+  "file_authority_activation_bindings",
   // Current source and namespace evidence are exact deterministic projections.
   ...FILE_SHADOW_SLOT_KEYS.map(([kind, slot]) => `file_shadow_sources_${kind}_${slot}`),
   "file_shadow_sources_relational", "file_shadow_sources_content", "file_shadow_sources_direct",
@@ -95,11 +100,11 @@ describe("complete export schema coverage", () => {
   beforeEach(() => { database = referenceTestDatabase(); });
   afterEach(() => { database.close(); });
 
-  it("covers every migrated application table and required view with the actual v17 snapshot", async () => {
+  it("covers every migrated application table and required view with the actual v18 snapshot", async () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    const snapshot = await snapshotFullExportV17(new SqliteD1Database(database) as unknown as D1Database);
+    const snapshot = await snapshotFullExportV18(new SqliteD1Database(database) as unknown as D1Database);
     expect(Object.keys(snapshot.tables).sort()).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES).sort());
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.samples).not.toContain("process_revision");
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).toContain("legacy_body");

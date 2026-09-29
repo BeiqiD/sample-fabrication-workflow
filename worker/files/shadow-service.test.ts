@@ -243,12 +243,13 @@ describe("durable withdrawal of never-accepted File shadow requests", () => {
 });
 
 describe("File shadow runtime against the complete SQLite schema", () => {
-  it("qualifies exact V15 metadata while preserving the V14 protocol and private source metadata", async () => {
+  it("qualifies current shadow metadata while preserving V14 schema bounds and private source metadata", async () => {
     const f = await fixture(), baseline = await readShadowBaseline(f.db, eventKey);
     expect(baseline).toMatchObject({ status: "ready_to_verify", purpose: "embedded_content", bytesVerified: false });
     expect(baseline.head).toHaveProperty("source_sha256"); expect(baseline.head).not.toHaveProperty("source_json");
     expect(JSON.stringify(baseline)).not.toContain("private-name");
-    await expect(readFileConsumerBaseline(f.db)).rejects.toThrow(/schema generation/);
+    // Current V18 exceeds the frozen V14 reader's schema inventory bound.
+    await expect(readFileConsumerBaseline(f.db)).rejects.toThrow("Live consumer schema snapshot is incomplete");
     f.sql.prepare("UPDATE events SET metadata_json=? WHERE id='event'").run(JSON.stringify({ action: ["PRIVATE ACTION"], thumbnailKey: { secret: "PRIVATE THUMB" } }));
     const malformed = await readShadowBaseline(f.db, eventKey);
     expect(JSON.stringify(malformed)).not.toContain("PRIVATE"); expect(malformed.status).toBe("ambiguous");

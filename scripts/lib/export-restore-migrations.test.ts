@@ -2,12 +2,12 @@ import { readdirSync } from "node:fs";
 import { expect, it } from "vitest";
 import { planExportRestoreMigrations } from "./export-restore";
 
-it("keeps V7–V17 schema upgrades while excluding only the reviewed deployment cleanup", () => {
+it("keeps V7–V18 schema upgrades while excluding only the reviewed deployment cleanup", () => {
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
   const names = readdirSync(new URL("../../migrations/", import.meta.url)).filter((name) => name.endsWith(".sql")).sort();
-  expect(names.at(-1)).toBe(cleanup);
-  const schemaNames = names.slice(0, -1);
-  for (let version = 7; version <= 17; version++) {
+  expect(names.at(-1)).toBe("0012_fp1_file_authority_runtime.sql");
+  const schemaNames = names.filter(name => name !== cleanup);
+  for (let version = 7; version <= 18; version++) {
     const plan = planExportRestoreMigrations(names, version);
     expect(plan).toEqual(planExportRestoreMigrations(schemaNames, version));
     expect(plan.schemaNames).toEqual(schemaNames);
@@ -17,6 +17,6 @@ it("keeps V7–V17 schema upgrades while excluding only the reviewed deployment 
   expect(planExportRestoreMigrations(legacyPrefix, 8)).toEqual({
     schemaNames: legacyPrefix, forwardNames: legacyPrefix.slice(1),
   });
-  const otherMigration = "0012_unreviewed_cleanup.sql";
+  const otherMigration = "0013_unreviewed_cleanup.sql";
   expect(planExportRestoreMigrations([...names, otherMigration], 17).schemaNames).toContain(otherMigration);
 });

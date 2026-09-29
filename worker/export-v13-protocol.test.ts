@@ -18,6 +18,14 @@ import worker from "./index";
 import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
+// V13 deliberately freezes the database at 0006, before authority metadata
+// existed. Model that writer's legacy mode only in this isolated test module;
+// keep its real routes, schema constraints and archive checks unchanged.
+vi.mock(import("./files/authority-reader"), async (original) => ({
+  ...await original(),
+  readFileAuthorityMode: async () => "legacy" as const,
+}));
+
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
 const endpoint = "/api/exports/all?archiveSchema=13&archiveWriter=1";
 const previous = "2026-08-01T00:00:00.000Z";
@@ -134,7 +142,7 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
       const { archive, restored } = await roundtrip(manifest, f.fetcher, scratch);
       expect(archive.warnings).toEqual([]);
       expect(restored.report).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance",
-        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }], warnings: [],
+        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {

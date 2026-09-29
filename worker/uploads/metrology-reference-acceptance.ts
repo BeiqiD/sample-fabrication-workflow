@@ -9,6 +9,10 @@ import { normalizeR2UploadRequestId, R2_UPLOAD_RECEIPT_LIFETIME_MS } from "../..
 import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 import { ingestR2Attachment, safeAttachmentObjectName } from "../attachment-ingestion";
 import { primaryD1 } from "../d1-primary";
+import { resolveAcceptedUploadResultFile, verifyAcceptedResultFile } from "../files/accepted-result-reader";
+import { readFileAuthorityMode } from "../files/authority-reader";
+import { stageAuthorityCandidate } from "../files/authority-candidates";
+import { writeAuthorityCandidate } from "../files/authority-publication";
 import { ByteVerificationError, verifyByteStream } from "../files/byte-verification";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
@@ -71,7 +75,7 @@ function parseInput(row: AcceptedMetrologyReferenceUploadRow) {
 function parsePlan(row: AcceptedMetrologyReferenceUploadRow) {
   try { return validateMetrologyReferencePublicationPlan(JSON.parse(row.publication_plan_json)); } catch { throw new MetrologyReferenceUploadUnavailableError(); }
 }
-async function liveResultEligible(db: D1Database, row: AcceptedMetrologyReferenceUploadRow, result: MetrologyReferenceUploadResult) {
+async function liveResultEligible(db: D1Database, row: AcceptedMetrologyReferenceUploadRow, result: MetrologyReferenceUploadResult, active = false) {
   const file = parseInput(row).file;
   const ref = result.reference;
   try {
@@ -80,7 +84,7 @@ async function liveResultEligible(db: D1Database, row: AcceptedMetrologyReferenc
       WHERE mtr.id = ? AND mtr.template_version_id = ? AND mtr.asset_id = ?
         AND mtr.display_name IS ? AND mtr.created_at IS ? AND mtr.deleted_at IS NULL AND mtr.superseded_by_occurrence_id IS NULL
         AND a.r2_key = ? AND a.mime_type = ? AND a.byte_size = ? AND a.sha256 = ?
-        AND ${activeTemplateSql} AND ${availableAssetSql}`)
+        AND ${activeTemplateSql} AND ${active ? `a.status='ready' AND ${publishedAssetSql("a")}` : availableAssetSql}`)
       .bind(ref.id, row.template_version_id, result.assetId, ref.filename, ref.createdAt, ref.assetKey, ref.mimeType, file.byteSize, file.sha256).first());
   } catch { throw new MetrologyReferenceUploadUnavailableError(); }
 }
@@ -91,6 +95,16 @@ export async function acceptedMetrologyReferenceUploadState(env: Env, row: Accep
   let result: MetrologyReferenceUploadResult;
   try { result = validateMetrologyReferenceUploadResult(JSON.parse(row.accepted_result_json ?? "null")); } catch { throw new MetrologyReferenceUploadUnavailableError(); }
   const expected = parseInput(row).file;
+  const active = await readFileAuthorityMode(env.DB).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); }) === "active";
+  if (active) {
+    if (!await liveResultEligible(env.DB, row, result, true)) return { ...base, status: "unavailable" };
+    const verified = await verifyAcceptedResultFile(env, { purpose: row.purpose, expectedBytes: expected,
+      resolveFileId: () => resolveAcceptedUploadResultFile(env.DB, { kind: "metrology_reference", receipt: row }),
+    }).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); });
+    if (row.expires_at <= new Date().toISOString()) return { ...base, status: "expired" };
+    if (!verified || !await liveResultEligible(env.DB, row, result, true)) return { ...base, status: "unavailable" };
+    return { ...base, status: "ready", result };
+  }
   await assertR2BootstrapProfile(primaryD1(env.DB), env, row.storage_profile_id, row.storage_profile_revision);
   if (!await liveResultEligible(env.DB, row, result)) return { ...base, status: "unavailable" };
   const opened = await r2ByteReader(env.ASSETS).read(result.reference.assetKey);
@@ -110,7 +124,7 @@ export async function getMetrologyReferenceUploadRequestState(env: Env, actorEma
   const row = await readAcceptedMetrologyReferenceUpload(env.DB, actorEmail, requestId);
   return row && row.template_version_id === templateId ? acceptedMetrologyReferenceUploadState(env, row) : null;
 }
-async function publicationPlan(db: D1Database, templateId: string, sha256: string, byteSize: number): Promise<MetrologyReferencePublicationPlan> {
+async function publicationPlan(db: D1Database, templateId: string, sha256: string, byteSize: number, activeProfileId?: string): Promise<MetrologyReferencePublicationPlan> {
   if (!await primaryD1(db).prepare(`SELECT 1 FROM template_versions tv WHERE tv.id = ? AND ${activeTemplateSql}`).bind(templateId).first()) {
     throw new HTTPException(404, { message: "Metrology template not found" });
   }
@@ -118,8 +132,13 @@ async function publicationPlan(db: D1Database, templateId: string, sha256: strin
       mtr.actor_email AS actorEmail, mtr.created_at AS createdAt, mtr.deleted_at AS deletedAt, mtr.deleted_by AS deletedBy
     FROM metrology_template_references mtr JOIN assets a ON a.id = mtr.asset_id
     WHERE mtr.template_version_id = ? AND mtr.superseded_by_occurrence_id IS NULL AND a.sha256 = ? AND a.byte_size = ?
-      AND ${availableAssetSql} ORDER BY (mtr.deleted_at IS NULL) DESC, mtr.created_at DESC, mtr.id DESC LIMIT 1`)
-    .bind(templateId, sha256, byteSize).first();
+      AND ${availableAssetSql}
+      ${activeProfileId ? `AND EXISTS(SELECT 1 FROM file_usable_publications f
+        JOIN file_location_publications l ON l.location_id=f.active_location_id AND l.file_id=f.file_id
+        WHERE f.file_id=mtr.file_id AND f.purpose='research_source' AND f.access_scope='system'
+          AND f.verified_byte_size=a.byte_size AND f.verified_sha256=a.sha256 AND l.storage_profile_id=?)` : ""}
+      ORDER BY (mtr.deleted_at IS NULL) DESC, mtr.created_at DESC, mtr.id DESC LIMIT 1`)
+    .bind(templateId, sha256, byteSize, ...(activeProfileId ? [activeProfileId] : [])).first();
   return validateMetrologyReferencePublicationPlan({ schema: "metrology-reference-publication/1", action: ref ? ref.deletedAt ? "restore" : "reuse" : "create", reference: ref });
 }
 const snapshotSql = `id = ? AND template_version_id = ? AND asset_id IS ? AND display_name IS ? AND position IS ?
@@ -139,6 +158,67 @@ async function knownPlanUnavailable(db: D1Database, row: AcceptedMetrologyRefere
   }
   return !await primaryD1(db).prepare(`SELECT 1 FROM metrology_template_references WHERE ${snapshotSql}`).bind(...snapshotBindings(row, plan)).first();
 }
+
+async function uploadActiveReference(env: Env, accepted: AcceptedMetrologyReferenceUploadRow, upload: {
+  originalName: string; mimeType: string; bytes: ArrayBuffer;
+}): Promise<{ state: MetrologyReferenceUploadRequestState; fresh: boolean }> {
+  const owner = { kind: "metrology_reference" as const, acceptanceId: accepted.id, actorEmail: accepted.actor_email, operationId: accepted.operation_id };
+  let candidate;
+  let publication;
+  try {
+    candidate = await stageAuthorityCandidate(env.DB, owner);
+    publication = await writeAuthorityCandidate(env, owner, candidate, {
+      body: upload.bytes, contentType: upload.mimeType, filename: upload.originalName,
+    });
+  } catch { throw new MetrologyReferenceUploadUnavailableError(); }
+  const db = primaryD1(env.DB), completedAt = new Date().toISOString(), plan = parsePlan(accepted);
+  const { fileId, objectKey } = publication.result;
+  const statements = [...publication.statements,
+    db.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,sha256,actor_email,created_at)
+      SELECT ?,?,?,?,?,'ready',?,?,? WHERE NOT EXISTS(SELECT 1 FROM assets WHERE r2_key=?)`)
+      .bind(accepted.candidate_asset_id, objectKey, upload.originalName, upload.mimeType, candidate.expectedBytes.byteSize,
+        candidate.expectedBytes.sha256, accepted.actor_email, completedAt, objectKey),
+  ];
+  if (plan.action === "create") {
+    statements.push(db.prepare(`INSERT INTO metrology_template_references
+      (id,template_version_id,asset_id,file_id,display_name,position,actor_email,created_at)
+      SELECT ?,?,a.id,?,?,COALESCE((SELECT MAX(position)+1 FROM metrology_template_references WHERE template_version_id=?),0),?,?
+      FROM assets a WHERE a.r2_key=? AND a.status='ready' AND a.byte_size=? AND a.sha256=?
+        AND NOT EXISTS(SELECT 1 FROM metrology_template_references WHERE template_version_id=? AND asset_id=a.id)
+      ON CONFLICT(template_version_id,asset_id) DO NOTHING`)
+      .bind(accepted.candidate_reference_id, accepted.template_version_id, fileId, upload.originalName, accepted.template_version_id,
+        accepted.actor_email, accepted.created_at, objectKey, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256, accepted.template_version_id));
+  } else {
+    // A previously bound reference is fill-once. A changed reusable File or
+    // concurrent reference edit aborts the batch rather than rebinding it.
+    statements.push(db.prepare(`UPDATE metrology_template_references SET
+      asset_id=(SELECT id FROM assets WHERE r2_key=? AND status='ready' AND byte_size=? AND sha256=?),
+      file_id=?,display_name=?,deleted_at=NULL,deleted_by=NULL WHERE ${snapshotSql} AND file_id=?`)
+      .bind(objectKey, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256, fileId,
+        plan.action === "restore" ? upload.originalName : plan.reference.filename, ...snapshotBindings(accepted, plan), fileId));
+  }
+  statements.push(db.prepare(`UPDATE metrology_reference_upload_requests SET status='ready',completed_at=?,
+    accepted_result_json=CASE WHEN ?='create' OR changes()=1 THEN (
+      SELECT json_object('assetId',a.id,'deduplicated',json(CASE WHEN a.id<>? OR ?<>? THEN 'true' ELSE 'false' END),
+        'reference',json_object('id',mtr.id,'filename',mtr.display_name,'mimeType',a.mime_type,
+          'byteSize',a.byte_size,'assetKey',a.r2_key,'createdAt',mtr.created_at))
+      FROM metrology_template_references mtr JOIN assets a ON a.id=mtr.asset_id
+      WHERE mtr.template_version_id=? AND mtr.file_id=? AND a.r2_key=? AND a.byte_size=? AND a.sha256=?
+        AND (?='create' OR mtr.id=?) AND mtr.deleted_at IS NULL AND mtr.superseded_by_occurrence_id IS NULL
+    ) ELSE NULL END WHERE id=? AND operation_id=? AND status='pending' AND expires_at>?`)
+    .bind(completedAt, plan.action, accepted.candidate_asset_id, fileId, candidate.fileId,
+      accepted.template_version_id, fileId, objectKey, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256,
+      plan.action, plan.reference?.id ?? accepted.candidate_reference_id, accepted.id, accepted.operation_id, completedAt));
+  statements.push(db.prepare(`SELECT CASE WHEN changes()=1 AND EXISTS(SELECT 1 FROM metrology_reference_upload_requests
+    WHERE id=? AND operation_id=? AND status='ready') THEN 1 ELSE json('Metrology File upload did not publish') END`)
+    .bind(accepted.id, accepted.operation_id));
+  try { await db.batch(statements); } catch { /* Only receipt readback can resolve rejected or lost publication acknowledgements. */ }
+  const finalized = await readAcceptedMetrologyReferenceUpload(env.DB, accepted.actor_email, accepted.client_request_id);
+  if (!finalized || finalized.id !== accepted.id || finalized.operation_id !== accepted.operation_id) throw new MetrologyReferenceUploadUnavailableError();
+  const state = await acceptedMetrologyReferenceUploadState(env, finalized);
+  return { state, fresh: state.status === "ready" && state.result.reference.id === accepted.candidate_reference_id };
+}
+
 export async function acceptAndUploadMetrologyReference(env: Env, upload: {
   requestId: string; actorEmail: string; templateId: string; originalName: string; mimeType: string; bytes: ArrayBuffer;
 }): Promise<{ state: MetrologyReferenceUploadRequestState; fresh: boolean }> {
@@ -152,10 +232,12 @@ export async function acceptAndUploadMetrologyReference(env: Env, upload: {
   };
   const existing = await readAcceptedMetrologyReferenceUpload(env.DB, upload.actorEmail, upload.requestId);
   if (existing) { compare(existing); return { state: await acceptedMetrologyReferenceUploadState(env, existing), fresh: false }; }
-  const plan = await publicationPlan(env.DB, upload.templateId, canonical.input.file.sha256, upload.bytes.byteLength);
+  const active = await readFileAuthorityMode(env.DB).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); }) === "active";
+  const activeProfile = active ? await ensureR2BootstrapProfile(primaryD1(env.DB), env, new Date().toISOString()) : undefined;
+  const plan = await publicationPlan(env.DB, upload.templateId, canonical.input.file.sha256, upload.bytes.byteLength, activeProfile?.id);
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.parse(now) + R2_UPLOAD_RECEIPT_LIFETIME_MS).toISOString();
-  const profile = await ensureR2BootstrapProfile(primaryD1(env.DB), env, now);
+  const profile = activeProfile ?? await ensureR2BootstrapProfile(primaryD1(env.DB), env, now);
   const id = crypto.randomUUID(); const operationId = crypto.randomUUID(); const assetId = crypto.randomUUID(); const referenceId = crypto.randomUUID();
   const objectKey = `metrology/${assetId}-${safeAttachmentObjectName(upload.originalName)}`;
   try {
@@ -176,6 +258,7 @@ export async function acceptAndUploadMetrologyReference(env: Env, upload: {
     || accepted.publication_plan_json !== stableJson(plan)) throw new MetrologyReferenceUploadUnavailableError();
   if (accepted.expires_at <= new Date().toISOString()) return { state: { ...identity(accepted), status: "expired" }, fresh: false };
   await assertR2BootstrapProfile(primaryD1(env.DB), env, accepted.storage_profile_id, accepted.storage_profile_revision);
+  if (active) return uploadActiveReference(env, accepted, upload);
   let registration;
   try { registration = await ingestR2Attachment(env, { originalName: upload.originalName, mimeType: upload.mimeType,
     actorEmail: upload.actorEmail, bytes: upload.bytes, registrationId: accepted.candidate_asset_id, objectKey: () => accepted.candidate_object_key }); }

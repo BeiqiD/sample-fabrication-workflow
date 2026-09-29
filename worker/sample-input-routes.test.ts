@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import worker from "./index";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
+import { futureActiveRuntimeDatabase } from "./files/authority-runtime-test-support";
 
 const executionContext = {
   waitUntil: () => undefined,
@@ -54,6 +55,20 @@ describe.each(["POST", "PATCH"] as const)("Sample %s JSON boundary", (method) =>
 });
 
 describe("Sample field validation", () => {
+  it("keeps valid writes paused after recovery without mutating the shared environment binding", async () => {
+    const database = futureActiveRuntimeDatabase();
+    const adapter = new SqliteD1Database(database);
+    const env = { AUTH_MODE: "disabled", DB: adapter as unknown as D1Database, ASSETS: {} as R2Bucket } satisfies Env;
+    try {
+      database.exec("UPDATE file_authority_runtime_guard SET enabled=0");
+      const count = database.prepare("SELECT count(*) n FROM samples").get()!.n;
+      const response = await request(env, "POST", JSON.stringify({ code: "PAUSED", title: "Paused recovery" }));
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({ error: "File execution is paused on this installation. An operator must enable it after recovery." });
+      expect(database.prepare("SELECT count(*) n FROM samples").get()!.n).toBe(count);
+      expect(env.DB).toBe(adapter);
+    } finally { database.close(); }
+  });
   it.each([
     ["code", 123],
     ["title", {}],

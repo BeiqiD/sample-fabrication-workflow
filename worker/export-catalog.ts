@@ -140,4 +140,6 @@ export const FULL_EXPORT_V17_TABLE_QUERIES = {
   ...Object.fromEntries(Object.entries(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)
     .map(([name, columns]) => [name, `SELECT ${columns.join(", ")} FROM ${name} ORDER BY ${columns[0]}`])),
 } as const;
-export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V17_TABLE_QUERIES;
+// V18 changes native guards and publication semantics without adding canonical tables.
+export const FULL_EXPORT_V18_TABLE_QUERIES = { ...FULL_EXPORT_V17_TABLE_QUERIES } as const;
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V18_TABLE_QUERIES;

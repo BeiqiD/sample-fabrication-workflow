@@ -1,3 +1,4 @@
+import { fileAuthorityActiveSql, prepareFileRestoration } from "../files/business-lifecycle";
 import type {
   CreateAttachmentProjectItemInput,
   CreateMarkdownProjectItemInput,
@@ -30,6 +31,7 @@ import {
   PROJECT_SCHEMA_VERSION,
 } from "../../shared/project-types";
 import type { BlobLocator } from "../blob-lifecycle/types";
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { referenceResolutionIsEligible } from "../references/eligibility";
 import {
   referenceRegistrationStatements,
@@ -896,16 +898,16 @@ async function readAttachmentBlobRecord(
       SELECT a.id, a.original_name, a.mime_type, a.byte_size
       FROM assets a
       WHERE a.id = ? AND a.status = 'ready'
-        AND NOT EXISTS (
+        AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
           SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-        )
-        AND NOT EXISTS (
+        ))
+        AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
             AND biq.object_key = a.r2_key
-        )
+        ))
         AND (
           a.import_id IS NULL
           OR EXISTS (
@@ -923,16 +925,16 @@ async function readAttachmentBlobRecord(
     SELECT mso.id, mso.original_name, mso.mime_type, mso.byte_size
     FROM managed_storage_objects mso
     WHERE mso.id = ? AND mso.status IN ('ready', 'orphaned')
-      AND NOT EXISTS (
+      AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
         SELECT 1 FROM blob_gc_ledger bg
         WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
           AND bg.object_key = mso.object_key AND bg.state IN ('deleting', 'deleted')
-      )
-      AND NOT EXISTS (
+      ))
+      AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
         SELECT 1 FROM blob_integrity_quarantine biq
         WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
           AND biq.object_key = mso.object_key
-      )
+      ))
     LIMIT 1
   `).bind(input.locator.storageObjectId).first<BlobRecordRow>();
   if (!row) throw new ProjectServiceError("blob_unavailable", "The selected managed file is unavailable");
@@ -1002,8 +1004,11 @@ export async function createAttachmentProjectItem(
   const storageObjectId = "storageObjectId" in input.locator
     ? input.locator.storageObjectId
     : null;
+  const binding = { assetId: assetId ?? undefined, storageObjectId: storageObjectId ?? undefined, purpose: "research_source" as const };
+  const fileId = await resolveConsumerFileId(db, binding);
 
   const statements = [
+    ...(fileId ? [consumerFileBindingFence(db, binding, fileId)] : []),
     reserveProjectSequenceStatement(
       db,
       projectId,
@@ -1033,8 +1038,8 @@ export async function createAttachmentProjectItem(
       INSERT INTO project_content_attachments (
         project_content_id, asset_id, storage_object_id,
         original_name, mime_type, byte_size,
-        created_by, created_at, creation_operation_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_by, created_at, creation_operation_id${fileId ? ', file_id' : ''}
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${fileId ? ', ?' : ''})
     `).bind(
       input.contentId,
       assetId,
@@ -1045,6 +1050,7 @@ export async function createAttachmentProjectItem(
       actor,
       now,
       input.operationId,
+      ...(fileId ? [fileId] : []),
     ),
     db.prepare(`
       INSERT INTO project_items (
@@ -1088,7 +1094,7 @@ export async function createAttachmentProjectItem(
   ];
 
   try {
-    const changes = await batchMutationChanges(db, statements);
+    const changes = (await batchMutationChanges(db, statements)).slice(fileId ? 1 : 0);
     if (
       changes[0] !== 1
       || changes[1] !== 1
@@ -1474,7 +1480,9 @@ export async function restoreProjectItem(
     input.operationId,
   ));
 
-  const results = await db.batch(statements);
+  const fences = current.content?.content_type === "attachment"
+    ? await prepareFileRestoration(db, "project_attachment", [current.content.id]) : [];
+  const results = (await db.batch([...fences, ...statements])).slice(fences.length);
   if (!resultChanges(results.at(-1))) conflict("Item or content revision conflict");
   if (current.content && !resultChanges(results[0])) {
     throw new Error("Owned content restore did not accompany item restore");

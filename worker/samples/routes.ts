@@ -1,3 +1,5 @@
+import { fileAuthorityActiveSql, deletedEventAssetSql, deletedVerificationAssetSql, deletedEventMetadataSql } from "../files/business-lifecycle";
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type CreateRecordInput, type DeleteSampleInput, type SampleDirectorySort, type SampleStatus, type SplitSampleInput } from "../../shared/types";
@@ -1038,21 +1040,30 @@ routes.post("/samples/:id/records", async (c) => {
              WHERE i.id = a.import_id AND i.status = 'ready'
            )
          )
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )
-         AND NOT EXISTS (
+         ))
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_integrity_quarantine biq
            WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
              AND biq.object_key = a.r2_key
-         )`,
+         ))`,
     ).bind(...assetKeys).all<{ r2_key: string }>();
     if (new Set(result.results.map((row) => row.r2_key)).size !== new Set(assetKeys).size) {
       throw new HTTPException(400, { message: "One or more uploaded assets are unavailable" });
     }
   }
+
+  const primaryInput = assetKey ? { assetKey, purpose: "embedded_content" as const } : null;
+  const fileId = primaryInput ? await resolveConsumerFileId(c.env.DB, primaryInput) : null;
+  const previewInput = thumbnailKey ? { assetKey: thumbnailKey, purpose: "derived_preview" as const, sourceFileId: fileId } : null;
+  const previewFileId = previewInput ? await resolveConsumerFileId(c.env.DB, previewInput) : null;
+  const fences = [
+    ...(primaryInput ? [consumerFileBindingFence(c.env.DB, primaryInput, fileId)] : []),
+    ...(previewInput ? [consumerFileBindingFence(c.env.DB, previewInput, previewFileId)] : []),
+  ];
 
   const current = await c.env.DB.prepare(
     "SELECT status, location, pinned, updated_at FROM samples WHERE id = ? AND deleted_at IS NULL",
@@ -1073,14 +1084,14 @@ routes.post("/samples/:id/records", async (c) => {
      WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
   ).bind(input.status, location, input.pinned ? 1 : 0, userEmail, mutationId, now, sampleId, input.expectedUpdatedAt)];
   if (body || assetKey) statements.push(c.env.DB.prepare(
-    `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-     SELECT ?, id, ?, ?, ?, ?, ?, ? FROM samples
+    `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, thumbnail_file_id, metadata_json, actor_email, created_at)
+     SELECT ?, id, ?, ?, ?, ?, ?, ?, ?, ? FROM samples
      WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL`,
   ).bind(
-    crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey,
+    crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey, fileId, previewFileId,
     JSON.stringify({ action: "sample_record", ...(thumbnailKey ? { thumbnailKey } : {}) }), userEmail, now, sampleId, mutationId,
   ));
-  const results = await c.env.DB.batch(statements);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This sample changed elsewhere. Review the current state and save again." });
   if (statements.length > 1 && !results[1].meta.changes) throw new Error("Atomic record event was not created");
   return c.json({ ok: true, updatedAt: now }, 201);
@@ -1110,7 +1121,7 @@ routes.delete("/samples/:id/records/:eventId", async (c) => {
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
       `UPDATE events
-       SET asset_key = NULL, metadata_json = ?
+       SET asset_key = ${await deletedEventAssetSql(c.env.DB)}, metadata_json = ${await deletedEventMetadataSql(c.env.DB)}
        WHERE id = ? AND sample_id = ?
          AND json_extract(metadata_json, '$.deletedAt') IS NULL
          AND EXISTS (
@@ -1176,6 +1187,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
   let metadata: Record<string, unknown> = {};
   try { metadata = JSON.parse(event.metadata_json || "{}") as Record<string, unknown>; }
   catch { throw new HTTPException(409, { message: "This image attachment cannot be safely deleted" }); }
+  if (metadata.assetDeletedAt || metadata.deletedAt) throw new HTTPException(409, { message: "This image attachment was already deleted" });
 
   const sourceAction = typeof metadata.action === "string" ? metadata.action : null;
   const operationGroupId = typeof metadata.operationGroupId === "string" ? metadata.operationGroupId : null;
@@ -1302,7 +1314,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
            )
        )
        UPDATE events
-       SET asset_key = NULL,
+       SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
            metadata_json = json_set(
              metadata_json,
              '$.assetDeletedAt', ?,
@@ -1367,7 +1379,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
     ).bind(userEmail, now, operationGroupId, deletionOperationId));
   } else if (verificationId && event.kind === "verification") {
     statements.push(c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL,
+      `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
          metadata_json = json_set(
            metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
            '$.assetDeletionOperationId', ?
@@ -1391,7 +1403,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
       verificationId, sampleId, event.asset_key,
     ));
     statements.push(c.env.DB.prepare(
-      `UPDATE state_verifications SET evidence_asset_id = NULL
+      `UPDATE state_verifications SET evidence_asset_id = ${await deletedVerificationAssetSql(c.env.DB)}
        WHERE id = ? AND sample_id = ?
          AND evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)
          AND EXISTS (
@@ -1430,7 +1442,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
            AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND r.deleted_at IS NULL AND s.deleted_at IS NULL
        )
-       UPDATE events SET asset_key = NULL,
+       UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
          metadata_json = json_set(
            metadata_json, '$.runStepAssetId', ?,
            '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
@@ -1478,7 +1490,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
   } else if (isSampleRecordEvent(event.kind, metadata)) {
     const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
     statements.push(c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL, metadata_json = ?
+      `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)}, metadata_json = ${await deletedEventMetadataSql(c.env.DB)}
        WHERE id = ? AND sample_id = ? AND asset_key = ?
          AND EXISTS (
            SELECT 1 FROM samples s

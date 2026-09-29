@@ -15,6 +15,10 @@ import { verifyUploadBody } from "../files/legacy-byte-writer";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
 import { managedByteReader } from "../files/storage-adapters/managed-reader";
+import { readFileAuthorityMode } from "../files/authority-reader";
+import { verifyAcceptedResultFile } from "../files/accepted-result-reader";
+import { stageAuthorityCandidate } from "../files/authority-candidates";
+import { writeAuthorityCandidate } from "../files/authority-publication";
 import type { Env } from "../types";
 
 type C = Context<{ Bindings: Env; Variables: { userEmail: string } }>;
@@ -71,10 +75,38 @@ async function itemStillEligible(db: D1Database, row: CommentItemAcceptanceRow, 
     .bind(row.item_id, row.submission_id, row.expected_sha256, result.blobRecordId, result.objectKey, row.expected_sha256, row.expected_byte_size,
       result.storeKind, result.provider, result.objectKey, result.storeKind, result.provider, result.objectKey).first());
 }
-async function verifiedItem(env: Env, row: CommentItemAcceptanceRow): Promise<boolean> {
+const activeItemAvailableSql = `ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
+  AND ((json_extract(ia.accepted_result_json,'$.storeKind')='r2' AND csi.asset_id=json_extract(ia.accepted_result_json,'$.blobRecordId'))
+    OR (json_extract(ia.accepted_result_json,'$.storeKind')='managed' AND csi.storage_object_id=json_extract(ia.accepted_result_json,'$.blobRecordId')))
+  AND EXISTS (SELECT 1 FROM file_usable_publications f WHERE f.file_id=csi.file_id AND f.purpose=ia.purpose
+    AND f.access_scope='system' AND f.verified_byte_size=ia.expected_byte_size AND f.verified_sha256=ia.expected_sha256)
+  AND NOT EXISTS (SELECT 1 FROM file_acceptance_candidates candidate
+    WHERE candidate.acceptance_kind='comment_item' AND candidate.acceptance_id=ia.item_id AND candidate.item_id=''
+      AND (candidate.state<>'ready' OR candidate.result_file_id IS NOT csi.file_id))`;
+
+async function activeItemFileId(db: D1Database, row: CommentItemAcceptanceRow): Promise<string | null> {
+  const source = await db.prepare(`SELECT csi.file_id FROM comment_submission_items csi
+    JOIN comment_submissions cs ON cs.id=csi.submission_id
+    JOIN comment_item_acceptances ia ON ia.item_id=csi.id
+    WHERE csi.id=? AND csi.submission_id=? AND ia.actor_email=? AND ia.accepted_result_json=?
+      AND csi.status='ready' AND csi.deleted_at IS NULL AND cs.status<>'cancelled' AND cs.deleted_at IS NULL
+      AND ${visibleCommentTargetsSql("cs")} AND ${activeItemAvailableSql}`)
+    .bind(row.item_id,row.submission_id,row.actor_email,row.accepted_result_json).first<{ file_id: string }>();
+  return source?.file_id ?? null;
+}
+
+async function verifiedItem(env: Env, row: CommentItemAcceptanceRow, active: boolean): Promise<boolean> {
   let result: CommentAcceptedItemResult;
   try { result = validateCommentAcceptedItemResult(JSON.parse(row.accepted_result_json ?? "null")); } catch { failClosed(); }
   const db = primaryD1(env.DB);
+  if (active) {
+    try {
+      return await verifyAcceptedResultFile(env, {
+        purpose: row.purpose, expectedBytes: { sha256: row.expected_sha256, byteSize: row.expected_byte_size },
+        resolveFileId: () => activeItemFileId(db, row),
+      });
+    } catch { failClosed(); }
+  }
   if (!await itemStillEligible(db, row, result)) return false;
   const check = () => result.storeKind === "r2" ? assertR2BootstrapProfile(db, env, row.storage_profile_id, row.storage_profile_revision)
     : assertManagedBootstrapProfile(db, env, row.storage_profile_id, row.storage_profile_revision);
@@ -94,6 +126,7 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
   const db = primaryD1(env.DB); const { parent, canonical } = await rows(db, id); requireAuthor(actor, canonical);
   if (!parent) return { submissionId: id, inputSha256: null, expiresAt: null, status: canonical!.status === "cancelled" ? "cancelled" : "legacy", input: null, items: [] };
   if (parent.actor_email !== actor) throw new HTTPException(404, { message: "Comment submission not found" });
+  const active = await readFileAuthorityMode(db).catch(() => failClosed()) === "active";
   const input = inputFor(parent);
   const state: CommentAcceptanceState = { submissionId: id, inputSha256: parent.request_sha256, expiresAt: parent.expires_at,
     status: parent.status === "cancelled" || canonical!.status === "cancelled" ? "cancelled" : parent.status !== "ready" && parent.expires_at <= new Date().toISOString() ? "expired"
@@ -110,7 +143,9 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
         : accepted.status === "cancelled" ? "cancelled" : accepted.status === "ready" ? "ready" : accepted.execution_token ? "uploading" : "pending";
     if (status === "ready" && item.kind !== "link" && !["expired", "unavailable", "cancelled"].includes(state.status)) {
       if (state.status === "ready" || verification.allPending || verification.itemId === item.id) {
-        if (!await verifiedItem(env, accepted!)) status = "unavailable";
+        if (!await verifiedItem(env, accepted!, active)) status = "unavailable";
+      } else if (active) {
+        if (!await activeItemFileId(db, accepted!)) status = "unavailable";
       } else {
         const result = validateCommentAcceptedItemResult(JSON.parse(accepted!.accepted_result_json ?? "null"));
         try {
@@ -128,6 +163,7 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
     db.prepare(`SELECT cs.status,cs.deleted_at,ca.status AS acceptance_status,ca.expires_at,${visibleCommentTargetsSql("cs")} AS visible
       FROM comment_submissions cs JOIN comment_submission_acceptances ca ON ca.submission_id=cs.id WHERE cs.id=?`).bind(id),
     db.prepare(`SELECT csi.id,csi.status,csi.deleted_at,ia.execution_token,CASE WHEN csi.kind='link' THEN 1
+      ${active ? `WHEN ${activeItemAvailableSql} THEN 1 WHEN 1=1 THEN 0` : ""}
       WHEN ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
         AND ((csi.kind='comment_image' AND EXISTS(SELECT 1 FROM assets a LEFT JOIN imports i ON i.id=a.import_id
           WHERE a.id=csi.asset_id AND a.id=json_extract(ia.accepted_result_json,'$.blobRecordId') AND a.r2_key=json_extract(ia.accepted_result_json,'$.objectKey')
@@ -256,6 +292,60 @@ async function acceptedOwner(c: C) {
   if (saved.parent.actor_email !== c.get("userEmail")) throw new HTTPException(404,{message:"Comment submission not found"});
   return { db, row:saved.parent, canonical:saved.canonical!, input:inputFor(saved.parent) };
 }
+
+async function publishActiveCommentItem(c: C, parent: CommentSubmissionAcceptanceRow, accepted: CommentItemAcceptanceRow,
+  item: { kind: "comment_image" | "attachment"; filename: string; mimeType: string; byteSize: number; sha256?: string },
+  body: ArrayBuffer | ReadableStream<Uint8Array>) {
+  const db = primaryD1(c.env.DB);
+  const owner = { kind: "comment_item" as const, acceptanceId: accepted.item_id, actorEmail: accepted.actor_email,
+    operationId: parent.operation_id, executionToken: accepted.execution_token! };
+  const candidate = await stageAuthorityCandidate(db, owner);
+  const publication = await writeAuthorityCandidate(c.env, owner, candidate, { body, contentType: item.mimeType, filename: item.filename });
+  const r2 = item.kind === "comment_image", table = r2 ? "assets" : "managed_storage_objects";
+  const keyColumn = r2 ? "r2_key" : "object_key", bindingColumn = r2 ? "asset_id" : "storage_object_id";
+  const provider = r2 ? "r2" : "switchdrive", storeKind = r2 ? "r2" : "managed";
+  const exactBlob = `blob.${keyColumn}=? AND blob.status='ready' AND blob.sha256=? AND blob.byte_size=?
+    ${r2 ? "AND (blob.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=blob.import_id AND i.status='ready'))" : "AND blob.provider='switchdrive'"}`;
+  const blobBindings = [publication.result.objectKey, accepted.expected_sha256, accepted.expected_byte_size];
+  const now = new Date().toISOString();
+  const statements = [
+    ...publication.statements,
+    db.prepare(`INSERT INTO ${table}(id,${r2 ? "" : "provider,"}${keyColumn},original_name,mime_type,byte_size,status,sha256,actor_email,created_at)
+      SELECT ?,${r2 ? "" : "'switchdrive',"}?,?,?,?,'ready',?,?,?
+      WHERE NOT EXISTS(SELECT 1 FROM ${table} WHERE ${keyColumn}=? ${r2 ? "" : "AND provider='switchdrive'"})`)
+      .bind(accepted.candidate_blob_id, publication.result.objectKey, item.filename, item.mimeType, item.byteSize,
+        accepted.expected_sha256, accepted.actor_email, now, publication.result.objectKey),
+    // The actual alias is selected inside the publication batch. A concurrent
+    // compatible registration cannot change the File or create a stale receipt.
+    db.prepare(`UPDATE comment_submission_items SET ${bindingColumn}=(SELECT blob.id FROM ${table} blob WHERE ${exactBlob}),
+      sha256=?,error_message=NULL,updated_at=?
+      WHERE id=? AND submission_id=? AND status<>'cancelled' AND deleted_at IS NULL
+        AND EXISTS(SELECT 1 FROM comment_item_acceptances ia JOIN comment_submission_acceptances ca ON ca.submission_id=ia.submission_id
+          JOIN comment_submissions cs ON cs.id=ca.submission_id WHERE ia.item_id=? AND ia.execution_token=? AND ia.status='pending'
+          AND ca.status='pending' AND ca.expires_at>? AND cs.status NOT IN('ready','cancelled') AND cs.retry_closed_at IS NULL
+          AND cs.deleted_at IS NULL AND ${visibleCommentTargetsSql("cs")})`)
+      .bind(...blobBindings, accepted.expected_sha256, now, accepted.item_id, accepted.submission_id,
+        accepted.item_id, accepted.execution_token, now),
+    assertSql(db, "changes()=1"),
+    // Fill the typed binding after its compatibility locator: existing native
+    // guards freeze the locator as soon as a File is bound. Both writes remain
+    // invisible until the same publication batch commits.
+    db.prepare("UPDATE comment_submission_items SET status='ready',file_id=? WHERE id=? AND submission_id=? AND status='uploading' AND file_id IS NULL")
+      .bind(publication.result.fileId, accepted.item_id, accepted.submission_id),
+    assertSql(db, "changes()=1"),
+    db.prepare(`UPDATE comment_item_acceptances SET status='ready',accepted_result_json=(
+      SELECT json_object('storeKind',?,'provider',?,'blobRecordId',blob.id,'objectKey',blob.${keyColumn},
+        'sha256',blob.sha256,'byteSize',blob.byte_size,'deduplicated',json(CASE WHEN blob.id<>? OR ? THEN 'true' ELSE 'false' END))
+      FROM ${table} blob JOIN comment_submission_items csi ON csi.${bindingColumn}=blob.id
+      WHERE csi.id=? AND csi.file_id=? AND ${exactBlob}) WHERE item_id=? AND execution_token=? AND status='pending'`)
+      .bind(storeKind, provider, accepted.candidate_blob_id, publication.result.fileId !== candidate.fileId ? 1 : 0,
+        accepted.item_id, publication.result.fileId, ...blobBindings, accepted.item_id, accepted.execution_token),
+    assertSql(db, "changes()=1 AND EXISTS(SELECT 1 FROM comment_item_acceptances WHERE item_id=? AND execution_token=? AND status='ready')",
+      [accepted.item_id, accepted.execution_token]),
+  ];
+  try { await db.batch(statements); } catch { /* Read the original receipt after any failed or lost acknowledgement; never repeat its PUT. */ }
+}
+
 export async function uploadAcceptedCommentItem(c: C) {
   c.header("Cache-Control","no-store"); const id=c.req.param("submissionId")!; const itemId=c.req.param("itemId")!;
   if (!validSubmissionId(id) || !validSubmissionId(itemId)) throw new HTTPException(400,{message:"Invalid upload identifier"});
@@ -294,6 +384,21 @@ export async function uploadAcceptedCommentItem(c: C) {
     if(!buffer) await verifyUploadBody(c.req.raw.body! as ReadableStream<Uint8Array>,{sha256:item.sha256!,byteSize:item.byteSize});
     const request=await getCommentAcceptanceState(c.env,c.get("userEmail"),id);
     return c.json({ok:false,request},request.status==="pending"?202:409);
+  }
+  if (await readFileAuthorityMode(db).catch(() => failClosed()) === "active") {
+    try { await publishActiveCommentItem(c, row, accepted, item, buffer ?? c.req.raw.body! as ReadableStream<Uint8Array>); }
+    catch (error) {
+      if (error instanceof ByteVerificationError && error.phase === "source" && ["hash_mismatch", "size_mismatch"].includes(error.reason)) {
+        throw new HTTPException(400, { message: "The file differs from the accepted Comment draft" });
+      }
+      failClosed();
+    }
+    const request = await getCommentAcceptanceState(c.env, c.get("userEmail"), id, { itemId });
+    const ready = request.items.find((entry) => entry.id === itemId)?.status === "ready";
+    const receipt = await getItem();
+    const deduplicated = receipt?.status === "ready"
+      ? validateCommentAcceptedItemResult(JSON.parse(receipt.accepted_result_json!)).deduplicated : false;
+    return c.json({ ok: ready, deduplicated, request }, ready ? 200 : request.status === "pending" ? 202 : 409);
   }
   let result:CommentAcceptedItemResult;
   try {

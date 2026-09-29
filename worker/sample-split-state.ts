@@ -2,6 +2,8 @@ import { HTTPException } from "hono/http-exception";
 import { hashStateRepresentation, stableJson, STATE_HASH_SCHEME } from "../shared/content-addressing";
 import { CURRENT_SAMPLE_STRUCTURE_SQL } from "./sample-structure-query";
 import { publishedAssetSql } from "./template-publication";
+import { consumerFileBindingFence, resolveConsumerFileId } from "./files/consumer-binding";
+import { readFileAuthorityMode } from "./files/authority-reader";
 
 export type SplitExecutionAsset = {
   occurrenceId: string;
@@ -26,6 +28,7 @@ export async function prepareSplitInheritedState(
   now: string,
 ) {
   const execution = structure.executionAssets;
+  const active = await readFileAuthorityMode(db) === "active";
   if (execution.some((asset) => !/^[a-f0-9]{64}$/i.test(asset.sha256))) {
     throw new HTTPException(409, { message: "The current structure images need verified identities before splitting." });
   }
@@ -36,6 +39,8 @@ export async function prepareSplitInheritedState(
   const sourceGuard = `
     EXISTS (SELECT 1 FROM samples parent
       WHERE parent.id = ? AND parent.updated_at = ? AND parent.deleted_at IS NULL)
+    AND EXISTS (SELECT 1 FROM file_authority_control
+      WHERE singleton = 1 AND mode ${active ? "= 'active'" : "IN ('legacy', 'overlap')"})
     AND COALESCE((SELECT json_array(step_id, state_hash)
       FROM (${CURRENT_SAMPLE_STRUCTURE_SQL})), '[]') = ?
     AND (SELECT json_group_array(json_array(occurrence_id, asset_id, sha256, r2_key, position))
@@ -50,11 +55,13 @@ export async function prepareSplitInheritedState(
       WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
         AND a.status = 'ready' AND (
           NOT (${publishedAssetSql("a")})
-          OR EXISTS (SELECT 1 FROM blob_gc_ledger bg
+          OR ${active ? `NOT EXISTS (SELECT 1 FROM file_usable_publications fp
+            WHERE fp.file_id = rsa.file_id AND fp.purpose = 'embedded_content'
+              AND fp.access_scope = 'system')` : `EXISTS (SELECT 1 FROM blob_gc_ledger bg
             WHERE bg.store_kind = 'r2' AND bg.provider = 'r2' AND bg.object_key = a.r2_key
               AND bg.state IN ('deleting', 'deleted'))
           OR EXISTS (SELECT 1 FROM blob_integrity_quarantine biq
-            WHERE biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key)
+            WHERE biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key)`}
         )
     )`;
   const sourceBindings = [
@@ -63,10 +70,18 @@ export async function prepareSplitInheritedState(
       asset.occurrenceId, asset.assetId, asset.sha256, asset.r2_key, asset.position,
     ])), structure.stepId,
   ];
-  if (!execution.length) return {
-    stateHash: structure.stateHash, statements: [] as D1PreparedStatement[],
-    guardSql: sourceGuard, guardBindings: sourceBindings,
-  };
+  if (!execution.length) {
+    const inheritedStateGuard = active ? ` AND NOT EXISTS (
+      SELECT 1 FROM state_representation_assets sra WHERE sra.state_hash = ?
+        AND NOT EXISTS (SELECT 1 FROM file_usable_publications fp
+          WHERE fp.file_id = sra.file_id AND fp.purpose = 'embedded_content'
+            AND fp.access_scope = 'system'))` : "";
+    return {
+      stateHash: structure.stateHash, statements: [] as D1PreparedStatement[],
+      guardSql: sourceGuard + inheritedStateGuard,
+      guardBindings: active ? [...sourceBindings, structure.stateHash] : sourceBindings,
+    };
+  }
 
   // Use the existing persistent diagram scheme; execution-assets:* is only a
   // comparison token and is never a valid inherited-state foreign key.
@@ -80,11 +95,13 @@ export async function prepareSplitInheritedState(
     AND (SELECT json_group_array(sha256) FROM (
       SELECT a.sha256 FROM state_representation_assets sra JOIN assets a ON a.id = sra.asset_id
       WHERE sra.state_hash = ? AND a.status = 'ready' AND ${publishedAssetSql("a")}
-        AND NOT EXISTS (SELECT 1 FROM blob_gc_ledger bg
+        AND ${active ? `EXISTS (SELECT 1 FROM file_usable_publications fp
+          WHERE fp.file_id = sra.file_id AND fp.purpose = 'embedded_content'
+            AND fp.access_scope = 'system')` : `NOT EXISTS (SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2' AND bg.object_key = a.r2_key
             AND bg.state IN ('deleting', 'deleted'))
         AND NOT EXISTS (SELECT 1 FROM blob_integrity_quarantine biq
-          WHERE biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key)
+          WHERE biq.store_kind = 'r2' AND biq.provider = 'r2' AND biq.object_key = a.r2_key)`}
       ORDER BY sra.position, a.id
     )) = ?`;
   const representationBindings = [...canonicalBindings, state.hash, execution.length, state.hash,
@@ -94,7 +111,22 @@ export async function prepareSplitInheritedState(
   if (existing && !existing.valid) {
     throw new HTTPException(409, { message: "The recorded structure is inconsistent. Resolve it before splitting." });
   }
+  const files = await Promise.all(execution.map(async (asset) => {
+    if (!active) return resolveConsumerFileId(db, { assetId: asset.assetId, purpose: "embedded_content" });
+    const sourceFile = await db.prepare(`SELECT rsa.file_id FROM run_step_assets rsa
+      JOIN file_usable_publications fp ON fp.file_id = rsa.file_id
+      WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.asset_id = ?
+        AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
+        AND fp.purpose = 'embedded_content' AND fp.access_scope = 'system'`)
+      .bind(asset.occurrenceId, structure.stepId, asset.assetId).first<{ file_id: string }>();
+    if (!sourceFile) throw new HTTPException(409, { message: "The current structure images are unavailable." });
+    return sourceFile.file_id;
+  }));
   const statements = [
+    // Active sourceGuard checks every exact occurrence and its fill-once File
+    // in each write. Legacy uploads still use the compatibility binding fence.
+    ...(active ? [] : execution.map((asset, index) => consumerFileBindingFence(db,
+      { assetId: asset.assetId, purpose: "embedded_content" }, files[index]))),
     db.prepare(`INSERT OR IGNORE INTO state_representations
       (hash, hash_scheme, representation_type, content_json, created_at)
       SELECT ?, ?, 'diagram', ?, ? WHERE ${sourceGuard}`)
@@ -103,11 +135,11 @@ export async function prepareSplitInheritedState(
     // identifies a state created by the preceding INSERT, so a raced existing
     // empty representation cannot be silently repaired by this split.
     // One INSERT owns the whole ordered mapping, including all image positions.
-    db.prepare(`INSERT INTO state_representation_assets (state_hash, asset_id, position)
-      SELECT ?, value, CAST(key AS INTEGER) FROM json_each(?)
+    db.prepare(`INSERT INTO state_representation_assets (state_hash, asset_id, position, file_id)
+      SELECT ?, json_extract(value, '$.assetId'), CAST(key AS INTEGER), json_extract(value, '$.fileId') FROM json_each(?)
       WHERE changes() = 1 AND ${sourceGuard} AND ${canonicalGuard}
         AND NOT EXISTS (SELECT 1 FROM state_representation_assets WHERE state_hash = ?)`)
-      .bind(state.hash, JSON.stringify(execution.map((asset) => asset.assetId)),
+      .bind(state.hash, JSON.stringify(execution.map((asset, index) => ({ assetId: asset.assetId, fileId: files[index] }))),
         ...sourceBindings, ...canonicalBindings, state.hash),
   ];
   return {

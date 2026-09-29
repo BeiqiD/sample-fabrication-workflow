@@ -1,3 +1,5 @@
+import { fileAuthorityActiveSql, deletedEventAssetSql, prepareFileRestoration } from "../files/business-lifecycle";
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { CreateRunStepCommentsInput } from "../../shared/types";
@@ -36,17 +38,19 @@ routes.post("/run-step-comments", async (c) => {
   ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>(),
   assetKey ? c.env.DB.prepare(
     `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-       AND NOT EXISTS (
+       AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
          SELECT 1 FROM blob_gc_ledger bg
          WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
            AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       )`,
+       ))`,
   ).bind(assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null)]);
   if (matched.results.length !== input.targets.length) {
     throw new HTTPException(404, { message: "One or more sample steps were not found" });
   }
   if (assetKey && !commentAsset) throw new HTTPException(400, { message: "The uploaded comment image is unavailable" });
 
+  const fileInput = commentAsset ? { assetId: commentAsset.id, purpose: "embedded_content" as const } : null;
+  const fileId = fileInput ? await resolveConsumerFileId(c.env.DB, fileInput) : null;
   const operationGroupId = crypto.randomUUID();
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
@@ -80,8 +84,8 @@ routes.post("/run-step-comments", async (c) => {
        WHERE rs.updated_at = q.expected_updated_at
      )
      INSERT INTO run_step_comments
-       (id, run_step_id, scope, operation_group_id, legacy_body, asset_id, actor_email, created_at)
-     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?
+       (id, run_step_id, scope, operation_group_id, legacy_body, asset_id, file_id, actor_email, created_at)
+     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?, ?
      FROM valid
      WHERE (SELECT COUNT(*) FROM valid) = ?
      RETURNING id`,
@@ -91,6 +95,7 @@ routes.post("/run-step-comments", async (c) => {
     operationGroupId,
     body,
     commentAsset?.id ?? null,
+    fileId,
     userEmail,
     now,
     occurrenceTargets.length,
@@ -121,8 +126,8 @@ routes.post("/run-step-comments", async (c) => {
     const sampleOccurrenceIds = sampleTargets.map((target) => target.occurrenceId);
     const sampleOccurrencePlaceholders = sampleOccurrenceIds.map(() => "?").join(", ");
     statements.push(c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-       SELECT ?, ?, 'step', ?, ?, ?, ?, ?
+      `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, metadata_json, actor_email, created_at)
+       SELECT ?, ?, 'step', ?, ?, ?, ?, ?, ?
        WHERE (
          SELECT COUNT(*) FROM run_step_comments rsc
          WHERE rsc.id IN (${sampleOccurrencePlaceholders})
@@ -133,6 +138,7 @@ routes.post("/run-step-comments", async (c) => {
       crypto.randomUUID(), sampleId,
       input.scope === "common" ? `Common step comment: ${body || "Image attached"}` : `Step comment: ${body || "Image attached"}`,
       commentAsset?.r2_key ?? null,
+      fileId,
       JSON.stringify({ action: "step_comment", scope: input.scope, operationGroupId, stepIds }),
       userEmail, now,
       ...sampleOccurrenceIds,
@@ -157,7 +163,8 @@ routes.post("/run-step-comments", async (c) => {
       sampleOccurrenceIds.length,
     ));
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = fileInput ? [consumerFileBindingFence(c.env.DB, fileInput, fileId)] : [];
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   // D1 changes includes rows changed by triggers. RETURNING identifies only the
   // occurrences inserted by this statement, so require this exact generated set.
   const insertedRows = results[0]?.results;
@@ -312,7 +319,7 @@ routes.delete("/run-step-comments/:id/asset", async (c) => {
     ),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
-    `UPDATE events SET asset_key = NULL,
+    `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
        metadata_json = json_set(metadata_json,
          '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
          '$.assetDeletionOperationId', ?)
@@ -562,7 +569,8 @@ routes.post("/run-step-comments/:id/asset/restore", async (c) => {
          ) = ?`,
     ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = await prepareFileRestoration(c.env.DB, "legacy_comment_asset", targetIds);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment attachment changed while it was being restored" });
   }
@@ -706,7 +714,7 @@ routes.delete("/run-step-comments/:id", async (c) => {
     ),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
-    `UPDATE events SET asset_key = NULL,
+    `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
        metadata_json = json_set(metadata_json,
          '$.deletedAt', ?, '$.deletedBy', ?, '$.deletionOperationId', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
@@ -977,7 +985,8 @@ routes.post("/run-step-comments/:id/restore", async (c) => {
          ) = ?`,
     ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = await prepareFileRestoration(c.env.DB, "legacy_comment", targetIds);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }

@@ -59,13 +59,16 @@ export function sampleEvent(row: {
   actor_email?: string | null;
   created_at: string;
 }): SampleEvent {
+  const metadata = JSON.parse(row.metadata_json || "{}") as Record<string, unknown>;
+  const attachmentHidden = Boolean(metadata.deletedAt || metadata.assetDeletedAt);
+  if (attachmentHidden) delete metadata.thumbnailKey;
   return {
     id: row.id,
     sampleId: row.sample_id,
     kind: row.kind,
     body: row.body,
-    assetKey: row.asset_key,
-    metadata: JSON.parse(row.metadata_json || "{}") as Record<string, unknown>,
+    assetKey: attachmentHidden ? null : row.asset_key,
+    metadata,
     actorEmail: row.actor_email ?? null,
     createdAt: row.created_at,
   };

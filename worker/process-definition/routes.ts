@@ -1,3 +1,4 @@
+import { fileAuthorityActiveSql, prepareFileRestoration } from "../files/business-lifecycle";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type {
@@ -18,6 +19,7 @@ import { likeBindings, paginationMeta, readPagination, repeatedLikeSql, searchTo
 import type { Env } from "../types";
 import { parseInitialSubstrateStep } from "./substrate";
 import { requireR2UploadRequestId } from "../uploads/r2-upload-acceptance";
+import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { acceptAndUploadMetrologyReference, boundedMetrologyReferenceUploadBody,
   getMetrologyReferenceUploadRequestState, rethrowMetrologyReferenceUploadError } from "../uploads/metrology-reference-acceptance";
 
@@ -545,7 +547,8 @@ routes.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
 routes.post("/metrology-templates/:id/references/:referenceId/restore", async (c) => {
   const { id, referenceId } = c.req.param();
   await requirePublishedTemplateVersion(c.env.DB, id);
-  const result = await c.env.DB.prepare(
+  const fences = await prepareFileRestoration(c.env.DB, "metrology_reference", [referenceId]);
+  const results = await c.env.DB.batch([...fences, c.env.DB.prepare(
     `UPDATE metrology_template_references
      SET deleted_at = NULL, deleted_by = NULL
      WHERE id = ? AND template_version_id = ? AND deleted_at IS NOT NULL
@@ -555,12 +558,14 @@ routes.post("/metrology-templates/:id/references/:referenceId/restore", async (c
          WHERE id = ? AND template_kind = 'metrology'
            AND archived_at IS NULL AND deleted_at IS NULL
        )`,
-  ).bind(referenceId, id, id).run();
+  ).bind(referenceId, id, id)]);
+  const result = results[fences.length];
   if (!result.meta.changes) throw new HTTPException(404, { message: "Deleted template reference not found" });
   return c.json({ ok: true });
 });
 
 routes.post("/templates/:id/clone", async (c) => {
+  const active = await fileAuthorityActiveSql(c.env.DB) === "1";
   const sourceId = c.req.param("id");
   const [source, steps] = await Promise.all([
     c.env.DB.prepare(
@@ -583,10 +588,10 @@ routes.post("/templates/:id/clone", async (c) => {
     c.env.DB.prepare(
       `INSERT INTO template_versions
         (id, recipe_family_id, name, template_type, template_kind, version, manifest_hash, initial_state_hash,
-         source_filename, source_asset_key, content_json, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         source_filename, source_asset_key${active ? ", source_file_id" : ""}, content_json, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?${active ? ", ?" : ""}, ?, ?, ?)`,
     ).bind(id, source.recipe_family_id, source.name, source.template_type, source.template_kind, version, source.manifest_hash,
-      source.initial_state_hash, source.source_filename, source.source_asset_key, source.content_json, userEmail, now),
+      source.initial_state_hash, source.source_filename, source.source_asset_key, ...(active ? [source.source_file_id] : []), source.content_json, userEmail, now),
     ...bulkInsertStatements(c.env.DB, "template_steps",
       ["id", "template_version_id", "logical_step_key", "position", "source_row", "step_number", "section_name", "definition_hash", "expected_state_hash", "raw_json"],
       steps.results.map((step) => [stepIds.get(String(step.id)), id, step.logical_step_key, step.position,
@@ -727,16 +732,17 @@ routes.post("/templates/:id/steps", async (c) => {
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
          AND ${publishedAssetSql("a")}
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
+         ))`,
     ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
   if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }) : null;
   const stepId = crypto.randomUUID();
   const now = new Date().toISOString();
   const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
@@ -754,13 +760,14 @@ routes.post("/templates/:id/steps", async (c) => {
     ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
       definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
   ];
+  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }, fileId));
   if (state) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
      VALUES (?, ?, 'diagram', ?, ?)`,
   ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
   if (state && asset) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position) VALUES (?, ?, 0)",
-  ).bind(state.hash, asset.id));
+    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
+  ).bind(state.hash, asset.id, fileId));
   statements.push(c.env.DB.prepare(
     `INSERT INTO template_steps
      (id, template_version_id, logical_step_key, position, definition_hash, expected_state_hash)
@@ -795,16 +802,17 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
          AND ${publishedAssetSql("a")}
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
+         ))`,
     ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
   if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }) : null;
   const now = new Date().toISOString();
   const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
   const expectedStateHash = state?.hash ?? step.expected_state_hash;
@@ -819,13 +827,14 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
     definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now)];
+  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }, fileId));
   if (state) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
      VALUES (?, ?, 'diagram', ?, ?)`,
   ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
   if (state && asset) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position) VALUES (?, ?, 0)",
-  ).bind(state.hash, asset.id));
+    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
+  ).bind(state.hash, asset.id, fileId));
   statements.push(c.env.DB.prepare(
     `UPDATE template_steps SET definition_hash = ?, expected_state_hash = ?
      WHERE id = ? AND template_version_id = ? AND EXISTS (

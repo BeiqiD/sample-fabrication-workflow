@@ -38,7 +38,7 @@ export async function validateFileShadowAdjudicationExport(tables: ExportTables,
 
 /** Historical validation uses retained occurrence/dependency evidence, never the
  * current head, current profile state, or the installation's runtime authority. */
-export async function validateFileShadowAdjudicationRows(tables: ExportTables, schemaObjects: ExportSchemaObject[]) {
+export async function validateFileShadowAdjudicationRows(tables: ExportTables, schemaObjects: ExportSchemaObject[], runtime?: { schemaSha256: string; allowActive: boolean }) {
   for (const [name, columns] of Object.entries(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)) {
     const schema = schemaObjects.find((entry) => entry.type === "table" && entry.name === name);
     ensure(schema && typeof schema.sql === "string" && stableJson(sqliteTableColumns(schema.sql, name).sort()) === stableJson([...columns].sort()), "schema columns");
@@ -70,7 +70,7 @@ export async function validateFileShadowAdjudicationRows(tables: ExportTables, s
     const baseline = canonical(row.baseline_json, "baseline"), { baselineSha256, ...unsigned } = baseline;
     ensure(baselineSha256 === request.expectedBaselineSha256 && await sha256Hex(stableJson(unsigned)) === baselineSha256, "baseline digest");
     ensure(baseline.version === 1 && baseline.kind === "file-shadow-baseline" && baseline.bytesVerified === false
-      && baseline.schemaSha256 === FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256
+      && [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, ...(runtime ? [runtime.schemaSha256] : [])].includes(baseline.schemaSha256)
       && stableJson(baseline.key) === stableJson(request.key) && baseline.epoch === request.expectedEpoch
       && baseline.runtime?.enabled === 0 && baseline.runtime.incarnation === request.expectedIncarnation
       && baseline.adjudication === null && baseline.authority?.mode === "overlap" && baseline.decision === null && baseline.status === "ambiguous"
@@ -100,7 +100,7 @@ export async function validateFileShadowAdjudicationRows(tables: ExportTables, s
     for (const field of ["id", "r2_key", "sha256", "byte_size", "status"]) ensure(snapshot[field] === registry[field], "retained registry metadata");
     accepted.set(request.requestId, { row, request });
   }
-  ensure(accepted.size === 0 || tables.file_authority_control[0].mode === "overlap", "recorded authority");
+  ensure(accepted.size === 0 || (runtime?.allowActive ? ["overlap", "active"] : ["overlap"]).includes(String(tables.file_authority_control[0].mode)), "recorded authority");
   const withdrawals = new Set<string>();
   for (const row of tables.file_shadow_adjudication_withdrawals) {
     receipt(row);

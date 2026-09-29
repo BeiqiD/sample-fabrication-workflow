@@ -208,24 +208,27 @@ export async function validateFileShadowExport(tables: ExportTables, schemaObjec
 }
 
 /** Shared row semantics; callers must first authenticate the exact reviewed schema. */
-export async function validateFileShadowRows(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids) {
+export async function validateFileShadowRows(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids, runtime?: { acceptedPublicationLocations: ReadonlySet<string> }) {
   for (const [name, columns] of Object.entries({ ...FILE_AUTHORITY_EXPORT_COLUMNS, ...FILE_SHADOW_EXPORT_COLUMNS })) {
     const entry = schemaObjects.find((object) => object.type === "table" && object.name === name);
     ensure(entry && typeof entry.sql === "string" && stableJson(sqliteTableColumns(entry.sql, name).sort()) === stableJson([...columns].sort()), `${name} columns`);
     for (const item of rows(tables, name)) ensure(stableJson(Object.keys(item).sort()) === stableJson([...columns].sort()), `${name} row columns`);
   }
   for (const [name, columns] of Object.entries(FILE_AUTHORITY_CONSUMER_COLUMNS)) {
-    for (const item of rows(tables, name)) ensure(columns.every((column) => item[column] === null), "legacy typed bindings must remain null during shadow");
+    for (const item of rows(tables, name)) ensure(runtime && tables.file_authority_control[0]?.mode === "active" || columns.every((column) => item[column] === null), "legacy typed bindings must remain null during shadow");
   }
-  ensure(rows(tables, "file_consumer_migration_decisions").length === 0 && rows(tables, "file_acceptance_candidates").length === 0, "legacy decisions/candidates stay empty");
+  ensure(rows(tables, "file_consumer_migration_decisions").length === 0 && (runtime || rows(tables, "file_acceptance_candidates").length === 0), "legacy decisions/candidates stay empty");
   const control = rows(tables, "file_authority_control");
-  ensure(control.length === 1 && control[0].singleton === 1 && ["legacy", "overlap"].includes(String(control[0].mode)) && control[0].revision === 1
+  ensure(control.length === 1 && control[0].singleton === 1 && (runtime ? ["legacy", "overlap", "active"] : ["legacy", "overlap"]).includes(String(control[0].mode)) && control[0].revision === 1
     && (control[0].mode === "legacy" ? control[0].activated_at === null : time(control[0].activated_at)), "recorded authority mode");
   const graph = validateFoundation(tables);
-  const projections = legacyConsumerProjections(tables);
+  const projections = legacyConsumerProjections(tables, Boolean(runtime));
+  if (runtime) for (const projection of Object.values(projections)) for (const row of projection) {
+    if (row.file_id !== null) row.resolution_state = "resolved";
+  }
   for (const [name, expected] of Object.entries(projections)) ensure(sameRows(rows(tables, name), expected), `${name} source projection`);
   ensure(sameRows(rows(tables, "file_consumer_projection"), Object.values(projections).flat()), "legacy consumer aggregate");
-  validateShadowHistory(tables, graph, sourceRowids);
+  validateShadowHistory(tables, graph, sourceRowids, runtime?.acceptedPublicationLocations);
 }
 
 const dependencyReferences: Record<string, string> = {
@@ -283,7 +286,7 @@ function validateDependencyHistory(tables: ExportTables) {
   return versions;
 }
 
-function validateShadowHistory(tables: ExportTables, graph: ReturnType<typeof validateFoundation>, sourceRowids?: FileShadowSourceRowids) {
+function validateShadowHistory(tables: ExportTables, graph: ReturnType<typeof validateFoundation>, sourceRowids?: FileShadowSourceRowids, acceptedPublicationLocations?: ReadonlySet<string>) {
   const control = rows(tables, "file_shadow_control");
   ensure(control.length === 1 && control[0].singleton === 1 && size(control[0].epoch), "shadow epoch");
   const epoch = control[0].epoch;
@@ -359,7 +362,8 @@ function validateShadowHistory(tables: ExportTables, graph: ReturnType<typeof va
   ensure(authority.mode === "legacy" ? enablements.length === 0
     : enablements.length === 1 && enablements[0].singleton === 1 && size(enablements[0].expected_epoch)
       && enablements[0].expected_epoch <= Number(epoch) && enablements[0].enabled_at === authority.activated_at
-      && enablements[0].enabled_at === authority.updated_at && text(enablements[0].enabled_by), "explicit overlap enablement");
+      && (acceptedPublicationLocations && authority.mode === "active" ? time(authority.updated_at) && Date.parse(authority.updated_at) >= Date.parse(String(enablements[0].enabled_at))
+        : enablements[0].enabled_at === authority.updated_at) && text(enablements[0].enabled_by), "explicit overlap enablement");
   const profiles = indexed(rows(tables, "storage_profiles"), "id", "profile");
   const runtime = indexed(rows(tables, "storage_profile_runtime"), "storage_profile_id", "profile runtime");
   const profileEnablements = indexed(rows(tables, "file_shadow_profile_enablements"), "storage_profile_id", "profile enablement");
@@ -429,6 +433,7 @@ function validateShadowHistory(tables: ExportTables, graph: ReturnType<typeof va
   }
   for (const values of attemptNumbers.values()) ensure(values.sort((a, b) => a - b).every((value, index) => value === index + 1), "attempt sequence history");
   for (const publication of graph.publications.values()) {
+    if (acceptedPublicationLocations?.has(String(publication.location_id))) continue;
     const operation = operations.get(String(publication.verification_operation_id));
     ensure(operation && operation.status === "resolved" && [...attempts.values()].some((attempt) =>
       attempt.operation_id === operation.id && attempt.state === "published" && attempt.candidate_location_id === publication.location_id
