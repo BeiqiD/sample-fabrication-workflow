@@ -7,7 +7,7 @@ import { openShadowProfile } from "./shadow-profile";
 
 const BATCH_SIZE = 100;
 const CLAIM_LEASE_MS = 15 * 60 * 1_000;
-const active = "EXISTS (SELECT 1 FROM file_authority_control WHERE singleton=1 AND mode='active')";
+const active = "EXISTS (SELECT 1 FROM file_authority_control c JOIN file_authority_runtime_guard g ON g.singleton=c.singleton WHERE c.singleton=1 AND c.mode='active' AND g.enabled=1)";
 
 // A usable-publications lookup alone would discard quarantined/disabled but
 // still retained Files. Physical deletion also respects legacy consumers and
@@ -47,6 +47,9 @@ export async function runFileGarbageCollection(env: Env, now = new Date()) {
   const result = { orphanCandidatesMarked: 0, imageDeleted: 0, managedDeleted: 0, failures: 0 };
   const db = primaryD1(env.DB);
   if (await readFileAuthorityMode(db) !== "active") return result;
+  const runtime = await db.prepare("SELECT incarnation FROM file_authority_runtime_guard WHERE singleton=1 AND enabled=1")
+    .first<{ incarnation: string }>();
+  if (!runtime) return result;
   const timestamp = now.toISOString();
   const registrationCutoff = new Date(now.getTime() - BLOB_REGISTRATION_GRACE_MS).toISOString();
   const orphanCutoff = new Date(now.getTime() - BLOB_ORPHAN_GRACE_MS).toISOString();
@@ -135,7 +138,8 @@ export async function runFileGarbageCollection(env: Env, now = new Date()) {
         storeKind: profile.storage.adapterType === "r2" ? "r2" : "managed", provider: profile.storage.adapterType,
       });
       const ownsClaim = async () => Boolean(await db.prepare(`SELECT 1 FROM file_location_gc_ledger
-        WHERE ${claimWhere} AND ${active}`).bind(...claimValues(location, claim)).first());
+        WHERE ${claimWhere} AND ${active} AND EXISTS(SELECT 1 FROM file_authority_runtime_guard WHERE singleton=1 AND incarnation=?)`)
+        .bind(...claimValues(location, claim), runtime.incarnation).first());
       let missing = false;
       if (!await ownsClaim()) failure = "deletion_claim_changed";
       if (!failure && retry) {

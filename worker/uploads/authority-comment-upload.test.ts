@@ -74,6 +74,16 @@ describe("active accepted Comment upload publication", () => {
     expect((await f.upload("item-upload", bytes)).status).toBe(200);
     expect(f.sql.prepare("SELECT * FROM comment_item_acceptances").get()).toEqual(receipt);
     expect((await f.finalize()).status).toBe(200); expect(f.put).toHaveBeenCalledTimes(1);
+    expect((await f.request("/comment-submissions/submission-upload/items/item-upload", { method: "DELETE" })).status).toBe(200);
+    const restoredItem = await f.request("/comment-submissions/submission-upload/items/item-upload/restore", { method: "POST" });
+    expect(restoredItem.status, await restoredItem.clone().text()).toBe(200);
+    expect((await f.request("/comment-submissions/submission-upload", { method: "DELETE" })).status).toBe(200);
+    const restoredComment = await f.request("/comment-submissions/submission-upload/restore", { method: "POST" });
+    expect(restoredComment.status, await restoredComment.clone().text()).toBe(200);
+    expect(f.sql.prepare("SELECT file_id,asset_id FROM comment_submission_items WHERE id='item-upload'").get())
+      .toEqual({ file_id: bound.file_id, asset_id: bound.asset_id });
+    expect(f.put).toHaveBeenCalledTimes(1);
+
     expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   });
 

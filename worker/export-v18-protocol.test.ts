@@ -19,6 +19,7 @@ import { enableFutureFileAuthority } from "./files/authority-runtime-test-suppor
 import { acceptAndUploadR2Asset } from "./uploads/r2-upload-acceptance";
 import { acceptAndUploadMetrologyReference } from "./uploads/metrology-reference-acceptance";
 import type { Env } from "./types";
+import worker from "./index";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
 const databases: DatabaseSync[] = [], directories: string[] = [];
@@ -76,12 +77,23 @@ describe("V18 accepted File runtime archive", () => {
     }
   }, 30_000);
 
-  it("round-trips active accepted candidates, dedup results and typed bindings with shadow execution suspended", async () => {
+  it("round-trips active records with local execution suspended and rejects recovered writes before provider I/O", async () => {
     const f = await acceptedFixture(), io = [f.get.mock.calls.length, f.put.mock.calls.length];
-    const { sql } = await restore(f.manifest);
+    expect(f.sql.prepare("SELECT enabled FROM file_authority_runtime_guard").get()!.enabled).toBe(1);
+    expect(f.manifest.tables).not.toHaveProperty("file_authority_runtime_guard");
+    const { sql, result } = await restore(f.manifest);
     expect((await snapshotFullExportV18(adapter(sql))).tables).toEqual(f.manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("active");
     expect(sql.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
+    expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
+    expect(result.report.authorityRecovery).toMatchObject({ runtimeExecutionEnabled: false, installationAdmissionRequired: true, recordedAuthorityMode: "active" });
+    const provider = vi.fn();
+    const response = await worker.fetch(new Request("https://app.test/api/assets", { method: "POST", body: bytes }), {
+      AUTH_MODE: "disabled", DB: adapter(sql), R2_BOOTSTRAP_NAMESPACE: namespace,
+      ASSETS: { get: provider, head: provider, put: provider, delete: provider } as unknown as R2Bucket,
+    }, { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext);
+    expect(response.status).toBe(503);
+    expect(provider).not.toHaveBeenCalled();
     expect([f.get.mock.calls.length, f.put.mock.calls.length]).toEqual(io);
     expect(() => sql.exec("UPDATE file_acceptance_candidates SET state='cancelled'")).toThrow();
     expect(() => sql.exec("DELETE FROM file_authority_control")).toThrow();
@@ -119,5 +131,6 @@ describe("V18 accepted File runtime archive", () => {
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("overlap");
     expect(sql.prepare("SELECT * FROM file_acceptance_candidates").all()).toEqual([]);
     expect(sql.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
+    expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
   }, 30_000);
 });

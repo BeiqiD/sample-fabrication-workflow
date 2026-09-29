@@ -24,6 +24,7 @@ export interface StagedAuthorityCandidate {
   fileId: string;
   locationId: string;
   objectKey: string;
+  executionIncarnation: string | null;
 }
 
 export class AuthorityCandidateUnavailableError extends Error {
@@ -31,6 +32,7 @@ export class AuthorityCandidateUnavailableError extends Error {
 }
 
 interface Receipt {
+  execution_incarnation: string | null;
   purpose: FilePurpose;
   access_scope: "system";
   storage_profile_id: string;
@@ -94,10 +96,11 @@ function receiptSql(owner: AuthorityCandidateOwner): string {
       WHERE r.id=?1 AND r.actor_email=?2 AND r.operation_id=?3 AND r.status='pending' AND r.client_request_id IS NOT NULL
         AND r.lease_expires_at>?4 AND (?5 IN('workbook','manifest') OR json_extract(entry.value,'$.localId')=substr(?5,7))`;
   }
-  return `SELECT receipt.* FROM (${receipt}) receipt
+  return `SELECT receipt.*,(SELECT incarnation FROM file_authority_runtime_guard WHERE singleton=1 AND enabled=1) execution_incarnation FROM (${receipt}) receipt
     JOIN storage_profiles p ON p.id=receipt.storage_profile_id AND p.configuration_revision=receipt.configuration_revision
     JOIN storage_profile_runtime runtime ON runtime.storage_profile_id=p.id AND runtime.state='read_write'
-    JOIN file_authority_control authority ON authority.singleton=1 AND authority.mode IN('overlap','active')`;
+    JOIN file_authority_control authority ON authority.singleton=1 AND (authority.mode='overlap'
+      OR (authority.mode='active' AND EXISTS(SELECT 1 FROM file_authority_runtime_guard WHERE singleton=1 AND enabled=1)))`;
 }
 
 function receiptBindings(owner: AuthorityCandidateOwner, now: string) {
@@ -132,10 +135,11 @@ export function authorityCandidatePublicationFence(database: D1Database, input: 
       AND c.candidate_file_id=? AND c.candidate_location_id=? AND c.candidate_object_key=?
       AND c.purpose=? AND c.access_scope=? AND c.storage_profile_id=? AND r.configuration_revision=?
       AND c.expected_byte_size=? AND c.expected_sha256=?
+      AND r.execution_incarnation IS ?
   ) THEN 1 ELSE json('Accepted File publication ownership changed') END`)
     .bind(...receiptBindings(owner, ""), owner.kind, owner.acceptanceId, owner.itemId ?? "",
       candidate.fileId, candidate.locationId, candidate.objectKey, candidate.purpose, candidate.accessScope,
-      candidate.profile.profileId, candidate.profile.configurationRevision, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256);
+      candidate.profile.profileId, candidate.profile.configurationRevision, candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256, candidate.executionIncarnation);
 }
 function staged(owner: AuthorityCandidateOwner, receipt: Receipt, candidate: Candidate | null | undefined): StagedAuthorityCandidate {
   if (!candidate || candidate.state !== "candidate" || candidate.purpose !== receipt.purpose || candidate.access_scope !== receipt.access_scope
@@ -147,7 +151,8 @@ function staged(owner: AuthorityCandidateOwner, receipt: Receipt, candidate: Can
     operationId: owner.operationId, purpose: receipt.purpose, accessScope: "system",
     profile: { profileId: receipt.storage_profile_id, configurationRevision: 1 },
     expectedBytes: { byteSize: receipt.expected_byte_size, sha256: receipt.expected_sha256 },
-    fileId: candidate.candidate_file_id, locationId: candidate.candidate_location_id, objectKey: candidate.candidate_object_key };
+    fileId: candidate.candidate_file_id, locationId: candidate.candidate_location_id, objectKey: candidate.candidate_object_key,
+    executionIncarnation: receipt.execution_incarnation };
 }
 
 /** Stage metadata for an already-owned accepted writer. This neither claims a

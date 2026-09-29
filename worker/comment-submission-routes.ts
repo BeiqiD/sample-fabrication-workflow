@@ -1,3 +1,4 @@
+import { prepareFileRestoration } from "./files/business-lifecycle";
 import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { managedStorageStatus } from "./managed-storage";
@@ -311,7 +312,8 @@ routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c
   ).bind(itemId, submissionId).first<{ deleted_at: string }>();
   if (!item) throw new HTTPException(404, { message: "Deleted attachment occurrence not found" });
   const now = new Date(Math.max(Date.now(), Date.parse(item.deleted_at) + 1)).toISOString();
-  const result = await c.env.DB.prepare(
+  const fences = await prepareFileRestoration(c.env.DB, "comment_item", [itemId]);
+  const mutation = c.env.DB.prepare(
     `UPDATE comment_submission_items
      SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
      WHERE id = ? AND submission_id = ? AND deleted_at = ?
@@ -321,7 +323,8 @@ routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c
            AND cs.status = 'ready' AND cs.deleted_at IS NULL
            AND ${visibleSubmissionTargetsSql("cs")}
        )`,
-  ).bind(now, itemId, submissionId, item.deleted_at).run();
+  ).bind(now, itemId, submissionId, item.deleted_at);
+  const result = fences.length ? (await c.env.DB.batch([...fences, mutation]))[fences.length] : await mutation.run();
   if (!result.meta.changes) {
     throw new HTTPException(409, { message: "The attachment changed while it was being restored" });
   }
@@ -712,7 +715,8 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
       ).bind(userEmail, now, sampleId, submissionId, mutationId));
     }
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = await prepareFileRestoration(c.env.DB, "comment_submission", [submissionId]);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }

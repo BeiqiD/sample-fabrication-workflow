@@ -48,6 +48,7 @@ import { COMMENT_ACCEPTANCE_EXPORT_COLUMNS, validateCommentAcceptance } from "./
 import { FILE_AUTHORITY_EXPORTED_VIEWS, FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES, observesFileAuthorityTransition, validateFileAuthorityExport } from "./export-file-authority";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 import { buildFileShadowBlobExportPlan, FILE_SHADOW_EXPORTED_VIEWS, FILE_SHADOW_EXPORT_VIEW_COLUMNS, FILE_SHADOW_REBUILDABLE_TABLE_NAMES, FILE_SHADOW_SOURCE_ROWIDS_PATH, validateFileShadowSourceRowids, validateFileShadowExport } from "./export-file-shadow";
+import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES } from "./export-file-runtime";
 
 export const EXPORT_SOURCE_SCHEMA_PATH = "provenance/source-schema.json";
 export const EXPORT_RETIRED_FIELDS_PATH = "provenance/retired-fields.json";
@@ -120,7 +121,8 @@ async function validateFullExport(value: unknown, version: 8 | 9 | 10 | 11 | 12 
   if (version < 14) ensure(!observesFileAuthorityTransition(schema.objects),
     "the File authority transition requires archive schema 14");
   const platform = new Set(["d1_migrations", "_cf_KV", "_cf_METADATA"]);
-  const rebuildable = new Set<string>(version >= 15 ? FILE_SHADOW_REBUILDABLE_TABLE_NAMES : version === 14 ? FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES : []);
+  const rebuildable = new Set<string>(version >= 15 ? [...FILE_SHADOW_REBUILDABLE_TABLE_NAMES,
+    ...(version >= 18 ? FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES : [])] : version === 14 ? FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES : []);
   const inventory = schema.objects.filter((entry: { type: string; name: string }) => entry.type === "table"
     && !entry.name.startsWith("sqlite_") && !platform.has(entry.name) && !rebuildable.has(entry.name))
     .map((entry: { name: string }) => entry.name);

@@ -1,3 +1,4 @@
+import worker from "../index";
 import { readFileSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -48,7 +49,7 @@ function fixture() {
   const base = { actorEmail: "owner@example.test", originalName: "image.png", mimeType: "image/png", bytes: bytes.buffer };
   const r2 = (ingress: R2UploadIngress = "ordinary_image", requestId = crypto.randomUUID()) => acceptAndUploadR2Asset(env, { ...base, ingress, requestId });
   const metrology = (requestId = crypto.randomUUID()) => acceptAndUploadMetrologyReference(env, { ...base, templateId: "template", requestId });
-  return { sql, r2, metrology, put, get, stored, batchErrors, loseAck: () => { losePublicationAck = true; } };
+  return { sql, env, r2, metrology, put, get, stored, batchErrors, loseAck: () => { losePublicationAck = true; } };
 }
 
 describe("active accepted R2 and metrology uploads under official runtime guards", () => {
@@ -66,6 +67,18 @@ describe("active accepted R2 and metrology uploads under official runtime guards
     expect(await upload()).toEqual({ state: first.state, fresh: false });
     expect(f.put).toHaveBeenCalledOnce();
     expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(changes);
+    if (kind === "metrology") {
+      const referenceId = f.sql.prepare("SELECT id FROM metrology_template_references").get()!.id;
+      const path = `https://app.test/api/metrology-templates/template/references/${referenceId}`;
+      const context = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
+      expect((await worker.fetch(new Request(path, { method: "DELETE" }), { ...f.env, AUTH_MODE: "disabled" }, context)).status).toBe(200);
+      const restored = await worker.fetch(new Request(`${path}/restore`, { method: "POST" }), { ...f.env, AUTH_MODE: "disabled" }, context);
+      expect(restored.status, await restored.clone().text()).toBe(200);
+      expect(f.sql.prepare("SELECT file_id,deleted_at FROM metrology_template_references").get())
+        .toEqual({ file_id: candidate.result_file_id, deleted_at: null });
+      expect(f.put).toHaveBeenCalledOnce();
+    }
+
     expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   });
 

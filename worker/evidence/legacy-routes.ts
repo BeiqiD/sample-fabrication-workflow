@@ -1,3 +1,4 @@
+import { fileAuthorityActiveSql, deletedEventAssetSql, prepareFileRestoration } from "../files/business-lifecycle";
 import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -37,11 +38,11 @@ routes.post("/run-step-comments", async (c) => {
   ).bind(...bindings).all<{ sample_id: string; run_id: string; step_id: string }>(),
   assetKey ? c.env.DB.prepare(
     `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-       AND NOT EXISTS (
+       AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
          SELECT 1 FROM blob_gc_ledger bg
          WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
            AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       )`,
+       ))`,
   ).bind(assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null)]);
   if (matched.results.length !== input.targets.length) {
     throw new HTTPException(404, { message: "One or more sample steps were not found" });
@@ -318,7 +319,7 @@ routes.delete("/run-step-comments/:id/asset", async (c) => {
     ),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
-    `UPDATE events SET asset_key = NULL,
+    `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
        metadata_json = json_set(metadata_json,
          '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
          '$.assetDeletionOperationId', ?)
@@ -568,7 +569,8 @@ routes.post("/run-step-comments/:id/asset/restore", async (c) => {
          ) = ?`,
     ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = await prepareFileRestoration(c.env.DB, "legacy_comment_asset", targetIds);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment attachment changed while it was being restored" });
   }
@@ -712,7 +714,7 @@ routes.delete("/run-step-comments/:id", async (c) => {
     ),
   ];
   if (comment.operation_group_id) statements.push(c.env.DB.prepare(
-    `UPDATE events SET asset_key = NULL,
+    `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
        metadata_json = json_set(metadata_json,
          '$.deletedAt', ?, '$.deletedBy', ?, '$.deletionOperationId', ?)
      WHERE kind = 'step' AND json_valid(metadata_json)
@@ -983,7 +985,8 @@ routes.post("/run-step-comments/:id/restore", async (c) => {
          ) = ?`,
     ).bind(userEmail, now, sampleId, ...sampleTargetIds, mutationId, sampleTargetIds.length));
   }
-  const results = await c.env.DB.batch(statements);
+  const fences = await prepareFileRestoration(c.env.DB, "legacy_comment", targetIds);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (results[0].results.length !== targetIds.length) {
     throw new HTTPException(409, { message: "The comment changed while it was being restored" });
   }

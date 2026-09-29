@@ -1,3 +1,4 @@
+import { fileAuthorityActiveSql, deletedEventAssetSql, prepareFileRestoration } from "../files/business-lifecycle";
 import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -973,11 +974,11 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000 || input.notes.length > 10_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
   const asset = input.assetKey ? await c.env.DB.prepare(
     `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-       AND NOT EXISTS (
+       AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
          SELECT 1 FROM blob_gc_ledger bg
          WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
            AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       )`,
+       ))`,
   ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
   if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
   const assetFileInput = asset ? { assetId: asset.id, purpose: "embedded_content" as const } : null;
@@ -1153,7 +1154,7 @@ routes.delete("/samples/:sampleId/runs/:runId/steps/:stepId/assets", async (c) =
          )`,
     ).bind(now, userEmail, mutationId, attachment.id, stepId, runId, sampleId),
     c.env.DB.prepare(
-      `UPDATE events SET asset_key = NULL,
+      `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)},
          metadata_json = json_set(metadata_json,
            '$.runStepAssetId', ?, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
            '$.assetMutationId', ?)
@@ -1219,8 +1220,9 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
   if (typeof input.assetKey !== "string" || !input.assetKey) {
     throw new HTTPException(400, { message: "An image attachment is required" });
   }
+  const active = await fileAuthorityActiveSql(c.env.DB) === "1";
   const attachment = await c.env.DB.prepare(
-    `SELECT rsa.id, rsa.deleted_at, rs.title, sd.name AS planned_title,
+    `SELECT rsa.id, ${active ? "rsa.file_id" : "NULL AS file_id"}, rsa.deleted_at, rs.title, sd.name AS planned_title,
             rs.updated_at, s.updated_at AS sample_updated_at
      FROM run_step_assets rsa
      JOIN run_steps rs ON rs.id = rsa.run_step_id
@@ -1232,7 +1234,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
        AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        AND rsa.deleted_at IS NOT NULL`,
   ).bind(stepId, runId, sampleId, input.assetKey).first<{
-    id: string; deleted_at: string; title: string | null; planned_title: string | null;
+    id: string; file_id: string | null; deleted_at: string; title: string | null; planned_title: string | null;
     updated_at: string; sample_updated_at: string;
   }>();
   if (!attachment) throw new HTTPException(404, { message: "Deleted execution image not found" });
@@ -1243,7 +1245,8 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
   const userEmail = c.get("userEmail");
   const mutationId = crypto.randomUUID();
   const title = attachment.title || attachment.planned_title || "Step";
-  const results = await c.env.DB.batch([
+  const fences = await prepareFileRestoration(c.env.DB, "execution", [attachment.id]);
+  const results = (await c.env.DB.batch([...fences,
     c.env.DB.prepare(
       `UPDATE run_step_assets
        SET deleted_at = NULL, deleted_by = NULL, last_mutation_id = ?
@@ -1289,8 +1292,8 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
          )`,
     ).bind(userEmail, now, stepId, runId, attachment.id, mutationId),
     c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, asset_key, metadata_json, actor_email, created_at)
-       SELECT ?, s.id, 'image', ?, ?, ?, ?, ?
+      `INSERT INTO events (id, sample_id, kind, body, asset_key${active ? ", asset_file_id" : ""}, metadata_json, actor_email, created_at)
+       SELECT ?, s.id, 'image', ?, ?${active ? ", ?" : ""}, ?, ?, ?
        FROM run_step_assets rsa
        JOIN run_steps rs ON rs.id = rsa.run_step_id
        JOIN runs r ON r.id = rs.run_id
@@ -1299,7 +1302,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
          AND rs.id = ? AND r.id = ? AND s.id = ?
          AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
     ).bind(
-      crypto.randomUUID(), `Restored execution image attachment · ${title}`, input.assetKey,
+      crypto.randomUUID(), `Restored execution image attachment · ${title}`, input.assetKey, ...(active ? [attachment.file_id] : []),
       JSON.stringify({ action: "execution_attachment_restored", runId, stepId }),
       userEmail, now, attachment.id, mutationId, stepId, runId, sampleId,
     ),
@@ -1316,7 +1319,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
              AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          )`,
     ).bind(userEmail, now, sampleId, attachment.id, mutationId, stepId, runId),
-  ]);
+  ])).slice(fences.length);
   if (!results[0].meta.changes) {
     throw new HTTPException(409, { message: "The execution image changed while it was being restored" });
   }
@@ -1342,11 +1345,11 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
       .bind(runId).all<{ id: string; position: number; updated_at: string }>(),
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
+         ))`,
     ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
@@ -1805,11 +1808,11 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
     }>(),
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
+         ))`,
     ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
     c.env.DB.prepare(
       `SELECT sv.id, sv.after_run_step_id

@@ -18,7 +18,7 @@ function selection(input: ConsumerFileInput) {
   }
   const managed = input.storageObjectId !== undefined;
   const source = managed
-    ? "SELECT id,provider,object_key,byte_size,sha256 FROM managed_storage_objects WHERE id=? AND status='ready'"
+    ? "SELECT id,provider,object_key,byte_size,sha256 FROM managed_storage_objects WHERE id=? AND status IN('ready','orphaned')"
     : `SELECT a.id,'r2' provider,a.r2_key object_key,a.byte_size,a.sha256 FROM assets a
        WHERE ${input.assetId !== undefined ? "a.id" : "a.r2_key"}=? AND a.status='ready'
          AND (a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))`;

@@ -3,6 +3,8 @@ import { fabubloxRecoverySnapshotGuard } from "./fabublox-recovery-guard";
 import { primaryD1 } from "./d1-primary";
 import type { Env } from "./types";
 import { assertR2BootstrapProfile } from "./files/r2-bootstrap-profile";
+import { readFileAuthorityMode } from "./files/authority-reader";
+import { recoverAuthorityImport } from "./imports/fabublox-authority-recovery";
 
 export const FABUBLOX_IMPORT_LEASE_MS = 24 * 60 * 60 * 1_000;
 const STALE_IMPORT_BATCH_SIZE = 25;
@@ -64,10 +66,6 @@ export async function queueFabubloxImportCleanup(
     : String(input.error)).slice(0, 1_000);
   const db = primaryD1(env.DB);
 
-  // Provider verification happens before the durable recovery claim. A
-  // transient R2 failure therefore leaves the import retryable instead of
-  // committing half of the cleanup. Every asset is checked because a later
-  // statement may transfer private ownership or make the locator public.
   const current = await readFabubloxImportState(db, input.importId);
   if (!current
     || current.operation_id !== input.operationId
@@ -77,8 +75,17 @@ export async function queueFabubloxImportCleanup(
       && current.recovery_operation_id !== recoveryOperationId)) {
     return emptyCleanupResult();
   }
+  if (await readFileAuthorityMode(db) === "active") {
+    return recoverAuthorityImport(db, {
+      importId: input.importId, operationId: input.operationId,
+      recoveryOperationId, message, timestamp,
+    });
+  }
+  // Legacy provider verification happens before the durable recovery claim.
+  // A transient R2 failure leaves recovery retryable. Every asset is checked
+  // because the old protocol may transfer ownership or publish its locator.
   // New accepted operations freeze their physical target. Historical rows
-  // retain the legacy recovery contract until the full File migration.
+  // retain the legacy recovery contract while authority is legacy/overlap.
   if (current.client_request_id !== null) {
     await assertR2BootstrapProfile(db, env, current.storage_profile_id ?? "", current.storage_profile_revision ?? 0);
   }

@@ -1,3 +1,7 @@
+import worker from "../index";
+import { acceptAndUploadR2Asset } from "../uploads/r2-upload-acceptance";
+import { futureActiveRuntimeDatabase } from "./authority-runtime-test-support";
+import { snapshotFullExportV18 } from "../export-v18-snapshot";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { collectBlobGarbage, runBlobGarbageCollection } from "../blob-lifecycle/gc";
@@ -34,6 +38,7 @@ function fixture(options: { ready?: boolean; managed?: boolean; mode?: "active" 
   for (const trigger of triggers) sql.exec(`DROP TRIGGER "${trigger.name.replaceAll('"', '""')}"`);
   sql.prepare("UPDATE file_authority_control SET mode=?,activated_at=?,updated_at=?")
     .run(options.mode ?? "active", NOW.toISOString(), NOW.toISOString());
+  sql.prepare("UPDATE file_authority_runtime_guard SET incarnation='gc-test',enabled=1,enabled_by='test',updated_at=?").run(NOW.toISOString());
   sql.prepare(`INSERT INTO storage_profiles(id,adapter_type,namespace_identity,configuration_source,credential_reference,configuration_revision,state,created_at)
     VALUES('profile',?,?,?,?,1,'historical',?)`).run(options.managed ? "switchdrive" : "r2",
     options.managed ? managedBootstrapNamespace(env) : namespace, options.managed ? "environment" : "bootstrap",
@@ -183,3 +188,71 @@ describe("active File location garbage collection", () => {
     expect(f.remove).not.toHaveBeenCalled();
   });
 });
+
+
+it("releases explicitly detached event and verification bytes while keeping typed tombstones exportable", async () => {
+  const now = new Date().toISOString();
+  const sql = futureActiveRuntimeDatabase(database => {
+    database.prepare("INSERT INTO storage_profiles VALUES('profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, now);
+    database.prepare("INSERT INTO file_shadow_profile_enablements VALUES('profile',1,'operator',?)").run(now);
+  });
+  databases.push(sql);
+  const db = new SqliteD1Database(sql) as unknown as D1Database;
+  const stored = new Map<string, Uint8Array>();
+  const get = async (key: string) => {
+    const bytes = stored.get(key);
+    return bytes ? { body: new Response(bytes).body!, size: bytes.length, httpEtag: '"file"', writeHttpMetadata() {} } : null;
+  };
+  const remove = vi.fn(async (key: string) => { stored.delete(key); });
+  const env = { AUTH_MODE: "disabled", DB: db, R2_BOOTSTRAP_NAMESPACE: namespace,
+    ASSETS: { get, head: get, delete: remove, async put(key: string, bytes: ArrayBuffer) { stored.set(key, new Uint8Array(bytes.slice(0))); } } as unknown as R2Bucket,
+  } satisfies Env;
+  const uploaded = await acceptAndUploadR2Asset(env, { actorEmail: "owner@example.test", requestId: crypto.randomUUID(),
+    ingress: "ordinary_image", originalName: "evidence.png", mimeType: "image/png", bytes: Uint8Array.of(137,80,78,71).buffer });
+  if (uploaded.state.status !== "ready") throw new Error("File did not publish");
+  const { id: assetId, key: assetKey } = uploaded.state.result;
+  const fileId = String(sql.prepare("SELECT result_file_id FROM file_acceptance_candidates").get()!.result_file_id);
+  sql.prepare("INSERT INTO recipe_families(id,name,template_type,created_at) VALUES('family','Family','process',?)").run(now);
+  sql.prepare(`INSERT INTO template_versions(id,recipe_family_id,name,template_type,version,manifest_hash,content_json,created_at)
+    VALUES('template','family','Template','process',1,'manifest','{}',?)`).run(now);
+  sql.prepare("INSERT INTO samples(id,code,title,status,created_at,updated_at) VALUES('sample','S1','Sample','stored',?,?)").run(now, now);
+  sql.prepare(`INSERT INTO runs(id,sample_id,recipe_family_id,template_version_id,sequence_no,run_group_id,
+    template_name_snapshot,template_type_snapshot,template_version_snapshot,status,created_at,run_kind)
+    VALUES('run','sample','family','template',1,'group','Template','process',1,'active',?,'process')`).run(now);
+  sql.prepare(`INSERT INTO run_steps(id,run_id,position,origin,plan_status,title,status,entry_kind,created_at,updated_at)
+    VALUES('step','run',1000,'ad_hoc','current','Step','pending','fabrication',?,?)`).run(now, now);
+  sql.prepare(`INSERT INTO state_verifications(id,sample_id,after_run_step_id,result,evidence_asset_id,evidence_file_id,created_at)
+    VALUES('verification','sample','step','matched',?,?,?)`).run(assetId, fileId, now);
+  sql.prepare(`INSERT INTO events(id,sample_id,kind,body,asset_key,asset_file_id,metadata_json,created_at)
+    VALUES('record','sample','image','Record',?,?,?,?),('evidence','sample','verification','Evidence',?,?,?,?)`)
+    .run(assetKey, fileId, JSON.stringify({ action: "sample_record" }), now,
+      assetKey, fileId, JSON.stringify({ verificationId: "verification" }), now);
+  expect(sql.prepare("SELECT COUNT(*) n FROM file_direct_retention_edges WHERE file_id=?").get(fileId)!.n).toBe(2);
+  const afterRegistration = new Date(Date.parse(now) + 2 * 86400000);
+  const afterOrphanGrace = new Date(Date.parse(now) + 9 * 86400000);
+  sql.prepare("UPDATE samples SET deleted_at=?,deleted_by='operator' WHERE id='sample'").run(now);
+  expect((await runFileGarbageCollection(env, afterRegistration)).orphanCandidatesMarked).toBe(0);
+  sql.prepare("UPDATE samples SET deleted_at=NULL,deleted_by=NULL WHERE id='sample'").run();
+  const context = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
+  const removeAt = async (path: string) => {
+    const response = await worker.fetch(new Request(`https://app.test/api${path}`, { method: "DELETE" }), env, context);
+    expect(response.status, await response.clone().text()).toBe(200);
+  };
+  await removeAt("/samples/sample/records/record");
+  expect((await runFileGarbageCollection(env, afterRegistration)).orphanCandidatesMarked).toBe(0);
+  await removeAt("/samples/sample/events/evidence/asset");
+  expect(sql.prepare("SELECT COUNT(*) n FROM file_retention_edges WHERE file_id=?").get(fileId)!.n).toBe(0);
+  expect(sql.prepare("SELECT COUNT(*) n FROM blob_retention_edges WHERE object_key=?").get(assetKey)!.n).toBe(0);
+  expect((await runFileGarbageCollection(env, afterRegistration)).orphanCandidatesMarked).toBe(1);
+  expect(sql.prepare("SELECT state FROM file_publications WHERE file_id=?").get(fileId)!.state).toBe("retired");
+  expect((await runFileGarbageCollection(env, afterOrphanGrace)).imageDeleted).toBe(1);
+  expect(remove).toHaveBeenCalledExactlyOnceWith(assetKey);
+  expect(sql.prepare("SELECT asset_file_id,asset_key FROM events WHERE id IN ('record','evidence') ORDER BY id").all())
+    .toEqual([{ asset_file_id: fileId, asset_key: assetKey }, { asset_file_id: fileId, asset_key: assetKey }]);
+  expect(sql.prepare("SELECT evidence_file_id,evidence_asset_id FROM state_verifications").get())
+    .toEqual({ evidence_file_id: fileId, evidence_asset_id: assetId });
+  const exported = await snapshotFullExportV18(db);
+  expect(exported.tables.file_publications[0].state).toBe("retired");
+  expect(exported.tables.events.filter(event => ["record", "evidence"].includes(String(event.id)))
+    .every(event => event.asset_file_id === fileId)).toBe(true);
+}, 15_000);

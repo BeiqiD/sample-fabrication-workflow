@@ -8,7 +8,7 @@ import { sha256Hex, stableJson } from "../shared/domain/content-addressing";
 
 /** One primary snapshot retains canonical histories, accepted File provenance,
  * typed bindings and recorded mode. Isolated restore does no provider I/O and
- * reinstates a paused, installation-local shadow execution guard. */
+ * reinstates disabled installation-local shadow and authority execution guards. */
 export async function snapshotFullExportV18(database: D1Database): Promise<FullExportManifestV18> {
   const db = typeof database.withSession === "function" ? database.withSession("first-primary") : database;
   const names = Object.keys(FULL_EXPORT_V18_TABLE_QUERIES);

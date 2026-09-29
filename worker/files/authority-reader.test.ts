@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
 import { encodeReferenceRouteId } from "../../shared/reference-destinations";
 import worker from "../index";
 import { createAttachmentProjectItem, createProject } from "../projects/service";
+import { copyAttachmentProjectItem } from "../projects/attachment-copy";
 import { REFERENCE_FIXTURE_IDS, referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "../reference-test-support";
 import type { Env } from "../types";
 import { readFileAuthorityMode, readPublishedFile } from "./authority-reader";
@@ -55,6 +57,7 @@ async function fixture(mode: "active" | "overlap" = "active", bound = true) {
     VALUES('legacy-comment','switchdrive','legacy/comment','report.pdf','application/pdf',4,?,'ready',?)`).run(SHA, NOW);
   sql.prepare(`INSERT INTO comment_submission_items(id,submission_id,kind,status,position,filename,mime_type,byte_size,storage_object_id,created_at,updated_at)
     VALUES('comment-item','submission','attachment','ready',0,'report.pdf','application/pdf',4,'legacy-comment',?,?)`).run(NOW, NOW);
+  const controlGuard = String(sql.prepare("SELECT sql FROM sqlite_schema WHERE name='file_authority_control_update_guard'").get()!.sql);
   sql.exec("DROP TRIGGER file_authority_control_update_guard");
   sql.prepare("UPDATE file_authority_control SET mode=?,updated_at=?,activated_at=?").run(mode, NOW, NOW);
   sql.prepare("INSERT INTO storage_profiles VALUES('r2-profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, NOW);
@@ -75,7 +78,7 @@ async function fixture(mode: "active" | "overlap" = "active", bound = true) {
     sql.exec("UPDATE project_content_attachments SET file_id='project-file' WHERE project_content_id='content'");
     sql.exec("UPDATE comment_submission_items SET file_id='comment-file' WHERE id='comment-item'");
   }
-  return { sql, env, get, fetch, publish };
+  return { sql, env, get, fetch, publish, controlGuard };
 }
 
 function request(env: Env, path: string) {
@@ -149,6 +152,35 @@ it("requires the caller's purpose and a known authority mode", async () => {
   expect(get).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   await expect(readFileAuthorityMode({ prepare() { throw new Error("private database error"); } } as unknown as D1Database))
     .rejects.toThrow("File storage is unavailable");
+});
+
+it("copies the exact available Project File despite a quarantined old locator, then rejects its quarantined publication", async () => {
+  const { sql, env, controlGuard } = await fixture();
+  // Seed the historical disjoint alias/publication using the frozen foundation,
+  // then apply the real current native guards before exercising active copy.
+  sql.exec(controlGuard);
+  const migrations = new URL("../../migrations/", import.meta.url);
+  for (const name of readdirSync(migrations).filter(name => name.endsWith(".sql")
+    && name > "0007_fp1_file_authority_transition.sql" && !name.startsWith("0011_")).sort()) {
+    sql.exec(readFileSync(new URL(name, migrations), "utf8"));
+  }
+  sql.prepare(`INSERT INTO blob_integrity_quarantine(store_kind,provider,object_key,reason,expected_byte_size,
+    operation_id,detected_at,last_checked_at)
+    VALUES('r2','r2','legacy/project','missing',4,'old-copy-source',?,?)`).run(NOW, NOW);
+  const input = { sourceContentId: "content", contentId: "copied-content", itemId: "copied-item", placementId: "copied-placement",
+    caption: null, sourceUrl: null, geometry: { x: 0, y: 0, width: 320, height: 180, zIndex: 1 },
+    operationId: "copy-relocated-file", expectedProjectRevision: 2 };
+  const copied = await copyAttachmentProjectItem(env.DB, "project", input, "operator", NOW);
+  expect(copied.replayed).toBe(false);
+  expect(sql.prepare("SELECT file_id FROM project_content_attachments WHERE project_content_id='copied-content'").get())
+    .toEqual({ file_id: "project-file" });
+  sql.prepare(`INSERT INTO file_location_integrity_quarantine(location_id,reason,expected_byte_size,
+    expected_sha256,operation_id,detected_at,last_checked_at)
+    VALUES('project-location','missing',4,?,'current-copy-source',?,?)`).run(SHA, NOW, NOW);
+  await expect(copyAttachmentProjectItem(env.DB, "project", { ...input, contentId: "blocked-content", itemId: "blocked-item",
+    placementId: "blocked-placement", operationId: "blocked-copy", expectedProjectRevision: copied.project.revision }, "operator", NOW))
+    .rejects.toMatchObject({ code: "conflict" });
+  expect(sql.prepare("SELECT id FROM project_items WHERE id='blocked-item'").get()).toBeUndefined();
 });
 
 it("serves an existing asset URL through its typed File and rejects an unbound legacy key", async () => {

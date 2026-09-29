@@ -93,11 +93,11 @@ describe("0012 native runtime guards (active cases simulate future cutover)", ()
     }
     const state = () => ["file_authority_control", "storage_profile_runtime", "file_shadow_control"]
       .map(table => sql.prepare(`SELECT * FROM ${table}`).all());
-    const before = state(), control = sql.prepare("SELECT sql FROM sqlite_schema WHERE name='file_authority_control_update_guard'").get()!.sql;
+    const before = state();
     sql.exec("BEGIN"); sql.exec(readFileSync(migrationPath, "utf8")); sql.exec("COMMIT");
     expect(state()).toEqual(before);
-    expect(sql.prepare("SELECT sql FROM sqlite_schema WHERE name='file_authority_control_update_guard'").get()!.sql).toBe(control);
-    expect(() => sql.exec("UPDATE file_authority_control SET mode='active'")).toThrow(/activation remains unavailable/);
+    expect(() => sql.exec("UPDATE file_authority_control SET mode='active'")).toThrow(/fresh complete activation checkpoint/);
+    expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   });
 
@@ -184,5 +184,16 @@ describe("0012 native runtime guards (active cases simulate future cutover)", ()
     insert.run("bound-event", r.objectKey, published.candidate.fileId, f.now);
     expect(f.sql.prepare("SELECT asset_key,asset_file_id FROM events").all())
       .toEqual([{ asset_key: r.objectKey, asset_file_id: published.candidate.fileId }]);
+  });
+  it("fences the previous executor after local admission changes even when its receipt remains pending", async () => {
+    const f = fixture(), r = await receipt(f), candidate = await stage(f, r), publication = await verify(f, r, candidate);
+    f.sql.exec("UPDATE file_authority_runtime_guard SET enabled=0");
+    f.sql.prepare("UPDATE file_authority_runtime_guard SET enabled=1,incarnation=?,updated_at=?")
+      .run(crypto.randomUUID(), new Date().toISOString());
+    await expect(f.db.batch([...publication.statements, alias(f, r), ready(f, r)])).rejects.toThrow();
+    await expect(verify(f, r, candidate)).rejects.toThrow();
+    expect(f.write).toHaveBeenCalledOnce();
+    expect(f.sql.prepare("SELECT state FROM file_acceptance_candidates").get()!.state).toBe("candidate");
+    expect(f.sql.prepare("SELECT count(*) n FROM file_publications").get()!.n).toBe(0);
   });
 });

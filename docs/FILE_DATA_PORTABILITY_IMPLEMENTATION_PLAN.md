@@ -59,9 +59,11 @@ must capture and validate its own fresh transactional cutoff. The
 [basic Storage Settings](./FP1_STORAGE_SETTINGS.md) status-only subset shipped
 in #234 without provider activity or configuration mutation. Draft #236 now
 implements [File runtime reads, accepted writes and lifecycle support](./FP1_FILE_AUTHORITY_RUNTIME.md),
-with `0012` database admission rules and V18 recovery. It leaves authority in
-overlap; atomic activation and the role-default change remain open. FP1 is
-incomplete until these paths can switch together.
+with `0012` database admission rules and V18 recovery. It also implements
+binding-preserving deletion/restore, owned import recovery, atomic activation
+and separate recovered-installation execution admission. Deployment leaves
+authority in overlap; the live activation and role-default change remain open.
+FP1 is incomplete until the switch and new R2-original behavior are accepted.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).

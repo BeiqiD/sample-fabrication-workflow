@@ -5,15 +5,15 @@ import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import { FILE_SHADOW_SLOT_KEYS } from "../shared/contracts/file-shadow-schema";
 import { FILE_SHADOW_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-shadow";
+import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-runtime";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
 // underscore-prefixed tables: a new application table must enter the export.
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
-// Hidden rowids are local physical identities. This derived guard table is
-// validated inside the V18 snapshot and rebuilt from restored registry rows;
-// serializing its host-specific rowids would make an archive less portable.
-const REBUILDABLE_TABLES = new Set<string>(FILE_SHADOW_REBUILDABLE_TABLE_NAMES);
+// Hidden rowid claims are rebuilt from restored registry rows. Execution gates
+// are installation-local and rebuilt disabled; neither belongs in portable rows.
+const REBUILDABLE_TABLES = new Set<string>([...FILE_SHADOW_REBUILDABLE_TABLE_NAMES, ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES]);
 
 // This time-dependent projection is part of the archive contract in addition to
 // its source tables. Other views are rebuildable only after an explicit decision
@@ -35,6 +35,8 @@ const REBUILDABLE_VIEWS = new Set([
   // Time-dependent executor fences are rebuilt over canonical accepted receipts;
   // they are not portable authority or evidence of a live lease.
   "file_authority_pending_receipt_items", "file_authority_pending_candidates", "file_authority_usable_candidate_results", "file_authority_ready_candidate_aliases",
+  // Recomputed from current shadow heads and usable File publications at cutoff.
+  "file_authority_activation_bindings",
   // Current source and namespace evidence are exact deterministic projections.
   ...FILE_SHADOW_SLOT_KEYS.map(([kind, slot]) => `file_shadow_sources_${kind}_${slot}`),
   "file_shadow_sources_relational", "file_shadow_sources_content", "file_shadow_sources_direct",

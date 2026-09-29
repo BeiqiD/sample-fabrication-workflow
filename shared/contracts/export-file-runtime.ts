@@ -6,7 +6,9 @@ import { validateFileShadowWithdrawalRows } from "./export-file-shadow-withdrawa
 import { validateFileShadowAdjudicationRows } from "./export-file-shadow-adjudications";
 
 /** Independent V18 checkpoint; older generation fingerprints remain frozen. */
-export const FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 = "09758b2f8cc97faa073c679b62e866b95ca470abf8e9f49f176287624dafa489";
+export const FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 = "118ecb102a7eca186f64c0ca8e66128e3842e29b75237a1c39f71e503e56415c";
+/** Installation-local execution admission is rebuilt disabled, never portable. */
+export const FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES = ["file_authority_runtime_guard"] as const;
 function ensure(value: unknown, reason: string): asserts value {
   if (!value) throw new Error(`Full export rejected: invalid File runtime ${reason}`);
 }

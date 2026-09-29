@@ -1,3 +1,4 @@
+import { fileAuthorityActiveSql, prepareFileRestoration } from "../files/business-lifecycle";
 import type {
   CreateAttachmentProjectItemInput,
   CreateMarkdownProjectItemInput,
@@ -897,16 +898,16 @@ async function readAttachmentBlobRecord(
       SELECT a.id, a.original_name, a.mime_type, a.byte_size
       FROM assets a
       WHERE a.id = ? AND a.status = 'ready'
-        AND NOT EXISTS (
+        AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
           SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-        )
-        AND NOT EXISTS (
+        ))
+        AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
             AND biq.object_key = a.r2_key
-        )
+        ))
         AND (
           a.import_id IS NULL
           OR EXISTS (
@@ -924,16 +925,16 @@ async function readAttachmentBlobRecord(
     SELECT mso.id, mso.original_name, mso.mime_type, mso.byte_size
     FROM managed_storage_objects mso
     WHERE mso.id = ? AND mso.status IN ('ready', 'orphaned')
-      AND NOT EXISTS (
+      AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
         SELECT 1 FROM blob_gc_ledger bg
         WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
           AND bg.object_key = mso.object_key AND bg.state IN ('deleting', 'deleted')
-      )
-      AND NOT EXISTS (
+      ))
+      AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
         SELECT 1 FROM blob_integrity_quarantine biq
         WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
           AND biq.object_key = mso.object_key
-      )
+      ))
     LIMIT 1
   `).bind(input.locator.storageObjectId).first<BlobRecordRow>();
   if (!row) throw new ProjectServiceError("blob_unavailable", "The selected managed file is unavailable");
@@ -1479,7 +1480,9 @@ export async function restoreProjectItem(
     input.operationId,
   ));
 
-  const results = await db.batch(statements);
+  const fences = current.content?.content_type === "attachment"
+    ? await prepareFileRestoration(db, "project_attachment", [current.content.id]) : [];
+  const results = (await db.batch([...fences, ...statements])).slice(fences.length);
   if (!resultChanges(results.at(-1))) conflict("Item or content revision conflict");
   if (current.content && !resultChanges(results[0])) {
     throw new Error("Owned content restore did not accompany item restore");

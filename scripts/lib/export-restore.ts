@@ -1,4 +1,4 @@
-import { FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
+import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
 import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
 import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../../shared/contracts/file-shadow-adjudication";
 import { FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-withdrawals";
@@ -39,7 +39,8 @@ const EXPORTED_VIEWS = [...new Set([
   ...FILE_SHADOW_EXPORTED_VIEWS,
 ])];
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
-const REBUILDABLE_TABLES = new Set<string>([...FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES, ...FILE_SHADOW_REBUILDABLE_TABLE_NAMES]);
+const REBUILDABLE_TABLES = new Set<string>([...FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES, ...FILE_SHADOW_REBUILDABLE_TABLE_NAMES,
+  ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES]);
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
 const MAX_ENTRY_BYTES = 64 * 1024 * 1024;
@@ -206,6 +207,14 @@ function ensureShadowExecutionSuspended(database: DatabaseSync) {
     "Restored shadow execution must remain suspended");
   ensure(database.prepare("SELECT COUNT(*) AS count FROM file_shadow_runtime_incarnations").get()?.count === 0,
     "Restored shadow runtime incarnation history must be local and empty");
+  return true;
+}
+
+function ensureAuthorityExecutionSuspended(database: DatabaseSync) {
+  if (!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='file_authority_runtime_guard'").get()) return false;
+  const rows = database.prepare("SELECT singleton, incarnation, enabled FROM file_authority_runtime_guard").all();
+  ensure(rows.length === 1 && rows[0].singleton === 1 && rows[0].incarnation === null && rows[0].enabled === 0,
+    "Restored File authority execution must remain suspended");
   return true;
 }
 
@@ -464,6 +473,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       }
       derivedTablesRebuilt = rebuildFileRegistryRowidClaims(database);
       ensureShadowExecutionSuspended(database);
+      ensureAuthorityExecutionSuspended(database);
       for (const trigger of triggers) database.exec(trigger.sql);
       ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Restored database foreign-key check failed");
       ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Restored database integrity check failed");
@@ -663,6 +673,7 @@ export async function restoreExportToIsolatedDirectory(options: {
         database.exec("COMMIT");
       } catch (error) { database.exec("ROLLBACK"); throw error; }
     }
+    const authorityExecutionSuspended = ensureAuthorityExecutionSuspended(database);
     const report = {
       kind: "isolated-versioned-export-rehearsal", schemaVersion: manifest.schemaVersion,
       targetCompatibilitySchema,
@@ -679,6 +690,9 @@ export async function restoreExportToIsolatedDirectory(options: {
       restoredBlobCount: providerEntries.filter((entry) => entry.path !== null).length,
       databasePath: "database.sqlite", providerManifestPath: "provider-manifest.json",
       warnings, packagedWithoutRecordedHash: missingHashes, expiredRetentionEdges: expiredEdges,
+      ...(authorityExecutionSuspended ? { authorityRecovery: { providerIO: false, runtimeExecutionEnabled: false,
+        unfinishedOperationsResumed: false, installationAdmissionRequired: true,
+        recordedAuthorityMode: database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode } } : {}),
       ...(ensureShadowExecutionSuspended(database) ? { shadowRecovery: { providerIO: false, runtimeExecutionEnabled: false,
         unfinishedOperationsResumed: false, authorityActivationPerformed: false,
         recordedAuthorityMode: database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode,

@@ -16,6 +16,8 @@ export function enableFutureFileAuthority(sql: DatabaseSync, now = new Date().to
   try {
     sql.exec("DROP TRIGGER file_authority_control_update_guard");
     sql.prepare("UPDATE file_authority_control SET mode='active',updated_at=?").run(now);
+    sql.prepare("UPDATE file_authority_runtime_guard SET incarnation=?,enabled=1,enabled_by='runtime-test',updated_at=? WHERE singleton=1")
+      .run(crypto.randomUUID(), now);
     sql.exec(String(control!.sql));
     assert.equal(sql.prepare("SELECT sql FROM sqlite_schema WHERE name='file_authority_control_update_guard'").get()!.sql, control!.sql);
     sql.exec("COMMIT");

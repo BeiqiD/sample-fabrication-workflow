@@ -137,7 +137,7 @@ const workerSource = `
 import { Hono } from "hono";
 import { routes } from "./worker/comment-submission-routes.ts";
 import { handleError } from "./worker/platform/http.ts";
-import { snapshotFullExportV17 } from "./worker/export-v17-snapshot.ts";
+import { snapshotFullExportV18 } from "./worker/export-v18-snapshot.ts";
 import { closeExpiredRetryWindows } from "./worker/evidence/retry-maintenance.ts";
 const app = new Hono().basePath("/api"); app.onError(handleError);
 app.use("*", async (c, next) => { c.set("userEmail", c.req.header("X-Fixture-Actor") || "owner@example.com"); await next(); });
@@ -158,7 +158,7 @@ export default { async fetch(request, env, ctx) {
     }
     let deletion = null;
     if (deleted) deletion = await call("${submissionId}", "DELETE", "");
-    const before = (await snapshotFullExportV17(rawDb)).tables;
+    const before = (await snapshotFullExportV18(rawDb)).tables;
     const accepted = await rawDb.prepare("SELECT request_input_json FROM comment_submission_acceptances WHERE submission_id = ?").bind("${submissionId}").first();
     const observed = await call("${submissionId}", "GET", "/acceptance");
     const pending = await call("restored-pending-request", "GET", "/acceptance");
@@ -168,7 +168,7 @@ export default { async fetch(request, env, ctx) {
     const upload = await call("${submissionId}", "PUT", "/items/" + file.id + "/content", repeatedStream(file.byteSize), { "Content-Type": file.mimeType, "X-Upload-Size": String(file.byteSize), "X-Content-Sha256": file.sha256 });
     const finalize = await call("${submissionId}", "POST", "/finalize");
     const legacyPut = await call("legacy-pending-comment", "PUT", "/items/legacy-pending-item/content", new TextEncoder().encode("old!"), { "Content-Type": "image/png", "X-Upload-Size": "4", "X-Content-Sha256": "${hash('old!')}" });
-    return Response.json({ observed, pending, legacy, create, upload, finalize, legacyPut, deletion, puts, before, after: (await snapshotFullExportV17(rawDb)).tables });
+    return Response.json({ observed, pending, legacy, create, upload, finalize, legacyPut, deletion, puts, before, after: (await snapshotFullExportV18(rawDb)).tables });
   }
   const stats = { puts: [], gets: [], heads: [], deletes: [], webdav: [], acceptanceBeforePut: [], sessions: [],
     createAttempts: 0, claimAttempts: 0, lostCreate: 0, lostClaim: 0, lostProvider: 0, lostItem: 0, lostFinalize: 0, cleanupFailures: 0 };
@@ -398,7 +398,7 @@ export default { async fetch(request, env, ctx) {
       const current = await rawDb.prepare("SELECT updated_at FROM samples WHERE id = 'native-sample'").first();
       const pending = await create({ input: { ...input, id: "restored-pending-request", context: { ...context, expectedUpdatedAt: current.updated_at }, items: [{ ...imageItem, id: "restored-pending-image" }] } });
       if (pending.status !== 201) throw new Error("Native pending recovery fixture was not accepted: " + JSON.stringify(pending));
-      archived = await snapshotFullExportV17(rawDb);
+      archived = await snapshotFullExportV18(rawDb);
     }
     return Response.json({ input, before, missing, created, afterCreate, creationConflicts, otherCreate, invalidInputs, afterInvalid, uploaded, afterUpload, interference,
       finalized, afterFirst, firstIo, replayBefore, state, otherActor, retriedCreate, retriedUpload, retriedFinalize, afterRetry, retryIo, stats,
@@ -447,9 +447,9 @@ async function qualifySqlGuards(db, fixture) {
 }
 async function qualifyRestore(mf, scratch, fixture) {
   const modulePath = join(scratch, "restore-qualification.mjs");
-  await writeFile(modulePath, await bundle(`export { snapshotFullExportV17 } from './worker/export-v17-snapshot.ts'; export { buildFullExportArchiveV17 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`, "node"));
+  await writeFile(modulePath, await bundle(`export { snapshotFullExportV18 } from './worker/export-v18-snapshot.ts'; export { buildFullExportArchiveV18 } from './src/lib/exportAll.ts'; export { restoreExportToIsolatedDirectory } from './scripts/lib/export-restore.ts';`, "node"));
   const service = await import(pathToFileURL(modulePath).href); const byUrl = new Map(fixture.archive.blobs.map((blob) => [blob.downloadUrl, blob]));
-  const archive = await service.buildFullExportArchiveV17(fixture.archive, undefined, async (url) => {
+  const archive = await service.buildFullExportArchiveV18(fixture.archive, undefined, async (url) => {
     const blob = byUrl.get(String(url)); const stored = blob && await (await mf.getR2Bucket("BUCKET")).get(blob.objectKey);
     return stored ? new Response(await stored.arrayBuffer()) : new Response(null, { status: 404 });
   });
@@ -462,7 +462,7 @@ async function qualifyRestore(mf, scratch, fixture) {
   assert(restored.report.restoredBlobCount > 0); const recovered = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
   try {
     assertLegacyFileAuthority(recovered);
-    const snapshot = await service.snapshotFullExportV17(hostAdapter(recovered)); assert.deepEqual(snapshot.tables, fixture.archive.tables);
+    const snapshot = await service.snapshotFullExportV18(hostAdapter(recovered)); assert.deepEqual(snapshot.tables, fixture.archive.tables);
     assert.equal(snapshot.tables[parentTable].length, 2); assert.equal(snapshot.tables[itemTable].length, 2);
     const providerManifest = JSON.parse(await readFile(join(restored.restoredDirectory, "provider-manifest.json"), "utf8"));
     const restoredBucket = await mf.getR2Bucket("RESTORED_BUCKET");
@@ -511,7 +511,7 @@ test("Comment acceptance upgrades populated legacy Comment history without chang
   finally { host.close(); }
 });
 // One parent budget covers 40 sequential scenarios, their independent schemas,
-// SQL guard checks and the final V17 restore rehearsal.
+// SQL guard checks and the final V18 restore rehearsal.
 test("durable Comment publication qualifies on real workerd/D1/R2 and the production WebDAV adapter", { timeout: 450_000 }, async (t) => {
   const mf = new Miniflare({ modules: true, script: await bundle(workerSource), compatibilityDate: "2026-07-20",
     r2Buckets: ["BUCKET", "RESTORED_BUCKET"], d1Databases: [...Object.values(bindings), "DB_GUARDS", "DB_RESTORED"], log: new Log(LogLevel.ERROR) });
@@ -621,6 +621,6 @@ test("durable Comment publication qualifies on real workerd/D1/R2 and the produc
       for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
       await db.prepare("PRAGMA recursive_triggers=OFF").run(); await qualifySqlGuards(db, replayFixture);
     });
-    await t.test("V17 isolated restore preserves acceptance history and legacy File authority without executing uploads", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
+    await t.test("V18 isolated restore preserves acceptance history and legacy File authority without executing uploads", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });
   } finally { await mf.dispose(); await rm(scratch, { recursive: true, force: true }); }
 });

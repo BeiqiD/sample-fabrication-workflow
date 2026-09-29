@@ -40,6 +40,40 @@ After registration grace, terminal receipts can release unpublished candidates;
 unretained ready Files retire before the existing orphan grace starts. Expired
 but still pending requests and missing receipts remain retained.
 
+Business deletion changes visibility while preserving immutable File bindings
+and compatibility aliases. Restoring an attachment checks that exact File's
+usable publication in the restoration transaction. Project copies, Template
+clones and Sample state copies retain their typed identities; active availability
+comes from the File instead of the old physical locator. Tombstoned event images
+and previews remain hidden in API responses.
+Explicit event/evidence removal releases its retention edges; durable Comment,
+Project and metrology trash keeps its existing retention policy. Shadow and
+accepted-receipt holds remain part of the shared retention surface.
+
+Active import recovery terminalizes the original accepted operation and
+quarantines its private template metadata. It performs no provider I/O, global
+hash replacement or alias transfer. A finalization that already committed keeps
+its original result; unpublished candidates remain until ordinary File GC grace.
+
+## Activation and installation admission
+
+The operator-only authority endpoint captures a fresh shadow checkpoint and
+switches authority in one database transaction. Its native guards require the
+complete current occurrence set to have usable resolved Files, unchanged source
+generations, no unfinished writers/recovery or candidates, paused shadow
+conversions and no deleting legacy claims. Unexpired legacy upload receipts
+must already have an exact usable conversion before switching. Within one D1
+batch, the checkpoint authorizes typed binding staging while authority remains
+overlap; the final guarded mode change enables local File execution. A failed binding or stale cutoff rolls back the
+checkpoint and the complete switch. Replaying the same request reads its result.
+
+Installation execution permission is separate from archived authority. New
+candidate publication and File GC capture and recheck the local incarnation;
+an older executor cannot commit through a later admission. Authenticated reads
+and export remain available when execution is paused. Recovered installations
+require explicit operator admission after stopping the previous installation;
+restoring an archive never authorizes writes or cleanup by itself.
+
 ## Archive and deployment boundary
 
 V18 (`fp1-file-runtime`) pins the `0012` schema and preserves accepted candidates,
@@ -48,18 +82,13 @@ profiles and fingerprints remain frozen; V7–V17 can upgrade during isolated
 recovery. Deployment-only cleanup `0011` is still excluded from historical
 restore. Recovery performs no provider I/O and leaves shadow execution paused;
 preserving an archived active mode does not by itself authorize a recovered
-installation to start accepting writes.
+installation to start accepting writes. Both installation execution guards are
+rebuilt disabled and excluded from canonical archive tables.
 
-The draft is not an activation release. Its tests simulate active mode only in
-isolated databases while retaining the real publication and business guards.
-The installed control guard still rejects overlap-to-active changes. Activation
-must include a fresh cutoff, usable typed bindings, completed legacy writers and
-drained legacy deleting claims; a prior zero-pending observation is insufficient.
-Remaining recovery and compatibility paths must be covered before this guard
-is opened. In particular, existing business deletion routes that clear asset
-locators need an active-mode tombstone/restore path preserving immutable File
-bindings, and import recovery must preserve the new candidate ownership.
-R2 role defaults follow that switch; configurable S3 remains later work.
+Deploying this migration leaves the current mode unchanged. Activation remains
+a separate operator operation after required CI and deployment acceptance;
+the earlier zero-pending observation is not its cutoff. R2 original-file role
+defaults follow that switch; configurable S3 remains later work.
 
 The already accepted live V17 ZIP is not repeatedly rechecked during this draft.
 V18 has focused schema/metadata and byte round-trip tests. Its actual deployment

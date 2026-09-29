@@ -67,6 +67,44 @@ it("binds ordinary records, execution images, comments and verification to the a
     expect(sql.prepare("SELECT evidence_file_id FROM state_verifications").all()).toEqual([{ evidence_file_id: fileId }]);
     expect(sql.prepare("SELECT asset_file_id FROM events WHERE asset_key IS NOT NULL").all())
       .toEqual(Array.from({ length: 5 }, () => ({ asset_file_id: fileId })));
+    const sampleRecord = String(sql.prepare("SELECT id FROM events WHERE json_extract(metadata_json,'$.action')='sample_record'").get()!.id);
+    const commentId = String(sql.prepare("SELECT id FROM run_step_comments").get()!.id);
+    const verificationEvent = String(sql.prepare("SELECT id FROM events WHERE kind='verification'").get()!.id);
+    const remove = async (path: string, body: unknown = {}) => {
+      const response = await request(path, "DELETE", body);
+      expect(response.status, await response.clone().text()).toBe(200);
+    };
+    const restore = async (path: string, body: unknown = {}) => {
+      const response = await request(path, "POST", body);
+      expect(response.status, await response.clone().text()).toBe(200);
+    };
+    await remove(`/samples/sample/events/${sampleRecord}/asset`);
+    expect((await request(`/samples/sample/events/${sampleRecord}/asset`, "DELETE", {})).status).toBe(409);
+    expect(sql.prepare("SELECT asset_key,asset_file_id FROM events WHERE id=?").get(sampleRecord))
+      .toEqual({ asset_key: assetKey, asset_file_id: fileId });
+    const detailResponse = await worker.fetch(new Request("https://app.test/api/samples/sample"), env, context);
+    const detail = await detailResponse.json() as { events: { id: string; assetKey: string | null }[] };
+    expect(detail.events.find(event => event.id === sampleRecord)!.assetKey).toBeNull();
+    await remove(`/samples/sample/records/${sampleRecord}`);
+    const executionPath = "/samples/sample/runs/run/steps/step/assets";
+    await remove(executionPath, { assetKey });
+    await restore(`${executionPath}/restore`, { assetKey });
+    expect(sql.prepare("SELECT asset_file_id FROM events WHERE json_extract(metadata_json,'$.action')='execution_attachment_restored'").get())
+      .toEqual({ asset_file_id: fileId });
+    await remove(`/run-step-comments/${commentId}/asset`);
+    await restore(`/run-step-comments/${commentId}/asset/restore`);
+    await remove(`/run-step-comments/${commentId}`);
+    await restore(`/run-step-comments/${commentId}/restore`);
+    await remove(`/samples/sample/events/${verificationEvent}/asset`);
+    expect(sql.prepare("SELECT evidence_asset_id,evidence_file_id FROM state_verifications").get())
+      .toEqual({ evidence_asset_id: assetId, evidence_file_id: fileId });
+    // Restoration cannot revive an occurrence whose exact File is unavailable.
+    await remove(executionPath, { assetKey });
+    sql.prepare(`INSERT INTO file_location_integrity_quarantine(location_id,reason,expected_byte_size,expected_sha256,operation_id,detected_at,last_checked_at)
+      SELECT active_location_id,'missing',verified_byte_size,verified_sha256,'restore-unavailable',?,? FROM file_publications WHERE file_id=?`)
+      .run(now, now, fileId);
+    expect((await request(`${executionPath}/restore`, "POST", { assetKey })).status).toBe(409);
+    expect(sql.prepare("SELECT deleted_at FROM run_step_assets WHERE run_step_id='step'").get()!.deleted_at).not.toBeNull();
     expect(sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   } finally { sql.close(); }
-});
+}, 15_000);

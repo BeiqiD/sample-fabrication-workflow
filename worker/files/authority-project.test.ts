@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { futureActiveRuntimeDatabase } from "./authority-runtime-test-support";
 import { SqliteD1Database } from "../reference-test-support";
 import { acceptAndUploadR2Asset } from "../uploads/r2-upload-acceptance";
-import { createAttachmentProjectItem, createProject } from "../projects/service";
+import { createAttachmentProjectItem, createProject, removeProjectItem, restoreProjectItem } from "../projects/service";
 import { copyAttachmentProjectItem } from "../projects/attachment-copy";
 import type { Env } from "../types";
 
@@ -45,5 +45,14 @@ it("binds an accepted Project upload and its authorized copy to the same publish
   const fileId = sql.prepare("SELECT result_file_id FROM file_acceptance_candidates").get()!.result_file_id;
   expect(sql.prepare("SELECT file_id FROM project_content_attachments ORDER BY project_content_id").all())
     .toEqual([{ file_id: fileId }, { file_id: fileId }]);
+  await removeProjectItem(db, "active-project", "source-item", {
+    expectedItemRevision: 1, expectedContentRevision: 1, operationId: "remove-source",
+  }, actor);
+  const restored = await restoreProjectItem(db, "active-project", "source-item", {
+    expectedItemRevision: 2, expectedContentRevision: 2, operationId: "restore-source",
+  }, actor);
+  expect(restored.item.deletedAt).toBeNull();
+  expect(sql.prepare("SELECT file_id FROM project_content_attachments WHERE project_content_id='source-content'").get())
+    .toEqual({ file_id: fileId });
   expect(put).toHaveBeenCalledOnce();
 });

@@ -1,3 +1,4 @@
+import { fileAuthorityActiveSql, prepareFileRestoration } from "../files/business-lifecycle";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type {
@@ -546,7 +547,8 @@ routes.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
 routes.post("/metrology-templates/:id/references/:referenceId/restore", async (c) => {
   const { id, referenceId } = c.req.param();
   await requirePublishedTemplateVersion(c.env.DB, id);
-  const result = await c.env.DB.prepare(
+  const fences = await prepareFileRestoration(c.env.DB, "metrology_reference", [referenceId]);
+  const results = await c.env.DB.batch([...fences, c.env.DB.prepare(
     `UPDATE metrology_template_references
      SET deleted_at = NULL, deleted_by = NULL
      WHERE id = ? AND template_version_id = ? AND deleted_at IS NOT NULL
@@ -556,12 +558,14 @@ routes.post("/metrology-templates/:id/references/:referenceId/restore", async (c
          WHERE id = ? AND template_kind = 'metrology'
            AND archived_at IS NULL AND deleted_at IS NULL
        )`,
-  ).bind(referenceId, id, id).run();
+  ).bind(referenceId, id, id)]);
+  const result = results[fences.length];
   if (!result.meta.changes) throw new HTTPException(404, { message: "Deleted template reference not found" });
   return c.json({ ok: true });
 });
 
 routes.post("/templates/:id/clone", async (c) => {
+  const active = await fileAuthorityActiveSql(c.env.DB) === "1";
   const sourceId = c.req.param("id");
   const [source, steps] = await Promise.all([
     c.env.DB.prepare(
@@ -584,10 +588,10 @@ routes.post("/templates/:id/clone", async (c) => {
     c.env.DB.prepare(
       `INSERT INTO template_versions
         (id, recipe_family_id, name, template_type, template_kind, version, manifest_hash, initial_state_hash,
-         source_filename, source_asset_key, content_json, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         source_filename, source_asset_key${active ? ", source_file_id" : ""}, content_json, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?${active ? ", ?" : ""}, ?, ?, ?)`,
     ).bind(id, source.recipe_family_id, source.name, source.template_type, source.template_kind, version, source.manifest_hash,
-      source.initial_state_hash, source.source_filename, source.source_asset_key, source.content_json, userEmail, now),
+      source.initial_state_hash, source.source_filename, source.source_asset_key, ...(active ? [source.source_file_id] : []), source.content_json, userEmail, now),
     ...bulkInsertStatements(c.env.DB, "template_steps",
       ["id", "template_version_id", "logical_step_key", "position", "source_row", "step_number", "section_name", "definition_hash", "expected_state_hash", "raw_json"],
       steps.results.map((step) => [stepIds.get(String(step.id)), id, step.logical_step_key, step.position,
@@ -728,11 +732,11 @@ routes.post("/templates/:id/steps", async (c) => {
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
          AND ${publishedAssetSql("a")}
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
+         ))`,
     ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
   if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
@@ -798,11 +802,11 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
     input.assetKey ? c.env.DB.prepare(
       `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
          AND ${publishedAssetSql("a")}
-         AND NOT EXISTS (
+         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
            SELECT 1 FROM blob_gc_ledger bg
            WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
              AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         )`,
+         ))`,
     ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
   ]);
   if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });

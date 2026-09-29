@@ -141,7 +141,11 @@ function sourceAuthorizedBindingStatement(
         AND source_item.deleted_at IS NULL
         AND a.status = 'ready'
         AND (a.import_id IS NULL OR (i.id IS NOT NULL AND i.status = 'ready'))
-        AND NOT EXISTS (
+        AND ${active ? `EXISTS (
+          SELECT 1 FROM file_usable_publications fp
+          WHERE fp.file_id = pca.file_id AND fp.purpose = 'research_source'
+            AND fp.access_scope = 'system'
+        )` : `NOT EXISTS (
           SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
             AND bg.object_key = a.r2_key
@@ -151,7 +155,7 @@ function sourceAuthorizedBindingStatement(
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'r2' AND biq.provider = 'r2'
             AND biq.object_key = a.r2_key
-        )
+        )`}
 
       UNION ALL
 
@@ -178,7 +182,11 @@ function sourceAuthorizedBindingStatement(
         AND pc.deleted_at IS NULL
         AND source_item.deleted_at IS NULL
         AND mso.status IN ('ready', 'orphaned')
-        AND NOT EXISTS (
+        AND ${active ? `EXISTS (
+          SELECT 1 FROM file_usable_publications fp
+          WHERE fp.file_id = pca.file_id AND fp.purpose = 'research_source'
+            AND fp.access_scope = 'system'
+        )` : `NOT EXISTS (
           SELECT 1 FROM blob_gc_ledger bg
           WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
             AND bg.object_key = mso.object_key
@@ -188,7 +196,7 @@ function sourceAuthorizedBindingStatement(
           SELECT 1 FROM blob_integrity_quarantine biq
           WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
             AND biq.object_key = mso.object_key
-        )
+        )`}
     ) source
     LIMIT 1
     RETURNING project_content_id
