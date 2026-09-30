@@ -1,5 +1,15 @@
 # S2 activation checkpoint — 2026-09-13
 
+Latest File milestone: #236 deployed integration commit `3a3877f7` as Worker
+version `e978df09-edee-470a-8a40-1190da801d6a`. The deployed V18 archive passed
+its single isolated recovery with 13/13 packaged files and zero warnings.
+On 2026-09-30 the operator explicitly activated File authority; the maintenance
+page confirmed Active, execution Enabled and 4/4 resolved references. Runtime
+Access/operator values remain managed in Cloudflare, outside repository config.
+R2 role defaults follow in a separate forward schema/profile slice. Historical
+reset and temporary-control notes below describe their dated checkpoints; they
+do not authorize another reset or represent the latest File execution state.
+
 Selected route: rebuild the existing disposable test D1 while retaining the
 Worker, database identity, R2, SWITCHdrive and all file bindings/configuration.
 The owner's current instruction supersedes the earlier new-resource proposal.

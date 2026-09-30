@@ -15,7 +15,7 @@ import { createUuid } from "../lib/uuid";
 import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
 import { commentUploadQueue } from "../lib/commentUploadQueue";
 import { isTiffFile, prepareCommentImage } from "../lib/images";
-import { useManagedStorageStatus } from "../lib/useManagedStorageStatus";
+import { useOriginalFileStorageStatus } from "../lib/useManagedStorageStatus";
 
 interface CommentComposerProps {
   label: string;
@@ -292,7 +292,7 @@ function CommentComposerSession({
   const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<AnchoredMenuPosition | null>(null);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [toolbarExpanded, setToolbarExpanded] = useState(false);
-  const { result: storageResult, checking: storageChecking, check: checkStorage } = useManagedStorageStatus();
+  const { result: storageResult, checking: storageChecking, check: checkStorage } = useOriginalFileStorageStatus();
   const [submissions, setSubmissions] = useState<LocalSubmission[]>([]);
   const submissionsRef = useRef(submissions);
   const imagesRef = useRef(images);

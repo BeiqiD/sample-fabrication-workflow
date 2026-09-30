@@ -2,13 +2,14 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-28 after accepted adjudication and export repairs
-(#231–#233); implementation base is `6df9e1b4`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-09-30 after deployed #236 and explicit File authority
+activation; implementation base is `3a3877f7`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
-full interactive acceptance remains broader than these cases. SWITCHdrive originals
-remain blocked by authentication; #206 adds diagnostics, not working credentials.
+full interactive acceptance remains broader than these cases. Historical
+SWITCHdrive read/write acceptance remains blocked by authentication; #206 adds
+diagnostics, not working credentials.
 The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) remains the
 source of operational evidence and temporary control state. Backend ownership and
 shared contracts are merged. Alternative Drafts #199/#200 remain inactive.
@@ -21,7 +22,7 @@ and hardens SWITCHdrive transport. [FP1c](./FP1_VERIFIED_BYTE_WRITES.md) verifie
 source/destination bytes for current ingestion and selected reused objects.
 [FP1d](./FP1_FENCED_BYTE_DELETION.md) supplies bound deletion adapters and fences
 GC retries while uncertain deletions remain claimed. Authoritative File
-publication remains open. Subsequent slices qualify independent recovery byte
+publication is delivered by #236. Subsequent slices qualified independent recovery byte
 verification, durable FabuBlox acceptance, the read-only consumer-conversion plan,
 [ordinary/Project upload acceptance](./FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md) and
 [metrology reference publication](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md).
@@ -30,7 +31,7 @@ original/preview upload ownership, cancellation fencing and atomic multi-target
 publication. FP1a–FP1j are merged through PR #219. The merged PR #220
 [FP1k additive transition substrate](./FP1_FILE_AUTHORITY_TRANSITION.md) adds
 migration `0007` and schema-14 recovery while keeping authority mode immutably
-`legacy`; runtime File authority, R2 defaults and Settings remain open. The
+`legacy`; it does not itself deliver runtime File authority or role defaults. The
 [preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) adds executable
 read-only inspection and qualification of four observed overlap protocol gaps.
 The merged and deployed [runtime implementation](./FP1_SHADOW_RUNTIME.md) adds all-13-slot
@@ -59,8 +60,12 @@ Its deployment and a fresh catch-up checkpoint replace further historical
 evidence work for these discarded fixtures. The [basic Storage Settings](./FP1_STORAGE_SETTINGS.md)
 read-only surface shipped in #234; it shows deployment configuration and
 registered profiles without changing destinations or checking providers.
-Complete catch-up and atomic cutover still precede File-authoritative defaults
-and configuration writes; archive or Settings acceptance does not replace them.
+The [File runtime](./FP1_FILE_AUTHORITY_RUNTIME.md) shipped in #236 with `0012`
+and V18. Its deployed ZIP passed one isolated recovery with 13/13 files and zero
+warnings. On 2026-09-30 the explicit operator command activated File authority;
+the maintenance page confirmed Active, execution Enabled and 4/4 resolved
+references. The [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md) now follows this
+cutover. Editable external configuration and secret administration remain FP2.
 FP1 is still in progress and no deployment is authorized by this document.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -100,7 +105,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | #221/#222 are merged; `0008`/V15 are deployed through #226. The V15 inspector explains current-generation conversion blockers while preserving frozen V14 inspection. Catch-up and invariant qualification precede separate atomic authority activation and R2 role defaults. Basic authenticated, read-only Storage Settings is delivered in parallel; configuration writes remain gated. FP2 adds external configuration, administrator/secret boundaries and S3. FP1 remains incomplete. |
+| 4 | FP1 → FP2: universal file foundation and configuration | #236's `0012`/V18 File runtime is deployed and authority is Active/Enabled with 4/4 resolved references. The next slice persists R2 defaults for both roles and completes original-file/status behavior. Basic authenticated, read-only Storage Settings is delivered; editable external configuration, administrator/secret boundaries and S3 remain FP2. FP1 remains incomplete until the role-default slice passes acceptance. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -948,17 +953,18 @@ Project-owned Markdown or attachment content only through explicit user action.
    facts and an explicitly configured operator. Basic read-only [Storage Settings](./FP1_STORAGE_SETTINGS.md) is
    delivered in parallel. Configuration writes and role defaults retain their
    later gates; this does not reopen general frontend refinement.
-3. Only after complete catch-up and invariant qualification, implement a separately
-   reviewed **File runtime and atomic authority activation** that fences old Workers and switches
-   reads, writes, retention, purpose-aware deduplication, quarantine, deletion and
-   recovery together. Compatibility retirement remains a later explicit step.
+3. Preserve separately reviewed **File runtime and atomic authority activation**
+   delivered in #236. Its deployed operator command switched reads, writes,
+   retention, purpose-aware reuse, quarantine, deletion and recovery together
+   on 2026-09-30. Compatibility retirement remains a later explicit step.
 4. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
    interactive/provider-specific acceptance. Keep #199/#200 inactive. No repeat reset or
    unreferenced-file cleanup follows from this plan. The activation checkpoint
    continues to own operator follow-up and temporary control restoration.
-5. Finish FP1 with explicit Cloudflare R2 defaults for both roles after activation;
-   basic authenticated, read-only storage status/Settings is delivered in
-   parallel. Then implement **FP2** external
+5. Finish FP1 with the [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md): persist
+   both defaults, retain accepted historical destinations, support unchanged
+   original bytes up to 100 MiB, and separate role availability from core
+   readiness. Basic read-only Storage Settings remains reachable. Then implement **FP2** external
    configuration, administrator and encrypted-secret boundaries, and S3 without
    requiring SWITCHdrive credentials for development.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented

@@ -134,3 +134,31 @@ it("preserves a configured-unavailable response and can refresh it after storage
   await waitFor(() => expect(attachmentInput(view.container).disabled).toBe(false));
   expect(status).toHaveBeenCalledTimes(2);
 });
+
+it("enables unchanged original attachments from the current R2 destination", async () => {
+  vi.spyOn(api, "getManagedStorageStatus").mockResolvedValue({
+    provider: "r2", available: true, authentication: "service_binding",
+    message: "Cloudflare R2 is connected. New original files are stored without modification.",
+  });
+  const view = render(composer("sample-a"));
+  await waitFor(() => expect(attachmentInput(view.container).disabled).toBe(false));
+  const original = new File([new Uint8Array(6 * 1024 * 1024)], "measurement.dat", { type: "application/octet-stream" });
+  fireEvent.change(attachmentInput(view.container), { target: { files: [original] } });
+  expect(screen.getByText("measurement.dat")).toBeTruthy();
+  expect(screen.queryByText(/Files larger than 100 MB/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+  expect((screen.getByRole("menuitem", { name: "Upload attachment" }) as HTMLButtonElement).disabled).toBe(false);
+  expect(screen.queryByRole("menuitem", { name: "Retry storage connection" })).toBeNull();
+});
+
+it("keeps processed images available while the R2 original-file status is unavailable", async () => {
+  vi.spyOn(api, "getManagedStorageStatus").mockResolvedValue({
+    provider: "r2", available: false, authentication: "service_binding", message: "Original file storage is unavailable.",
+  });
+  const view = render(composer("sample-a"));
+  fireEvent.click(screen.getByRole("button", { name: "Add attachment" }));
+  await screen.findByText("Original file storage is unavailable.");
+  expect(attachmentInput(view.container).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Add comment images" }) as HTMLButtonElement).disabled).toBe(false);
+  expect((screen.getByRole("menuitem", { name: "Add attachment link" }) as HTMLButtonElement).disabled).toBe(false);
+});

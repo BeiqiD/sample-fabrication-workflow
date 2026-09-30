@@ -44,7 +44,8 @@ export function StorageSettingsPage() {
 
       <section className="card storage-settings-section" aria-labelledby="storage-uploads-title">
         <h2 className="card-title" id="storage-uploads-title">Current uploads</h2>
-        <p className="muted">These are the destinations used by the existing upload workflows.</p>
+        <p className="muted">These destinations apply to new uploads. Existing files keep their recorded storage location.</p>
+        {status.roleDefaults.state === "pending_bootstrap" && <p className="muted">Cloudflare R2 is selected for new uploads. This choice will be saved with the first file upload.</p>}
         <div className="storage-upload-grid">
           <article className="storage-upload-destination"><h3>Images and Project attachments</h3>
             <p className="storage-destination-name">{providerName[status.uploadDestinations.ordinaryUploads]}</p>
@@ -52,10 +53,12 @@ export function StorageSettingsPage() {
             <p className="storage-configuration-note">{configurationText[status.bindings.r2.configuration]}</p>
           </article>
           <article className="storage-upload-destination"><h3>Original comment files</h3>
-            <p className="storage-destination-name">{status.uploadDestinations.commentOriginals === "switchdrive" ? providerName.switchdrive
+            <p className="storage-destination-name">{status.uploadDestinations.commentOriginals === "r2" ? providerName.r2
+              : status.uploadDestinations.commentOriginals === "switchdrive" ? providerName.switchdrive
               : status.uploadDestinations.commentOriginals === "unsupported" ? "Unsupported provider" : "Not configured"}</p>
-            <p className="muted">Original files attached to comments use the configured managed storage provider.</p>
-            <p className="storage-configuration-note">{configurationText[status.bindings.managed.configuration]}</p>
+            <p className="muted">Original files attached to comments are stored without modification, up to 100 MB per file.</p>
+            <p className="storage-configuration-note">{configurationText[status.uploadDestinations.commentOriginals === "r2"
+              ? status.bindings.r2.configuration : status.bindings.managed.configuration]}</p>
           </article>
         </div>
       </section>
@@ -63,12 +66,12 @@ export function StorageSettingsPage() {
       <section className="card storage-settings-section" aria-labelledby="storage-profiles-title">
         <div className="storage-section-heading"><h2 className="card-title" id="storage-profiles-title">Registered profiles</h2>
           <span className="section-count" aria-label={`${status.profiles.items.length} profiles shown`}>{status.profiles.items.length}</span></div>
-        <p className="muted">Profiles record storage identities and their recorded conversion access. Their access settings do not select the upload destinations above. A configuration match does not confirm connectivity.</p>
+        <p className="muted">Profiles record storage locations and their file access. A configuration match does not confirm connectivity.</p>
         {status.profiles.items.length === 0 ? <p className="muted">No storage profiles have been registered.</p> : <ul className="storage-profile-list">
           {status.profiles.items.map((profile) => <li key={profile.id}>
             <div className="storage-profile-heading"><h3><code>{profile.id}</code></h3><span>{providerName[profile.adapterType]}</span></div>
             <dl><div><dt>Configuration revision</dt><dd>{profile.configurationRevision}</dd></div>
-              <div><dt>File conversion access</dt><dd>{accessText[profile.runtimeAccess]}</dd></div>
+              <div><dt>File access</dt><dd>{accessText[profile.runtimeAccess]}</dd></div>
               <div><dt>Deployment match</dt><dd>{matchText[profile.bindingMatch]}</dd></div></dl>
           </li>)}
         </ul>}

@@ -142,7 +142,7 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
       const { archive, restored } = await roundtrip(manifest, f.fetcher, scratch);
       expect(archive.warnings).toEqual([]);
       expect(restored.report).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance",
-        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }], warnings: [],
+        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
@@ -150,6 +150,8 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
           const columns = (f.database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(({ name }) => `"${name}"`).join(", ");
           expect(database.prepare(`SELECT ${columns} FROM ${table} ORDER BY ${key}`).all()).toEqual(f.database.prepare(`SELECT * FROM ${table} ORDER BY ${key}`).all());
         }
+        expect(database.prepare("SELECT DISTINCT storage_role_policy_revision FROM comment_submission_acceptances").all()).toEqual([{ storage_role_policy_revision: 1 }]);
+        expect(database.prepare("SELECT * FROM storage_role_defaults").all()).toEqual([]);
         expect(() => database.exec("UPDATE comment_submission_acceptances SET request_sha256 = 'changed' WHERE submission_id = 'archive-comment-ready'")).toThrow();
         expect(() => database.exec("DELETE FROM comment_item_acceptances WHERE item_id = 'archive-image-ready'")).toThrow();
         expect(() => database.exec("INSERT INTO files (id, access_scope, state, created_at) VALUES ('illegal-ready', 'system', 'ready', '2026-09-14')")).toThrow();

@@ -1,29 +1,40 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../shared/content-addressing";
 import { acceptCommentSubmission, acceptCommentUpload, commentManagedFetch, COMMENT_TEST_R2_NAMESPACE } from "../comment-acceptance-test-support";
-import { futureActiveRuntimeDatabase } from "../files/authority-runtime-test-support";
+import { enableFutureFileAuthority, futureActiveRuntimeDatabase } from "../files/authority-runtime-test-support";
 import { managedBootstrapNamespace } from "../files/managed-bootstrap-profile";
-import { snapshotFullExportV18 } from "../export-v18-snapshot";
+import { snapshotFullExportV19 } from "../export-v19-snapshot";
 import worker from "../index";
-import { SqliteD1Database } from "../reference-test-support";
+import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import type { Env } from "../types";
 
 const databases: ReturnType<typeof futureActiveRuntimeDatabase>[] = [];
 const context = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); databases.splice(0).forEach(db => db.close()); });
 
-function fixture() {
+function fixture(active = true) {
   const config = { AUTH_MODE: "disabled", R2_BOOTSTRAP_NAMESPACE: COMMENT_TEST_R2_NAMESPACE,
     MANAGED_STORAGE_PROVIDER: "switchdrive", SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/user%40example.ch",
     SWITCHDRIVE_USERNAME: "user@example.ch", SWITCHDRIVE_APP_PASSWORD: "test-password" };
   const now = new Date().toISOString();
-  const sql = futureActiveRuntimeDatabase(db => {
+  const seed = (db: ReturnType<typeof referenceTestDatabase>) => {
     db.prepare("INSERT INTO storage_profiles VALUES('r2-profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(COMMENT_TEST_R2_NAMESPACE, now);
     db.prepare("INSERT INTO storage_profiles VALUES('managed-profile','switchdrive',?,'environment','environment:SWITCHDRIVE',1,'historical',?)")
       .run(managedBootstrapNamespace(config), now);
     for (const id of ["r2-profile", "managed-profile"]) db.prepare("INSERT INTO file_shadow_profile_enablements VALUES(?,1,'test',?)").run(id, now);
-  });
+  };
+  const sql = active ? futureActiveRuntimeDatabase(seed) : referenceTestDatabase();
+  if (!active) {
+    sql.exec("PRAGMA foreign_keys=ON");
+    sql.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'test',? FROM file_shadow_control").run(now);
+    seed(sql);
+  }
   databases.push(sql);
+  // Host stream equivalent. Native D1 qualification separately uses workerd's
+  // FixedLengthStream; the production writer still checks every emitted byte.
+  vi.stubGlobal("FixedLengthStream", class extends TransformStream<Uint8Array, Uint8Array> {
+    constructor(_byteSize: number) { super(); }
+  });
   sql.prepare("INSERT INTO samples(id,code,title,created_at,updated_at) VALUES('sample-upload','COMMENT','Comment uploads',?,?)").run(now, now);
   const objects = new Map<string, Uint8Array>();
   const put = vi.fn(async (key: string, body: BodyInit) => { objects.set(key, new Uint8Array(await new Response(body).arrayBuffer())); });
@@ -111,10 +122,10 @@ describe("active accepted Comment upload publication", () => {
         { id: "preview-item", related_item_id: "original-item", purpose: "derived_preview" }]);
     expect(f.sql.prepare("SELECT count(*) n FROM file_derivations").get()!.n).toBe(0);
     expect(f.sql.prepare("SELECT count(*) n FROM attachment_derivatives").get()!.n).toBe(0);
-    expect(f.put).toHaveBeenCalledTimes(1);
-    expect(f.managed.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(originalState === "uploaded" ? 1 : 0);
+    expect(f.put).toHaveBeenCalledTimes(originalState === "uploaded" ? 2 : 1);
+    expect(f.managed.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(0);
     expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
-    const manifest = await snapshotFullExportV18(f.env.DB);
+    const manifest = await snapshotFullExportV19(f.env.DB);
     expect(manifest.tables.comment_submission_items.filter(item => item.status === "ready").every(item => typeof item.file_id === "string")).toBe(true);
     expect(manifest.tables.file_derivations).toEqual([]);
   }, 15_000);
@@ -135,4 +146,72 @@ describe("active accepted Comment upload publication", () => {
     expect(f.sql.prepare("SELECT execution_token,status FROM comment_item_acceptances").get()).toEqual(receipt);
     expect(f.put).toHaveBeenCalledTimes(1);
   });
+  it("streams an unchanged R2 original above 5 MiB, downloads exact bytes and retries without another PUT", async () => {
+    const f = fixture(), bytes = new Uint8Array(6 * 1024 * 1024 + 19).fill(37);
+    await acceptCommentUpload(f.sql, f.env, { kind: "attachment", bytes, filename: "measurement.bin" });
+    expect(f.sql.prepare("SELECT storage_role_policy_revision FROM comment_submission_acceptances").get()!.storage_role_policy_revision).toBe(2);
+    expect(f.sql.prepare("SELECT role,storage_profile_id,policy_revision FROM storage_role_defaults ORDER BY role").all()).toEqual([
+      { role: "internal", storage_profile_id: "r2-profile", policy_revision: 2 }, { role: "originals", storage_profile_id: "r2-profile", policy_revision: 2 },
+    ]);
+    const response = await f.upload("item-upload", bytes, "application/octet-stream");
+    expect(response.status, await response.clone().text()).toBe(200);
+    const item = f.sql.prepare("SELECT asset_id,storage_object_id,file_id FROM comment_submission_items").get()!;
+    expect(item.asset_id).toEqual(expect.any(String)); expect(item.storage_object_id).toBeNull(); expect(item.file_id).toEqual(expect.any(String));
+    const receipt = f.sql.prepare("SELECT accepted_result_json FROM comment_item_acceptances").get()!;
+    expect(JSON.parse(String(receipt.accepted_result_json))).toMatchObject({ storeKind: "r2", provider: "r2", byteSize: bytes.length });
+    expect((await f.upload("item-upload", bytes, "application/octet-stream")).status).toBe(200);
+    expect(f.sql.prepare("SELECT accepted_result_json FROM comment_item_acceptances").get()).toEqual(receipt);
+    expect((await f.finalize()).status).toBe(200);
+    const download = await f.request("/attachments/item-upload/download");
+    expect(download.status, await download.clone().text()).toBe(200);
+    expect(Buffer.from(await download.arrayBuffer()).equals(Buffer.from(bytes))).toBe(true);
+    expect(f.put).toHaveBeenCalledTimes(1);
+    expect(f.managed).not.toHaveBeenCalled();
+  }, 15_000);
+
+  it("keeps a historical accepted SWITCHdrive destination after R2 role bootstrap", async () => {
+    const f = fixture(false), oldBytes = new TextEncoder().encode("old accepted original"), nextBytes = new TextEncoder().encode("new R2 original");
+    await acceptCommentUpload(f.sql, f.env, { kind: "attachment", bytes: oldBytes, submissionId: "old-submission", itemId: "old-original" });
+    const before = f.sql.prepare("SELECT storage_profile_id,candidate_object_key FROM comment_item_acceptances WHERE item_id='old-original'").get();
+    expect(before!.storage_profile_id).toBe("managed-profile");
+    enableFutureFileAuthority(f.sql);
+    await acceptCommentUpload(f.sql, f.env, { kind: "attachment", bytes: nextBytes });
+    expect(f.sql.prepare("SELECT storage_profile_id FROM comment_item_acceptances WHERE item_id='item-upload'").get()!.storage_profile_id).toBe("r2-profile");
+    // Replaying creation uses the exact saved receipt before looking up defaults.
+    const sample = f.sql.prepare("SELECT updated_at FROM samples WHERE id='sample-upload'").get()!;
+    const replay = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      protocol: "comment-submission/1", id: "old-submission", body: "", context: { kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: sample.updated_at },
+      items: [{ id: "old-original", kind: "attachment", filename: "result.dat", mimeType: "application/octet-stream", byteSize: oldBytes.length, sha256: await sha256Hex(oldBytes.slice().buffer) }],
+    }) });
+    expect(replay.status, await replay.clone().text()).toBe(200);
+    expect(f.sql.prepare("SELECT storage_profile_id,candidate_object_key FROM comment_item_acceptances WHERE item_id='old-original'").get()).toEqual(before);
+    const oldUpload = await f.upload("old-original", oldBytes, "application/octet-stream", "old-submission");
+    expect(oldUpload.status, await oldUpload.clone().text()).toBe(200);
+    expect((await f.upload("item-upload", nextBytes, "application/octet-stream")).status).toBe(200);
+    expect((await f.finalize("old-submission")).status).toBe(200);
+    expect((await f.finalize()).status).toBe(200);
+    const provider = f.sql.prepare("SELECT accepted_result_json FROM comment_item_acceptances WHERE item_id='old-original'").get()!;
+    expect(JSON.parse(String(provider.accepted_result_json))).toMatchObject({ storeKind: "managed", provider: "switchdrive" });
+    expect(f.managed.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(1);
+    expect(f.put).toHaveBeenCalledTimes(1);
+  }, 15_000);
+
+  it("rolls bootstrap back with a rejected target and permits text without storage configuration", async () => {
+    const f = fixture(), bytes = new TextEncoder().encode("unaccepted original");
+    const rejected = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      protocol: "comment-submission/1", id: "bad-submission", body: "", context: { kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: "2020-01-01T00:00:00.000Z" },
+      items: [{ id: "bad-original", kind: "attachment", filename: "result.dat", mimeType: "application/octet-stream", byteSize: bytes.length, sha256: await sha256Hex(bytes.slice().buffer) }],
+    }) });
+    expect(rejected.status).toBe(409);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    delete f.env.R2_BOOTSTRAP_NAMESPACE;
+    delete f.env.SWITCHDRIVE_APP_PASSWORD;
+    const text = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      protocol: "comment-submission/1", id: "text-submission", body: "text without files", context: { kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: f.now }, items: [],
+    }) });
+    expect(text.status, await text.clone().text()).toBe(201);
+    expect((await f.finalize("text-submission")).status).toBe(200);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+  });
+
 });

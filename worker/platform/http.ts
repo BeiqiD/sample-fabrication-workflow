@@ -3,7 +3,6 @@ import { HTTPException } from "hono/http-exception";
 import { authenticateRequest } from "../auth";
 import { sameOriginOrNonBrowser } from "../request-guards";
 import { ASSET_OWNING_IMPORT_NOT_READY_SQL_ERROR, TEMPLATE_VERSION_NOT_PUBLISHED_SQL_ERROR } from "../template-publication";
-import { managedStorageStatus } from "../managed-storage";
 import type { Env } from "../types";
 
 type ApiEnv = { Bindings: Env; Variables: { userEmail: string } };
@@ -64,14 +63,8 @@ export const authenticateApiRequest: MiddlewareHandler<ApiEnv> = async (c, next)
 routes.get("/health", (c) => c.json({ ok: true }));
 
 routes.get("/ready", async (c) => {
-  const checks: Promise<unknown>[] = [
-    c.env.DB.prepare("SELECT 1 AS ok").first(),
-    c.env.ASSETS.list({ limit: 1 }),
-  ];
-  if (c.env.MANAGED_STORAGE_PROVIDER) {
-    const storageStatus = await managedStorageStatus(c.env);
-    if (!storageStatus.available) throw new HTTPException(503, { message: storageStatus.message });
-  }
-  await Promise.all(checks);
+  // Application reads remain usable when an optional file provider is offline.
+  // Original upload connectivity is reported separately by /storage/status.
+  await c.env.DB.prepare("SELECT 1 AS ok").first();
   return c.json({ ok: true });
 });

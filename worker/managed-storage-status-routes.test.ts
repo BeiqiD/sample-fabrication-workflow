@@ -3,6 +3,7 @@ import worker from "./index";
 import type { Env } from "./types";
 
 const env = {
+  DB: { prepare: () => ({ first: async () => ({ mode: "legacy" }) }) },
   MANAGED_STORAGE_PROVIDER: "switchdrive",
   SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/private-user/",
   SWITCHDRIVE_USERNAME: "private-user",

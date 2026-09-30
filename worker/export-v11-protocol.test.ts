@@ -91,7 +91,7 @@ describe("v11 durable R2 upload acceptance archive profile", () => {
       const archivePath = join(scratch, "v11.zip");
       await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance", appliedForwardMigrations: [{ name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 11, archiveProfile: "fp1-r2-upload-acceptance", appliedForwardMigrations: [{ name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {

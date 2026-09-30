@@ -1,8 +1,10 @@
 # FP1 File runtime integration
 
-Status: draft #236, based on deployed #235. This implementation does not activate
-File authority or change D1/R2 bindings. The production catch-up observation was
-4 current, 4 resolved and zero pending, admitted-unresolved or unfinished attempts.
+Status: merged and deployed in #236, integration commit `3a3877f7`, based on
+deployed #235. File authority was explicitly activated on 2026-09-30 after
+operator authorization. The deployed maintenance page confirmed Active,
+execution Enabled and 4 resolved / 4 current references. D1/R2 bindings were
+preserved. R2 original-file defaults are the next separate implementation slice.
 
 ## Runtime work
 
@@ -97,6 +99,9 @@ a separate operator operation after required CI and deployment acceptance;
 the earlier zero-pending observation is not its cutoff. R2 original-file role
 defaults follow that switch; configurable S3 remains later work.
 
-The already accepted live V17 ZIP is not repeatedly rechecked during this draft.
-V18 has focused schema/metadata and byte round-trip tests. Its actual deployment
-will require the one relevant acceptance for the new archive generation.
+The deployed V18 ZIP passed its single isolated recovery acceptance on
+2026-09-29: 13/13 packaged files, zero warnings, equal canonical rows/schema,
+valid foreign keys and SQLite integrity. Recovery remained execution-disabled.
+Neither this archive nor the earlier accepted V17 ZIP is repeatedly rechecked
+for routine changes. A successor archive generation qualifies its own changed
+schema and byte semantics.

@@ -9,7 +9,7 @@ interface StorageStatusResult {
 
 let pendingStatus: Promise<StorageStatusResult> | null = null;
 
-function loadManagedStorageStatus() {
+function loadOriginalFileStorageStatus() {
   // Share only an in-flight query. A later mount or explicit retry must be able
   // to observe recovered connectivity or a changed storage configuration.
   pendingStatus ??= api.getManagedStorageStatus().then(
@@ -22,14 +22,15 @@ function loadManagedStorageStatus() {
   return pendingStatus;
 }
 
-export function useManagedStorageStatus() {
+/** The endpoint reports the current original-file destination, including R2. */
+export function useOriginalFileStorageStatus() {
   const [result, setResult] = useState<StorageStatusResult | null>(null);
   const [checking, setChecking] = useState(true);
   const active = useRef(false);
 
   const check = useCallback(async () => {
     if (active.current) setChecking(true);
-    const next = await loadManagedStorageStatus();
+    const next = await loadOriginalFileStorageStatus();
     if (active.current) {
       setResult(next);
       setChecking(false);

@@ -19,7 +19,7 @@ afterEach(() => {
   databases.splice(0).forEach((db) => db.close());
 });
 
-async function fixture(mode: "active" | "overlap" = "active", bound = true) {
+async function fixture(mode: "active" | "overlap" = "active", bound = true, commentProfile = "managed-profile") {
   // Exercise the existing typed File substrate. Production shadow migrations
   // deliberately prohibit activation and bindings; this fixture models the
   // future active state without shipping an activation migration.
@@ -27,7 +27,7 @@ async function fixture(mode: "active" | "overlap" = "active", bound = true) {
   databases.push(sql);
   const db = new SqliteD1Database(sql) as unknown as D1Database;
   const get = vi.fn(async (key: string) => ({
-    body: new Response(key === "published/execution" ? "image-bytes" : key === "published/project" ? "file" : "legacy").body!,
+    body: new Response(key === "published/execution" ? "image-bytes" : ["published/project", "published/comment"].includes(key) ? "file" : "legacy").body!,
     httpEtag: '"file-etag"',
     writeHttpMetadata(headers: Headers) { headers.set("content-type", "application/pdf"); },
   }));
@@ -73,7 +73,7 @@ async function fixture(mode: "active" | "overlap" = "active", bound = true) {
     sql.prepare("INSERT INTO file_publications(file_id,purpose,access_scope,verified_byte_size,verified_sha256,active_location_id,state,published_at) VALUES(?,?,'system',?,?,?,'ready',?)")
       .run(`${id}-file`, purpose, size, sha, `${id}-location`, NOW);
   }
-  publish("project", "r2-profile"); publish("comment", "managed-profile");
+  publish("project", "r2-profile"); publish("comment", commentProfile);
   if (bound) {
     sql.exec("UPDATE project_content_attachments SET file_id='project-file' WHERE project_content_id='content'");
     sql.exec("UPDATE comment_submission_items SET file_id='comment-file' WHERE id='comment-item'");
@@ -143,6 +143,19 @@ describe.each(routes)("$name File authority download", ({ name, file, path, hide
     expect(await response.text()).not.toContain("test-password");
     expect(get).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   });
+});
+
+it("exports a retained original through its R2 File despite an obsolete managed locator", async () => {
+  const { sql, env, get, fetch } = await fixture("active", true, "r2-profile");
+  sql.prepare("UPDATE samples SET deleted_at=? WHERE id='sample'").run(NOW);
+  expect((await request(env, "/attachments/comment-item/download")).status).toBe(404);
+  const response = await request(env, "/exports/attachments/comment-item");
+  expect(response.status).toBe(200);
+  expect(await response.text()).toBe("file");
+  expect(response.headers.get("content-disposition")).toContain("report.pdf");
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(get).toHaveBeenCalledExactlyOnceWith("published/comment");
+  expect(fetch).not.toHaveBeenCalled();
 });
 
 it("requires the caller's purpose and a known authority mode", async () => {

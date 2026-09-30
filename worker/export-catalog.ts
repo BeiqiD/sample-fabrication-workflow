@@ -142,4 +142,9 @@ export const FULL_EXPORT_V17_TABLE_QUERIES = {
 } as const;
 // V18 changes native guards and publication semantics without adding canonical tables.
 export const FULL_EXPORT_V18_TABLE_QUERIES = { ...FULL_EXPORT_V17_TABLE_QUERIES } as const;
-export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V18_TABLE_QUERIES;
+// V19 additionally retains immutable role defaults and the new Comment decision column.
+export const FULL_EXPORT_V19_TABLE_QUERIES = {
+  ...FULL_EXPORT_V18_TABLE_QUERIES,
+  storage_role_defaults: "SELECT * FROM storage_role_defaults ORDER BY role",
+} as const;
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V19_TABLE_QUERIES;

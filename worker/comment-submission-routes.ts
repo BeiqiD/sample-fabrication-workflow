@@ -1,7 +1,7 @@
 import { prepareFileRestoration } from "./files/business-lifecycle";
 import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { managedStorageStatus } from "./managed-storage";
+import { originalFileStorageStatus } from "./storage/originals-status";
 import { getBlob } from "./blob-lifecycle/storage";
 import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import {
@@ -224,7 +224,10 @@ async function markItemFailed(env: Env, submissionId: string, itemId: string, me
 
 export const routes = new Hono<AppBindings>();
 
-routes.get("/storage/status", async (c) => c.json(await managedStorageStatus(c.env)));
+routes.get("/storage/status", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  return c.json(await originalFileStorageStatus(c.env));
+});
 
 routes.post("/comment-submissions", (c) => createAcceptedComment(c).catch(rethrowCommentAcceptanceError));
 
@@ -725,6 +728,29 @@ routes.post("/comment-submissions/:submissionId/restore", async (c) => {
 
 routes.get("/exports/attachments/:itemId", async (c) => {
   const itemId = c.req.param("itemId");
+  const mode = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  });
+  if (mode === "active") {
+    // Export retains ready attachments in Trash. The File binding, rather than
+    // the old managed locator or current upload default, selects their bytes.
+    const row = await c.env.DB.prepare(`
+      SELECT file_id, COALESCE(filename, 'attachment') AS filename, mime_type
+      FROM comment_submission_items
+      WHERE id=? AND kind='attachment' AND status='ready'
+    `).bind(itemId).first<{ file_id: string | null; filename: string; mime_type: string | null }>();
+    if (!row) throw new HTTPException(404, { message: "Export attachment not found" });
+    const object = await readPublishedFile(c.env, { fileId: row.file_id, purpose: "research_source" });
+    if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
+    if (object.outcome !== "available") throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+    const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+    return new Response(object.body, { headers: {
+      "content-type": object.contentType || row.mime_type || "application/octet-stream",
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+      "cache-control": "private, no-store", "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    } });
+  }
   const row = await c.env.DB.prepare(
     `SELECT COALESCE(csi.filename, mso.original_name, 'attachment') AS filename,
             mso.provider, mso.object_key, mso.mime_type

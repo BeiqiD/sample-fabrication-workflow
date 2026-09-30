@@ -11,7 +11,8 @@ export const FULL_EXPORT_ARCHIVE_SCHEMA_V15 = 15 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V16 = 16 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V17 = 17 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V18 = 18 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V18;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V19 = 19 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V19;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V10 = "fp1-import-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V11 = "fp1-r2-upload-acceptance" as const;
@@ -22,7 +23,8 @@ export const FULL_EXPORT_ARCHIVE_PROFILE_V15 = "fp1-shadow-conversion" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V16 = "fp1-shadow-withdrawals" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V17 = "fp1-shadow-adjudications" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V18 = "fp1-file-runtime" as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V18;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V19 = "fp1-r2-role-defaults" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V19;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -160,4 +162,10 @@ export interface FullExportManifestV17 extends Omit<FullExportManifestV15, "sche
 export interface FullExportManifestV18 extends Omit<FullExportManifestV15, "schemaVersion" | "archiveProfile"> {
   schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V18;
   archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V18;
+}
+
+// Immutable R2 role defaults and Comment receipts with frozen original destinations.
+export interface FullExportManifestV19 extends Omit<FullExportManifestV15, "schemaVersion" | "archiveProfile"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V19;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V19;
 }

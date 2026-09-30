@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { readStorageSettings } from "./settings-read-model";
 import { managedBootstrapNamespace } from "../files/managed-bootstrap-profile";
+import { activateFileAuthority } from "../files/authority-activation";
+import { prepareR2StorageRoleDefaults } from "../files/storage-role-defaults";
 
 const databases: DatabaseSync[] = [];
 const now = "2026-09-28T12:00:00.000Z";
@@ -21,7 +23,13 @@ function fixture(profiles = true) {
     sql.prepare("INSERT INTO file_shadow_profile_enablements(storage_profile_id,configuration_revision,enabled_by,enabled_at) VALUES('profile-r2',1,'private-operator@example.org',?)").run(now);
     sql.prepare("UPDATE file_shadow_runtime_guard SET incarnation=?,enabled=1,enabled_by='private-operator@example.org',updated_at=?").run(crypto.randomUUID(), now);
   };
-  return { sql, local, db, activate };
+  const activateAuthority = async () => {
+    activate();
+    sql.exec("UPDATE file_shadow_runtime_guard SET enabled=0");
+    const cutoff = sql.prepare("SELECT c.epoch,r.incarnation FROM file_shadow_control c JOIN file_shadow_runtime_guard r ON r.singleton=c.singleton").get()!;
+    await activateFileAuthority(db, "operator", { requestId: crypto.randomUUID(), expectedEpoch: Number(cutoff.epoch), expectedShadowIncarnation: cutoff.incarnation as string });
+  };
+  return { sql, local, db, activate, activateAuthority };
 }
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); databases.splice(0).forEach(database => database.close()); });
 
@@ -33,8 +41,8 @@ describe("read-only Storage Settings metadata", () => {
     const result = await readStorageSettings({ withSession, prepare: forbiddenPrepare } as unknown as D1Database, configuration);
     expect(withSession).toHaveBeenCalledExactlyOnceWith("first-primary"); expect(f.local.queryCount).toBe(1);
     expect(forbiddenPrepare).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
-    expect(result).toEqual({ version: 1, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
-      authority: { mode: "overlap", shadowConversions: "enabled" }, bindings: { r2: { configuration: "configured" }, managed: { provider: "switchdrive", configuration: "configured" } },
+    expect(result).toEqual({ version: 2, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
+      authority: { mode: "overlap", shadowConversions: "enabled" }, roleDefaults: { state: "legacy" }, bindings: { r2: { configuration: "configured" }, managed: { provider: "switchdrive", configuration: "configured" } },
       uploadDestinations: { ordinaryUploads: "r2", commentOriginals: "switchdrive" }, profiles: { items: [
         { id: "profile-managed", adapterType: "switchdrive", configurationRevision: 1, runtimeAccess: "read_only", bindingMatch: "matched" },
         { id: "profile-r2", adapterType: "r2", configurationRevision: 1, runtimeAccess: "read_write", bindingMatch: "matched" },
@@ -52,6 +60,29 @@ describe("read-only Storage Settings metadata", () => {
       profiles: { items: [], hasMore: false, limit: 100 }, health: "not_checked" });
     expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
     expect(f.sql.prepare("SELECT count(*) n FROM storage_profiles").get()!.n).toBe(0);
+  });
+
+  it("reports planned R2 roles without bootstrapping them during an active Settings read", async () => {
+    const f = fixture(); await f.activateAuthority();
+    const before = f.sql.prepare("SELECT total_changes() n").get()!.n, queries = f.local.queryCount;
+    const result = await readStorageSettings(f.db, { R2_BOOTSTRAP_NAMESPACE: r2Namespace });
+    expect(result).toMatchObject({ authority: { mode: "active" }, roleDefaults: { state: "pending_bootstrap" },
+      uploadDestinations: { ordinaryUploads: "r2", commentOriginals: "r2" },
+      bindings: { managed: { provider: "none", configuration: "missing" } } });
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    expect(f.local.queryCount - queries).toBe(1);
+  });
+
+  it("reads persisted defaults and reports drift without replacing their selected R2 destination", async () => {
+    const f = fixture(); await f.activateAuthority();
+    const policy = await prepareR2StorageRoleDefaults(f.db, configuration, now); await f.db.batch(policy.statements);
+    const before = f.sql.prepare("SELECT total_changes() n").get()!.n, queries = f.local.queryCount;
+    const result = await readStorageSettings(f.db, { R2_BOOTSTRAP_NAMESPACE: r2Namespace.replace("private-r2-bucket", "another-bucket") });
+    expect(result).toMatchObject({ roleDefaults: { state: "configured" }, uploadDestinations: { commentOriginals: "r2" } });
+    expect(result.profiles.items.find(profile => profile.id === "profile-r2")?.bindingMatch).toBe("mismatch");
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    expect(f.local.queryCount - queries).toBe(1);
   });
 
   it.each([
