@@ -1,5 +1,5 @@
 import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
-import type { FullExportManifestV18 } from "../../shared/contracts/export";
+import type { FullExportManifestV19 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -196,7 +196,10 @@ export const api = {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   uploadAsset: (file: Blob, filename: string, options?: R2UploadOptions) => uploadR2Asset(file, filename, "ordinary_image", options),
-  getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status"),
+  // Retained API name; status follows the current original-file destination.
+  getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status", {
+    method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error",
+  }),
   createCommentSubmission: createDurableCommentSubmission,
   getCommentSubmissionAcceptance: getCommentAcceptance,
   uploadCommentSubmissionItem: uploadDurableCommentItem,
@@ -263,7 +266,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV18>("/exports/all?archiveSchema=18&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV19>("/exports/all?archiveSchema=19&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

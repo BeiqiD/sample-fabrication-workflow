@@ -76,11 +76,11 @@ export function validateCommentPublicationResult(value: unknown): CommentPublica
   for (const key of ["occurrenceIds", "eventIds", "itemIds"] as const) if (new Set(value[key] as string[]).size !== (value[key] as string[]).length) throw new Error("Duplicate Comment result identity");
   return bounded(value as unknown as CommentPublicationResult);
 }
-export function validateCommentAcceptedItemResult(value: unknown): CommentAcceptedItemResult {
+export function validateCommentAcceptedItemResult(value: unknown, context: { maxByteSize?: number } = {}): CommentAcceptedItemResult {
   if (!record(value) || !exact(value, ["storeKind", "provider", "blobRecordId", "objectKey", "sha256", "byteSize", "deduplicated"])
     || !((value.storeKind === "r2" && value.provider === "r2") || (value.storeKind === "managed" && value.provider === "switchdrive"))
     || !text(value.blobRecordId) || !text(value.objectKey, 4096) || !validSha256(value.sha256) || !Number.isSafeInteger(value.byteSize)
-    || Number(value.byteSize) < 1 || Number(value.byteSize) > (value.storeKind === "r2" ? 5 : 100) * 1024 * 1024
+    || Number(value.byteSize) < 1 || Number(value.byteSize) > (context.maxByteSize ?? (value.storeKind === "r2" ? 5 : 100) * 1024 * 1024)
     || typeof value.deduplicated !== "boolean") throw new Error("Invalid accepted Comment upload result");
   return value as unknown as CommentAcceptedItemResult;
 }

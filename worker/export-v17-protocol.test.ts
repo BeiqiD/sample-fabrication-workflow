@@ -14,7 +14,7 @@ import { validateFullExportV17 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV16, buildFullExportArchiveV17 } from "../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { snapshotFullExportV16 } from "./export-v16-snapshot";
-import { snapshotFullExportV18 } from "./export-v18-snapshot";
+import { snapshotFullExportV19 } from "./export-v19-snapshot";
 import { snapshotFullExportV17 } from "./export-v17-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -107,7 +107,14 @@ describe("V17 occurrence-scoped adjudication archive", () => {
     expect(db.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(() => db.exec("DELETE FROM file_shadow_adjudications")).toThrow();
     expect(() => db.exec("DELETE FROM file_shadow_adjudication_revocations")).toThrow();
-    expect((await snapshotFullExportV18(adapter(db))).tables).toEqual(manifest.tables);
+    const recovered = await snapshotFullExportV19(adapter(db));
+    expect(recovered.tables.storage_role_defaults).toEqual([]);
+    expect(recovered.tables.comment_submission_acceptances.every((row) => row.storage_role_policy_revision === 1)).toBe(true);
+    const { storage_role_defaults: _roleDefaults, ...historicalTables } = recovered.tables;
+    historicalTables.comment_submission_acceptances = historicalTables.comment_submission_acceptances.map(
+      ({ storage_role_policy_revision: _roleRevision, ...row }) => row,
+    );
+    expect(historicalTables).toEqual(manifest.tables);
   }, 30_000);
 
   it.each(["request", "digest", "source", "baseline", "profile", "byte-expectation", "chain", "revocation", "withdrawal", "actor", "binding", "missing-binding", "rehashed-registry"])("rejects tampered %s before requesting bytes", async (kind) => {
@@ -155,6 +162,6 @@ describe("V17 occurrence-scoped adjudication archive", () => {
     const { db } = await restore(manifest);
     for (const name of Object.keys(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)) expect(db.prepare(`SELECT * FROM ${name}`).all()).toEqual([]);
     expect(db.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
-    expect((await snapshotFullExportV18(adapter(db))).schemaVersion).toBe(18);
+    expect((await snapshotFullExportV19(adapter(db))).schemaVersion).toBe(19);
   }, 30_000);
 });

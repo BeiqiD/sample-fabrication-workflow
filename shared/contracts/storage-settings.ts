@@ -8,23 +8,24 @@ export interface StorageSettingsProfile {
   id: string;
   adapterType: "r2" | "switchdrive";
   configurationRevision: 1;
-  /** Existing File conversion admission; not the application's upload default. */
+  /** Access to this recorded profile; not the application's upload default. */
   runtimeAccess: "read_only" | "read_write" | "retired";
   bindingMatch: StorageBindingMatch;
 }
 export interface StorageSettingsStatus {
-  version: 1;
+  version: 2;
   kind: "storage-settings-status";
   readOnly: true;
   configurationSource: "deployment";
   health: "not_checked";
   authority: { mode: "legacy" | "overlap" | "active"; shadowConversions: "enabled" | "paused" };
+  roleDefaults: { state: "legacy" | "pending_bootstrap" | "configured" };
   bindings: {
     r2: { configuration: StorageConfigurationState };
     managed: { provider: "switchdrive" | "none" | "unsupported"; configuration: StorageConfigurationState };
   };
-  /** These describe current upload entry points, not unified storage roles. */
-  uploadDestinations: { ordinaryUploads: "r2"; commentOriginals: "switchdrive" | "unconfigured" | "unsupported" };
+  /** Pending bootstrap describes the intended R2 destination before first use. */
+  uploadDestinations: { ordinaryUploads: "r2"; commentOriginals: "r2" | "switchdrive" | "unconfigured" | "unsupported" };
   profiles: { items: StorageSettingsProfile[]; hasMore: boolean; limit: typeof MAX_STORAGE_SETTINGS_PROFILES };
 }
 const encoder = new TextEncoder();
@@ -41,10 +42,10 @@ function enumeration<T extends string>(value: unknown, allowed: readonly T[]): T
 }
 const configuration = (value: unknown) => enumeration(value, ["configured", "missing", "invalid"] as const);
 export function checkedStorageSettingsStatus(value: unknown): StorageSettingsStatus {
-  const input = object(value, ["version", "kind", "readOnly", "configurationSource", "health", "authority", "bindings", "uploadDestinations", "profiles"]);
-  if (input.version !== 1 || input.kind !== "storage-settings-status" || input.readOnly !== true
+  const input = object(value, ["version", "kind", "readOnly", "configurationSource", "health", "authority", "roleDefaults", "bindings", "uploadDestinations", "profiles"]);
+  if (input.version !== 2 || input.kind !== "storage-settings-status" || input.readOnly !== true
     || input.configurationSource !== "deployment" || input.health !== "not_checked") invalid();
-  const authority = object(input.authority, ["mode", "shadowConversions"]), bindings = object(input.bindings, ["r2", "managed"]);
+  const authority = object(input.authority, ["mode", "shadowConversions"]), roles = object(input.roleDefaults, ["state"]), bindings = object(input.bindings, ["r2", "managed"]);
   const r2 = object(bindings.r2, ["configuration"]), managed = object(bindings.managed, ["provider", "configuration"]);
   const destinations = object(input.uploadDestinations, ["ordinaryUploads", "commentOriginals"]);
   if (destinations.ordinaryUploads !== "r2") invalid();
@@ -61,15 +62,18 @@ export function checkedStorageSettingsStatus(value: unknown): StorageSettingsSta
       bindingMatch: enumeration(profile.bindingMatch, ["matched", "mismatch", "not_configured", "invalid_configuration"] as const) };
   });
   if (new Set(items.map(item => item.id)).size !== items.length) invalid();
-  const result: StorageSettingsStatus = { version: 1, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
+  const result: StorageSettingsStatus = { version: 2, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
     authority: { mode: enumeration(authority.mode, ["legacy", "overlap", "active"] as const), shadowConversions: enumeration(authority.shadowConversions, ["enabled", "paused"] as const) },
+    roleDefaults: { state: enumeration(roles.state, ["legacy", "pending_bootstrap", "configured"] as const) },
     bindings: { r2: { configuration: configuration(r2.configuration) }, managed: {
       provider: enumeration(managed.provider, ["switchdrive", "none", "unsupported"] as const), configuration: configuration(managed.configuration),
-    } }, uploadDestinations: { ordinaryUploads: "r2", commentOriginals: enumeration(destinations.commentOriginals, ["switchdrive", "unconfigured", "unsupported"] as const) },
+    } }, uploadDestinations: { ordinaryUploads: "r2", commentOriginals: enumeration(destinations.commentOriginals, ["r2", "switchdrive", "unconfigured", "unsupported"] as const) },
     profiles: { items, hasMore: profiles.hasMore, limit: MAX_STORAGE_SETTINGS_PROFILES } };
   if (result.bindings.managed.provider === "none" && result.bindings.managed.configuration !== "missing"
     || result.bindings.managed.provider === "unsupported" && result.bindings.managed.configuration !== "invalid"
-    || result.uploadDestinations.commentOriginals !== (result.bindings.managed.provider === "none" ? "unconfigured" : result.bindings.managed.provider)) invalid();
+    || result.authority.mode === "active" && (result.roleDefaults.state === "legacy" || result.uploadDestinations.commentOriginals !== "r2")
+    || result.authority.mode !== "active" && (result.roleDefaults.state !== "legacy"
+      || result.uploadDestinations.commentOriginals !== (result.bindings.managed.provider === "none" ? "unconfigured" : result.bindings.managed.provider))) invalid();
   for (const profile of items) {
     const state = profile.adapterType === "r2" ? result.bindings.r2.configuration : result.bindings.managed.configuration;
     if (state === "missing" && profile.bindingMatch !== "not_configured"

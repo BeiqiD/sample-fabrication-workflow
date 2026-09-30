@@ -7,8 +7,9 @@ import { App } from "./App";
 import { StorageSettingsPage } from "./pages/StorageSettingsPage";
 
 const snapshot = (id = "registered-r2"): StorageSettingsStatus => ({
-  version: 1, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
+  version: 2, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
   authority: { mode: "overlap", shadowConversions: "paused" },
+  roleDefaults: { state: "legacy" },
   bindings: { r2: { configuration: "configured" }, managed: { provider: "switchdrive", configuration: "configured" } },
   uploadDestinations: { ordinaryUploads: "r2", commentOriginals: "switchdrive" },
   profiles: { items: [{ id, adapterType: "r2", configurationRevision: 1, runtimeAccess: "read_write", bindingMatch: "matched" }], hasMore: false, limit: 100 },
@@ -103,6 +104,18 @@ describe("read-only storage Settings", () => {
     expect(screen.getByText("Different from current configuration")).toBeTruthy();
     expect(within(screen.getByRole("region", { name: "Current uploads" })).getByText("Cloudflare R2")).toBeTruthy();
     expect(screen.getByText("Connection not checked")).toBeTruthy();
+  });
+
+  it.each(["pending_bootstrap", "configured"] as const)("shows R2 originals with %s defaults even when historical managed configuration is absent", async state => {
+    const value = snapshot(); value.authority.mode = "active"; value.roleDefaults.state = state;
+    value.uploadDestinations.commentOriginals = "r2"; value.bindings.managed = { provider: "none", configuration: "missing" };
+    network.mockResolvedValueOnce(json(value)); render(<StorageSettingsPage />);
+    const originals = (await screen.findByRole("heading", { name: "Original comment files" })).closest("article")!;
+    expect(within(originals).getByText("Cloudflare R2")).toBeTruthy();
+    expect(within(originals).getByText("Configuration present")).toBeTruthy();
+    expect(screen.getByText(/Existing files keep their recorded storage location/)).toBeTruthy();
+    expect(Boolean(screen.queryByText(/This choice will be saved with the first file upload/))).toBe(state === "pending_bootstrap");
+    expect(screen.queryByRole("button", { name: /connect|test|save|enable/i })).toBeNull();
   });
 
   it("rejects unsafe response fields and misleading health assertions before rendering status", async () => {

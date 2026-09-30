@@ -2,7 +2,9 @@
 
 Implementation base: accepted #233, `6df9e1b4`, 2026-09-28.
 
-This is the already-planned authenticated, read-only subset of FP1 Settings.
+This records the original authenticated, read-only subset of FP1 Settings,
+delivered in #234. The [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md) extends
+its metadata projection after #236's File authority activation.
 It can proceed alongside historical evidence collection because it neither
 changes file authority nor requires those missing facts. Complete catch-up and
 atomic authority activation still gate File-authoritative R2 role defaults;
@@ -14,7 +16,7 @@ administrator-controlled configuration, secrets and S3 remain later work.
 configuration and registered storage profiles. The Settings navigation entry
 opens this page. Refresh reads metadata only.
 
-The existing upload paths are not yet a universal role policy: ordinary R2
+At the #234 checkpoint, the upload paths were not yet a universal role policy: ordinary R2
 uploads and original Comment file uploads follow their existing R2 and managed
 storage paths respectively. A profile admitted for shadow reads or writes is
 not a business default. The page does not label a registered profile as the
@@ -46,10 +48,11 @@ actor identities. Errors are bounded and generic rather than raw environment,
 provider or SQL exception text. Authority and shadow access describe recorded
 state; neither grants an operation capability.
 
-The existing `/api/storage/status` connection check belongs to Comment file
-uploads and keeps its existing behavior. It is not repurposed or automatically
-polled by Settings. No configuration mutation endpoint, migration, ledger,
-archive generation or provider binding is introduced by this slice.
+The `/api/storage/status` connection check belongs to Comment original uploads.
+The role-default extension makes it check the active original destination while
+legacy/overlap retain the managed-storage path. It is not automatically polled
+by Settings. No configuration mutation endpoint or provider binding is introduced
+by the read-only Settings surface.
 
 ## Qualification and remaining work
 
@@ -68,6 +71,10 @@ major-change trigger are recorded in the
 The owner has authorized permanent disposal of the six old test Projects that
 contain the seven ambiguous references. Migration `0011` and a fresh catch-up
 checkpoint handle that separate operational step. Settings does not perform the
-cleanup or activate File authority. File-aware runtime integration and atomic
-activation remain the next authority milestone. Privileged role/default editing and real connection
-tests need their own reviewed authorization and lifecycle boundaries.
+cleanup or activate File authority. File-aware runtime integration and the
+operator activation shipped in #236 and became Active/Enabled on 2026-09-30.
+The role-default extension reports R2 before first upload as `pending_bootstrap`
+and the persisted policy afterward as `configured`; both describe the selected
+destination without claiming connection health. Privileged role/default editing
+and configuration tests remain FP2 work with their own authorization and lifecycle
+boundaries.

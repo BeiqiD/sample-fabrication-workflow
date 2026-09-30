@@ -12,6 +12,7 @@ import { validateFullExportV18 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV17, buildFullExportArchiveV18 } from "../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { snapshotFullExportV17 } from "./export-v17-snapshot";
+import { snapshotFullExportV19 } from "./export-v19-snapshot";
 import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -26,7 +27,7 @@ const databases: DatabaseSync[] = [], directories: string[] = [];
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "runtime-archive" });
 const bytes = Uint8Array.of(137, 80, 78, 71, 1, 2, 3, 4);
 const adapter = (db: DatabaseSync) => new SqliteD1Database(db) as unknown as D1Database;
-function database(throughMigration?: string) { const sql = referenceTestDatabase({ throughMigration }); databases.push(sql); return sql; }
+function database(throughMigration = "0012_fp1_file_authority_runtime.sql") { const sql = referenceTestDatabase({ throughMigration }); databases.push(sql); return sql; }
 afterEach(async () => { databases.splice(0).forEach(db => db.close()); for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true }); });
 function fixture(active = true) {
   const sql = database(), db = adapter(sql), now = new Date().toISOString();
@@ -68,7 +69,7 @@ async function restore(manifest: Awaited<ReturnType<typeof snapshotFullExportV18
 describe("V18 accepted File runtime archive", () => {
   it("pins whole-file and Wrangler-split schema without activating authority", async () => {
     const whole = database(), split = new DatabaseSync(":memory:"); databases.push(split);
-    for (const name of (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql")).sort()) {
+    for (const name of (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql") && name <= "0012_fp1_file_authority_runtime.sql").sort()) {
       for (const statement of splitSql(await readFile(join(migrationsDirectory, name), "utf8"))) split.exec(statement);
     }
     for (const sql of [whole, split]) {
@@ -82,7 +83,9 @@ describe("V18 accepted File runtime archive", () => {
     expect(f.sql.prepare("SELECT enabled FROM file_authority_runtime_guard").get()!.enabled).toBe(1);
     expect(f.manifest.tables).not.toHaveProperty("file_authority_runtime_guard");
     const { sql, result } = await restore(f.manifest);
-    expect((await snapshotFullExportV18(adapter(sql))).tables).toEqual(f.manifest.tables);
+    const recovered = (await snapshotFullExportV19(adapter(sql))).tables;
+    expect(recovered.storage_role_defaults).toEqual([]);
+    expect(Object.fromEntries(Object.keys(f.manifest.tables).map(name => [name, recovered[name]]))).toEqual(f.manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("active");
     expect(sql.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
@@ -130,7 +133,9 @@ describe("V18 accepted File runtime archive", () => {
     const old = database("0010_fp1_shadow_adjudications.sql");
     old.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'fixture',? FROM file_shadow_control").run(new Date().toISOString());
     const manifest = await snapshotFullExportV17(adapter(old)), { sql } = await restore(manifest);
-    expect((await snapshotFullExportV18(adapter(sql))).tables).toEqual(manifest.tables);
+    const recovered = (await snapshotFullExportV19(adapter(sql))).tables;
+    expect(recovered.storage_role_defaults).toEqual([]);
+    expect(Object.fromEntries(Object.keys(manifest.tables).map(name => [name, recovered[name]]))).toEqual(manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("overlap");
     expect(sql.prepare("SELECT * FROM file_acceptance_candidates").all()).toEqual([]);
     expect(sql.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });

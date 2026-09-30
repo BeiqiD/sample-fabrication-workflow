@@ -151,6 +151,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         { name: "0009_fp1_shadow_withdrawals.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0009_fp1_shadow_withdrawals.sql"), "utf8"))) },
         { name: "0010_fp1_shadow_adjudications.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0010_fp1_shadow_adjudications.sql"), "utf8"))) },
         { name: "0012_fp1_file_authority_runtime.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0012_fp1_file_authority_runtime.sql"), "utf8"))) },
+        { name: "0013_fp1_r2_role_defaults.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0013_fp1_r2_role_defaults.sql"), "utf8"))) },
       ]);
     } else expect(result.report.appliedForwardMigrations).toEqual([]);
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite"));
@@ -177,7 +178,7 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         expect(sortedRows(restored.prepare(`SELECT * FROM ${quote(name)}`).all() as ExportRow[]), name).toEqual(sortedRows(expected));
       }
       if (migrationsDirectory === join(root, "migrations")) {
-        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) {
+        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings", "storage_role_defaults"]) {
           expect(restored.prepare(`SELECT COUNT(*) AS count FROM ${quote(name)}`).get()?.count).toBe(0);
         }
       }

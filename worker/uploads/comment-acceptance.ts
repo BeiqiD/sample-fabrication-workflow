@@ -8,6 +8,7 @@ import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 import { primaryD1 } from "../d1-primary";
 import { ensureR2BootstrapProfile, assertR2BootstrapProfile } from "../files/r2-bootstrap-profile";
 import { ensureManagedBootstrapProfile, assertManagedBootstrapProfile } from "../files/managed-bootstrap-profile";
+import { prepareR2StorageRoleDefaults } from "../files/storage-role-defaults";
 import { managedStorage, managedObjectKey } from "../managed-storage";
 import { AttachmentIngestionHashMismatchError, AttachmentIngestionByteSizeMismatchError, ingestManagedAttachment, ingestR2Attachment, safeAttachmentObjectName } from "../attachment-ingestion";
 import { ByteVerificationError, verifyByteStream } from "../files/byte-verification";
@@ -24,7 +25,7 @@ import type { Env } from "../types";
 type C = Context<{ Bindings: Env; Variables: { userEmail: string } }>;
 export interface CommentSubmissionAcceptanceRow {
   submission_id: string; actor_email: string; operation_id: string; request_sha256: string; request_input_json: string;
-  publication_plan_json: string; request_scope: "system"; storage_policy_revision: 1; status: "pending" | "ready" | "cancelled";
+  publication_plan_json: string; request_scope: "system"; storage_policy_revision: 1; storage_role_policy_revision: 1 | 2; status: "pending" | "ready" | "cancelled";
   accepted_result_json: string | null; created_at: string; completed_at: string | null; expires_at: string;
 }
 export interface CommentItemAcceptanceRow {
@@ -97,7 +98,7 @@ async function activeItemFileId(db: D1Database, row: CommentItemAcceptanceRow): 
 
 async function verifiedItem(env: Env, row: CommentItemAcceptanceRow, active: boolean): Promise<boolean> {
   let result: CommentAcceptedItemResult;
-  try { result = validateCommentAcceptedItemResult(JSON.parse(row.accepted_result_json ?? "null")); } catch { failClosed(); }
+  try { result = validateCommentAcceptedItemResult(JSON.parse(row.accepted_result_json ?? "null"), { maxByteSize: (row.purpose === "research_source" ? 100 : 5) * 1024 * 1024 }); } catch { failClosed(); }
   const db = primaryD1(env.DB);
   if (active) {
     try {
@@ -147,7 +148,7 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
       } else if (active) {
         if (!await activeItemFileId(db, accepted!)) status = "unavailable";
       } else {
-        const result = validateCommentAcceptedItemResult(JSON.parse(accepted!.accepted_result_json ?? "null"));
+        const result = validateCommentAcceptedItemResult(JSON.parse(accepted!.accepted_result_json ?? "null"), { maxByteSize: (accepted!.purpose === "research_source" ? 100 : 5) * 1024 * 1024 });
         try {
           if (result.storeKind === "r2") await assertR2BootstrapProfile(db,env,accepted!.storage_profile_id,accepted!.storage_profile_revision);
           else await assertManagedBootstrapProfile(db,env,accepted!.storage_profile_id,accepted!.storage_profile_revision);
@@ -235,11 +236,13 @@ export async function createAcceptedComment(c: C) {
   }
   const now = new Date().toISOString(); const expires = new Date(Date.parse(now) + COMMENT_ACCEPTANCE_LIFETIME_MS).toISOString();
   const plan = publicationPlan(input); const operation = crypto.randomUUID();
-  const r2 = input.items.some((item) => item.kind === "comment_image") ? await ensureR2BootstrapProfile(db, c.env, now) : null;
-  const managed = input.items.some((item) => item.kind === "attachment") ? await ensureManagedBootstrapProfile(db, c.env, now) : null;
+  const active = await readFileAuthorityMode(db).catch(() => failClosed()) === "active";
+  const rolePolicy = active && input.items.some(item => item.kind !== "link") ? await prepareR2StorageRoleDefaults(db, c.env, now) : null;
+  const r2 = rolePolicy?.profile ?? (input.items.some((item) => item.kind === "comment_image") ? await ensureR2BootstrapProfile(db, c.env, now) : null);
+  const managed = !rolePolicy && input.items.some((item) => item.kind === "attachment") ? await ensureManagedBootstrapProfile(db, c.env, now) : null;
   const sampleIds = input.context.kind === "sample" ? [input.context.sampleId] : [...new Set(input.context.targets.map((target) => target.sampleId))];
   const managedSample = managed && sampleIds.length === 1 ? await db.prepare("SELECT id,code FROM samples WHERE id=? AND deleted_at IS NULL").bind(sampleIds[0]).first<{id:string;code:string}>() : null;
-  const statements: D1PreparedStatement[] = [];
+  const statements: D1PreparedStatement[] = [...(rolePolicy?.statements ?? [])];
   if (input.context.kind === "sample") {
     statements.push(db.prepare(`INSERT INTO comment_submissions (id, context_kind, sample_id, scope, body, status, actor_email, created_at, updated_at, retry_until)
       SELECT ?, 'sample', id, NULL, ?, 'uploading', ?, ?, ?, ? FROM samples WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`)
@@ -269,11 +272,11 @@ export async function createAcceptedComment(c: C) {
     const related = item.kind === "comment_image" ? item.relatedAttachmentId : item.kind === "attachment" ? item.relatedCommentImageId : null;
     if (related) statements.push(db.prepare("UPDATE comment_submission_items SET related_item_id=? WHERE id=? AND submission_id=?").bind(related,item.id,input.id));
   }
-  statements.push(db.prepare(`INSERT INTO comment_submission_acceptances (submission_id,actor_email,operation_id,request_sha256,request_input_json,publication_plan_json,request_scope,storage_policy_revision,status,created_at,expires_at)
-    VALUES (?,?,?,?,?,?,'system',1,'pending',?,?)`).bind(input.id,actor,operation,accepted.sha256,accepted.json,stableJson(plan),now,expires));
+  statements.push(db.prepare(`INSERT INTO comment_submission_acceptances (submission_id,actor_email,operation_id,request_sha256,request_input_json,publication_plan_json,request_scope,storage_policy_revision${rolePolicy ? ",storage_role_policy_revision" : ""},status,created_at,expires_at)
+    VALUES (?,?,?,?,?,?,'system',1${rolePolicy ? ",2" : ""},'pending',?,?)`).bind(input.id,actor,operation,accepted.sha256,accepted.json,stableJson(plan),now,expires));
   for (const item of input.items) if (item.kind !== "link") {
-    const profile = item.kind === "comment_image" ? r2! : managed!; const blob = crypto.randomUUID();
-    const key = item.kind === "comment_image" ? `comments/${input.id}/${item.id}/${blob}-${safeAttachmentObjectName(item.filename)}`
+    const profile = rolePolicy?.profile ?? (item.kind === "comment_image" ? r2! : managed!); const blob = crypto.randomUUID();
+    const key = rolePolicy || item.kind === "comment_image" ? `comments/${input.id}/${item.id}/${blob}-${safeAttachmentObjectName(item.filename)}`
       : managedObjectKey(input.id, `${item.id}-${blob}`, item.filename, managedSample ?? undefined);
     const purpose = item.kind === "attachment" ? "research_source" : item.relatedAttachmentId ? "derived_preview" : "embedded_content";
     statements.push(db.prepare(`INSERT INTO comment_item_acceptances (item_id,submission_id,actor_email,purpose,expected_sha256,expected_byte_size,storage_profile_id,storage_profile_revision,candidate_blob_id,candidate_object_key,status,created_at)
@@ -301,7 +304,12 @@ async function publishActiveCommentItem(c: C, parent: CommentSubmissionAcceptanc
     operationId: parent.operation_id, executionToken: accepted.execution_token! };
   const candidate = await stageAuthorityCandidate(db, owner);
   const publication = await writeAuthorityCandidate(c.env, owner, candidate, { body, contentType: item.mimeType, filename: item.filename });
-  const r2 = item.kind === "comment_image", table = r2 ? "assets" : "managed_storage_objects";
+  // Retry publication follows the immutable accepted destination, including
+  // SWITCHdrive receipts created before the new R2 originals policy.
+  const profile = await db.prepare("SELECT adapter_type FROM storage_profiles WHERE id=? AND configuration_revision=?")
+    .bind(accepted.storage_profile_id, accepted.storage_profile_revision).first<{ adapter_type: string }>();
+  if (!profile || !["r2", "switchdrive"].includes(profile.adapter_type)) failClosed();
+  const r2 = profile.adapter_type === "r2", table = r2 ? "assets" : "managed_storage_objects";
   const keyColumn = r2 ? "r2_key" : "object_key", bindingColumn = r2 ? "asset_id" : "storage_object_id";
   const provider = r2 ? "r2" : "switchdrive", storeKind = r2 ? "r2" : "managed";
   const exactBlob = `blob.${keyColumn}=? AND blob.status='ready' AND blob.sha256=? AND blob.byte_size=?
@@ -397,7 +405,7 @@ export async function uploadAcceptedCommentItem(c: C) {
     const ready = request.items.find((entry) => entry.id === itemId)?.status === "ready";
     const receipt = await getItem();
     const deduplicated = receipt?.status === "ready"
-      ? validateCommentAcceptedItemResult(JSON.parse(receipt.accepted_result_json!)).deduplicated : false;
+      ? validateCommentAcceptedItemResult(JSON.parse(receipt.accepted_result_json!), { maxByteSize: (item.kind === "attachment" ? 100 : 5) * 1024 * 1024 }).deduplicated : false;
     return c.json({ ok: ready, deduplicated, request }, ready ? 200 : request.status === "pending" ? 202 : 409);
   }
   let result:CommentAcceptedItemResult;

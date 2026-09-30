@@ -15,6 +15,10 @@ export const COMMENT_ACCEPTANCE_EXPORT_COLUMNS = {
   comment_item_acceptances: ["item_id", "submission_id", "actor_email", "purpose", "expected_sha256", "expected_byte_size",
     "storage_profile_id", "storage_profile_revision", "candidate_blob_id", "candidate_object_key", "execution_token", "started_at", "status", "accepted_result_json", "created_at"],
 } as const;
+export const COMMENT_ACCEPTANCE_EXPORT_COLUMNS_V19 = {
+  ...COMMENT_ACCEPTANCE_EXPORT_COLUMNS,
+  comment_submission_acceptances: [...COMMENT_ACCEPTANCE_EXPORT_COLUMNS.comment_submission_acceptances, "storage_role_policy_revision"],
+} as const;
 function ensure(value: unknown, message: string): asserts value {
   if (!value) throw new Error(`Full export rejected: invalid Comment acceptance ${message}`);
 }
@@ -44,6 +48,15 @@ function binaryItems(input: AcceptedCommentSubmissionInput) { return input.items
 function same(left: unknown, right: unknown) { return stableJson(left) === stableJson(right); }
 
 export async function validateCommentAcceptance(tables: ExportTables) {
+  return validateAcceptedComments(tables, false);
+}
+
+/** V19 preserves the recorded role decision; historical V13–V18 remain unchanged. */
+export async function validateCommentAcceptanceV19(tables: ExportTables) {
+  return validateAcceptedComments(tables, true);
+}
+
+async function validateAcceptedComments(tables: ExportTables, rolePolicy: boolean) {
   const submissions = new Map<string, { row: ExportRow; input: AcceptedCommentSubmissionInput }>();
   const operations = new Set<unknown>();
   for (const row of tables.comment_submission_acceptances) {
@@ -52,6 +65,9 @@ export async function validateCommentAcceptance(tables: ExportTables) {
     operations.add(row.operation_id);
     ensure(text(row.actor_email, 256) && row.request_scope === "system" && row.storage_policy_revision === 1, "actor, scope or policy revision");
     const input = parsed(validateCommentAcceptanceInput, row.request_input_json);
+    if (rolePolicy) ensure((row.storage_role_policy_revision === 1 || row.storage_role_policy_revision === 2)
+      && (row.storage_role_policy_revision !== 2 || binaryItems(input).length > 0
+        && tables.file_authority_control[0]?.mode === "active" && tables.storage_role_defaults.length === 2), "frozen role policy");
     ensure(input.id === row.submission_id && row.request_sha256 === await sha256Hex(String(row.request_input_json)), "request identity or hash");
     const plan = parsed(validateCommentPublicationPlan, row.publication_plan_json, true, 32_768);
     const targets = input.context.kind === "run_steps" ? input.context.targets : [];
@@ -100,7 +116,13 @@ export async function validateCommentAcceptance(tables: ExportTables) {
     const purpose = item.kind === "attachment" ? "research_source" : item.relatedAttachmentId ? "derived_preview" : "embedded_content";
     ensure(row.purpose === purpose && row.storage_profile_revision === 1, "item purpose or profile revision");
     const profile = profiles.get(row.storage_profile_id);
-    const managed = item.kind === "attachment";
+    const roleRevision = rolePolicy ? submission.row.storage_role_policy_revision : 1;
+    const managed = item.kind === "attachment" && roleRevision === 1;
+    if (roleRevision === 2) {
+      const selected = tables.storage_role_defaults.find(row => row.role === (item.kind === "attachment" ? "originals" : "internal"));
+      ensure(selected && selected.storage_profile_id === row.storage_profile_id
+        && selected.storage_profile_revision === row.storage_profile_revision, "recorded role destination");
+    }
     ensure(profile && profile.adapter_type === (managed ? "switchdrive" : "r2") && profile.configuration_revision === row.storage_profile_revision
       && profile.configuration_source === (managed ? "environment" : "bootstrap")
       && profile.credential_reference === (managed ? "environment:SWITCHDRIVE" : null) && profile.state === "historical", "item profile identity");
@@ -112,7 +134,8 @@ export async function validateCommentAcceptance(tables: ExportTables) {
       executionTokens.add(row.execution_token);
     }
     if (row.status !== "ready") { ensure(row.accepted_result_json === null, "unfinished item result"); continue; }
-    const result = parsed(validateCommentAcceptedItemResult, row.accepted_result_json, false, 8192);
+    const result = parsed(value => validateCommentAcceptedItemResult(value, rolePolicy && item.kind === "attachment"
+      ? { maxByteSize: 100 * 1024 * 1024 } : undefined), row.accepted_result_json, false, 8192);
     ensure(result.storeKind === (managed ? "managed" : "r2") && result.provider === profile.adapter_type
       && result.sha256 === row.expected_sha256 && result.byteSize === row.expected_byte_size, "published item provider or byte evidence");
     ensure(result.deduplicated || result.blobRecordId === row.candidate_blob_id && result.objectKey === row.candidate_object_key, "published item candidate identity");

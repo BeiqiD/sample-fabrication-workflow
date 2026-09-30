@@ -11,7 +11,7 @@ import type { ByteReadResult } from "./byte-reader";
 import type { ByteWriteInput } from "./byte-writer";
 import { activateFileAuthority, enableRecoveredFileAuthority } from "./authority-activation";
 import { ensureFileAuthorityExecution } from "./authority-execution";
-import { snapshotFullExportV18 } from "../export-v18-snapshot";
+import { snapshotFullExportV19 } from "../export-v19-snapshot";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { canonicalR2UploadInput } from "../../shared/contracts/r2-upload";
 import { readFileAuthorityStatus } from "./authority-activation";
@@ -95,7 +95,9 @@ async function prepared() {
   const converted = await convertShadowConsumer(runtime.context, await runtime.request());
   expect(converted.status).toBe("resolved");
   runtime.pause();
-  f.sql.exec(readFileSync(new URL("../../migrations/0012_fp1_file_authority_runtime.sql", import.meta.url), "utf8"));
+  for (const name of ["0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql"]) {
+    f.sql.exec(readFileSync(new URL(`../../migrations/${name}`, import.meta.url), "utf8"));
+  }
   const input = { requestId: crypto.randomUUID(), expectedEpoch: Number(f.sql.prepare("SELECT epoch FROM file_shadow_control").get()!.epoch),
     expectedShadowIncarnation: runtime.context.runtimeIncarnation };
   return { ...f, runtime, converted, input };
@@ -112,7 +114,7 @@ describe("atomic File authority activation", () => {
     expect(f.sql.prepare("SELECT count(*) n FROM file_shadow_checkpoints").get()!.n).toBe(1);
     expect(f.runtime.write.mock.calls).toHaveLength(previousWrites);
     await ensureFileAuthorityExecution(f.db);
-    expect((await snapshotFullExportV18(f.db)).schemaVersion).toBe(18);
+    expect((await snapshotFullExportV19(f.db)).schemaVersion).toBe(19);
   });
   it("rejects a stale cutoff without leaving a checkpoint or any partial typed binding", async () => {
     const f = await prepared();
