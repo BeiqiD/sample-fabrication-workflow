@@ -1,6 +1,10 @@
 # FP2 configuration security foundation
 
-Base: merged and deployed #238 (`15a9a613`). This FP2 slice adds administrator
+Status: merged and deployed in #239 (`45fec38`) as Worker
+`a3ddbcea-a24b-4644-81f0-f66e482416d9`, Cloudflare build
+`0c976187-f3c5-4ba7-8d62-557a79ac33c0`. Provider qualification remains next;
+live credential editing has not yet been exercised. Base: merged and deployed
+#238 (`15a9a613`). This FP2 slice adds administrator
 authorization, immutable candidate configuration revisions, encrypted credential
 persistence, safe operation audit, and candidate editing in Storage Settings.
 Saving a candidate performs no provider I/O and changes no active profile or
@@ -124,9 +128,19 @@ boundary. V19 does not acquire that permission in this slice.
 
 ## Following slice
 
-Provider capability tests and atomic activation follow candidate editing. Before independent
-role defaults can be edited, all accepted ingestion paths must use the shared
-purpose-to-role selection and retain each accepted profile/revision.
+Draft #241 supplies isolated S3 transport, qualified by 23 focused tests; it
+performs no activation or default changes. The next bounded S3 probe records a
+unique check ID/object key and the exact profile, configuration revision,
+credential reference, envelope revision and address digest before provider I/O.
+It performs one PUT, reads back the complete SHA-256, deletes the probe and
+confirms absence, recording cleanup separately. A lost response is reconciled
+through GET status without replaying PUT. A new candidate revision does not
+inherit an earlier test result.
+
+This probe slice changes no activation or default schema. Before activation,
+qualification must establish the actual provider account/home scope. Before
+independent role defaults can be edited, all accepted ingestion paths must use
+the shared purpose-to-role selection and retain each accepted profile/revision.
 
 ## Qualification
 
@@ -136,3 +150,11 @@ Candidate persistence, route authorization, UI and content-export isolation are
 qualified together with this slice's focused checks and required CI. Live editing
 needs a deployment-managed `SYSTEM_ADMIN_EMAILS` policy and
 `STORAGE_CREDENTIAL_KEYRING` Secret; their actual values are never committed.
+
+After the #239 deployment on 2026-10-01, live Storage Settings displayed the
+candidate-management link and opened `/settings/storage/configuration`.
+The current signed-in actor saw the expected read-only administrator boundary,
+with no candidate editor, and the explanation that native Cloudflare R2 storage
+does not require external credentials. This qualifies navigation and the
+read-only view. Privileged candidate/credential editing was not exercised; this
+actor's read-only state does not establish whether an encryption keyring exists.

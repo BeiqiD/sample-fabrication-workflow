@@ -1,7 +1,8 @@
 # File and data portability implementation plan
 
-Status: design reviewed and merged in PR #207; FP1 role defaults deployed in #238,
-with live acceptance being completed; FP2 candidate configuration in progress.
+Status: design reviewed and merged in PR #207; FP1 live acceptance passed after
+#238/#240. FP2 candidate configuration #239 is deployed; Draft #241 qualifies
+isolated S3 transport only. Provider qualification remains next.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
@@ -65,11 +66,14 @@ binding-preserving deletion/restore, owned import recovery, atomic activation
 and separate recovered-installation execution admission. Deployment leaves
 authority in overlap; explicit operator activation subsequently enabled File
 authority with 4/4 resolved references. #238 deployed `0013`, V19 and immutable
-R2 defaults for both roles. Its live original-file round trip and V19 recovery
-are the remaining FP1 acceptance. [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
-now adds independent administrator policy, immutable candidate revisions,
-encrypted credentials and candidate editing. Saving performs no provider I/O or
-activation. The five installation configuration tables are absent from ordinary
+R2 defaults for both roles. After #240's download repair, the 6 MiB HTTP round
+trip and V19 isolated recovery passed on 2026-10-01, closing FP1 live acceptance.
+Deployed #239 [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
+adds independent administrator policy, immutable candidate revisions, encrypted
+credentials and candidate editing without enabling external providers. Saving
+performs no provider I/O or activation. Draft #241 supplies isolated S3 transport
+only; provider qualification, activation and independent defaults remain the next
+FP2 work. The five installation configuration tables are absent from ordinary
 V19 content packages; a separately authorized system backup remains later.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
@@ -221,6 +225,13 @@ product recovery experience, not permission to postpone schema export coverage.
 Existing complete archives and their isolated restore fixtures remain supported.
 
 ### Accepted ZIP and validation cadence
+
+The latest [FP1 role-default acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01)
+records the 2026-10-01 6 MiB HTTP round trip and actual V19 isolated recovery:
+15/15 byte entries, zero warnings, equal canonical rows/schema and execution paused.
+Exact archive/deployment identities and byte hashes belong to that focused
+checkpoint rather than the roadmaps. This closes FP1 live acceptance and retains
+the same non-repetition policy below.
 
 The owner-supplied `sample-log-2026-09-28(1).zip`, exported at
 `2026-09-28T19:02:40.879Z`, closes actual V17 recovery acceptance after #233.

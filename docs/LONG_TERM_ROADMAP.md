@@ -3,11 +3,12 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-10-01 — deployed #238 and FP2 candidate configuration
+Last reviewed: 2026-10-01 — accepted FP1 and deployed FP2 candidate configuration
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-has deployed **FP1 role defaults** and started **FP2 candidate configuration**.
+has accepted **FP1 role defaults and recovery** and deployed **FP2 candidate
+configuration**.
 This track brings universal file storage, essential Settings and export/import
 forward while preserving completed Project and stabilization work. The earlier
 additive File substrate was followed by all-13-slot shadow capture, owned
@@ -15,17 +16,18 @@ conversion and adjudication. The owner-authorized disposal of obsolete test
 Projects closed their evidence gaps; current references reached 4/4 resolved.
 #236 supplied the runtime and atomic activation, and an explicit operator command
 enabled File authority. #238 supplied R2 defaults for both roles, preserved old
-accepted destinations and added V19 recovery. Its live original download and
-isolated ZIP recovery remain acceptance follow-up. Historical V15–V18 recovery
-evidence is retained without routine repetition.
+accepted destinations and added V19 recovery. After #240's download repair,
+the 6 MiB HTTP round trip and isolated V19 recovery passed on 2026-10-01;
+[exact FP1 acceptance proof](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01)
+is retained without routine repetition, alongside historical V15–V18 evidence.
 
-[FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md) adds an
-independent administrator policy, versioned candidates and encrypted credential
-storage. Candidate editing performs no provider requests or activation. Ordinary
-V19 content packages exclude candidate configuration, audit, descriptors and
+Deployed #239 [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
+adds an independent administrator policy, versioned candidates and encrypted
+credential storage without enabling external providers. Candidate editing
+performs no provider requests or activation. Ordinary V19 content packages exclude candidate configuration, audit, descriptors and
 payloads; an authorized installation backup remains a separate later capability.
-Provider tests, activation, external S3 transport and independent role defaults
-are the next development steps.
+Draft #241 qualifies isolated S3 transport and does not activate a provider or
+change defaults. Provider capability tests, atomic activation and independent role selection are the next development steps.
 
 ## Product scale and engineering stance
 
@@ -45,8 +47,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | Close FP1 live acceptance and implement FP2 candidates | Authority is Active/Enabled with 4/4 resolved references. #238 deployed R2 defaults for both roles and V19; its original-file round trip and recovery complete FP1 acceptance. FP2 adds administrator-only candidate settings and encrypted credentials. |
-| Next | FP2 provider tests, activation and S3 | Validate real candidate capabilities, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep system configuration out of ordinary content packages. |
+| Now | FP2 provider qualification | FP1 original-file and V19 live acceptance passed. #239 candidate settings and encrypted credentials are deployed; #241 is Draft transport only. Authority remains Active/Enabled with 4/4 resolved references. |
+| Next | FP2 activation and role defaults | After real candidate qualification, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep system configuration out of ordinary content packages. |
 | Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated provider configurations; accepted history and recovery retain their existing identities. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
