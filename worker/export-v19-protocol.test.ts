@@ -72,8 +72,8 @@ async function restore(manifest: FullExportManifestV19 | Awaited<ReturnType<type
 
 describe("V19 immutable R2 role policy archive", () => {
   it("pins whole-file and Wrangler-split schema while leaving role defaults uninitialized", async () => {
-    const whole = database(), split = new DatabaseSync(":memory:"); databases.push(split);
-    for (const name of (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql")).sort()) {
+    const whole = database("0013_fp1_r2_role_defaults.sql"), split = new DatabaseSync(":memory:"); databases.push(split);
+    for (const name of (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql") && name <= "0013_fp1_r2_role_defaults.sql").sort()) {
       for (const statement of splitSql(await readFile(join(migrationsDirectory, name), "utf8"))) split.exec(statement);
     }
     for (const sql of [whole, split]) {

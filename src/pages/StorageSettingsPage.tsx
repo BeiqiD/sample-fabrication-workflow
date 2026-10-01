@@ -40,7 +40,7 @@ export function StorageSettingsPage() {
     {error && <div className="error-banner" role="alert"><p>Storage information is unavailable. Refresh to try again.</p></div>}
     {status && <>
       <div className="storage-settings-observation"><strong>Connection not checked</strong>
-        <p className="muted">This page reads saved configuration. Refreshing does not test connectivity or access to stored files. Configuration changes are managed by your deployment.</p></div>
+        <p className="muted">This page reads saved configuration. Refreshing does not test connectivity or access to stored files. Active configuration is managed by your deployment.</p></div>
 
       <section className="card storage-settings-section" aria-labelledby="storage-uploads-title">
         <h2 className="card-title" id="storage-uploads-title">Current uploads</h2>
@@ -77,6 +77,7 @@ export function StorageSettingsPage() {
         </ul>}
         {status.profiles.hasMore && <p className="muted">Showing the first {status.profiles.limit} profiles. Additional profiles are registered.</p>}
       </section>
+      <p><a href="/settings/storage/configuration">Manage storage candidates</a></p>
       <details className="storage-settings-advanced"><summary>Advanced file maintenance</summary>
         <div><a href="/maintenance/file-evidence">Historical file evidence</a><a href="/maintenance/file-shadow">File conversion maintenance</a>
           <a href="/maintenance/file-authority">File authority maintenance</a></div>

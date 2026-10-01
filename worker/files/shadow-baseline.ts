@@ -8,6 +8,7 @@ import type { ExportSchemaObject } from "../../shared/contracts/export";
 import type { FilePurpose } from "../../shared/contracts/files";
 import { FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, fileShadowSchemaFingerprint } from "../../shared/contracts/export-file-shadow";
 import { isFileShadowRowid } from "../../shared/contracts/file-shadow-rowid";
+import { contentExportSchemaObjects } from "../../shared/contracts/storage-configuration-schema";
 import { MAX_VERIFIED_BYTES } from "./byte-verification";
 import { readShadowIdentification, SHADOW_IDENTIFICATION_EXACT_SQL } from "./shadow-identification";
 import { liveConsumerMetadataSql, projectLiveConsumerMetadata, MAX_LIVE_CONSUMER_PAGE_BYTES,
@@ -141,7 +142,7 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
   if (row.invalid_rowid_claims !== 0 || typeof row.schema_json !== "string" || encoder.encode(row.schema_json).length > 2 * 1024 * 1024) throw new Error("Incomplete shadow schema snapshot");
   const schema = JSON.parse(row.schema_json) as ExportSchemaObject[];
   if (!Array.isArray(schema) || schema.length > MAX_SHADOW_SCHEMA_OBJECTS) throw new Error("Unsupported shadow schema generation");
-  const schemaSha256 = await fileShadowSchemaFingerprint(schema);
+  const schemaSha256 = await fileShadowSchemaFingerprint(contentExportSchemaObjects(schema));
   if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
   const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);
   if (!overlayRead && hasAdjudications) throw new Error("Shadow schema changed during baseline read");

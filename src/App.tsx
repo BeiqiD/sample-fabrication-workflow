@@ -15,6 +15,7 @@ const ProjectsPage = lazy(() => import("./pages/ProjectsPage").then((module) => 
 const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({ default: module.ProjectPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
+const StorageConfigurationPage = lazy(() => import("./pages/StorageConfigurationPage").then((module) => ({ default: module.StorageConfigurationPage })));
 const StorageSettingsPage = lazy(() => import("./pages/StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
 const FileShadowPilotPage = lazy(() => import("./pages/FileShadowPilotPage").then((module) => ({ default: module.FileShadowPilotPage })));
 const FileEvidencePage = lazy(() => import("./pages/FileEvidencePage").then((module) => ({ default: module.FileEvidencePage })));
@@ -97,6 +98,7 @@ export function App() {
             <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/settings/storage" element={<StorageSettingsPage />} />
+            <Route path="/settings/storage/configuration" element={<StorageConfigurationPage />} />
             <Route path="/maintenance/file-shadow" element={<FileShadowPilotPage />} />
             <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
             <Route path="/maintenance/file-authority" element={<FileAuthorityPage />} />

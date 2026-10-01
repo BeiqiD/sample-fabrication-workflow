@@ -1,9 +1,11 @@
 # FP1 R2 role defaults
 
-Implementation base: deployed #236, `3a3877f7`. File authority is Active and
-execution Enabled after the explicit 2026-09-30 operator command. This slice is
-implemented on this branch; deployment and live acceptance are pending. That
-earlier activation is not acceptance of these changes.
+Implemented and deployed in #238, integration commit `15a9a613`, Worker version
+`5f6cc034-ef6e-4ad4-adea-66f3d435239b`. File authority remains Active and execution
+Enabled after the explicit 2026-09-30 operator command. Required CI and deployment
+passed. Live original-file and V19 recovery acceptance remains pending because
+the acceptance browser service timed out, including its reset operation. The
+earlier activation and V18 acceptance do not qualify these changed paths.
 
 ## New writes and accepted history
 

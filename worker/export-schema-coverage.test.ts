@@ -6,6 +6,7 @@ import { referenceTestDatabase, SqliteD1Database } from "./reference-test-suppor
 import { FILE_SHADOW_SLOT_KEYS } from "../shared/contracts/file-shadow-schema";
 import { FILE_SHADOW_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-shadow";
 import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-runtime";
+import { SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES } from "../shared/contracts/storage-configuration-schema";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
@@ -14,6 +15,9 @@ const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
 // Hidden rowid claims are rebuilt from restored registry rows. Execution gates
 // are installation-local and rebuilt disabled; neither belongs in portable rows.
 const REBUILDABLE_TABLES = new Set<string>([...FILE_SHADOW_REBUILDABLE_TABLE_NAMES, ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES]);
+// These installation-administration tables deliberately require a separate
+// authorized recovery boundary. Even credential descriptors are not content.
+const SYSTEM_CONFIGURATION_TABLES = new Set<string>(SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES);
 
 // This time-dependent projection is part of the archive contract in addition to
 // its source tables. Other views are rebuildable only after an explicit decision
@@ -74,7 +78,7 @@ function assertExportSchemaCoverage(database: DatabaseSync) {
   `).all() as Array<{ type: "table" | "view"; name: string }>;
   const applicationTables = schema.filter(({ type, name }) => type === "table"
     && !name.startsWith("sqlite_") && !PLATFORM_TABLES.has(name));
-  const tables = applicationTables.filter(({ name }) => !REBUILDABLE_TABLES.has(name));
+  const tables = applicationTables.filter(({ name }) => !REBUILDABLE_TABLES.has(name) && !SYSTEM_CONFIGURATION_TABLES.has(name));
   const views = new Set(schema.filter(({ type }) => type === "view").map(({ name }) => name));
   const classifiedViews = new Set([...EXPORTED_VIEWS, ...REBUILDABLE_VIEWS]);
   const required = new Set([...tables.map(({ name }) => name), ...EXPORTED_VIEWS]);

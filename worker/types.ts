@@ -12,4 +12,6 @@ export interface Env {
   ACCESS_AUD?: string;
   ALLOWED_EMAILS?: string;
   FILE_EVIDENCE_OPERATOR_EMAILS?: string;
+  SYSTEM_ADMIN_EMAILS?: string;
+  STORAGE_CREDENTIAL_KEYRING?: string;
 }
