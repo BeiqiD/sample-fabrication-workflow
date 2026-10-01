@@ -1,6 +1,7 @@
 # File and data portability implementation plan
 
-Status: design reviewed and merged in PR #207; FP1 implementation in progress.
+Status: design reviewed and merged in PR #207; FP1 role defaults deployed in #238,
+with live acceptance being completed; FP2 candidate configuration in progress.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
@@ -57,13 +58,19 @@ The #235 deployment passed one live status read: 4 current / 4 resolved /
 0 pending / 0 admitted unresolved / 0 unfinished attempts. Atomic activation
 must capture and validate its own fresh transactional cutoff. The
 [basic Storage Settings](./FP1_STORAGE_SETTINGS.md) status-only subset shipped
-in #234 without provider activity or configuration mutation. Draft #236 now
+in #234 without provider activity or configuration mutation. Merged #236
 implements [File runtime reads, accepted writes and lifecycle support](./FP1_FILE_AUTHORITY_RUNTIME.md),
 with `0012` database admission rules and V18 recovery. It also implements
 binding-preserving deletion/restore, owned import recovery, atomic activation
 and separate recovered-installation execution admission. Deployment leaves
-authority in overlap; the live activation and role-default change remain open.
-FP1 is incomplete until the switch and new R2-original behavior are accepted.
+authority in overlap; explicit operator activation subsequently enabled File
+authority with 4/4 resolved references. #238 deployed `0013`, V19 and immutable
+R2 defaults for both roles. Its live original-file round trip and V19 recovery
+are the remaining FP1 acceptance. [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
+now adds independent administrator policy, immutable candidate revisions,
+encrypted credentials and candidate editing. Saving performs no provider I/O or
+activation. The five installation configuration tables are absent from ordinary
+V19 content packages; a separately authorized system backup remains later.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).

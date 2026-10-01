@@ -1,12 +1,13 @@
 import { readdirSync } from "node:fs";
 import { expect, it } from "vitest";
 import { planExportRestoreMigrations } from "./export-restore";
+import { SYSTEM_STORAGE_CONFIGURATION_MIGRATION } from "../../shared/contracts/storage-configuration-schema";
 
-it("keeps V7–V19 schema upgrades while excluding only the reviewed deployment cleanup", () => {
+it("keeps V7–V19 content upgrades while excluding reviewed cleanup and installation configuration", () => {
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
   const names = readdirSync(new URL("../../migrations/", import.meta.url)).filter((name) => name.endsWith(".sql")).sort();
-  expect(names.at(-1)).toBe("0013_fp1_r2_role_defaults.sql");
-  const schemaNames = names.filter(name => name !== cleanup);
+  expect(names.at(-1)).toBe(SYSTEM_STORAGE_CONFIGURATION_MIGRATION);
+  const schemaNames = names.filter(name => name !== cleanup && name !== SYSTEM_STORAGE_CONFIGURATION_MIGRATION);
   for (let version = 7; version <= 19; version++) {
     const plan = planExportRestoreMigrations(names, version);
     expect(plan).toEqual(planExportRestoreMigrations(schemaNames, version));

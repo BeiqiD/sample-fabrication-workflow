@@ -35,3 +35,13 @@
   .storage-settings-section { padding: 20px; }
   .storage-upload-grid, .storage-profile-list dl { grid-template-columns: minmax(0, 1fr); }
 }
+
+.storage-candidate-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.storage-candidate-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; }
+.storage-candidate-fields label { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: var(--font-body); }
+.storage-candidate-fields input, .storage-candidate-fields select { width: 100%; min-width: 0; }
+.storage-candidate-fields .storage-candidate-checkbox, .storage-candidate-checkbox { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.storage-candidate-checkbox input { width: auto; }
+.storage-candidate-credentials { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
+.storage-candidate-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 720px) { .storage-candidate-fields { grid-template-columns: minmax(0, 1fr); } }

@@ -16,6 +16,7 @@ import { authenticateApiRequest, handleError, routes as platformRoutes } from ".
 import { shadowRoutes } from "./files/shadow-routes";
 import { fileEvidenceAccessRoutes } from "./files/evidence-operator";
 import { shadowAdjudicationRoutes } from "./files/shadow-adjudication-routes";
+import { storageConfigurationCacheControl, storageConfigurationRoutes } from "./storage/configuration-routes";
 import { storageSettingsCacheControl, storageSettingsRoutes } from "./storage/routes";
 import { fileAuthorityExecutionAdmission } from "./files/authority-execution";
 import { fileAuthorityRoutes } from "./files/authority-activation";
@@ -24,7 +25,12 @@ const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>().base
 
 app.onError(handleError);
 app.use("/settings/storage", storageSettingsCacheControl);
+app.use("/storage/configuration", storageConfigurationCacheControl);
+app.use("/storage/configuration/*", storageConfigurationCacheControl);
 app.use("*", authenticateApiRequest);
+// Only these authenticated, separately authorized configuration handlers run
+// before the recovered File execution gate. Other routes keep their admission.
+app.route("/", storageConfigurationRoutes);
 app.use("*", fileAuthorityExecutionAdmission);
 app.route("/", platformRoutes);
 app.route("/", storageSettingsRoutes);

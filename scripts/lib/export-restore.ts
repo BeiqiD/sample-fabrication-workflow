@@ -1,4 +1,5 @@
 import { FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-role-policy";
+import { SYSTEM_STORAGE_CONFIGURATION_MIGRATION } from "../../shared/contracts/storage-configuration-schema";
 import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
 import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
 import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../../shared/contracts/file-shadow-adjudication";
@@ -73,7 +74,9 @@ export function planExportRestoreMigrations(migrationNames: string[], schemaVers
   // This deployment-only cleanup is not a schema transition. Restoring an older
   // snapshot must preserve its rows, including the explicitly deleted QA data.
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
-  const schemaNames = migrationNames.filter((name) => name !== cleanup);
+  // Content recovery never installs administrator candidates or credential
+  // payload storage. A separately authorized installation recovery owns those.
+  const schemaNames = migrationNames.filter((name) => name !== cleanup && name !== SYSTEM_STORAGE_CONFIGURATION_MIGRATION);
   const knownChain = schemaNames.length >= 2 && schemaNames.length <= reviewedChain.length
     && canonical(schemaNames) === canonical(reviewedChain.slice(0, schemaNames.length));
   const forwardNames = knownChain ? schemaNames.filter((name) =>

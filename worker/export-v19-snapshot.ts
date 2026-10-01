@@ -5,6 +5,7 @@ import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL } from "../shared/contracts/ex
 import { buildFileShadowBlobExportPlan, FILE_SHADOW_HEAD_INTEGRITY_SQL, FILE_SHADOW_SOURCE_ROWIDS_PATH, FILE_SHADOW_SOURCE_TABLE_NAMES } from "../shared/contracts/export-file-shadow";
 import { FULL_EXPORT_V19_TABLE_QUERIES } from "./export-catalog";
 import { sha256Hex, stableJson } from "../shared/domain/content-addressing";
+import { contentExportSchemaObjects } from "../shared/contracts/storage-configuration-schema";
 
 /** One primary snapshot retains canonical histories, accepted File provenance,
  * typed bindings and recorded mode. Isolated restore does no provider I/O and
@@ -38,7 +39,7 @@ export async function snapshotFullExportV19(database: D1Database): Promise<FullE
   })])) as ExportTables;
   const schema: ObservedExportSchema = {
     version: 1, kind: "observed-sqlite-schema",
-    objects: results[names.length].results as unknown as ObservedExportSchema["objects"],
+    objects: contentExportSchemaObjects(results[names.length].results as unknown as ObservedExportSchema["objects"]),
     compatibilityColumns: {
       samples: results[names.length + 1].results.map((row) => String((row as { name: string }).name)),
       run_step_comments: results[names.length + 2].results.map((row) => String((row as { name: string }).name)),

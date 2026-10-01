@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-09-30 after deployed #236 and explicit File authority
-activation; implementation base is `3a3877f7`. PR #202's S2 activation is deployed;
+Last reviewed: 2026-10-01 after deployed #238 and the start of FP2 candidate
+configuration; implementation base is `15a9a613`. PR #202's S2 activation is deployed;
 the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -64,9 +64,15 @@ The [File runtime](./FP1_FILE_AUTHORITY_RUNTIME.md) shipped in #236 with `0012`
 and V18. Its deployed ZIP passed one isolated recovery with 13/13 files and zero
 warnings. On 2026-09-30 the explicit operator command activated File authority;
 the maintenance page confirmed Active, execution Enabled and 4/4 resolved
-references. The [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md) now follows this
-cutover. Editable external configuration and secret administration remain FP2.
-FP1 is still in progress and no deployment is authorized by this document.
+references. The [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md) shipped in #238
+with `0013` and V19. It keeps old accepted destinations and routes new originals
+to R2; the deployed 6 MiB original round trip and V19 recovery close its remaining
+live acceptance. The [FP2 configuration security slice](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
+adds independent administrator authorization, immutable external candidates,
+encrypted credentials and candidate editing. Provider testing, activation, S3
+transport and independent default changes follow. Ordinary content export stays
+V19 and excludes all five system configuration tables. This document records
+scope and evidence; deployment authority comes from the owner's requests.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
@@ -105,7 +111,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP1 → FP2: universal file foundation and configuration | #236's `0012`/V18 File runtime is deployed and authority is Active/Enabled with 4/4 resolved references. The next slice persists R2 defaults for both roles and completes original-file/status behavior. Basic authenticated, read-only Storage Settings is delivered; editable external configuration, administrator/secret boundaries and S3 remain FP2. FP1 remains incomplete until the role-default slice passes acceptance. |
+| 4 | FP1 → FP2: universal file foundation and configuration | File authority is Active/Enabled with 4/4 resolved references; #238's `0013`/V19 R2 defaults are deployed, with the 6 MiB original round trip and V19 recovery remaining live acceptance. FP2 now implements administrator-only candidate settings and encrypted credentials; provider testing/activation, S3 transport and independent defaults follow. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -932,27 +938,12 @@ Project-owned Markdown or attachment content only through explicit user action.
 1. Preserve merged **FP1k** (`#220`, `4248deb5`) and merged #221's verified
    [read-only preflight](./FP1_SHADOW_CONVERSION_PREFLIGHT.md). Its frozen V14
    diagnostic contract remains separate from shadow operations.
-2. Inspect and catch up the current generations using the deployed
-   [shadow runtime](./FP1_SHADOW_RUNTIME.md). The V15 closed-snapshot command
-   explains missing intent/namespace evidence and unfinished operations; its
-   metadata report never authorizes conversion. Read fresh live baselines before
-   owned full-byte verification/copying. Source changes create successors rather
-   than reusing old decisions. Current business File columns stay empty and legacy
-   runtime authority remains in force. An epoch-fenced checkpoint reports catch-up;
-   recovery preserves evidence and starts paused. The actual V15 ZIP/restore gap
-   is closed; live replay/stale-version and provider-specific gaps remain explicit.
-   The synthetic R2 pilot passed in #228; #234 records three further successful
-   conversions. The owner authorized disposal of the remaining six old test
-   Projects through data-only migration `0011`; record a fresh checkpoint after
-   deployment. Durable
-   unaccepted-request withdrawal and V16 recovery passed in #229. Use the
-   [historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) to identify
-   missing facts. Explicit adjudication with correction/revocation, native
-   admission/retention fencing and V17 recovery are delivered in #231–#233;
-   applying evidence to any retained ambiguous occurrence still requires real
-   facts and an explicitly configured operator. Basic read-only [Storage Settings](./FP1_STORAGE_SETTINGS.md) is
-   delivered in parallel. Configuration writes and role defaults retain their
-   later gates; this does not reopen general frontend refinement.
+2. Preserve the deployed [shadow runtime](./FP1_SHADOW_RUNTIME.md), accepted
+   conversion history and current 4/4 resolved references. The obsolete six test
+   Projects were disposed through `0011` with the owner's authorization; further
+   historical evidence work for these fixtures is closed. Current business paths
+   use File authority. Recovery retains evidence and starts execution paused;
+   live/provider-specific acceptance gaps remain explicit.
 3. Preserve separately reviewed **File runtime and atomic authority activation**
    delivered in #236. Its deployed operator command switched reads, writes,
    retention, purpose-aware reuse, quarantine, deletion and recovery together
@@ -961,12 +952,14 @@ Project-owned Markdown or attachment content only through explicit user action.
    interactive/provider-specific acceptance. Keep #199/#200 inactive. No repeat reset or
    unreferenced-file cleanup follows from this plan. The activation checkpoint
    continues to own operator follow-up and temporary control restoration.
-5. Finish FP1 with the [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md): persist
-   both defaults, retain accepted historical destinations, support unchanged
-   original bytes up to 100 MiB, and separate role availability from core
-   readiness. Basic read-only Storage Settings remains reachable. Then implement **FP2** external
-   configuration, administrator and encrypted-secret boundaries, and S3 without
-   requiring SWITCHdrive credentials for development.
+5. Finish the deployed #238 [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md)
+   live original download and V19 recovery acceptance. Its implementation already
+   persists both defaults, preserves accepted destinations and supports originals
+   up to 100 MiB. In parallel, deliver the [FP2 candidate configuration slice](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md):
+   administrator authorization, immutable revisions, encrypted credentials and
+   candidate editing. Follow with provider capability tests, atomic activation,
+   external S3 transport and independent defaults, without requiring SWITCHdrive
+   credentials for development. V19 content export excludes system configuration.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
    exits. Do not ship an export-only native format or claim backup completeness
    from a zero-file exercise. Maintain current exporter/recovery and GC coverage
