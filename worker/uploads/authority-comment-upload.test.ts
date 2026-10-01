@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../shared/content-addressing";
+import type { SampleDetail } from "../../shared/types";
 import { acceptCommentSubmission, acceptCommentUpload, commentManagedFetch, COMMENT_TEST_R2_NAMESPACE } from "../comment-acceptance-test-support";
 import { enableFutureFileAuthority, futureActiveRuntimeDatabase } from "../files/authority-runtime-test-support";
 import { managedBootstrapNamespace } from "../files/managed-bootstrap-profile";
@@ -149,6 +150,14 @@ describe("active accepted Comment upload publication", () => {
   it("streams an unchanged R2 original above 5 MiB, downloads exact bytes and retries without another PUT", async () => {
     const f = fixture(), bytes = new Uint8Array(6 * 1024 * 1024 + 19).fill(37);
     await acceptCommentUpload(f.sql, f.env, { kind: "attachment", bytes, filename: "measurement.bin" });
+    const attachment = async () => {
+      const response = await f.request("/samples/sample-upload");
+      expect(response.status).toBe(200);
+      const detail = await response.json() as SampleDetail;
+      return detail.comments![0].attachments[0];
+    };
+    expect(await attachment()).toMatchObject({ status: "pending", downloadUrl: null });
+    expect((await f.request("/attachments/item-upload/download")).status).toBe(404);
     expect(f.sql.prepare("SELECT storage_role_policy_revision FROM comment_submission_acceptances").get()!.storage_role_policy_revision).toBe(2);
     expect(f.sql.prepare("SELECT role,storage_profile_id,policy_revision FROM storage_role_defaults ORDER BY role").all()).toEqual([
       { role: "internal", storage_profile_id: "r2-profile", policy_revision: 2 }, { role: "originals", storage_profile_id: "r2-profile", policy_revision: 2 },
@@ -161,8 +170,13 @@ describe("active accepted Comment upload publication", () => {
     expect(JSON.parse(String(receipt.accepted_result_json))).toMatchObject({ storeKind: "r2", provider: "r2", byteSize: bytes.length });
     expect((await f.upload("item-upload", bytes, "application/octet-stream")).status).toBe(200);
     expect(f.sql.prepare("SELECT accepted_result_json FROM comment_item_acceptances").get()).toEqual(receipt);
+    expect(await attachment()).toMatchObject({ status: "ready", downloadUrl: null });
+    expect((await f.request("/attachments/item-upload/download")).status).toBe(404);
     expect((await f.finalize()).status).toBe(200);
-    const download = await f.request("/attachments/item-upload/download");
+    const readyAttachment = await attachment();
+    expect(readyAttachment).toMatchObject({ status: "ready", downloadUrl: "/api/attachments/item-upload/download" });
+    if (readyAttachment.kind !== "file" || !readyAttachment.downloadUrl) throw new Error("Ready original has no download link");
+    const download = await f.request(readyAttachment.downloadUrl.replace(/^\/api/, ""));
     expect(download.status, await download.clone().text()).toBe(200);
     expect(Buffer.from(await download.arrayBuffer()).equals(Buffer.from(bytes))).toBe(true);
     expect(f.put).toHaveBeenCalledTimes(1);
