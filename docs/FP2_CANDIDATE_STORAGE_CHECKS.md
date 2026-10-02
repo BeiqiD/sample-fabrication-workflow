@@ -145,16 +145,20 @@ build succeeded. The live configuration page displayed the S3-testing descriptio
 and expected read-only administrator view; Storage Settings retained R2 for both
 roles. Fixture qualification does not replace real-provider acceptance.
 
-The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is being
-implemented and reviewed as the next qualification prerequisite. An optional
+The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
+#246 (`4d7d942`). An optional
 AWS owner condition is captured with each full configuration and signed on all
 four object operations; accepted check cleanup retains its captured condition.
 It introduces no migration or activation and makes no generic S3 identity claim.
+The [native profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice is
+under implementation and review: exact current owner-qualified successful
+evidence and clear cleanup allow administrator registration of a restricted AWS
+S3 identity. Its migration and V20 recovery preserve native admission evidence;
+they enable neither S3 File access nor upload-default selection.
 
-Activation remains a separate slice. It must establish actual provider account
-and namespace identity before native profile admission; a passed probe is not
-permission to reinterpret an activated namespace. Independent role defaults
+Activation remains a separate slice after restricted profile registration and
+complete native byte-access/acceptance/lifecycle support. A passed probe is not
+permission to reinterpret a registered namespace. Independent role defaults
 also require all accepted ingestion paths to select and retain their exact
-purpose/profile/revision. The shared selection boundary is deployed in #244;
-native admission, mutable defaults and paired successor archive/recovery support
-remain later work. These checks change neither default today.
+purpose/profile/revision, with paired archive/recovery support. The shared
+selection boundary is deployed in #244; these checks change neither default today.

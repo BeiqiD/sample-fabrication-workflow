@@ -1,3 +1,5 @@
+import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS } from "../shared/contracts/export-file-native-admission";
 import { snapshotFullExportV19 } from "./export-v19-snapshot";
 import { STORAGE_ROLE_DEFAULTS_EXPORT_COLUMNS } from "../shared/contracts/export-file-role-policy";
 import { snapshotFullExportV18 } from "./export-v18-snapshot";
@@ -130,6 +132,8 @@ const FILE_SHADOW_ADJUDICATION_MARKERS = [
 const FILE_R2_ROLE_DEFAULT_MARKERS = [["table", "storage_role_defaults"], ["trigger", "file_r2_role_defaults_generation_complete"]] as const satisfies readonly SchemaMarker[];
 const FILE_R2_ROLE_DEFAULT_COLUMNS = { ...STORAGE_ROLE_DEFAULTS_EXPORT_COLUMNS, comment_submission_acceptances: ["storage_role_policy_revision"] } as const;
 
+const FILE_NATIVE_ADMISSION_MARKERS = [["table", "storage_profile_admissions"], ["trigger", "file_native_storage_profiles_generation_complete"]] as const satisfies readonly SchemaMarker[];
+
 const FILE_AUTHORITY_RUNTIME_MARKERS = [["trigger", "file_authority_runtime_generation_complete"]] as const satisfies readonly SchemaMarker[];
 
 const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
@@ -157,7 +161,9 @@ const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
   ${columnCountSql(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)} AS adjudication_columns,
   ${markerCountSql(FILE_AUTHORITY_RUNTIME_MARKERS)} AS file_runtime_markers,
   ${markerCountSql(FILE_R2_ROLE_DEFAULT_MARKERS)} AS role_default_markers,
-  ${columnCountSql(FILE_R2_ROLE_DEFAULT_COLUMNS)} AS role_default_columns`;
+  ${columnCountSql(FILE_R2_ROLE_DEFAULT_COLUMNS)} AS role_default_columns,
+  ${markerCountSql(FILE_NATIVE_ADMISSION_MARKERS)} AS native_admission_markers,
+  ${columnCountSql(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS)} AS native_admission_columns`;
 
 type ExportSchemaGenerationProbe = {
   base_markers: number;
@@ -170,7 +176,7 @@ type ExportSchemaGenerationProbe = {
   authority_completion_markers: number;
   shadow_markers: number; shadow_columns: number; shadow_completion_markers: number;
   withdrawal_markers: number; withdrawal_columns: number;
-  adjudication_markers: number; adjudication_columns: number; file_runtime_markers: number; role_default_markers: number; role_default_columns: number;
+  adjudication_markers: number; adjudication_columns: number; file_runtime_markers: number; role_default_markers: number; role_default_columns: number; native_admission_markers: number; native_admission_columns: number;
 };
 
 const COMPLETE_GENERATION_COUNTS = [
@@ -187,21 +193,22 @@ const COMPLETE_GENERATION_COUNTS = [
   FILE_SHADOW_ADJUDICATION_MARKERS.length, totalColumns(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS),
   FILE_AUTHORITY_RUNTIME_MARKERS.length,
   FILE_R2_ROLE_DEFAULT_MARKERS.length, totalColumns(FILE_R2_ROLE_DEFAULT_COLUMNS),
+  FILE_NATIVE_ADMISSION_MARKERS.length, totalColumns(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS),
 ] as const;
-const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, 22, 23, COMPLETE_GENERATION_COUNTS.length] as const;
+const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, 22, 23, 25, COMPLETE_GENERATION_COUNTS.length] as const;
 
 function generationCounts(row: ExportSchemaGenerationProbe) {
   return [row.base_markers, row.foundation_markers, row.foundation_columns, row.import_markers, row.import_columns,
     row.r2_markers, row.r2_columns, row.metrology_markers, row.metrology_columns, row.comment_markers,
     row.comment_columns, row.authority_markers, row.authority_columns, row.authority_consumer_columns,
-    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns, row.file_runtime_markers, row.role_default_markers, row.role_default_columns];
+    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns, row.file_runtime_markers, row.role_default_markers, row.role_default_columns, row.native_admission_markers, row.native_admission_columns];
 }
 
 async function installedExportSchema(database: D1Database) {
   const row = await database.prepare(EXPORT_SCHEMA_GENERATION_PROBE).first<ExportSchemaGenerationProbe>();
   if (!row || generationCounts(row).some((value) => !Number.isSafeInteger(value) || value < 0)) return null;
   const observed = generationCounts(row);
-  for (let index = 11; index >= 0; index -= 1) {
+  for (let index = COMPLETE_FIELDS_BY_GENERATION.length - 1; index >= 0; index -= 1) {
     const version = index + 8;
     const expected = COMPLETE_GENERATION_COUNTS.map((value, position) =>
       position < COMPLETE_FIELDS_BY_GENERATION[index] ? value : 0);
@@ -221,6 +228,7 @@ snapshotRoutes.get("/exports/all", async (c) => {
     if (Number(requestedSchema) !== installedSchema) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
+    if (requestedSchema === "20") return c.json(await snapshotFullExportV20(c.env.DB));
     if (requestedSchema === "19") return c.json(await snapshotFullExportV19(c.env.DB));
     if (requestedSchema === "18") return c.json(await snapshotFullExportV18(c.env.DB));
     if (requestedSchema === "17") return c.json(await snapshotFullExportV17(c.env.DB));

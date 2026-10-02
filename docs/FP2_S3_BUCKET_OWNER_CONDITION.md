@@ -1,7 +1,7 @@
 # FP2 S3 bucket-owner condition
 
-Status: implemented for review after merged candidate evidence #245 (`5992307`).
-Final validation and deployment evidence are recorded in the associated PR.
+Status: merged and deployed in #246 (`4d7d942`), after candidate evidence #245
+(`5992307`). Validation and deployment evidence are recorded in the associated PR.
 
 S3 connection checks already bind the complete saved configuration and credential
 envelope. This slice adds an optional AWS bucket-owner condition to that captured
@@ -60,10 +60,14 @@ workerd/D1 check snapshots, revision invalidation and cleanup after a candidate
 edit. The provider fixture enforces the owner condition but is not live AWS
 acceptance. Real provider qualification remains outstanding.
 
-Next: implement the provider-specific native identity/admission boundary with its
-matched successor schema and archive/recovery support, then atomic activation
-and independent defaults. Generic S3 and WebDAV need their own reviewed account
-identity mechanisms; they cannot borrow AWS's owner-condition guarantee.
+The [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md)
+slice is now under implementation and review. It registers a canonical commercial
+AWS account/bucket/root identity as `read_only` and pairs native admission evidence
+with V20 recovery. It supplies no native S3 File reader and prohibits S3 locations,
+write admission and defaults. Complete byte-access/acceptance/lifecycle support
+and its paired recovery contract precede atomic activation and independent
+defaults. Generic S3 and WebDAV need their own reviewed account identity
+mechanisms; they cannot borrow AWS's owner-condition guarantee.
 
 ## Provider references
 

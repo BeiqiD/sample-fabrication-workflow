@@ -5,12 +5,12 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ExportSchemaObject } from "../shared/contracts/export";
-import { FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 } from "../shared/contracts/export-file-role-policy";
+import { FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 } from "../shared/contracts/export-file-native-admission";
 import { fileShadowSchemaFingerprint } from "../shared/contracts/export-file-shadow";
 import { contentExportSchemaObjects, SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES } from "../shared/contracts/storage-configuration-schema";
-import { buildFullExportArchiveV19 } from "../src/lib/exportAll";
+import { buildFullExportArchiveV20 } from "../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
-import { snapshotFullExportV19 } from "./export-v19-snapshot";
+import { snapshotFullExportV20 } from "./export-v20-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { readShadowBaseline } from "./files/shadow-baseline";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -44,16 +44,16 @@ afterEach(async () => {
   for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true });
 });
 
-describe("FP2 installation configuration and frozen V19 content archives", () => {
+describe("FP2 installation configuration and V20 content archives", () => {
   it("keeps populated system configuration outside content rows and schema provenance", async () => {
     const database = fixture(), db = adapter(database);
     const installed = database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name").all() as unknown as ExportSchemaObject[];
     expect(installed.filter(object => object.type === "table" && SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES.includes(object.name as typeof SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES[number]))).toHaveLength(8);
-    expect(await fileShadowSchemaFingerprint(installed)).not.toBe(FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256);
-    expect(await fileShadowSchemaFingerprint(contentExportSchemaObjects(installed))).toBe(FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256);
-    const response = await snapshotRoutes.request("/exports/all?archiveSchema=19&archiveWriter=1", {}, { DB: db } as Env);
+    expect(await fileShadowSchemaFingerprint(installed)).not.toBe(FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256);
+    expect(await fileShadowSchemaFingerprint(contentExportSchemaObjects(installed))).toBe(FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256);
+    const response = await snapshotRoutes.request("/exports/all?archiveSchema=20&archiveWriter=1", {}, { DB: db } as Env);
     expect(response.status, await response.clone().text()).toBe(200);
-    const manifest = await snapshotFullExportV19(db), serialized = JSON.stringify(manifest);
+    const manifest = await snapshotFullExportV20(db), serialized = JSON.stringify(manifest);
     expect(manifest.tables.samples).toHaveLength(1);
     for (const name of SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES) {
       expect(manifest.tables).not.toHaveProperty(name);
@@ -65,13 +65,13 @@ describe("FP2 installation configuration and frozen V19 content archives", () =>
     // Current shadow inspection uses the content generation; candidate changes
     // neither invalidate existing source evidence nor expose system metadata.
     const baseline = await readShadowBaseline(new SqliteD1Database(database), { consumerKind: "", consumerId: "", consumerSubId: "", fileSlot: "" });
-    expect(baseline.schemaSha256).toBe(FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256);
+    expect(baseline.schemaSha256).toBe(FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256);
     expect(baseline.status).toBe("absent");
   });
 
   it("restores content without installing candidate, descriptor, audit or payload tables", async () => {
-    const database = fixture(), manifest = await snapshotFullExportV19(adapter(database));
-    const packaged = await buildFullExportArchiveV19(manifest);
+    const database = fixture(), manifest = await snapshotFullExportV20(adapter(database));
+    const packaged = await buildFullExportArchiveV20(manifest);
     const directory = await mkdtemp(join(tmpdir(), "fp2-content-recovery-")); directories.push(directory);
     const archivePath = join(directory, "content.zip");
     await writeFile(archivePath, Buffer.from(await packaged.archive.arrayBuffer()));
@@ -80,13 +80,13 @@ describe("FP2 installation configuration and frozen V19 content archives", () =>
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite")); databases.push(restored);
     for (const name of SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES)
       expect(restored.prepare("SELECT name FROM sqlite_schema WHERE name=?").get(name)).toBeUndefined();
-    expect((await snapshotFullExportV19(adapter(restored))).tables).toEqual(manifest.tables);
+    expect((await snapshotFullExportV20(adapter(restored))).tables).toEqual(manifest.tables);
     expect(restored.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
   }, 30_000);
 
   it("continues rejecting unclassified application schema additions", async () => {
     const database = fixture();
     database.exec("CREATE TABLE system_storage_unreviewed_extension(id TEXT PRIMARY KEY)");
-    await expect(snapshotFullExportV19(adapter(database))).rejects.toThrow("table inventory differs from observed source schema");
+    await expect(snapshotFullExportV20(adapter(database))).rejects.toThrow("table inventory differs from observed source schema");
   });
 });

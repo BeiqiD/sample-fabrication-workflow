@@ -331,7 +331,7 @@ describe("v14 additive File authority export profile", () => {
       expect(restored.report).toMatchObject({
         schemaVersion: 14,
         archiveProfile: "fp1-file-authority-transition",
-        appliedForwardMigrations: [{ name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }],
+        appliedForwardMigrations: [{ name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true,
           derivedTablesRebuilt: true },
       });

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { StorageCandidate } from "../../shared/contracts/storage-configuration";
 import type { StorageCandidateReadiness as Readiness } from "../../shared/contracts/storage-candidate-readiness";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
+import { hasRememberedProfileRegistration, StorageProfileRegistration } from "./StorageProfileRegistration";
 
 const credentialNames: Record<Readiness["credential"]["status"], string> = {
   current: "Credentials readable; current encryption",
@@ -14,7 +15,7 @@ const credentialNames: Record<Readiness["credential"]["status"], string> = {
 export function StorageCandidateReadiness({ candidate, evidenceGeneration, blocked, onForbidden }: {
   candidate: StorageCandidate; evidenceGeneration: number; blocked: boolean; onForbidden: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false), [loading, setLoading] = useState(false), [message, setMessage] = useState("");
+  const [expanded, setExpanded] = useState(() => hasRememberedProfileRegistration(candidate.profileId)), [loading, setLoading] = useState(false), [message, setMessage] = useState("");
   const [observation, setObservation] = useState<{ key: string; value: Readiness } | null>(null);
   const sequence = useRef(0), request = useRef<AbortController | null>(null);
   const previous = useRef({ expanded: false, profileId: candidate.profileId, revision: candidate.revision });
@@ -73,6 +74,8 @@ export function StorageCandidateReadiness({ candidate, evidenceGeneration, block
         <p className="muted">Counts include all recorded history. Refresh test status to reconcile interrupted tests. Success for this configuration may use an earlier stored credential version.</p>
         <p className="muted">Observed <time dateTime={result.observedAt}>{new Date(result.observedAt).toLocaleString()}</time>. Recorded success does not guarantee that the provider is reachable now.</p>
       </>}
+      <StorageProfileRegistration candidate={candidate} evidence={result} blocked={blocked} onForbidden={onForbidden}
+        onStaleEvidence={() => { sequence.current += 1; request.current?.abort(); setObservation(null); setLoading(false); }} />
       <p className="muted">Candidate activation is unavailable. Current upload destinations are unchanged.</p>
     </section>}
   </div>;

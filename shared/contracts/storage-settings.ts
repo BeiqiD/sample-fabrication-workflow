@@ -1,15 +1,16 @@
-/** Read-only deployment metadata. Configuration parsing and a registered profile
- * match never establish connection health, byte availability, or role defaults. */
+/** Read-only deployment and registered-profile metadata. Configuration parsing,
+ * registration and matches never establish health, byte availability, or role defaults. */
 export type StorageConfigurationState = "configured" | "missing" | "invalid";
-export type StorageBindingMatch = "matched" | "mismatch" | "not_configured" | "invalid_configuration";
+export type StorageBindingMatch = "matched" | "mismatch" | "not_configured" | "invalid_configuration" | "registered";
 export const MAX_STORAGE_SETTINGS_PROFILES = 100;
 export const MAX_STORAGE_SETTINGS_BYTES = 192 * 1024;
 export interface StorageSettingsProfile {
   id: string;
-  adapterType: "r2" | "switchdrive";
+  adapterType: "r2" | "switchdrive" | "s3";
   configurationRevision: 1;
-  /** Access to this recorded profile; not the application's upload default. */
+  /** Recorded runtime policy; not proof of file access or an upload default. */
   runtimeAccess: "read_only" | "read_write" | "retired";
+  /** `registered` only describes an S3 profile's metadata-only registration. */
   bindingMatch: StorageBindingMatch;
 }
 export interface StorageSettingsStatus {
@@ -57,9 +58,9 @@ export function checkedStorageSettingsStatus(value: unknown): StorageSettingsSta
     const profile = object(entry, ["id", "adapterType", "configurationRevision", "runtimeAccess", "bindingMatch"]);
     if (typeof profile.id !== "string" || profile.id.length < 1 || profile.id.length > 256 || profile.id.includes("\0")
       || profile.configurationRevision !== 1) invalid();
-    return { id: profile.id, adapterType: enumeration(profile.adapterType, ["r2", "switchdrive"] as const), configurationRevision: 1,
+    return { id: profile.id, adapterType: enumeration(profile.adapterType, ["r2", "switchdrive", "s3"] as const), configurationRevision: 1,
       runtimeAccess: enumeration(profile.runtimeAccess, ["read_only", "read_write", "retired"] as const),
-      bindingMatch: enumeration(profile.bindingMatch, ["matched", "mismatch", "not_configured", "invalid_configuration"] as const) };
+      bindingMatch: enumeration(profile.bindingMatch, ["matched", "mismatch", "not_configured", "invalid_configuration", "registered"] as const) };
   });
   if (new Set(items.map(item => item.id)).size !== items.length) invalid();
   const result: StorageSettingsStatus = { version: 2, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
@@ -75,6 +76,10 @@ export function checkedStorageSettingsStatus(value: unknown): StorageSettingsSta
     || result.authority.mode !== "active" && (result.roleDefaults.state !== "legacy"
       || result.uploadDestinations.commentOriginals !== (result.bindings.managed.provider === "none" ? "unconfigured" : result.bindings.managed.provider))) invalid();
   for (const profile of items) {
+    if (profile.adapterType === "s3") {
+      if (profile.bindingMatch !== "registered" || profile.runtimeAccess !== "read_only") invalid();
+      continue;
+    }
     const state = profile.adapterType === "r2" ? result.bindings.r2.configuration : result.bindings.managed.configuration;
     if (state === "missing" && profile.bindingMatch !== "not_configured"
       || state === "invalid" && profile.bindingMatch !== "invalid_configuration"

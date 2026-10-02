@@ -6,8 +6,9 @@ not authorization to implement later capabilities
 Last reviewed: 2026-10-02 — accepted FP1, deployed FP2 configuration/S3 transport,
 deployed candidate checks #242, credential re-enveloping #243 and shared fresh
 acceptance role selection #244. Candidate check evidence #245 (`5992307`) is
-merged and deployed. The AWS S3 bucket-owner condition
-prerequisite is being implemented and reviewed; real-provider acceptance remains pending
+merged and deployed. AWS S3 bucket-owner condition #246 (`4d7d942`) is deployed.
+Restricted native AWS S3 profile admission with paired V20 recovery is under
+implementation and review; real-provider acceptance remains pending
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -48,11 +49,17 @@ performs no provider calls or database writes and keeps activation unavailable.
 The current live actor is read-only, so privileged provider checks have not been
 exercised on the deployment.
 
-The next [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) slice is
-being implemented and reviewed. Its optional AWS-specific request condition is
-a qualification prerequisite, without changing native schema or V19 recovery.
-Native provider identity/admission with paired successor schema/archive support
-and real-provider qualification precede atomic activation and independent defaults.
+The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
+#246 (`4d7d942`). Its optional AWS-specific request condition is a qualification
+prerequisite. The next
+[native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
+is under implementation and review with migration `0017` and V20 recovery. It
+registers a restricted native identity and portable admission evidence while
+prohibiting S3 File locations, non-read-only state and defaults. It supplies no
+native S3 File byte access. Complete native byte-access/acceptance/lifecycle
+support and real-provider qualification precede atomic activation and independent
+defaults. V20 carries nonsecret native registration receipts while excluding the
+installation's candidate/check/credential payloads.
 
 ## Product scale and engineering stance
 
@@ -72,8 +79,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP2 provider qualification | FP1 original-file and V19 live acceptance passed. #239 candidate settings, #241 S3 transport, #242 candidate checks, #243 credential re-enveloping and #244 shared role selection are deployed. Candidate evidence #245 is merged and deployed. The AWS S3 bucket-owner condition prerequisite is being implemented and reviewed; real-provider acceptance remains pending. Authority remains Active/Enabled with 4/4 resolved references. |
-| Next | FP2 native admission, activation and role defaults | Add provider-specific native identity/admission with paired successor schema/archive support. After real candidate qualification, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep system configuration out of ordinary content packages. |
+| Now | FP2 native identity and registration | FP1 original-file and V19 live acceptance passed. FP2 candidate settings through evidence #245 and AWS owner condition #246 are deployed. Restricted native S3 profile admission with `0017`/V20 is under implementation and review; it supplies no S3 File byte access or default change. Real-provider acceptance remains pending. Authority remains Active/Enabled with 4/4 resolved references. |
+| Next | FP2 byte runtime, activation and role defaults | Complete provider-bound byte access, accepted writes and lifecycle/GC with paired recovery. After real candidate qualification, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep installation configuration out of ordinary content packages. |
 | Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated provider configurations; accepted history and recovery retain their existing identities. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |

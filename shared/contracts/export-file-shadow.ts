@@ -123,12 +123,15 @@ export function buildFileShadowBlobExportPlan(tables: ExportTables): FullExportB
   return result;
 }
 
-function validateFoundation(tables: ExportTables) {
+function validateFoundation(tables: ExportTables, metadataOnlyProfileIds?: ReadonlySet<string>) {
   const mappings = rows(tables, "legacy_file_mappings");
   const mappedFiles = new Set(mappings.map((row) => row.file_id)), mappedLocations = new Set(mappings.map((row) => row.location_id));
   // The old observation subgraph stays frozen; new shadow-only locations do
   // not gain fabricated legacy mappings to satisfy a historical validator.
-  validateLegacyOverlap({ ...tables, files: rows(tables, "files").filter((row) => mappedFiles.has(row.id)),
+  // V20 independently authenticates metadata-only profiles before excluding
+  // them from this frozen legacy subgraph. Keep them in every index and
+  // dependency-history check below so occurrence profile revisions stay exact.
+  validateLegacyOverlap({ ...tables, storage_profiles: rows(tables, "storage_profiles").filter((row) => !metadataOnlyProfileIds?.has(String(row.id))), files: rows(tables, "files").filter((row) => mappedFiles.has(row.id)),
     file_locations: rows(tables, "file_locations").filter((row) => mappedLocations.has(row.id)) });
   const profiles = indexed(rows(tables, "storage_profiles"), "id", "profile");
   const files = indexed(rows(tables, "files"), "id", "file");
@@ -208,7 +211,7 @@ export async function validateFileShadowExport(tables: ExportTables, schemaObjec
 }
 
 /** Shared row semantics; callers must first authenticate the exact reviewed schema. */
-export async function validateFileShadowRows(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids, runtime?: { acceptedPublicationLocations: ReadonlySet<string> }) {
+export async function validateFileShadowRows(tables: ExportTables, schemaObjects: ExportSchemaObject[], sourceRowids?: FileShadowSourceRowids, runtime?: { acceptedPublicationLocations: ReadonlySet<string>; metadataOnlyProfileIds?: ReadonlySet<string> }) {
   for (const [name, columns] of Object.entries({ ...FILE_AUTHORITY_EXPORT_COLUMNS, ...FILE_SHADOW_EXPORT_COLUMNS })) {
     const entry = schemaObjects.find((object) => object.type === "table" && object.name === name);
     ensure(entry && typeof entry.sql === "string" && stableJson(sqliteTableColumns(entry.sql, name).sort()) === stableJson([...columns].sort()), `${name} columns`);
@@ -221,7 +224,7 @@ export async function validateFileShadowRows(tables: ExportTables, schemaObjects
   const control = rows(tables, "file_authority_control");
   ensure(control.length === 1 && control[0].singleton === 1 && (runtime ? ["legacy", "overlap", "active"] : ["legacy", "overlap"]).includes(String(control[0].mode)) && control[0].revision === 1
     && (control[0].mode === "legacy" ? control[0].activated_at === null : time(control[0].activated_at)), "recorded authority mode");
-  const graph = validateFoundation(tables);
+  const graph = validateFoundation(tables, runtime?.metadataOnlyProfileIds);
   const projections = legacyConsumerProjections(tables, Boolean(runtime));
   if (runtime) for (const projection of Object.values(projections)) for (const row of projection) {
     if (row.file_id !== null) row.resolution_state = "resolved";

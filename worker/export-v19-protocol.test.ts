@@ -1,3 +1,4 @@
+import { snapshotFullExportV20 } from "./export-v20-snapshot";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -90,7 +91,9 @@ describe("V19 immutable R2 role policy archive", () => {
     expect(JSON.parse(String(receipt.accepted_result_json))).toMatchObject({ provider: "r2", storeKind: "r2", byteSize: f.original.length });
     expect(f.put).toHaveBeenCalledTimes(1);
     const { sql, result } = await restore(f.manifest, f.original);
-    expect((await snapshotFullExportV19(adapter(sql))).tables).toEqual(f.manifest.tables);
+    const recovered = (await snapshotFullExportV20(adapter(sql))).tables;
+    expect(recovered.storage_profile_admissions).toEqual([]);
+    expect(Object.fromEntries(Object.keys(f.manifest.tables).map(name => [name, recovered[name]]))).toEqual(f.manifest.tables);
     expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(result.report.authorityRecovery).toMatchObject({ recordedAuthorityMode: "active", runtimeExecutionEnabled: false, installationAdmissionRequired: true });
     const io = vi.fn();
@@ -111,7 +114,7 @@ describe("V19 immutable R2 role policy archive", () => {
   }, 30_000);
 
   it("negotiates exact V18/V19 and rejects a missing terminal role-policy marker", async () => {
-    const old = database("0012_fp1_file_authority_runtime.sql"), current = database();
+    const old = database("0012_fp1_file_authority_runtime.sql"), current = database("0013_fp1_r2_role_defaults.sql");
     for (const [sql, version] of [[old, 18], [current, 19]] as const) for (const requested of [18, 19]) {
       expect((await snapshotRoutes.request(`/exports/all?archiveSchema=${requested}&archiveWriter=1`, {}, { DB: adapter(sql) } as Env)).status).toBe(requested === version ? 200 : 409);
     }
@@ -125,10 +128,10 @@ describe("V19 immutable R2 role policy archive", () => {
   it("forwards V18 records without initializing defaults or authorizing recovered execution", async () => {
     const old = database("0012_fp1_file_authority_runtime.sql"), oldManifest = await snapshotFullExportV18(adapter(old));
     const { sql, result } = await restore(oldManifest, Uint8Array.of(1));
-    const recovered = await snapshotFullExportV19(adapter(sql));
+    const recovered = await snapshotFullExportV20(adapter(sql));
     expect(recovered.tables.storage_role_defaults).toEqual([]);
     expect(Object.fromEntries(Object.keys(oldManifest.tables).map(name => [name, recovered.tables[name]]))).toEqual(oldManifest.tables);
-    expect(result.report.appliedForwardMigrations).toMatchObject([{ name: "0013_fp1_r2_role_defaults.sql" }]);
+    expect(result.report.appliedForwardMigrations).toMatchObject([{ name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }]);
     expect(sql.prepare("SELECT enabled FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0 });
   }, 30_000);
 });

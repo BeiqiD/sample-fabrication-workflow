@@ -6,6 +6,8 @@ import { checkedReenvelopeStorageCredentialInput, checkedStorageCredentialEnvelo
   type StorageCredentialEnvelopeList, type StorageCredentialReenvelopeReceipt } from "../../shared/contracts/storage-credential-reenvelope";
 
 import { checkedStorageCandidateReadinessInput, checkedStorageCandidateReadiness, type StorageCandidateReadiness } from "../../shared/contracts/storage-candidate-readiness";
+import { checkedStorageProfileAdmissionInput, checkedStorageProfileAdmissionOperationId, checkedStorageProfileAdmissionReceipt,
+  type StorageProfileAdmissionInput, type StorageProfileAdmissionReceipt } from "../../shared/contracts/storage-profile-admission";
 
 export interface StorageConfigurationCapability { canManage: boolean; credentialEditingAvailable: boolean }
 export class StorageConfigurationRequestError extends Error {
@@ -37,6 +39,29 @@ export const storageConfigurationClient = {
     const result = checkedStorageCandidateReadiness(await request(`/readiness?profileId=${encodeURIComponent(checked.profileId)}&expectedRevision=${checked.expectedRevision}`, { method: "GET", signal }));
     if (result.profileId !== checked.profileId || result.revision !== checked.expectedRevision) throw new Error("Invalid storage check evidence response.");
     return result;
+  },
+  registerProfile: async (input: StorageProfileAdmissionInput, signal?: AbortSignal): Promise<StorageProfileAdmissionReceipt> => {
+    const checked = checkedStorageProfileAdmissionInput(input);
+    const result = checkedStorageProfileAdmissionReceipt(await request("/registrations", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(checked), signal,
+    }));
+    if (result.operationId !== checked.operationId || result.profileId !== checked.profileId || result.revision !== checked.expectedRevision
+      || result.envelopeRevision !== checked.expectedEnvelopeRevision || result.checkId !== checked.checkId)
+      throw new Error("Invalid storage profile registration response.");
+    return result;
+  },
+  readProfileRegistration: async (operationId: string, signal?: AbortSignal): Promise<StorageProfileAdmissionReceipt> => {
+    const id = checkedStorageProfileAdmissionOperationId(operationId);
+    const result = checkedStorageProfileAdmissionReceipt(await request(`/registrations/${encodeURIComponent(id)}`, { method: "GET", signal }));
+    if (result.operationId !== id) throw new Error("Invalid storage profile registration response.");
+    return result;
+  },
+  findProfileRegistration: async (input: { profileId: string; expectedRevision: number }, signal?: AbortSignal): Promise<StorageProfileAdmissionReceipt> => {
+    const checked = checkedStorageCandidateReadinessInput(input);
+    // The same storage may have been registered from another candidate or
+    // revision. Its immutable receipt retains that original provenance.
+    return checkedStorageProfileAdmissionReceipt(await request(`/registrations?profileId=${encodeURIComponent(checked.profileId)}&expectedRevision=${checked.expectedRevision}`,
+      { method: "GET", signal }));
   },
   startCheck: async (input: StartStorageCandidateCheckInput, signal?: AbortSignal): Promise<StorageCandidateCheck> => {
     const checked = checkedStartStorageCandidateCheckInput(input);

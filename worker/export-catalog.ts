@@ -147,4 +147,9 @@ export const FULL_EXPORT_V19_TABLE_QUERIES = {
   ...FULL_EXPORT_V18_TABLE_QUERIES,
   storage_role_defaults: "SELECT * FROM storage_role_defaults ORDER BY role",
 } as const;
-export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V19_TABLE_QUERIES;
+// V20 adds immutable S3 admission evidence without admitting any S3 byte root.
+export const FULL_EXPORT_V20_TABLE_QUERIES = {
+  ...FULL_EXPORT_V19_TABLE_QUERIES,
+  storage_profile_admissions: "SELECT * FROM storage_profile_admissions ORDER BY operation_id",
+} as const;
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V20_TABLE_QUERIES;

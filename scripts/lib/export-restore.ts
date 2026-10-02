@@ -1,3 +1,4 @@
+import { FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-native-admission";
 import { FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-role-policy";
 import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
 import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
@@ -12,7 +13,7 @@ import { crc32 } from "node:zlib";
 import JSZip from "jszip";
 import type { CompatibilitySchema, ExportSchemaObject, ExportTables, FileShadowSourceRowids, FullExportManifestV15, RetiredExportFields } from "../../shared/contracts/export";
 import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
-import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19 } from "../../shared/contracts/export-protocol";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20 } from "../../shared/contracts/export-protocol";
 import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
 import { fileShadowArchiveColumn, isFileShadowRowidColumn } from "../../shared/contracts/file-shadow-rowid";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
@@ -70,7 +71,7 @@ function safeArchivePath(path: unknown): asserts path is string {
 }
 
 export function planExportRestoreMigrations(migrationNames: string[], schemaVersion: number) {
-  const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql"];
+  const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql", "0017_fp2_native_storage_profiles.sql"];
   // This deployment-only cleanup is not a schema transition. Restoring an older
   // snapshot must preserve its rows, including the explicitly deleted QA data.
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
@@ -90,7 +91,8 @@ export function planExportRestoreMigrations(migrationNames: string[], schemaVers
     || name === reviewedChain[8] && schemaVersion < 16
     || name === reviewedChain[9] && schemaVersion < 17
     || name === reviewedChain[10] && schemaVersion < 18
-    || name === reviewedChain[11] && schemaVersion < 19) : [];
+    || name === reviewedChain[11] && schemaVersion < 19
+    || name === reviewedChain[12] && schemaVersion < 20) : [];
   return { schemaNames, forwardNames };
 }
 
@@ -199,9 +201,9 @@ async function ensureFileAuthorityTargetSchema(database: DatabaseSync) {
     "Local File authority schema differs from the reviewed migration checkpoint");
 }
 
-async function ensureFileShadowTargetSchema(database: DatabaseSync, version: 15 | 16 | 17 | 18 | 19 = 15) {
+async function ensureFileShadowTargetSchema(database: DatabaseSync, version: 15 | 16 | 17 | 18 | 19 | 20 = 15) {
   const observed = database.prepare("SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name").all() as unknown as ExportSchemaObject[];
-  ensure(await fileShadowSchemaFingerprint(observed) === (version === 19 ? FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 : version === 18 ? FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 17 ? FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 : version === 16 ? FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 : FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256),
+  ensure(await fileShadowSchemaFingerprint(observed) === (version === 20 ? FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 : version === 19 ? FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 : version === 18 ? FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 17 ? FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 : version === 16 ? FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 : FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256),
     "Local File shadow schema differs from the reviewed migration checkpoint");
 }
 
@@ -301,7 +303,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -332,7 +334,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const catalog = [...tableNames, ...exportedViews].sort();
     ensure(canonical(Object.keys(manifest.tables).sort()) === canonical(catalog), "Archive table catalog differs from the current local schema");
     const observedColumns = (name: string) => (database!.prepare(`PRAGMA table_xinfo(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name);
-    const compatibilityProfile = [14, 15, 16, 17, 18, 19].includes(manifest.schemaVersion) ? "file-authority-v14" : "legacy";
+    const compatibilityProfile = [14, 15, 16, 17, 18, 19, 20].includes(manifest.schemaVersion) ? "file-authority-v14" : "legacy";
     const targetCompatibilitySchema = classifyExportCompatibilitySchema({
       samples: observedColumns("samples"), run_step_comments: observedColumns("run_step_comments"),
     }, compatibilityProfile);
@@ -379,7 +381,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       // has download URLs. Validate provenance against a reconstructed wire
       // plan here; the original archived blob catalog and bytes are checked
       // against that same table-derived plan below without dropping entries.
-      const validate = manifest.schemaVersion === 19 ? validateFullExportV19 : manifest.schemaVersion === 18 ? validateFullExportV18 : manifest.schemaVersion === 17 ? validateFullExportV17 : manifest.schemaVersion === 16 ? validateFullExportV16 : manifest.schemaVersion === 15 ? validateFullExportV15 : manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validate = manifest.schemaVersion === 20 ? validateFullExportV20 : manifest.schemaVersion === 19 ? validateFullExportV19 : manifest.schemaVersion === 18 ? validateFullExportV18 : manifest.schemaVersion === 17 ? validateFullExportV17 : manifest.schemaVersion === 16 ? validateFullExportV16 : manifest.schemaVersion === 15 ? validateFullExportV15 : manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
       const validated = await validate({ ...manifest, tables, artifacts, blobs: manifest.schemaVersion >= 15 ? buildFileShadowBlobExportPlan(tables) : buildBlobExportPlan(tables) });
       if (validated.schemaVersion >= 15) sourceRowids = (validated as FullExportManifestV15).artifacts.sourceRowids.value;
       retiredFields = validated.artifacts.retiredFields.value;
@@ -573,6 +575,11 @@ export async function restoreExportToIsolatedDirectory(options: {
         const addsFileShadow = forwardNames.includes("0008_fp1_shadow_runtime.sql");
         const addsFileRuntime = forwardNames.includes("0012_fp1_file_authority_runtime.sql");
         const addsRoleDefaults = forwardNames.includes("0013_fp1_r2_role_defaults.sql");
+        const addsNativeProfiles = forwardNames.includes("0017_fp2_native_storage_profiles.sql");
+        if (addsNativeProfiles) {
+          ensure(database.prepare("SELECT COUNT(*) AS count FROM storage_profile_admissions").get()?.count === 0, "Historical restore must not manufacture native admission evidence");
+          ensure(!database.prepare("SELECT 1 FROM storage_profiles WHERE adapter_type = 's3' LIMIT 1").get(), "Historical restore must not register a new external profile");
+        }
         if (addsRoleDefaults) {
           ensure(database.prepare("SELECT COUNT(*) AS count FROM storage_role_defaults").get()?.count === 0, "Historical restore must not choose a new storage destination");
           ensure(!database.prepare("SELECT 1 FROM comment_submission_acceptances WHERE storage_role_policy_revision <> 1 LIMIT 1").get(), "Historical restore must retain the accepted role revision");
@@ -641,12 +648,12 @@ export async function restoreExportToIsolatedDirectory(options: {
         ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
         const upgradedSchema = schema(database);
         if (addsFileShadow) {
-          await ensureFileShadowTargetSchema(database, addsRoleDefaults ? 19 : addsFileRuntime ? 18 : addsAdjudications ? 17 : addsWithdrawals ? 16 : 15);
+          await ensureFileShadowTargetSchema(database, addsNativeProfiles ? 20 : addsRoleDefaults ? 19 : addsFileRuntime ? 18 : addsAdjudications ? 17 : addsWithdrawals ? 16 : 15);
           ensureShadowExecutionSuspended(database);
           ensure(database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode === "legacy",
             "Historical restore must not enable shadow overlap");
-        } else if (addsWithdrawals || addsAdjudications || addsFileRuntime || addsRoleDefaults) {
-          await ensureFileShadowTargetSchema(database, addsRoleDefaults ? 19 : addsFileRuntime ? 18 : addsAdjudications ? 17 : 16);
+        } else if (addsWithdrawals || addsAdjudications || addsFileRuntime || addsRoleDefaults || addsNativeProfiles) {
+          await ensureFileShadowTargetSchema(database, addsNativeProfiles ? 20 : addsRoleDefaults ? 19 : addsFileRuntime ? 18 : addsAdjudications ? 17 : 16);
           ensureShadowExecutionSuspended(database);
         } else if (addsFileAuthority) await ensureFileAuthorityTargetSchema(database);
         // Every old view/index/trigger and unchanged table keeps its SQL, apart
@@ -667,7 +674,7 @@ export async function restoreExportToIsolatedDirectory(options: {
           // legacy-GC guards. The exact target fingerprint plus the independently
           // rebuilt reviewed schema below qualifies those schema changes;
           // every previously restored canonical cell was compared above.
-          if (addsFileShadow || addsAdjudications || addsFileRuntime || addsRoleDefaults) continue;
+          if (addsFileShadow || addsAdjudications || addsFileRuntime || addsRoleDefaults || addsNativeProfiles) continue;
           if (addsAcceptance && entry.type === "table" && entry.name === "imports") continue;
           if (addsFileAuthority && entry.type === "table" && fileAuthorityChangedTables.has(entry.name)) continue;
           if (addsFileAuthority && fileAuthorityReplacedObjects.has(`${entry.type}:${entry.name}`)) continue;

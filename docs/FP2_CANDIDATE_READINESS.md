@@ -83,19 +83,21 @@ check, cleanup and credential-maintenance operations. A changed selection,
 superseded request or revoked administrator capability cannot present an old
 report as current evidence.
 
-The report keeps activation unavailable. A passed probe still does not establish
-the physical provider account scope required for immutable native admission.
-Native File admission for S3 and independent mutable defaults require the corresponding
-runtime and accepted-policy support plus a paired successor archive/recovery
-contract. Neither this report nor the shared purpose selector supplies those
-capabilities.
+The report keeps activation unavailable. A generic or historical successful
+probe does not supply the owner-qualified current context required for native
+profile registration. S3 File byte access and independent mutable defaults also
+require runtime and accepted-policy support with paired archive/recovery.
+Neither this report nor the shared purpose selector supplies those capabilities.
 
-The next [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) slice is
-being implemented and reviewed. It binds an optional AWS owner condition into
-the full candidate configuration and signed provider requests; it supplies
-neither native identity admission nor activation. Provider qualification and
-paired successor schema/archive support remain prerequisites for activation and
-independent defaults.
+The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), deployed in
+#246 (`4d7d942`), binds an optional AWS owner condition into the full candidate
+configuration and signed provider requests. The next
+[native profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice is
+under implementation and review. Its separate administrator action uses exact
+qualified evidence to register a restricted S3 identity and pairs that evidence
+with V20 recovery. The report still grants no admission or activation by itself;
+`canActivate` remains false. Native S3 File byte access and independent defaults
+remain outside that registration slice.
 
 ## Compatibility and qualification boundary
 

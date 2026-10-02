@@ -73,8 +73,8 @@ same configuration; an authenticated `already_current` operation preserves an
 exact match. This distinction changes neither the immutable check receipt nor
 its captured-context cleanup behavior.
 
-The next [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) slice is
-being implemented and reviewed. Its optional AWS condition belongs to the full
+The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
+#246 (`4d7d942`). Its optional AWS condition belongs to the full
 candidate configuration and accepted check snapshot, not the encrypted
 credential values. Re-enveloping therefore preserves that condition and still
 does not qualify or activate a provider.
