@@ -82,8 +82,9 @@ Routes are under `/api/storage/configuration`:
 | `GET /checks/:checkId` | Reconcile and read one durable result |
 | `POST /checks/:checkId/cleanup` | `{}`; attempt cleanup against the recorded context only |
 
-The [candidate check evidence report](./FP2_CANDIDATE_READINESS.md), implemented
-and in review, adds a separate read-only GET for a selected candidate revision.
+The [candidate check evidence report](./FP2_CANDIDATE_READINESS.md), merged and
+deployed in #245 (`5992307`), adds a separate read-only
+GET for a selected candidate revision.
 It counts all retained history and identifies the latest success matching the
 complete current configuration and credential envelope. It performs no lease
 reconciliation, database writes or provider calls. A previous envelope's success
@@ -143,6 +144,12 @@ build also passed. All required repository checks and both merge CI jobs passed,
 build succeeded. The live configuration page displayed the S3-testing description
 and expected read-only administrator view; Storage Settings retained R2 for both
 roles. Fixture qualification does not replace real-provider acceptance.
+
+The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is being
+implemented and reviewed as the next qualification prerequisite. An optional
+AWS owner condition is captured with each full configuration and signed on all
+four object operations; accepted check cleanup retains its captured condition.
+It introduces no migration or activation and makes no generic S3 identity claim.
 
 Activation remains a separate slice. It must establish actual provider account
 and namespace identity before native profile admission; a passed probe is not

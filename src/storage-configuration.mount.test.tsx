@@ -8,6 +8,11 @@ const json = (value: unknown, status = 200) => new Response(JSON.stringify(value
 const candidate = (): StorageCandidate => ({ profileId: "candidate-example", revision: 1, label: "Research archive",
   namespace: { kind: "s3", endpoint: "https://objects.example.org", bucket: "research-files", region: "us-east-1", root: "work", forcePathStyle: true },
   credentials: { status: "configured", ref: "opaque-reference" }, createdAt: "2026-10-01T14:00:00.000Z", createdBy: "admin@example.org" });
+const awsCandidate = (expectedBucketOwner = "123456789012"): StorageCandidate => {
+  const item = candidate();
+  if (item.namespace.kind !== "s3") throw new Error("Expected S3 fixture");
+  return { ...item, namespace: { ...item.namespace, endpoint: "https://s3.us-east-1.amazonaws.com", expectedBucketOwner } };
+};
 const configuration = (editing = true, items: StorageCandidate[] = []): StorageConfigurationStatus => ({ scope: "system", credentialEditingAvailable: editing, candidates: { items, hasMore: false } });
 const checkId = "0f5f7a34-5532-4463-bf51-8c5eb9537f63";
 const check = (changes: Partial<StorageCandidateCheck> = {}): StorageCandidateCheck => ({ id: checkId, profileId: "candidate-example", revision: 1,
@@ -51,6 +56,7 @@ describe("administrator storage candidate Settings", () => {
     network.mockImplementation(async (path, options) => String(path).endsWith("/capability") ? json({ canManage: true, credentialEditingAvailable: true })
       : options?.method === "PUT" ? json(candidate()) : String(path).includes("/checks?") ? json({ items: [], hasMore: false }) : json(configuration(true, saveCalls().length ? [candidate()] : [])));
     render(<StorageConfigurationPage />); await fillS3();
+    expect(screen.queryByLabelText("Expected AWS bucket owner (optional)")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await screen.findByText("Candidate saved as a draft. Current upload destinations are unchanged.");
     expect(saveCalls()).toHaveLength(1);
@@ -60,6 +66,79 @@ describe("administrator storage candidate Settings", () => {
     expect((screen.getByLabelText("Access key ID") as HTMLInputElement).value).toBe("");
     expect(localStorage.length).toBe(0);
     expect(network.mock.calls.every(([path]) => String(path).startsWith("/api/storage/configuration"))).toBe(true);
+    expect(network.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+    expect(screen.queryByRole("button", { name: /activate/i })).toBeNull();
+  });
+
+  it("saves an optional 12-digit owner for an AWS S3 candidate without running a connection test", async () => {
+    network.mockImplementation(async (path, options) => String(path).endsWith("/capability") ? json({ canManage: true, credentialEditingAvailable: true })
+      : options?.method === "PUT" ? json(awsCandidate()) : String(path).includes("/checks?") ? checkList() : json(configuration(true, saveCalls().length ? [awsCandidate()] : [])));
+    render(<StorageConfigurationPage />); await fillS3(); enter("HTTPS endpoint", "https://s3.us-east-1.amazonaws.com");
+    enter("Expected AWS bucket owner (optional)", "123"); fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    expect(saveCalls()).toHaveLength(0);
+    enter("Expected AWS bucket owner (optional)", "123456789012"); fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("Candidate saved as a draft. Current upload destinations are unchanged.");
+    expect(JSON.parse(String(saveCalls()[0][1]?.body))).toMatchObject({ expectedRevision: null, namespace: awsCandidate().namespace });
+    expect(network.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+    expect(screen.queryByRole("button", { name: /activate/i })).toBeNull();
+  });
+
+  it("keeps an entered owner visible after switching to generic S3 and requires clearing it before saving", async () => {
+    render(<StorageConfigurationPage />); await fillS3(); enter("HTTPS endpoint", "https://s3.us-east-1.amazonaws.com");
+    enter("Expected AWS bucket owner (optional)", "123456789012"); enter("HTTPS endpoint", "https://objects.example.org");
+    expect((screen.getByLabelText("Expected AWS bucket owner (optional)") as HTMLInputElement).value).toBe("123456789012");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("Expected AWS bucket owner requires a matching AWS S3 endpoint and region. Correct them or clear the owner.");
+    expect(saveCalls()).toHaveLength(0);
+    enter("Expected AWS bucket owner (optional)", ""); fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("Candidate saved as a draft. Current upload destinations are unchanged.");
+    expect(JSON.parse(String(saveCalls()[0][1]?.body)).namespace).toEqual(candidate().namespace);
+  });
+
+  for (const keepOwner of [true, false]) {
+    it(`${keepOwner ? "retains" : "omits a cleared"} expected owner when saving an AWS candidate revision`, async () => {
+      network.mockImplementation(async (path, options) => String(path).endsWith("/capability") ? json({ canManage: true, credentialEditingAvailable: true })
+        : options?.method === "PUT" ? json({ ...awsCandidate(), revision: 2 }) : String(path).includes("/checks?") ? checkList() : json(configuration(true, [awsCandidate()])));
+      render(<StorageConfigurationPage />); fireEvent.click(await screen.findByRole("button", { name: "Edit Research archive" }));
+      const owner = screen.getByLabelText("Expected AWS bucket owner (optional)") as HTMLInputElement;
+      expect(owner.value).toBe("123456789012"); expect(owner.disabled).toBe(false);
+      if (!keepOwner) enter("Expected AWS bucket owner (optional)", "");
+      enter("Name", "Archive renamed"); fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+      await screen.findByText("Candidate saved as a draft. Current upload destinations are unchanged.");
+      const input = JSON.parse(String(saveCalls()[0][1]?.body));
+      expect(input).toMatchObject({ expectedRevision: 1, label: "Archive renamed", credentials: { mode: "retain" } });
+      if (keepOwner) expect(input.namespace.expectedBucketOwner).toBe("123456789012");
+      else expect(input.namespace).not.toHaveProperty("expectedBucketOwner");
+    });
+  }
+
+  it("clears matching check evidence when revising the expected owner and marks the earlier test historical", async () => {
+    let item = awsCandidate(), completeSave!: () => void;
+    const positive = "Recorded success matches the current configuration and stored credential version.";
+    const negative = "No recorded success matches the current configuration and stored credential version.";
+    network.mockImplementation(async (path, options) => {
+      if (String(path).endsWith("/capability")) return json({ canManage: true, credentialEditingAvailable: true });
+      if (options?.method === "PUT") return new Promise<Response>(resolve => {
+        completeSave = () => { item = { ...awsCandidate("210987654321"), revision: 2 }; resolve(json(item)); };
+      });
+      if (String(path).includes("/checks?")) return checkList([check()]);
+      if (String(path).includes("/readiness?")) return json({ profileId: item.profileId, revision: item.revision,
+        observedAt: "2026-10-02T10:00:00.000Z", credential: { envelopeRevision: 1, status: "current" }, evidence: {
+          currentConfigurationSuccessCount: item.revision === 1 ? 1 : 0, historicalConfigurationSuccessCount: item.revision === 1 ? 0 : 1,
+          exactCurrentContextSuccess: item.revision === 1 ? { checkId, completedAt: check().completedAt } : null,
+          inProgressCount: 0, unresolvedCleanupCount: 0 }, canActivate: false });
+      return json(configuration(true, [item]));
+    });
+    render(<StorageConfigurationPage />); await screen.findByText("Current configuration revision 1");
+    fireEvent.click(screen.getByRole("button", { name: "Check evidence for Research archive" })); await screen.findByText(positive);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Research archive" })); enter("Expected AWS bucket owner (optional)", "210987654321");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    expect(screen.queryByText(positive)).toBeNull();
+    expect(JSON.parse(String(saveCalls()[0][1]?.body))).toMatchObject({ expectedRevision: 1, namespace: { expectedBucketOwner: "210987654321" } });
+    await act(async () => completeSave()); await screen.findByText("Historical revision 1");
+    await waitFor(() => expect((screen.getByRole("button", { name: "Refresh evidence" }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh evidence" })); await screen.findByText(negative);
+    expect(screen.queryByText(positive)).toBeNull();
     expect(network.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
     expect(screen.queryByRole("button", { name: /activate/i })).toBeNull();
   });

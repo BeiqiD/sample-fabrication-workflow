@@ -9,6 +9,9 @@ export interface S3StorageNamespace {
   region: string;
   root: string;
   forcePathStyle: boolean;
+  /** AWS general-purpose bucket owner condition; part of this configuration
+   * revision, not proof of a native StorageInstance's physical identity. */
+  expectedBucketOwner?: string;
 }
 export interface WebDavStorageNamespace { kind: "webdav" | "switchdrive"; endpoint: string; root: string }
 export type ExternalStorageNamespace = S3StorageNamespace | WebDavStorageNamespace;
@@ -69,13 +72,35 @@ function root(value: unknown): string {
     || result.split("/").some(part => part === "." || part === ".." || !part && result.length > 0)) invalid();
   return result;
 }
+/** Deliberately limited to standard AWS service endpoints. Other S3-compatible
+ * providers may ignore the header, so they cannot opt into this constraint.
+ * Check the raw endpoint: URL normalization must not disguise a supplied path. */
+export function supportsExpectedS3BucketOwner(endpoint: string, region: string): boolean {
+  if (!/^[a-z]{2}(?:-[a-z]+)+-[1-9][0-9]*$/.test(region)) return false;
+  const match = /^https:\/\/s3(?:\.([a-z]{2}(?:-[a-z]+)+-[1-9][0-9]*))?\.amazonaws\.com(?::443)?\/?$/.exec(endpoint);
+  return Boolean(match && (match[1] ?? "us-east-1") === region);
+}
+function checkedExpectedBucketOwner(value: unknown, namespace: S3StorageNamespace, rawEndpoint: string): string {
+  const owner = text(value, 12);
+  if (!/^[0-9]{12}$/.test(owner) || !supportsExpectedS3BucketOwner(rawEndpoint, namespace.region)
+    || namespace.bucket.includes("..") || /^[0-9]+(?:\.[0-9]+){3}$/.test(namespace.bucket)
+    || /^(?:xn--|sthree-|amzn-s3-demo-)/.test(namespace.bucket)
+    || /(?:-s3alias|--ol-s3|\.mrap|--x-s3|--table-s3)$/.test(namespace.bucket)
+    // AWS wildcard TLS certificates cannot address dotted virtual-host buckets.
+    || !namespace.forcePathStyle && namespace.bucket.includes(".")) invalid();
+  return owner;
+}
 export function checkedExternalStorageNamespace(value: unknown): ExternalStorageNamespace {
-  const base = record(value, ["kind", "endpoint", "root"], ["bucket", "region", "forcePathStyle"]);
+  const base = record(value, ["kind", "endpoint", "root"], ["bucket", "region", "forcePathStyle", "expectedBucketOwner"]);
   if (base.kind === "s3") {
-    const input = record(value, ["kind", "endpoint", "root", "bucket", "region", "forcePathStyle"]);
+    const input = record(value, ["kind", "endpoint", "root", "bucket", "region", "forcePathStyle"], ["expectedBucketOwner"]);
     const bucket = text(input.bucket, 63), region = text(input.region, 128);
     if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket) || !/^[A-Za-z0-9_-]+$/.test(region) || typeof input.forcePathStyle !== "boolean") invalid();
-    return { kind: "s3", endpoint: endpoint(input.endpoint), bucket, region, root: root(input.root), forcePathStyle: input.forcePathStyle };
+    const result: S3StorageNamespace = { kind: "s3", endpoint: endpoint(input.endpoint), bucket, region, root: root(input.root), forcePathStyle: input.forcePathStyle };
+    // Absence stays absent: existing serialized configurations/digests and
+    // requests retain their previous representation when no owner was set.
+    if (Object.hasOwn(input, "expectedBucketOwner")) result.expectedBucketOwner = checkedExpectedBucketOwner(input.expectedBucketOwner, result, input.endpoint as string);
+    return result;
   }
   if (base.kind !== "webdav" && base.kind !== "switchdrive") invalid();
   const input = record(value, ["kind", "endpoint", "root"]);

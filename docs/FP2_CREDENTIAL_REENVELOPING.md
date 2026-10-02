@@ -67,11 +67,17 @@ available. A missing snapshot key leaves cleanup unavailable and does not cause
 a provider request using different credentials.
 
 The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md),
-implemented and in review, compares a successful check with the complete current
-envelope. Re-enveloping makes the old snapshot historical evidence within the
+merged and deployed in #245 (`5992307`), compares a
+successful check with the complete current envelope. Re-enveloping makes the old snapshot historical evidence within the
 same configuration; an authenticated `already_current` operation preserves an
 exact match. This distinction changes neither the immutable check receipt nor
 its captured-context cleanup behavior.
+
+The next [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) slice is
+being implemented and reviewed. Its optional AWS condition belongs to the full
+candidate configuration and accepted check snapshot, not the encrypted
+credential values. Re-enveloping therefore preserves that condition and still
+does not qualify or activate a provider.
 
 This panel is not proof that an old key can be removed. Key retirement must also
 account for retained check snapshots and protected installation database backups.

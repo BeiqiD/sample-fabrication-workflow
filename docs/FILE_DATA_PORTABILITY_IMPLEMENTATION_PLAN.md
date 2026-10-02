@@ -4,8 +4,11 @@ Status: design reviewed and merged in PR #207; FP1 live acceptance passed after
 #238/#240. FP2 candidate configuration #239 and isolated S3 transport #241 are
 deployed, alongside bounded candidate checks #242, credential re-enveloping #243
 and shared fresh acceptance role selection #244. Read-only
-[candidate check evidence](./FP2_CANDIDATE_READINESS.md) is implemented and independently
-reviewed; live provider qualification, activation and independent defaults remain later.
+[candidate check evidence](./FP2_CANDIDATE_READINESS.md) is merged and deployed in
+#245 (`5992307`). The optional AWS
+[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) prerequisite is being
+implemented and reviewed. Live provider qualification and native identity/admission
+with paired successor schema/archive support precede activation and independent defaults.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
@@ -85,10 +88,15 @@ accepted snapshots. Deployed #244
 [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
 purpose routing while retaining immutable R2 defaults and historical targets.
 The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is
-implemented and independently reviewed; it distinguishes exact current-envelope evidence from
-retained history without provider calls or state changes. Live provider
-qualification, activation and independent defaults remain later FP2 work with
-their existing matched native/archive support requirements.
+merged and deployed in #245 (`5992307`); it distinguishes
+exact current-envelope evidence from retained history without provider calls or
+state changes. The optional AWS
+[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is being implemented
+and reviewed as the next prerequisite. It is part of the full candidate
+configuration and signed object requests, without changing physical address
+digests, native admission or V19. Provider-specific native identity/admission
+with paired successor schema/archive support follows; real-provider qualification
+remains required before atomic activation and independent defaults.
 Installation configuration and check evidence stay outside ordinary V19 content
 packages; a separately authorized system backup remains later.
 
@@ -487,9 +495,11 @@ must remain reachable to repair it when core services work. Deployment admission
 uses core readiness; authenticated storage status separately reports role/profile
 capability failures. Do not let an aggregate provider-health probe take healthy
 operations and the repair UI offline. Status responses are bounded, redacted and
-timestamped. This intentionally replaces the current
-[readiness route](../worker/platform/http.ts), which requires native R2 and fails
-when the configured managed provider fails.
+timestamped. The core [readiness route](../worker/platform/http.ts) already checks
+only the database after the FP1 R2 role-default slice; optional provider failure
+does not take it offline. Authenticated Storage Settings separately reports
+configuration metadata without probing providers. Selected-role capability
+readiness must be extended alongside external provider activation.
 
 Distinguish read-only historical profiles from profiles eligible for new writes.
 A historical connection may be registered even when unavailable or lacking delete

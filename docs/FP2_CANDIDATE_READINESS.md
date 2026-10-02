@@ -1,7 +1,12 @@
 # FP2 candidate check evidence
 
-Status: implemented and independently reviewed on 2026-10-02, based on deployed fresh
-acceptance role selection #244 (`0b7299ca`). Final CI and deployment evidence are recorded in the associated pull request. This read-only report distinguishes retained check
+Status: merged and deployed in #245 (`5992307`) on 2026-10-02 as Worker
+`05145c71-ff25-47cd-884e-c405e06d94f8`, Cloudflare build
+`ef8ee8fb-a0d6-471e-a9c9-f02b9a3c894b`, completed at `19:22:36Z`.
+Both merge CI jobs passed; verification completed at `19:19:53Z`.
+Based on deployed fresh acceptance role selection #244 (`0b7299ca`). Final CI and
+deployment evidence are recorded in the associated pull request. This read-only
+report distinguishes retained check
 history from evidence for the exact current candidate and credential envelope.
 It does not contact a provider, write database state or enable activation.
 
@@ -84,6 +89,13 @@ Native File admission for S3 and independent mutable defaults require the corres
 runtime and accepted-policy support plus a paired successor archive/recovery
 contract. Neither this report nor the shared purpose selector supplies those
 capabilities.
+
+The next [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) slice is
+being implemented and reviewed. It binds an optional AWS owner condition into
+the full candidate configuration and signed provider requests; it supplies
+neither native identity admission nor activation. Provider qualification and
+paired successor schema/archive support remain prerequisites for activation and
+independent defaults.
 
 ## Compatibility and qualification boundary
 
