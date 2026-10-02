@@ -1,5 +1,9 @@
 # FP2 fresh acceptance storage role selection
 
+Status: merged and deployed in #244 (`0b7299ca`) on 2026-10-02 as Worker
+`565faac6-0045-40a3-b672-636ad021df1b`, Cloudflare build
+`83cb4003-6ec1-454f-a698-c011b28bba6d`.
+
 New active binary ingestion resolves File purpose through a shared storage-role
 selector before accepting provider work. The current immutable policy still
 selects the admitted bootstrap R2 profile for both roles. This prepares the
@@ -50,6 +54,11 @@ qualification remain separate work. They require the corresponding runtime,
 accepted-policy evidence and successor archive/recovery support; this shared
 selection entry point does not establish those capabilities.
 
+The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md),
+implemented and in review, distinguishes exact current-context check evidence
+from retained history. It performs no role selection or default changes and
+keeps activation unavailable.
+
 ## Qualification
 
 Qualification covers all purpose mappings, whole-import destination consistency,
@@ -58,3 +67,6 @@ same-operation races and replay from frozen receipts. Existing native D1
 acceptance and content-schema/recovery checks remain part of verification.
 The accepted FP1 live original-file round trip and V19 recovery are retained;
 this code-only selection preparation does not require another live ZIP rehearsal.
+The 2,331 source tests and required CI checks passed. The deployed Storage
+Settings page retained R2 for both roles and the registered bootstrap profile
+matched the deployment configuration.

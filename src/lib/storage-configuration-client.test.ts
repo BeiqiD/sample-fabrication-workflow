@@ -114,3 +114,48 @@ describe("storage candidate client", () => {
     expect(fetch).toHaveBeenCalledOnce(); expect(parse).not.toHaveBeenCalled();
   });
 });
+
+describe("storage candidate evidence client", () => {
+  const readiness = () => ({ profileId: "candidate-example", revision: 2, observedAt: "2026-10-02T10:00:00.000Z",
+    credential: { envelopeRevision: 1, status: "current" }, evidence: { currentConfigurationSuccessCount: 3,
+      historicalConfigurationSuccessCount: 55, exactCurrentContextSuccess: { checkId, completedAt: "2026-10-02T08:00:01.000Z" },
+      inProgressCount: 0, unresolvedCleanupCount: 1 }, canActivate: false });
+  const input = { profileId: "candidate-example", expectedRevision: 2 };
+
+  it("reads a dated private observation for an exact candidate revision without provider writes", async () => {
+    const fetch = vi.fn().mockResolvedValue(json(readiness())); vi.stubGlobal("fetch", fetch);
+    const controller = new AbortController();
+    expect(await storageConfigurationClient.readReadiness(input, controller.signal)).toEqual(readiness());
+    expect(fetch).toHaveBeenCalledExactlyOnceWith("/api/storage/configuration/readiness?profileId=candidate-example&expectedRevision=2",
+      { method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error", signal: controller.signal });
+  });
+
+  it("rejects invalid requests before fetch and mismatched revisions or candidates before rendering", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json({ ...readiness(), revision: 3 }))
+      .mockResolvedValueOnce(json({ ...readiness(), profileId: "another-candidate" })); vi.stubGlobal("fetch", fetch);
+    await expect(storageConfigurationClient.readReadiness({ ...input, expectedRevision: 0 })).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(storageConfigurationClient.readReadiness(input)).rejects.toThrow("Invalid storage check evidence response.");
+    await expect(storageConfigurationClient.readReadiness(input)).rejects.toThrow("Invalid storage check evidence response.");
+  });
+
+  it("rejects missing, private or activation-bearing response fields", async () => {
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    const { observedAt: _missing, ...missing } = readiness();
+    for (const value of [missing, { ...readiness(), canActivate: true },
+      { ...readiness(), credential: { ...readiness().credential, keyId: "private-key" } },
+      { ...readiness(), evidence: { ...readiness().evidence, currentConfigurationSuccessCount: undefined } }]) {
+      fetch.mockResolvedValueOnce(json(value));
+      await expect(storageConfigurationClient.readReadiness(input)).rejects.toThrow("Invalid storage candidate readiness.");
+    }
+  });
+
+  it("preserves historical exact matching evidence when current credentials cannot be decrypted", async () => {
+    const value = { ...readiness(), credential: { envelopeRevision: 1, status: "unavailable" } };
+    const fetch = vi.fn().mockResolvedValueOnce(json(value)).mockResolvedValueOnce(json({ error: "private-keyring-details" }, 403));
+    vi.stubGlobal("fetch", fetch);
+    expect(await storageConfigurationClient.readReadiness(input)).toEqual(value);
+    await expect(storageConfigurationClient.readReadiness(input)).rejects.toMatchObject({ status: 403, message: "Storage configuration request failed." });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});

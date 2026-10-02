@@ -2,7 +2,10 @@
 
 Status: design reviewed and merged in PR #207; FP1 live acceptance passed after
 #238/#240. FP2 candidate configuration #239 and isolated S3 transport #241 are
-deployed. Bounded candidate checks #242 are deployed; live provider qualification and activation remain later.
+deployed, alongside bounded candidate checks #242, credential re-enveloping #243
+and shared fresh acceptance role selection #244. Read-only
+[candidate check evidence](./FP2_CANDIDATE_READINESS.md) is implemented and independently
+reviewed; live provider qualification, activation and independent defaults remain later.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
@@ -75,9 +78,17 @@ performs no provider I/O or activation. Merged and deployed #241 supplies isolat
 S3 transport only. The [bounded candidate-check slice](./FP2_CANDIDATE_STORAGE_CHECKS.md)
 records exact candidate and encrypted credential context before one small probe,
 verifies its complete bytes and records cleanup without replaying a lost PUT.
-It is deployed in #242. [Credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md)
+It is deployed in #242. Deployed #243
+[credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md)
 adds atomic key maintenance and safe receipts without changing provider values or
-accepted snapshots; live provider qualification, activation and independent defaults remain later FP2 work.
+accepted snapshots. Deployed #244
+[fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
+purpose routing while retaining immutable R2 defaults and historical targets.
+The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is
+implemented and independently reviewed; it distinguishes exact current-envelope evidence from
+retained history without provider calls or state changes. Live provider
+qualification, activation and independent defaults remain later FP2 work with
+their existing matched native/archive support requirements.
 Installation configuration and check evidence stay outside ordinary V19 content
 packages; a separately authorized system backup remains later.
 

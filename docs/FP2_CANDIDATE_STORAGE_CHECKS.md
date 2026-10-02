@@ -82,6 +82,14 @@ Routes are under `/api/storage/configuration`:
 | `GET /checks/:checkId` | Reconcile and read one durable result |
 | `POST /checks/:checkId/cleanup` | `{}`; attempt cleanup against the recorded context only |
 
+The [candidate check evidence report](./FP2_CANDIDATE_READINESS.md), implemented
+and in review, adds a separate read-only GET for a selected candidate revision.
+It counts all retained history and identifies the latest success matching the
+complete current configuration and credential envelope. It performs no lease
+reconciliation, database writes or provider calls. A previous envelope's success
+remains historical evidence after re-enveloping; neither historical nor exact
+matching evidence is a current connectivity guarantee or activation permission.
+
 Write requests have a 4 KiB body limit and use the existing authenticated
 cross-origin boundary. These routes do not change saved candidate credentials.
 
@@ -140,4 +148,6 @@ Activation remains a separate slice. It must establish actual provider account
 and namespace identity before native profile admission; a passed probe is not
 permission to reinterpret an activated namespace. Independent role defaults
 also require all accepted ingestion paths to select and retain their exact
-purpose/profile/revision. These checks change neither default today.
+purpose/profile/revision. The shared selection boundary is deployed in #244;
+native admission, mutable defaults and paired successor archive/recovery support
+remain later work. These checks change neither default today.

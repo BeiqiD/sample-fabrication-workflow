@@ -3,6 +3,7 @@ import type { SaveStorageCandidateInput, StorageCandidate, StorageConfigurationS
 import { checkedStartStorageCandidateCheckInput, MAX_STORAGE_CANDIDATE_CHECKS, type StartStorageCandidateCheckInput, type StorageCandidateCheck,
   type StorageCandidateCheckList, type StorageCandidateCheckStage } from "../../shared/contracts/storage-candidate-check";
 import { storageConfigurationClient, StorageConfigurationRequestError, type StorageConfigurationCapability } from "../lib/storage-configuration-client";
+import { StorageCandidateReadiness } from "./StorageCandidateReadiness";
 import { StorageCredentialEncryption } from "./StorageCredentialEncryption";
 import "./storage-settings.css";
 
@@ -18,6 +19,15 @@ export function StorageConfigurationPage() {
   const [error, setError] = useState(""), [notice, setNotice] = useState("");
   const [form, setForm] = useState(blank), [editing, setEditing] = useState<StorageCandidate | null>(null);
   const [replaceCredentials, setReplaceCredentials] = useState(true), [uncertainSave, setUncertainSave] = useState(false);
+  const [evidenceState, setEvidenceState] = useState<Record<string, { generation: number; pending: number }>>({});
+  function beginEvidenceChange(profileId: string) {
+    setEvidenceState(current => ({ ...current, [profileId]: { generation: (current[profileId]?.generation ?? 0) + 1, pending: (current[profileId]?.pending ?? 0) + 1 } }));
+    let finished = false;
+    return () => {
+      if (finished) return; finished = true;
+      setEvidenceState(current => ({ ...current, [profileId]: { generation: current[profileId]?.generation ?? 0, pending: Math.max(0, (current[profileId]?.pending ?? 0) - 1) } }));
+    };
+  }
   const sequence = useRef(0), controller = useRef<AbortController | null>(null);
   function resetEditor() { setForm(blank); setEditing(null); setReplaceCredentials(true); }
   function accessDenied() {
@@ -60,6 +70,7 @@ export function StorageConfigurationPage() {
     const input: SaveStorageCandidateInput = { ...(editing ? { profileId: editing.profileId } : {}), expectedRevision: editing?.revision ?? null,
       label: form.label, namespace, credentials };
     const current = sequence.current, signal = controller.current?.signal;
+    const finishEvidenceChange = editing ? beginEvidenceChange(editing.profileId) : () => {};
     setSaving(true); setError(""); setNotice("");
     try {
       await storageConfigurationClient.save(input, signal);
@@ -87,7 +98,7 @@ export function StorageConfigurationPage() {
       } else {
         setError("The save result is unavailable. Refresh saved candidates before trying again."); setUncertainSave(true);
       }
-    } finally { if (current === sequence.current) setSaving(false); }
+    } finally { finishEvidenceChange(); if (current === sequence.current) setSaving(false); }
   }
   const set = (name: keyof typeof blank, value: string | boolean) => setForm(current => ({ ...current, [name]: value }));
   const externalEditing = capability?.credentialEditingAvailable && status?.credentialEditingAvailable;
@@ -114,8 +125,11 @@ export function StorageConfigurationPage() {
             {externalEditing && <button className="button" type="button" disabled={saving || uncertainSave} onClick={() => edit(candidate)}>Edit {candidate.label}</button>}
             <CandidateChecks candidate={candidate} canTest={!!externalEditing && candidate.credentials.status === "configured" && !saving && !uncertainSave}
               canCleanup={!saving && !uncertainSave}
-              onForbidden={accessDenied} />
-            <StorageCredentialEncryption candidate={candidate} canUpdate={!!externalEditing && !saving && !uncertainSave} onForbidden={accessDenied} />
+              onForbidden={accessDenied} onEvidenceChange={() => beginEvidenceChange(candidate.profileId)} />
+            <StorageCandidateReadiness candidate={candidate} evidenceGeneration={evidenceState[candidate.profileId]?.generation ?? 0}
+              blocked={saving || uncertainSave || !!evidenceState[candidate.profileId]?.pending} onForbidden={accessDenied} />
+            <StorageCredentialEncryption candidate={candidate} canUpdate={!!externalEditing && !saving && !uncertainSave}
+              onForbidden={accessDenied} onEvidenceChange={() => beginEvidenceChange(candidate.profileId)} />
           </li>)}
         </ul>}
         {status.candidates.hasMore && <p className="muted">Additional saved candidates are not shown.</p>}
@@ -173,7 +187,9 @@ function rememberedIntent(profileId: string): StartStorageCandidateCheckInput | 
 
 /** A remembered identifier permits GET reconciliation after a lost response.
  * Neither credentials nor form inputs are written to browser storage. */
-function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { candidate: StorageCandidate; canTest: boolean; canCleanup: boolean; onForbidden: () => void }) {
+function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEvidenceChange }: {
+  candidate: StorageCandidate; canTest: boolean; canCleanup: boolean; onForbidden: () => void; onEvidenceChange: () => () => void;
+}) {
   const [history, setHistory] = useState<StorageCandidateCheckList>({ items: [], hasMore: false });
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [pending, setPending] = useState<StartStorageCandidateCheckInput | null>(() => rememberedIntent(candidate.profileId));
@@ -206,6 +222,7 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
     if (pendingRef.current?.checkId === check.id && !activeCheck(check)) remember(null);
   }
   async function reconcile(id: string, current: number) {
+    const finishEvidenceChange = onEvidenceChange();
     try {
       const check = await request(signal => storageConfigurationClient.readCheck(id, signal));
       if (current !== generation.current) return;
@@ -213,9 +230,10 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
     } catch (failure) {
       if (current !== generation.current || denied(failure)) return;
       setMessage("The test result is not available yet. Check its status before starting another test.");
-    }
+    } finally { finishEvidenceChange(); }
   }
   async function load() {
+    const finishEvidenceChange = onEvidenceChange();
     const current = generation.current;
     setLoading(true); setMessage("");
     try {
@@ -229,7 +247,7 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
     } catch (failure) {
       if (current !== generation.current || denied(failure)) return;
       setMessage("Test history is unavailable. Check its status before starting a test.");
-    } finally { if (current === generation.current) setLoading(false); }
+    } finally { finishEvidenceChange(); if (current === generation.current) setLoading(false); }
   }
   useEffect(() => {
     generation.current += 1; setBusy(false); pollCount.current = { id: "", count: 0 }; void load();
@@ -249,6 +267,7 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
     if (!canTest || candidate.namespace.kind !== "s3" || loading || busy || unresolved || message) return;
     const input = { checkId: crypto.randomUUID(), profileId: candidate.profileId, expectedRevision: candidate.revision };
     if (!remember(input)) { setMessage("This browser cannot retain the test identifier. Enable session storage before starting a test."); return; }
+    const finishEvidenceChange = onEvidenceChange();
     const current = generation.current; setBusy(true); setMessage("");
     try {
       const check = await request(signal => storageConfigurationClient.startCheck(input, signal));
@@ -261,10 +280,11 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
         setMessage("The test response was lost. Reading its recorded result…");
         await reconcile(input.checkId, current);
       }
-    } finally { if (current === generation.current) setBusy(false); }
+    } finally { finishEvidenceChange(); if (current === generation.current) setBusy(false); }
   }
   async function clean(check: StorageCandidateCheck) {
     if (!canCleanup || loading || busy || activeCheck(check) || check.cleanup === "confirmed_absent") return;
+    const finishEvidenceChange = onEvidenceChange();
     const current = generation.current; setBusy(true); setMessage("");
     try {
       const result = await request(signal => storageConfigurationClient.cleanupCheck(check.id, signal));
@@ -273,10 +293,11 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
       if (current !== generation.current || denied(failure)) return;
       setMessage("The cleanup response was lost. Reading its recorded result…");
       await reconcile(check.id, current);
-    } finally { if (current === generation.current) setBusy(false); }
+    } finally { finishEvidenceChange(); if (current === generation.current) setBusy(false); }
   }
   return <div className="storage-candidate-checks">
     <h4>Connection tests</h4>
+    <p className="muted">Revision labels describe the saved configuration. Check evidence separately to see whether a recorded success matches the credentials stored now.</p>
     {candidate.namespace.kind === "s3" ? <>
       <p className="muted">A test writes a small temporary object, verifies its contents and metadata, then removes it. Current Cloudflare R2 upload destinations remain unchanged.</p>
       {canTest && <button className="button" type="button" disabled={loading || busy || unresolved || !!message} onClick={() => void start()}>Test {candidate.label}</button>}
@@ -289,7 +310,7 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden }: { cand
     {!loading && history.items.length === 0 && !pending && <p className="muted">This candidate has no recorded tests.</p>}
     {history.items.length > 0 && <ol className="storage-check-history" aria-label={`Test history for ${candidate.label}`}>
       {history.items.map(check => <li key={check.id}>
-        <div className="storage-check-heading"><strong>{resultNames[check.status]}</strong><span>{check.revision === candidate.revision ? `Current revision ${check.revision}` : `Historical revision ${check.revision}`}</span>
+        <div className="storage-check-heading"><strong>{resultNames[check.status]}</strong><span>{check.revision === candidate.revision ? `Current configuration revision ${check.revision}` : `Historical revision ${check.revision}`}</span>
           <time dateTime={check.createdAt}>{new Date(check.createdAt).toLocaleString()}</time></div>
         {check.revision !== candidate.revision && <p className="muted">This result does not test the current candidate revision.</p>}
         <dl className="storage-check-stages"><div><dt>Write</dt><dd>{stepNames[check.write]}</dd></div><div><dt>Read back</dt><dd>{stepNames[check.read]}</dd></div>

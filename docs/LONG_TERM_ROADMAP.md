@@ -5,7 +5,8 @@ not authorization to implement later capabilities
 
 Last reviewed: 2026-10-02 — accepted FP1, deployed FP2 configuration/S3 transport,
 deployed candidate checks #242, credential re-enveloping #243 and shared fresh
-acceptance role selection; real-provider acceptance remains pending
+acceptance role selection #244. Read-only candidate check evidence is implemented
+and independently reviewed; real-provider acceptance remains pending
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -26,9 +27,10 @@ is retained without routine repetition, alongside historical V15–V18 evidence.
 Deployed #239 [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
 adds an independent administrator policy, versioned candidates and encrypted
 credential storage without enabling external providers. Candidate editing
-performs no provider requests or activation. [Credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md) adds atomic key
+performs no provider requests or activation. Deployed #243
+[credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md) adds atomic key
 maintenance for retained descriptor payloads while preserving check snapshots.
-[Fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
+Deployed #244 [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
 purpose routing while preserving the immutable R2 defaults and historical
 accepted targets; independent defaults still require a successor schema/archive.
 Ordinary V19 content packages exclude candidate configuration, audit, descriptors and
@@ -36,8 +38,13 @@ payloads; an authorized installation backup remains a separate later capability.
 Merged and deployed #241 qualifies isolated S3 transport without activating a
 provider or changing defaults. [Bounded candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md)
 are deployed in #242; atomic activation and independent role selection follow their
-qualification. The current live actor is read-only, so privileged provider
-checks have not been exercised on the deployment.
+qualification. The read-only
+[candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is implemented and
+in review. It distinguishes exact current-envelope success from retained
+configuration history and counts unresolved cleanup across all checks. It
+performs no provider calls or database writes and keeps activation unavailable.
+The current live actor is read-only, so privileged provider checks have not been
+exercised on the deployment.
 
 ## Product scale and engineering stance
 
@@ -57,8 +64,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP2 provider qualification | FP1 original-file and V19 live acceptance passed. #239 candidate settings and #241 S3 transport are deployed; durable candidate checks #242 are deployed, with real-provider acceptance pending. Authority remains Active/Enabled with 4/4 resolved references. |
-| Next | FP2 activation and role defaults | After real candidate qualification, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep system configuration out of ordinary content packages. |
+| Now | FP2 provider qualification | FP1 original-file and V19 live acceptance passed. #239 candidate settings, #241 S3 transport, #242 candidate checks, #243 credential re-enveloping and #244 shared role selection are deployed. Read-only candidate check evidence is implemented and independently reviewed; real-provider acceptance remains pending. Authority remains Active/Enabled with 4/4 resolved references. |
+| Next | FP2 activation and role defaults | After real candidate qualification and paired native/archive support, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep system configuration out of ordinary content packages. |
 | Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated provider configurations; accepted history and recovery retain their existing identities. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
 | Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |

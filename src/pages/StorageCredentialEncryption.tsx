@@ -19,8 +19,8 @@ const statusNames: Record<StorageCredentialEnvelopeMetadata["status"], string> =
 
 /** Encryption administration reads only opaque references and revision metadata.
  * A lost response retains the same operation ID; retries never create a new intent. */
-export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden }: {
-  candidate: StorageCandidate; canUpdate: boolean; onForbidden: () => void;
+export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden, onEvidenceChange }: {
+  candidate: StorageCandidate; canUpdate: boolean; onForbidden: () => void; onEvidenceChange: () => () => void;
 }) {
   const [pending, setPending] = useState<ReenvelopeStorageCredentialInput | null>(() => rememberedIntent(candidate.profileId));
   const [expanded, setExpanded] = useState(() => !!rememberedIntent(candidate.profileId));
@@ -102,6 +102,7 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden 
     }
   }
   async function load() {
+    const finishEvidenceChange = onEvidenceChange();
     const current = generation.current;
     setLoading(true); setMessage("");
     try {
@@ -111,7 +112,7 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden 
     } catch (failure) {
       if (current !== generation.current || denied(failure)) return;
       setMessage("Credential encryption status is unavailable. Refresh encryption status to try again.");
-    } finally { if (current === generation.current) setLoading(false); }
+    } finally { finishEvidenceChange(); if (current === generation.current) setLoading(false); }
   }
   useEffect(() => {
     generation.current += 1; operationBusy.current = false; setBusy(false); setMetadata({ items: [], hasMore: false }); setMetadataReady(false); setLoading(false);
@@ -123,20 +124,22 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden 
     const input: ReenvelopeStorageCredentialInput = { operationId: crypto.randomUUID(), profileId: item.profileId, revision: item.revision,
       credentialRef: item.credentialRef, expectedEnvelopeRevision: item.envelopeRevision };
     if (!remember(input)) { setMessage("Browser session storage is unavailable. Enable it before updating credential encryption."); return; }
+    const finishEvidenceChange = onEvidenceChange();
     const current = generation.current; operationBusy.current = true; setBusy(true); setMessage(""); setNotice("");
-    try { await submit(input, current); } finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await submit(input, current); } finally { finishEvidenceChange(); if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   async function checkOrRetry() {
     if (loading || operationBusy.current || !pendingRef.current) return;
+    const finishEvidenceChange = onEvidenceChange();
     const current = generation.current; operationBusy.current = true; setBusy(true); setMessage("");
-    try { await reconcile(pendingRef.current, current, true); } finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await reconcile(pendingRef.current, current, true); } finally { finishEvidenceChange(); if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   return <div className="storage-credential-encryption">
     <button className="button" type="button" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(current => !current)}>
       Credential encryption for {candidate.label}
     </button>
     {expanded && <section id={panelId} aria-label={`Credential encryption for ${candidate.label}`}>
-      <p className="muted">Update stored credentials to use the installation’s current encryption key. Provider credentials, connection test results and upload destinations stay unchanged.</p>
+      <p className="muted">Update stored credentials to use the installation’s current encryption key. Provider credentials and upload destinations stay unchanged. Earlier connection test results are retained, but a test with an earlier stored credential version does not confirm the updated version.</p>
       <p className="muted">Earlier encryption keys may still be needed by immutable connection test snapshots and installation backups. Updating these rows does not prove that an earlier key can be removed.</p>
       <button className="button" type="button" disabled={loading || busy} onClick={() => void load()}>Refresh encryption status</button>
       {loading && <p role="status">Reading credential encryption status…</p>}
