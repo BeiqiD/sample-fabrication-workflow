@@ -8,8 +8,12 @@ export const SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES = [
   "system_storage_credential_payloads",
   "system_storage_configuration_revisions",
   "system_storage_configuration_audit",
+  "system_storage_candidate_checks",
+  "system_storage_candidate_check_audit",
 ] as const;
 export const SYSTEM_STORAGE_CONFIGURATION_MIGRATION = "0014_fp2_storage_configuration.sql" as const;
+export const SYSTEM_STORAGE_CANDIDATE_CHECK_MIGRATION = "0015_fp2_storage_candidate_checks.sql" as const;
+export const SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS = [SYSTEM_STORAGE_CONFIGURATION_MIGRATION, SYSTEM_STORAGE_CANDIDATE_CHECK_MIGRATION] as const;
 const systemTables = new Set<string>(SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES);
 
 /** The V19 content schema stays frozen. Omit only explicitly classified system

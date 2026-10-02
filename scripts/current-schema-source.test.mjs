@@ -10,7 +10,7 @@ const root = new URL("../", import.meta.url);
 const sqlNames = (directory) => readdirSync(new URL(directory, root)).filter((name) => name.endsWith(".sql")).sort();
 
 test("the current chain admits the reviewed FP1 suffix and retains the S2 baseline and all 37 historical SQL files byte-for-byte", () => {
-  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0011_fp1_retire_legacy_test_projects.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql", "0014_fp2_storage_configuration.sql"]);
+  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0011_fp1_retire_legacy_test_projects.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql", "0014_fp2_storage_configuration.sql", "0015_fp2_storage_candidate_checks.sql"]);
   const baseline = readFileSync(new URL("scripts/fixtures/backend-schema/s2-baseline.sql", root));
   assert.deepEqual(readFileSync(new URL("migrations/0001_v3_baseline.sql", root)), baseline);
   const recorded = [...baseline.toString("utf8").matchAll(/^-- Source migrations\/([^ /]+\.sql) sha256=([a-f0-9]{64})$/gm)];

@@ -4,9 +4,11 @@ import { MAX_STORAGE_CONFIGURATION_INPUT_BYTES, checkedSaveStorageCandidateInput
 import type { Env } from "../types";
 import { canAdministerSystemSettings, requireSystemAdministrator } from "./system-administrator";
 import { readStorageConfiguration, saveStorageCandidate, storageCredentialEditingAvailable, StorageConfigurationError } from "./configuration-registry";
+import { storageCandidateCheckRoutes } from "./candidate-check-routes";
 
 type Bindings = { Bindings: Env; Variables: { userEmail: string } };
 export const storageConfigurationRoutes = new Hono<Bindings>();
+storageConfigurationRoutes.route("/", storageCandidateCheckRoutes);
 /** Installed before authentication, including its error responses. */
 export const storageConfigurationCacheControl: MiddlewareHandler<Bindings> = async (c, next) => {
   c.header("Cache-Control", "private, no-store");
