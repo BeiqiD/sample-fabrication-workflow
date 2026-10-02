@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { SaveStorageCandidateInput, StorageCandidate, StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
+import { supportsExpectedS3BucketOwner, type SaveStorageCandidateInput, type StorageCandidate, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
 import { checkedStartStorageCandidateCheckInput, MAX_STORAGE_CANDIDATE_CHECKS, type StartStorageCandidateCheckInput, type StorageCandidateCheck,
   type StorageCandidateCheckList, type StorageCandidateCheckStage } from "../../shared/contracts/storage-candidate-check";
 import { storageConfigurationClient, StorageConfigurationRequestError, type StorageConfigurationCapability } from "../lib/storage-configuration-client";
@@ -9,7 +9,7 @@ import "./storage-settings.css";
 
 type Provider = "s3" | "webdav" | "switchdrive";
 const names: Record<Provider, string> = { s3: "S3 compatible", webdav: "WebDAV", switchdrive: "SWITCHdrive" };
-const blank = { label: "", provider: "s3" as Provider, endpoint: "", bucket: "", region: "", root: "", forcePathStyle: true,
+const blank = { label: "", provider: "s3" as Provider, endpoint: "", bucket: "", region: "", root: "", forcePathStyle: true, expectedBucketOwner: "",
   accessKeyId: "", secretAccessKey: "", sessionToken: "", username: "", password: "" };
 
 export function StorageConfigurationPage() {
@@ -58,12 +58,17 @@ export function StorageConfigurationPage() {
     const namespace = candidate.namespace;
     setEditing(candidate); setReplaceCredentials(false); setNotice(""); setError("");
     setForm({ ...blank, label: candidate.label, provider: namespace.kind, endpoint: namespace.endpoint, root: namespace.root,
-      ...(namespace.kind === "s3" ? { bucket: namespace.bucket, region: namespace.region, forcePathStyle: namespace.forcePathStyle } : {}) });
+      ...(namespace.kind === "s3" ? { bucket: namespace.bucket, region: namespace.region, forcePathStyle: namespace.forcePathStyle,
+        expectedBucketOwner: namespace.expectedBucketOwner ?? "" } : {}) });
   }
   async function save(event: FormEvent) {
     event.preventDefault(); if (saving || uncertainSave || !capability?.credentialEditingAvailable) return;
+    if (form.provider === "s3" && form.expectedBucketOwner && !supportsExpectedS3BucketOwner(form.endpoint, form.region)) {
+      setError("Expected AWS bucket owner requires a matching AWS S3 endpoint and region. Correct them or clear the owner."); return;
+    }
     const namespace = form.provider === "s3" ? { kind: "s3" as const, endpoint: form.endpoint, bucket: form.bucket, region: form.region,
-      root: form.root, forcePathStyle: form.forcePathStyle } : { kind: form.provider, endpoint: form.endpoint, root: form.root };
+      root: form.root, forcePathStyle: form.forcePathStyle, ...(form.expectedBucketOwner ? { expectedBucketOwner: form.expectedBucketOwner } : {}) }
+      : { kind: form.provider, endpoint: form.endpoint, root: form.root };
     const credentials: SaveStorageCandidateInput["credentials"] = replaceCredentials ? { mode: "replace", value: form.provider === "s3"
       ? { accessKeyId: form.accessKeyId, secretAccessKey: form.secretAccessKey, ...(form.sessionToken ? { sessionToken: form.sessionToken } : {}) }
       : { username: form.username, password: form.password } } : { mode: "retain" };
@@ -144,6 +149,12 @@ export function StorageConfigurationPage() {
             <label>Root folder<input disabled={!!editing} value={form.root} onChange={event => set("root", event.target.value)} /></label>
             {form.provider === "s3" && <><label>Bucket<input required disabled={!!editing} value={form.bucket} onChange={event => set("bucket", event.target.value)} /></label>
               <label>Region<input required value={form.region} onChange={event => set("region", event.target.value)} /></label>
+              {(supportsExpectedS3BucketOwner(form.endpoint, form.region) || form.expectedBucketOwner) && <div>
+                <label>Expected AWS bucket owner (optional)<input inputMode="numeric" pattern="[0-9]{12}" maxLength={12}
+                  title="Enter the bucket owner's 12-digit AWS account ID." aria-describedby="storage-expected-owner-help"
+                  value={form.expectedBucketOwner} onChange={event => set("expectedBucketOwner", event.target.value)} /></label>
+                <small id="storage-expected-owner-help" className="muted">For standard AWS S3 endpoints only. Enter the bucket owner's 12-digit AWS account ID, or leave blank. Changing this value requires a new connection test.</small>
+              </div>}
               <label className="storage-candidate-checkbox"><input type="checkbox" checked={form.forcePathStyle} onChange={event => set("forcePathStyle", event.target.checked)} />Use path style requests</label></>}
           </div>
           {editing && <><p className="muted">This creates revision {editing.revision + 1}. To use a different storage address, add a new candidate.</p>

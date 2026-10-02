@@ -67,9 +67,11 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
     body?: ArrayBuffer | ReadableStream, contentType?: string, signal?: AbortSignal): Promise<Response> {
     const url = objectUrl(namespace, key), timestamp = now().toISOString().replace(/[:-]|\.\d{3}/g, ""), date = timestamp.slice(0, 8);
     const headers = new Headers({ host: url.host, "x-amz-date": timestamp, "x-amz-content-sha256": payloadHash, "accept-encoding": "identity" });
+    if (namespace.expectedBucketOwner) headers.set("x-amz-expected-bucket-owner", namespace.expectedBucketOwner);
     if (credentials.sessionToken) headers.set("x-amz-security-token", credentials.sessionToken);
     if (contentType) headers.set("content-type", contentType);
-    const signed = ["host", "x-amz-content-sha256", "x-amz-date", ...(credentials.sessionToken ? ["x-amz-security-token"] : []), ...(contentType ? ["content-type"] : [])].sort();
+    const signed = ["host", "x-amz-content-sha256", "x-amz-date", ...(namespace.expectedBucketOwner ? ["x-amz-expected-bucket-owner"] : []),
+      ...(credentials.sessionToken ? ["x-amz-security-token"] : []), ...(contentType ? ["content-type"] : [])].sort();
     const canonical = [method, url.pathname, "", signed.map(name => `${name}:${headers.get(name)!.trim().replace(/\s+/g, " ")}\n`).join(""), signed.join(";"), payloadHash].join("\n");
     const scope = `${date}/${namespace.region}/s3/aws4_request`;
     const signingKey = await hmac(await hmac(await hmac(await hmac(`AWS4${credentials.secretAccessKey}`, date), namespace.region), "s3"), "aws4_request");

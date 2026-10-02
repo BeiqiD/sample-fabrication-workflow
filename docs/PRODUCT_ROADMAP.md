@@ -5,8 +5,9 @@ Status: canonical product direction and active implementation roadmap
 Last reviewed: 2026-10-02 after FP1 live acceptance and deployed FP2 configuration
 #239/S3 transport #241. Candidate checks #242, credential re-enveloping #243
 and fresh acceptance selection #244 are deployed, preserving current R2 defaults.
-Read-only candidate check evidence is implemented and independently reviewed;
-real-provider acceptance remains pending. PR #202's
+Read-only candidate check evidence is merged and deployed in #245 (`5992307`).
+The AWS S3 bucket-owner condition prerequisite is being
+implemented and reviewed; real-provider acceptance remains pending. PR #202's
 S2 activation is deployed; the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -83,10 +84,15 @@ maintenance for retained descriptor payloads while preserving check snapshots.
 [Fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md), deployed in #244, centralizes
 purpose routing across binary ingress while retaining the immutable R2 defaults
 and accepted historical targets. The read-only
-[candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is implemented and
-in review. It distinguishes exact current-envelope evidence from all retained
-configuration history without provider calls or state changes. Independent
-defaults and activation remain later.
+[candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is merged and deployed
+in #245 (`5992307`). It distinguishes exact
+current-envelope evidence from all retained configuration history without
+provider calls or state changes. The next
+[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) slice is being
+implemented and reviewed. Its optional AWS-specific request condition does not
+activate providers or establish generic S3 identity. Native provider identity
+and admission with paired successor schema/archive support precede atomic
+activation and independent defaults; real-provider qualification remains required.
 Ordinary content export stays V19 and excludes installation configuration and
 check evidence. This document records
 scope and evidence; deployment authority comes from the owner's requests.
@@ -128,7 +134,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP2: configurable storage after accepted FP1 | File authority is Active/Enabled with 4/4 resolved references. FP1 R2 originals and V19 live recovery passed after #240. #239 configuration, #241 S3 transport, #242 candidate checks, #243 credential re-enveloping and #244 shared role selection are deployed. Read-only candidate check evidence is implemented and independently reviewed; real-provider acceptance remains pending. Activation and independent defaults follow qualification and matched native/archive support. |
+| 4 | FP2: configurable storage after accepted FP1 | File authority is Active/Enabled with 4/4 resolved references. FP1 R2 originals and V19 live recovery passed after #240. #239 configuration, #241 S3 transport, #242 candidate checks, #243 credential re-enveloping and #244 shared role selection are deployed. Candidate evidence #245 is merged and deployed. The AWS S3 bucket-owner condition prerequisite is being implemented and reviewed. Real-provider qualification and native identity/admission with matched schema/archive support precede activation and independent defaults. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -975,13 +981,16 @@ Project-owned Markdown or attachment content only through explicit user action.
    and merged/deployed #241 S3 transport. Preserve deployed #242
    [candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md), deployed #243
    [credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md), and deployed #244
-   [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md). Review and
-   qualify the implemented read-only
-   [candidate check evidence report](./FP2_CANDIDATE_READINESS.md). It separates
+   [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md). Preserve
+   the read-only
+   [candidate check evidence report](./FP2_CANDIDATE_READINESS.md), deployed in #245
+   (`5992307`). It separates
    current-envelope evidence from historical successes and keeps unresolved
-   cleanup visible across all retained checks. Implement atomic activation and
-   independent defaults after provider qualification and paired native/archive
-   support. Candidate checks and evidence reports do not enable a provider
+   cleanup visible across all retained checks. Implement and review the optional
+   AWS [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), then native
+   provider identity/admission with paired successor schema/archive support.
+   Atomic activation and independent defaults follow real-provider qualification
+   and these native guarantees. Candidate checks and evidence reports do not enable a provider
    or redirect uploads. SWITCHdrive credentials are not required for development.
    V19 content export excludes system configuration and check evidence.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented

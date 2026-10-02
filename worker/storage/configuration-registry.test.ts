@@ -69,6 +69,30 @@ describe("administrator storage candidate registry", () => {
     expect(snapshot(f.sql)).toEqual(before);
   });
 
+  it("binds owner additions, corrections and removal to new immutable configuration revisions", async () => {
+    const f = fixture(), awsInput = { ...input, namespace: { ...input.namespace, endpoint: "https://s3.eu-central-1.amazonaws.com", region: "eu-central-1" } };
+    const first = await saveStorageCandidate(f.env, awsInput, actor);
+    const originalProfile = f.sql.prepare("SELECT namespace_json,namespace_sha256 FROM system_storage_profiles WHERE id=?").get(first.profileId)!;
+    const revisions = [first];
+    for (const expectedBucketOwner of ["012345678901", "123456789012", undefined]) {
+      revisions.push(await saveStorageCandidate(f.env, { ...awsInput, profileId: first.profileId, expectedRevision: revisions.length,
+        namespace: { ...awsInput.namespace, ...(expectedBucketOwner === undefined ? {} : { expectedBucketOwner }) }, credentials: { mode: "retain" } }, actor));
+    }
+    const stored = f.sql.prepare("SELECT revision,namespace_json,credential_ref FROM system_storage_configuration_revisions ORDER BY revision").all();
+    expect(stored.map(row => ({ revision: row.revision, namespace: JSON.parse(row.namespace_json as string), credentialRef: row.credential_ref })))
+      .toEqual(revisions.map(revision => ({ revision: revision.revision, namespace: revision.namespace, credentialRef: revision.credentials.ref })));
+    expect(revisions.map(revision => "expectedBucketOwner" in revision.namespace ? revision.namespace.expectedBucketOwner : null))
+      .toEqual([null, "012345678901", "123456789012", null]);
+    expect(new Set(revisions.map(revision => revision.credentials.ref)).size).toBe(4);
+    expect(f.sql.prepare("SELECT namespace_json,namespace_sha256 FROM system_storage_profiles WHERE id=?").get(first.profileId)).toEqual(originalProfile);
+    expect(JSON.stringify(originalProfile)).not.toContain("expectedBucketOwner");
+    expect(f.sql.prepare("SELECT DISTINCT namespace_sha256 FROM system_storage_credential_descriptors").all()).toEqual([{ namespace_sha256: originalProfile.namespace_sha256 }]);
+    expect((await readStorageConfiguration(f.env, actor)).candidates.items).toEqual([revisions[3]]);
+    expect(() => f.sql.prepare("UPDATE system_storage_configuration_revisions SET namespace_json=? WHERE revision=2").run(stored[2].namespace_json))
+      .toThrow();
+    expect(f.io).not.toHaveBeenCalled();
+  });
+
   it("rolls back a concurrent loser including its encrypted payload and audit", async () => {
     const f = fixture(), first = await saveStorageCandidate(f.env, input, actor);
     const update = { ...input, profileId: first.profileId, expectedRevision: 1, credentials: { mode: "retain" } };

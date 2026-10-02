@@ -55,9 +55,14 @@ accepted-policy evidence and successor archive/recovery support; this shared
 selection entry point does not establish those capabilities.
 
 The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md),
-implemented and in review, distinguishes exact current-context check evidence
-from retained history. It performs no role selection or default changes and
+merged and deployed in #245 (`5992307`), distinguishes
+exact current-context check evidence from retained history. It performs no role selection or default changes and
 keeps activation unavailable.
+
+The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is the next
+bounded prerequisite under implementation and review. Native provider identity
+and admission still require paired successor schema/archive support before
+atomic activation and independent role defaults.
 
 ## Qualification
 

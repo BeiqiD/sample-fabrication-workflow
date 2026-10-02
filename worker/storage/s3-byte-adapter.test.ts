@@ -35,6 +35,7 @@ describe("isolated S3 SigV4 byte transport", () => {
     expect(request.redirect).toBe("manual");
     expect(request.headers.has("range")).toBe(false);
     expect(request.headers.has("x-amz-security-token")).toBe(false);
+    expect(request.headers.has("x-amz-expected-bucket-owner")).toBe(false);
   });
 
   it("signs exact payload SHA and content type for buffered PUT without trusting an ETag", async () => {
@@ -72,6 +73,59 @@ describe("isolated S3 SigV4 byte transport", () => {
     const adapter = s3ByteAdapter({ ...namespace, endpoint: "https://s3.example.test/gateway$api/%2flower", forcePathStyle: true }, credentials, { fetch: send, now });
     await adapter.reader.stat("test.txt");
     expect(send.mock.calls[0][0].url).toBe("https://s3.example.test/gateway%24api/%2Flower/examplebucket/test.txt");
+  });
+
+  it("sends and signs the expected AWS owner on GET, HEAD, PUT and DELETE", async () => {
+    const send = vi.fn(async (_request: Request) => new Response("", { headers: { "content-length": "0" } }));
+    const adapter = s3ByteAdapter({ ...namespace, expectedBucketOwner: "123456789012" }, credentials, { fetch: send, now });
+    const result = await adapter.reader.read("test.txt");
+    if (result.outcome === "available") await result.body.cancel();
+    expect(result.outcome).toBe("available");
+    expect(await adapter.reader.stat("test.txt")).toMatchObject({ outcome: "available", byteSize: 0 });
+    await adapter.writer.write({ key: "test.txt", body: new ArrayBuffer(0), byteSize: 0, sha256: emptyHash,
+      contentType: "application/octet-stream", filename: "test.txt" });
+    expect(await adapter.deleter.delete("test.txt")).toEqual({ outcome: "acknowledged" });
+    // Independent Python hashlib/hmac fixtures using the public AWS credentials
+    // above. The owner must affect the signature, not only the outgoing headers.
+    const signatures = ["1728e8b3863c59e08a349e5b099c75cd4900432d5f185e8bffb69a053dd3cd70",
+      "9d1816da2b04c0d8340d0134d3844ecb7960369cdfbe0590ec024fdc39fe1781",
+      "0020e8be876acfa47a353a13c7270a6d12a08bd8eddd7661a5896f70e0656e03",
+      "f09cfff0e2f8eada99b7bf6556d7f0b8683470a49912977e41b6f794114d7ead"];
+    expect(send.mock.calls.map(([request]) => request.method)).toEqual(["GET", "HEAD", "PUT", "DELETE"]);
+    send.mock.calls.forEach(([request], index) => {
+      expect(request.headers.get("x-amz-expected-bucket-owner")).toBe("123456789012");
+      expect(request.headers.get("authorization")).toContain("x-amz-date;x-amz-expected-bucket-owner");
+      expect(signature(request)).toBe(signatures[index]);
+      expect(request.redirect).toBe("manual");
+    });
+  });
+
+  it.each([403, 301, 307])("does not retry, redirect or drop the owner after provider status %i", async status => {
+    const cancelled = vi.fn();
+    const send = vi.fn(async (_request: Request) => new Response(new ReadableStream({ cancel: cancelled }), {
+      status, headers: { location: "https://alternate.s3.amazonaws.com/test.txt" },
+    }));
+    const adapter = s3ByteAdapter({ ...namespace, expectedBucketOwner: "123456789012" }, credentials, { fetch: send, now });
+    const failure = status === 403 ? { outcome: "denied", status } : { outcome: "unavailable" };
+    expect(await adapter.reader.read("test.txt")).toEqual(failure);
+    expect(await adapter.reader.stat("test.txt")).toEqual(failure);
+    await expect(adapter.writer.write({ key: "test.txt", body: new ArrayBuffer(0), byteSize: 0, sha256: emptyHash,
+      contentType: "application/octet-stream", filename: "test.txt" })).rejects.toEqual(new ByteVerificationError("destination", "unavailable"));
+    expect(await adapter.deleter.delete("test.txt")).toEqual(failure);
+    expect(send).toHaveBeenCalledTimes(4);
+    expect(cancelled).toHaveBeenCalledTimes(4);
+    for (const [request] of send.mock.calls) {
+      expect(request.url).toBe("https://examplebucket.s3.amazonaws.com/test.txt");
+      expect(request.redirect).toBe("manual");
+      expect(request.headers.get("x-amz-expected-bucket-owner")).toBe("123456789012");
+    }
+  });
+
+  it("rejects an owner constraint on generic S3 before issuing any request", () => {
+    const send = vi.fn();
+    expect(() => s3ByteAdapter({ ...namespace, endpoint: "https://objects.example.test", expectedBucketOwner: "123456789012" }, credentials, { fetch: send }))
+      .toThrow(S3StorageUnavailableError);
+    expect(send).not.toHaveBeenCalled();
   });
 
   it.each([".", "..", "folder/../file", "folder/./file", "\ud800", "bad\0key", ""])("rejects keys which cannot be addressed exactly before I/O: %j", async key => {
