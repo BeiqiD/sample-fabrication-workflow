@@ -69,7 +69,18 @@ export default {
         prepare(sql) { return statement(sql, native.prepare(sql)); },
         withSession(constraint) { return database(typeof native.withSession === "function" ? native.withSession(constraint) : native); },
         async batch(statements) {
+          const acceptance = statements.some(item => /^\\s*INSERT INTO imports\\b/i.test(item.sql));
+          if (acceptance) {
+            stats.insertAttempts++;
+            if (mode === "concurrent" && phase === "first") {
+              if (stats.insertAttempts === 2) releaseInsert();
+              await insertGate;
+            }
+          }
           const result = await native.batch(statements.map(item => item.inner));
+          if (acceptance && mode === "lost-acceptance-ack" && stats.lostAcceptance++ === 0) {
+            throw new Error("synthetic secret: committed acceptance acknowledgement lost");
+          }
           if (mode === "lost-finalization-ack" && !stats.lostFinalization
             && statements.some(item => /UPDATE imports/.test(item.sql) && /SET status = 'ready'/.test(item.sql))) {
             stats.lostFinalization++;

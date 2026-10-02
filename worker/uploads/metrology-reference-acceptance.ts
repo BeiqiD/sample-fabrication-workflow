@@ -18,6 +18,8 @@ import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
 import { assertR2BootstrapProfile, ensureR2BootstrapProfile, R2BootstrapUnavailableError } from "../files/r2-bootstrap-profile";
 import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
+import { prepareStorageRoleSelection } from "../files/storage-role-selection";
+import { StorageRoleDefaultsUnavailableError } from "../files/storage-role-defaults";
 import type { Env } from "../types";
 
 export interface AcceptedMetrologyReferenceUploadRow {
@@ -232,22 +234,35 @@ export async function acceptAndUploadMetrologyReference(env: Env, upload: {
   };
   const existing = await readAcceptedMetrologyReferenceUpload(env.DB, upload.actorEmail, upload.requestId);
   if (existing) { compare(existing); return { state: await acceptedMetrologyReferenceUploadState(env, existing), fresh: false }; }
-  const active = await readFileAuthorityMode(env.DB).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); }) === "active";
-  const activeProfile = active ? await ensureR2BootstrapProfile(primaryD1(env.DB), env, new Date().toISOString()) : undefined;
-  const plan = await publicationPlan(env.DB, upload.templateId, canonical.input.file.sha256, upload.bytes.byteLength, activeProfile?.id);
+  const db = primaryD1(env.DB);
+  const modeAtAcceptance = await readFileAuthorityMode(db).catch(() => { throw new MetrologyReferenceUploadUnavailableError(); });
+  const active = modeAtAcceptance === "active";
   const now = new Date().toISOString();
+  const selection = active ? await prepareStorageRoleSelection(db, env, ["research_source"], now) : null;
+  const activeProfile = selection?.profileFor("research_source");
+  const plan = await publicationPlan(db, upload.templateId, canonical.input.file.sha256, upload.bytes.byteLength, activeProfile?.id);
+  const profile = activeProfile ?? await ensureR2BootstrapProfile(db, env, now);
   const expiresAt = new Date(Date.parse(now) + R2_UPLOAD_RECEIPT_LIFETIME_MS).toISOString();
-  const profile = activeProfile ?? await ensureR2BootstrapProfile(primaryD1(env.DB), env, now);
   const id = crypto.randomUUID(); const operationId = crypto.randomUUID(); const assetId = crypto.randomUUID(); const referenceId = crypto.randomUUID();
   const objectKey = `metrology/${assetId}-${safeAttachmentObjectName(upload.originalName)}`;
   try {
-    await primaryD1(env.DB).prepare(`INSERT INTO metrology_reference_upload_requests
+    const acceptance = db.prepare(`INSERT INTO metrology_reference_upload_requests
       (id, actor_email, client_request_id, operation_id, template_version_id, candidate_reference_id, publication_plan_json,
        ingress, purpose, request_sha256, request_input_json, request_scope, storage_profile_id, storage_profile_revision, storage_policy_revision,
        candidate_asset_id, candidate_object_key, status, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'metrology_reference', 'research_source', ?, ?, 'system', ?, 1, 1, ?, ?, 'pending', ?, ?)`)
+      SELECT ?, ?, ?, ?, ?, ?, ?, 'metrology_reference', 'research_source', ?, ?, 'system', ?, 1, 1, ?, ?, 'pending', ?, ?
+      WHERE EXISTS(SELECT 1 FROM file_authority_control WHERE singleton=1 AND mode=?)`)
       .bind(id, upload.actorEmail, upload.requestId, operationId, upload.templateId, referenceId, stableJson(plan), canonical.sha256, canonical.json,
-        profile.id, assetId, objectKey, now, expiresAt).run();
+        profile.id, assetId, objectKey, now, expiresAt, modeAtAcceptance);
+    if (selection) await db.batch([
+      ...selection.statements, acceptance,
+      db.prepare(`SELECT CASE WHEN changes()=1 AND EXISTS(SELECT 1 FROM metrology_reference_upload_requests
+        WHERE id=? AND operation_id=? AND status='pending' AND storage_profile_id=? AND storage_profile_revision=1
+          AND candidate_asset_id=? AND candidate_object_key=? AND candidate_reference_id=? AND publication_plan_json=?)
+        THEN 1 ELSE json('Metrology reference acceptance did not commit') END`)
+        .bind(id, operationId, profile.id, assetId, objectKey, referenceId, stableJson(plan)),
+    ]);
+    else await acceptance.run();
   } catch { /* Reconcile uniqueness races and lost acknowledgements on the primary. */ }
   const accepted = await readAcceptedMetrologyReferenceUpload(env.DB, upload.actorEmail, upload.requestId);
   if (!accepted) throw new MetrologyReferenceUploadUnavailableError();
@@ -266,7 +281,6 @@ export async function acceptAndUploadMetrologyReference(env: Env, upload: {
   await assertR2BootstrapProfile(primaryD1(env.DB), env, accepted.storage_profile_id, accepted.storage_profile_revision);
   const completedAt = new Date().toISOString();
   if (accepted.expires_at <= completedAt) return { state: { ...identity(accepted), status: "expired" }, fresh: true };
-  const db = primaryD1(env.DB);
   const asset = registration.record;
   const statements: D1PreparedStatement[] = [];
   if (plan.action === "create") {
@@ -314,6 +328,6 @@ export async function acceptAndUploadMetrologyReference(env: Env, upload: {
 }
 export function rethrowMetrologyReferenceUploadError(error: unknown): never {
   if (error instanceof MetrologyReferenceUploadConflictError) throw new HTTPException(409, { message: error.message });
-  if (error instanceof R2BootstrapUnavailableError || error instanceof MetrologyReferenceUploadUnavailableError) throw new HTTPException(503, { message: error.message });
+  if (error instanceof R2BootstrapUnavailableError || error instanceof StorageRoleDefaultsUnavailableError || error instanceof MetrologyReferenceUploadUnavailableError) throw new HTTPException(503, { message: error.message });
   throw error;
 }

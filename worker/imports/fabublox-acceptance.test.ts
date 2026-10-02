@@ -112,6 +112,38 @@ describe("durable FabuBlox acceptance", () => {
     expect(result.owned).toBe(true); expect(primaryReads).toBe(2);
   });
 
+  it("reconciles a committed acceptance batch with lost acknowledgement without acquiring a second owner", async () => {
+    const { sql, db } = fixture();
+    const session = {
+      prepare: db.prepare.bind(db),
+      async batch(statements: D1PreparedStatement[]) {
+        await db.batch(statements);
+        throw new Error("secret batch acknowledgement detail");
+      },
+    } as unknown as D1Database;
+    const result = await acceptFabubloxImport(session, input(), [session.prepare("SELECT 1")]);
+    expect(result.owned).toBe(true);
+    const competitor = await acceptFabubloxImport(session, input({ importId: "other", operationId: "other-owner" }), [session.prepare("SELECT 1")]);
+    expect(competitor.owned).toBe(false);
+    expect(sql.prepare("SELECT count(*) n FROM imports").get()!.n).toBe(1);
+  });
+
+  it("uses the primary session for the complete fresh acceptance batch and reconciles before granting ownership", async () => {
+    const { db } = fixture();
+    let sessions = 0, batches = 0;
+    const session = {
+      prepare: db.prepare.bind(db),
+      async batch(statements: D1PreparedStatement[]) { batches += 1; return db.batch(statements); },
+    } as unknown as D1Database;
+    const database = {
+      withSession(constraint: string) { expect(constraint).toBe("first-primary"); sessions += 1; return session; },
+      prepare() { throw new Error("Unsessioned database used"); },
+      batch() { throw new Error("Unsessioned batch used"); },
+    } as unknown as D1Database;
+    expect((await acceptFabubloxImport(database, input(), [session.prepare("SELECT 1")])).owned).toBe(true);
+    expect(batches).toBe(1); expect(sessions).toBe(2);
+  });
+
   it.each([false, true])("does not grant execution ownership when uncertain INSERT cannot be observed: read failure %s", async (failRead) => {
     const { db } = fixture();
     await expect(acceptFabubloxImport(interceptInsert(db, false, failRead), input()))

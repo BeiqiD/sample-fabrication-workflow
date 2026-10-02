@@ -17,6 +17,10 @@ initializes both defaults in its business transaction. Existing defaults are
 read back and never reset by a restart, retry or deployment. Read-only Settings
 and storage-status requests do not create profiles or defaults.
 
+The subsequent [FP2 shared selection entry point](./FP2_STORAGE_ROLE_SELECTION.md)
+extends this same atomic initialization to other fresh active binary ingress.
+Both roles retain the existing R2 destination and policy revision.
+
 The bootstrap requires the existing R2 profile to match the configured physical
 namespace and already have File write admission. It does not grant that admission
 to a different or read-only profile. Before initialization, metadata can describe

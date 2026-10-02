@@ -8,7 +8,7 @@ import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 import { primaryD1 } from "../d1-primary";
 import { ensureR2BootstrapProfile, assertR2BootstrapProfile } from "../files/r2-bootstrap-profile";
 import { ensureManagedBootstrapProfile, assertManagedBootstrapProfile } from "../files/managed-bootstrap-profile";
-import { prepareR2StorageRoleDefaults } from "../files/storage-role-defaults";
+import { prepareStorageRoleAcceptanceModeFence, prepareStorageRoleSelection } from "../files/storage-role-selection";
 import { managedStorage, managedObjectKey } from "../managed-storage";
 import { AttachmentIngestionHashMismatchError, AttachmentIngestionByteSizeMismatchError, ingestManagedAttachment, ingestR2Attachment, safeAttachmentObjectName } from "../attachment-ingestion";
 import { ByteVerificationError, verifyByteStream } from "../files/byte-verification";
@@ -236,13 +236,20 @@ export async function createAcceptedComment(c: C) {
   }
   const now = new Date().toISOString(); const expires = new Date(Date.parse(now) + COMMENT_ACCEPTANCE_LIFETIME_MS).toISOString();
   const plan = publicationPlan(input); const operation = crypto.randomUUID();
-  const active = await readFileAuthorityMode(db).catch(() => failClosed()) === "active";
-  const rolePolicy = active && input.items.some(item => item.kind !== "link") ? await prepareR2StorageRoleDefaults(db, c.env, now) : null;
-  const r2 = rolePolicy?.profile ?? (input.items.some((item) => item.kind === "comment_image") ? await ensureR2BootstrapProfile(db, c.env, now) : null);
-  const managed = !rolePolicy && input.items.some((item) => item.kind === "attachment") ? await ensureManagedBootstrapProfile(db, c.env, now) : null;
+  const authorityMode = await readFileAuthorityMode(db).catch(() => failClosed());
+  const active = authorityMode === "active";
+  const binaryItems = input.items.flatMap(item => {
+    if (item.kind === "link") return [];
+    const purpose: CommentItemAcceptanceRow["purpose"] = item.kind === "attachment" ? "research_source"
+      : item.relatedAttachmentId ? "derived_preview" : "embedded_content";
+    return [{ item, purpose }];
+  });
+  const rolePolicy = active && binaryItems.length ? await prepareStorageRoleSelection(db, c.env, binaryItems.map(entry => entry.purpose), now) : null;
+  const r2 = !rolePolicy && binaryItems.some(({ item }) => item.kind === "comment_image") ? await ensureR2BootstrapProfile(db, c.env, now) : null;
+  const managed = !rolePolicy && binaryItems.some(({ item }) => item.kind === "attachment") ? await ensureManagedBootstrapProfile(db, c.env, now) : null;
   const sampleIds = input.context.kind === "sample" ? [input.context.sampleId] : [...new Set(input.context.targets.map((target) => target.sampleId))];
   const managedSample = managed && sampleIds.length === 1 ? await db.prepare("SELECT id,code FROM samples WHERE id=? AND deleted_at IS NULL").bind(sampleIds[0]).first<{id:string;code:string}>() : null;
-  const statements: D1PreparedStatement[] = [...(rolePolicy?.statements ?? [])];
+  const statements: D1PreparedStatement[] = [prepareStorageRoleAcceptanceModeFence(db, authorityMode), ...(rolePolicy?.statements ?? [])];
   if (input.context.kind === "sample") {
     statements.push(db.prepare(`INSERT INTO comment_submissions (id, context_kind, sample_id, scope, body, status, actor_email, created_at, updated_at, retry_until)
       SELECT ?, 'sample', id, NULL, ?, 'uploading', ?, ?, ?, ? FROM samples WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`)
@@ -273,16 +280,15 @@ export async function createAcceptedComment(c: C) {
     if (related) statements.push(db.prepare("UPDATE comment_submission_items SET related_item_id=? WHERE id=? AND submission_id=?").bind(related,item.id,input.id));
   }
   statements.push(db.prepare(`INSERT INTO comment_submission_acceptances (submission_id,actor_email,operation_id,request_sha256,request_input_json,publication_plan_json,request_scope,storage_policy_revision${rolePolicy ? ",storage_role_policy_revision" : ""},status,created_at,expires_at)
-    VALUES (?,?,?,?,?,?,'system',1${rolePolicy ? ",2" : ""},'pending',?,?)`).bind(input.id,actor,operation,accepted.sha256,accepted.json,stableJson(plan),now,expires));
-  for (const item of input.items) if (item.kind !== "link") {
-    const profile = rolePolicy?.profile ?? (item.kind === "comment_image" ? r2! : managed!); const blob = crypto.randomUUID();
+    VALUES (?,?,?,?,?,?,'system',1${rolePolicy ? `,${rolePolicy.rolePolicyRevision}` : ""},'pending',?,?)`).bind(input.id,actor,operation,accepted.sha256,accepted.json,stableJson(plan),now,expires));
+  for (const { item, purpose } of binaryItems) {
+    const profile = rolePolicy ? rolePolicy.profileFor(purpose) : item.kind === "comment_image" ? r2! : managed!; const blob = crypto.randomUUID();
     const key = rolePolicy || item.kind === "comment_image" ? `comments/${input.id}/${item.id}/${blob}-${safeAttachmentObjectName(item.filename)}`
       : managedObjectKey(input.id, `${item.id}-${blob}`, item.filename, managedSample ?? undefined);
-    const purpose = item.kind === "attachment" ? "research_source" : item.relatedAttachmentId ? "derived_preview" : "embedded_content";
     statements.push(db.prepare(`INSERT INTO comment_item_acceptances (item_id,submission_id,actor_email,purpose,expected_sha256,expected_byte_size,storage_profile_id,storage_profile_revision,candidate_blob_id,candidate_object_key,status,created_at)
-      VALUES (?,?,?,?,?,?,?,1,?,?,'pending',?)`).bind(item.id,input.id,actor,purpose,item.sha256!,item.byteSize,profile.id,blob,key,now));
+      VALUES (?,?,?,?,?,?,?,?,?,?,'pending',?)`).bind(item.id,input.id,actor,purpose,item.sha256!,item.byteSize,profile.id,profile.configurationRevision,blob,key,now));
   }
-  statements.push(assertSql(db, "EXISTS(SELECT 1 FROM comment_submission_acceptances WHERE submission_id=? AND operation_id=?) AND (SELECT count(*) FROM comment_item_acceptances WHERE submission_id=?)=?",[input.id,operation,input.id,input.items.filter((item) => item.kind !== "link").length]));
+  statements.push(assertSql(db, "EXISTS(SELECT 1 FROM comment_submission_acceptances WHERE submission_id=? AND operation_id=?) AND (SELECT count(*) FROM comment_item_acceptances WHERE submission_id=?)=?",[input.id,operation,input.id,binaryItems.length]));
   try { await db.batch(statements); } catch { /* The same authoritative read reconciles conflicts and lost commit responses. */ }
   const saved = await rows(db,input.id);
   if (!saved.parent) throw new HTTPException(409, { message: "The Comment target changed before the submission was accepted" });

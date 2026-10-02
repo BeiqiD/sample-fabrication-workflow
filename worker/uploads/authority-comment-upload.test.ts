@@ -64,6 +64,8 @@ describe("active accepted Comment upload publication", () => {
           sha256: await sha256Hex(bytes.slice().buffer), originalFilename: "image.png", originalMimeType: "image/png", originalByteSize: bytes.length },
         { id: "link-item", kind: "link", url: "https://example.com/reference", title: "Reference" },
       ] });
+    expect(f.sql.prepare("SELECT purpose,storage_profile_id,storage_profile_revision FROM comment_item_acceptances").get())
+      .toEqual({ purpose: "embedded_content", storage_profile_id: "r2-profile", storage_profile_revision: 1 });
     const batch = f.adapter.batch.bind(f.adapter); let loseAck = true; const batchErrors: string[] = [];
     vi.spyOn(f.adapter, "batch").mockImplementation(async statements => {
       let result;
@@ -111,6 +113,11 @@ describe("active accepted Comment upload publication", () => {
         { id: "preview-item", kind: "comment_image", filename: "preview.webp", mimeType: "image/webp", byteSize: preview.length, sha256: previewSha,
           originalFilename: "original.jpg", originalMimeType: "image/jpeg", originalByteSize: original.length, relatedAttachmentId: "original-item" },
       ] });
+    expect(f.sql.prepare("SELECT item_id,purpose,storage_profile_id,storage_profile_revision FROM comment_item_acceptances ORDER BY item_id").all())
+      .toEqual([
+        { item_id: "original-item", purpose: "research_source", storage_profile_id: "r2-profile", storage_profile_revision: 1 },
+        { item_id: "preview-item", purpose: "derived_preview", storage_profile_id: "r2-profile", storage_profile_revision: 1 },
+      ]);
     const image = await f.upload("preview-item", preview, "image/webp");
     expect(image.status, await image.clone().text()).toBe(200);
     expect((await f.finalize()).status).toBe(409);
@@ -210,7 +217,51 @@ describe("active accepted Comment upload publication", () => {
     expect(f.put).toHaveBeenCalledTimes(1);
   }, 15_000);
 
-  it("rolls bootstrap back with a rejected target and permits text without storage configuration", async () => {
+  it("replays an accepted active destination before fresh storage selection when configuration is unavailable", async () => {
+    const f = fixture(), bytes = new TextEncoder().encode("pending frozen image");
+    await acceptCommentUpload(f.sql, f.env, { kind: "comment_image", bytes });
+    const parent = f.sql.prepare("SELECT * FROM comment_submission_acceptances").get()!;
+    const item = f.sql.prepare("SELECT * FROM comment_item_acceptances").get()!;
+    const defaults = f.sql.prepare("SELECT * FROM storage_role_defaults ORDER BY role").all();
+    delete f.env.R2_BOOTSTRAP_NAMESPACE;
+    const replay = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" },
+      body: String(parent.request_input_json) });
+    expect(replay.status, await replay.clone().text()).toBe(200);
+    expect(await replay.json()).toMatchObject({ deduplicated: true, request: { status: "pending" } });
+    expect(f.sql.prepare("SELECT * FROM comment_submission_acceptances").get()).toEqual(parent);
+    expect(f.sql.prepare("SELECT * FROM comment_item_acceptances").get()).toEqual(item);
+    const freshInput = { ...JSON.parse(String(parent.request_input_json)), id: "new-unavailable-submission" };
+    const fresh = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(freshInput) });
+    expect(fresh.status).toBe(503);
+    expect(f.sql.prepare("SELECT count(*) n FROM comment_submissions").get()!.n).toBe(1);
+    expect(f.sql.prepare("SELECT * FROM storage_role_defaults ORDER BY role").all()).toEqual(defaults);
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled(); expect(f.managed).not.toHaveBeenCalled();
+  });
+
+  it("rejects a fresh link-only acceptance if authority activates before its batch and accepts a later retry", async () => {
+    const f = fixture(false);
+    const input = { protocol: "comment-submission/1", id: "link-submission", body: "one link", context: {
+      kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: f.now },
+      items: [{ id: "only-link", kind: "link", url: "https://example.com/reference", title: "Reference" }] };
+    const batch = f.adapter.batch.bind(f.adapter); let activate = true;
+    vi.spyOn(f.adapter, "batch").mockImplementation(async statements => {
+      if (activate && statements.some(statement => (statement as unknown as { sql: string }).sql.includes("INSERT INTO comment_submissions"))) {
+        activate = false; enableFutureFileAuthority(f.sql);
+      }
+      return batch(statements);
+    });
+    const create = () => f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+    const changed = await create();
+    expect(changed.status, await changed.clone().text()).toBe(409);
+    for (const table of ["comment_submissions", "comment_submission_acceptances", "comment_submission_items", "storage_role_defaults"])
+      expect(f.sql.prepare(`SELECT count(*) n FROM ${table}`).get()!.n).toBe(0);
+    const retried = await create();
+    expect(retried.status, await retried.clone().text()).toBe(201);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled(); expect(f.managed).not.toHaveBeenCalled();
+  });
+
+  it("rolls bootstrap back with a rejected target and permits text and links without storage configuration", async () => {
     const f = fixture(), bytes = new TextEncoder().encode("unaccepted original");
     const rejected = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
       protocol: "comment-submission/1", id: "bad-submission", body: "", context: { kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: "2020-01-01T00:00:00.000Z" },
@@ -225,7 +276,16 @@ describe("active accepted Comment upload publication", () => {
     }) });
     expect(text.status, await text.clone().text()).toBe(201);
     expect((await f.finalize("text-submission")).status).toBe(200);
+    const sample = f.sql.prepare("SELECT updated_at FROM samples WHERE id='sample-upload'").get()!;
+    const link = await f.request("/comment-submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      protocol: "comment-submission/1", id: "link-submission", body: "link without files", context: { kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: sample.updated_at },
+      items: [{ id: "only-link", kind: "link", url: "https://example.com/reference", title: "Reference" }],
+    }) });
+    expect(link.status, await link.clone().text()).toBe(201);
+    expect((await f.finalize("link-submission")).status).toBe(200);
     expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM comment_item_acceptances").get()!.n).toBe(0);
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled(); expect(f.managed).not.toHaveBeenCalled();
   });
 
 });

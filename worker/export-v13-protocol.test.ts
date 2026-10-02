@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { ExportRow, FullExportManifestV13 } from "../shared/contracts/export";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV12, validateFullExportV13 } from "../shared/contracts/export-protocol";
-import { canonicalCommentAcceptanceInput } from "../shared/contracts/comment-acceptance";
+import { canonicalCommentAcceptanceInput, COMMENT_ACCEPTANCE_LIFETIME_MS, type CommentPublicationPlan } from "../shared/contracts/comment-acceptance";
 import { buildBlobExportPlan } from "../shared/contracts/export-blob-plan";
 import { stableJson } from "../shared/domain/content-addressing";
 import { buildFullExportArchiveV12, buildFullExportArchiveV13 } from "../src/lib/exportAll";
@@ -19,8 +19,8 @@ import { SqliteD1Database } from "./reference-test-support";
 import type { Env } from "./types";
 
 // V13 deliberately freezes the database at 0006, before authority metadata
-// existed. Model that writer's legacy mode only in this isolated test module;
-// keep its real routes, schema constraints and archive checks unchanged.
+// existed. Seed that writer's accepted intent through the frozen native guards;
+// model legacy mode only for its existing execution and export routes.
 vi.mock(import("./files/authority-reader"), async (original) => ({
   ...await original(),
   readFileAuthorityMode: async () => "legacy" as const,
@@ -33,6 +33,62 @@ const hash = (bytes: string | Uint8Array) => createHash("sha256").update(bytes).
 const context = { waitUntil: () => undefined, passThroughOnException: () => undefined, props: {} } as unknown as ExecutionContext;
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "6d2b3589-cff4-4a2e-af5a-8f285792b129", bucketName: "archive-comments" });
 afterEach(() => vi.unstubAllGlobals());
+
+/** Construct an already accepted 0006 operation, independent of today's fresh
+ * acceptance policy. Native guards remain installed and validate every row;
+ * existing upload, cancellation and publication routes advance its lifecycle. */
+function seedHistoricalCommentAcceptance(database: DatabaseSync, accepted: Awaited<ReturnType<typeof canonicalCommentAcceptanceInput>>) {
+  const { input } = accepted, actor = "local-development", now = new Date().toISOString();
+  const expires = new Date(Date.parse(now) + COMMENT_ACCEPTANCE_LIFETIME_MS).toISOString();
+  const targets = input.context.kind === "run_steps" ? input.context.targets : [];
+  const sampleIds = input.context.kind === "sample" ? [input.context.sampleId] : [...new Set(targets.map(target => target.sampleId))];
+  const plan: CommentPublicationPlan = { schema: "comment-publication/1", mutationId: crypto.randomUUID(),
+    operationGroupId: targets.length > 1 ? crypto.randomUUID() : null,
+    occurrences: targets.map((_, targetIndex) => ({ id: crypto.randomUUID(), targetIndex })),
+    events: sampleIds.map(sampleId => ({ id: crypto.randomUUID(), sampleId })) };
+  const images = input.items.filter(item => item.kind === "comment_image");
+  if (input.items.some(item => item.kind === "attachment") || images.some(item => item.relatedAttachmentId))
+    throw new Error("The historical fixture constructs unpaired images and links only");
+  database.exec("BEGIN");
+  try {
+    if (images.length) database.prepare(`INSERT INTO storage_profiles
+      (id,adapter_type,namespace_identity,configuration_source,credential_reference,configuration_revision,state,created_at)
+      SELECT 'archive-r2-profile','r2',?,'bootstrap',NULL,1,'historical',? WHERE NOT EXISTS(SELECT 1 FROM storage_profiles WHERE id='archive-r2-profile')`)
+      .run(namespace, now);
+    database.prepare(`INSERT INTO comment_submissions
+      (id,context_kind,sample_id,scope,body,status,actor_email,created_at,updated_at,retry_until)
+      VALUES (?,?,?,?,?,'uploading',?,?,?,?)`).run(input.id,input.context.kind,
+      input.context.kind === "sample" ? input.context.sampleId : null, input.context.kind === "run_steps" ? input.context.scope : null,
+      input.body,actor,now,now,expires);
+    for (const target of targets) database.prepare(`INSERT INTO comment_submission_targets
+      (submission_id,sample_id,run_id,run_step_id,expected_updated_at) VALUES (?,?,?,?,?)`)
+      .run(input.id,target.sampleId,target.runId,target.stepId,target.expectedUpdatedAt);
+    for (const [position, item] of input.items.entries()) {
+      if (item.kind === "link") database.prepare(`INSERT INTO comment_submission_items
+        (id,submission_id,kind,status,position,title,description,external_url,created_at,updated_at)
+        VALUES (?,?,'link','ready',?,?,?,?,?,?)`).run(item.id,input.id,position,item.title,item.description ?? null,item.url,now,now);
+      else if (item.kind === "comment_image") database.prepare(`INSERT INTO comment_submission_items
+        (id,submission_id,kind,status,position,filename,mime_type,byte_size,original_filename,original_mime_type,original_byte_size,created_at,updated_at)
+        VALUES (?,?,'comment_image','pending',?,?,?,?,?,?,?,?,?)`)
+        .run(item.id,input.id,position,item.filename,item.mimeType,item.byteSize,item.originalFilename,item.originalMimeType,item.originalByteSize,now,now);
+    }
+    database.prepare(`INSERT INTO comment_submission_acceptances
+      (submission_id,actor_email,operation_id,request_sha256,request_input_json,publication_plan_json,request_scope,storage_policy_revision,status,created_at,expires_at)
+      VALUES (?,?,?,?,?,?,'system',1,'pending',?,?)`).run(input.id,actor,crypto.randomUUID(),accepted.sha256,accepted.json,stableJson(plan),now,expires);
+    for (const item of images) {
+      const blob = crypto.randomUUID();
+      database.prepare(`INSERT INTO comment_item_acceptances
+        (item_id,submission_id,actor_email,purpose,expected_sha256,expected_byte_size,storage_profile_id,storage_profile_revision,candidate_blob_id,candidate_object_key,status,created_at)
+        VALUES (?,?,?,'embedded_content',?,?,'archive-r2-profile',1,?,?,'pending',?)`)
+        .run(item.id,input.id,actor,item.sha256!,item.byteSize,blob,`comments/${input.id}/${item.id}/${blob}-accepted.png`,now);
+    }
+    expect(database.prepare("SELECT count(*) n FROM comment_submission_acceptances WHERE submission_id=?").get(input.id)!.n).toBe(1);
+    expect(database.prepare("SELECT count(*) n FROM comment_item_acceptances WHERE submission_id=?").get(input.id)!.n).toBe(images.length);
+    expect(database.prepare("SELECT count(*) n FROM comment_submission_items WHERE submission_id=?").get(input.id)!.n).toBe(input.items.length);
+    expect(database.prepare("SELECT count(*) n FROM comment_submission_targets WHERE submission_id=?").get(input.id)!.n).toBe(targets.length);
+    database.exec("COMMIT");
+  } catch (error) { database.exec("ROLLBACK"); throw error; }
+}
 
 async function fixture(full = false) {
   const database = new DatabaseSync(":memory:");
@@ -75,7 +131,7 @@ async function fixture(full = false) {
       items: targets.length ? [] : [{ id: itemId, kind: "comment_image", filename: "accepted.png", mimeType: "image/png", byteSize: bytes.length,
         originalFilename: "accepted.png", originalMimeType: "image/png", originalByteSize: bytes.length, sha256: hash(bytes) },
       { id: `archive-link-${state}`, kind: "link", url: "https://example.com/reference", title: "Reference", description: "Historical link description" }] });
-    await json("/api/comment-submissions", input.input);
+    seedHistoricalCommentAcceptance(database, input);
     if (state === "pending") continue;
     if (state === "cancelled") { await json(`/api/comment-submissions/${id}/cancel`); continue; }
     if (!targets.length) {
