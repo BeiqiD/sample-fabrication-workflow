@@ -17,8 +17,11 @@ import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import { enableFutureFileAuthority } from "./files/authority-runtime-test-support";
-import { acceptAndUploadR2Asset } from "./uploads/r2-upload-acceptance";
-import { acceptAndUploadMetrologyReference } from "./uploads/metrology-reference-acceptance";
+import { canonicalR2UploadInput } from "../shared/contracts/r2-upload";
+import { canonicalMetrologyReferenceUploadInput } from "../shared/contracts/metrology-reference-upload";
+import { sha256Hex, stableJson } from "../shared/domain/content-addressing";
+import { stageAuthorityCandidate } from "./files/authority-candidates";
+import { writeAuthorityCandidate } from "./files/authority-publication";
 import type { Env } from "./types";
 import worker from "./index";
 
@@ -42,15 +45,77 @@ function fixture(active = true) {
   const put = vi.fn(async (key: string, value: ArrayBuffer) => { stored.set(key, new Uint8Array(value.slice(0))); });
   const get = vi.fn(async (key: string) => { const value = stored.get(key); return value ? { body: new Blob([value]).stream(), size: value.length, httpEtag: '"file"', writeHttpMetadata() {} } : null; });
   const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put } as unknown as R2Bucket } satisfies Env;
-  const input = { actorEmail: "archive@example.test", originalName: "image.png", mimeType: "image/png", bytes: bytes.buffer };
-  const r2 = () => acceptAndUploadR2Asset(env, { ...input, ingress: "project_attachment", requestId: crypto.randomUUID() });
-  const metrology = () => acceptAndUploadMetrologyReference(env, { ...input, templateId: "template", requestId: crypto.randomUUID() });
-  return { sql, db, r2, metrology, get, put };
+  // V18 predates role defaults. Construct its immutable accepted history under
+  // the actual 0012 guards, then use the frozen candidate writer for real byte
+  // verification/publication. Current fresh acceptance policy belongs to V19.
+  const publishAcceptedV18File = async (kind: "r2_upload" | "metrology_reference") => {
+    const actorEmail = "archive@example.test", originalName = "image.png", mimeType = "image/png";
+    const createdAt = new Date().toISOString(), expiresAt = new Date(Date.parse(createdAt) + 86_400_000).toISOString();
+    const id = crypto.randomUUID(), operationId = crypto.randomUUID(), assetId = crypto.randomUUID(), referenceId = crypto.randomUUID();
+    const objectKey = `accepted-v18/${assetId}`;
+    const file = { originalName, mimeType, byteSize: bytes.byteLength, sha256: await sha256Hex(bytes) };
+    if (kind === "r2_upload") {
+      const input = await canonicalR2UploadInput("project_attachment", file);
+      await db.prepare(`INSERT INTO r2_upload_requests
+        (id,actor_email,client_request_id,operation_id,ingress,purpose,request_sha256,request_input_json,request_scope,
+         storage_profile_id,storage_profile_revision,storage_policy_revision,candidate_asset_id,candidate_object_key,status,created_at,expires_at)
+        VALUES (?,?,?,?,'project_attachment','research_source',?,?,'system','profile',1,1,?,?,'pending',?,?)`)
+        .bind(id, actorEmail, crypto.randomUUID(), operationId, input.sha256, input.json, assetId, objectKey, createdAt, expiresAt).run();
+    } else {
+      const input = await canonicalMetrologyReferenceUploadInput("template", file);
+      const plan = { schema: "metrology-reference-publication/1", action: "create", reference: null };
+      await db.prepare(`INSERT INTO metrology_reference_upload_requests
+        (id,actor_email,client_request_id,operation_id,template_version_id,candidate_reference_id,publication_plan_json,
+         ingress,purpose,request_sha256,request_input_json,request_scope,storage_profile_id,storage_profile_revision,storage_policy_revision,
+         candidate_asset_id,candidate_object_key,status,created_at,expires_at)
+        VALUES (?,?,?,?,'template',?,?,'metrology_reference','research_source',?,?,'system','profile',1,1,?,?,'pending',?,?)`)
+        .bind(id, actorEmail, crypto.randomUUID(), operationId, referenceId, stableJson(plan), input.sha256, input.json,
+          assetId, objectKey, createdAt, expiresAt).run();
+    }
+    const owner = { kind, acceptanceId: id, actorEmail, operationId };
+    const candidate = await stageAuthorityCandidate(db, owner);
+    const publication = await writeAuthorityCandidate(env, owner, candidate, { body: bytes.buffer, contentType: mimeType, filename: originalName });
+    const completedAt = new Date().toISOString();
+    const statements = [
+      ...publication.statements,
+      db.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,sha256,actor_email,created_at)
+        SELECT ?,?,?,?,?,'ready',?,?,? WHERE NOT EXISTS(SELECT 1 FROM assets WHERE r2_key=?)`)
+        .bind(assetId, publication.result.objectKey, originalName, mimeType, file.byteSize, file.sha256, actorEmail,
+          completedAt, publication.result.objectKey),
+    ];
+    if (kind === "r2_upload") {
+      statements.push(db.prepare(`UPDATE r2_upload_requests SET status='ready',completed_at=?,accepted_result_json=(
+        SELECT json_object('id',a.id,'key',a.r2_key,'deduplicated',json(CASE WHEN a.id<>? OR ?<>? THEN 'true' ELSE 'false' END))
+        FROM assets a WHERE a.r2_key=? AND a.status='ready' AND a.byte_size=? AND a.sha256=?
+      ) WHERE id=? AND operation_id=? AND status='pending' AND expires_at>?`)
+        .bind(completedAt, assetId, publication.result.fileId, candidate.fileId, publication.result.objectKey,
+          file.byteSize, file.sha256, id, operationId, completedAt));
+    } else {
+      statements.push(db.prepare(`INSERT INTO metrology_template_references
+        (id,template_version_id,asset_id,file_id,display_name,position,actor_email,created_at)
+        SELECT ?,'template',a.id,?,?,0,?,? FROM assets a WHERE a.r2_key=? AND a.status='ready' AND a.byte_size=? AND a.sha256=?`)
+        .bind(referenceId, publication.result.fileId, originalName, actorEmail, createdAt, publication.result.objectKey, file.byteSize, file.sha256));
+      statements.push(db.prepare(`UPDATE metrology_reference_upload_requests SET status='ready',completed_at=?,accepted_result_json=(
+        SELECT json_object('assetId',a.id,'deduplicated',json(CASE WHEN a.id<>? OR ?<>? THEN 'true' ELSE 'false' END),
+          'reference',json_object('id',mtr.id,'filename',mtr.display_name,'mimeType',a.mime_type,'byteSize',a.byte_size,'assetKey',a.r2_key,'createdAt',mtr.created_at))
+        FROM metrology_template_references mtr JOIN assets a ON a.id=mtr.asset_id
+        WHERE mtr.id=? AND mtr.file_id=? AND a.r2_key=? AND a.byte_size=? AND a.sha256=?
+      ) WHERE id=? AND operation_id=? AND status='pending' AND expires_at>?`)
+        .bind(completedAt, assetId, publication.result.fileId, candidate.fileId, referenceId, publication.result.fileId,
+          publication.result.objectKey, file.byteSize, file.sha256, id, operationId, completedAt));
+    }
+    const table = kind === "r2_upload" ? "r2_upload_requests" : "metrology_reference_upload_requests";
+    statements.push(db.prepare(`SELECT CASE WHEN changes()=1 AND EXISTS(SELECT 1 FROM ${table}
+      WHERE id=? AND operation_id=? AND status='ready') THEN 1 ELSE json('Historical V18 acceptance did not publish') END`)
+      .bind(id, operationId));
+    await db.batch(statements);
+  };
+  return { sql, db, publishAcceptedV18File, get, put };
 }
 async function acceptedFixture() {
   const f = fixture();
-  expect((await f.metrology()).state.status).toBe("ready");
-  expect((await f.r2()).state.status).toBe("ready");
+  await f.publishAcceptedV18File("metrology_reference");
+  await f.publishAcceptedV18File("r2_upload");
   const manifest = await snapshotFullExportV18(f.db);
   expect(manifest.tables.file_acceptance_candidates).toHaveLength(2);
   expect(manifest.tables.file_publications).toHaveLength(1);
