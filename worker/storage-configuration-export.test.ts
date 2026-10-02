@@ -36,6 +36,7 @@ function fixture() {
     .run("00000000-0000-4000-8000-000000000001", "private-profile", 1, "PRIVATE_CREDENTIAL_REFERENCE", 1, namespace, "a".repeat(64), "b".repeat(64),
       1, "private-key", "abcdefghijklmnop", "PRIVATE_CIPHERTEXT_PAYLOAD_SENTINEL", "__fp2_checks/00000000-0000-4000-8000-000000000001/PRIVATE_PROBE_KEY",
       "c".repeat(64), 32, "private-admin@example.test", now, "PRIVATE_EXECUTION_TOKEN", "2026-10-01T00:00:30.000Z", "private-admin@example.test", now);
+  database.prepare("INSERT INTO system_storage_credential_reenvelopes VALUES('00000000-0000-4000-8000-000000000002','private-profile',1,'PRIVATE_CREDENTIAL_REFERENCE',1,1,'already_current','private-key','private-key',?,'PRIVATE_REENVELOPE_ADMIN@example.test')").run(now);
   return database;
 }
 afterEach(async () => {
@@ -47,7 +48,7 @@ describe("FP2 installation configuration and frozen V19 content archives", () =>
   it("keeps populated system configuration outside content rows and schema provenance", async () => {
     const database = fixture(), db = adapter(database);
     const installed = database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name").all() as unknown as ExportSchemaObject[];
-    expect(installed.filter(object => object.type === "table" && SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES.includes(object.name as typeof SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES[number]))).toHaveLength(7);
+    expect(installed.filter(object => object.type === "table" && SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES.includes(object.name as typeof SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES[number]))).toHaveLength(8);
     expect(await fileShadowSchemaFingerprint(installed)).not.toBe(FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256);
     expect(await fileShadowSchemaFingerprint(contentExportSchemaObjects(installed))).toBe(FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256);
     const response = await snapshotRoutes.request("/exports/all?archiveSchema=19&archiveWriter=1", {}, { DB: db } as Env);
@@ -59,7 +60,7 @@ describe("FP2 installation configuration and frozen V19 content archives", () =>
       expect(manifest.artifacts.sourceSchema.value.objects.some(object => object.tableName === name)).toBe(false);
       expect(serialized).not.toContain(name);
     }
-    for (const value of ["PRIVATE_CREDENTIAL_REFERENCE", "PRIVATE_CIPHERTEXT_PAYLOAD_SENTINEL", "PRIVATE_CANDIDATE_LABEL", "private-admin@example.test", "PRIVATE_ENDPOINT", "PRIVATE_PROBE_KEY", "PRIVATE_EXECUTION_TOKEN"])
+    for (const value of ["PRIVATE_CREDENTIAL_REFERENCE", "PRIVATE_CIPHERTEXT_PAYLOAD_SENTINEL", "PRIVATE_CANDIDATE_LABEL", "private-admin@example.test", "PRIVATE_ENDPOINT", "PRIVATE_PROBE_KEY", "PRIVATE_EXECUTION_TOKEN", "PRIVATE_REENVELOPE_ADMIN@example.test"])
       expect(serialized).not.toContain(value);
     // Current shadow inspection uses the content generation; candidate changes
     // neither invalidate existing source evidence nor expose system metadata.

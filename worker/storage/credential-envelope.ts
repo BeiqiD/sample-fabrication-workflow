@@ -81,7 +81,9 @@ function checkedEnvelope(value: unknown): StorageCredentialEnvelope {
 
 /** STORAGE_CREDENTIAL_KEYRING is a Worker Secret containing:
  * {"version":1,"currentKeyId":"key-2026","keys":{"key-2026":"<base64 32 bytes>"}}
- * Keep old IDs/material until retained envelopes have been re-encrypted. */
+ * Keep old IDs/material for retained descriptor payloads, immutable candidate
+ * check snapshots and protected installation backups. Re-enveloping live
+ * payloads alone does not establish that an old key can be retired. */
 export async function parseStorageCredentialKeyring(raw: unknown): Promise<StorageCredentialKeyring> {
   try {
     if (typeof raw !== "string" || encoder.encode(raw).length > MAX_KEYRING_BYTES) throw new StorageCredentialUnavailableError();

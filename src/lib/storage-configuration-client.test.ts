@@ -1,11 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "./storage-configuration-client";
 import type { StorageCandidateCheck } from "../../shared/contracts/storage-candidate-check";
+import type { StorageCredentialReenvelopeReceipt } from "../../shared/contracts/storage-credential-reenvelope";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 const checkId = "0f5f7a34-5532-4463-bf51-8c5eb9537f63";
 const check = (): StorageCandidateCheck => ({ id: checkId, profileId: "candidate-example", revision: 2, status: "succeeded", write: "passed", read: "passed",
   metadata: "passed", delete: "passed", cleanup: "confirmed_absent", code: null, createdAt: "2026-10-02T08:00:00.000Z", updatedAt: "2026-10-02T08:00:01.000Z", completedAt: "2026-10-02T08:00:01.000Z" });
+const reenvelopeInput = { operationId: checkId, profileId: "candidate-example", revision: 2, credentialRef: "opaque-reference", expectedEnvelopeRevision: 1 };
+const reenvelopeReceipt = (): StorageCredentialReenvelopeReceipt => ({ operationId: checkId, profileId: "candidate-example", revision: 2,
+  credentialRef: "opaque-reference", previousEnvelopeRevision: 1, envelopeRevision: 2, outcome: "reenveloped",
+  createdAt: "2026-10-02T10:00:00.000Z", createdBy: "admin@example.org" });
 afterEach(() => vi.unstubAllGlobals());
 describe("storage candidate client", () => {
   it("reads private capability and metadata with same-origin no-cache requests", async () => {
@@ -71,5 +76,41 @@ describe("storage candidate client", () => {
     await expect(storageConfigurationClient.startCheck({ checkId, profileId: "candidate-example", expectedRevision: 2 })).rejects.toMatchObject({ status: 503 });
     await expect(storageConfigurationClient.cleanupCheck(checkId)).rejects.toMatchObject({ status: 503 });
     expect(fetch).toHaveBeenCalledTimes(2); expect(parse).not.toHaveBeenCalled();
+  });
+
+  it("uses scoped private encryption metadata and a caller-owned operation identifier", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json({ items: [{ profileId: "candidate-example", revision: 2,
+      credentialRef: "opaque-reference", envelopeRevision: 1, isCurrentCandidate: true, status: "needs_reenvelope" }], hasMore: false }))
+      .mockResolvedValueOnce(json(reenvelopeReceipt())).mockResolvedValueOnce(json(reenvelopeReceipt()));
+    vi.stubGlobal("fetch", fetch); const controller = new AbortController();
+    await storageConfigurationClient.listCredentialEnvelopes("candidate-example", controller.signal);
+    await storageConfigurationClient.reenvelopeCredential(reenvelopeInput, controller.signal);
+    await storageConfigurationClient.readCredentialReenvelope(checkId, controller.signal);
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/storage/configuration/credential-envelopes?profileId=candidate-example",
+      "/api/storage/configuration/credential-reenvelopes", `/api/storage/configuration/credential-reenvelopes/${checkId}`]);
+    expect(fetch.mock.calls[1][1]).toMatchObject({ method: "POST", body: JSON.stringify(reenvelopeInput) });
+    for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ cache: "no-store", credentials: "same-origin", redirect: "error", signal: controller.signal });
+  });
+
+  it("rejects secret-bearing encryption metadata and receipts outside the requested context", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json({ items: [{ profileId: "another-profile", revision: 1, credentialRef: "opaque-reference",
+      envelopeRevision: 1, isCurrentCandidate: false, status: "current" }], hasMore: false }))
+      .mockResolvedValueOnce(json({ ...reenvelopeReceipt(), keyId: "private-key" }))
+      .mockResolvedValueOnce(json({ ...reenvelopeReceipt(), credentialRef: "another-reference" }))
+      .mockResolvedValueOnce(json({ ...reenvelopeReceipt(), operationId: "af5f7a34-5532-4463-bf51-8c5eb9537f63" }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(storageConfigurationClient.listCredentialEnvelopes("candidate-example")).rejects.toThrow("Invalid credential encryption response.");
+    await expect(storageConfigurationClient.readCredentialReenvelope(checkId)).rejects.toThrow("Invalid storage credential re-envelope.");
+    await expect(storageConfigurationClient.reenvelopeCredential(reenvelopeInput)).rejects.toThrow("Invalid credential encryption response.");
+    await expect(storageConfigurationClient.readCredentialReenvelope(checkId)).rejects.toThrow("Invalid credential encryption response.");
+  });
+
+  it("rejects invalid encryption intents before fetch and does not replay an unavailable result", async () => {
+    const response = json({ error: "private-keyring-details" }, 503), parse = vi.spyOn(response, "json");
+    const fetch = vi.fn().mockResolvedValue(response); vi.stubGlobal("fetch", fetch);
+    await expect(storageConfigurationClient.reenvelopeCredential({ ...reenvelopeInput, expectedEnvelopeRevision: 0 })).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(storageConfigurationClient.reenvelopeCredential(reenvelopeInput)).rejects.toMatchObject({ status: 503 });
+    expect(fetch).toHaveBeenCalledOnce(); expect(parse).not.toHaveBeenCalled();
   });
 });

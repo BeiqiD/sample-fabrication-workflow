@@ -3,6 +3,7 @@ import type { SaveStorageCandidateInput, StorageCandidate, StorageConfigurationS
 import { checkedStartStorageCandidateCheckInput, MAX_STORAGE_CANDIDATE_CHECKS, type StartStorageCandidateCheckInput, type StorageCandidateCheck,
   type StorageCandidateCheckList, type StorageCandidateCheckStage } from "../../shared/contracts/storage-candidate-check";
 import { storageConfigurationClient, StorageConfigurationRequestError, type StorageConfigurationCapability } from "../lib/storage-configuration-client";
+import { StorageCredentialEncryption } from "./StorageCredentialEncryption";
 import "./storage-settings.css";
 
 type Provider = "s3" | "webdav" | "switchdrive";
@@ -92,7 +93,7 @@ export function StorageConfigurationPage() {
   const externalEditing = capability?.credentialEditingAvailable && status?.credentialEditingAvailable;
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage configuration</h1>
-      <p className="lead">Save external storage candidates and test S3 connections.</p></div>
+      <p className="lead">Save storage candidates, test S3 connections and maintain credential encryption.</p></div>
       <button className="button" type="button" disabled={loading || saving} onClick={() => void refresh()}>{loading ? "Refreshing…" : "Refresh"}</button></div>
     <p><a href="/settings/storage">Current storage settings</a></p>
     {loading && <p role="status">Reading configuration access…</p>}
@@ -114,6 +115,7 @@ export function StorageConfigurationPage() {
             <CandidateChecks candidate={candidate} canTest={!!externalEditing && candidate.credentials.status === "configured" && !saving && !uncertainSave}
               canCleanup={!saving && !uncertainSave}
               onForbidden={accessDenied} />
+            <StorageCredentialEncryption candidate={candidate} canUpdate={!!externalEditing && !saving && !uncertainSave} onForbidden={accessDenied} />
           </li>)}
         </ul>}
         {status.candidates.hasMore && <p className="muted">Additional saved candidates are not shown.</p>}
