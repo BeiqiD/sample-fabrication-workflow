@@ -45,3 +45,15 @@
 .storage-candidate-credentials { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
 .storage-candidate-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 @media (max-width: 720px) { .storage-candidate-fields { grid-template-columns: minmax(0, 1fr); } }
+
+.storage-candidate-checks { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.storage-candidate-checks h4 { margin: 0 0 8px; font-size: var(--font-body); font-weight: 650; }
+.storage-candidate-checks > .muted { margin: 8px 0 14px; }
+.storage-candidate-checks > .button { margin: 0 12px 10px 0; }
+.storage-check-history { list-style: none; margin: 12px 0 0; padding: 0; }
+.storage-check-history > li { padding: 14px 0; border-top: 1px solid var(--line); }
+.storage-check-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px; }
+.storage-check-heading > span, .storage-check-heading time { color: var(--muted); font-size: var(--font-meta); }
+.storage-profile-list .storage-check-stages { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.storage-check-history .muted { margin: 10px 0; }
+@media (max-width: 720px) { .storage-profile-list .storage-check-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

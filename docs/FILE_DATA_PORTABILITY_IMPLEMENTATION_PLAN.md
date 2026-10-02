@@ -1,8 +1,8 @@
 # File and data portability implementation plan
 
 Status: design reviewed and merged in PR #207; FP1 live acceptance passed after
-#238/#240. FP2 candidate configuration #239 is deployed; Draft #241 qualifies
-isolated S3 transport only. Provider qualification remains next.
+#238/#240. FP2 candidate configuration #239 and isolated S3 transport #241 are
+deployed. Bounded candidate checks are implemented; live provider qualification and activation remain later.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
@@ -71,10 +71,13 @@ trip and V19 isolated recovery passed on 2026-10-01, closing FP1 live acceptance
 Deployed #239 [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
 adds independent administrator policy, immutable candidate revisions, encrypted
 credentials and candidate editing without enabling external providers. Saving
-performs no provider I/O or activation. Draft #241 supplies isolated S3 transport
-only; provider qualification, activation and independent defaults remain the next
-FP2 work. The five installation configuration tables are absent from ordinary
-V19 content packages; a separately authorized system backup remains later.
+performs no provider I/O or activation. Merged and deployed #241 supplies isolated
+S3 transport only. The [bounded candidate-check slice](./FP2_CANDIDATE_STORAGE_CHECKS.md)
+records exact candidate and encrypted credential context before one small probe,
+verifies its complete bytes and records cleanup without replaying a lost PUT.
+It is implemented; live provider qualification, activation and independent defaults remain later FP2 work.
+Installation configuration and check evidence stay outside ordinary V19 content
+packages; a separately authorized system backup remains later.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).

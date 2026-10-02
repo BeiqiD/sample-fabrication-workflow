@@ -1,5 +1,5 @@
 import { FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-role-policy";
-import { SYSTEM_STORAGE_CONFIGURATION_MIGRATION } from "../../shared/contracts/storage-configuration-schema";
+import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
 import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
 import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
 import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../../shared/contracts/file-shadow-adjudication";
@@ -76,7 +76,7 @@ export function planExportRestoreMigrations(migrationNames: string[], schemaVers
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
   // Content recovery never installs administrator candidates or credential
   // payload storage. A separately authorized installation recovery owns those.
-  const schemaNames = migrationNames.filter((name) => name !== cleanup && name !== SYSTEM_STORAGE_CONFIGURATION_MIGRATION);
+  const schemaNames = migrationNames.filter((name) => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number]));
   const knownChain = schemaNames.length >= 2 && schemaNames.length <= reviewedChain.length
     && canonical(schemaNames) === canonical(reviewedChain.slice(0, schemaNames.length));
   const forwardNames = knownChain ? schemaNames.filter((name) =>

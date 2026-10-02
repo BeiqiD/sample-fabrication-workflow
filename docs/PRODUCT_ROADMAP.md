@@ -2,8 +2,8 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-10-01 after FP1 live acceptance and deployed FP2 candidate
-configuration #239. Provider qualification remains the next FP2 step. PR #202's
+Last reviewed: 2026-10-02 after FP1 live acceptance and deployed FP2 configuration
+#239/S3 transport #241. Bounded candidate checks are implemented; real-provider acceptance remains pending. PR #202's
 S2 activation is deployed; the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -72,9 +72,11 @@ in the focused role-default document. The deployed #239
 [FP2 configuration security slice](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
 adds independent administrator authorization, immutable external candidates,
 encrypted credentials and candidate editing without enabling external providers.
-Draft #241 contains isolated S3 transport without activation or default changes.
-Provider capability testing, atomic activation and independent default selection remain next. Ordinary content export stays
-V19 and excludes all five system configuration tables. This document records
+Merged and deployed #241 contains isolated S3 transport without activation or
+default changes. [Bounded candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md) are
+implemented; real-provider acceptance, atomic activation and independent default selection remain later.
+Ordinary content export stays V19 and excludes installation configuration and
+check evidence. This document records
 scope and evidence; deployment authority comes from the owner's requests.
 
 This document is the single high-level roadmap for Sample Fabrication Workflow.
@@ -114,7 +116,7 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP2: configurable storage after accepted FP1 | File authority is Active/Enabled with 4/4 resolved references. FP1 R2 originals and V19 live recovery passed after #240. #239 candidate configuration is deployed; #241 is Draft S3 transport only. Provider qualification, activation and independent defaults follow. |
+| 4 | FP2: configurable storage after accepted FP1 | File authority is Active/Enabled with 4/4 resolved references. FP1 R2 originals and V19 live recovery passed after #240. #239 configuration and #241 S3 transport are deployed; bounded candidate checks are implemented, with real-provider acceptance still pending. Activation and independent defaults follow qualification. |
 | 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
@@ -958,11 +960,11 @@ Project-owned Markdown or attachment content only through explicit user action.
 5. Preserve the accepted #238/#240 [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md)
    and its 2026-10-01 original-file and V19 recovery evidence. Preserve deployed
    #239 [FP2 candidate configuration](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md),
-   then implement provider capability tests, atomic activation and independent
-   defaults.
-   Draft #241 qualifies isolated S3 transport only; it does not enable a provider
+   and merged/deployed #241 S3 transport. Complete the bounded
+   [candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md), then implement atomic
+   activation and independent defaults. Candidate checks do not enable a provider
    or redirect uploads. SWITCHdrive credentials are not required for development.
-   V19 content export excludes system configuration.
+   V19 content export excludes system configuration and check evidence.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
    exits. Do not ship an export-only native format or claim backup completeness
    from a zero-file exercise. Maintain current exporter/recovery and GC coverage

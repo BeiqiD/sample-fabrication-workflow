@@ -2,13 +2,14 @@
 
 Status: merged and deployed in #239 (`45fec38`) as Worker
 `a3ddbcea-a24b-4644-81f0-f66e482416d9`, Cloudflare build
-`0c976187-f3c5-4ba7-8d62-557a79ac33c0`. Provider qualification remains next;
-live credential editing has not yet been exercised. Base: merged and deployed
+`0c976187-f3c5-4ba7-8d62-557a79ac33c0`. S3 transport #241 is merged and deployed;
+[candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md) are implemented and await real-provider acceptance.
+Live credential editing has not yet been exercised. Base: merged and deployed
 #238 (`15a9a613`). This FP2 slice adds administrator
 authorization, immutable candidate configuration revisions, encrypted credential
 persistence, safe operation audit, and candidate editing in Storage Settings.
 Saving a candidate performs no provider I/O and changes no active profile or
-role default. Provider tests and activation remain the following slice.
+role default. Provider checks are a separate slice; activation remains later.
 
 ## Administrator boundary
 
@@ -96,26 +97,28 @@ drafts. Saving a draft does not contact that provider or change upload defaults.
 2. A future privileged rotation operation can re-envelop existing credentials
    using exact row/envelope revisions. The current helpers support this operation;
    this slice does not expose an installation-wide rotation command.
-3. Remove an old key only after checking online envelopes and the protected
-   database copies or retained envelopes that must remain recoverable.
+3. Remove an old key only after checking online envelopes, retained candidate-check
+   snapshots and the protected database copies that must remain recoverable.
 
 Restore the matching keyring with an installation database containing encrypted
 credentials. If a required key is unavailable, preserve the envelope and report
 unavailable; a key cannot be reconstructed from its ciphertext.
 
 Ordinary Sample/Project content packages exclude system configuration, audit,
-credential descriptors, root keys and credential payloads. The current writer
-continues V19: it projects only the explicitly classified five system tables and
-their owned schema objects out of the content schema artifact. The frozen V19
+credential descriptors, root keys and credential payloads. The writer continues
+V19: it projects seven explicitly classified system tables out of the content
+schema artifact: the five configuration tables, two
+[candidate-check tables](./FP2_CANDIDATE_STORAGE_CHECKS.md) and their owned schema
+objects. The frozen V19
 table catalog, validators and content-schema fingerprint are unchanged. Unknown
 application tables remain visible and still fail the reviewed fingerprint.
 Full deployment migration observation continues to include the complete schema.
 Shadow inspection uses the same content projection so candidate configuration
 does not invalidate existing content evidence.
 
-Isolated content recovery omits the exact system-only `0014` migration as well as
-the earlier deployment-only test cleanup. It neither restores encrypted payloads
-nor installs candidate administration tables; content recovery keeps execution
+Isolated content recovery omits the exact system-only `0014` and `0015` migrations
+as well as the earlier deployment-only test cleanup. It neither restores encrypted
+payloads nor installs candidate administration tables; content recovery keeps execution
 paused as before. This content ZIP is not an installation credential backup.
 
 The candidate registry separates metadata from protected payloads: revisions
@@ -126,18 +129,17 @@ require administrators to re-enter missing credentials. Any archive that include
 system configuration must explicitly declare that permission and recovery
 boundary. V19 does not acquire that permission in this slice.
 
-## Following slice
+## Candidate checks and following work
 
-Draft #241 supplies isolated S3 transport, qualified by 23 focused tests; it
-performs no activation or default changes. The next bounded S3 probe records a
-unique check ID/object key and the exact profile, configuration revision,
-credential reference, envelope revision and address digest before provider I/O.
-It performs one PUT, reads back the complete SHA-256, deletes the probe and
-confirms absence, recording cleanup separately. A lost response is reconciled
-through GET status without replaying PUT. A new candidate revision does not
-inherit an earlier test result.
+#241 supplies isolated S3 transport, qualified by 23 focused tests and merged at
+`cb63892`. Its Cloudflare build `1cbbad25-1152-4543-8381-bb26e2cfec7c` deployed Worker
+`c65003d5-547c-41a7-981d-2c30be28ca20`. It performs no activation or default changes.
+The bounded [candidate-check slice](./FP2_CANDIDATE_STORAGE_CHECKS.md) adds durable
+acceptance before provider I/O, complete byte verification and separately recorded
+cleanup. A lost response is reconciled through GET status without replaying PUT.
+A new candidate revision does not inherit an earlier check result.
 
-This probe slice changes no activation or default schema. Before activation,
+The check slice changes no activation or default schema. Before activation,
 qualification must establish the actual provider account/home scope. Before
 independent role defaults can be edited, all accepted ingestion paths must use
 the shared purpose-to-role selection and retain each accepted profile/revision.
