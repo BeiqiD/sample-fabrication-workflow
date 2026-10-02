@@ -52,13 +52,34 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
   const adapter = new SqliteD1Database(sql);
   let databaseUnavailable = false;
   let rejectModeRead = false, modeReads = 0, activateBeforeAcceptance = false;
+  // Hold both fresh requests before either acceptance transaction can commit.
+  const acceptanceInserts = new WeakSet<object>();
+  const concurrentAcceptanceRows: number[] = [];
+  let holdConcurrentAcceptances = false;
+  let releaseAcceptances!: () => void;
+  const acceptanceGate = new Promise<void>(resolve => { releaseAcceptances = resolve; });
   const db = { prepare(query: string) {
     if (databaseUnavailable) throw new Error("Database connection interrupted");
     if (rejectModeRead && /SELECT mode FROM file_authority_control/.test(query) && ++modeReads === 2) {
       throw new Error("secret authority database detail");
     }
-    return adapter.prepare(query);
+    const statement = adapter.prepare(query);
+    if (/^\s*INSERT INTO imports\b/i.test(query)) {
+      acceptanceInserts.add(statement);
+      const bind = statement.bind.bind(statement);
+      statement.bind = (...values: unknown[]) => {
+        const bound = bind(...values);
+        acceptanceInserts.add(bound);
+        return bound;
+      };
+    }
+    return statement;
   }, async batch(statements: D1PreparedStatement[]) {
+    if (holdConcurrentAcceptances && statements.some(statement => acceptanceInserts.has(statement))) {
+      concurrentAcceptanceRows.push(Number(sql.prepare("SELECT count(*) n FROM imports").get()!.n));
+      if (concurrentAcceptanceRows.length === 2) { holdConcurrentAcceptances = false; releaseAcceptances(); }
+      await acceptanceGate;
+    }
     if (activateBeforeAcceptance) { activateBeforeAcceptance = false; enableFutureFileAuthority(sql); }
     if (interruption === "before-finalization" && sql.prepare(`SELECT 1 FROM template_steps ts
       JOIN imports i ON i.template_version_id=ts.template_version_id WHERE i.status='pending'`).get()) {
@@ -87,6 +108,8 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
   return { sql, put, get, stored, upload, env, reconnect() { databaseUnavailable = false; },
     rejectFreshModeRead() { rejectModeRead = true; },
     activateDuringAcceptance() { activateBeforeAcceptance = true; },
+    holdForConcurrentAcceptances() { holdConcurrentAcceptances = true; },
+    concurrentAcceptanceRows,
   };
 }
 
@@ -150,11 +173,24 @@ describe("active accepted import File publication", () => {
 
   it("allows one owner for concurrent fresh requests while role initialization and the receipt commit together", async () => {
     const f = fixture();
+    f.holdForConcurrentAcceptances();
     const responses = await Promise.all([f.upload(), f.upload()]);
-    expect(responses.map(response => response.status).sort()).toEqual([201, 409]);
+    expect(f.concurrentAcceptanceRows).toEqual([0, 0]);
+    expect(responses.filter(response => response.status === 201)).toHaveLength(1);
+    const winner = responses.find(response => response.status === 201)!;
+    const winnerResult = await winner.json();
+    const observer = responses.find(response => response !== winner)!;
+    expect([200, 409]).toContain(observer.status);
+    const receipt = f.sql.prepare("SELECT id,client_request_id,status,accepted_result_json FROM imports").get()!;
+    expect(receipt.status).toBe("ready");
+    expect(JSON.parse(String(receipt.accepted_result_json))).toEqual(winnerResult);
+    const observerResult = await observer.json();
+    if (observer.status === 200) expect(observerResult).toEqual(winnerResult);
+    else expect(observerResult).toMatchObject({ request: { requestId: receipt.client_request_id, importId: receipt.id, status: "pending" } });
     expect(f.sql.prepare("SELECT count(*) n FROM imports").get()!.n).toBe(1);
     expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults WHERE storage_profile_id=(SELECT storage_profile_id FROM imports)").get()!.n).toBe(2);
     expect(f.put).toHaveBeenCalledTimes(3);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_acceptance_candidates WHERE state='ready'").get()!.n).toBe(3);
     expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   });
 
