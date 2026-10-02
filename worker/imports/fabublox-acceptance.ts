@@ -110,14 +110,18 @@ function validateInput(input: AcceptFabubloxImportInput) {
  * execution owns a random operation ID; HTTP retries never reuse that owner ID.
  * Even a lost INSERT acknowledgement is reconciled on the primary before any
  * caller may perform provider I/O. A competing request can only observe it.
+ * Active fresh acceptance can prepend role-default statements prepared on the
+ * same primary session, so their initialization commits with the imports row.
  */
 export async function acceptFabubloxImport(
   db: D1Database,
   input: AcceptFabubloxImportInput,
+  acceptanceStatements: readonly D1PreparedStatement[] = [],
 ): Promise<{ row: AcceptedFabubloxImportRow; owned: boolean }> {
   validateInput(input);
   try {
-    await primaryD1(db).prepare(`
+    const acceptanceDb = primaryD1(db);
+    const insert = acceptanceDb.prepare(`
       INSERT INTO imports (
         id, status, source_filename, source_sha256, sheet_name, template_type,
         recipe_family_id, warning_count, actor_email, created_at, operation_id,
@@ -130,7 +134,20 @@ export async function acceptFabubloxImport(
       input.createdAt, input.operationId, input.leaseExpiresAt, input.requestId,
       input.requestSha256, input.requestInputJson, input.profileId,
       input.profileRevision, input.policyRevision,
-    ).run();
+    );
+    if (acceptanceStatements.length) await acceptanceDb.batch([...acceptanceStatements, insert,
+      acceptanceDb.prepare(`SELECT CASE WHEN EXISTS(
+        SELECT 1 FROM imports WHERE id=? AND operation_id=? AND actor_email=?
+          AND client_request_id=? AND request_sha256=? AND request_input_json=?
+          AND storage_profile_id=? AND storage_profile_revision=? AND storage_policy_revision=?
+          AND status='pending'
+      ) THEN 1 ELSE json('Import acceptance did not commit') END`).bind(
+        input.importId, input.operationId, input.actorEmail, input.requestId,
+        input.requestSha256, input.requestInputJson, input.profileId,
+        input.profileRevision, input.policyRevision,
+      ),
+    ]);
+    else await insert.run();
   } catch {
     // Constraint races and acknowledgement loss have the same reconciliation
     // path. Error text may contain deployment details and is never returned.

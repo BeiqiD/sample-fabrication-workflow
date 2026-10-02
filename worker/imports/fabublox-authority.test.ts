@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../shared/content-addressing";
-import { futureActiveRuntimeDatabase } from "../files/authority-runtime-test-support";
+import { enableFutureFileAuthority, futureActiveRuntimeDatabase } from "../files/authority-runtime-test-support";
 import worker from "../index";
-import { SqliteD1Database } from "../reference-test-support";
+import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { FABUBLOX_IMPORT_LEASE_MS, reapStaleFabubloxImports } from "../fabublox-import-recovery";
 import type { Env } from "../types";
 
@@ -27,12 +27,18 @@ async function importForm() {
   return form;
 }
 
-function fixture(loseAck = false, interruption: "before-finalization" | "after-finalization" | null = null) {
+function fixture(loseAck = false, interruption: "before-finalization" | "after-finalization" | null = null,
+  initialMode: "active" | "overlap" = "active") {
   const now = new Date().toISOString();
-  const sql = futureActiveRuntimeDatabase(db => {
+  const prepareOverlap = (db: ReturnType<typeof referenceTestDatabase>) => {
     db.prepare("INSERT INTO storage_profiles VALUES('import-profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, now);
     db.prepare("INSERT INTO file_shadow_profile_enablements VALUES('import-profile',1,'operator',?)").run(now);
-  });
+  };
+  const sql = initialMode === "active" ? futureActiveRuntimeDatabase(prepareOverlap) : referenceTestDatabase();
+  if (initialMode === "overlap") {
+    sql.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'future-runtime-test',? FROM file_shadow_control").run(now);
+    prepareOverlap(sql);
+  }
   databases.push(sql);
   const stored = new Map<string, Uint8Array>();
   const put = vi.fn(async (key: string, body: BodyInit) => {
@@ -45,10 +51,15 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
   });
   const adapter = new SqliteD1Database(sql);
   let databaseUnavailable = false;
+  let rejectModeRead = false, modeReads = 0, activateBeforeAcceptance = false;
   const db = { prepare(query: string) {
     if (databaseUnavailable) throw new Error("Database connection interrupted");
+    if (rejectModeRead && /SELECT mode FROM file_authority_control/.test(query) && ++modeReads === 2) {
+      throw new Error("secret authority database detail");
+    }
     return adapter.prepare(query);
   }, async batch(statements: D1PreparedStatement[]) {
+    if (activateBeforeAcceptance) { activateBeforeAcceptance = false; enableFutureFileAuthority(sql); }
     if (interruption === "before-finalization" && sql.prepare(`SELECT 1 FROM template_steps ts
       JOIN imports i ON i.template_version_id=ts.template_version_id WHERE i.status='pending'`).get()) {
       interruption = null;
@@ -73,7 +84,10 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
   const upload = async () => worker.fetch(new Request("https://app.test/api/imports/fabublox", {
     method: "POST", headers: { "X-Import-Request-Id": requestId }, body: await importForm(),
   }), env, context);
-  return { sql, put, get, stored, upload, env, reconnect() { databaseUnavailable = false; } };
+  return { sql, put, get, stored, upload, env, reconnect() { databaseUnavailable = false; },
+    rejectFreshModeRead() { rejectModeRead = true; },
+    activateDuringAcceptance() { activateBeforeAcceptance = true; },
+  };
 }
 
 describe("active accepted import File publication", () => {
@@ -87,11 +101,17 @@ describe("active accepted import File publication", () => {
     ]);
     expect(f.sql.prepare("SELECT purpose,count(*) n FROM file_publications GROUP BY purpose ORDER BY purpose").all())
       .toEqual([{ purpose: "embedded_content", n: 1 }, { purpose: "provenance", n: 2 }]);
-    const receipt = f.sql.prepare("SELECT status,workbook_file_id,manifest_file_id FROM imports").get()!;
+    const receipt = f.sql.prepare("SELECT status,workbook_file_id,manifest_file_id,storage_profile_id,storage_profile_revision,storage_policy_revision FROM imports").get()!;
     expect(receipt.status).toBe("ready");
+    expect(receipt).toMatchObject({ storage_profile_id: "import-profile", storage_profile_revision: 1, storage_policy_revision: 1 });
+    expect(f.sql.prepare("SELECT role,storage_profile_id,storage_profile_revision,policy_revision FROM storage_role_defaults ORDER BY role").all()).toEqual([
+      { role: "internal", storage_profile_id: "import-profile", storage_profile_revision: 1, policy_revision: 2 },
+      { role: "originals", storage_profile_id: "import-profile", storage_profile_revision: 1, policy_revision: 2 },
+    ]);
     expect(f.sql.prepare("SELECT source_file_id FROM template_versions WHERE id=?").get(result.templateVersionId)!.source_file_id).toBe(receipt.workbook_file_id);
     expect(f.sql.prepare("SELECT file_id FROM state_representation_assets").get()!.file_id).toBeTruthy();
     const reads = f.get.mock.calls.length;
+    f.env.R2_BOOTSTRAP_NAMESPACE = namespace.replace("authority-imports", "different-installation");
     const replay = await f.upload(); expect(replay.status).toBe(200); expect(await replay.json()).toEqual(result);
     expect(f.put).toHaveBeenCalledTimes(3); expect(f.get).toHaveBeenCalledTimes(reads);
     const cloned = await worker.fetch(new Request(`https://app.test/api/templates/${result.templateVersionId}/clone`, {
@@ -103,6 +123,63 @@ describe("active accepted import File publication", () => {
       .toBe(receipt.workbook_file_id);
     expect(f.put).toHaveBeenCalledTimes(3);
     expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+  });
+
+  it.each(["ABORT,'secret acceptance detail'", "IGNORE"])("rolls first role initialization back when fresh import acceptance rejects with %s before provider I/O", async (rejection) => {
+    const f = fixture();
+    f.sql.exec(`CREATE TRIGGER reject_acceptance BEFORE INSERT ON imports BEGIN SELECT RAISE(${rejection}); END;`);
+    const response = await f.upload();
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain("secret acceptance detail");
+    for (const table of ["imports", "storage_role_defaults", "file_acceptance_candidates"]) {
+      expect(f.sql.prepare(`SELECT count(*) n FROM ${table}`).get()!.n).toBe(0);
+    }
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled();
+  });
+
+  it("keeps paused execution from accepting a fresh import or initializing role defaults", async () => {
+    const f = fixture();
+    f.sql.exec("UPDATE file_authority_runtime_guard SET enabled=0");
+    const response = await f.upload();
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "File execution is paused on this installation. An operator must enable it after recovery." });
+    expect(f.sql.prepare("SELECT count(*) n FROM imports").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled();
+  });
+
+  it("allows one owner for concurrent fresh requests while role initialization and the receipt commit together", async () => {
+    const f = fixture();
+    const responses = await Promise.all([f.upload(), f.upload()]);
+    expect(responses.map(response => response.status).sort()).toEqual([201, 409]);
+    expect(f.sql.prepare("SELECT count(*) n FROM imports").get()!.n).toBe(1);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults WHERE storage_profile_id=(SELECT storage_profile_id FROM imports)").get()!.n).toBe(2);
+    expect(f.put).toHaveBeenCalledTimes(3);
+    expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+  });
+
+  it("rejects a fresh import if its captured overlap mode changes before the acceptance batch", async () => {
+    const f = fixture(false, null, "overlap");
+    f.activateDuringAcceptance();
+    const response = await f.upload();
+    expect(response.status).toBe(503);
+    expect(f.sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("active");
+    expect(f.sql.prepare("SELECT count(*) n FROM imports").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled();
+    expect((await f.upload()).status).toBe(201);
+    expect(f.put).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns a sanitized unavailable response when fresh authority selection cannot read the current mode", async () => {
+    const f = fixture();
+    f.rejectFreshModeRead();
+    const response = await f.upload();
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "File storage is unavailable" });
+    expect(f.sql.prepare("SELECT count(*) n FROM imports").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()!.n).toBe(0);
+    expect(f.put).not.toHaveBeenCalled(); expect(f.get).not.toHaveBeenCalled();
   });
 
   it("rolls publications and typed bindings back when the original import completion fails", async () => {

@@ -16,7 +16,9 @@ import { FABUBLOX_IMPORT_REQUEST_HEADER, MAX_FABUBLOX_REQUEST_INPUT_BYTES, norma
 import type { FabubloxImportInput } from "../../shared/contracts/fabublox-import-input";
 import { acceptFabubloxImport, acceptedImportState, readAcceptedImport, FabubloxImportAcceptanceUnavailableError, FabubloxImportRequestConflictError, type AcceptedFabubloxImportRow } from "./fabublox-acceptance";
 import { ensureR2BootstrapProfile, R2BootstrapUnavailableError } from "../files/r2-bootstrap-profile";
-import { readFileAuthorityMode } from "../files/authority-reader";
+import { prepareStorageRoleAcceptanceModeFence, prepareStorageRoleSelection } from "../files/storage-role-selection";
+import { StorageRoleDefaultsUnavailableError } from "../files/storage-role-defaults";
+import { FileAuthorityUnavailableError, readFileAuthorityMode } from "../files/authority-reader";
 import { prepareAuthorityImportFiles } from "./fabublox-authority";
 
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
@@ -28,7 +30,8 @@ function acceptanceError(error: unknown): never {
   if (error instanceof FabubloxImportRequestConflictError) {
     throw new HTTPException(409, { message: "This import request was already accepted with different input." });
   }
-  if (error instanceof FabubloxImportAcceptanceUnavailableError || error instanceof R2BootstrapUnavailableError) {
+  if (error instanceof FabubloxImportAcceptanceUnavailableError || error instanceof R2BootstrapUnavailableError
+    || error instanceof StorageRoleDefaultsUnavailableError || error instanceof FileAuthorityUnavailableError) {
     throw new HTTPException(503, { message: error.message });
   }
   throw error;
@@ -205,22 +208,28 @@ routes.post("/imports/fabublox", async (c) => {
   const now = startedAt.toISOString();
   const leaseExpiresAt = fabubloxImportLeaseExpiresAt(startedAt);
   const importDb = primaryD1(c.env.DB);
+  let active = false;
   try {
-    const profile = await ensureR2BootstrapProfile(importDb, c.env, now);
+    const mode = await readFileAuthorityMode(importDb);
+    active = mode === "active";
+    const selection = active ? await prepareStorageRoleSelection(importDb, c.env,
+      imageInputs.length ? ["provenance", "embedded_content"] : ["provenance"], now) : null;
+    // A whole import still has one immutable destination. Until its receipt can
+    // record per-item targets, differing role destinations cannot be accepted.
+    const profile = selection?.uniformProfile() ?? await ensureR2BootstrapProfile(importDb, c.env, now);
     const accepted = await acceptFabubloxImport(importDb, {
       importId, operationId: importOperationId, requestId, requestSha256, requestInputJson,
       actorEmail: userEmail, profileId: profile.id, profileRevision: profile.configurationRevision,
       policyRevision: 1, sourceFilename: workbook.name, sourceSha256: actualSha,
       sheetName: manifest.source.sheetName, templateType: internalTemplateType,
       recipeFamilyId, warningCount: manifest.warnings.length, createdAt: now, leaseExpiresAt,
-    });
+    }, selection?.statements ?? [prepareStorageRoleAcceptanceModeFence(importDb, mode)]);
     if (!accepted.owned) return replay(accepted.row);
   } catch (error) { return acceptanceError(error); }
 
   let completedTemplateVersionId: string | null = null;
   let completedVersion: number | null = null;
   try {
-    const active = await readFileAuthorityMode(importDb) === "active";
     const prefix = `imports/${importId}`;
     type Candidate = {
       kind: "workbook" | "manifest" | "image";

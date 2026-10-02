@@ -4,7 +4,8 @@ Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
 Last reviewed: 2026-10-02 — accepted FP1, deployed FP2 configuration/S3 transport,
-deployed candidate checks #242 and implemented credential re-enveloping; real-provider acceptance remains pending
+deployed candidate checks #242, credential re-enveloping #243 and shared fresh
+acceptance role selection; real-provider acceptance remains pending
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -27,6 +28,9 @@ adds an independent administrator policy, versioned candidates and encrypted
 credential storage without enabling external providers. Candidate editing
 performs no provider requests or activation. [Credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md) adds atomic key
 maintenance for retained descriptor payloads while preserving check snapshots.
+[Fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
+purpose routing while preserving the immutable R2 defaults and historical
+accepted targets; independent defaults still require a successor schema/archive.
 Ordinary V19 content packages exclude candidate configuration, audit, descriptors and
 payloads; an authorized installation backup remains a separate later capability.
 Merged and deployed #241 qualifies isolated S3 transport without activating a

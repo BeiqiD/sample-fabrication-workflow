@@ -15,6 +15,8 @@ import { ByteVerificationError, verifyByteStream } from "../files/byte-verificat
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { r2ByteReader } from "../files/storage-adapters/r2-reader";
 import { assertR2BootstrapProfile, ensureR2BootstrapProfile, R2BootstrapUnavailableError } from "../files/r2-bootstrap-profile";
+import { prepareStorageRoleSelection } from "../files/storage-role-selection";
+import { StorageRoleDefaultsUnavailableError } from "../files/storage-role-defaults";
 import type { Env } from "../types";
 
 export interface AcceptedR2UploadRow {
@@ -169,19 +171,31 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
 
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.parse(now) + R2_UPLOAD_RECEIPT_LIFETIME_MS).toISOString();
-  const profile = await ensureR2BootstrapProfile(primaryD1(env.DB), env, now);
+  const db = primaryD1(env.DB);
+  const modeAtAcceptance = await readFileAuthorityMode(db).catch(() => { throw new R2UploadAcceptanceUnavailableError(); });
+  const selection = modeAtAcceptance === "active" ? await prepareStorageRoleSelection(db, env, [canonical.input.purpose], now) : null;
+  const profile = selection?.profileFor(canonical.input.purpose) ?? await ensureR2BootstrapProfile(db, env, now);
   const id = crypto.randomUUID();
   const operationId = crypto.randomUUID();
   const assetId = crypto.randomUUID();
   const objectKey = `${now.slice(0, 10)}/${assetId}-${safeAttachmentObjectName(upload.originalName)}`;
   try {
-    await primaryD1(env.DB).prepare(`INSERT INTO r2_upload_requests
+    const acceptance = db.prepare(`INSERT INTO r2_upload_requests
       (id, actor_email, client_request_id, operation_id, ingress, purpose, request_sha256, request_input_json,
        request_scope, storage_profile_id, storage_profile_revision, storage_policy_revision,
        candidate_asset_id, candidate_object_key, status, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'system', ?, 1, 1, ?, ?, 'pending', ?, ?)`)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'system', ?, 1, 1, ?, ?, 'pending', ?, ?
+      WHERE EXISTS(SELECT 1 FROM file_authority_control WHERE singleton=1 AND mode=?)`)
       .bind(id, upload.actorEmail, upload.requestId, operationId, upload.ingress, canonical.input.purpose,
-        canonical.sha256, canonical.json, profile.id, assetId, objectKey, now, expiresAt).run();
+        canonical.sha256, canonical.json, profile.id, assetId, objectKey, now, expiresAt, modeAtAcceptance);
+    if (selection) await db.batch([
+      ...selection.statements, acceptance,
+      db.prepare(`SELECT CASE WHEN changes()=1 AND EXISTS(SELECT 1 FROM r2_upload_requests
+        WHERE id=? AND operation_id=? AND status='pending' AND storage_profile_id=? AND storage_profile_revision=1
+          AND candidate_asset_id=? AND candidate_object_key=?) THEN 1 ELSE json('Upload acceptance did not commit') END`)
+        .bind(id, operationId, profile.id, assetId, objectKey),
+    ]);
+    else await acceptance.run();
   } catch { /* Constraint races and lost acknowledgements require the same primary read. */ }
   const accepted = await readAcceptedR2Upload(env.DB, upload.actorEmail, upload.requestId);
   if (!accepted) throw new R2UploadAcceptanceUnavailableError();
@@ -258,7 +272,7 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
 
 export function rethrowR2UploadError(error: unknown): never {
   if (error instanceof R2UploadRequestConflictError) throw new HTTPException(409, { message: error.message });
-  if (error instanceof R2BootstrapUnavailableError || error instanceof R2UploadAcceptanceUnavailableError) {
+  if (error instanceof R2BootstrapUnavailableError || error instanceof StorageRoleDefaultsUnavailableError || error instanceof R2UploadAcceptanceUnavailableError) {
     throw new HTTPException(503, { message: error.message });
   }
   throw error;

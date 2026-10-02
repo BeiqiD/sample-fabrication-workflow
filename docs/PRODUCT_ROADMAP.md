@@ -3,7 +3,9 @@
 Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-10-02 after FP1 live acceptance and deployed FP2 configuration
-#239/S3 transport #241. Bounded candidate checks #242 are deployed; real-provider acceptance remains pending. PR #202's
+#239/S3 transport #241. Candidate checks #242 and credential re-enveloping #243
+are deployed; shared fresh acceptance selection preserves current R2 defaults.
+Real-provider acceptance remains pending. PR #202's
 S2 activation is deployed; the same disposable D1 was rebuilt with file bindings preserved. Page reads and
 a zero-blob export/isolated-restore exercise remain historical evidence. Later
 R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
@@ -77,6 +79,9 @@ default changes. [Bounded candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md) a
 deployed in #242; real-provider acceptance, atomic activation and independent default selection remain later.
 [Credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md) adds atomic key
 maintenance for retained descriptor payloads while preserving check snapshots.
+[Fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
+purpose routing across binary ingress while retaining the immutable R2 defaults
+and accepted historical targets. Independent defaults and activation remain later.
 Ordinary content export stays V19 and excludes installation configuration and
 check evidence. This document records
 scope and evidence; deployment authority comes from the owner's requests.
@@ -963,9 +968,10 @@ Project-owned Markdown or attachment content only through explicit user action.
    and its 2026-10-01 original-file and V19 recovery evidence. Preserve deployed
    #239 [FP2 candidate configuration](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md),
    and merged/deployed #241 S3 transport. Preserve deployed #242
-   [candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md) and implement audited
-   [credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md), then implement atomic
-   activation and independent defaults. Candidate checks do not enable a provider
+   [candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md), deployed #243
+   [credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md), and shared
+   [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md). Implement
+   atomic activation and independent defaults after qualification. Candidate checks do not enable a provider
    or redirect uploads. SWITCHdrive credentials are not required for development.
    V19 content export excludes system configuration and check evidence.
 6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
