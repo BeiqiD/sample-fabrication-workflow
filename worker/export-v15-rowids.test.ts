@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { createExportArtifact, validateFullExportV15 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV15 } from "../src/lib/exportAll";
-import { snapshotFullExportV19 } from "./export-v19-snapshot";
+import { snapshotFullExportV20 } from "./export-v20-snapshot";
 import { snapshotFullExportV15 } from "./export-v15-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 
@@ -46,7 +46,7 @@ describe("V15 signed int64 source identities", () => {
       try {
         expect(db.prepare("SELECT CAST(rowid AS TEXT) AS rowid FROM events ORDER BY id").all().map((row) => row.rowid)).toEqual(deleted ? [] : rowids);
         expect(db.prepare("SELECT COUNT(*) AS n FROM file_shadow_occurrences WHERE present=1 AND typeof(source_rowid)<>'integer'").get()).toEqual({ n: 0 });
-        const recovered = await snapshotFullExportV19(new SqliteD1Database(db) as unknown as D1Database);
+        const recovered = await snapshotFullExportV20(new SqliteD1Database(db) as unknown as D1Database);
         expect(recovered.tables.file_shadow_occurrences).toEqual(manifest.tables.file_shadow_occurrences);
         expect(recovered.tables.file_shadow_heads).toEqual(manifest.tables.file_shadow_heads);
         expect(recovered.artifacts.sourceRowids).toEqual(manifest.artifacts.sourceRowids);

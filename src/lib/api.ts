@@ -1,5 +1,5 @@
 import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
-import type { FullExportManifestV19 } from "../../shared/contracts/export";
+import type { FullExportManifestV20 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -266,7 +266,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV19>("/exports/all?archiveSchema=19&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV20>("/exports/all?archiveSchema=20&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

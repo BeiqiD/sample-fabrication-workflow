@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "./storage-configuration-client";
 import type { StorageCandidateCheck } from "../../shared/contracts/storage-candidate-check";
 import type { StorageCredentialReenvelopeReceipt } from "../../shared/contracts/storage-credential-reenvelope";
+import type { StorageProfileAdmissionReceipt } from "../../shared/contracts/storage-profile-admission";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 const checkId = "0f5f7a34-5532-4463-bf51-8c5eb9537f63";
@@ -111,6 +112,46 @@ describe("storage candidate client", () => {
     await expect(storageConfigurationClient.reenvelopeCredential({ ...reenvelopeInput, expectedEnvelopeRevision: 0 })).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
     await expect(storageConfigurationClient.reenvelopeCredential(reenvelopeInput)).rejects.toMatchObject({ status: 503 });
+    expect(fetch).toHaveBeenCalledOnce(); expect(parse).not.toHaveBeenCalled();
+  });
+});
+
+describe("storage profile registration client", () => {
+  const input = { operationId: checkId, profileId: "candidate-example", expectedRevision: 2, expectedEnvelopeRevision: 3, checkId };
+  const receipt = (): StorageProfileAdmissionReceipt => ({ operationId: checkId, profileId: "candidate-example", revision: 2,
+    envelopeRevision: 3, checkId, nativeProfileId: `storage-profile:aws-s3:${"a".repeat(64)}`, configurationRevision: 1,
+    runtimeAccess: "read_only", createdAt: "2026-10-02T10:00:00.000Z", createdBy: "admin@example.org" });
+
+  it("uses exact caller-owned registration input and private receipt reads", async () => {
+    const fetch = vi.fn().mockImplementation(async () => json(receipt())); vi.stubGlobal("fetch", fetch);
+    const controller = new AbortController();
+    expect(await storageConfigurationClient.registerProfile(input, controller.signal)).toEqual(receipt());
+    expect(await storageConfigurationClient.readProfileRegistration(checkId, controller.signal)).toEqual(receipt());
+    await storageConfigurationClient.findProfileRegistration({ profileId: "candidate-example", expectedRevision: 2 }, controller.signal);
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(["/api/storage/configuration/registrations", `/api/storage/configuration/registrations/${checkId}`,
+      "/api/storage/configuration/registrations?profileId=candidate-example&expectedRevision=2"]);
+    expect(fetch.mock.calls[0][1]).toMatchObject({ method: "POST", body: JSON.stringify(input) });
+    for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ cache: "no-store", credentials: "same-origin", redirect: "error", signal: controller.signal });
+  });
+
+  it("rejects private and mismatched mutation receipts but accepts another candidate's existing registration lookup", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json({ ...receipt(), namespace: "private-namespace" }))
+      .mockResolvedValueOnce(json({ ...receipt(), envelopeRevision: 4 }))
+      .mockResolvedValueOnce(json({ ...receipt(), operationId: "af5f7a34-5532-4463-bf51-8c5eb9537f63" }))
+      .mockResolvedValueOnce(json({ ...receipt(), profileId: "earlier-candidate", revision: 7 })); vi.stubGlobal("fetch", fetch);
+    await expect(storageConfigurationClient.registerProfile(input)).rejects.toThrow("Invalid storage profile admission.");
+    await expect(storageConfigurationClient.registerProfile(input)).rejects.toThrow("Invalid storage profile registration response.");
+    await expect(storageConfigurationClient.readProfileRegistration(checkId)).rejects.toThrow("Invalid storage profile registration response.");
+    await expect(storageConfigurationClient.findProfileRegistration({ profileId: "candidate-example", expectedRevision: 2 })).resolves.toMatchObject({ profileId: "earlier-candidate", revision: 7 });
+  });
+
+  it("does not fetch invalid inputs or replay an unavailable registration", async () => {
+    const response = json({ error: "private-details" }, 503), parse = vi.spyOn(response, "json");
+    const fetch = vi.fn().mockResolvedValue(response); vi.stubGlobal("fetch", fetch);
+    await expect(storageConfigurationClient.registerProfile({ ...input, expectedEnvelopeRevision: 0 })).rejects.toThrow();
+    await expect(storageConfigurationClient.readProfileRegistration("invalid")).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    await expect(storageConfigurationClient.registerProfile(input)).rejects.toMatchObject({ status: 503 });
     expect(fetch).toHaveBeenCalledOnce(); expect(parse).not.toHaveBeenCalled();
   });
 });

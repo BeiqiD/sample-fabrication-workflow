@@ -6,9 +6,11 @@ deployed, alongside bounded candidate checks #242, credential re-enveloping #243
 and shared fresh acceptance role selection #244. Read-only
 [candidate check evidence](./FP2_CANDIDATE_READINESS.md) is merged and deployed in
 #245 (`5992307`). The optional AWS
-[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) prerequisite is being
-implemented and reviewed. Live provider qualification and native identity/admission
-with paired successor schema/archive support precede activation and independent defaults.
+[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in #246
+(`4d7d942`). Restricted [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md)
+with `0017`/V20 recovery is under implementation and review. Complete native
+byte-access/acceptance/lifecycle support and real-provider qualification precede
+activation and independent defaults.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
 schema/mapping and archive slice. [FP1b](./FP1_BYTE_READER_BOUNDARY.md) adds an
 instance-bound byte reader and converges legacy read routes; verified ingestion
@@ -91,14 +93,22 @@ The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is
 merged and deployed in #245 (`5992307`); it distinguishes
 exact current-envelope evidence from retained history without provider calls or
 state changes. The optional AWS
-[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is being implemented
-and reviewed as the next prerequisite. It is part of the full candidate
+[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), deployed in #246
+(`4d7d942`), is part of the full candidate
 configuration and signed object requests, without changing physical address
-digests, native admission or V19. Provider-specific native identity/admission
-with paired successor schema/archive support follows; real-provider qualification
-remains required before atomic activation and independent defaults.
-Installation configuration and check evidence stay outside ordinary V19 content
-packages; a separately authorized system backup remains later.
+digests, native admission or V19. The next
+[native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
+is under implementation and review. Migration `0017` registers canonical
+commercial AWS account/bucket/root identities as restricted `read_only` profiles
+with immutable, nonsecret `storage_profile_admissions` receipts; V20 export and
+isolated recovery preserve them together. Database guards prohibit S3 locations,
+non-read-only S3 profiles and S3 defaults. This slice supplies no native S3 File
+reader or credential-access binding. Complete byte-access/acceptance/lifecycle
+support with its paired recovery contract follows before atomic activation and
+independent defaults; real-provider qualification remains required.
+Installation candidate configuration, checks and credentials stay outside
+ordinary V19 and V20 content packages; V20 native admission receipts contain only
+registration provenance. A separately authorized system backup remains later.
 
 Original design review: 2026-09-13 against `v2/backend-foundation` at
 `4e78fa76b727f81b1431b60ff481bd686d83cb4c` (merged PR #206).

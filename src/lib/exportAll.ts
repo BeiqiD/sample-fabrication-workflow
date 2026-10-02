@@ -1,5 +1,5 @@
 import type JSZip from "jszip";
-import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19 } from "../../shared/contracts/export-protocol";
+import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20 } from "../../shared/contracts/export-protocol";
 import type { FullExportBlobEntryV15 } from "../../shared/contracts/export";
 import type {
   BlobExportOutcome,
@@ -164,7 +164,7 @@ export async function buildFullExportArchive(
 }
 
 async function buildVersionedFullExportArchive(
-  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19,
+  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20,
   input: unknown,
   onProgress?: (completed: number, total: number) => void,
   fetcher: typeof fetch = fetch,
@@ -176,7 +176,7 @@ async function buildVersionedFullExportArchive(
           : version === 12 ? await validateFullExportV12(input)
             : version === 13 ? await validateFullExportV13(input)
               : version === 14 ? await validateFullExportV14(input)
-                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : await validateFullExportV19(input);
+                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : version === 19 ? await validateFullExportV19(input) : await validateFullExportV20(input);
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = new Set(["export-manifest.json", "export-warnings.json"]);
@@ -251,7 +251,7 @@ export function buildFullExportArchiveV16(input: unknown, onProgress?: (complete
 
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const result = await buildFullExportArchiveV19(manifest, onProgress);
+  const result = await buildFullExportArchiveV20(manifest, onProgress);
   return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
 }
 
@@ -265,4 +265,8 @@ export function buildFullExportArchiveV18(input: unknown, onProgress?: (complete
 
 export function buildFullExportArchiveV19(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
   return buildVersionedFullExportArchive(19, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV20(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(20, input, onProgress, fetcher);
 }

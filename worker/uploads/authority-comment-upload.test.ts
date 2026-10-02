@@ -4,7 +4,7 @@ import type { SampleDetail } from "../../shared/types";
 import { acceptCommentSubmission, acceptCommentUpload, commentManagedFetch, COMMENT_TEST_R2_NAMESPACE } from "../comment-acceptance-test-support";
 import { enableFutureFileAuthority, futureActiveRuntimeDatabase } from "../files/authority-runtime-test-support";
 import { managedBootstrapNamespace } from "../files/managed-bootstrap-profile";
-import { snapshotFullExportV19 } from "../export-v19-snapshot";
+import { snapshotFullExportV20 } from "../export-v20-snapshot";
 import worker from "../index";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import type { Env } from "../types";
@@ -133,7 +133,7 @@ describe("active accepted Comment upload publication", () => {
     expect(f.put).toHaveBeenCalledTimes(originalState === "uploaded" ? 2 : 1);
     expect(f.managed.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(0);
     expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
-    const manifest = await snapshotFullExportV19(f.env.DB);
+    const manifest = await snapshotFullExportV20(f.env.DB);
     expect(manifest.tables.comment_submission_items.filter(item => item.status === "ready").every(item => typeof item.file_id === "string")).toBe(true);
     expect(manifest.tables.file_derivations).toEqual([]);
   }, 15_000);

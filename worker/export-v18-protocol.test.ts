@@ -12,7 +12,7 @@ import { validateFullExportV18 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV17, buildFullExportArchiveV18 } from "../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { snapshotFullExportV17 } from "./export-v17-snapshot";
-import { snapshotFullExportV19 } from "./export-v19-snapshot";
+import { snapshotFullExportV20 } from "./export-v20-snapshot";
 import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -148,7 +148,7 @@ describe("V18 accepted File runtime archive", () => {
     expect(f.sql.prepare("SELECT enabled FROM file_authority_runtime_guard").get()!.enabled).toBe(1);
     expect(f.manifest.tables).not.toHaveProperty("file_authority_runtime_guard");
     const { sql, result } = await restore(f.manifest);
-    const recovered = (await snapshotFullExportV19(adapter(sql))).tables;
+    const recovered = (await snapshotFullExportV20(adapter(sql))).tables;
     expect(recovered.storage_role_defaults).toEqual([]);
     expect(Object.fromEntries(Object.keys(f.manifest.tables).map(name => [name, recovered[name]]))).toEqual(f.manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("active");
@@ -198,7 +198,7 @@ describe("V18 accepted File runtime archive", () => {
     const old = database("0010_fp1_shadow_adjudications.sql");
     old.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'fixture',? FROM file_shadow_control").run(new Date().toISOString());
     const manifest = await snapshotFullExportV17(adapter(old)), { sql } = await restore(manifest);
-    const recovered = (await snapshotFullExportV19(adapter(sql))).tables;
+    const recovered = (await snapshotFullExportV20(adapter(sql))).tables;
     expect(recovered.storage_role_defaults).toEqual([]);
     expect(Object.fromEntries(Object.keys(manifest.tables).map(name => [name, recovered[name]]))).toEqual(manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("overlap");

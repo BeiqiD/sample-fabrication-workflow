@@ -34,7 +34,8 @@ export class StorageSettingsUnavailableError extends Error {
 /** One primary snapshot. Namespace and credential-reference equality is reduced
  * inside SQL, so even the result rows contain only safe profile metadata. The
  * deployment parsers are pure; this reader never ensures profiles or probes a
- * provider. A match describes configuration identity, not connection health. */
+ * provider. A match describes configuration identity, not connection health;
+ * S3 registration describes only its immutable row and read-only runtime policy. */
 export async function readStorageSettings(database: D1Database, env: DeploymentConfiguration): Promise<StorageSettingsStatus> {
   const r2 = r2Configuration(env), managed = managedConfiguration(env);
   try {
@@ -47,6 +48,8 @@ export async function readStorageSettings(database: D1Database, env: DeploymentC
           AND p.credential_reference IS NULL AND p.configuration_revision=1 AND p.state='historical'
         WHEN p.adapter_type='switchdrive' THEN p.namespace_identity IS ?2 AND p.configuration_source='environment'
           AND p.credential_reference IS 'environment:SWITCHDRIVE' AND p.configuration_revision=1 AND p.state='historical'
+        WHEN p.adapter_type='s3' THEN p.configuration_source='system' AND p.credential_reference IS NULL
+          AND p.configuration_revision=1 AND p.state='historical' AND r.state='read_only'
         ELSE 0 END binding_matches
       FROM profile_page p LEFT JOIN storage_profile_runtime r ON r.storage_profile_id=p.id
     ), role_defaults AS (
@@ -91,9 +94,10 @@ export async function readStorageSettings(database: D1Database, env: DeploymentC
       if (!profile || typeof profile !== "object" || Array.isArray(profile)) throw new StorageSettingsUnavailableError();
       const item = profile as Record<string, unknown>;
       if (Object.keys(item).length !== 5 || ![0, 1].includes(item.bindingMatches as number)
-        || !["r2", "switchdrive"].includes(String(item.adapterType))) throw new StorageSettingsUnavailableError();
+        || !["r2", "switchdrive", "s3"].includes(String(item.adapterType))
+        || item.adapterType === "s3" && item.bindingMatches !== 1) throw new StorageSettingsUnavailableError();
       return { id: item.id, adapterType: item.adapterType, configurationRevision: item.configurationRevision, runtimeAccess: item.runtimeAccess,
-        bindingMatch: bindingMatch(item.adapterType === "r2" ? r2 : managed, item.bindingMatches as number) };
+        bindingMatch: item.adapterType === "s3" ? "registered" : bindingMatch(item.adapterType === "r2" ? r2 : managed, item.bindingMatches as number) };
     });
     const report = { version: 2, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
       authority: { mode: row.authority_mode, shadowConversions: row.shadow_enabled ? "enabled" : "paused" },

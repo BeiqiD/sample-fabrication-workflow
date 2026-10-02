@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
@@ -9,6 +10,8 @@ import { prepareR2StorageRoleDefaults } from "../files/storage-role-defaults";
 const databases: DatabaseSync[] = [];
 const now = "2026-09-28T12:00:00.000Z";
 const r2Namespace = JSON.stringify({ kind: "cloudflare-r2", accountId: "a".repeat(32), bucketName: "private-r2-bucket" });
+const s3Namespace = JSON.stringify({ kind: "aws-s3", partition: "aws", accountId: "123456789012", bucketName: "private-s3-bucket", root: "private-s3-root" });
+const s3ProfileId = `storage-profile:aws-s3:${createHash("sha256").update(s3Namespace).digest("hex")}`;
 const configuration = { R2_BOOTSTRAP_NAMESPACE: r2Namespace, MANAGED_STORAGE_PROVIDER: "switchdrive", SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/private-account%40example.org/",
   SWITCHDRIVE_USERNAME: "private-user", SWITCHDRIVE_APP_PASSWORD: "private-password", SWITCHDRIVE_ROOT: "/private-root//nested/" };
 function fixture(profiles = true) {
@@ -30,6 +33,9 @@ function fixture(profiles = true) {
     await activateFileAuthority(db, "operator", { requestId: crypto.randomUUID(), expectedEpoch: Number(cutoff.epoch), expectedShadowIncarnation: cutoff.incarnation as string });
   };
   return { sql, local, db, activate, activateAuthority };
+}
+function insertS3Profile(sql: DatabaseSync) {
+  sql.prepare("INSERT INTO storage_profiles VALUES(?,'s3',?,'system',NULL,1,'historical',?)").run(s3ProfileId, s3Namespace, now);
 }
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); databases.splice(0).forEach(database => database.close()); });
 
@@ -60,6 +66,52 @@ describe("read-only Storage Settings metadata", () => {
       profiles: { items: [], hasMore: false, limit: 100 }, health: "not_checked" });
     expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
     expect(f.sql.prepare("SELECT count(*) n FROM storage_profiles").get()!.n).toBe(0);
+  });
+
+  it.each([configuration, {}])("projects only S3 registration metadata independently of deployment configuration (%j)", async env => {
+    const f = fixture(); insertS3Profile(f.sql);
+    const before = f.sql.prepare("SELECT total_changes() n").get()!.n, fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    const prepare = f.local.prepare.bind(f.local); let rawRows: unknown;
+    vi.spyOn(f.local, "prepare").mockImplementation(query => {
+      const statement = prepare(query), bind = statement.bind.bind(statement);
+      vi.spyOn(statement, "bind").mockImplementation((...values) => {
+        const bound = bind(...values), all = bound.all.bind(bound);
+        vi.spyOn(bound, "all").mockImplementation(async () => {
+          const result = await all(); rawRows = result.results; return result;
+        });
+        return bound;
+      }); return statement;
+    });
+    const result = await readStorageSettings(f.db, env);
+    expect(result.profiles.items.find(profile => profile.id === s3ProfileId)).toEqual({
+      id: s3ProfileId, adapterType: "s3", configurationRevision: 1, runtimeAccess: "read_only", bindingMatch: "registered",
+    });
+    expect(result.uploadDestinations).toEqual({ ordinaryUploads: "r2", commentOriginals: env === configuration ? "switchdrive" : "unconfigured" });
+    expect(result.roleDefaults.state).toBe("legacy"); expect(result.health).toBe("not_checked");
+    for (const encoded of [JSON.stringify(result), JSON.stringify(rawRows)]) {
+      for (const privateValue of [s3Namespace, "123456789012", "private-s3-bucket", "private-s3-root", "private-password", "environment:SWITCHDRIVE",
+        "namespace_identity", "credential_reference"]) expect(encoded).not.toContain(privateValue);
+    }
+    expect(f.local.queryCount).toBe(1); expect(fetch).not.toHaveBeenCalled();
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+  });
+
+  it.each([
+    ["storage_profiles", "configuration_source", "bootstrap"],
+    ["storage_profiles", "credential_reference", "environment:SWITCHDRIVE"],
+    ["storage_profiles", "configuration_revision", 2],
+    ["storage_profiles", "state", "active"],
+    ["storage_profile_runtime", "state", "read_write"],
+    ["storage_profile_runtime", "state", "retired"],
+  ] as const)("fails closed on invalid S3 registration %s.%s=%s", async (table, column, value) => {
+    const f = fixture(); insertS3Profile(f.sql);
+    // Simulate damaged data independently of the native admission guards.
+    const triggers = f.sql.prepare("SELECT name FROM sqlite_schema WHERE type='trigger' AND tbl_name=?").all(table) as { name: string }[];
+    for (const trigger of triggers) f.sql.exec(`DROP TRIGGER "${trigger.name}"`);
+    f.sql.exec("PRAGMA ignore_check_constraints=ON");
+    const idColumn = table === "storage_profiles" ? "id" : "storage_profile_id";
+    f.sql.prepare(`UPDATE ${table} SET ${column}=? WHERE ${idColumn}=?`).run(value, s3ProfileId);
+    await expect(readStorageSettings(f.db, configuration)).rejects.toThrow("Storage settings are temporarily unavailable.");
   });
 
   it("reports planned R2 roles without bootstrapping them during an active Settings read", async () => {

@@ -175,7 +175,15 @@ it("copies the exact available Project File despite a quarantined old locator, t
   const migrations = new URL("../../migrations/", import.meta.url);
   for (const name of readdirSync(migrations).filter(name => name.endsWith(".sql")
     && name > "0007_fp1_file_authority_transition.sql" && !name.startsWith("0011_")).sort()) {
-    sql.exec(readFileSync(new URL(name, migrations), "utf8"));
+    // Match D1's atomic migration application, including parent-table rebuilds.
+    sql.exec("BEGIN IMMEDIATE");
+    try {
+      sql.exec(readFileSync(new URL(name, migrations), "utf8"));
+      sql.exec("COMMIT");
+    } catch (error) {
+      sql.exec("ROLLBACK");
+      throw error;
+    }
   }
   sql.prepare(`INSERT INTO blob_integrity_quarantine(store_kind,provider,object_key,reason,expected_byte_size,
     operation_id,detected_at,last_checked_at)

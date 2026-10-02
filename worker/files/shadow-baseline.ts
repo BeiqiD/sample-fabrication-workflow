@@ -1,3 +1,4 @@
+import { FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-native-admission";
 import { FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-role-policy";
 import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
 import { FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
@@ -143,8 +144,8 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
   const schema = JSON.parse(row.schema_json) as ExportSchemaObject[];
   if (!Array.isArray(schema) || schema.length > MAX_SHADOW_SCHEMA_OBJECTS) throw new Error("Unsupported shadow schema generation");
   const schemaSha256 = await fileShadowSchemaFingerprint(contentExportSchemaObjects(schema));
-  if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
-  const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);
+  if (![FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256, FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256)) throw new Error("Unsupported shadow schema generation");
+  const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256, FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);
   if (!overlayRead && hasAdjudications) throw new Error("Shadow schema changed during baseline read");
   if (!Number.isSafeInteger(row.shadow_epoch) || Number(row.shadow_epoch) < 0 || typeof row.shadow_runtime !== "string") throw new Error("Incomplete shadow runtime snapshot");
   if (row.page_count !== row.record_count || ![0, 1].includes(row.record_count) || !Number.isSafeInteger(row.payload_bytes)

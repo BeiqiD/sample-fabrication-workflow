@@ -106,6 +106,44 @@ describe("read-only storage Settings", () => {
     expect(screen.getByText("Connection not checked")).toBeTruthy();
   });
 
+  it("shows an S3 registration as read only with no file access and unchanged upload destinations", async () => {
+    const value = snapshot();
+    value.profiles.items.push({ id: "registered-s3", adapterType: "s3", configurationRevision: 1,
+      runtimeAccess: "read_only", bindingMatch: "registered" });
+    network.mockResolvedValueOnce(json(value)); render(<StorageSettingsPage />);
+    const profile = within((await screen.findByText("registered-s3")).closest("li")!);
+    expect(profile.getByText("S3")).toBeTruthy();
+    expect(profile.getByText("Registration")).toBeTruthy(); expect(profile.getByText("Registered")).toBeTruthy();
+    expect(profile.getByText("Access setting")).toBeTruthy(); expect(profile.getByText("Read only")).toBeTruthy();
+    expect(profile.getByText("File access is not available for this registered profile. Current upload destinations are unchanged.")).toBeTruthy();
+    expect(profile.queryByText("Deployment match")).toBeNull(); expect(profile.queryByText("Matches current configuration")).toBeNull();
+    const uploads = within(screen.getByRole("region", { name: "Current uploads" }));
+    expect(uploads.getByText("Cloudflare R2")).toBeTruthy(); expect(uploads.getByText("SWITCHdrive")).toBeTruthy();
+    expect(uploads.queryByText("S3")).toBeNull();
+    expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(["Refresh"]);
+    expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage", expect.objectContaining({ method: "GET" }));
+  });
+
+  it.each([
+    { adapterType: "s3", runtimeAccess: "read_only", bindingMatch: "matched" },
+    { adapterType: "s3", runtimeAccess: "read_only", bindingMatch: "mismatch" },
+    { adapterType: "s3", runtimeAccess: "read_only", bindingMatch: "not_configured" },
+    { adapterType: "s3", runtimeAccess: "read_only", bindingMatch: "invalid_configuration" },
+    { adapterType: "s3", runtimeAccess: "read_write", bindingMatch: "registered" },
+    { adapterType: "s3", runtimeAccess: "retired", bindingMatch: "registered" },
+    { adapterType: "r2", runtimeAccess: "read_only", bindingMatch: "registered" },
+    { adapterType: "switchdrive", runtimeAccess: "read_only", bindingMatch: "registered" },
+    { adapterType: "s3", runtimeAccess: "read_only", bindingMatch: "registered", namespaceIdentity: "PRIVATE_NAMESPACE" },
+    { adapterType: "s3", runtimeAccess: "read_only", bindingMatch: "registered", credentialReference: "PRIVATE_CREDENTIAL" },
+  ])("rejects invalid registration metadata before showing any profile (%j)", async metadata => {
+    const value = snapshot();
+    network.mockResolvedValueOnce(json({ ...value, profiles: { ...value.profiles,
+      items: [{ id: "invalid-registration", configurationRevision: 1, ...metadata }] } }));
+    render(<StorageSettingsPage />); await screen.findByRole("alert");
+    expect(screen.queryByText("invalid-registration")).toBeNull(); expect(screen.queryByText("Registered")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/PRIVATE_NAMESPACE|PRIVATE_CREDENTIAL/);
+  });
+
   it.each(["pending_bootstrap", "configured"] as const)("shows R2 originals with %s defaults even when historical managed configuration is absent", async state => {
     const value = snapshot(); value.authority.mode = "active"; value.roleDefaults.state = state;
     value.uploadDestinations.commentOriginals = "r2"; value.bindings.managed = { provider: "none", configuration: "missing" };

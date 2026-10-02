@@ -3,10 +3,10 @@ import type { StorageSettingsStatus } from "../../shared/contracts/storage-setti
 import { api } from "../lib/api";
 import "./storage-settings.css";
 
-const providerName = { r2: "Cloudflare R2", switchdrive: "SWITCHdrive" };
+const providerName = { r2: "Cloudflare R2", switchdrive: "SWITCHdrive", s3: "S3" };
 const configurationText = { configured: "Configuration present", missing: "Configuration missing", invalid: "Configuration needs attention" };
 const accessText = { read_only: "Read only", read_write: "Read and write", retired: "Retired" };
-const matchText = { matched: "Matches current configuration", mismatch: "Different from current configuration", not_configured: "Current configuration missing", invalid_configuration: "Current configuration needs attention" };
+const matchText = { matched: "Matches current configuration", mismatch: "Different from current configuration", not_configured: "Current configuration missing", invalid_configuration: "Current configuration needs attention", registered: "Registered" };
 
 export function StorageSettingsPage() {
   const [status, setStatus] = useState<StorageSettingsStatus | null>(null);
@@ -66,13 +66,14 @@ export function StorageSettingsPage() {
       <section className="card storage-settings-section" aria-labelledby="storage-profiles-title">
         <div className="storage-section-heading"><h2 className="card-title" id="storage-profiles-title">Registered profiles</h2>
           <span className="section-count" aria-label={`${status.profiles.items.length} profiles shown`}>{status.profiles.items.length}</span></div>
-        <p className="muted">Profiles record storage locations and their file access. A configuration match does not confirm connectivity.</p>
+        <p className="muted">Profiles record storage locations and their access settings. Registration or a configuration match does not confirm file access or connectivity.</p>
         {status.profiles.items.length === 0 ? <p className="muted">No storage profiles have been registered.</p> : <ul className="storage-profile-list">
           {status.profiles.items.map((profile) => <li key={profile.id}>
             <div className="storage-profile-heading"><h3><code>{profile.id}</code></h3><span>{providerName[profile.adapterType]}</span></div>
             <dl><div><dt>Configuration revision</dt><dd>{profile.configurationRevision}</dd></div>
-              <div><dt>File access</dt><dd>{accessText[profile.runtimeAccess]}</dd></div>
-              <div><dt>Deployment match</dt><dd>{matchText[profile.bindingMatch]}</dd></div></dl>
+              <div><dt>{profile.adapterType === "s3" ? "Access setting" : "File access"}</dt><dd>{accessText[profile.runtimeAccess]}</dd></div>
+              <div><dt>{profile.adapterType === "s3" ? "Registration" : "Deployment match"}</dt><dd>{matchText[profile.bindingMatch]}</dd></div></dl>
+            {profile.adapterType === "s3" && <p className="muted">File access is not available for this registered profile. Current upload destinations are unchanged.</p>}
           </li>)}
         </ul>}
         {status.profiles.hasMore && <p className="muted">Showing the first {status.profiles.limit} profiles. Additional profiles are registered.</p>}

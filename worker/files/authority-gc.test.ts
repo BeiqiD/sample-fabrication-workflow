@@ -1,7 +1,7 @@
 import worker from "../index";
 import { acceptAndUploadR2Asset } from "../uploads/r2-upload-acceptance";
 import { futureActiveRuntimeDatabase } from "./authority-runtime-test-support";
-import { snapshotFullExportV19 } from "../export-v19-snapshot";
+import { snapshotFullExportV20 } from "../export-v20-snapshot";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { collectBlobGarbage, runBlobGarbageCollection } from "../blob-lifecycle/gc";
@@ -251,7 +251,7 @@ it("releases explicitly detached event and verification bytes while keeping type
     .toEqual([{ asset_file_id: fileId, asset_key: assetKey }, { asset_file_id: fileId, asset_key: assetKey }]);
   expect(sql.prepare("SELECT evidence_file_id,evidence_asset_id FROM state_verifications").get())
     .toEqual({ evidence_file_id: fileId, evidence_asset_id: assetId });
-  const exported = await snapshotFullExportV19(db);
+  const exported = await snapshotFullExportV20(db);
   expect(exported.tables.file_publications[0].state).toBe("retired");
   expect(exported.tables.events.filter(event => ["record", "evidence"].includes(String(event.id)))
     .every(event => event.asset_file_id === fileId)).toBe(true);
