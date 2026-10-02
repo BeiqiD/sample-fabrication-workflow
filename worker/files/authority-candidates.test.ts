@@ -160,16 +160,14 @@ describe("File authority acceptance candidates", () => {
     expect(f.sql.prepare("SELECT count(*) n FROM file_acceptance_candidates").get()!.n).toBe(1);
   });
 
-  it("rejects foreign owners, expired receipts, legacy mode and read-only profiles without mutations", async () => {
-    for (const mode of ["wrong actor", "wrong operation", "expired", "legacy", "read only"]) {
-      const f = await fixture({ overlap: mode !== "legacy", writable: mode !== "read only" });
-      const receipt = await r2Receipt(f, { createdAt: mode === "expired" ? "2020-01-01T00:00:00.000Z" : f.now });
-      const owner = { ...receipt.owner, ...(mode === "wrong actor" ? { actorEmail: "other@example.test" } : {}),
-        ...(mode === "wrong operation" ? { operationId: crypto.randomUUID() } : {}) };
-      const before = stagingRows(f);
-      await expect(stageAuthorityCandidate(f.db, owner, f.now)).rejects.toThrow();
-      expect(stagingRows(f)).toEqual(before); expect(f.network).not.toHaveBeenCalled();
-    }
+  it.each(["wrong actor", "wrong operation", "expired", "legacy", "read only"] as const)("rejects %s without mutations", async mode => {
+    const f = await fixture({ overlap: mode !== "legacy", writable: mode !== "read only" });
+    const receipt = await r2Receipt(f, { createdAt: mode === "expired" ? "2020-01-01T00:00:00.000Z" : f.now });
+    const owner = { ...receipt.owner, ...(mode === "wrong actor" ? { actorEmail: "other@example.test" } : {}),
+      ...(mode === "wrong operation" ? { operationId: crypto.randomUUID() } : {}) };
+    const before = stagingRows(f);
+    await expect(stageAuthorityCandidate(f.db, owner, f.now)).rejects.toThrow();
+    expect(stagingRows(f)).toEqual(before); expect(f.network).not.toHaveBeenCalled();
   });
 
   it("rolls back File and location allocation if the candidate insert fails", async () => {

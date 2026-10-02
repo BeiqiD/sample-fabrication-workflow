@@ -65,3 +65,10 @@
 .storage-encryption-history { list-style: none; margin: 12px 0 0; padding: 0; }
 .storage-encryption-history > li { border-top: 1px solid var(--line); padding: 14px 0; }
 .storage-encryption-history .button { margin-top: 10px; }
+
+.storage-candidate-readiness { margin-top: 16px; }
+.storage-candidate-readiness > section { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
+.storage-candidate-readiness .muted { margin: 10px 0; }
+.storage-evidence-result { margin: 14px 0 8px; font-size: var(--font-body); }
+.storage-profile-list .storage-readiness-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) { .storage-profile-list .storage-readiness-details { grid-template-columns: minmax(0, 1fr); } }

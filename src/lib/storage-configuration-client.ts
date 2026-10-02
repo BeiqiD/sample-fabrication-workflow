@@ -5,6 +5,8 @@ import { checkedReenvelopeStorageCredentialInput, checkedStorageCredentialEnvelo
   checkedStorageCredentialReenvelopeOperationId, checkedStorageCredentialReenvelopeReceipt, type ReenvelopeStorageCredentialInput,
   type StorageCredentialEnvelopeList, type StorageCredentialReenvelopeReceipt } from "../../shared/contracts/storage-credential-reenvelope";
 
+import { checkedStorageCandidateReadinessInput, checkedStorageCandidateReadiness, type StorageCandidateReadiness } from "../../shared/contracts/storage-candidate-readiness";
+
 export interface StorageConfigurationCapability { canManage: boolean; credentialEditingAvailable: boolean }
 export class StorageConfigurationRequestError extends Error {
   constructor(readonly status: number) { super("Storage configuration request failed."); }
@@ -29,6 +31,12 @@ export const storageConfigurationClient = {
   save: async (input: SaveStorageCandidateInput, signal?: AbortSignal): Promise<void> => {
     // No automatic replay: a lost response is reconciled by reading saved drafts.
     await request("/candidates", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(input), signal });
+  },
+  readReadiness: async (input: { profileId: string; expectedRevision: number }, signal?: AbortSignal): Promise<StorageCandidateReadiness> => {
+    const checked = checkedStorageCandidateReadinessInput(input);
+    const result = checkedStorageCandidateReadiness(await request(`/readiness?profileId=${encodeURIComponent(checked.profileId)}&expectedRevision=${checked.expectedRevision}`, { method: "GET", signal }));
+    if (result.profileId !== checked.profileId || result.revision !== checked.expectedRevision) throw new Error("Invalid storage check evidence response.");
+    return result;
   },
   startCheck: async (input: StartStorageCandidateCheckInput, signal?: AbortSignal): Promise<StorageCandidateCheck> => {
     const checked = checkedStartStorageCandidateCheckInput(input);

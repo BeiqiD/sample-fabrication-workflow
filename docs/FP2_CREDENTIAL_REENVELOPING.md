@@ -1,7 +1,8 @@
 # FP2 credential encryption key re-enveloping
 
-Status: implemented and independently reviewed on 2026-10-02, based on deployed candidate
-checks #242 (`cf64d15`). This slice connects the existing AES-GCM rotation helper
+Status: merged and deployed in #243 (`7cb2cc65`) on 2026-10-02 as Worker
+`7f2ea0a7-3331-402b-b1fe-254098c02876`, Cloudflare build
+`94cc649d-4f47-4d6d-beda-0db0638317bf`. This slice connects the existing AES-GCM rotation helper
 to independently authorized administration and atomic persistence. It changes
 the encryption wrapping of a credential, preserving its provider values and
 authenticated profile/configuration identity. It performs no provider requests,
@@ -65,6 +66,13 @@ snapshot, provider context and probe key. Its encryption key must remain
 available. A missing snapshot key leaves cleanup unavailable and does not cause
 a provider request using different credentials.
 
+The read-only [candidate check evidence report](./FP2_CANDIDATE_READINESS.md),
+implemented and in review, compares a successful check with the complete current
+envelope. Re-enveloping makes the old snapshot historical evidence within the
+same configuration; an authenticated `already_current` operation preserves an
+exact match. This distinction changes neither the immutable check receipt nor
+its captured-context cleanup behavior.
+
 This panel is not proof that an old key can be removed. Key retirement must also
 account for retained check snapshots and protected installation database backups.
 Keep the matching deployment keyring with each protected backup that must remain
@@ -102,7 +110,8 @@ The 90 focused checks passed, alongside Worker TypeScript and production build.
 Native D1 confirms `changes()` fences the actual preceding UPDATE inside a batch:
 distinct competing IDs yield one 200 and one 409, while identical concurrent IDs
 return the same receipt and advance the envelope revision once. Required CI and
-publication remain tracked through the PR.
+the Cloudflare deployment passed; the live configuration page retained the
+expected read-only administrator boundary and native R2 upload roles.
 
 The current live actor is read-only. Real administrator re-enveloping and real
 S3 candidate acceptance still require the deployment-managed administrator
