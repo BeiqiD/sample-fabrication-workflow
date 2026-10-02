@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { Log, LogLevel, Miniflare } from "miniflare";
+import { Log, LogLevel, Miniflare, Response as MiniflareResponse } from "miniflare";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -28,18 +28,16 @@ async function fixture() {
     import {startStorageCandidateCheck,cleanupStorageCandidateCheck} from './candidate-check-service';
     import {activateFileAuthority} from '../files/authority-activation';
     import {prepareR2StorageRoleDefaults} from '../files/storage-role-defaults';
-    const objects = new Map(), calls = [], gates = new Map();
+    const objects = new Map(), calls = [];
     let denyDelete = false;
-    async function barrier(group) {
-      let gate=gates.get(group);
-      if(!gate){let release;const promise=new Promise(resolve=>release=resolve);gate={count:0,promise,release};gates.set(group,gate);}
-      if(++gate.count===2){gates.delete(group);gate.release();}
-      await gate.promise;
+    async function barrier(env,group) {
+      const response=await env.QUALIFICATION_GATE.fetch('https://qualification-gate.test/',{method:'POST',body:group});
+      if(response.status!==204)throw new Error('Native qualification gate did not admit both requests');
     }
     export default {async fetch(request, env) {
       const input=await request.json(), actor='admin@example.test';
       const serviceEnv={...env,...('keyring' in input?{STORAGE_CREDENTIAL_KEYRING:JSON.stringify(input.keyring)}:{})};
-      if(input.raceGroup)serviceEnv.DB={prepare:env.DB.prepare.bind(env.DB),batch:async statements=>{await barrier(input.raceGroup);return env.DB.batch(statements);}};
+      if(input.raceGroup)serviceEnv.DB={prepare:env.DB.prepare.bind(env.DB),batch:async statements=>{await barrier(env,input.raceGroup);return env.DB.batch(statements);}};
       const options={fetch:async request=>{
         calls.push({method:request.method,url:request.url,authorization:request.headers.get('authorization')});
         if(request.method==='PUT'){objects.set(request.url,await request.arrayBuffer());return new Response(null,{status:200});}
@@ -79,10 +77,32 @@ async function fixture() {
       }catch(error){return Response.json({error:error.message},{status:error.status||503});}
     }};`, resolveDir: fileURLToPath(new URL(".", import.meta.url)), loader: "ts" },
     bundle: true, format: "esm", platform: "browser", write: false });
+  // Shared gates belong to Node, while each Worker request awaits its own
+  // service-binding I/O. A Worker-global Promise would cross request contexts.
+  const gates = new Map<string, { arrivals: number; ready: Promise<boolean>; release: (admitted: boolean) => void;
+    timer: ReturnType<typeof setTimeout> }>();
   const native = new Miniflare({ modules: true, script: bundle.outputFiles[0].text, compatibilityDate: "2026-07-20", d1Databases: ["DB"],
+    serviceBindings: { QUALIFICATION_GATE: async request => {
+      const group = await request.text();
+      if (request.method !== "POST" || !group || group.length > 512) return new MiniflareResponse(null, { status: 400 });
+      let gate = gates.get(group);
+      if (!gate) {
+        let release!: (admitted: boolean) => void;
+        const ready = new Promise<boolean>(resolve => { release = resolve; });
+        gate = { arrivals: 0, ready, release, timer: setTimeout(() => release(false), 10_000) };
+        gates.set(group, gate);
+      }
+      if (++gate.arrivals > 2) return new MiniflareResponse(null, { status: 409 });
+      if (gate.arrivals === 2) { clearTimeout(gate.timer); gate.release(true); }
+      return new MiniflareResponse(null, { status: await gate.ready ? 204 : 504 });
+    } },
     log: new Log(LogLevel.ERROR), bindings: { AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: "admin@example.test",
       STORAGE_CREDENTIAL_KEYRING: JSON.stringify(initialKeyring),
       R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "cloudflare-r2", accountId: "a".repeat(32), bucketName: "native-fixture-bucket" }) } });
+  const dispose = async () => {
+    for (const gate of gates.values()) { clearTimeout(gate.timer); gate.release(false); }
+    await native.dispose();
+  };
   try {
     const db = await native.getD1Database("DB"), directory = new URL("../../migrations/", import.meta.url);
     for (const filename of readdirSync(directory).filter(filename => filename.endsWith(".sql")).sort())
@@ -96,8 +116,8 @@ async function fixture() {
       return saved.body as StorageCandidate;
     };
     const payload = (ref: string) => db.prepare("SELECT * FROM system_storage_credential_payloads WHERE credential_ref=?").bind(ref).first<Record<string, string | number>>();
-    return { db, call, save, payload, dispose: () => native.dispose() };
-  } catch (error) { await native.dispose(); throw error; }
+    return { db, call, save, payload, gateArrivals: (group: string) => gates.get(group)?.arrivals, dispose };
+  } catch (error) { await dispose(); throw error; }
 }
 function rotation(saved: StorageCandidate, operationId: string, expectedEnvelopeRevision = 1) {
   return { operationId, profileId: saved.profileId, revision: saved.revision, credentialRef: saved.credentials.ref, expectedEnvelopeRevision };
@@ -164,6 +184,7 @@ describe("credential re-enveloping with native Worker crypto and D1", () => {
       // Both requests finish crypto and reach their prepared transaction before
       // either native D1 batch starts, so this exercises the final SQL CAS.
       const competing = await Promise.all([one, two].map(command => f.call({ action: "reenvelope", command, keyring: nextKeyring, raceGroup: "same-old-envelope" })));
+      expect(f.gateArrivals("same-old-envelope")).toBe(2);
       expect(competing.map(result => result.status).sort()).toEqual([200, 409]);
       const winner = competing.find(result => result.status === 200)!;
       expect(checkedStorageCredentialReenvelopeReceipt(winner.body)).toMatchObject({ outcome: "reenveloped", previousEnvelopeRevision: 1, envelopeRevision: 2 });
@@ -181,6 +202,7 @@ describe("credential re-enveloping with native Worker crypto and D1", () => {
       const sameId = rotation(saved, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 3);
       const fourthKeyring = { version: 1, currentKeyId: "fixture-next", keys: { "fixture-next": nextKey, "fixture-third": thirdKey } };
       const reconciled = await Promise.all([0, 1].map(() => f.call({ action: "reenvelope", command: sameId, keyring: fourthKeyring, raceGroup: "same-operation-id" })));
+      expect(f.gateArrivals("same-operation-id")).toBe(2);
       expect(reconciled.map(result => result.status)).toEqual([200, 200]); expect(reconciled[0].body).toEqual(reconciled[1].body);
       expect(checkedStorageCredentialReenvelopeReceipt(reconciled[0].body)).toMatchObject({ previousEnvelopeRevision: 3, envelopeRevision: 4, outcome: "reenveloped" });
       expect(await f.payload(saved.credentials.ref)).toMatchObject({ envelope_revision: 4, key_id: "fixture-next" });

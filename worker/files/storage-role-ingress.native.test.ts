@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { Log, LogLevel, Miniflare } from "miniflare";
+import { Log, LogLevel, Miniflare, Response as MiniflareResponse } from "miniflare";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -27,16 +27,15 @@ const app = new Hono();
 app.onError(handleError);
 app.use('*', async (c,next)=>{c.set('userEmail','native-owner@example.test');await next();});
 app.route('/',imageRoutes);app.route('/',projectRoutes);app.route('/',metrologyRoutes);app.route('/',importRoutes);
-const stats={puts:[],gets:[],heads:[],acceptedBeforePut:[],lostAcceptanceAcknowledgements:0},gates=new Map();
+const stats={puts:[],gets:[],heads:[],acceptedBeforePut:[],lostAcceptanceAcknowledgements:0};
 const acceptanceSql=sql=>/INSERT INTO (?:r2_upload_requests|metrology_reference_upload_requests|imports)\\b/.test(sql);
 async function activate(db){
   const cutoff=await db.prepare('SELECT c.epoch,r.incarnation FROM file_shadow_control c JOIN file_shadow_runtime_guard r ON r.singleton=c.singleton').first();
   return activateFileAuthority(db,'native-operator@example.test',{requestId:crypto.randomUUID(),expectedEpoch:cutoff.epoch,expectedShadowIncarnation:cutoff.incarnation});
 }
-async function barrier(group){
-  let gate=gates.get(group);
-  if(!gate){let release;const promise=new Promise(resolve=>release=resolve);gate={count:0,promise,release};gates.set(group,gate);}
-  if(++gate.count===2){gates.delete(group);gate.release();}await gate.promise;
+async function barrier(env,group){
+  const response=await env.QUALIFICATION_GATE.fetch('https://qualification-gate.test/',{method:'POST',body:group});
+  if(response.status!==204)throw new Error('Native qualification gate did not admit both requests');
 }
 async function sha(bytes){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(n=>n.toString(16).padStart(2,'0')).join('');}
 export default {async fetch(request,env,ctx){
@@ -57,7 +56,7 @@ export default {async fetch(request,env,ctx){
   let lost=false,activated=false;
   async function beforeAcceptance(){
     if(input.activateBeforeAcceptance&&!activated){activated=true;await activate(rawDb);}
-    if(input.raceGroup)await barrier(input.raceGroup);
+    if(input.raceGroup)await barrier(env,input.raceGroup);
   }
   function database(native){
     function statement(sql,inner){return {sql,inner,
@@ -115,8 +114,30 @@ function bundledWorker() {
     bundle: true, format: "esm", platform: "browser", write: false }).then(result => result.outputFiles[0].text);
 }
 async function fixture(active = true) {
+  // Keep shared synchronization in Node. Each Worker remains active through
+  // its own outbound service fetch rather than another request's Promise.
+  const gates = new Map<string, { arrivals: number; ready: Promise<boolean>; release: (admitted: boolean) => void;
+    timer: ReturnType<typeof setTimeout> }>();
   const native = new Miniflare({ modules: true, script: await bundledWorker(), compatibilityDate: "2026-07-20",
+    serviceBindings: { QUALIFICATION_GATE: async request => {
+      const group = await request.text();
+      if (request.method !== "POST" || !group || group.length > 512) return new MiniflareResponse(null, { status: 400 });
+      let gate = gates.get(group);
+      if (!gate) {
+        let release!: (admitted: boolean) => void;
+        const ready = new Promise<boolean>(resolve => { release = resolve; });
+        gate = { arrivals: 0, ready, release, timer: setTimeout(() => release(false), 10_000) };
+        gates.set(group, gate);
+      }
+      if (++gate.arrivals > 2) return new MiniflareResponse(null, { status: 409 });
+      if (gate.arrivals === 2) { clearTimeout(gate.timer); gate.release(true); }
+      return new MiniflareResponse(null, { status: await gate.ready ? 204 : 504 });
+    } },
     d1Databases: ["DB"], r2Buckets: ["BUCKET"], log: new Log(LogLevel.ERROR), bindings: { R2_BOOTSTRAP_NAMESPACE: namespace } });
+  const dispose = async () => {
+    for (const gate of gates.values()) { clearTimeout(gate.timer); gate.release(false); }
+    await native.dispose();
+  };
   try {
     const db = await native.getD1Database("DB"), directory = new URL("../../migrations/", import.meta.url);
     for (const filename of readdirSync(directory).filter(filename => filename.endsWith(".sql")).sort())
@@ -129,8 +150,8 @@ async function fixture(active = true) {
     const rows = async (table: string) => (await db.prepare(`SELECT * FROM ${table}`).all()).results;
     const stats = async () => (await call({ action: "stats" })).body as { puts: string[]; gets: string[]; heads: string[];
       acceptedBeforePut: Array<{ receipts: unknown[]; defaults: unknown[] }>; lostAcceptanceAcknowledgements: number };
-    return { db, call, rows, stats, dispose: () => native.dispose() };
-  } catch (error) { await native.dispose(); throw error; }
+    return { db, call, rows, stats, gateArrivals: (group: string) => gates.get(group)?.arrivals, dispose };
+  } catch (error) { await dispose(); throw error; }
 }
 
 describe("fresh role acceptance with native Worker D1 and R2", () => {
@@ -217,6 +238,7 @@ describe("fresh role acceptance with native Worker D1 and R2", () => {
       for (const kind of ingresses) {
         const requestId = crypto.randomUUID(), before = await f.stats();
         const results = await Promise.all([0, 1].map(() => f.call({ kind, requestId, raceGroup: `${kind}:${requestId}` })));
+        expect(f.gateArrivals(`${kind}:${requestId}`)).toBe(2);
         expect(results.filter(result => result.status === 201)).toHaveLength(1);
         const replay = results.find(result => result.status !== 201)!;
         expect(kind === "import" ? [200, 409] : [200, 202]).toContain(replay.status);
