@@ -94,9 +94,9 @@ drafts. Saving a draft does not contact that provider or change upload defaults.
 
 1. Add a new key to the keyring while retaining the old keys, then select the new
    key ID. New envelopes use that key and a fresh nonce.
-2. A future privileged rotation operation can re-envelop existing credentials
-   using exact row/envelope revisions. The current helpers support this operation;
-   this slice does not expose an installation-wide rotation command.
+2. The [administrator re-enveloping operation](./FP2_CREDENTIAL_REENVELOPING.md)
+   maintains current and historical descriptor payloads using exact row and
+   complete-envelope comparisons, with an immutable operation receipt.
 3. Remove an old key only after checking online envelopes, retained candidate-check
    snapshots and the protected database copies that must remain recoverable.
 
@@ -106,9 +106,10 @@ unavailable; a key cannot be reconstructed from its ciphertext.
 
 Ordinary Sample/Project content packages exclude system configuration, audit,
 credential descriptors, root keys and credential payloads. The writer continues
-V19: it projects seven explicitly classified system tables out of the content
+V19: it projects eight explicitly classified system tables out of the content
 schema artifact: the five configuration tables, two
-[candidate-check tables](./FP2_CANDIDATE_STORAGE_CHECKS.md) and their owned schema
+[candidate-check tables](./FP2_CANDIDATE_STORAGE_CHECKS.md), one
+[re-enveloping receipt table](./FP2_CREDENTIAL_REENVELOPING.md) and their owned schema
 objects. The frozen V19
 table catalog, validators and content-schema fingerprint are unchanged. Unknown
 application tables remain visible and still fail the reviewed fingerprint.
@@ -116,7 +117,7 @@ Full deployment migration observation continues to include the complete schema.
 Shadow inspection uses the same content projection so candidate configuration
 does not invalidate existing content evidence.
 
-Isolated content recovery omits the exact system-only `0014` and `0015` migrations
+Isolated content recovery omits the exact system-only `0014`, `0015` and `0016` migrations
 as well as the earlier deployment-only test cleanup. It neither restores encrypted
 payloads nor installs candidate administration tables; content recovery keeps execution
 paused as before. This content ZIP is not an installation credential backup.

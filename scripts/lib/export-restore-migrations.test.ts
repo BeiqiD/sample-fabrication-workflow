@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { planExportRestoreMigrations } from "./export-restore";
 import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
 
-it("keeps V7–V19 content upgrades while excluding reviewed cleanup and installation configuration/check evidence", () => {
+it("keeps V7–V19 content upgrades while excluding reviewed cleanup and installation configuration, check evidence and key-maintenance receipts", () => {
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
   const names = readdirSync(new URL("../../migrations/", import.meta.url)).filter((name) => name.endsWith(".sql")).sort();
   expect(names.at(-1)).toBe(SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.at(-1));
@@ -18,6 +18,6 @@ it("keeps V7–V19 content upgrades while excluding reviewed cleanup and install
   expect(planExportRestoreMigrations(legacyPrefix, 8)).toEqual({
     schemaNames: legacyPrefix, forwardNames: legacyPrefix.slice(1),
   });
-  const otherMigration = "0015_unreviewed_cleanup.sql";
+  const otherMigration = "0016_unreviewed_cleanup.sql";
   expect(planExportRestoreMigrations([...names, otherMigration], 17).schemaNames).toContain(otherMigration);
 });

@@ -1,7 +1,8 @@
 # FP2 bounded candidate storage checks
 
-Status: implemented and independently reviewed on 2026-10-02, based on merged #241
-(`cb63892`). No live privileged provider check is qualified yet. This slice adds
+Status: merged and deployed in #242 (`cf64d15`) on 2026-10-02 as Worker
+`015b3540-1c17-4b0f-b2cb-0ca5dfe276a9`, Cloudflare build
+`227c5a0b-dba7-4d80-bda8-d142f8268b2b`. No live privileged provider check is qualified yet. This slice adds
 administrator-triggered S3 checks to the deployed
 [configuration foundation](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md).
 It does not activate a provider, select role defaults or register an accepted File
@@ -98,10 +99,11 @@ The encrypted snapshot in a check row is protected installation material, just
 like the configuration credential payloads. Key retention must include these
 snapshots when cleanup may still be needed.
 
-V19 stays frozen. Content schema projection excludes exactly seven system tables
-and their owned schema objects: these two and the existing five configuration
-tables. Unknown application objects remain subject to the existing fingerprint. Isolated V7–V19
-content recovery skips the exact installation-only `0014` and `0015` migrations,
+V19 stays frozen. With [credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md),
+content schema projection excludes exactly eight system tables and their owned
+schema objects: these two, the five configuration tables and the re-enveloping
+receipt table. Unknown application objects remain subject to the existing fingerprint. Isolated V7–V19
+content recovery skips the exact installation-only `0014`, `0015` and `0016` migrations,
 restores neither credentials nor checks and keeps execution paused. A content ZIP
 is not an installation configuration or credential backup.
 
@@ -129,8 +131,10 @@ The native integration uses Worker AES-GCM/DigestStream and real D1, with an
 in-memory S3 fixture. It confirms active-profile conflict returns 409, two
 independent checks perform only two PUTs, and cleanup retains the original
 credential/region after a candidate edit. TypeScript and the production-artifact
-build also passed. Required repository CI and publication are followed through
-the PR; fixture qualification does not replace real-provider acceptance.
+build also passed. All required repository checks and both merge CI jobs passed, and the Cloudflare
+build succeeded. The live configuration page displayed the S3-testing description
+and expected read-only administrator view; Storage Settings retained R2 for both
+roles. Fixture qualification does not replace real-provider acceptance.
 
 Activation remains a separate slice. It must establish actual provider account
 and namespace identity before native profile admission; a passed probe is not
