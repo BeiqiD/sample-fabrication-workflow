@@ -97,7 +97,11 @@ is merged and deployed in #247 (`07a7d8f`). It pairs restricted native identity 
 admission evidence with migration `0017` and V20 recovery; database guards forbid
 S3 locations, non-read-only state and S3 defaults. No native S3 File reader ships
 in that slice. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
-prepares exact installation binding without production File routing. Complete
+is merged and deployed in #248 (`889ef20`), preparing exact installation binding
+without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.md)
+uses the exact opened deletion capability and checks claim/incarnation/retention
+again before I/O and completion. This runtime change grants no native S3 cleanup
+or default change. Complete
 byte-access/acceptance/lifecycle support and real-provider qualification precede
 atomic activation and independent defaults.
 The deployed content writer is V20. V19 and V20 both

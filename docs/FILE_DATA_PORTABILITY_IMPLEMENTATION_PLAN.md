@@ -104,7 +104,11 @@ with immutable, nonsecret `storage_profile_admissions` receipts; V20 export and
 isolated recovery preserve them together. Database guards prohibit S3 locations,
 non-read-only S3 profiles and S3 defaults. This slice supplies no native S3 File
 reader or credential-access binding. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
-now prepares exact installation binding without production File routing.
+is merged and deployed in #248 (`889ef20`), preparing exact installation binding
+without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.md)
+now uses the opened R2/SWITCHdrive deletion capability and fresh primary
+claim/incarnation/retention fences, including completion after an in-flight
+request. It requires no schema/archive change and grants no native S3 deletion.
 Complete byte-access/acceptance/lifecycle support with its paired recovery
 contract follows before atomic activation and
 independent defaults; real-provider qualification remains required.
