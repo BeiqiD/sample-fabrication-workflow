@@ -3,12 +3,12 @@
 Status: long-horizon direction and compatibility with the active FP track;
 not authorization to implement later capabilities
 
-Last reviewed: 2026-10-02 — accepted FP1, deployed FP2 configuration/S3 transport,
+Last reviewed: 2026-10-03 — accepted FP1, deployed FP2 configuration/S3 transport,
 deployed candidate checks #242, credential re-enveloping #243 and shared fresh
 acceptance role selection #244. Candidate check evidence #245 (`5992307`) is
 merged and deployed. AWS S3 bucket-owner condition #246 (`4d7d942`) is deployed.
-Restricted native AWS S3 profile admission with paired V20 recovery is under
-implementation and review; real-provider acceptance remains pending
+Restricted native AWS S3 profile admission with paired V20 recovery is merged
+and deployed in #247 (`07a7d8f`); real-provider acceptance remains pending
 
 The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
 The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
@@ -51,13 +51,14 @@ exercised on the deployment.
 
 The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
 #246 (`4d7d942`). Its optional AWS-specific request condition is a qualification
-prerequisite. The next
+prerequisite. The
 [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
-is under implementation and review with migration `0017` and V20 recovery. It
+is merged and deployed in #247 (`07a7d8f`) with migration `0017` and V20 recovery. It
 registers a restricted native identity and portable admission evidence while
 prohibiting S3 File locations, non-read-only state and defaults. It supplies no
-native S3 File byte access. Complete native byte-access/acceptance/lifecycle
-support and real-provider qualification precede atomic activation and independent
+native S3 File byte access. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
+prepares exact installation binding without production File routing. Complete
+native byte-access/acceptance/lifecycle support and real-provider qualification precede atomic activation and independent
 defaults. V20 carries nonsecret native registration receipts while excluding the
 installation's candidate/check/credential payloads.
 
@@ -79,7 +80,7 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP2 native identity and registration | FP1 original-file and V19 live acceptance passed. FP2 candidate settings through evidence #245 and AWS owner condition #246 are deployed. Restricted native S3 profile admission with `0017`/V20 is under implementation and review; it supplies no S3 File byte access or default change. Real-provider acceptance remains pending. Authority remains Active/Enabled with 4/4 resolved references. |
+| Now | FP2 native identity and registration | FP1 original-file and V19 live acceptance passed. FP2 candidate settings through evidence #245 and AWS owner condition #246 are deployed. Restricted native S3 profile admission with `0017`/V20 is merged and deployed in #247 (`07a7d8f`); internal registered read transport now prepares exact installation binding without production File routing; it supplies no S3 File byte access or default change. Real-provider acceptance remains pending. Authority remains Active/Enabled with 4/4 resolved references. |
 | Next | FP2 byte runtime, activation and role defaults | Complete provider-bound byte access, accepted writes and lifecycle/GC with paired recovery. After real candidate qualification, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep installation configuration out of ordinary content packages. |
 | Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated provider configurations; accepted history and recovery retain their existing identities. |
 | Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |

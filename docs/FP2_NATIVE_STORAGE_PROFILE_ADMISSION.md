@@ -1,8 +1,10 @@
 # FP2 native AWS S3 profile admission
 
-Status: implementation and review in progress, based on merged and deployed
-#246 (`4d7d942`). This slice pairs migration `0017` with V20 content export and
-isolated recovery. Final validation and deployment evidence belong to its PR.
+Status: merged and deployed in #247 (`07a7d8f`) after #246 (`4d7d942`). Migration
+`0017` and V20 content export/isolated recovery shipped together. All 14 gates,
+2,498 source tests and 625 mounted tests passed. Online page/default checks
+passed; the live V20 export reported all 15 files included, but browser download
+and isolated restore were not completed and were explicitly waived by the owner.
 
 An independently authorized administrator can register a qualified AWS S3
 identity in the native File storage registry. Registration creates an immutable
@@ -105,7 +107,10 @@ be repeated as an unrelated rehearsal. A fresh live V20 archive check depends on
 the deployed capability and available platform permissions; any outstanding live
 acceptance is recorded explicitly rather than inferred from fixtures.
 
-Next, implement the complete S3 byte-access and acceptance/lifecycle boundary,
+The [registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md) now prepares
+exact installation binding without connecting production File readers or
+granting locations, writes or defaults. Next, implement the complete S3
+byte-access and acceptance/lifecycle boundary,
 including exact runtime credential/configuration binding, readers, writers,
 publication, cleanup/GC and its paired archive/recovery support. Atomic activation
 and independent defaults follow that support and real-provider qualification.

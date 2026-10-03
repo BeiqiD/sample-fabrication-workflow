@@ -93,7 +93,7 @@ The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), deployed in
 #246 (`4d7d942`), binds an optional AWS owner condition into the full candidate
 configuration and signed provider requests. The next
 [native profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice is
-under implementation and review. Its separate administrator action uses exact
+merged and deployed in #247 (`07a7d8f`). Its separate administrator action uses exact
 qualified evidence to register a restricted S3 identity and pairs that evidence
 with V20 recovery. The report still grants no admission or activation by itself;
 `canActivate` remains false. Native S3 File byte access and independent defaults
