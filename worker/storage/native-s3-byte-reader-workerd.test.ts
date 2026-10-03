@@ -33,15 +33,17 @@ it("binds native workerd reads to admitted D1 history, fences a wrapping race an
       }};
       const candidate={expectedRevision:null,label:'Native reader',namespace,credentials:{mode:'replace',
         value:{accessKeyId:'fixture-old-access',secretAccessKey:'fixture-old-secret'}}};
-      const saved=await saveStorageCandidate(env,candidate,actor);
-      const checked=await startStorageCandidateCheck(env,{checkId:crypto.randomUUID(),profileId:saved.profileId,expectedRevision:1},actor,provider);
-      const admitted=await registerStorageProfile(env,{operationId:crypto.randomUUID(),profileId:saved.profileId,expectedRevision:1,
+      const initial=await saveStorageCandidate(env,candidate,actor);
+      const saved=await saveStorageCandidate(env,{...candidate,profileId:initial.profileId,expectedRevision:1,
+        label:'Revised before registration',credentials:{mode:'retain'}},actor);
+      const checked=await startStorageCandidateCheck(env,{checkId:crypto.randomUUID(),profileId:saved.profileId,expectedRevision:2},actor,provider);
+      const admitted=await registerStorageProfile(env,{operationId:crypto.randomUUID(),profileId:saved.profileId,expectedRevision:2,
         expectedEnvelopeRevision:1,checkId:checked.id},actor);
       calls.length=0;const url='https://s3.us-east-1.amazonaws.com/native-reader-fixture/research/files/known';
       objects.set(url,new TextEncoder().encode('known bytes').buffer);
       const profile={profileId:admitted.nativeProfileId,configurationRevision:1};
       const reader=nativeS3ByteReader(env,profile,provider),constructedCalls=calls.length;
-      await saveStorageCandidate(env,{...candidate,profileId:saved.profileId,expectedRevision:1,
+      await saveStorageCandidate(env,{...candidate,profileId:saved.profileId,expectedRevision:2,
         namespace:{...namespace,forcePathStyle:false,expectedBucketOwner:'999988887777'},
         credentials:{mode:'replace',value:{accessKeyId:'fixture-new-access',secretAccessKey:'fixture-new-secret'}}},actor);
       const observed=await reader.read('files/known');
@@ -53,7 +55,7 @@ it("binds native workerd reads to admitted D1 history, fences a wrapping race an
         return {prepare:sql=>({bind:(...values)=>({first:async()=>{
           if(sql.startsWith('SELECT 1 AS bound')&&!raced){
             raced=true;await reenvelopeStoredStorageCredential(env,{operationId:crypto.randomUUID(),profileId:saved.profileId,
-              revision:1,credentialRef:saved.credentials.ref,expectedEnvelopeRevision:1},actor);
+              revision:2,credentialRef:saved.credentials.ref,expectedEnvelopeRevision:1},actor);
           }return session.prepare(sql).bind(...values).first();
         }})})};
       }}};
@@ -63,7 +65,7 @@ it("binds native workerd reads to admitted D1 history, fences a wrapping race an
       const afterRotation=await reader.stat('files/known');
       const absent=nativeS3ByteReader({...env,DB:{prepare:()=>{throw new Error('Installation state absent');}}},profile,provider);
       const beforeAbsent=calls.length,restored=await absent.read('files/known'),restoreCalls=calls.length-beforeAbsent;
-      return Response.json({profile,constructedCalls,text,race,raceCalls,afterRotation,restored,restoreCalls,calls,constraints,unexpectedFetches});
+      return Response.json({profile,admittedRevision:admitted.revision,constructedCalls,text,race,raceCalls,afterRotation,restored,restoreCalls,calls,constraints,unexpectedFetches});
     }};`, resolveDir: fileURLToPath(new URL(".", import.meta.url)), loader: "ts" },
     bundle: true, format: "esm", platform: "browser", write: false });
   const native = new Miniflare({ modules: true, script: bundle.outputFiles[0].text, compatibilityDate: "2026-07-20",
@@ -76,7 +78,7 @@ it("binds native workerd reads to admitted D1 history, fences a wrapping race an
     const response = await native.dispatchFetch("https://fixture.test", { method: "POST", body: JSON.stringify({ newRing, newOnly }) });
     expect(response.status).toBe(200);
     const result = await response.json() as { profile: { profileId: string }; calls: unknown[]; constraints: string[] };
-    expect(result).toMatchObject({ constructedCalls: 0, text: "known bytes", race: { outcome: "unavailable" }, raceCalls: 0,
+    expect(result).toMatchObject({ admittedRevision: 2, constructedCalls: 0, text: "known bytes", race: { outcome: "unavailable" }, raceCalls: 0,
       afterRotation: { outcome: "available", byteSize: 11 }, restored: { outcome: "unavailable" }, restoreCalls: 0, unexpectedFetches: 0 });
     expect(result.calls).toEqual(["GET", "HEAD"].map(method => ({ method,
       url: "https://s3.us-east-1.amazonaws.com/native-reader-fixture/research/files/known", owner: "111122223333", oldCredential: true })));
