@@ -61,7 +61,7 @@ edit. The provider fixture enforces the owner condition but is not live AWS
 acceptance. Real provider qualification remains outstanding.
 
 The [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md)
-slice is now under implementation and review. It registers a canonical commercial
+slice is merged and deployed in #247 (`07a7d8f`). It registers a canonical commercial
 AWS account/bucket/root identity as `read_only` and pairs native admission evidence
 with V20 recovery. It supplies no native S3 File reader and prohibits S3 locations,
 write admission and defaults. Complete byte-access/acceptance/lifecycle support

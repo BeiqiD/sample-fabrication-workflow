@@ -151,7 +151,7 @@ AWS owner condition is captured with each full configuration and signed on all
 four object operations; accepted check cleanup retains its captured condition.
 It introduces no migration or activation and makes no generic S3 identity claim.
 The [native profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice is
-under implementation and review: exact current owner-qualified successful
+merged and deployed in #247 (`07a7d8f`): exact current owner-qualified successful
 evidence and clear cleanup allow administrator registration of a restricted AWS
 S3 identity. Its migration and V20 recovery preserve native admission evidence;
 they enable neither S3 File access nor upload-default selection.

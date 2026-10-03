@@ -8,7 +8,7 @@ and shared fresh acceptance role selection #244. Read-only
 #245 (`5992307`). The optional AWS
 [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in #246
 (`4d7d942`). Restricted [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md)
-with `0017`/V20 recovery is under implementation and review. Complete native
+with `0017`/V20 recovery is merged and deployed in #247 (`07a7d8f`). Complete native
 byte-access/acceptance/lifecycle support and real-provider qualification precede
 activation and independent defaults.
 The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) supplies the first bounded
@@ -96,15 +96,17 @@ state changes. The optional AWS
 [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), deployed in #246
 (`4d7d942`), is part of the full candidate
 configuration and signed object requests, without changing physical address
-digests, native admission or V19. The next
+digests, native admission or V19. The
 [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
-is under implementation and review. Migration `0017` registers canonical
+is merged and deployed in #247 (`07a7d8f`). Migration `0017` registers canonical
 commercial AWS account/bucket/root identities as restricted `read_only` profiles
 with immutable, nonsecret `storage_profile_admissions` receipts; V20 export and
 isolated recovery preserve them together. Database guards prohibit S3 locations,
 non-read-only S3 profiles and S3 defaults. This slice supplies no native S3 File
-reader or credential-access binding. Complete byte-access/acceptance/lifecycle
-support with its paired recovery contract follows before atomic activation and
+reader or credential-access binding. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
+now prepares exact installation binding without production File routing.
+Complete byte-access/acceptance/lifecycle support with its paired recovery
+contract follows before atomic activation and
 independent defaults; real-provider qualification remains required.
 Installation candidate configuration, checks and credentials stay outside
 ordinary V19 and V20 content packages; V20 native admission receipts contain only

@@ -62,10 +62,13 @@ keeps activation unavailable.
 The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
 #246 (`4d7d942`). The next
 [native profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice is
-under implementation and review with paired V20 recovery. It registers restricted
-S3 identities but prohibits S3 File locations, write admission and role defaults.
-Complete native byte-access/acceptance/lifecycle support and real-provider
-qualification precede atomic activation and independent role defaults.
+merged and deployed in #247 (`07a7d8f`) with paired V20 recovery. It registers
+restricted S3 identities but prohibits S3 File locations, write admission and
+role defaults.
+[Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md) prepares exact
+installation binding without production File routing. Complete native
+byte-access/acceptance/lifecycle support and real-provider qualification precede
+atomic activation and independent role defaults.
 
 ## Qualification
 
