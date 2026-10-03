@@ -57,7 +57,10 @@ is merged and deployed in #247 (`07a7d8f`) with migration `0017` and V20 recover
 registers a restricted native identity and portable admission evidence while
 prohibiting S3 File locations, non-read-only state and defaults. It supplies no
 native S3 File byte access. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
-prepares exact installation binding without production File routing. Complete
+is merged and deployed in #248 (`889ef20`), preparing exact installation binding
+without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.md)
+removes legacy deletion reconstruction and fences paused/replaced executors and
+late holds without changing the schema or granting native S3 cleanup. Complete
 native byte-access/acceptance/lifecycle support and real-provider qualification precede atomic activation and independent
 defaults. V20 carries nonsecret native registration receipts while excluding the
 installation's candidate/check/credential payloads.

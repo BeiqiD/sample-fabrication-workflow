@@ -178,6 +178,106 @@ describe("active File location garbage collection", () => {
     expect(f.remove).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps an acknowledged DELETE uncertain when execution is paused before finalization", async () => {
+    const f = fixture();
+    await runFileGarbageCollection(f.env, NOW);
+    f.remove.mockImplementationOnce(async () => {
+      f.sql.exec("UPDATE file_authority_runtime_guard SET enabled=0");
+    });
+    await expect(runFileGarbageCollection(f.env, later(7))).resolves.toEqual({
+      orphanCandidatesMarked: 0, imageDeleted: 0, managedDeleted: 0, failures: 1,
+    });
+    expect(f.remove).toHaveBeenCalledExactlyOnceWith("owned/file");
+    expect(f.ledger()).toMatchObject({ state: "deleting", attempt_count: 1, deleted_at: null, last_error: null });
+    expect((await runFileGarbageCollection(f.env, later(7, 16))).failures).toBe(0);
+    expect(f.head).not.toHaveBeenCalled();
+    expect(f.remove).toHaveBeenCalledOnce();
+  });
+
+  it.each(["HEAD", "DELETE"] as const)("rejects an old %s result after execution resumes with a fresh incarnation", async phase => {
+    const f = fixture();
+    await runFileGarbageCollection(f.env, NOW);
+    const replaceExecution = () => {
+      // These transitions use the installed local-runtime admission guard. A
+      // paused active installation can explicitly admit a fresh incarnation.
+      f.sql.exec("UPDATE file_authority_runtime_guard SET enabled=0");
+      f.sql.prepare("UPDATE file_authority_runtime_guard SET enabled=1,incarnation='gc-next',updated_at=?")
+        .run(later(7, 16).toISOString());
+    };
+    if (phase === "HEAD") {
+      f.remove.mockRejectedValueOnce(new Error("uncertain fixture DELETE"));
+      expect((await runFileGarbageCollection(f.env, later(7))).failures).toBe(1);
+      f.head.mockImplementationOnce(async () => { replaceExecution(); return null; });
+    } else f.remove.mockImplementationOnce(async () => { replaceExecution(); });
+    const result = await runFileGarbageCollection(f.env, phase === "HEAD" ? later(7, 16) : later(7));
+    expect(result).toMatchObject({ imageDeleted: 0, managedDeleted: 0, failures: 1 });
+    expect(f.sql.prepare("SELECT incarnation,enabled FROM file_authority_runtime_guard").get())
+      .toEqual({ incarnation: "gc-next", enabled: 1 });
+    expect(f.ledger()).toMatchObject({ state: "deleting", attempt_count: phase === "HEAD" ? 2 : 1,
+      deleted_at: null, last_error: null });
+    expect(f.remove).toHaveBeenCalledExactlyOnceWith("owned/file");
+    expect(f.head).toHaveBeenCalledTimes(phase === "HEAD" ? 1 : 0);
+    // Only a later run under the new incarnation can reconcile the original
+    // location, using a stale-lease HEAD without repeating its DELETE.
+    expect((await runFileGarbageCollection(f.env, later(7, 32))).imageDeleted).toBe(1);
+    expect(f.ledger()).toMatchObject({ state: "deleted", attempt_count: phase === "HEAD" ? 3 : 2 });
+    expect(f.remove).toHaveBeenCalledOnce();
+  });
+
+  it("rechecks a late File hold in a fresh primary session at the bound deletion callback", async () => {
+    const f = fixture({ ready: true });
+    await runFileGarbageCollection(f.env, NOW);
+    expect(f.sql.prepare("SELECT state FROM file_publications WHERE file_id='file'").get()!.state).toBe("retired");
+    const guardedSessions: Array<{ id: number; kind: string }> = [];
+    let nextSession = 0, deleteProfileChecked = false, holdInserted = false;
+    const withSession = vi.fn((constraint: string) => {
+      expect(constraint).toBe("first-primary");
+      const session = { id: ++nextSession, executed: 0 };
+      const wrap = (query: string, statement: D1PreparedStatement): D1PreparedStatement => {
+        const observe = () => {
+          const kind = query.includes("SELECT 1 AS writable") ? "profile"
+            : /^SELECT 1 FROM file_location_gc_ledger/.test(query) ? "claim"
+              : /^UPDATE file_location_gc_ledger SET last_error=/.test(query) ? "failure" : null;
+          if (kind) {
+            // A Session's first-primary constraint applies to its first query.
+            // Reusing the run's Session here would not prove current ownership.
+            expect(session.executed).toBe(0);
+            guardedSessions.push({ id: session.id, kind });
+          }
+          session.executed++;
+          if (kind === "profile") deleteProfileChecked = true;
+          else if (kind === "claim" && deleteProfileChecked && !holdInserted) {
+            // A retired File can receive an operator hold. Add it after the
+            // outer GC checks, immediately before the bound deleter's callback.
+            f.sql.prepare(`INSERT INTO file_holds(id,file_id,hold_kind,operation_id,reason,acquired_at)
+              VALUES('late-hold','file','operator','late-hold-operation','retain retired File',?)`)
+              .run(later(7).toISOString());
+            holdInserted = true;
+          }
+        };
+        return {
+          bind: (...values: unknown[]) => wrap(query, statement.bind(...values)),
+          async first<T>(column?: string) { observe(); return statement.first<T>(column); },
+          async all<T>() { observe(); return statement.all<T>(); },
+          async run<T>() { observe(); return statement.run<T>(); },
+          execute() { observe(); return (statement as unknown as { execute(): unknown }).execute(); },
+        } as D1PreparedStatement;
+      };
+      return {
+        prepare: (query: string) => wrap(query, f.db.prepare(query) as unknown as D1PreparedStatement),
+        batch: (statements: D1PreparedStatement[]) => { session.executed++; return f.db.batch(statements); },
+      };
+    });
+    f.env.DB = { withSession } as unknown as D1Database;
+    expect(await runFileGarbageCollection(f.env, later(7))).toMatchObject({ imageDeleted: 0, failures: 1 });
+    expect(holdInserted).toBe(true);
+    expect(guardedSessions.map(session => session.kind)).toEqual(["claim", "claim", "profile", "claim", "failure"]);
+    expect(new Set(guardedSessions.map(session => session.id)).size).toBe(guardedSessions.length);
+    expect(f.sql.prepare("SELECT released_at FROM file_holds WHERE id='late-hold'").get()!.released_at).toBeNull();
+    expect(f.ledger()).toMatchObject({ state: "deleting", attempt_count: 1, deleted_at: null, last_error: null });
+    expect(f.remove).not.toHaveBeenCalled(); expect(f.head).not.toHaveBeenCalled();
+  });
+
   it("resolves managed deletion through the persisted endpoint/account/root profile", async () => {
     const f = fixture({ managed: true });
     await runFileGarbageCollection(f.env, NOW);

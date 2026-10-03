@@ -1,7 +1,7 @@
 # FP2 registered S3 read transport
 
-Status: internal read-transport groundwork after merged and deployed #247
-(`07a7d8f`). Native File routing, S3 locations, writes, cleanup/GC, activation
+Status: internal read-transport groundwork merged and deployed in #248
+(`889ef20`), following #247 (`07a7d8f`). Native File routing, S3 locations, writes, cleanup/GC, activation
 and independent defaults remain behind the existing database and runtime guards.
 
 `nativeS3ByteReader` supplies only `read` and `stat` for an exact registered S3
@@ -11,6 +11,11 @@ database or provider I/O. It has no public route and is not yet connected to
 The caller remains responsible for business authorization and object-key
 selection. Provider metadata and opened bytes are transport observations, not
 verified File identity.
+
+The subsequent [profile-bound File GC](./FP2_PROFILE_BOUND_GC.md) removes the
+production collector's reconstruction of legacy deletion transports and
+strengthens its execution fences. It does not connect this S3 reader or grant
+native S3 writes/deletion.
 
 ## Exact installation binding
 

@@ -76,6 +76,11 @@ and export remain available when execution is paused. Recovered installations
 require explicit operator admission after stopping the previous installation;
 restoring an archive never authorizes writes or cleanup by itself.
 
+The subsequent [FP2 profile-bound GC](./FP2_PROFILE_BOUND_GC.md) makes the
+collector's pre-I/O checks use fresh primary sessions and applies the captured
+incarnation to maintenance, claims, finalization and failure recording. Its
+DELETE capability comes directly from the same physical profile as its reader.
+
 The operator maintenance page is available at `/maintenance/file-authority`,
 linked from Storage Settings. It displays the current authority, execution state
 and activation blockers. Commands use the displayed cutoff and the server's
