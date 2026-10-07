@@ -678,6 +678,38 @@
 }
 
 @media (max-width: 859px) {
+  /* Pending edits keep their desktop projection until settled; its controls
+     must still fit when the viewport crosses the Reading breakpoint. */
+  .project-page.desktop .project-workspace-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "identity view" "actions actions";
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+  .project-page.desktop .project-workspace-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .project-page.desktop .project-workspace-header .compact-button {
+    flex: 0 0 auto;
+    min-width: 36px;
+    padding-inline: 7px;
+  }
+  .project-page.desktop .project-control-label-full { display: none; }
+  .project-page.desktop .project-panel-toggle-group { flex: 0 0 auto; }
+  .project-page.desktop .project-save-toolbar {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .project-page.desktop .project-save-state {
+    max-width: 100%;
+    margin-right: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .project-page.desktop .project-workspace-header-actions > .project-overflow:last-child { margin-left: auto; }
+  .project-page.desktop .project-add-panel { left: 0; right: auto; }
   .project-create-form { grid-template-columns: 1fr; }
   .project-create-form-heading { flex-direction: column; gap: 8px; }
   .project-directory-head { display: none; }
@@ -696,7 +728,18 @@
     grid-template-areas: "identity" "actions";
     gap: 4px;
   }
-  .project-page.mobile .project-workspace-header-actions { justify-content: space-between; }
+  .project-page.mobile .project-workspace-header-actions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .project-page.mobile .project-workspace-header .compact-button { flex: 0 0 auto; min-width: 36px; }
+  .project-page.mobile .project-save-toolbar {
+    flex: 0 0 auto;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .project-page.mobile .project-workspace-header-actions > .project-overflow:last-child { margin-left: auto; }
+  .project-page.mobile .project-add-panel { left: 0; right: auto; }
   .project-page.mobile .project-save-state {
     display: block;
     padding: 3px;
@@ -704,6 +747,8 @@
     line-height: 1.2;
     text-align: center;
     white-space: normal;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .project-page.mobile .project-save-state::before { display: none; }
   .project-directory-section-heading { align-items: flex-start; flex-direction: column; }

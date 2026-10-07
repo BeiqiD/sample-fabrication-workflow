@@ -1,23 +1,28 @@
 # Phase 5 frontend refinement implementation plan
 
-Status: new frontend refinement paused for the backend-first track; Phase 5A and Phase 5B are complete in PRs
+Status: C4 local integration resumed and its bounded development goal completed
+on 2026-10-07 after the FP5 checkpoint; formal C4 acceptance remains in progress.
+Phase 5D has not started. Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
 C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
 C4 refinements through PR #185 are merged and deployed; wider integration
 acceptance remains in progress.
 
-Last reviewed: 2026-09-13 against PR #185 integration commit
-`c4bf698e3753a0474e7d75d400af6685ff874a6a`
+Last reviewed: 2026-10-07 for the [completed local C4 goal](./C4_LOCAL_DEVELOPMENT_GOAL.md).
+Historical deployed reference: PR #185 integration commit
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`.
 
 The 2026-09-13 user-authorized route revision prioritizes backend inventory,
 reliability verification, demonstrated defect repairs and behavior-preserving
 Worker/contract extraction. Its order and gates are owned by
 [Product goal and roadmap](./PRODUCT_ROADMAP.md). The deployed frontend remains
 the regression reference. C4's unverified cases remain open; completed keyboard,
-editor and panel work is not reopened. Resume C4 and then 5D/5E/5F after the
-backend review checkpoint. Phase 5F remains a prerequisite for final Phase 6B
-release qualification, not for beginning backend Phase 6A.
+editor and panel work is not reopened. The FP5 local gate now supplies that
+reviewed checkpoint, and C4's scoped local integration is complete. Carry its
+formal device/deployed gaps forward into the existing 5D/5E/5F sequence. Phase 5F
+remains a prerequisite for final Phase 6B release qualification, not for beginning
+backend Phase 6A.
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
@@ -428,15 +433,22 @@ remains authoritative.
 
 Status: partially accepted at merged PR #185, integration commit
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`.
-New frontend refinement is paused while backend work takes priority; the
-remaining C4 acceptance matrix is retained for resumption and affected regression.
+The [bounded local C4 goal](./C4_LOCAL_DEVELOPMENT_GOAL.md) completed on
+2026-10-07 after FP5 qualification. Two narrow header/control defects were
+repaired in CSS; 64 viewport/Help cases, 18 editor cases and three real local
+Worker/D1 save-fault cases passed. The complete mounted suite, affected source
+contracts, build and Project artifact/performance gates passed. Formal OS input,
+physical-device, deployed identity/runtime and other explicitly untested checks
+remain open; this local checkpoint does not declare full C4 acceptance.
 
 Completed implementation and deployed desktop follow-ups include shortcut help
 and command ownership (#175/#176/#183), editing resize (#180), Markdown draft
 composition (#181), the leave dialog and Inspector disclosures (#182), shared
 panel behavior and combined Markdown activation (#184), and panel/source-note
 layout (#185). Their current evidence is in
-[C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+[historical deployed C4 acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+The current local evidence is in the
+[2026-10-07 C4 checkpoint](./PROJECT_C4_ACCEPTANCE.md#local-integration-checkpoint--2026-10-07).
 Do not reopen these implemented slices solely because an older acceptance entry
 describes a pre-deployment state. In particular, keyboard shortcuts are already
 part of the verified implementation.
@@ -449,8 +461,10 @@ evidence does not itself complete C4; Phase 5D remains subsequent work.
 
 ### Phase 5D — attachment and media surfaces
 
-Status: not started; next frontend implementation slice after the outstanding C4
-acceptance when the frontend track resumes. Backend work now takes priority.
+Status: not started; next frontend implementation slice after the completed
+bounded local C4 goal. Formal C4 device/deployed checks remain recorded separately
+and must be carried forward without declaring them passed. The FP2–FP5 local
+backend development/qualification checkpoint is preserved.
 
 Goal: expose the stable shared attachment semantics through one clear visual and
 wording system while preserving separate Project, Comment, and Run ownership.

@@ -287,6 +287,13 @@ preserved. File mode is legacy and execution remains disabled. See
 [FP5 system recovery](./docs/FP5_SYSTEM_RECOVERY.md) and the
 [completed FP5 goal](./docs/FP5_DEVELOPMENT_GOAL.md).
 
+Local C4 development checkpoint, 2026-10-07: two responsive Project control
+repairs passed 64 layout/Help, 18 active-editor and three real local save-fault
+browser cases, plus all five relevant checks. The actual development DB is
+unchanged. Formal device/deployed acceptance remains open; Phase 5D is next and
+has not started. See the [completed C4 goal](./docs/C4_LOCAL_DEVELOPMENT_GOAL.md)
+and [local acceptance record](./docs/PROJECT_C4_ACCEPTANCE.md#local-integration-checkpoint--2026-10-07).
+
 ## Further documentation
 
 - [MVP scope](./MVP_SPEC.md)
