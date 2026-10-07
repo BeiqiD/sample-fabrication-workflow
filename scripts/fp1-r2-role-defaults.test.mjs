@@ -8,6 +8,12 @@ import { Log, LogLevel, Miniflare } from "miniflare";
 import { splitTestSql } from "./lib/test-sql-split-cache.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+// This existing native qualification preserves FP1's immutable role-policy2
+// bootstrap. Current CAS defaults/history and role-policy3 use successor suites.
+const archiveMigration = "0017_fp2_native_storage_profiles.sql";
+const migrations = readdirSync(new URL("../migrations/", import.meta.url))
+  .filter(name => name.endsWith(".sql") && name <= archiveMigration).sort();
+assert.equal(migrations.length, 17); assert.equal(migrations.at(-1), archiveMigration);
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "54735658-5d90-4c57-9b1e-31f9afff201c", bucketName: "native-role-assets" });
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const source = `
@@ -25,6 +31,7 @@ export default { async fetch(request,env,ctx) {
     put(...args){puts++;return env.BUCKET.put(...args)},
     get(...args){return env.BUCKET.get(...args)},
     head(...args){return env.BUCKET.head(...args)},
+    delete(...args){return env.BUCKET.delete(...args)},
     list(...args){return env.BUCKET.list(...args)}
   };
   return app.fetch(request,{...env,ASSETS,R2_BOOTSTRAP_NAMESPACE:${JSON.stringify(namespace)}},ctx);
@@ -36,7 +43,7 @@ test("FP1 R2 originals use native bounded streaming and immutable atomic role bo
   const mf = new Miniflare({ modules: true, script, compatibilityDate: "2026-07-20", d1Databases: ["DB"], r2Buckets: ["BUCKET"], log: new Log(LogLevel.ERROR) });
   try {
     const db = await mf.getD1Database("DB");
-    for (const name of readdirSync(new URL("../migrations/", import.meta.url)).filter(name => name.endsWith(".sql")).sort()) {
+    for (const name of migrations) {
       const sql = readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8");
       await db.batch(splitTestSql(sql).map(statement => db.prepare(statement)));
     }

@@ -1,6 +1,49 @@
 # File and data portability implementation plan
 
-Status: design reviewed and merged in PR #207; FP1 live acceptance passed after
+Local FP5 development checkpoint, 2026-10-06: privileged `system-backup/1`
+archives and website fresh-target recovery are complete with additive `0021`/
+`0022` and ordinary V24 recovery. Native R2→S3→rebackup→fresh R2 and actual local
+Wrangler migration no-op passed; converted historical archives covered all 13
+File consumer slots. Protected history remains quarantined; handoff is operator
+assisted. Independent conversion/offline recovery and all 12 exact canonical CI
+leaves passed through the documented staged qualification. The actual local DB is on `0022` with 119 application tables; all
+103 prior tables' data, 31 rows, types/rowids, 20 old receipts and SQL files are
+preserved. File mode is legacy and execution remains disabled. See
+[FP5 system recovery](./FP5_SYSTEM_RECOVERY.md) and the
+[completed FP5 goal](./FP5_DEVELOPMENT_GOAL.md).
+
+Local FP4 implementation checkpoint, 2026-10-06: paired native Sample/Project
+package export and website fresh-copy import, independent offline reports and
+Settings Data are implemented with additive `0020` and matched V23 recovery.
+The formats are `research-package/1`, `research-report/1` and `research-records/1`.
+Host qualification passed R2→S3, S3→R2 and S3→S3 round trips. The complete
+R2→S3 workflow also passed in real workerd with local D1/R2 and an isolated
+signed S3 transport fixture. The nonempty graph covered all 13 File binding slots
+and 9 reference kinds, 97 records, 15 Files and 11 placements; a nonempty V23
+backup and offline recovery also passed. See
+[FP4 research packages](./FP4_RESEARCH_PACKAGES.md) and the
+[goal and self-check checklist](./FP4_DEVELOPMENT_GOAL.md).
+
+At the preserved FP4 checkpoint, the exact 12 canonical CI leaves passed in serial stages; the local database had applied migration `0020`, preserved all 95 application tables and the original 19-entry ledger prefix, and remained in legacy File mode with execution disabled.
+The [FP4 checkpoint](./FP4_RESEARCH_PACKAGES.md) records the verification stages and corrections.
+
+Production deployment, provider activation, real production byte movement and
+formal real-provider/deployed-runtime and concentrated manual acceptance remain
+outside this development goal. FP5 local system recovery development is complete;
+see the [FP5 goal](./FP5_DEVELOPMENT_GOAL.md). Historical deployment remains V20.
+
+Local development checkpoint, 2026-10-05: native File access, activation,
+independent defaults and FP3 bounded jobs/migration are implemented with
+`0018`/V21 and `0019`/V22. See the
+[implementation and qualification evidence](./FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md)
+and [persistent goal](./FP3_DEVELOPMENT_GOAL.md). Required development checks are
+qualified, with the repaired final artifact leaf and affected regressions recorded
+separately from the canonical 11/12 run; real-provider and deployed-runtime
+acceptance remain pending. The
+milestone exits below are unchanged.
+
+Historical deployed status through V20: design reviewed and merged in PR #207;
+FP1 live acceptance passed after
 #238/#240. FP2 candidate configuration #239 and isolated S3 transport #241 are
 deployed, alongside bounded candidate checks #242, credential re-enveloping #243
 and shared fresh acceptance role selection #244. Read-only
@@ -109,6 +152,10 @@ without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.
 now uses the opened R2/SWITCHdrive deletion capability and fresh primary
 claim/incarnation/retention fences, including completion after an in-flight
 request. It requires no schema/archive change and grants no native S3 deletion.
+The local [S3 request lifecycle preparation](./FP2_S3_REQUEST_LIFECYCLE.md) adds
+an optional post-signing caller fence with refused-stream cancellation, while
+preserving the native reader's final exact admission/envelope check. It prepares
+future native acceptance/GC; it supplies no File write or activation capability.
 Complete byte-access/acceptance/lifecycle support with its paired recovery
 contract follows before atomic activation and
 independent defaults; real-provider qualification remains required.
@@ -232,6 +279,11 @@ catch-up and old-Worker fencing.
 | FP3 — jobs and migration | Persisted bounded job execution; migration planning/dry run, copy/verify/conditional switch, per-file retries and progress; GC/read holds and explicit source cleanup | Interrupted jobs resume safely; corruption never cuts over; concurrent delete/read/migration is safe; all file purposes can migrate. R2/S3 same-type and cross-type instances are exercised. SWITCHdrive live cases remain explicitly pending if inaccessible. |
 | FP4 — portable research data | Native Sample/Project package export and matching website import; shared dependency/snapshot planner; offline readable projection included; report-only output | Complete non-empty package can be read offline and imported as a new copy with intact sources, comments, graph/placements and files on a different provider mapping. Retry does not duplicate records. Export and import ship as one product milestone. |
 | FP5 — system recovery | Shared bounded archive engine for full backup; visible completeness; privileged website recovery into a fresh target with verified cutover; legacy archive recovery/conversion path | Recover all promised canonical state/history and file purposes, preserving IDs; validate partial-backup handling, provider remapping, protected settings recovery and safe treatment of old jobs. Source remains usable until successful cutover. |
+
+Current local state: FP2 and FP3 retain their V21/V22 qualification evidence.
+FP4 implementation and local qualification are preserved with `0020`/V23;
+its final development result is recorded above. The formal exit conditions above
+remain separate from local fixtures. FP5 local development is complete, with independent implementation and qualification recorded in its checklist.
 
 FP1 is not a temporary R2-originals feature that leaves ordinary images bound to
 R2 indefinitely. The universal model is designed before its first schema slice;
@@ -472,6 +524,11 @@ Maintain the overlap/retirement gates above; do not bundle FP2 credentials or
 FP4 graph import into the first schema PR. Before FP3 implementation, record a
 runtime/provider capability matrix and an executable transfer spike, including
 hashing and interrupted archive output. Estimates depend on those results.
+The 2026-10-05 local implementation completed that prerequisite in the
+[runtime/provider capability matrix](./FP3_CAPABILITY_MATRIX.md), including an
+actual workerd streaming transfer spike before job execution was implemented.
+Current limits and qualification evidence are in the
+[local development checkpoint](./FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md).
 
 The [FP1d handoff inventory](./FP1_FENCED_BYTE_DELETION.md#next-authority-transition-complete-inventory)
 identifies the concrete relational, direct-key, import/recovery, API and

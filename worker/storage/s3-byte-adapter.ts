@@ -5,9 +5,15 @@ import { ByteVerificationError, validateByteExpectation } from "../files/byte-ve
 import type { ByteWriteInput, ByteWriter } from "../files/byte-writer";
 
 export interface S3ByteAdapter { reader: ByteReader; writer: ByteWriter; deleter: ByteDeleter }
+export type S3RequestOperation = Readonly<{ method: "GET" | "HEAD" | "PUT" | "DELETE"; key: string }>;
 export interface S3ByteAdapterOptions {
   fetch?: (request: Request) => Promise<Response>;
   now?: () => Date;
+  signal?: AbortSignal;
+  /** Recheck caller-owned execution/retention authority after signing, before
+   * provider I/O. Only true permits the request. This does not revoke requests
+   * already sent or replace the caller's publication/completion fence. */
+  beforeRequest?: (operation: S3RequestOperation) => Promise<boolean>;
 }
 export class S3StorageUnavailableError extends Error {
   constructor() { super("S3 storage is unavailable."); this.name = "S3StorageUnavailableError"; }
@@ -63,8 +69,11 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
     namespace = checked.namespace; credentials = checked.credentials.value;
   } catch { throw new S3StorageUnavailableError(); }
   const send = options.fetch ?? (request => fetch(request)), now = options.now ?? (() => new Date());
+  const beforeRequest = options.beforeRequest;
   async function request(method: "GET" | "HEAD" | "PUT" | "DELETE", key: string, payloadHash = EMPTY_SHA256,
     body?: ArrayBuffer | ReadableStream, contentType?: string, signal?: AbortSignal): Promise<Response> {
+    const requestSignal = signal && options.signal ? AbortSignal.any([signal, options.signal]) : signal ?? options.signal;
+    if (requestSignal?.aborted) throw new S3StorageUnavailableError();
     const url = objectUrl(namespace, key), timestamp = now().toISOString().replace(/[:-]|\.\d{3}/g, ""), date = timestamp.slice(0, 8);
     const headers = new Headers({ host: url.host, "x-amz-date": timestamp, "x-amz-content-sha256": payloadHash, "accept-encoding": "identity" });
     if (namespace.expectedBucketOwner) headers.set("x-amz-expected-bucket-owner", namespace.expectedBucketOwner);
@@ -77,7 +86,17 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
     const signingKey = await hmac(await hmac(await hmac(await hmac(`AWS4${credentials.secretAccessKey}`, date), namespace.region), "s3"), "aws4_request");
     const signature = hex(await hmac(signingKey, `AWS4-HMAC-SHA256\n${timestamp}\n${scope}\n${hex(await crypto.subtle.digest("SHA-256", encoder.encode(canonical)))}`));
     headers.set("authorization", `AWS4-HMAC-SHA256 Credential=${credentials.accessKeyId}/${scope}, SignedHeaders=${signed.join(";")}, Signature=${signature}`);
-    return send(new Request(url, { method, headers, body, signal, redirect: "manual", cache: "no-store" }));
+    // Do not expose signed headers, credentials or the physical URL to the
+    // lifecycle owner. In particular, a denied streaming PUT must not hand its
+    // request body to a provider; the writer cancels and releases its source.
+    if (beforeRequest) {
+      let permitted = false;
+      try { permitted = await beforeRequest(Object.freeze({ method, key })) === true; }
+      catch { /* Caller errors are not provider/source verification outcomes. */ }
+      if (!permitted) throw new S3StorageUnavailableError();
+    }
+    if (requestSignal?.aborted) throw new S3StorageUnavailableError();
+    return send(new Request(url, { method, headers, body, signal: requestSignal, redirect: "manual", cache: "no-store" }));
   }
   const reader: ByteReader = {
     async read(key) {

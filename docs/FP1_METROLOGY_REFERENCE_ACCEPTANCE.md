@@ -97,6 +97,17 @@ changes during upload, CAS restoration, GC/quarantine, expiry, bounded Unicode
 uploads, page reload and source navigation. Populated host SQLite and real
 workerd/D1/R2 fixtures verify forward migration and isolated V12 recovery.
 
+The local metrology regression also retains its frozen V20 recovery boundary
+through migration `0017_fp2_native_storage_profiles.sql`. It qualifies the
+populated pre-`0005` upgrade once on actual D1, then constructs each independent
+route fixture from that exact native baseline. Before requests run, every copy
+must match the complete SQL catalog, retained rows and physical rowids, with
+foreign keys enabled, no violations and a successful quick check. Original
+trigger creation order is preserved; no existing guard is disabled and no
+provider write establishes fixture state. Route, SQL-guard and nonempty archive
+assertions remain unchanged, as does the 240-second limit. Later schema files
+do not silently expand this historical fixture or its restore migration input.
+
 Production acceptance covers a new reference upload, page reload, byte access
 and reference deletion/restoration behavior. ZIP-specific and browser ZIP testing
 remain deferred at the owner's request; mandatory archive regressions remain.

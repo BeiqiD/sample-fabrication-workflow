@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -19,6 +19,16 @@ const submissionId = "native-comment-request";
 const itemId = "native-comment-image";
 const revision = "2026-08-01T00:00:00.000Z";
 const migration = "0006_comment_acceptance.sql";
+// These existing native route/guard and archive claims retain the frozen V20
+// generation. V21/V22 exercise successor native aliases and migration history.
+const archiveMigration = "0017_fp2_native_storage_profiles.sql";
+const migrations = readdirSync(join(root, "migrations")).filter(name => name.endsWith(".sql") && name <= archiveMigration).sort();
+assert.equal(migrations.length, 17); assert.equal(migrations.at(-1), archiveMigration);
+async function frozenArchiveMigrations(scratch) {
+  const directory = join(scratch, "migrations-v20"); await mkdir(directory);
+  await Promise.all(migrations.map(async name => writeFile(join(directory, name), await readFile(join(root, "migrations", name)))));
+  return directory;
+}
 const parentTable = "comment_submission_acceptances";
 const itemTable = "comment_item_acceptances";
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "b72529f0-273b-4b72-9fc7-155a93461d83", bucketName: "fixture-assets" });
@@ -79,7 +89,7 @@ async function apply(db, sql) {
 }
 async function rows(db, name) { return (await db.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all()).results; }
 async function seedBeforeUpgrade(db) {
-  for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name < migration).sort()) await apply(db, read(`migrations/${name}`));
+  for (const name of migrations.filter(name => name < migration)) await apply(db, read(`migrations/${name}`));
   await apply(db, seedSql());
 }
 async function upgrade(db) {
@@ -455,7 +465,7 @@ async function qualifyRestore(mf, scratch, fixture) {
   });
   const archivePath = join(scratch, "comment-recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
   const originalHash = hash(await readFile(archivePath));
-  const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
+  const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: await frozenArchiveMigrations(scratch), targetCompatibilitySchema: "S2" });
   assert.equal(restored.report.schemaVersion, 20); assert.equal(restored.report.archiveProfile, "fp2-native-profile-admission");
   assert.deepEqual(restored.report.appliedForwardMigrations, []);
   assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
@@ -519,7 +529,7 @@ test("durable Comment publication qualifies on real workerd/D1/R2 and the produc
   try {
     for (const binding of Object.values(bindings)) {
       const db = await mf.getD1Database(binding); await seedBeforeUpgrade(db); await upgrade(db);
-      for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+      for (const name of migrations.filter(name => name > migration)) await apply(db, read(`migrations/${name}`));
     }
     for (const mode of modes) await t.test(mode, async () => {
       const response = await mf.dispatchFetch("https://qualification.test/", { method: "POST", body: JSON.stringify({ mode, binding: bindings[mode] }) });
@@ -613,12 +623,12 @@ test("durable Comment publication qualifies on real workerd/D1/R2 and the produc
       assert(replayFixture); const host = new DatabaseSync(":memory:");
       try {
         host.exec("PRAGMA foreign_keys=ON; PRAGMA recursive_triggers=OFF"); const db = hostAdapter(host); await seedBeforeUpgrade(db); await upgrade(db);
-        for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+        for (const name of migrations.filter(name => name > migration)) await apply(db, read(`migrations/${name}`));
         await qualifySqlGuards(db, replayFixture);
       }
       finally { host.close(); }
       const db = await mf.getD1Database("DB_GUARDS"); await seedBeforeUpgrade(db); await upgrade(db);
-      for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+      for (const name of migrations.filter(name => name > migration)) await apply(db, read(`migrations/${name}`));
       await db.prepare("PRAGMA recursive_triggers=OFF").run(); await qualifySqlGuards(db, replayFixture);
     });
     await t.test("V20 isolated restore preserves acceptance history and legacy File authority without executing uploads", async () => { assert(replayFixture); await qualifyRestore(mf, scratch, replayFixture); });

@@ -2,7 +2,40 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-10-03 after FP1 live acceptance and deployed FP2 configuration
+Local FP5 development checkpoint, 2026-10-06: privileged `system-backup/1`
+archives and website fresh-target recovery are complete with additive `0021`/
+`0022` and ordinary V24 recovery. Native R2→S3→rebackup→fresh R2 and actual local
+Wrangler migration no-op passed; converted historical archives covered all 13
+File consumer slots. Protected history remains quarantined; handoff is operator
+assisted. Independent conversion/offline recovery and all 12 exact canonical CI
+leaves passed through the documented staged qualification. The actual local DB is on `0022` with 119 application tables; all
+103 prior tables' data, 31 rows, types/rowids, 20 old receipts and SQL files are
+preserved. File mode is legacy and execution remains disabled. See
+[FP5 system recovery](./FP5_SYSTEM_RECOVERY.md) and the
+[completed FP5 goal](./FP5_DEVELOPMENT_GOAL.md).
+
+Local FP4 implementation checkpoint, 2026-10-06: paired native Sample/Project
+package export and website fresh-copy import, independent offline reports and
+Settings Data are implemented with additive `0020` and matched V23 recovery.
+The formats are `research-package/1`, `research-report/1` and `research-records/1`.
+Host qualification passed R2→S3, S3→R2 and S3→S3 round trips. The complete
+R2→S3 workflow also passed in real workerd with local D1/R2 and an isolated
+signed S3 transport fixture. The nonempty graph covered all 13 File binding slots
+and 9 reference kinds, 97 records, 15 Files and 11 placements; a nonempty V23
+backup and offline recovery also passed. See
+[FP4 research packages](./FP4_RESEARCH_PACKAGES.md) and the
+[development goal](./FP4_DEVELOPMENT_GOAL.md).
+
+At the preserved FP4 checkpoint, the exact 12 canonical CI leaves passed in serial stages; the local database had applied migration `0020`, preserved all 95 application tables and the original 19-entry ledger prefix, and remained in legacy File mode with execution disabled.
+The [FP4 checkpoint](./FP4_RESEARCH_PACKAGES.md) records the verification stages and corrections.
+
+FP2/FP3 local qualification is retained below. Formal real-provider,
+deployed-runtime and concentrated manual acceptance remain deferred; historical
+deployment remains V20. FP5 local development and qualification are complete;
+see the [FP5 goal](./FP5_DEVELOPMENT_GOAL.md). No production deployment or provider activation is included.
+
+Last reviewed: 2026-10-06 for the completed local FP5 checkpoint. Historical deployed
+checkpoint, 2026-10-05: FP1 live acceptance and deployed FP2 configuration
 #239/S3 transport #241. Candidate checks #242, credential re-enveloping #243
 and fresh acceptance selection #244 are deployed, preserving current R2 defaults.
 Read-only candidate check evidence is merged and deployed in #245 (`5992307`).
@@ -109,6 +142,23 @@ exclude installation candidate configuration, check snapshots and credentials.
 This document records
 scope and evidence; deployment authority comes from the owner's requests.
 
+Development checkpoint, 2026-10-05: the
+[local FP2/FP3 implementation](./FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md) adds native
+File access and lifecycle, tested-candidate activation, independent defaults,
+frozen accepted upload targets, durable bounded migration jobs and their
+administration UI. Additive `0018`/V21 and `0019`/V22 pair the implementation with
+nonempty offline recovery and disabled restored execution. Required development
+checks are qualified; the checkpoint preserves the canonical 11/12 run and the
+separately repaired artifact leaf and affected regressions. Real-provider
+acceptance and deployed runtime limits
+remain pending; the deployed generation remains V20.
+
+Owner development goal, 2026-10-05: autonomous local development through FP3 is
+complete, with this environment kept development-only. The
+[persistent goal and qualification checklist](./FP3_DEVELOPMENT_GOAL.md) records
+implementation progress and unresolved acceptance separately; production
+deployment and production data movement remain outside this goal.
+
 This document is the single high-level roadmap for Sample Fabrication Workflow.
 Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
 contracts remain in their focused documents, but their phase labels and
@@ -146,8 +196,8 @@ The canonical new boundaries and stage gates are:
 | 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
 | 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP2: configurable storage after accepted FP1 | File authority is Active/Enabled with 4/4 resolved references. FP1 R2 originals and V19 live recovery passed after #240. FP2 configuration through candidate evidence #245 and AWS owner condition #246 are deployed. Restricted native AWS S3 profile admission with `0017`/V20 is merged and deployed in #247 (`07a7d8f`); internal registered read transport prepares exact installation binding without production File routing; it enables no S3 File access or defaults. Complete byte-access/acceptance/lifecycle support and real-provider qualification precede activation and independent defaults. |
-| 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
+| 4 | FP2: configurable storage after accepted FP1 | Native exact-instance R2/S3 access, accepted writes, lifecycle/GC, tested-candidate activation and independent defaults are implemented locally with `0018`/V21. Historical deployed behavior remains through `0017`/V20; real-provider and deployed-runtime acceptance remain pending. Preserve accepted FP1 identities and recovery evidence. |
+| 5 | FP2–FP5 implemented and qualified locally | Persisted migration and administration UI retain `0019`/V22 and paused recovery. Paired native package export/site fresh-copy import, independent offline reports and Settings Data add `0020`/V23 with focused local qualification complete. The final development result is recorded above; formal external acceptance remains pending. FP5 full backup and privileged website recovery are locally complete; the FP5 checkpoint records the passing gate and remaining external acceptance. Detailed exits belong to the implementation plan. |
 | 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
 
@@ -963,7 +1013,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
 | Project v1 functional shape | MVP plus mature Inspector/navigation, selected Canvas productivity, previews where justified, and representative-scale performance |
 | V1 feature freeze | Interaction-shaping v1 scope is fixed; optional future capabilities no longer block refinement |
-| File/data portability | Planned FP1–FP5 exits: universal files, Settings, verified migration, readable native packages with website import, and full backup/privileged restore; not delivered by FP0 |
+| File/data portability | Local FP2–FP5 implementation includes universal File routing, Settings, verified migration, native packages/site import and privileged fresh-target recovery. The latest checkpoint records final FP5 development qualification; external provider/deployment/manual acceptance remains pending. FP5 full backup/privileged website restore is locally complete; external provider/deployment/manual acceptance remains deferred. |
 | Refined release candidate | Frozen v1 plus enabled reviewed FP scope, systematic frontend refinement, V3 architecture stabilization, and final integrated release validation |
 | Portable release | Later milestone: Node/SQLite/local defaults and the same product contracts, including non-empty Cloudflare ↔ Docker import/restore and storage remapping, pass in documented deployments |
 | Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
@@ -1002,22 +1052,26 @@ Project-owned Markdown or attachment content only through explicit user action.
    [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), deployed in #246
    (`4d7d942`). Preserve merged/deployed #247
    [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md)
-   and paired `0017`/V20 recovery, which prohibit S3 locations, non-read-only
+   and paired historical `0017`/V20 recovery, which prohibit S3 locations, non-read-only
    profiles and S3 defaults. Its non-empty paired recovery fixtures passed;
    live V20 ZIP download/isolated restore was waived after the browser failure.
    Preserve earlier live ZIP evidence without repeating unrelated rehearsals.
    [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md) prepares exact
-   installation binding without production File routing. Complete native
-   byte-access/acceptance/lifecycle support follows. Atomic activation and
-   independent defaults then require real-provider qualification and these native
-   guarantees. Candidate checks and evidence reports do not enable a provider or
+   installation binding without production File routing in that deployed generation.
+   The local `0018`/V21 successor now implements native byte access, accepted
+   writes, lifecycle/GC, atomic activation and independent defaults; its formal
+   real-provider qualification remains pending. Candidate checks and evidence
+   reports do not enable a provider or
    redirect uploads. SWITCHdrive credentials are not required for development.
    V19 and its V20 successor exclude installation configuration and protected
    check evidence; V20 additionally preserves nonsecret native admission receipts.
-6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
-   exits. Do not ship an export-only native format or claim backup completeness
-   from a zero-file exercise. Maintain current exporter/recovery and GC coverage
-   throughout the model transition, not only at the final stage.
+6. Preserve the local **FP2/FP3** implementation and its V21/V22 evidence.
+   **FP4** now supplies paired native export/site copy-import and independent
+   reports with `0020`/V23; local nonempty package round trips and offline
+   recovery have passed. Preserve final development gate evidence separately
+   from deferred external acceptance. **FP5** privileged system
+   recovery is locally complete with `0021`/`0022` and V24; the FP5 checkpoint records the passing canonical gate and remaining external acceptance.
+   Preserve historical archive readers and current exporter/recovery/GC coverage.
 7. Reconcile remaining late **6A6/S2 acceptance** against the deployed version and
    enabled provider scope. Keep untested SWITCHdrive cases explicitly blocked;
    do not pass them by changing the default. Resume **C4**, then **5D → 5E → 5F**

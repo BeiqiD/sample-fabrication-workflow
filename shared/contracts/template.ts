@@ -15,6 +15,7 @@ export interface TemplateRecord {
   commentsText: string | null;
   initialStateHash: string | null;
   initialStateImageKeys: string[];
+  initialStateImages?: Array<{ assetId: string; fileId: string; url: string }>;
   initialSubstrateStep: InitialSubstrateStep | null;
   locked: boolean;
   lockedAt: string | null;
@@ -73,6 +74,7 @@ export interface TemplateStepRecord {
   parametersText: string | null;
   commentsText: string | null;
   imageKeys: string[];
+  images?: Array<{ assetId: string; fileId: string; url: string }>;
 }
 
 // Detail responses carry tool and default text on steps, while list records
@@ -89,7 +91,9 @@ export interface MetrologyTemplateReference {
   filename: string;
   mimeType: string;
   byteSize: number;
-  assetKey: string;
+  assetKey: string | null;
+  fileId?: string;
+  url?: string;
   createdAt: string;
 }
 
@@ -99,6 +103,7 @@ export interface TemplateStepInput {
   parametersText: string;
   commentsText: string;
   assetKey?: string;
+  assetId?: string;
 }
 
 export interface MetrologyTemplateInput {

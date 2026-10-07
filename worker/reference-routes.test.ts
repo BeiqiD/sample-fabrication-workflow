@@ -148,7 +148,7 @@ describe("reference resolution route", () => {
     d1.resetCounts();
 
     const response = await worker.fetch(
-      new Request("https://app.test/api/exports/all?archiveSchema=20&archiveWriter=1"),
+      new Request(`https://app.test/api/exports/all?archiveSchema=${FULL_EXPORT_ARCHIVE_SCHEMA}&archiveWriter=1`),
       env,
       executionContext,
     );

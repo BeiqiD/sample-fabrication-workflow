@@ -1,9 +1,7 @@
 import type { Env } from "../types";
+import { canonicalR2ProfileNamespace, r2ProfileNamespace } from "./r2-profile-bindings";
 
 const PROFILE_ID = "storage-profile:r2:bootstrap";
-const ACCOUNT = /^[0-9a-f]{32}$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const BUCKET = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 
 export class R2BootstrapUnavailableError extends Error {
   constructor() { super("R2 storage profile is unavailable"); this.name = "R2BootstrapUnavailableError"; }
@@ -29,20 +27,8 @@ interface ProfileRow {
  * the D1 UUID, a hostname, or a request. Local identities cannot alias a cloud
  * account. Exact serialization also excludes unknown/credential-bearing fields. */
 export function r2BootstrapNamespace(env: Pick<Env, "R2_BOOTSTRAP_NAMESPACE">): string {
-  try {
-    const raw = env.R2_BOOTSTRAP_NAMESPACE;
-    if (typeof raw !== "string" || raw.length > 2048) throw new Error();
-    const value = JSON.parse(raw);
-    if (typeof value?.bucketName !== "string" || !BUCKET.test(value.bucketName)) throw new Error();
-    let canonical: string;
-    if (value.kind === "cloudflare-r2" && typeof value.accountId === "string" && ACCOUNT.test(value.accountId)) {
-      canonical = JSON.stringify({ kind: value.kind, accountId: value.accountId, bucketName: value.bucketName });
-    } else if (value.kind === "local-r2" && typeof value.installationId === "string" && UUID.test(value.installationId)) {
-      canonical = JSON.stringify({ kind: value.kind, installationId: value.installationId, bucketName: value.bucketName });
-    } else throw new Error();
-    if (canonical !== raw) throw new Error();
-    return canonical;
-  } catch { throw new R2BootstrapUnavailableError(); }
+  try { return canonicalR2ProfileNamespace(env.R2_BOOTSTRAP_NAMESPACE); }
+  catch { throw new R2BootstrapUnavailableError(); }
 }
 
 function checkedProfile(row: ProfileRow | null | undefined, namespace: string): R2BootstrapProfile {
@@ -78,10 +64,10 @@ export async function ensureR2BootstrapProfile(db: D1Database, env: Pick<Env, "R
   } catch { throw new R2BootstrapUnavailableError(); }
 }
 
-export async function assertR2BootstrapProfile(db: D1Database, env: Pick<Env, "R2_BOOTSTRAP_NAMESPACE">, profileId: string, revision: number): Promise<R2BootstrapProfile> {
-  const namespace = r2BootstrapNamespace(env);
+export async function assertR2BootstrapProfile(db: D1Database, env: Pick<Env, "R2_BOOTSTRAP_NAMESPACE" | "R2_PROFILE_BINDINGS">, profileId: string, revision: number): Promise<R2BootstrapProfile> {
   try {
     if (revision !== 1 || typeof profileId !== "string" || !profileId || profileId.length > 256 || profileId.includes("\0")) throw new Error();
+    const namespace = r2ProfileNamespace(env, profileId);
     return checkedProfile(await db.prepare("SELECT * FROM storage_profiles WHERE id = ?").bind(profileId).first<ProfileRow>(), namespace);
   } catch { throw new R2BootstrapUnavailableError(); }
 }

@@ -26,7 +26,8 @@ it.each(["available", "unavailable-existing", "unavailable-inherited"] as const)
       AUTH_MODE: "disabled",
       DB: new SqliteD1Database(sql) as unknown as D1Database,
       R2_BOOTSTRAP_NAMESPACE: namespace,
-      ASSETS: { get, head: get, async put(key: string, value: ArrayBuffer) { stored.set(key, new Uint8Array(value.slice(0))); } } as unknown as R2Bucket,
+      ASSETS: { get, head: get, async put(key: string, value: ArrayBuffer) { stored.set(key, new Uint8Array(value.slice(0))); },
+        async delete(key: string | string[]) { for (const objectKey of typeof key === "string" ? [key] : key) stored.delete(objectKey); } } as unknown as R2Bucket,
     } satisfies Env;
     const images = [] as Array<{ id: string; key: string; fileId: string; sha256: string }>;
     for (const value of [1, 2]) {

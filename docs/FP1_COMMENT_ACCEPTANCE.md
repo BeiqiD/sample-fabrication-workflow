@@ -3,6 +3,15 @@
 Implementation base: `13c5f8f` (merged PR #218), 2026-09-14. The implementation
 PR records the reviewed commit, verification, deployment and browser evidence.
 
+This historical native qualification retains the exact V20 fixture generation:
+all source migrations through `0017_fp2_native_storage_profiles.sql`, including
+the populated pre-0006 to 0006 upgrade, all original route scenarios and SQL
+guards. Its nonempty archive restore stages that same 17-file prefix and
+verifies V20 acceptance history and bytes. Successor native File and relocation
+behavior is qualified by the separate V21/V22 suites; full-chain forward
+recovery checks the current V22 snapshot while preserving historical cells and
+physical rowids.
+
 Comment already has a canonical submission, ordered items and Sample/Run-step
 targets. FP1j preserves those identities and strengthens the existing two-stage
 upload workflow. Auxiliary acceptance history is not a second Comment model.

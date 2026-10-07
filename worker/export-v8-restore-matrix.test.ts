@@ -8,6 +8,9 @@ import JSZip from "jszip";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
 import { FILE_AUTHORITY_CONSUMER_COLUMNS } from "../shared/contracts/export-file-authority";
+import { FILE_NATIVE_RUNTIME_ADDED_COLUMNS, FILE_NATIVE_RUNTIME_TABLE_COLUMNS } from "../shared/contracts/file-native-runtime";
+import { FILE_JOBS_EXPORT_COLUMNS } from "../shared/contracts/export-file-jobs-schema";
+import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../shared/contracts/export-system-recovery-evidence";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import type { CompatibilitySchema, ExportRow, ExportTables, FullExportManifestV8, RetiredExportFields } from "../shared/contracts/export";
 import type { FullExportManifest } from "../shared/contracts/types";
@@ -153,6 +156,10 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         { name: "0012_fp1_file_authority_runtime.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0012_fp1_file_authority_runtime.sql"), "utf8"))) },
         { name: "0013_fp1_r2_role_defaults.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0013_fp1_r2_role_defaults.sql"), "utf8"))) },
         { name: "0017_fp2_native_storage_profiles.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0017_fp2_native_storage_profiles.sql"), "utf8"))) },
+        { name: "0018_fp2_native_file_runtime.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0018_fp2_native_file_runtime.sql"), "utf8"))) },
+        { name: "0019_fp3_file_jobs.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0019_fp3_file_jobs.sql"), "utf8"))) },
+        { name: "0020_fp4_research_packages.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0020_fp4_research_packages.sql"), "utf8"))) },
+        { name: "0022_fp5_recovery_evidence.sql", sha256: hash(Buffer.from(await readFile(join(root, "migrations/0022_fp5_recovery_evidence.sql"), "utf8"))) },
       ]);
     } else expect(result.report.appliedForwardMigrations).toEqual([]);
     const restored = new DatabaseSync(join(result.restoredDirectory, "database.sqlite"));
@@ -168,6 +175,9 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
           if (migrationsDirectory === join(root, "migrations") && name in FILE_AUTHORITY_CONSUMER_COLUMNS) {
             for (const column of FILE_AUTHORITY_CONSUMER_COLUMNS[name as keyof typeof FILE_AUTHORITY_CONSUMER_COLUMNS]) copy[column] = null;
           }
+          if (migrationsDirectory === join(root, "migrations") && name in FILE_NATIVE_RUNTIME_ADDED_COLUMNS) {
+            for (const column of FILE_NATIVE_RUNTIME_ADDED_COLUMNS[name as keyof typeof FILE_NATIVE_RUNTIME_ADDED_COLUMNS]) copy[column] = null;
+          }
           if (name === "samples" && target === "S2") delete copy.process_revision;
           if (name === "run_step_comments") {
             if (target !== "S0" && source.kind === "S0") copy.legacy_body = row.submission_id === null ? row.body : null;
@@ -179,9 +189,16 @@ describe("complete ZIP recovery across reviewed S0, S1 and S2 schemas", () => {
         expect(sortedRows(restored.prepare(`SELECT * FROM ${quote(name)}`).all() as ExportRow[]), name).toEqual(sortedRows(expected));
       }
       if (migrationsDirectory === join(root, "migrations")) {
-        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings", "storage_role_defaults"]) {
+        for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings", "storage_role_defaults",
+          ...Object.keys(FILE_NATIVE_RUNTIME_TABLE_COLUMNS), ...Object.keys(FILE_JOBS_EXPORT_COLUMNS),
+          ...Object.keys(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS), "file_job_cleanup_grants"]) {
           expect(restored.prepare(`SELECT COUNT(*) AS count FROM ${quote(name)}`).get()?.count).toBe(0);
         }
+        expect(restored.prepare("SELECT enabled,incarnation,last_heartbeat_at FROM file_job_runtime_guard").get())
+          .toEqual({ enabled: 0, incarnation: null, last_heartbeat_at: null });
+        expect(restored.prepare("SELECT name FROM sqlite_schema WHERE name='system_storage_native_bindings'").get()).toBeUndefined();
+        expect(result.report.jobRecovery).toMatchObject({ runtimeExecutionEnabled: false, unfinishedJobsResumed: false,
+          cleanupRequiresFreshLocalApproval: true });
       }
       const sampleColumns = restored.prepare("PRAGMA table_xinfo(samples)").all().map((column) => column.name);
       const commentColumns = restored.prepare("PRAGMA table_xinfo(run_step_comments)").all().map((column) => column.name);

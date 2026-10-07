@@ -12,7 +12,7 @@ function fixture() {
   const sql = futureActiveRuntimeDatabase(db => {
     db.prepare("INSERT INTO storage_profiles VALUES('existing-r2','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, now);
     db.prepare("INSERT INTO file_shadow_profile_enablements VALUES('existing-r2',1,'role-test',?)").run(now);
-  });
+  }, { throughMigration: "0017_fp2_native_storage_profiles.sql" });
   databases.push(sql);
   return { sql, db: new SqliteD1Database(sql) as unknown as D1Database, env: { R2_BOOTSTRAP_NAMESPACE: namespace }, now };
 }

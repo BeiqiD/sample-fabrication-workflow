@@ -14,7 +14,7 @@ import { verifyR2Bytes, writeR2Bytes } from "../files/legacy-byte-writer";
 import { ByteVerificationError } from "../files/byte-verification";
 import { FABUBLOX_IMPORT_REQUEST_HEADER, MAX_FABUBLOX_REQUEST_INPUT_BYTES, normalizeFabubloxImportRequestId } from "../../shared/contracts/fabublox-import";
 import type { FabubloxImportInput } from "../../shared/contracts/fabublox-import-input";
-import { acceptFabubloxImport, acceptedImportState, readAcceptedImport, FabubloxImportAcceptanceUnavailableError, FabubloxImportRequestConflictError, type AcceptedFabubloxImportRow } from "./fabublox-acceptance";
+import { acceptFabubloxImport, acceptedImportState, readAcceptedImport, FabubloxImportAcceptanceUnavailableError, FabubloxImportRequestConflictError, type AcceptedFabubloxImportRow, type AcceptedImportFileTarget } from "./fabublox-acceptance";
 import { ensureR2BootstrapProfile, R2BootstrapUnavailableError } from "../files/r2-bootstrap-profile";
 import { prepareStorageRoleAcceptanceModeFence, prepareStorageRoleSelection } from "../files/storage-role-selection";
 import { StorageRoleDefaultsUnavailableError } from "../files/storage-role-defaults";
@@ -214,13 +214,22 @@ routes.post("/imports/fabublox", async (c) => {
     active = mode === "active";
     const selection = active ? await prepareStorageRoleSelection(importDb, c.env,
       imageInputs.length ? ["provenance", "embedded_content"] : ["provenance"], now) : null;
-    // A whole import still has one immutable destination. Until its receipt can
-    // record per-item targets, differing role destinations cannot be accepted.
-    const profile = selection?.uniformProfile() ?? await ensureR2BootstrapProfile(importDb, c.env, now);
+    const perFile = selection && Number(selection.rolePolicyRevision) >= 3;
+    const profile = perFile ? null : selection?.uniformProfile() ?? await ensureR2BootstrapProfile(importDb, c.env, now);
+    const fileTargets: AcceptedImportFileTarget[] | undefined = perFile ? [
+      { itemId: "workbook", ...requestInput.workbook }, { itemId: "manifest", ...requestInput.manifest },
+      ...requestInput.images.map(image => ({ itemId: `image:${image.localId}`, ...image })),
+    ].map(item => {
+      const target = selection!.profileFor(item.purpose);
+      const candidateAssetId = crypto.randomUUID();
+      return { itemId: item.itemId, purpose: item.purpose, profileId: target.id, profileRevision: target.configurationRevision,
+        sha256: item.sha256, byteSize: item.byteSize, candidateAssetId, candidateObjectKey: `files/${candidateAssetId}` };
+    }) : undefined;
     const accepted = await acceptFabubloxImport(importDb, {
       importId, operationId: importOperationId, requestId, requestSha256, requestInputJson,
-      actorEmail: userEmail, profileId: profile.id, profileRevision: profile.configurationRevision,
-      policyRevision: 1, sourceFilename: workbook.name, sourceSha256: actualSha,
+      actorEmail: userEmail, profileId: profile?.id ?? null, profileRevision: profile?.configurationRevision ?? null,
+      policyRevision: perFile ? null : 1, ...(fileTargets ? { fileTargets, rolePolicyRevision: Number(selection!.rolePolicyRevision) } : {}),
+      sourceFilename: workbook.name, sourceSha256: actualSha,
       sheetName: manifest.source.sheetName, templateType: internalTemplateType,
       recipeFamilyId, warningCount: manifest.warnings.length, createdAt: now, leaseExpiresAt,
     }, selection?.statements ?? [prepareStorageRoleAcceptanceModeFence(importDb, mode)]);
@@ -245,7 +254,7 @@ routes.post("/imports/fabublox", async (c) => {
       { kind: "manifest", localId: "manifest", originalName: "manifest.json", mimeType: "application/json", buffer: manifestBuffer, sha256: manifestSha256 },
       ...imageInputs.map(({ image, file, buffer, sha256 }) => ({ kind: "image" as const, localId: image.localId, originalName: file.name, mimeType: file.type || image.mimeType, buffer, sha256, image })),
     ];
-    let resolved: Array<Candidate & { assetId: string; key: string; isNew: boolean; fileId?: string }>;
+    let resolved: Array<Candidate & { assetId: string; key: string; legacyKey?: string | null; isNew: boolean; fileId?: string }>;
     let authorityStatements: D1PreparedStatement[] = [];
     if (active) {
       const prepared = await prepareAuthorityImportFiles(c.env, {
@@ -380,6 +389,8 @@ routes.post("/imports/fabublox", async (c) => {
 
     const workbookAsset = resolved.find((asset) => asset.kind === "workbook")!;
     const manifestAsset = resolved.find((asset) => asset.kind === "manifest")!;
+    const workbookLegacyKey = workbookAsset.legacyKey === undefined ? workbookAsset.key : workbookAsset.legacyKey;
+    const manifestLegacyKey = manifestAsset.legacyKey === undefined ? manifestAsset.key : manifestAsset.legacyKey;
     const imageAssets = resolved.filter((asset) => asset.kind === "image");
     const latest = await c.env.DB.prepare(
       "SELECT COALESCE(MAX(version), 0) AS version FROM template_versions WHERE recipe_family_id = ?",
@@ -477,7 +488,7 @@ routes.post("/imports/fabublox", async (c) => {
          WHERE owning_import.id = ? AND owning_import.status = 'pending'
            AND owning_import.operation_id = ? AND owning_import.finalization_id IS NULL
            AND owning_import.template_version_id = ? AND owning_import.lease_expires_at > ?`,
-      ).bind(templateVersionId, recipeFamilyId, recipeName, internalTemplateType, version, manifestHash, initialStateHash, workbook.name, workbookAsset.key, JSON.stringify({
+      ).bind(templateVersionId, recipeFamilyId, recipeName, internalTemplateType, version, manifestHash, initialStateHash, workbook.name, workbookLegacyKey, JSON.stringify({
         schemaVersion: manifest.schemaVersion,
         source: manifest.source,
         importedTitle: manifest.title,
@@ -504,7 +515,7 @@ routes.post("/imports/fabublox", async (c) => {
         // columns, in this same transaction; no partially ready import escapes.
         finalizationDb.prepare(`UPDATE imports SET workbook_asset_key=?,manifest_asset_key=?
           WHERE id=? AND status='pending' AND operation_id=?`)
-          .bind(workbookAsset.key, manifestAsset.key, importId, importOperationId),
+          .bind(workbookLegacyKey, manifestLegacyKey, importId, importOperationId),
         finalizationDb.prepare(`UPDATE template_versions SET source_file_id=? WHERE id=?`)
           .bind(workbookAsset.fileId!, templateVersionId),
       ] : []),
@@ -519,8 +530,8 @@ routes.post("/imports/fabublox", async (c) => {
         WHERE id = ? AND status = 'pending' AND operation_id = ?
           AND template_version_id = ? AND lease_expires_at > ?
       `).bind(
-        workbookAsset.key,
-        manifestAsset.key,
+        workbookLegacyKey,
+        manifestLegacyKey,
         finalizationId,
         completedAt,
         JSON.stringify({ id: importId, templateVersionId, version }),

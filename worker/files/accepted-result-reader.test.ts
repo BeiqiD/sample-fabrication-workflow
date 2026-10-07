@@ -4,11 +4,18 @@ import { referenceTestDatabase, SqliteD1Database } from "../reference-test-suppo
 import type { Env } from "../types";
 import { acceptAndUploadR2Asset, type AcceptedR2UploadRow } from "../uploads/r2-upload-acceptance";
 import { acceptAndUploadMetrologyReference, type AcceptedMetrologyReferenceUploadRow } from "../uploads/metrology-reference-acceptance";
+import { FILE_READ_HOLD_MS } from "./authority-reader";
 
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "accepted-files" });
 const bytes = new TextEncoder().encode("accepted result bytes");
 const opened: DatabaseSync[] = [];
 afterEach(() => { opened.splice(0).forEach(db => db.close()); vi.restoreAllMocks(); });
+
+function immutableRows(sql: DatabaseSync) {
+  const tables = sql.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name<>'file_location_holds' ORDER BY name")
+    .all() as Array<{ name: string }>;
+  return Object.fromEntries(tables.map(({ name }) => [name, sql.prepare(`SELECT * FROM "${name.replaceAll('"', '""')}"`).all()]));
+}
 
 async function fixture(kind: "r2_upload" | "metrology_reference", candidate = false) {
   // Model the existing future-active substrate, as authority-reader tests do.
@@ -92,12 +99,26 @@ it.each([
   f.sql.exec("UPDATE file_authority_control SET mode='active'");
   f.stored.delete(f.legacyKey); f.get.mockClear(); f.put.mockClear();
   const changes = f.sql.prepare("SELECT total_changes() n").get()!.n;
+  const immutable = immutableRows(f.sql);
+  const previousHolds = f.sql.prepare("SELECT * FROM file_location_holds ORDER BY id").all();
   const result = await f.replay();
   expect(result).toEqual({ state: f.first.state, fresh: false });
   expect(f.get).toHaveBeenCalledExactlyOnceWith("published/result");
   expect(f.put).not.toHaveBeenCalled();
   expect(f.sql.prepare(`SELECT * FROM ${f.table}`).get()).toEqual(f.row);
-  expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(changes);
+  expect(immutableRows(f.sql)).toEqual(immutable);
+  const holds = f.sql.prepare("SELECT * FROM file_location_holds ORDER BY id").all();
+  const previousIds = new Set(previousHolds.map(hold => hold.id));
+  expect(holds.filter(hold => previousIds.has(hold.id))).toEqual(previousHolds);
+  const added = holds.filter(hold => !previousIds.has(hold.id));
+  expect(added).toHaveLength(1);
+  expect(added[0]).toMatchObject({ location_id: "result-location", hold_kind: "read", operation_id: added[0].id,
+    reason: "Published File read", released_at: expect.any(String) });
+  expect(Date.parse(String(added[0].expires_at)) - Date.parse(String(added[0].acquired_at))).toBe(FILE_READ_HOLD_MS);
+  expect(Date.parse(String(added[0].released_at))).toBeGreaterThanOrEqual(Date.parse(String(added[0].acquired_at)));
+  // The only writes are this exact bounded hold's acquisition and EOF release.
+  // Receipts, publications, candidates and every other table remain untouched.
+  expect(Number(f.sql.prepare("SELECT total_changes() n").get()!.n) - Number(changes)).toBe(2);
 });
 
 it.each(["r2_upload", "metrology_reference"] as const)("preserves overlap %s replay and refuses absent active results without legacy fallback", async kind => {

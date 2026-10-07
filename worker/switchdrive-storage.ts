@@ -16,6 +16,12 @@ export interface SwitchdriveConfiguration {
   root: string;
 }
 
+export interface SwitchdriveTransportOptions {
+  signal?: AbortSignal;
+  /** Directory creation is part of the exact destination PUT operation. */
+  beforeRequest?: (operation: Readonly<{ method: "GET" | "HEAD" | "PUT" | "DELETE"; key: string }>) => Promise<boolean>;
+}
+
 export class SwitchdriveAuthenticationError extends Error {
   constructor(readonly status: 401 | 403) {
     super(`SWITCHdrive WebDAV request failed with status ${status}`);
@@ -159,7 +165,7 @@ export class SwitchdriveStorage implements ManagedStorage {
   private readonly rootSegments: string[];
   private readonly authorization: string;
 
-  constructor(configuration: SwitchdriveConfiguration) {
+  constructor(configuration: SwitchdriveConfiguration, private readonly options: SwitchdriveTransportOptions = {}) {
     this.baseUrl = configuration.webdavUrl;
     this.rootSegments = safeSegments(configuration.root, "SWITCHdrive root");
     this.authorization = basicAuthorization(configuration.username, configuration.appPassword);
@@ -171,9 +177,19 @@ export class SwitchdriveStorage implements ManagedStorage {
     return headers;
   }
 
-  private async ensureDirectories(segments: string[]) {
+  private async request(url: string, key: string, init: RequestInit): Promise<Response> {
+    if (this.options.signal?.aborted) throw new Error("SWITCHdrive operation is unavailable");
+    const method = init.method === "MKCOL" ? "PUT" : init.method as "GET" | "HEAD" | "PUT" | "DELETE";
+    if (this.options.beforeRequest && await this.options.beforeRequest(Object.freeze({ method, key })) !== true) {
+      throw new Error("SWITCHdrive operation is unavailable");
+    }
+    if (this.options.signal?.aborted) throw new Error("SWITCHdrive operation is unavailable");
+    return fetch(url, { ...init, signal: this.options.signal });
+  }
+
+  private async ensureDirectories(segments: string[], key: string) {
     for (let length = 1; length <= segments.length; length += 1) {
-      const response = await fetch(objectUrl(this.baseUrl, segments.slice(0, length)), {
+      const response = await this.request(objectUrl(this.baseUrl, segments.slice(0, length)), key, {
         method: "MKCOL",
         headers: this.headers(),
         redirect: "manual",
@@ -209,9 +225,9 @@ export class SwitchdriveStorage implements ManagedStorage {
   async put(input: ManagedStoragePut) {
     const keySegments = safeSegments(input.key, "Managed object key");
     const allSegments = [...this.rootSegments, ...keySegments];
-    await this.ensureDirectories(allSegments.slice(0, -1));
+    await this.ensureDirectories(allSegments.slice(0, -1), input.key);
     const url = objectUrl(this.baseUrl, allSegments);
-    const response = await fetch(url, {
+    const response = await this.request(url, input.key, {
       method: "PUT",
       headers: this.headers({
         "content-type": input.contentType,
@@ -239,7 +255,7 @@ export class SwitchdriveStorage implements ManagedStorage {
 
   async stat(key: string): Promise<ManagedStorageStat | null> {
     const keySegments = safeSegments(key, "Managed object key");
-    const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
+    const response = await this.request(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), key, {
       method: "HEAD",
       headers: this.headers(),
       redirect: "manual",
@@ -263,7 +279,7 @@ export class SwitchdriveStorage implements ManagedStorage {
 
   async get(key: string): Promise<ManagedStorageObject | null> {
     const keySegments = safeSegments(key, "Managed object key");
-    const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
+    const response = await this.request(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), key, {
       method: "GET",
       headers: this.headers(),
       redirect: "manual",
@@ -287,7 +303,7 @@ export class SwitchdriveStorage implements ManagedStorage {
 
   async delete(key: string) {
     const keySegments = safeSegments(key, "Managed object key");
-    const response = await fetch(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), {
+    const response = await this.request(objectUrl(this.baseUrl, [...this.rootSegments, ...keySegments]), key, {
       method: "DELETE",
       headers: this.headers(),
       redirect: "manual",

@@ -6,6 +6,7 @@ import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
+import { ResearchPackageExport } from "../ResearchPackageExport";
 import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import { projectKeyboardEventIsPlainEscape } from "../../lib/project-canvas-productivity";
@@ -28,6 +29,7 @@ export interface ProjectReadingSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   mobile?: boolean;
   projectTitle?: string;
+  projectId?: string;
   focusedItemId?: string | null;
   focusRequestSequence?: number;
   inspectedItemId?: string | null;
@@ -123,6 +125,7 @@ export function ProjectReadingSurface({
   nodes,
   mobile = false,
   projectTitle = "Project Reading",
+  projectId,
   focusedItemId = null,
   focusRequestSequence = 0,
   inspectedItemId = null,
@@ -202,6 +205,8 @@ export function ProjectReadingSurface({
           disabled={!nodes.length || interactionDisabled || editorBusy || exportState.status === "exporting"}
           onClick={exportReading}
         >{exportState.status === "exporting" ? "Exporting…" : "Export readable ZIP"}</button>
+        {projectId && <ResearchPackageExport root={{ type: "project", id: projectId }} compact
+          disabled={!!interactionDisabled || editorBusy || exportState.status === "exporting"} />}
       </ReadingMore>
       {exportState.message && <p className={`project-reading-export-message ${exportState.status === "error" ? "error" : exportState.message.includes("warning") ? "warning" : ""}`} role="status">
         {exportState.message}

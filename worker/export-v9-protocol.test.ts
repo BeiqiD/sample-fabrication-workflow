@@ -8,6 +8,8 @@ import { DatabaseSync } from "node:sqlite";
 import JSZip from "jszip";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
+import { FILE_NATIVE_RUNTIME_ADDED_COLUMNS, FILE_NATIVE_RUNTIME_TABLE_COLUMNS } from "../shared/contracts/file-native-runtime";
+import { FILE_JOBS_EXPORT_COLUMNS } from "../shared/contracts/export-file-jobs-schema";
 import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
 import { FILE_AUTHORITY_CONSUMER_COLUMNS } from "../shared/contracts/export-file-authority";
 import type { FullExportManifestV9 } from "../shared/contracts/export";
@@ -91,10 +93,22 @@ describe("v9 dormant file registry archive profile", () => {
       const archivePath = join(scratch, "v9.zip");
       await writeFile(archivePath, bytes);
       const restored = await restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "output"), migrationsDirectory, targetCompatibilitySchema: "S2" });
-      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }, { name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }], warnings: [],
+      expect(restored.report).toMatchObject({ schemaVersion: 9, archiveProfile: "fp1-legacy-overlap", appliedForwardMigrations: [{ name: "0003_fp1_import_acceptance.sql" }, { name: "0004_r2_upload_acceptance.sql" }, { name: "0005_metrology_reference_acceptance.sql" }, { name: "0006_comment_acceptance.sql" }, { name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }, { name: "0018_fp2_native_file_runtime.sql" }, { name: "0019_fp3_file_jobs.sql" }, { name: "0020_fp4_research_packages.sql" }, { name: "0022_fp5_recovery_evidence.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
+        // Current recovery adds unknown targets, not new native/job decisions.
+        for (const [table, columns] of Object.entries(FILE_NATIVE_RUNTIME_ADDED_COLUMNS)) {
+          expect(database.prepare(`SELECT 1 FROM ${table} WHERE ${columns.map(column => `${column} IS NOT NULL`).join(" OR ")} LIMIT 1`).get(), table).toBeUndefined();
+        }
+        for (const table of [...Object.keys(FILE_NATIVE_RUNTIME_TABLE_COLUMNS), ...Object.keys(FILE_JOBS_EXPORT_COLUMNS), "file_job_cleanup_grants"])
+          expect(database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()?.count, table).toBe(0);
+        expect(database.prepare("SELECT enabled,incarnation,last_heartbeat_at FROM file_job_runtime_guard").get())
+          .toEqual({ enabled: 0, incarnation: null, last_heartbeat_at: null });
+        expect(database.prepare("SELECT name FROM sqlite_schema WHERE name='system_storage_native_bindings'").get()).toBeUndefined();
+        const assetColumns = f.database.prepare("PRAGMA table_info(assets)").all().map(row => `"${row.name}"`).join(",");
+        expect(database.prepare(`SELECT ${assetColumns} FROM assets ORDER BY id`).all())
+          .toEqual(f.database.prepare("SELECT * FROM assets ORDER BY id").all());
         for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) {
           const source = f.database.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all();
           const target = database.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all();
@@ -106,6 +120,7 @@ describe("v9 dormant file registry archive profile", () => {
           ...sourceImport,
           ...Object.fromEntries(IMPORT_ACCEPTANCE_EXPORT_COLUMNS.map((column) => [column, null])),
           ...Object.fromEntries(FILE_AUTHORITY_CONSUMER_COLUMNS.imports.map((column) => [column, null])),
+          ...Object.fromEntries(FILE_NATIVE_RUNTIME_ADDED_COLUMNS.imports.map((column) => [column, null])),
         });
         expect(() => database.exec("UPDATE files SET state = 'ready'")).toThrow();
       } finally { database.close(); }

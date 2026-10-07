@@ -58,6 +58,66 @@ function fixture() {
 }
 
 describe("canonical Comment reading on retained S1 data", () => {
+  it("reads the processing directory before typed File columns exist", async () => {
+    const f = fixture();
+    try {
+      const response = await f.request("/samples?view=processing&status=all");
+      expect(response.status).toBe(200);
+      const payload = await response.json() as { samples: Array<{ id: string }> };
+      expect(payload.samples.some((sample) => sample.id === ids.sampleA)).toBe(true);
+    } finally { f.database.close(); }
+  });
+
+  it("rejects a partial typed File schema before preparing native or historical projections", async () => {
+    const f = fixture();
+    try {
+      f.database.exec("ALTER TABLE run_step_assets ADD COLUMN file_id TEXT");
+      for (const [path, method] of [
+        [`/samples/${ids.sampleA}`, "GET"],
+        ["/samples?view=processing&status=all", "GET"],
+        [`/samples/${ids.sampleA}/records/missing`, "DELETE"],
+        [`/samples/${ids.sampleA}/events/missing/asset`, "DELETE"],
+      ]) {
+        const response = await f.request(path, method);
+        expect(response.status).toBe(503);
+        expect(await response.json()).toEqual({ error: "Sample File metadata is unavailable" });
+      }
+      expect(f.database.prepare("SELECT body FROM run_step_comments WHERE id = ?").get(ids.commentOccurrenceA)).toEqual({ body: staleBody });
+      expect(f.database.prepare("SELECT body FROM comment_submissions WHERE id = ?").get(ids.comment)).toEqual({ body: canonicalBody });
+    } finally { f.database.close(); }
+  });
+
+  it.each(["record", "image"] as const)("deletes a retained S1 %s without querying future File columns or changing stored assets", async (kind) => {
+    const f = fixture();
+    try {
+      const eventId = `retained-s1-${kind}`;
+      const body = "Retained S1 sample observation";
+      f.database.prepare(`INSERT INTO events
+        (id, sample_id, kind, body, asset_key, metadata_json, created_at)
+        VALUES (?, ?, 'image', ?, 'retained/s1.png', ?, '2026-08-01T06:00:00.000Z')`)
+        .run(eventId, ids.sampleA, body, JSON.stringify({ action: "sample_record", thumbnailKey: "retained/s1-preview.png" }));
+      const assets = f.database.prepare("SELECT * FROM assets ORDER BY id").all();
+      const path = kind === "record" ? `/samples/${ids.sampleA}/records/${eventId}`
+        : `/samples/${ids.sampleA}/events/${eventId}/asset`;
+      const response = await f.request(path, "DELETE");
+      expect(response.status).toBe(200);
+      const retained = f.database.prepare("SELECT body, asset_key, metadata_json FROM events WHERE id = ?").get(eventId)!;
+      expect(retained).toMatchObject({ body, asset_key: null });
+      const metadata = JSON.parse(String(retained.metadata_json));
+      expect(metadata).toMatchObject(kind === "record"
+        ? { action: "sample_record", deletedAt: expect.any(String), deletionOperationId: expect.any(String), hadAsset: true }
+        : { action: "sample_record", assetDeletedAt: expect.any(String), assetDeletionOperationId: expect.any(String) });
+      expect(metadata.thumbnailKey).toBeUndefined();
+      const action = kind === "record" ? "sample_record_deleted" : "image_attachment_deleted";
+      expect(f.database.prepare("SELECT body, metadata_json FROM events WHERE json_extract(metadata_json, '$.action') = ?").all(action))
+        .toEqual([{ body: `${kind === "record" ? "Deleted sample record" : "Deleted image attachment"} · ${body}`,
+          metadata_json: expect.any(String) }]);
+      const audit = f.database.prepare("SELECT metadata_json FROM events WHERE json_extract(metadata_json, '$.action') = ?").get(action)!;
+      expect(JSON.parse(String(audit.metadata_json))).toMatchObject({ originalEventId: eventId, hadAsset: true });
+      expect(f.database.prepare("SELECT * FROM assets ORDER BY id").all()).toEqual(assets);
+    } finally { f.database.close(); }
+  });
+
   it("reads canonical text and legacy text by ownership without rewriting either stored row", async () => {
     const f = fixture();
     try {

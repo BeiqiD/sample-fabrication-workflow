@@ -36,7 +36,14 @@ export async function writeAuthorityCandidate(
   const payload = { ...input };
   const db = primaryD1(env.DB);
   await authorityCandidatePublicationFence(db, owner, candidate).first();
-  const profile = await openShadowProfile(env, candidate.profile, "write");
+  const profile = await openShadowProfile(env, candidate.profile, "write", {
+    beforeRequest: async () => {
+      try {
+        await authorityCandidatePublicationFence(primaryD1(env.DB), owner, candidate).first();
+        return true;
+      } catch { return false; }
+    },
+  });
   if (!profile.writer) throw new Error("The accepted File writer is unavailable");
   const verified = await writeVerifiedBytes({ reader: profile.reader, writer: profile.writer, createHash: profile.createHash }, {
     ...payload, key: candidate.objectKey, ...candidate.expectedBytes,

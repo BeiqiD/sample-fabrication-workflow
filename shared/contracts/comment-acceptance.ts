@@ -21,6 +21,14 @@ export interface CommentAcceptedItemResult {
   storeKind: "r2" | "managed"; provider: "r2" | "switchdrive"; blobRecordId: string; objectKey: string;
   sha256: string; byteSize: number; deduplicated: boolean;
 }
+/** Native results identify the actual File and frozen profile. They cannot
+ * masquerade as a legacy R2 or SWITCHdrive locator. */
+export interface NativeCommentAcceptedItemResult {
+  schema: "comment-upload/2"; storeKind: "file"; provider: "s3";
+  blobRecordId: string; fileId: string; storageProfileId: string; storageProfileRevision: 1;
+  objectKey: string; sha256: string; byteSize: number; deduplicated: boolean;
+}
+export type CommentAcceptedItemResultV21 = CommentAcceptedItemResult | NativeCommentAcceptedItemResult;
 export interface CommentAcceptanceState {
   submissionId: string; inputSha256: string | null; expiresAt: string | null;
   status: "pending" | "ready" | "cancelled" | "expired" | "unavailable" | "legacy";
@@ -83,4 +91,18 @@ export function validateCommentAcceptedItemResult(value: unknown, context: { max
     || Number(value.byteSize) < 1 || Number(value.byteSize) > (context.maxByteSize ?? (value.storeKind === "r2" ? 5 : 100) * 1024 * 1024)
     || typeof value.deduplicated !== "boolean") throw new Error("Invalid accepted Comment upload result");
   return value as unknown as CommentAcceptedItemResult;
+}
+
+/** Runtime/V21 admission. The frozen legacy validator above remains the only
+ * result validator used by historical V13–V20 archives. */
+export function validateCommentAcceptedItemResultV21(value: unknown, context: { maxByteSize?: number } = {}): CommentAcceptedItemResultV21 {
+  if (!record(value) || value.storeKind !== "file") return validateCommentAcceptedItemResult(value, context);
+  if (!exact(value, ["schema", "storeKind", "provider", "blobRecordId", "fileId", "storageProfileId", "storageProfileRevision",
+    "objectKey", "sha256", "byteSize", "deduplicated"])
+    || value.schema !== "comment-upload/2" || value.provider !== "s3"
+    || !text(value.blobRecordId) || !text(value.fileId) || !text(value.storageProfileId) || value.storageProfileRevision !== 1
+    || !text(value.objectKey, 4096) || !validSha256(value.sha256) || !Number.isSafeInteger(value.byteSize)
+    || Number(value.byteSize) < 1 || Number(value.byteSize) > (context.maxByteSize ?? 100 * 1024 * 1024)
+    || typeof value.deduplicated !== "boolean") throw new Error("Invalid native accepted Comment upload result");
+  return value as unknown as NativeCommentAcceptedItemResult;
 }

@@ -22,7 +22,8 @@ it("binds ordinary records, execution images, comments and verification to the a
     } : null; };
     const env = {
       AUTH_MODE: "disabled", DB: new SqliteD1Database(sql) as unknown as D1Database, R2_BOOTSTRAP_NAMESPACE: namespace,
-      ASSETS: { get, head: get, async put(key: string, value: ArrayBuffer) { stored.set(key, new Uint8Array(value.slice(0))); } } as unknown as R2Bucket,
+      ASSETS: { get, head: get, async put(key: string, value: ArrayBuffer) { stored.set(key, new Uint8Array(value.slice(0))); },
+        async delete(key: string | string[]) { for (const objectKey of typeof key === "string" ? [key] : key) stored.delete(objectKey); } } as unknown as R2Bucket,
     } satisfies Env;
     const upload = await acceptAndUploadR2Asset(env, { actorEmail: "owner@example.test", requestId: crypto.randomUUID(),
       ingress: "ordinary_image", originalName: "image.png", mimeType: "image/png", bytes: Uint8Array.of(137, 80, 78, 71, 1).buffer });

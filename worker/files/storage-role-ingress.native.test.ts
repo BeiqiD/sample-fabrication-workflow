@@ -85,7 +85,9 @@ export default {async fetch(request,env,ctx){
   const bucket={async put(key,value,options){
     stats.puts.push(key);
     const table=input.kind==='import'?'imports':input.kind==='metrology'?'metrology_reference_upload_requests':'r2_upload_requests';
-    const receipts=(await rawDb.prepare('SELECT storage_profile_id,storage_profile_revision FROM '+table+' WHERE client_request_id=?').bind(input.requestId).all()).results;
+    const receipts=(await (input.kind==='import'
+      ? rawDb.prepare("SELECT item.storage_profile_id,item.storage_profile_revision,item.role_policy_revision FROM import_file_acceptances item JOIN imports parent ON parent.id=item.import_id WHERE parent.client_request_id=? AND parent.file_targets_protocol=1 AND item.candidate_object_key=? AND item.status='pending'").bind(input.requestId,key)
+      : rawDb.prepare('SELECT storage_profile_id,storage_profile_revision,role_policy_revision FROM '+table+' WHERE client_request_id=?').bind(input.requestId)).all()).results;
     const defaults=(await rawDb.prepare('SELECT role,storage_profile_id,storage_profile_revision FROM storage_role_defaults ORDER BY role').all()).results;
     stats.acceptedBeforePut.push({receipts,defaults});
     return env.BUCKET.put(key,value,options);
@@ -185,7 +187,10 @@ describe("fresh role acceptance with native Worker D1 and R2", () => {
         if (recordedDefaults) expect(defaults).toEqual(recordedDefaults);
         else { recordedDefaults = defaults; expect(defaults).toHaveLength(2); }
         const receipt = (await f.rows(receiptTable(kind))).find(row => row.client_request_id === requestId);
-        expect(receipt).toMatchObject({ status: "ready", storage_profile_id: "native-role-profile", storage_profile_revision: 1, storage_policy_revision: 1 });
+        expect(receipt).toMatchObject(kind === "import"
+          ? { status: "ready", file_targets_protocol: 1, role_policy_revision: 3,
+            storage_profile_id: null, storage_profile_revision: null, storage_policy_revision: null }
+          : { status: "ready", storage_profile_id: "native-role-profile", storage_profile_revision: 1, storage_policy_revision: 1, role_policy_revision: 3 });
         const accepted = await f.rows(receiptTable(kind)), before = await f.stats();
         const replay = await f.call({ kind, requestId, missingNamespace: kind === "import", rejectRoleReads: true });
         expect(replay.status, `${kind}: ${JSON.stringify(replay.body)}`).toBe(200);
@@ -203,7 +208,7 @@ describe("fresh role acceptance with native Worker D1 and R2", () => {
       expect(stats.lostAcceptanceAcknowledgements).toBe(4);
       expect(stats.puts).toHaveLength(6);
       for (const observation of stats.acceptedBeforePut) {
-        expect(observation.receipts).toEqual([{ storage_profile_id: "native-role-profile", storage_profile_revision: 1 }]);
+        expect(observation.receipts).toEqual([{ storage_profile_id: "native-role-profile", storage_profile_revision: 1, role_policy_revision: 3 }]);
         expect(observation.defaults).toEqual([
           { role: "internal", storage_profile_id: "native-role-profile", storage_profile_revision: 1 },
           { role: "originals", storage_profile_id: "native-role-profile", storage_profile_revision: 1 },

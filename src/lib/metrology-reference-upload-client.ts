@@ -1,7 +1,7 @@
 import { sha256Hex } from "../../shared/content-addressing";
 import type { MetrologyTemplateReference } from "../../shared/contracts/template";
 import {
-  MAX_METROLOGY_REFERENCE_UPLOAD_BYTES, validateMetrologyReferenceUploadInput, validateMetrologyReferenceUploadResult,
+  MAX_METROLOGY_REFERENCE_UPLOAD_BYTES, validateMetrologyReferenceUploadInput, validateMetrologyReferenceUploadResultV21,
 } from "../../shared/contracts/metrology-reference-upload";
 import { createUuid } from "./uuid";
 
@@ -91,8 +91,8 @@ function settle(payload: unknown, prepared: Prepared, key: string): MetrologyRef
     throw new MetrologyReferenceUploadError("The reference upload status could not be verified. Retry to check the same request.");
   }
   if (state.status === "ready") {
-    let result: ReturnType<typeof validateMetrologyReferenceUploadResult>;
-    try { result = validateMetrologyReferenceUploadResult(state.result); }
+    let result: ReturnType<typeof validateMetrologyReferenceUploadResultV21>;
+    try { result = validateMetrologyReferenceUploadResultV21(state.result); }
     catch { throw new MetrologyReferenceUploadError("The reference upload status could not be verified. Retry to check the same request."); }
     if (result.reference.byteSize !== checkpoint.byteSize) throw new MetrologyReferenceUploadError("The reference upload status could not be verified. Retry to check the same request.");
     checkpoint.observedReady = true;

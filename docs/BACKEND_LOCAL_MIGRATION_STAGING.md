@@ -42,8 +42,18 @@ both historical `0015_*` filenames remain distinct ledger entries.
 The script launches installed Wrangler with constructed `d1 migrations apply
 DB --local --config ... --persist-to ...` arguments, a private configuration,
 random local binding identity, and a credential-free subprocess environment.
-Retained fixture setup also uses real Wrangler for the original migration chain
-and fixed fixture SQL. No replacement CLI or hand-built migration batch is used.
+Retained fixture setup first uses real Wrangler on an empty migration directory
+to initialize its exact ledger. The 37 historical fixture files then execute
+unchanged through the installed Wrangler SQL splitter as separate native D1
+batch transactions, with each ledger INSERT in the same transaction, reusing
+one workerd. This avoids restarting workerd for every historical file. Every
+distinct filename and ledger ID is checked in order; the complete schema,
+retained rows and physical rowids must agree with independent host SQLite
+execution of the original source chain and fixed seed SQL. The qualification
+report records the source, schema and row/rowid hashes. Fixed retained-data
+seeding and the S1 bridge still use real Wrangler. Only fixture initialization
+uses native batches; every staged migration under qualification uses the
+installed CLI, without a replacement executor.
 
 The read-only observer opens the same local database using `getPlatformProxy`
 with `persist.path = CLI_PERSIST_PATH/v3`, remote bindings disabled and no
@@ -59,18 +69,26 @@ before opening the local state.
 
 ## Actual CLI qualification and failure handling
 
-Five permanent tests run in the existing verification-scripts leaf. They prove
+The permanent tests run in the existing verification-scripts leaf. They prove
 raw-source execution, complete final schema and data, exact original ledger
 preservation, no-op selection, rejection before apply on source/staging/config/
 schema/ledger drift, and protection against linked external paths.
 
-The failure case begins with an actual CLI-created retained S1 database. A fixed
+The failure case begins with the independently checked retained S0 fixture and
+an actual CLI-applied S1 bridge. A fixed
 test-only data fault violates the S2 text-owner assertion. Wrangler fails after
 creating the assertion table; that DDL rolls back, every row stays unchanged,
 and no failed migration ledger entry is recorded. The assertion fails before
 Wrangler reaches the appended ledger INSERT. The original 38 ledger rows remain unchanged. After correcting
 only the fixture data, a fresh plan stages the identical S2 SQL hash and bytes,
 and the actual CLI retry succeeds.
+
+The existing 120-second test and subprocess limits remain unchanged. The tests
+pass their cancellation signals into local rehearsal operations and child CLI
+processes, dispose native proxies, and drain pending operations before removing
+fixture directories. A canceled callback cannot continue a retry against a
+deleted working directory. Cancellation stops subsequent operations and is
+reported separately from migration failure.
 
 Wrangler commits migration files independently. A failed attempt may therefore
 leave a valid earlier prefix; the planner reclassifies the actual schema and

@@ -8,6 +8,8 @@ import { DatabaseSync } from "node:sqlite";
 import JSZip from "jszip";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
+import { FILE_NATIVE_RUNTIME_ADDED_COLUMNS, FILE_NATIVE_RUNTIME_TABLE_COLUMNS } from "../shared/contracts/file-native-runtime";
+import { FILE_JOBS_EXPORT_COLUMNS } from "../shared/contracts/export-file-jobs-schema";
 import type { ExportRow, FullExportManifestV13 } from "../shared/contracts/export";
 import { createExportArtifact, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV12, validateFullExportV13 } from "../shared/contracts/export-protocol";
 import { canonicalCommentAcceptanceInput, COMMENT_ACCEPTANCE_LIFETIME_MS, type CommentPublicationPlan } from "../shared/contracts/comment-acceptance";
@@ -198,10 +200,22 @@ describe("v13 durable canonical Comment acceptance archive profile", () => {
       const { archive, restored } = await roundtrip(manifest, f.fetcher, scratch);
       expect(archive.warnings).toEqual([]);
       expect(restored.report).toMatchObject({ schemaVersion: 13, archiveProfile: "fp1-comment-acceptance",
-        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }], warnings: [],
+        appliedForwardMigrations: [{ name: "0007_fp1_file_authority_transition.sql" }, { name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }, { name: "0018_fp2_native_file_runtime.sql" }, { name: "0019_fp3_file_jobs.sql" }, { name: "0020_fp4_research_packages.sql" }, { name: "0022_fp5_recovery_evidence.sql" }], warnings: [],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true } });
       const database = new DatabaseSync(join(restored.restoredDirectory, "database.sqlite"));
       try {
+        // Current recovery adds unknown targets, not new native/job decisions.
+        for (const [table, columns] of Object.entries(FILE_NATIVE_RUNTIME_ADDED_COLUMNS)) {
+          expect(database.prepare(`SELECT 1 FROM ${table} WHERE ${columns.map(column => `${column} IS NOT NULL`).join(" OR ")} LIMIT 1`).get(), table).toBeUndefined();
+        }
+        for (const table of [...Object.keys(FILE_NATIVE_RUNTIME_TABLE_COLUMNS), ...Object.keys(FILE_JOBS_EXPORT_COLUMNS), "file_job_cleanup_grants"])
+          expect(database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()?.count, table).toBe(0);
+        expect(database.prepare("SELECT enabled,incarnation,last_heartbeat_at FROM file_job_runtime_guard").get())
+          .toEqual({ enabled: 0, incarnation: null, last_heartbeat_at: null });
+        expect(database.prepare("SELECT name FROM sqlite_schema WHERE name='system_storage_native_bindings'").get()).toBeUndefined();
+        const assetColumns = f.database.prepare("PRAGMA table_info(assets)").all().map(row => `"${row.name}"`).join(",");
+        expect(database.prepare(`SELECT ${assetColumns} FROM assets ORDER BY id`).all())
+          .toEqual(f.database.prepare("SELECT * FROM assets ORDER BY id").all());
         for (const [table, key] of [["comment_submission_acceptances", "submission_id"], ["comment_item_acceptances", "item_id"], ["comment_submissions", "id"], ["comment_submission_items", "id"], ["run_step_comments", "id"], ["events", "id"]]) {
           const columns = (f.database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(({ name }) => `"${name}"`).join(", ");
           expect(database.prepare(`SELECT ${columns} FROM ${table} ORDER BY ${key}`).all()).toEqual(f.database.prepare(`SELECT * FROM ${table} ORDER BY ${key}`).all());

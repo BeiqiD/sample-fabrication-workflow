@@ -1,5 +1,8 @@
-import type { DatabaseSync } from "node:sqlite";
-import { afterEach, describe, expect, it } from "vitest";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { referenceTestDatabase } from "../reference-test-support";
 import { assertR2BootstrapProfile, ensureR2BootstrapProfile, r2BootstrapNamespace, R2BootstrapUnavailableError } from "./r2-bootstrap-profile";
 
@@ -9,11 +12,74 @@ const OTHER = JSON.stringify({ kind: "cloudflare-r2", accountId: "b".repeat(32),
 const LOCAL = JSON.stringify({ kind: "local-r2", installationId: "ed52e1b3-bc58-4bad-9aab-c803cfa6f14c", bucketName: "source-bucket" });
 const ENV = { R2_BOOTSTRAP_NAMESPACE: CLOUD };
 const databases: DatabaseSync[] = [];
+let fixtureDirectory: string | undefined;
+let pristinePath: string | undefined;
+let nextFixture = 0;
+const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
+
+function fixtureImage(database: DatabaseSync) {
+  const schema = database.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name").all();
+  const tables = database.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name")
+    .all() as { name: string }[];
+  const withoutRowid = new Set((database.prepare("PRAGMA table_list").all() as { name: string; wr: number }[])
+    .filter((table) => table.wr === 1).map((table) => table.name));
+  return { schema, tables: Object.fromEntries(tables.map(({ name }) => {
+    const columns = database.prepare(`PRAGMA table_info(${quoteIdentifier(name)})`).all() as { name: string; pk: number }[];
+    const primaryKey = columns.filter((column) => column.pk > 0)
+      .sort((a, b) => a.pk - b.pk).map((column) => quoteIdentifier(column.name));
+    const storageTypes = columns.map((column, index) =>
+      `typeof(${quoteIdentifier(column.name)}) AS ${quoteIdentifier(`_fixture_type_${index}`)}`).join(",");
+    const rows = database.prepare(withoutRowid.has(name)
+      ? `SELECT *,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY ${primaryKey.join(",")}`
+      : `SELECT rowid AS _fixture_rowid,*,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY rowid`);
+    rows.setReadBigInts(true);
+    return [name, rows.all()];
+  })) };
+}
+
+beforeAll(() => {
+  // Replay the complete actual migration schema once. Each bootstrap
+  // scenario keeps its original seeds and fault hooks in a fresh physical
+  // copy; no scenario depends on a distinct installation identity.
+  fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-r2-bootstrap-profile-"));
+  pristinePath = join(fixtureDirectory, "pristine.sqlite");
+  const database = referenceTestDatabase();
+  try {
+    expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+    const expected = fixtureImage(database);
+    database.exec(`VACUUM INTO '${pristinePath.replaceAll("'", "''")}'`);
+    const cloned = new DatabaseSync(pristinePath, { readOnly: true });
+    try {
+      expect(fixtureImage(cloned)).toEqual(expected);
+      expect(cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally {
+      cloned.close();
+    }
+  } finally {
+    database.close();
+  }
+});
+
+function pristineDatabase() {
+  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical R2 bootstrap fixture has not been initialized");
+  const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
+  copyFileSync(pristinePath, path);
+  const database = new DatabaseSync(path);
+  database.exec("PRAGMA foreign_keys=ON");
+  databases.push(database);
+  return database;
+}
+
 afterEach(() => databases.splice(0).forEach((db) => db.close()));
+afterAll(() => {
+  databases.splice(0).forEach((db) => db.close());
+  if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
+});
 
 function fixture() {
-  const sql = referenceTestDatabase();
-  databases.push(sql);
+  const sql = pristineDatabase();
   let beforeRun: (() => void) | undefined;
   let failAfterRun = false;
   let failBeforeRun = false;

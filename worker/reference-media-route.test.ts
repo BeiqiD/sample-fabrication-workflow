@@ -64,6 +64,23 @@ function mediaRequest(
 }
 
 describe("stable execution-image media route", () => {
+  it("preserves historical opaque by-id R2 keys beside the separate native File route", async () => {
+    const { database, env } = fixture();
+    try {
+      const key = "by-id/historical-opaque-key";
+      database.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,created_at,sha256)
+        VALUES('historical-by-id',?,'historical.png','image/png',8,'ready','2026-08-08T12:00:00.000Z',?)`).run(key, "f".repeat(64));
+      const get = vi.fn(async (objectKey: string) => objectKey === key ? {
+        body: streamBytes(), httpEtag: '"historical"', writeHttpMetadata() {},
+      } : null);
+      env.ASSETS = { get } as unknown as R2Bucket;
+      const legacy = await worker.fetch(new Request(`https://app.test/api/assets/${key}`), env, executionContext);
+      expect(legacy.status).toBe(200); expect(new Uint8Array(await legacy.arrayBuffer())).toEqual(imageBytes);
+      const native = await worker.fetch(new Request("https://app.test/api/file-assets/historical-by-id"), env, executionContext);
+      expect(native.status).toBe(404); expect(get).toHaveBeenCalledExactlyOnceWith(key);
+    } finally { database.close(); }
+  });
+
   it("streams bytes only when the stable occurrence belongs to the requested active Step", async () => {
     const { database, env } = fixture();
     const get = vi.spyOn(env.ASSETS, "get");

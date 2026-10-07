@@ -118,11 +118,11 @@ try {
   const oldExport = await miniflare.dispatchFetch("https://app.test/api/exports/all");
   assert.equal(oldExport.status, 409);
   assert.match((await oldExport.json()).error, /Refresh the page/);
-  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=20&archiveWriter=1");
+  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=24&archiveWriter=1");
   const fullExport = await exportResponse.json();
   assert.equal(exportResponse.status, 200, JSON.stringify(fullExport));
-  assert.equal(fullExport.schemaVersion, 20);
-  assert.equal(fullExport.archiveProfile, "fp2-native-profile-admission");
+  assert.equal(fullExport.schemaVersion, 24);
+  assert.equal(fullExport.archiveProfile, "fp5-system-recovery-evidence");
   assert.equal(fullExport.archiveWriter, 1);
   assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
   const sourceSchema = fullExport.artifacts.sourceSchema.value;

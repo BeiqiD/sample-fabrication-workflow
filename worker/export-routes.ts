@@ -1,4 +1,12 @@
+import { snapshotFullExportV23 } from "./export-v23-snapshot";
+import { snapshotFullExportV24 } from "./export-v24-snapshot";
+import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../shared/contracts/export-system-recovery-evidence";
+import { RESEARCH_PACKAGE_EXPORT_COLUMNS, RESEARCH_PACKAGE_LOCAL_TABLE_NAMES } from "../shared/contracts/export-research-package-schema";
 import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { snapshotFullExportV21 } from "./export-v21-snapshot";
+import { snapshotFullExportV22 } from "./export-v22-snapshot";
+import { FILE_JOBS_EXPORT_COLUMNS, FILE_JOBS_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-jobs-schema";
+import { FILE_NATIVE_RUNTIME_TABLE_COLUMNS, FILE_NATIVE_RUNTIME_ADDED_COLUMNS } from "../shared/contracts/file-native-runtime";
 import { STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS } from "../shared/contracts/export-file-native-admission";
 import { snapshotFullExportV19 } from "./export-v19-snapshot";
 import { STORAGE_ROLE_DEFAULTS_EXPORT_COLUMNS } from "../shared/contracts/export-file-role-policy";
@@ -133,6 +141,32 @@ const FILE_R2_ROLE_DEFAULT_MARKERS = [["table", "storage_role_defaults"], ["trig
 const FILE_R2_ROLE_DEFAULT_COLUMNS = { ...STORAGE_ROLE_DEFAULTS_EXPORT_COLUMNS, comment_submission_acceptances: ["storage_role_policy_revision"] } as const;
 
 const FILE_NATIVE_ADMISSION_MARKERS = [["table", "storage_profile_admissions"], ["trigger", "file_native_storage_profiles_generation_complete"]] as const satisfies readonly SchemaMarker[];
+const FILE_NATIVE_RUNTIME_MARKERS = [
+  ...Object.keys(FILE_NATIVE_RUNTIME_TABLE_COLUMNS).map(name => ["table", name] as const),
+  ["trigger", "file_native_runtime_generation_complete"],
+] as const satisfies readonly SchemaMarker[];
+const FILE_NATIVE_RUNTIME_COLUMNS = { ...FILE_NATIVE_RUNTIME_TABLE_COLUMNS, ...FILE_NATIVE_RUNTIME_ADDED_COLUMNS };
+const FILE_MIGRATION_MARKERS = [
+  ...Object.keys(FILE_JOBS_EXPORT_COLUMNS).map(name => ["table", name] as const),
+  ...FILE_JOBS_LOCAL_TABLE_NAMES.map(name => ["table", name] as const),
+  ["view", "file_migration_live_verified_attempts"], ["trigger", "file_migration_cutover_fence"],
+  ["trigger", "file_migration_attempts_delete"],
+] as const satisfies readonly SchemaMarker[];
+
+const RESEARCH_PACKAGE_MARKERS = [
+  ...Object.keys(RESEARCH_PACKAGE_EXPORT_COLUMNS).map(name => ["table", name] as const),
+  ...RESEARCH_PACKAGE_LOCAL_TABLE_NAMES.map(name => ["table", name] as const),
+  ["view", "research_package_live_verified_attempts"], ["view", "research_package_verified_aliases"],
+  ["trigger", "research_package_attempts_delete"],
+] as const satisfies readonly SchemaMarker[];
+
+const SYSTEM_RECOVERY_MARKERS = [
+  ...Object.keys(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS).map(name => ["table", name] as const),
+  ["trigger", "recovery_file_evidence_insert_guard"], ["trigger", "recovery_file_evidence_update_guard"],
+  ["trigger", "recovery_file_evidence_delete_guard"], ["trigger", "recovery_file_alias_evidence_update_guard"],
+  ["trigger", "recovery_file_alias_evidence_delete_guard"], ["trigger", "recovery_file_binding_evidence_update_guard"],
+  ["trigger", "recovery_file_binding_evidence_delete_guard"], ["trigger", "assets_recovery_insert_guard"],
+] as const satisfies readonly SchemaMarker[];
 
 const FILE_AUTHORITY_RUNTIME_MARKERS = [["trigger", "file_authority_runtime_generation_complete"]] as const satisfies readonly SchemaMarker[];
 
@@ -163,7 +197,15 @@ const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
   ${markerCountSql(FILE_R2_ROLE_DEFAULT_MARKERS)} AS role_default_markers,
   ${columnCountSql(FILE_R2_ROLE_DEFAULT_COLUMNS)} AS role_default_columns,
   ${markerCountSql(FILE_NATIVE_ADMISSION_MARKERS)} AS native_admission_markers,
-  ${columnCountSql(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS)} AS native_admission_columns`;
+  ${columnCountSql(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS)} AS native_admission_columns,
+  ${markerCountSql(FILE_NATIVE_RUNTIME_MARKERS)} AS native_runtime_markers,
+  ${columnCountSql(FILE_NATIVE_RUNTIME_COLUMNS)} AS native_runtime_columns,
+  ${markerCountSql(FILE_MIGRATION_MARKERS)} AS migration_markers,
+  ${columnCountSql(FILE_JOBS_EXPORT_COLUMNS)} AS migration_columns,
+  ${markerCountSql(RESEARCH_PACKAGE_MARKERS)} AS package_markers,
+  ${columnCountSql(RESEARCH_PACKAGE_EXPORT_COLUMNS)} AS package_columns,
+  ${markerCountSql(SYSTEM_RECOVERY_MARKERS)} AS recovery_markers,
+  ${columnCountSql(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS)} AS recovery_columns`;
 
 type ExportSchemaGenerationProbe = {
   base_markers: number;
@@ -177,6 +219,10 @@ type ExportSchemaGenerationProbe = {
   shadow_markers: number; shadow_columns: number; shadow_completion_markers: number;
   withdrawal_markers: number; withdrawal_columns: number;
   adjudication_markers: number; adjudication_columns: number; file_runtime_markers: number; role_default_markers: number; role_default_columns: number; native_admission_markers: number; native_admission_columns: number;
+  native_runtime_markers: number; native_runtime_columns: number;
+  migration_markers: number; migration_columns: number;
+  package_markers: number; package_columns: number;
+  recovery_markers: number; recovery_columns: number;
 };
 
 const COMPLETE_GENERATION_COUNTS = [
@@ -194,14 +240,19 @@ const COMPLETE_GENERATION_COUNTS = [
   FILE_AUTHORITY_RUNTIME_MARKERS.length,
   FILE_R2_ROLE_DEFAULT_MARKERS.length, totalColumns(FILE_R2_ROLE_DEFAULT_COLUMNS),
   FILE_NATIVE_ADMISSION_MARKERS.length, totalColumns(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS),
+  FILE_NATIVE_RUNTIME_MARKERS.length, totalColumns(FILE_NATIVE_RUNTIME_COLUMNS),
+  FILE_MIGRATION_MARKERS.length, totalColumns(FILE_JOBS_EXPORT_COLUMNS),
+  RESEARCH_PACKAGE_MARKERS.length, totalColumns(RESEARCH_PACKAGE_EXPORT_COLUMNS),
+  SYSTEM_RECOVERY_MARKERS.length, totalColumns(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS),
 ] as const;
-const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, 22, 23, 25, COMPLETE_GENERATION_COUNTS.length] as const;
+const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, 22, 23, 25, 27, 29, 31, 33, COMPLETE_GENERATION_COUNTS.length] as const;
 
 function generationCounts(row: ExportSchemaGenerationProbe) {
   return [row.base_markers, row.foundation_markers, row.foundation_columns, row.import_markers, row.import_columns,
     row.r2_markers, row.r2_columns, row.metrology_markers, row.metrology_columns, row.comment_markers,
     row.comment_columns, row.authority_markers, row.authority_columns, row.authority_consumer_columns,
-    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns, row.file_runtime_markers, row.role_default_markers, row.role_default_columns, row.native_admission_markers, row.native_admission_columns];
+    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns, row.file_runtime_markers, row.role_default_markers, row.role_default_columns, row.native_admission_markers, row.native_admission_columns,
+    row.native_runtime_markers, row.native_runtime_columns, row.migration_markers, row.migration_columns, row.package_markers, row.package_columns, row.recovery_markers, row.recovery_columns];
 }
 
 async function installedExportSchema(database: D1Database) {
@@ -228,6 +279,10 @@ snapshotRoutes.get("/exports/all", async (c) => {
     if (Number(requestedSchema) !== installedSchema) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }
+    if (requestedSchema === "24") return c.json(await snapshotFullExportV24(c.env.DB));
+    if (requestedSchema === "23") return c.json(await snapshotFullExportV23(c.env.DB));
+    if (requestedSchema === "22") return c.json(await snapshotFullExportV22(c.env.DB));
+    if (requestedSchema === "21") return c.json(await snapshotFullExportV21(c.env.DB));
     if (requestedSchema === "20") return c.json(await snapshotFullExportV20(c.env.DB));
     if (requestedSchema === "19") return c.json(await snapshotFullExportV19(c.env.DB));
     if (requestedSchema === "18") return c.json(await snapshotFullExportV18(c.env.DB));

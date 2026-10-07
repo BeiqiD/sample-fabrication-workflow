@@ -1,12 +1,14 @@
+import { RESEARCH_PACKAGE_LOCAL_TABLE_NAMES } from "../shared/contracts/export-research-package-schema";
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FULL_EXPORT_TABLE_QUERIES } from "./export-catalog";
-import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { snapshotFullExportV24 } from "./export-v24-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 import { FILE_SHADOW_SLOT_KEYS } from "../shared/contracts/file-shadow-schema";
 import { FILE_SHADOW_REBUILDABLE_TABLE_NAMES } from "../shared/contracts/export-file-shadow";
 import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-runtime";
-import { SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES } from "../shared/contracts/storage-configuration-schema";
+import { SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES, INSTALLATION_LOCAL_CONFIGURATION_TABLE_NAMES } from "../shared/contracts/storage-configuration-schema";
+import { FILE_JOBS_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-jobs-schema";
 
 // These optional tables belong to Wrangler/D1, not application state. SQLite's
 // own reserved sqlite_* tables are also excluded. Do not exclude arbitrary
@@ -14,10 +16,10 @@ import { SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES } from "../shared/contracts/st
 const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
 // Hidden rowid claims are rebuilt from restored registry rows. Execution gates
 // are installation-local and rebuilt disabled; neither belongs in portable rows.
-const REBUILDABLE_TABLES = new Set<string>([...FILE_SHADOW_REBUILDABLE_TABLE_NAMES, ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES]);
+const REBUILDABLE_TABLES = new Set<string>([...FILE_SHADOW_REBUILDABLE_TABLE_NAMES, ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, ...FILE_JOBS_LOCAL_TABLE_NAMES, ...RESEARCH_PACKAGE_LOCAL_TABLE_NAMES]);
 // These installation-administration tables deliberately require a separate
 // authorized recovery boundary. Even credential descriptors are not content.
-const SYSTEM_CONFIGURATION_TABLES = new Set<string>(SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES);
+const SYSTEM_CONFIGURATION_TABLES = new Set<string>([...SYSTEM_STORAGE_CONFIGURATION_TABLE_NAMES, ...INSTALLATION_LOCAL_CONFIGURATION_TABLE_NAMES]);
 
 // This time-dependent projection is part of the archive contract in addition to
 // its source tables. Other views are rebuildable only after an explicit decision
@@ -41,6 +43,11 @@ const REBUILDABLE_VIEWS = new Set([
   "file_authority_pending_receipt_items", "file_authority_pending_candidates", "file_authority_usable_candidate_results", "file_authority_ready_candidate_aliases",
   // Recomputed from current shadow heads and usable File publications at cutoff.
   "file_authority_activation_bindings",
+  // Only a locally enabled, current-owner job may be a live cutover source.
+  // Restore rebuilds this projection over a disabled installation guard.
+  "file_migration_live_verified_attempts",
+  "research_package_live_verified_attempts", "research_package_verified_aliases",
+  "research_package_domain_rows_present", "research_package_live_domain_rows",
   // Current source and namespace evidence are exact deterministic projections.
   ...FILE_SHADOW_SLOT_KEYS.map(([kind, slot]) => `file_shadow_sources_${kind}_${slot}`),
   "file_shadow_sources_relational", "file_shadow_sources_content", "file_shadow_sources_direct",
@@ -104,11 +111,12 @@ describe("complete export schema coverage", () => {
   beforeEach(() => { database = referenceTestDatabase(); });
   afterEach(() => { database.close(); });
 
-  it("covers every migrated application table and required view with the actual v20 snapshot", async () => {
+  it("covers every migrated application table and required view with the actual V24 snapshot", async () => {
     // Discover tables from the real migration result, independently of the
     // export catalog. The table count is deliberately not frozen at today's 34.
     assertExportSchemaCoverage(database);
-    const snapshot = await snapshotFullExportV20(new SqliteD1Database(database) as unknown as D1Database);
+    const snapshot = await snapshotFullExportV24(new SqliteD1Database(database) as unknown as D1Database);
+    expect(snapshot.schemaVersion).toBe(24);
     expect(Object.keys(snapshot.tables).sort()).toEqual(Object.keys(FULL_EXPORT_TABLE_QUERIES).sort());
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.samples).not.toContain("process_revision");
     expect(snapshot.artifacts.sourceSchema.value.compatibilityColumns.run_step_comments).toContain("legacy_body");

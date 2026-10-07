@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { readShadowBaseline } from "./shadow-baseline";
 import { acceptShadowAdjudication, prepareShadowAdjudication, readShadowAdjudication, revokeShadowAdjudication,
@@ -12,12 +15,76 @@ import type { ByteReadResult } from "./byte-reader";
 import type { ByteWriteInput } from "./byte-writer";
 
 const databases: DatabaseSync[] = [];
+let fixtureDirectory: string | undefined;
+let nextFixture = 0;
+const pristinePaths = new Map<string, string>();
+const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
+
+function fixtureImage(database: DatabaseSync) {
+  const schema = database.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name").all();
+  const tables = database.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name")
+    .all() as { name: string }[];
+  const withoutRowid = new Set((database.prepare("PRAGMA table_list").all() as { name: string; wr: number }[])
+    .filter((table) => table.wr === 1).map((table) => table.name));
+  return { schema, tables: Object.fromEntries(tables.map(({ name }) => {
+    const columns = database.prepare(`PRAGMA table_info(${quoteIdentifier(name)})`).all() as { name: string; pk: number }[];
+    const primaryKey = columns.filter((column) => column.pk > 0)
+      .sort((a, b) => a.pk - b.pk).map((column) => quoteIdentifier(column.name));
+    const storageTypes = columns.map((column, index) =>
+      `typeof(${quoteIdentifier(column.name)}) AS ${quoteIdentifier(`_fixture_type_${index}`)}`).join(",");
+    const rows = database.prepare(withoutRowid.has(name)
+      ? `SELECT *,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY ${primaryKey.join(",")}`
+      : `SELECT rowid AS _fixture_rowid,*,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY rowid`);
+    rows.setReadBigInts(true);
+    return [name, rows.all()];
+  })) };
+}
+
+beforeAll(() => {
+  // Keep all current and historical fixture generations, running each actual
+  // migration chain once. Every scenario opens its own physical copy and
+  // retains the original seeds, fresh request UUIDs and runtime changes.
+  fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-shadow-adjudication-"));
+  for (const throughMigration of [undefined, "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql"]) {
+    const database = referenceTestDatabase({ throughMigration });
+    const path = join(fixtureDirectory, `pristine-${throughMigration ?? "current"}.sqlite`);
+    try {
+      expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+      expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+      expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+      const expected = fixtureImage(database);
+      database.exec(`VACUUM INTO '${path.replaceAll("'", "''")}'`);
+      const cloned = new DatabaseSync(path, { readOnly: true });
+      try {
+        expect(fixtureImage(cloned)).toEqual(expected);
+        expect(cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+      } finally {
+        cloned.close();
+      }
+      pristinePaths.set(throughMigration ?? "current", path);
+    } finally {
+      database.close();
+    }
+  }
+});
+
+function pristineDatabase(options: { throughMigration?: string }) {
+  const pristinePath = pristinePaths.get(options.throughMigration ?? "current");
+  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical shadow adjudication fixture has not been initialized");
+  const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
+  copyFileSync(pristinePath, path);
+  const database = new DatabaseSync(path);
+  database.exec("PRAGMA foreign_keys=ON");
+  databases.push(database);
+  return database;
+}
+
 const now = "2026-09-28T08:00:00.000Z";
 const bytes = new TextEncoder().encode("historical research bytes");
 const sha = createHash("sha256").update(bytes).digest("hex");
 const key = (consumerId = "content-a") => ({ consumerKind: "project_content_attachment" as const, consumerId, consumerSubId: "", fileSlot: "primary" as const });
 function fixture(options: { throughMigration?: string } = {}) {
-  const sql = referenceTestDatabase(options); databases.push(sql);
+  const sql = pristineDatabase(options);
   sql.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,sha256,created_at)
     VALUES('asset','historical/source','registry.png','image/png',?,'ready',?,?)`).run(bytes.byteLength, sha, now);
   for (const suffix of ["a", "b"]) {
@@ -97,7 +164,11 @@ function loseRunAck(f: ReturnType<typeof fixture>, fragment: string, committed: 
     return statement;
   });
 }
-afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(db => db.close()); });
+afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(db => { if (db.isOpen) db.close(); }); });
+afterAll(() => {
+  databases.splice(0).forEach(db => { if (db.isOpen) db.close(); });
+  if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
+});
 
 describe("historical Project R2 operator adjudication", () => {
   it("accepts one exact occurrence without approving its shared-locator peer or manufacturing a generation", async () => {

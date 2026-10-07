@@ -86,6 +86,7 @@ type ItemBundle = {
 };
 
 type BlobRecordRow = {
+  r2_key?: string | null;
   id: string;
   original_name: string;
   mime_type: string;
@@ -895,7 +896,7 @@ async function readAttachmentBlobRecord(
 ): Promise<BlobRecordRow> {
   if ("assetId" in input.locator) {
     const row = await db.prepare(`
-      SELECT a.id, a.original_name, a.mime_type, a.byte_size
+      SELECT a.id, a.r2_key, a.original_name, a.mime_type, a.byte_size
       FROM assets a
       WHERE a.id = ? AND a.status = 'ready'
         AND (${await fileAuthorityActiveSql(db)} OR NOT EXISTS (
@@ -1004,7 +1005,8 @@ export async function createAttachmentProjectItem(
   const storageObjectId = "storageObjectId" in input.locator
     ? input.locator.storageObjectId
     : null;
-  const binding = { assetId: assetId ?? undefined, storageObjectId: storageObjectId ?? undefined, purpose: "research_source" as const };
+  const binding = { assetId: assetId ?? undefined, storageObjectId: storageObjectId ?? undefined,
+    nativeAsset: assetId !== null && blob.r2_key === null, purpose: "research_source" as const };
   const fileId = await resolveConsumerFileId(db, binding);
 
   const statements = [

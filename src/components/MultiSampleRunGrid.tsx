@@ -1,6 +1,7 @@
+import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
 import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
+import type { FileAssetMediaRef, CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
 import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
@@ -40,7 +41,7 @@ type MetrologyDrawerState = { column: RunGridColumn; afterStepId?: string } | nu
 type DeleteRequest =
   | { kind: "comment"; comment: RunStepComment; common: boolean }
   | { kind: "comment_asset"; comment: RunStepComment; common: boolean }
-  | { kind: "execution_asset"; assetKey: string; column: RunGridColumn; step: RunStep };
+  | { kind: "execution_asset"; assetKey: string; assetId?: string; column: RunGridColumn; step: RunStep };
 
 type RecipeDetailsState = { step: RunStep; number: number } | null;
 type CommonCommentGroup = { comment: RunStepComment; codes: string[] };
@@ -189,14 +190,22 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
   </>;
 }
 
-export function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
+export function DiagramGallery({ keys, images = [], urls = [], onDeleteNative, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
   keys: string[];
+  images?: FileAssetMediaRef[];
+  urls?: string[];
+  onDeleteNative?: (assetId: string) => void;
   label: string;
   kind?: GalleryKind;
   size?: GallerySize;
   onDelete?: (key: string) => void;
   className?: string;
 }) {
+  const entries = [...keys.map(key => ({ id: key, url: `/api/assets/${key}`, native: false })),
+    ...images.filter(image => image.url === nativeAssetUrl(image.assetId))
+      .map(image => ({ id: image.assetId, url: image.url, native: true })),
+    ...urls.filter(url => url.startsWith("/api/") && !url.includes("\\") && !url.includes("\0"))
+      .map(url => ({ id: url, url, native: false }))];
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -218,8 +227,8 @@ export function DiagramGallery({ keys, label, kind = "diagram", size = "compact"
     closeButtonRef.current?.focus();
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); setActiveIndex(null); }
-      if (event.key === "ArrowLeft") setActiveIndex((current) => current === null ? null : (current - 1 + keys.length) % keys.length);
-      if (event.key === "ArrowRight") setActiveIndex((current) => current === null ? null : (current + 1) % keys.length);
+      if (event.key === "ArrowLeft") setActiveIndex((current) => current === null ? null : (current - 1 + entries.length) % entries.length);
+      if (event.key === "ArrowRight") setActiveIndex((current) => current === null ? null : (current + 1) % entries.length);
       if (["+", "="].includes(event.key)) { event.preventDefault(); setZoom((current) => Math.min(5, current + .25)); }
       if (event.key === "-") { event.preventDefault(); setZoom((current) => Math.max(1, current - .25)); }
       if (event.key === "0") { setZoom(1); setPan({ x: 0, y: 0 }); }
@@ -229,18 +238,18 @@ export function DiagramGallery({ keys, label, kind = "diagram", size = "compact"
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeIndex, keys.length]);
-  if (!keys.length) return null;
+  }, [activeIndex, entries.length]);
+  if (!entries.length) return null;
   const lightbox = activeIndex === null ? null : createPortal(<div className={`image-lightbox ${kind}-lightbox`} role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
     <div className="image-lightbox-panel">
       <div className="image-lightbox-toolbar">
-        <span className="image-lightbox-caption"><strong>{label}</strong><small>{activeIndex + 1} / {keys.length}</small></span>
+        <span className="image-lightbox-caption"><strong>{label}</strong><small>{activeIndex + 1} / {entries.length}</small></span>
         <div className="image-zoom-controls" aria-label="Image zoom controls">
           <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
           <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Reset image zoom">{Math.round(zoom * 100)}%</button>
           <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
         </div>
-        <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
+        <a href={entries[activeIndex]?.url} target="_blank" rel="noreferrer">Original</a>
         <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer"><DialogCloseIcon /></button>
       </div>
       <div
@@ -261,21 +270,21 @@ export function DiagramGallery({ keys, label, kind = "diagram", size = "compact"
         onPointerCancel={() => { dragRef.current = null; }}
       >
         <img
-          src={`/api/assets/${keys[activeIndex]}`}
+          src={entries[activeIndex]?.url}
           alt={`${label} ${activeIndex + 1}`}
           draggable={false}
           style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
         />
       </div>
-      {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
+      {entries.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + entries.length) % entries.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % entries.length)} aria-label="Next image">→</button></>}
     </div>
   </div>, document.body);
   return <>
-    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list">{keys.map((key, index) => {
-      const src = `/api/assets/${key}`;
-      return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}>
+    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list">{entries.map((entry, index) => {
+      const key = entry.id, src = entry.url;
+      return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${entries.length}`}>
         {kind === "diagram" ? <DiagramThumbnail src={src} alt={label} /> : <img src={src} alt={label} loading="lazy" />}
-      </button>{onDelete && <button type="button" className="diagram-delete-button" title="Delete image" onClick={() => onDelete(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
+      </button>{(entry.native ? onDeleteNative : onDelete) && <button type="button" className="diagram-delete-button" title="Delete image" onClick={() => entry.native ? onDeleteNative?.(key) : onDelete?.(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
     })}</div>
     {lightbox}
   </>;
@@ -284,7 +293,7 @@ export function DiagramGallery({ keys, label, kind = "diagram", size = "compact"
 function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetailsState>; onClose: () => void }) {
   const { step, number } = state;
   const hasPlannedCopy = Boolean(step.plannedParametersText || step.plannedCommentsText);
-  const hasPlannedDiagrams = step.plannedImageKeys.length > 0;
+  const hasPlannedDiagrams = (step.plannedImageKeys.length > 0 || Boolean(step.plannedImages?.length));
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   useModalDialog({ dialogRef, initialFocusRef: closeButtonRef, onClose });
@@ -301,7 +310,7 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
           {step.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{step.plannedParametersText}</p></div>}
           {step.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{step.plannedCommentsText}</p></div>}
         </div>}
-        <DiagramGallery keys={step.plannedImageKeys} label={`Plan diagram for ${step.title}`} />
+        <DiagramGallery keys={step.plannedImageKeys} images={step.plannedImages} label={`Plan diagram for ${step.title}`} />
         {!hasPlannedCopy && !hasPlannedDiagrams && <p className="muted">No additional process-step details.</p>}
       </div>
     </section>
@@ -317,6 +326,8 @@ function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, commo
   common?: boolean;
 }) {
   const imageKeys = (comment.images ?? []).flatMap((image) => image.assetKey ? [image.assetKey] : []);
+  const imageUrls = (comment.images ?? []).flatMap(image => image.assetKey ? [] : image.assetUrl ? [image.assetUrl] : []);
+  if (!imageUrls.length && !imageKeys.length && comment.assetUrl) imageUrls.push(comment.assetUrl);
   const attachments = comment.attachments ?? [];
   const incomplete = comment.status && comment.status !== "ready";
   return <div className={`cell-comment${common ? " common-comment" : ""}`}>
@@ -326,7 +337,7 @@ function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, commo
         {comment.body && <CommentBody source={comment.body} />}
         <small>{meta}</small>
       </div>
-      {(imageKeys.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : [comment.assetKey!]} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
+      {(imageKeys.length > 0 || imageUrls.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : comment.assetKey ? [comment.assetKey] : []} urls={imageUrls} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
     </div>
     <CommentAttachmentList attachments={attachments} />
     {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
@@ -362,7 +373,7 @@ function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepC
     meta={`${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
     imageLabel="Comment photo"
     onDelete={onDelete ? () => onDelete(comment) : undefined}
-    onDeleteAsset={onDeleteAsset && comment.assetKey ? () => onDeleteAsset(comment) : undefined}
+    onDeleteAsset={onDeleteAsset && (comment.assetKey || comment.assetUrl) ? () => onDeleteAsset(comment) : undefined}
   />)}</div></div>;
 }
 
@@ -437,7 +448,7 @@ function ProcessPlanCommentDialog({
               meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
               imageLabel="Common comment photo"
               onDelete={() => onDelete(comment)}
-              onDeleteAsset={comment.assetKey ? () => onDeleteAsset(comment) : undefined}
+              onDeleteAsset={(comment.assetKey || comment.assetUrl) ? () => onDeleteAsset(comment) : undefined}
             />)}</div>
             : <p className="muted process-plan-comment-empty">No comments on this {commentSubject} yet.</p>}
         </section>
@@ -498,11 +509,13 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
     setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
+      let assetId: string | undefined;
       let assetMetadata: RunStepAssetPresentationInput | undefined;
       if (image) {
         const context = `run-step:${state.column.sample.id}:${state.column.run.id}:${editing ? state.step.id : `new:${state.afterStepId || "start"}`}`;
         const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
-        assetKey = (await api.uploadAsset(compressed, compressed.name, { context })).key;
+        const uploaded = await api.uploadAsset(compressed, compressed.name, { context });
+        if (uploaded.key === null) assetId = uploaded.id; else assetKey = uploaded.key;
         assetMetadata = {
           filename: compressed.name,
           mimeType: compressed.type || "application/octet-stream",
@@ -520,6 +533,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
           notes: state.step.notes || "",
           expectedUpdatedAt: state.step.updatedAt,
           assetKey,
+          assetId,
           assetMetadata,
         });
       } else {
@@ -531,6 +545,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
           commentsText,
           deviationNote,
           assetKey,
+          assetId,
           assetMetadata,
         });
       }
@@ -1050,7 +1065,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   async function confirmDelete() {
     if (!deleteRequest) return;
     const actionKey = deleteRequest.kind === "execution_asset"
-      ? `delete-asset:${deleteRequest.step.id}:${deleteRequest.assetKey}`
+      ? `delete-asset:${deleteRequest.step.id}:${deleteRequest.assetId ?? deleteRequest.assetKey}`
       : `delete:${deleteRequest.comment.id}:${deleteRequest.kind}`;
     setPendingAction(actionKey); setDeleteError(""); setError("");
     try {
@@ -1059,7 +1074,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
         else await api.deleteRunStepComment(deleteRequest.comment.id);
       }
       else if (deleteRequest.kind === "comment_asset") await api.deleteRunStepCommentAsset(deleteRequest.comment.id);
-      else await api.deleteRunStepAsset(deleteRequest.column.sample.id, deleteRequest.column.run!.id, deleteRequest.step.id, deleteRequest.assetKey);
+      else await api.deleteRunStepAsset(deleteRequest.column.sample.id, deleteRequest.column.run!.id, deleteRequest.step.id, deleteRequest.assetId ? { assetId: deleteRequest.assetId } : deleteRequest.assetKey);
       setDeleteRequest(null);
       await onSaved();
     } catch (error) { setDeleteError((error as Error).message); }
@@ -1120,7 +1135,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       onCommentSubmitted={onSaved}
       onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: false }); }}
       onDeleteCommentAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: false }); }}
-      onDeleteExecutionAsset={(assetKey) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey, column, step }); }}
+      onDeleteExecutionAsset={(selector) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey: typeof selector === "string" ? selector : "", ...(typeof selector === "string" ? {} : selector), column, step }); }}
       onEdit={() => setDrawer({ mode: "edit", column, step })}
       onAddFabrication={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
       onAddMetrology={() => setMetrologyDrawer({ column, afterStepId: step.id })}
@@ -1243,7 +1258,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               {row.kind !== "template" ? <div className={`recipe-step-heading additional-step-heading${row.kind === "metrology" ? " metrology-step-heading" : ""}`}><span>{row.kind === "metrology" ? "M" : "+"}</span><div><strong>{row.kind === "metrology" ? "Metrology" : "Additional step"}</strong><small>{row.kind === "metrology" ? rowLeadStep?.title : "Not part of the process template"}</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
               {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
-              <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
+              <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} images={row.recipeStep.plannedImages} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               </>}
               {supportsCommonActions && <>
               {!readOnly && <div className="recipe-actions">
@@ -1289,7 +1304,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
                   imageLabel="Common comment photo"
                   onDelete={() => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
-                  onDeleteAsset={comment.assetKey ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
+                  onDeleteAsset={(comment.assetKey || comment.assetUrl) ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
                   />)}
                 </div>}
               </div>}
@@ -1355,7 +1370,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
   onDone: () => void; onVerifyMatched: () => void; onVerifyMismatch: (note: string) => Promise<void>;
   commentContext: Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
   onCommentSubmitted: () => Promise<void>;
-  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void;
+  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (selector: string | { assetId: string }) => void; onEdit: () => void;
   onAddFabrication: () => void; onAddMetrology: () => void; allowAdd: boolean; readOnly: boolean;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
@@ -1382,7 +1397,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
     {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
     {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerifyMatched(); }}>State verified</button><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); setShowMismatchDialog(true); }}>State mismatch</button></div>}
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
-    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
+    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} images={step.executionImages} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} onDeleteNative={assetId => onDeleteExecutionAsset({ assetId })} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
     <CommentSubmissionRecovery localSourceKey={!readOnly ? commentComposerSource(commentContext) : undefined} submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
     <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />

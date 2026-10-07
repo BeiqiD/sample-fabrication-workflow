@@ -19,9 +19,21 @@ const evidence = { id, profileId: input.profileId, revision: 1, status: "succeed
   metadata: "passed", delete: "passed", cleanup: "confirmed_absent", code: null,
   createdAt: "2026-10-02T08:00:00.000Z", updatedAt: "2026-10-02T08:00:01.000Z", completedAt: "2026-10-02T08:00:01.000Z" };
 const context = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
+function expectRequestEnvironment(request: Env, original: Env) {
+  expect(request).not.toBe(original);
+  expect(request.DB).not.toBe(original.DB);
+  expect(Reflect.ownKeys(request)).toEqual(Reflect.ownKeys(original));
+  for (const key of Reflect.ownKeys(original)) {
+    if (key !== "DB") expect(Reflect.get(request, key)).toBe(Reflect.get(original, key));
+  }
+}
 function fixture() {
   const prepare = vi.fn(() => { throw new Error("File execution admission must not run for administrator checks"); });
-  const env = { DB: { prepare }, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: "admin@example.org" } as unknown as Env;
+  const env = {
+    DB: { prepare }, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: "admin@example.org",
+    R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "untouched-fixture" }),
+    STORAGE_CREDENTIAL_KEYRING: "unchanged-fixture-binding",
+  } as unknown as Env;
   const request = (path = "", method = "GET", body?: unknown, headers: HeadersInit = {}, bindings = env) =>
     worker.fetch(new Request(`https://app.test/api/storage/configuration/checks${path}`, {
       method, headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
@@ -47,10 +59,15 @@ describe("administrator candidate check HTTP boundary", () => {
       expect(response.headers.get("pragma")).toBe("no-cache");
       expect(await response.json()).toEqual(path.startsWith("?") ? { items: [evidence], hasMore: false } : evidence);
     }
-    expect(mocked.start).toHaveBeenCalledWith(f.env, input, "admin@example.org");
+    const startedEnv = mocked.start.mock.calls[0][0] as Env, cleanupEnv = mocked.cleanup.mock.calls[0][0] as Env;
+    expectRequestEnvironment(startedEnv, f.env);
+    expectRequestEnvironment(cleanupEnv, f.env);
+    expect(startedEnv).not.toBe(cleanupEnv);
+    expect(f.env.DB.prepare).toBe(f.prepare);
+    expect(mocked.start).toHaveBeenCalledWith(startedEnv, input, "admin@example.org");
     expect(mocked.read).toHaveBeenCalledWith(f.env, id, "admin@example.org");
     expect(mocked.list).toHaveBeenCalledWith(f.env, input.profileId, "admin@example.org");
-    expect(mocked.cleanup).toHaveBeenCalledWith(f.env, id, "admin@example.org");
+    expect(mocked.cleanup).toHaveBeenCalledWith(cleanupEnv, id, "admin@example.org");
     expect(f.prepare).not.toHaveBeenCalled();
   });
 

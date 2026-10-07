@@ -1,3 +1,6 @@
+import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
+import { changeNativeExecutionAsset } from "./native-asset-lifecycle";
+import { readReadyAssetInput } from "../files/asset-input";
 import { fileAuthorityActiveSql, deletedEventAssetSql, prepareFileRestoration } from "../files/business-lifecycle";
 import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
@@ -120,7 +123,9 @@ routes.post("/samples/:id/runs/preview", async (c) => {
       kind: "initial_substrate" as const,
       key: `initial-substrate:${template.id}`,
       stateHash: template.initial_state_hash,
-      imageKeys: templateAssets.map((asset) => asset.r2_key),
+      imageKeys: templateAssets.flatMap(asset => asset.r2_key === null ? [] : [asset.r2_key]),
+      ...(templateAssets.some(asset => asset.r2_key === null) ? { images: templateAssets.flatMap(asset => asset.r2_key === null
+        ? [{ assetId: asset.assetId, fileId: asset.file_id, url: nativeAssetUrl(asset.assetId) }] : []) } : {}),
       stepId: null,
       stepTitle: initialSubstrateStep!.name,
     } : null,
@@ -134,6 +139,7 @@ routes.post("/samples/:id/runs/preview", async (c) => {
       hash: currentState.stateHash,
       stepTitle: currentState.stepTitle,
       imageKeys: currentState.imageKeys,
+      ...(currentState.images ? { images: currentState.images } : {}),
     },
   });
 });
@@ -691,7 +697,9 @@ routes.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
         : "This process-template version has no valid Step 0: Substrate Stack snapshot. Re-import it before updating the run.",
       comparisonTarget: comparisonTarget ? {
         ...comparisonTarget,
-        imageKeys: comparisonAssets.map((asset) => asset.r2_key),
+        imageKeys: comparisonAssets.flatMap(asset => asset.r2_key === null ? [] : [asset.r2_key]),
+        ...(comparisonAssets.some(asset => asset.r2_key === null) ? { images: comparisonAssets.flatMap(asset => asset.r2_key === null
+          ? [{ assetId: asset.assetId, fileId: asset.file_id, url: nativeAssetUrl(asset.assetId) }] : []) } : {}),
       } : null,
       template: {
         id: context.nextTemplate.id,
@@ -703,6 +711,7 @@ routes.post("/samples/:sampleId/runs/:runId/plan-update/preview", async (c) => {
         hash: currentState.stateHash,
         stepTitle: currentState.stepTitle,
         imageKeys: currentState.imageKeys,
+      ...(currentState.images ? { images: currentState.images } : {}),
       },
     },
     preservedCount: alignment.matches.length,
@@ -968,20 +977,13 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
   const { sampleId, runId, stepId } = c.req.param();
   const input = await c.req.json<UpdateRunStepInput>();
   const allowed: StepStatus[] = ["pending", "in_progress", "done", "skipped", "blocked"];
-  if (!input.status || !allowed.includes(input.status) || typeof input.expectedUpdatedAt !== "string" || typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || typeof input.notes !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.assetMetadata !== undefined && (!input.assetKey || !validRunStepAssetPresentation(input.assetMetadata)))) throw new HTTPException(400, { message: "Valid editable step fields and expectedUpdatedAt are required" });
+  if (!input.status || !allowed.includes(input.status) || typeof input.expectedUpdatedAt !== "string" || typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || typeof input.notes !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.assetMetadata !== undefined && (!(input.assetKey || input.assetId) || !validRunStepAssetPresentation(input.assetMetadata)))) throw new HTTPException(400, { message: "Valid editable step fields and expectedUpdatedAt are required" });
   const title = input.title.trim();
   if (!title) throw new HTTPException(400, { message: "Step title is required" });
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000 || input.notes.length > 10_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
-  const asset = input.assetKey ? await c.env.DB.prepare(
-    `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-       AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
-         SELECT 1 FROM blob_gc_ledger bg
-         WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-           AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-       ))`,
-  ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : null;
-  if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
-  const assetFileInput = asset ? { assetId: asset.id, purpose: "embedded_content" as const } : null;
+  const asset = await readReadyAssetInput(c.env.DB, input);
+  if ((input.assetKey || input.assetId) && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const assetFileInput = asset ? { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" as const } : null;
   const assetFileId = assetFileInput ? await resolveConsumerFileId(c.env.DB, assetFileInput) : null;
   const assetPresentation = asset
     ? await resolveRunStepAssetPresentation(c.env.DB, asset.id, input.assetMetadata)
@@ -1102,7 +1104,7 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
      WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
        AND r.deleted_at IS NULL AND rs.deleted_at IS NULL`,
   ).bind(crypto.randomUUID(), `Execution diagram for step: ${title}`, asset.r2_key, assetFileId,
-    JSON.stringify({ runId, stepId, runStepAssetId }), userEmail, now, stepId, runId, sampleId, mutationId));
+    JSON.stringify({ runId, stepId, runStepAssetId, ...(asset.r2_key === null ? { assetId: asset.id } : {}) }), userEmail, now, stepId, runId, sampleId, mutationId));
   statements.push(c.env.DB.prepare(
     `UPDATE samples SET updated_by = ?, updated_at = ?
      WHERE id = ? AND deleted_at IS NULL AND EXISTS (
@@ -1120,7 +1122,12 @@ routes.patch("/samples/:sampleId/runs/:runId/steps/:stepId", async (c) => {
 
 routes.delete("/samples/:sampleId/runs/:runId/steps/:stepId/assets", async (c) => {
   const { sampleId, runId, stepId } = c.req.param();
-  const input = await c.req.json<{ assetKey?: string }>();
+  const input = await c.req.json<{ assetKey?: string; assetId?: string }>();
+  if (input.assetId !== undefined) {
+    if (typeof input.assetId !== "string" || input.assetKey !== undefined) throw new HTTPException(400, { message: "One image attachment is required" });
+    return c.json(await changeNativeExecutionAsset(c.env, { sampleId, runId, stepId, assetId: input.assetId,
+      actor: c.get("userEmail"), restore: false }));
+  }
   if (typeof input.assetKey !== "string" || !input.assetKey) throw new HTTPException(400, { message: "An image attachment is required" });
   const attachment = await c.env.DB.prepare(
     `SELECT rsa.id, rs.title, sd.name AS planned_title, rs.updated_at, s.updated_at AS sample_updated_at
@@ -1216,7 +1223,12 @@ routes.delete("/samples/:sampleId/runs/:runId/steps/:stepId/assets", async (c) =
 
 routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async (c) => {
   const { sampleId, runId, stepId } = c.req.param();
-  const input = await c.req.json<{ assetKey?: string }>();
+  const input = await c.req.json<{ assetKey?: string; assetId?: string }>();
+  if (input.assetId !== undefined) {
+    if (typeof input.assetId !== "string" || input.assetKey !== undefined) throw new HTTPException(400, { message: "One image attachment is required" });
+    return c.json(await changeNativeExecutionAsset(c.env, { sampleId, runId, stepId, assetId: input.assetId,
+      actor: c.get("userEmail"), restore: true }));
+  }
   if (typeof input.assetKey !== "string" || !input.assetKey) {
     throw new HTTPException(400, { message: "An image attachment is required" });
   }
@@ -1329,7 +1341,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore", async
 routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
   const { sampleId, runId } = c.req.param();
   const input = await c.req.json<CreateRunStepInput>();
-  if (typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || (input.afterStepId !== undefined && typeof input.afterStepId !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.assetMetadata !== undefined && (!input.assetKey || !validRunStepAssetPresentation(input.assetMetadata)))) throw new HTTPException(400, { message: "Valid ad hoc step fields are required" });
+  if (typeof input.title !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || typeof input.deviationNote !== "string" || (input.afterStepId !== undefined && typeof input.afterStepId !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.assetMetadata !== undefined && (!(input.assetKey || input.assetId) || !validRunStepAssetPresentation(input.assetMetadata)))) throw new HTTPException(400, { message: "Valid ad hoc step fields are required" });
   const title = input.title.trim();
   if (!title) throw new HTTPException(400, { message: "Step title is required" });
   if (title.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000 || input.deviationNote.length > 4_000) throw new HTTPException(400, { message: "One or more step fields are too long" });
@@ -1343,18 +1355,11 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     ).bind(runId, sampleId).first<{ id: string; anchor_step_id: string | null }>(),
     c.env.DB.prepare("SELECT id, position, updated_at FROM run_steps WHERE run_id = ? AND deleted_at IS NULL ORDER BY position")
       .bind(runId).all<{ id: string; position: number; updated_at: string }>(),
-    input.assetKey ? c.env.DB.prepare(
-      `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         ))`,
-    ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
+    readReadyAssetInput(c.env.DB, input),
   ]);
   if (!run) throw new HTTPException(404, { message: "Sample run not found" });
-  if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
-  const assetFileInput = asset ? { assetId: asset.id, purpose: "embedded_content" as const } : null;
+  if ((input.assetKey || input.assetId) && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const assetFileInput = asset ? { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" as const } : null;
   const assetFileId = assetFileInput ? await resolveConsumerFileId(c.env.DB, assetFileInput) : null;
   const assetPresentation = asset
     ? await resolveRunStepAssetPresentation(c.env.DB, asset.id, input.assetMetadata)
@@ -1504,7 +1509,7 @@ routes.post("/samples/:sampleId/runs/:runId/steps", async (c) => {
     crypto.randomUUID(),
     `Execution diagram for step: ${title}`,
     asset.r2_key, assetFileId,
-    JSON.stringify({ runId, stepId, runStepAssetId, action: "execution_attachment_added" }),
+    JSON.stringify({ runId, stepId, runStepAssetId, action: "execution_attachment_added", ...(asset.r2_key === null ? { assetId: asset.id } : {}) }),
     userEmail,
     now,
     runStepAssetId,
@@ -1806,14 +1811,7 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
       position: number; sequence_no: number; current_plan_revision_id: string;
       recipe_family_id: string; template_version_id: string;
     }>(),
-    input.assetKey ? c.env.DB.prepare(
-      `SELECT id, r2_key FROM assets a WHERE status = 'ready' AND r2_key = ?
-         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         ))`,
-    ).bind(input.assetKey).first<{ id: string; r2_key: string }>() : Promise.resolve(null),
+    readReadyAssetInput(c.env.DB, input),
     c.env.DB.prepare(
       `SELECT sv.id, sv.after_run_step_id
        FROM state_verifications sv
@@ -1836,9 +1834,9 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
   ]);
   if (!target) throw new HTTPException(404, { message: "Current run step not found" });
   if (target.updated_at !== input.expectedUpdatedAt) throw new HTTPException(409, { message: "This step changed elsewhere. Reload before verifying its state." });
-  if (input.assetKey && !evidence) throw new HTTPException(400, { message: "The verification image is unavailable" });
+  if ((input.assetKey || input.assetId) && !evidence) throw new HTTPException(400, { message: "The verification image is unavailable" });
 
-  const evidenceFileInput = evidence ? { assetId: evidence.id, purpose: "embedded_content" as const } : null;
+  const evidenceFileInput = evidence ? { assetId: evidence.id, nativeAsset: evidence.r2_key === null, purpose: "embedded_content" as const } : null;
   const evidenceFileId = evidenceFileInput ? await resolveConsumerFileId(c.env.DB, evidenceFileInput) : null;
 
   const targetIndex = chainRows.results.findIndex((step) => step.id === stepId);
@@ -1979,7 +1977,8 @@ verificationRoutes.post("/samples/:sampleId/runs/:runId/steps/:stepId/verify-sta
       `State ${input.result === "matched" ? "verified" : "mismatch recorded"} after ${covered.length} step${covered.length === 1 ? "" : "s"}`,
       evidence?.r2_key ?? null,
       evidenceFileId,
-      JSON.stringify({ verificationId, runId, stepId, previousVerificationId: previous?.id ?? null, coveredStepIds: covered.map((step) => step.id), result: input.result }),
+      JSON.stringify({ verificationId, runId, stepId, previousVerificationId: previous?.id ?? null, coveredStepIds: covered.map((step) => step.id), result: input.result,
+        ...(evidence?.r2_key === null ? { assetId: evidence.id } : {}) }),
       userEmail, now, verificationId, verificationId),
     c.env.DB.prepare(
       `UPDATE samples SET updated_by = ?, updated_at = ?

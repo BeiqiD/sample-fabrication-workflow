@@ -20,7 +20,23 @@ export interface R2UploadInput {
   scope: "system";
   file: R2UploadFileInput;
 }
-export interface R2UploadResult { id: string; key: string; deduplicated: boolean }
+export interface LegacyR2UploadResult { id: string; key: string; deduplicated: boolean }
+/** Native File results have a business-authorized URL, never an invented R2 key. */
+export interface NativeFileUploadResult {
+  id: string; key: null; deduplicated: boolean; storageKind: "native"; fileId: string; url: string;
+}
+export type R2UploadResult = LegacyR2UploadResult | NativeFileUploadResult;
+
+export function nativeAssetUrl(assetId: string): string { return `/api/file-assets/${encodeURIComponent(assetId)}`; }
+
+export function validateFileUploadResult(value: unknown): R2UploadResult {
+  if (!record(value) || !metadataText(value.id, 256) || typeof value.deduplicated !== "boolean") throw new Error("Invalid File upload result");
+  if (keys(value, ["id", "key", "deduplicated"]) && metadataText(value.key, 4096)) return value as unknown as LegacyR2UploadResult;
+  if (!keys(value, ["id", "key", "deduplicated", "storageKind", "fileId", "url"])
+    || value.key !== null || value.storageKind !== "native" || !metadataText(value.fileId, 256)
+    || value.url !== nativeAssetUrl(value.id)) throw new Error("Invalid native File upload result");
+  return value as unknown as NativeFileUploadResult;
+}
 interface R2UploadStateIdentity { requestId: string; ingress: R2UploadIngress; expiresAt: string }
 export type R2UploadRequestState = R2UploadStateIdentity & (
   | { status: "pending" | "failed" | "expired" | "unavailable" }

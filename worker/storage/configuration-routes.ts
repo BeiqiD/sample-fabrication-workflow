@@ -8,6 +8,7 @@ import { storageCandidateCheckRoutes } from "./candidate-check-routes";
 import { storageCandidateReadinessRoutes } from "./candidate-readiness-routes";
 import { storageCredentialReenvelopeRoutes } from "./credential-reenvelope-routes";
 import { storageProfileAdmissionRoutes } from "./storage-profile-admission-routes";
+import { storagePolicyRoutes } from "./policy-routes";
 
 type Bindings = { Bindings: Env; Variables: { userEmail: string } };
 export const storageConfigurationRoutes = new Hono<Bindings>();
@@ -15,6 +16,7 @@ storageConfigurationRoutes.route("/", storageCandidateCheckRoutes);
 storageConfigurationRoutes.route("/", storageCandidateReadinessRoutes);
 storageConfigurationRoutes.route("/", storageCredentialReenvelopeRoutes);
 storageConfigurationRoutes.route("/", storageProfileAdmissionRoutes);
+storageConfigurationRoutes.route("/", storagePolicyRoutes);
 /** Installed before authentication, including its error responses. */
 export const storageConfigurationCacheControl: MiddlewareHandler<Bindings> = async (c, next) => {
   c.header("Cache-Control", "private, no-store");

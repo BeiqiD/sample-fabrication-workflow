@@ -62,7 +62,10 @@ function fixture(ingress: Ingress, active = true) {
     return value ? { body: new Response(value).body!, size: value.length, httpEtag: '"roles"', writeHttpMetadata() {} } : null;
   });
   const put = vi.fn(async (key: string, body: BodyInit) => { stored.set(key, new Uint8Array(await new Response(body).arrayBuffer())); });
-  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put } as unknown as R2Bucket } satisfies Env;
+  const remove = vi.fn(async (key: string | string[]) => {
+    for (const objectKey of typeof key === "string" ? [key] : key) stored.delete(objectKey);
+  });
+  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put, delete: remove } as unknown as R2Bucket } satisfies Env;
   const requestId = crypto.randomUUID();
   const upload = (id = requestId, name = "input.bin") => {
     const input = { requestId: id, actorEmail: "owner@example.test", originalName: name, mimeType: ingress === "ordinary_image" ? "image/png" : "application/octet-stream", bytes: bytes.buffer };
@@ -87,10 +90,10 @@ describe("fresh upload role selection", () => {
     const first = await f.upload();
     expect(first.state.status).toBe("ready");
     const row = f.sql.prepare(`SELECT * FROM ${f.table}`).get()!;
-    expect(row).toMatchObject({ storage_profile_id: "selected-r2", storage_profile_revision: 1, storage_policy_revision: 1,
+    expect(row).toMatchObject({ storage_profile_id: "selected-r2", storage_profile_revision: 1, storage_policy_revision: 1, role_policy_revision: 3,
       purpose: ingress === "ordinary_image" ? "embedded_content" : "research_source" });
     expect(f.sql.prepare("SELECT role,storage_profile_id,policy_revision FROM storage_role_defaults ORDER BY role").all())
-      .toEqual([{ role: "internal", storage_profile_id: "selected-r2", policy_revision: 2 }, { role: "originals", storage_profile_id: "selected-r2", policy_revision: 2 }]);
+      .toEqual([{ role: "internal", storage_profile_id: "selected-r2", policy_revision: 3 }, { role: "originals", storage_profile_id: "selected-r2", policy_revision: 3 }]);
     expect(f.sql.prepare("SELECT storage_profile_id FROM file_acceptance_candidates").get()!.storage_profile_id).toBe("selected-r2");
     f.failDefaultReads();
     expect(await f.upload()).toEqual({ ...first, fresh: false });

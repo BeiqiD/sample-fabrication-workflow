@@ -1,6 +1,8 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../shared/content-addressing";
 import worker from "./index";
 import { acceptCommentSubmission, acceptCommentUpload, uploadAcceptedCommentItem, commentManagedFetch } from "./comment-acceptance-test-support";
@@ -88,16 +90,60 @@ class SqliteD1Database {
   }
 }
 
-function migratedDatabase() {
+let fixtureDirectory: string | undefined, pristinePath: string | undefined, nextFixture = 0;
+const fixtureDatabases = new Set<DatabaseSync>();
+const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
+function fixtureImage(database: DatabaseSync) {
+  const schema = database.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name").all();
+  const tables = database.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[];
+  const withoutRowid = new Set((database.prepare("PRAGMA table_list").all() as { name: string; wr: number }[])
+    .filter(table => table.wr === 1).map(table => table.name));
+  return { schema, tables: Object.fromEntries(tables.map(({ name }) => {
+    const primaryKey = (database.prepare(`PRAGMA table_info(${quoteIdentifier(name)})`).all() as { name: string; pk: number }[])
+      .filter(column => column.pk > 0).sort((a, b) => a.pk - b.pk).map(column => quoteIdentifier(column.name));
+    return [name, database.prepare(withoutRowid.has(name)
+      ? `SELECT * FROM ${quoteIdentifier(name)} ORDER BY ${primaryKey.join(",")}`
+      : `SELECT rowid AS _fixture_rowid,* FROM ${quoteIdentifier(name)} ORDER BY rowid`).all()];
+  })) };
+}
+
+beforeAll(() => {
+  // Execute every real migration once, with FK enforcement and all guards.
+  // Each scenario then opens its own physical copy; no writes or prepared
+  // statement results are shared. GC never compares installation IDs between
+  // scenarios, so this pristine seed remains exactly the migration output.
+  fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-blob-gc-"));
+  pristinePath = join(fixtureDirectory, "pristine.sqlite");
   const database = new DatabaseSync(":memory:");
-  const directory = new URL("../migrations/", import.meta.url);
-  for (const filename of readdirSync(directory).filter((name) => name.endsWith(".sql")).sort()) {
-    database.exec(readFileSync(new URL(filename, directory), "utf8"));
-  }
-  database.exec(`
-    INSERT INTO samples (id, code, title, created_at, updated_at)
-    VALUES ('sample-1', 'S-1', 'Sample', '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z');
-  `);
+  database.exec("PRAGMA foreign_keys=ON");
+  try {
+    const directory = new URL("../migrations/", import.meta.url);
+    for (const filename of readdirSync(directory).filter((name) => name.endsWith(".sql")).sort()) {
+      database.exec(readFileSync(new URL(filename, directory), "utf8"));
+    }
+    database.exec(`
+      INSERT INTO samples (id, code, title, created_at, updated_at)
+      VALUES ('sample-1', 'S-1', 'Sample', '2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z');
+    `);
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+    const expected = fixtureImage(database);
+    database.exec(`VACUUM INTO '${pristinePath.replaceAll("'", "''")}'`);
+    const cloned = new DatabaseSync(pristinePath, { readOnly: true });
+    try {
+      expect(fixtureImage(cloned)).toEqual(expected);
+      expect(cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally { cloned.close(); }
+  } finally { database.close(); }
+});
+
+function migratedDatabase() {
+  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical GC fixture has not been initialized");
+  const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
+  copyFileSync(pristinePath, path);
+  const database = new DatabaseSync(path);
+  database.exec("PRAGMA foreign_keys=ON");
+  fixtureDatabases.add(database);
   return database;
 }
 
@@ -225,7 +271,16 @@ function gcDependencies(
   };
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  for (const database of fixtureDatabases) if (database.isOpen) database.close();
+  fixtureDatabases.clear();
+});
+afterAll(() => {
+  for (const database of fixtureDatabases) if (database.isOpen) database.close();
+  fixtureDatabases.clear();
+  if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
+});
 
 describe("blob garbage collection", () => {
 

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkedStorageCandidateCheck, checkedStorageCandidateCheckList } from "../../shared/contracts/storage-candidate-check";
 import type { SaveStorageCandidateInput } from "../../shared/contracts/storage-configuration";
@@ -8,6 +9,8 @@ import type { Sha256Factory } from "../files/byte-verification";
 import { SqliteD1Database } from "../reference-test-support";
 import type { Env } from "../types";
 import { saveStorageCandidate } from "./configuration-registry";
+import { storageCandidateCheckRoutes } from "./candidate-check-routes";
+import { controlSourceMaintenance, sourceMaintenanceAdmission } from "../recovery/maintenance";
 import {
   cleanupStorageCandidateCheck, listStorageCandidateChecks, readStorageCandidateCheck,
   startStorageCandidateCheck, StorageCandidateCheckError, type StorageCandidateCheckOptions,
@@ -45,8 +48,123 @@ async function fixture() {
   return { sql, db, env, saved, objects, fetch, options, command };
 }
 afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(sql => sql.close()); });
+function installMaintenance(f: Awaited<ReturnType<typeof fixture>>) {
+  f.sql.exec(readFileSync(new URL("../../migrations/0021_fp5_system_recovery.sql", import.meta.url), "utf8"));
+  for (const name of ["file_shadow_attempts", "file_migration_attempts", "research_package_attempts"]) {
+    f.sql.exec(`CREATE TABLE ${name}(state TEXT)`);
+  }
+  for (const name of ["r2_upload_requests", "metrology_reference_upload_requests", "comment_submission_acceptances", "import_file_acceptances"]) {
+    f.sql.exec(`CREATE TABLE ${name}(status TEXT)`);
+  }
+  f.env.RECOVERY_TARGET_ID = "isolated-fixture-target";
+}
+async function retainCompletedCheckWithoutFinalPublication(f: Awaited<ReturnType<typeof fixture>>) {
+  const command = f.command();
+  f.sql.exec("CREATE TRIGGER fixture_failure BEFORE UPDATE ON system_storage_candidate_checks WHEN NEW.status='succeeded' BEGIN SELECT RAISE(ABORT,'Fixture final publication lost'); END");
+  await expect(startStorageCandidateCheck(f.env, command, actor, {
+    ...f.options, now: () => new Date("2020-01-01T00:00:00.000Z"),
+  })).rejects.toMatchObject({ status: 503 });
+  f.sql.exec("DROP TRIGGER fixture_failure");
+  return command;
+}
+function protectedCheckRows(f: Awaited<ReturnType<typeof fixture>>) {
+  return JSON.stringify([
+    f.sql.prepare("SELECT * FROM system_storage_candidate_checks ORDER BY id").all(),
+    f.sql.prepare("SELECT * FROM system_storage_candidate_check_audit ORDER BY id").all(),
+  ]);
+}
 
 describe("durable administrator candidate checks", () => {
+  it.each(["draining", "fenced"] as const)("keeps real expired check GETs visible and protected rows unchanged while source is %s", async state => {
+    const f = await fixture(), command = await retainCompletedCheckWithoutFinalPublication(f);
+    installMaintenance(f);
+    f.sql.prepare("UPDATE system_recovery_maintenance SET state=? WHERE singleton=1").run(state);
+    const before = protectedCheckRows(f), calls = f.fetch.mock.calls.length;
+    const globalProvider = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Status reads must not contact a provider"));
+    const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
+    app.use("*", async (c, next) => { c.set("userEmail", actor); await next(); });
+    app.use("*", sourceMaintenanceAdmission);
+    app.route("/api", storageCandidateCheckRoutes);
+    const response = await app.request(`/api/storage/configuration/checks/${command.checkId}`, {}, f.env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "running", write: "passed", cleanup: "confirmed_absent" });
+    const history = await app.request(`/api/storage/configuration/checks?profileId=${encodeURIComponent(f.saved.profileId)}`, {}, f.env);
+    expect(history.status).toBe(200);
+    expect(await history.json()).toMatchObject({ items: [{ id: command.checkId, status: "running" }] });
+    expect(protectedCheckRows(f)).toBe(before);
+    expect(f.fetch).toHaveBeenCalledTimes(calls);
+    expect(globalProvider).not.toHaveBeenCalled();
+    f.sql.exec("UPDATE system_recovery_maintenance SET state='open' WHERE singleton=1");
+    expect(await readStorageCandidateCheck(f.env, command.checkId, actor)).toMatchObject({
+      status: "interrupted", cleanup: "confirmed_absent", code: "execution_interrupted",
+    });
+    expect(protectedCheckRows(f)).not.toBe(before);
+    expect(f.fetch).toHaveBeenCalledTimes(calls);
+  });
+
+  it.each([false, true])("atomically suppresses expiry reconciliation if installation/fencing changes after schema discovery (installed=%s)", async alreadyInstalled => {
+    const f = await fixture(), command = await retainCompletedCheckWithoutFinalPublication(f), before = protectedCheckRows(f);
+    if (alreadyInstalled) installMaintenance(f);
+    const database = new Proxy(f.env.DB, {
+      get(target, property) {
+        const value = Reflect.get(target, property, target);
+        if (property !== "prepare") return typeof value === "function" ? value.bind(target) : value;
+        return (sql: string) => {
+          const statement = target.prepare(sql);
+          if (!sql.startsWith("SELECT 1 AS present FROM sqlite_schema")) return statement;
+          return new Proxy(statement, {
+            get(inner, name) {
+              const method = Reflect.get(inner, name, inner);
+              if (name !== "first") return typeof method === "function" ? method.bind(inner) : method;
+              return async () => {
+                const result = await inner.first();
+                if (!alreadyInstalled) installMaintenance(f);
+                f.sql.exec("UPDATE system_recovery_maintenance SET state='fenced' WHERE singleton=1");
+                return result;
+              };
+            },
+          });
+        };
+      },
+    });
+    expect(await readStorageCandidateCheck({ ...f.env, DB: database }, command.checkId, actor)).toMatchObject({ status: "running" });
+    expect(protectedCheckRows(f)).toBe(before);
+  });
+
+  it("does not finalize an expired unknown PUT after negative absence or late acknowledgement, while genuinely verified checks drain", async () => {
+    const f = await fixture();
+    installMaintenance(f);
+    const command = f.command(), entered = deferred<Request>(), late = deferred<Response>();
+    const pending = startStorageCandidateCheck(f.env, command, actor, {
+      ...f.options, timeoutMs: 40, fetch: async request => { entered.resolve(request); return late.promise; },
+    });
+    await entered.promise;
+    expect(await pending).toMatchObject({ status: "interrupted", write: "unknown", cleanup: "required" });
+    expect(await cleanupStorageCandidateCheck(f.env, command.checkId, actor, f.options)).toMatchObject({
+      write: "unknown", cleanup: "absence_observed",
+    });
+    await controlSourceMaintenance(f.env, actor, { requestId: crypto.randomUUID(), action: "enter", expectedGeneration: 0 });
+    await expect(controlSourceMaintenance(f.env, actor, {
+      requestId: crypto.randomUUID(), action: "finalize", expectedGeneration: 1,
+    })).rejects.toMatchObject({ status: 409 });
+    const before = protectedCheckRows(f);
+    late.resolve(new Response(null, { status: 200 }));
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(protectedCheckRows(f)).toBe(before);
+    await expect(controlSourceMaintenance(f.env, actor, {
+      requestId: crypto.randomUUID(), action: "finalize", expectedGeneration: 1,
+    })).rejects.toMatchObject({ status: 409 });
+
+    const settled = await fixture();
+    installMaintenance(settled);
+    expect(await startStorageCandidateCheck(settled.env, settled.command(), actor, settled.options)).toMatchObject({
+      status: "succeeded", write: "passed", read: "passed", cleanup: "confirmed_absent",
+    });
+    await controlSourceMaintenance(settled.env, actor, { requestId: crypto.randomUUID(), action: "enter", expectedGeneration: 0 });
+    expect((await controlSourceMaintenance(settled.env, actor, {
+      requestId: crypto.randomUUID(), action: "finalize", expectedGeneration: 1,
+    })).status.state).toBe("fenced");
+  });
   it("accepts exact protected context before I/O, verifies complete bytes and metadata, and confirms cleanup", async () => {
     const f = await fixture(), command = f.command();
     const fetch = vi.fn(async (request: Request) => {

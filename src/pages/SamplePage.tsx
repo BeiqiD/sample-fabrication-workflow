@@ -16,9 +16,11 @@ import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { currentStructurePresentation } from "../lib/currentStructure";
 import { exportSample } from "../lib/exportSample";
+import { ResearchPackageExport } from "../components/ResearchPackageExport";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 import { selectSamplePageRuns } from "../lib/sample-run-selection";
+import { commentImageUrl, fileAssetMediaUrls, sampleEventAssetUrl } from "../lib/asset-media";
 import "../sample-identity-form.css";
 
 const SAMPLE_NOTES_PREVIEW_COUNT = 3;
@@ -37,17 +39,19 @@ function runStatusLabel(status: SampleRun["status"]) {
 }
 
 function runStructureFrames(run: SampleRun) {
-  const frames: Array<{ key: string; label: string; imageKeys: string[]; stateHash: string | null }> = [];
-  if (run.initialStateImageKeys.length) {
-    frames.push({ key: `${run.id}:initial`, label: "Initial substrate", imageKeys: run.initialStateImageKeys, stateHash: run.initialStateHash });
+  const frames: Array<{ key: string; label: string; imageUrls: string[]; stateHash: string | null }> = [];
+  const initialImages = fileAssetMediaUrls(run.initialStateImageKeys, run.initialStateImages);
+  if (initialImages.length) {
+    frames.push({ key: `${run.id}:initial`, label: "Initial substrate", imageUrls: initialImages, stateHash: run.initialStateHash });
   }
   for (const step of run.steps) {
     if (step.status !== "done" || !step.actualizedAt) continue;
-    const imageKeys = step.executionImageKeys.length ? step.executionImageKeys : step.plannedImageKeys;
-    if (!imageKeys.length) continue;
+    const executionImages = fileAssetMediaUrls(step.executionImageKeys, step.executionImages);
+    const imageUrls = executionImages.length ? executionImages : fileAssetMediaUrls(step.plannedImageKeys, step.plannedImages);
+    if (!imageUrls.length) continue;
     const previous = frames[frames.length - 1];
-    if (step.expectedStateHash && previous?.stateHash === step.expectedStateHash && !step.executionImageKeys.length) continue;
-    frames.push({ key: step.id, label: step.title, imageKeys, stateHash: step.expectedStateHash });
+    if (step.expectedStateHash && previous?.stateHash === step.expectedStateHash && !executionImages.length) continue;
+    frames.push({ key: step.id, label: step.title, imageUrls, stateHash: step.expectedStateHash });
   }
   if (frames.length === 1 && frames[0].key.endsWith(":initial")) {
     frames[0].label = run.status === "active" ? "Initial / latest recorded structure" : "Initial / final structure";
@@ -280,6 +284,7 @@ export function SamplePage() {
             <ActionIcon name="export" />
             <span className="responsive-action-label">{exporting ? "Exporting…" : "Export ZIP"}</span>
           </button>
+          <ResearchPackageExport root={{ type: "sample", id: sample.id }} disabled={exporting} compact />
         </div>
       </div>
     </div>
@@ -356,8 +361,9 @@ export function SamplePage() {
           <div className="sample-note-content">
             {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
             {note.status === "ready" ? <CommentBody source={note.body} /> : <p>{note.body}</p>}
-            {note.images.some((image) => image.assetKey) && <div className="sample-note-images"><DiagramGallery
-              keys={note.images.flatMap((image) => image.assetKey ? [image.assetKey] : [])}
+            {note.images.some((image) => commentImageUrl(image)) && <div className="sample-note-images"><DiagramGallery
+              keys={[]}
+              urls={note.images.flatMap((image) => { const url = commentImageUrl(image); return url ? [url] : []; })}
               label={`${note.label} photo`}
               kind="photo"
             /></div>}
@@ -367,7 +373,7 @@ export function SamplePage() {
             <span className="sample-note-author">{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>
             <div className="sample-note-actions">
               {note.runId && <Link className="text-button" to={`/processing/${sample.id}?run=${encodeURIComponent(note.runId)}`}>Open in processing</Link>}
-              {note.sampleEvent?.assetKey && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
+              {note.sampleEvent && sampleEventAssetUrl(note.sampleEvent) && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
               {note.sampleEvent && <button type="button" className="text-button danger-text-button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(note.sampleEvent); }}>Delete note</button>}
               {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Delete note</button>}
             </div>
@@ -408,7 +414,7 @@ export function SamplePage() {
             <div className="run-structure-history">
               {frames.length ? frames.map((frame, index) => <div className="run-structure-frame" key={frame.key}>
                 {index > 0 && <span className="run-structure-arrow" aria-hidden="true">→</span>}
-                <div><small>{frame.label}</small><div className="run-structure-images">{frame.imageKeys.map((key) => <img loading="lazy" src={`/api/assets/${key}`} alt={`${frame.label} for run ${run.sequenceNo}`} key={key} />)}</div></div>
+                <div><small>{frame.label}</small><div className="run-structure-images">{frame.imageUrls.map((url) => <img loading="lazy" src={url} alt={`${frame.label} for run ${run.sequenceNo}`} key={url} />)}</div></div>
               </div>) : <p className="muted">This run has no recorded structure diagrams.</p>}
             </div>
           </details>;
@@ -426,7 +432,7 @@ export function SamplePage() {
         </div>
       </section>
     </section>
-    {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (recordToDelete.assetKey ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
+    {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (sampleEventAssetUrl(recordToDelete) ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}
     {submissionToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note and its attachments will be removed. The Timeline will retain a deletion audit entry." summary={submissionToDelete.body || "Files attached"} deleting={deletingSubmission} error={submissionDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setSubmissionToDelete(null); setSubmissionDeleteError(""); }} onConfirm={() => void deleteSubmission()} />}
     {confirmingSampleDeletion && <ConfirmDeleteDialog

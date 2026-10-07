@@ -50,12 +50,14 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
     setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
+      let assetId: string | undefined;
       if (image) {
         const context = `template-step:${template.id}:${step.id}`;
         const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
-        assetKey = (await api.uploadAsset(compressed, compressed.name, { context })).key;
+        const uploaded = await api.uploadAsset(compressed, compressed.name, { context });
+        if (uploaded.key === null) assetId = uploaded.id; else assetKey = uploaded.key;
       }
-      await api.updateTemplateStep(template.id, step.id, { name, toolName, parametersText, commentsText, assetKey });
+      await api.updateTemplateStep(template.id, step.id, { name, toolName, parametersText, commentsText, assetKey, assetId });
       setImage(null); setEditing(false); await onSaved();
     } catch (error) { setError((error as Error).message); setUploadProblem(error instanceof R2UploadRequestError); }
     finally { setSaving(false); }
@@ -92,7 +94,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
           <button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button>
         </div>}
       </div>
-      <div className={step.imageKeys.length > 0 ? "template-step-content has-diagrams" : "template-step-content"}>
+      <div className={(step.imageKeys.length > 0 || Boolean(step.images?.length)) ? "template-step-content has-diagrams" : "template-step-content"}>
         {editing
           ? <div className="template-step-fields template-step-fields-edit">
             <label className="template-step-field">
@@ -112,7 +114,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
             <div className="template-step-field"><span>Parameters</span><p>{step.parametersText || "—"}</p></div>
             <div className="template-step-field"><span>Comments</span><p>{step.commentsText || "—"}</p></div>
           </div>}
-        {step.imageKeys.length > 0 && <DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" />}
+        {(step.imageKeys.length > 0 || Boolean(step.images?.length)) && <DiagramGallery keys={step.imageKeys} images={step.images} label={step.name} className="template-diagram-gallery" />}
       </div>
       {error && <p className="error-banner">{error}</p>}
       {uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `template-step:${template.id}:${step.id}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}
@@ -136,12 +138,14 @@ function NewTemplateStep({ templateId, onSaved }: { templateId: string; onSaved:
     setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
+      let assetId: string | undefined;
       if (image) {
         const context = `template-new-step:${templateId}`;
         const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
-        assetKey = (await api.uploadAsset(compressed, compressed.name, { context })).key;
+        const uploaded = await api.uploadAsset(compressed, compressed.name, { context });
+        if (uploaded.key === null) assetId = uploaded.id; else assetKey = uploaded.key;
       }
-      await api.createTemplateStep(templateId, { name, toolName, parametersText, commentsText, assetKey });
+      await api.createTemplateStep(templateId, { name, toolName, parametersText, commentsText, assetKey, assetId });
       setName(""); setToolName(""); setParametersText(""); setCommentsText(""); setImage(null); setOpen(false); await onSaved();
     } catch (error) { setError((error as Error).message); setUploadProblem(error instanceof R2UploadRequestError); }
     finally { setSaving(false); }
@@ -212,7 +216,7 @@ export function TemplatePage() {
     {template.locked && <p className="info-banner">This version was first used on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
     {editable && <section className="card template-metadata-editor"><h2 className="card-title">Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
     {error && <p className="error-banner">{error}</p>}
-    <section className={template.initialStateImageKeys.length ? "card template-initial-state has-diagrams" : "card template-initial-state"}><div className="card-copy"><div className="card-title-line"><h2 className="card-title">Initial substrate</h2><span className="meta-badge">Step 0</span></div><p className="card-value">{template.initialSubstrateStep ? "Substrate Stack" : template.initialStateHash ? "Legacy substrate definition" : "Substrate Stack missing"}</p>{template.initialSubstrateStep ? <SubstrateStepDetails step={template.initialSubstrateStep} /> : <p className="card-meta">{template.initialStateHash ? "This older version has a stored structure but no Step 0 metadata." : "Re-import this version with Step 0 named Substrate Stack before starting a run from it."}</p>}{!template.initialStateImageKeys.length && <p className="card-meta">No substrate diagram attached</p>}</div>{template.initialStateImageKeys.length > 0 && <DiagramGallery keys={template.initialStateImageKeys} label="Initial substrate" size="wide" className="template-diagram-gallery" />}</section>
+    <section className={(template.initialStateImageKeys.length + (template.initialStateImages?.length ?? 0)) ? "card template-initial-state has-diagrams" : "card template-initial-state"}><div className="card-copy"><div className="card-title-line"><h2 className="card-title">Initial substrate</h2><span className="meta-badge">Step 0</span></div><p className="card-value">{template.initialSubstrateStep ? "Substrate Stack" : template.initialStateHash ? "Legacy substrate definition" : "Substrate Stack missing"}</p>{template.initialSubstrateStep ? <SubstrateStepDetails step={template.initialSubstrateStep} /> : <p className="card-meta">{template.initialStateHash ? "This older version has a stored structure but no Step 0 metadata." : "Re-import this version with Step 0 named Substrate Stack before starting a run from it."}</p>}{!(template.initialStateImageKeys.length + (template.initialStateImages?.length ?? 0)) && <p className="card-meta">No substrate diagram attached</p>}</div>{(template.initialStateImageKeys.length + (template.initialStateImages?.length ?? 0)) > 0 && <DiagramGallery keys={template.initialStateImageKeys} images={template.initialStateImages} label="Initial substrate" size="wide" className="template-diagram-gallery" />}</section>
     <section className="template-steps-section"><div className="section-heading"><div><h2>Process steps</h2><p>Executable steps in this template version.</p></div><span className="section-count">{template.steps.length}</span></div>{template.steps.map((step, index) => {
       const sectionLabel = sectionHeaderAtGroupStart(template.steps, index);
       return <Fragment key={step.id}>{sectionLabel && <div className="process-section-header template-section-header">{sectionLabel}</div>}<TemplateStepEditor template={template} step={step} onSaved={load} /></Fragment>;

@@ -13,6 +13,7 @@ import { safeMediaResponseHeaders } from "./media-response";
 import { getBlob } from "./blob-lifecycle/storage";
 import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import { primaryD1 } from "./d1-primary";
+import { hasRecoveryAssetAliasEvidence, qualifiedRecoveryLegacyAssetAliasSql } from "./files/native-asset-alias";
 import type { FilePurpose } from "../shared/contracts/files";
 import {
   ReferenceChildrenInputError,
@@ -40,6 +41,38 @@ type MediaSource = {
 
 export const routes = new Hono<AppBindings>();
 
+/** Native aliases have their own route namespace. The historical /assets/*
+ * route continues to interpret every opaque string as its original R2 key.
+ * The alias records original placement evidence; reads always use the File's
+ * current usable location, including a later migration to another provider. */
+routes.get("/file-assets/:assetId", async (c) => {
+  const assetId = c.req.param("assetId");
+  if (!assetId || assetId.length > 256 || assetId.includes("\0")) throw new HTTPException(400, { message: "A valid File asset identifier is required" });
+  const active = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "File storage is unavailable" });
+  }) === "active";
+  if (!active) throw new HTTPException(404, { message: "File asset not found" });
+  const source = await primaryD1(c.env.DB).prepare(`SELECT a.original_name,a.mime_type,f.file_id,f.purpose
+    FROM assets a JOIN file_usable_publications f ON f.file_id=a.file_id
+    JOIN storage_profiles recorded_profile ON recorded_profile.id=a.storage_profile_id
+      AND recorded_profile.configuration_revision=a.storage_profile_revision AND recorded_profile.adapter_type='s3'
+    WHERE a.id=? AND a.r2_key IS NULL AND a.status='ready' AND f.access_scope='system'
+      AND f.verified_sha256=a.sha256 AND f.verified_byte_size=a.byte_size
+      AND (a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))
+      AND EXISTS(SELECT 1 FROM file_location_publications recorded WHERE recorded.file_id=a.file_id
+        AND recorded.storage_profile_id=a.storage_profile_id AND recorded.object_key=a.object_key
+        AND recorded.verified_sha256=a.sha256 AND recorded.verified_byte_size=a.byte_size)`)
+    .bind(assetId).first<{ original_name: string; mime_type: string; file_id: string; purpose: FilePurpose }>();
+  if (!source) throw new HTTPException(404, { message: "File asset not found" });
+  const object = await readPublishedFile(c.env, { fileId: source.file_id, purpose: source.purpose });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "File asset not found" });
+  if (object.outcome !== "available") throw new HTTPException(503, { message: "File storage is unavailable" });
+  const headers = new Headers(object.httpMetadata);
+  safeMediaResponseHeaders({ headers, mimeType: source.mime_type, filename: source.original_name || "asset",
+    cacheControl: "private, no-store", etag: object.etag });
+  return new Response(object.body, { headers });
+});
+
 // Ordinary assets and reference media use the same fail-closed response policy.
 routes.get("/assets/:key{.+}", async (c) => {
   const key = c.req.param("key");
@@ -49,7 +82,7 @@ routes.get("/assets/:key{.+}", async (c) => {
   // Existing media URLs retain their authorized asset identity. In active mode,
   // resolve that identity through a bound consumer or completed upload receipt;
   // the old key is never read.
-  const source = active ? await primaryD1(c.env.DB).prepare(`
+  let source = active ? await primaryD1(c.env.DB).prepare(`
     WITH bindings(file_id,object_key,expected_purpose) AS (
       SELECT file_id,legacy_r2_object_key,expected_purpose FROM file_consumer_projection
       UNION ALL
@@ -97,6 +130,17 @@ routes.get("/assets/:key{.+}", async (c) => {
       )
     LIMIT 1
   `).bind(key).first<MediaSource>();
+  // Original candidate/consumer admission remains the first path. Only an
+  // exact portable recovery receipt can expose an otherwise unbound historical
+  // alias or authenticate bytes whose original metadata hash was NULL.
+  if (!source && active && await hasRecoveryAssetAliasEvidence(primaryD1(c.env.DB))) {
+    source = await primaryD1(c.env.DB).prepare(`SELECT a.r2_key,a.original_name,a.mime_type,f.file_id,f.purpose
+      FROM assets a JOIN file_usable_publications f ON f.file_id=a.file_id
+      WHERE a.r2_key=? AND a.status='ready' AND f.access_scope='system'
+        AND(a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))
+        AND ${qualifiedRecoveryLegacyAssetAliasSql("a", "f")}
+      ORDER BY f.file_id LIMIT 1`).bind(key).first<MediaSource>();
+  }
   if (!source) throw new HTTPException(404, { message: "Asset not found" });
 
   const object = active ? await readPublishedFile(c.env, {

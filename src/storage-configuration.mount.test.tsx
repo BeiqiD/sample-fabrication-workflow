@@ -38,7 +38,7 @@ describe("administrator storage candidate Settings", () => {
   it("keeps an unconfigured administrator policy read only without requesting candidate metadata", async () => {
     network.mockResolvedValue(json({ canManage: false, credentialEditingAvailable: false }));
     render(<StorageConfigurationPage />); await screen.findByRole("heading", { name: "Read only" });
-    expect(screen.getByText(/Current Cloudflare R2 storage does not require external credentials/)).toBeTruthy();
+    expect(screen.getByText(/Cloudflare R2 storage does not require external credentials/)).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull(); expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
     expect(network).toHaveBeenCalledTimes(1); expect(network.mock.calls[0][0]).toBe("/api/storage/configuration/capability");
   });
@@ -47,7 +47,7 @@ describe("administrator storage candidate Settings", () => {
     const item = candidate(); item.credentials.status = "unavailable";
     network.mockImplementation(async path => String(path).endsWith("/capability") ? json({ canManage: true, credentialEditingAvailable: false }) : String(path).includes("/checks?") ? json({ items: [], hasMore: false }) : json(configuration(false, [item])));
     render(<StorageConfigurationPage />); await screen.findByText("Research archive");
-    expect(screen.getByText("Unavailable")).toBeTruthy(); expect(screen.getByText(/Current Cloudflare R2 storage does not require external credentials/)).toBeTruthy();
+    expect(screen.getByText("Unavailable")).toBeTruthy(); expect(screen.getByText(/Cloudflare R2 storage does not require external credentials/)).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull(); expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
     expect(document.body.textContent).not.toContain("opaque-reference"); expect(document.body.textContent).not.toContain("admin@example.org");
   });

@@ -200,7 +200,7 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
       {template.referenceAttachments.length > 0 && <div className="metrology-reference-list">
         <small>Reference files</small>
         {template.referenceAttachments.map((reference) => <div className="metrology-reference-item" key={reference.id}>
-          <a href={`/api/assets/${reference.assetKey}`} target="_blank" rel="noreferrer"><strong>{reference.filename}</strong><small>{reference.mimeType} · {reference.byteSize < 1024 * 1024 ? `${Math.max(1, Math.round(reference.byteSize / 1024))} KB` : `${(reference.byteSize / (1024 * 1024)).toFixed(1)} MB`}</small></a>
+          <a href={reference.url ?? `/api/assets/${reference.assetKey}`} target="_blank" rel="noreferrer"><strong>{reference.filename}</strong><small>{reference.mimeType} · {reference.byteSize < 1024 * 1024 ? `${Math.max(1, Math.round(reference.byteSize / 1024))} KB` : `${(reference.byteSize / (1024 * 1024)).toFixed(1)} MB`}</small></a>
           <button type="button" className="text-button danger-text" disabled={savingReference} onClick={() => { setReferenceDeleteError(""); setReferenceToDelete({ id: reference.id, filename: reference.filename }); }}>Remove</button>
         </div>)}
       </div>}

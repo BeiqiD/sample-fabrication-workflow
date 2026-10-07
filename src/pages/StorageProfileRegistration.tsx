@@ -4,6 +4,7 @@ import type { StorageCandidateReadiness } from "../../shared/contracts/storage-c
 import { checkedStorageProfileAdmissionInput, type StorageProfileAdmissionInput, type StorageProfileAdmissionReceipt,
   awsS3NativeNamespace } from "../../shared/contracts/storage-profile-admission";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
+import { StorageProfileActivation } from "./StorageProfileActivation";
 
 const intentKey = (profileId: string) => `storage-profile-registration:${profileId}`;
 function rememberedIntent(profileId: string): StorageProfileAdmissionInput | null {
@@ -27,9 +28,10 @@ function qualifies(candidate: StorageCandidate, evidence: StorageCandidateReadin
 
 /** Registration uses recorded evidence only. Retaining the request identifier
  * permits receipt reconciliation after reload; it stores no namespace or secrets. */
-export function StorageProfileRegistration({ candidate, evidence, blocked, onForbidden, onStaleEvidence }: {
+export function StorageProfileRegistration({ candidate, evidence, blocked, onForbidden, onStaleEvidence, enableActivation = false }: {
   candidate: StorageCandidate; evidence: StorageCandidateReadiness | null; blocked: boolean;
   onForbidden: () => void; onStaleEvidence: () => void;
+  enableActivation?: boolean;
 }) {
   const [pending, setPending] = useState<StorageProfileAdmissionInput | null>(() => rememberedIntent(candidate.profileId));
   const [receipt, setReceipt] = useState<StorageProfileAdmissionReceipt | null>(null);
@@ -158,7 +160,9 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
       <button className="button" type="button" disabled={busy} onClick={() => void checkOrRetry()}>
         {busy ? "Checking registration…" : pendingCanRetry ? "Check or retry registration" : "Check registration status"}
       </button></>}
-    {registered && <p role="status">Profile <code>{registered.nativeProfileId}</code> is registered as read only. File access is not enabled and upload destinations are unchanged. <a href="/settings/storage">View registered profiles</a></p>}
+    {registered && <p role="status">Profile <code>{registered.nativeProfileId}</code> {enableActivation ? "is registered. Review its activation below." : "is registered as read only. File access is not enabled and upload destinations are unchanged."} <a href="/settings/storage">View registered profiles</a></p>}
+    {registered && enableActivation && <StorageProfileActivation candidate={candidate} nativeProfileId={registered.nativeProfileId} evidence={evidence}
+      blocked={blocked} onForbidden={onForbidden} onStaleEvidence={onStaleEvidence} />}
     {receipt && !registered && <p role="status">Registration confirmed for revision {receipt.revision}. <a href="/settings/storage">View registered profiles</a></p>}
     {message && <p role="status">{message}</p>}
   </>;

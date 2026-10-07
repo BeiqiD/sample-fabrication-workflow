@@ -1,6 +1,6 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import type { Env } from "../types";
-import { readStorageSettings } from "./settings-read-model";
+import { readCurrentStorageSettings, readStorageSettings } from "./settings-read-model";
 
 type Bindings = { Bindings: Env; Variables: { userEmail: string } };
 export const storageSettingsRoutes = new Hono<Bindings>();
@@ -11,6 +11,10 @@ export const storageSettingsCacheControl: MiddlewareHandler<Bindings> = async (c
   await next();
 };
 storageSettingsRoutes.get("/settings/storage", async c => {
-  try { return c.json(await readStorageSettings(c.env.DB, c.env)); }
+  try {
+    const version = c.req.query("version");
+    if (version !== undefined && version !== "2" && version !== "3") return c.json({ error: "Invalid storage settings version." }, 400);
+    return c.json(await (version === "3" ? readCurrentStorageSettings(c.env.DB, c.env) : readStorageSettings(c.env.DB, c.env)));
+  }
   catch { return c.json({ error: "Storage settings are temporarily unavailable." }, 503); }
 });

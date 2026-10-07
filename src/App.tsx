@@ -15,8 +15,11 @@ const ProjectsPage = lazy(() => import("./pages/ProjectsPage").then((module) => 
 const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({ default: module.ProjectPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
+const ResearchPackagesPage = lazy(() => import("./pages/ResearchPackagesPage").then((module) => ({ default: module.ResearchPackagesPage })));
+const SystemRecoveryPage = lazy(() => import("./pages/SystemRecoveryPage").then((module) => ({ default: module.SystemRecoveryPage })));
 const StorageConfigurationPage = lazy(() => import("./pages/StorageConfigurationPage").then((module) => ({ default: module.StorageConfigurationPage })));
 const StorageSettingsPage = lazy(() => import("./pages/StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
+const FileMigrationsPage = lazy(() => import("./pages/FileMigrationsPage").then((module) => ({ default: module.FileMigrationsPage })));
 const FileShadowPilotPage = lazy(() => import("./pages/FileShadowPilotPage").then((module) => ({ default: module.FileShadowPilotPage })));
 const FileEvidencePage = lazy(() => import("./pages/FileEvidencePage").then((module) => ({ default: module.FileEvidencePage })));
 const FileAuthorityPage = lazy(() => import("./pages/FileAuthorityPage").then((module) => ({ default: module.FileAuthorityPage })));
@@ -97,8 +100,11 @@ export function App() {
             <Route path="/templates/:templateId" element={<TemplatePage />} />
             <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
             <Route path="/export" element={<ExportPage />} />
+            <Route path="/settings/data" element={<ResearchPackagesPage />} />
+            <Route path="/settings/data/system" element={<SystemRecoveryPage />} />
             <Route path="/settings/storage" element={<StorageSettingsPage />} />
             <Route path="/settings/storage/configuration" element={<StorageConfigurationPage />} />
+            <Route path="/settings/storage/migrations" element={<FileMigrationsPage />} />
             <Route path="/maintenance/file-shadow" element={<FileShadowPilotPage />} />
             <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
             <Route path="/maintenance/file-authority" element={<FileAuthorityPage />} />

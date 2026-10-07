@@ -64,9 +64,10 @@ interface AdmissionRow {
   envelope_revision: number; check_id: string; configuration_sha256: string; namespace_sha256: string; actor: string; created_at: string;
   namespace_identity: string; adapter_type: string; configuration_source: string; credential_reference: string | null;
   configuration_revision: number; state: string; profile_created_at: string; runtime_access: string;
+  registered_at: string;
 }
 const ADMISSION_SELECT = `SELECT a.*,p.namespace_identity,p.adapter_type,p.configuration_source,p.credential_reference,
-  p.configuration_revision,p.state,p.created_at AS profile_created_at,r.state AS runtime_access
+  p.configuration_revision,p.state,p.created_at AS profile_created_at,r.state AS runtime_access,r.registered_at
   FROM storage_profile_admissions a JOIN storage_profiles p ON p.id=a.native_profile_id
   JOIN storage_profile_runtime r ON r.storage_profile_id=p.id`;
 async function receipt(row: AdmissionRow): Promise<StorageProfileAdmissionReceipt> {
@@ -74,7 +75,8 @@ async function receipt(row: AdmissionRow): Promise<StorageProfileAdmissionReceip
   if (namespace !== row.namespace_identity || await digest(namespace) !== row.namespace_sha256
     || row.native_profile_id !== `storage-profile:aws-s3:${row.namespace_sha256}` || row.adapter_type !== "s3"
     || row.configuration_source !== "system" || row.credential_reference !== null || row.configuration_revision !== 1
-    || row.state !== "historical" || row.runtime_access !== "read_only" || row.profile_created_at !== row.created_at
+    || row.state !== "historical" || !["read_only", "read_write", "retired"].includes(row.runtime_access)
+    || row.registered_at !== row.created_at || row.profile_created_at !== row.created_at
     || !/^[0-9a-f]{64}$/.test(row.configuration_sha256)) throw unavailable();
   return checkedStorageProfileAdmissionReceipt({ operationId: row.operation_id, profileId: row.candidate_profile_id,
     revision: row.candidate_revision, envelopeRevision: row.envelope_revision, checkId: row.check_id,
@@ -130,7 +132,7 @@ export async function findStorageProfileAdmission(env: AdmissionEnvironment, raw
       admitted AS (${ADMISSION_SELECT} WHERE p.namespace_identity=?)
       SELECT (SELECT json_object(${["operation_id", "native_profile_id", "candidate_profile_id", "candidate_revision", "envelope_revision", "check_id",
         "configuration_sha256", "namespace_sha256", "actor", "created_at", "namespace_identity", "adapter_type", "configuration_source", "credential_reference",
-        "configuration_revision", "state", "profile_created_at", "runtime_access"].map(name => `'${name}',${name}`).join(",")} ) FROM admitted) AS admission_json FROM source`)
+        "configuration_revision", "state", "profile_created_at", "runtime_access", "registered_at"].map(name => `'${name}',${name}`).join(",")} ) FROM admitted) AS admission_json FROM source`)
       .bind(input.profileId, ...sourceValues(source), identity).first<{ admission_json: string | null }>();
     if (!snapshot) throw conflict();
     if (!snapshot.admission_json) throw missing();

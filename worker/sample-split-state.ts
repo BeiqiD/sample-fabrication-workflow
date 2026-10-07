@@ -8,7 +8,8 @@ import { readFileAuthorityMode } from "./files/authority-reader";
 export type SplitExecutionAsset = {
   occurrenceId: string;
   assetId: string;
-  r2_key: string;
+  r2_key: string | null;
+  file_id?: string | null;
   sha256: string;
   position: number;
 };

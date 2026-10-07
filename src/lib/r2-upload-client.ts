@@ -1,6 +1,6 @@
 import { sha256Hex } from "../../shared/content-addressing";
 import { createUuid } from "./uuid";
-import { R2_UPLOAD_REQUEST_HEADER, validateR2UploadInput, type R2UploadIngress, type R2UploadResult } from "../../shared/contracts/r2-upload";
+import { R2_UPLOAD_REQUEST_HEADER, validateFileUploadResult, validateR2UploadInput, type R2UploadIngress, type R2UploadResult } from "../../shared/contracts/r2-upload";
 export type { R2UploadIngress, R2UploadResult } from "../../shared/contracts/r2-upload";
 
 export interface R2UploadOptions { context: string }
@@ -35,9 +35,7 @@ function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function validResult(value: unknown): value is R2UploadResult {
-  return record(value) && typeof value.id === "string" && value.id.length > 0 && [...value.id].length <= 256 && !value.id.includes("\0")
-    && typeof value.key === "string" && value.key.length > 0 && [...value.key].length <= 4096 && !value.key.includes("\0")
-    && typeof value.deduplicated === "boolean";
+  try { validateFileUploadResult(value); return true; } catch { return false; }
 }
 function storageKey(ingress: R2UploadIngress, context: string) {
   if (!context || context.length > 1024 || context.includes("\0")) throw new Error("Invalid upload form identity");

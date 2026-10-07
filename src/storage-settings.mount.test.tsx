@@ -48,7 +48,7 @@ describe("read-only storage Settings", () => {
     expect(screen.getByRole("link", { name: "File authority maintenance" }).getAttribute("href")).toBe("/maintenance/file-authority");
     expect(document.body.textContent).not.toMatch(/healthy|connected|default storage|S3|FP1/);
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage", expect.objectContaining({ method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error" }));
+    expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage?version=3", expect.objectContaining({ method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error" }));
     const buttons = screen.getAllByRole("button").map((button) => button.textContent);
     expect(buttons).toEqual(["Night", "Refresh"]);
   });
@@ -62,7 +62,7 @@ describe("read-only storage Settings", () => {
     expect(document.body.textContent).not.toContain("PRIVATE_BUCKET_AND_SECRET");
     network.mockResolvedValueOnce(json(snapshot("updated-profile")));
     await clickRefresh(); expect(screen.getByText("updated-profile")).toBeTruthy(); expect(screen.queryByRole("alert")).toBeNull();
-    expect(network.mock.calls.every(([path, options]) => path === "/api/settings/storage" && options?.method === "GET")).toBe(true);
+    expect(network.mock.calls.every(([path, options]) => path === "/api/settings/storage?version=3" && options?.method === "GET")).toBe(true);
   });
 
   it("aborts StrictMode stale requests, ignores late responses, and aborts on unmount", async () => {
@@ -121,7 +121,7 @@ describe("read-only storage Settings", () => {
     expect(uploads.getByText("Cloudflare R2")).toBeTruthy(); expect(uploads.getByText("SWITCHdrive")).toBeTruthy();
     expect(uploads.queryByText("S3")).toBeNull();
     expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(["Refresh"]);
-    expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage", expect.objectContaining({ method: "GET" }));
+    expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage?version=3", expect.objectContaining({ method: "GET" }));
   });
 
   it.each([

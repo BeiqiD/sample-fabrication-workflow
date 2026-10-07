@@ -62,6 +62,7 @@ export function ExportPage() {
   return <div className="page export-page">
     <p className="eyebrow">Backup</p><h1>Export content</h1>
     <p className="lead">Download a versioned ZIP of samples, Projects, process records and available files. System storage configuration and credentials are excluded. Missing or unavailable files are recorded as warnings without discarding the content backup.</p>
+    <p><a href="/settings/data/system">System backup and recovery</a> provides administrator-managed, durable backup jobs and isolated installation recovery.</p>
     <section className="card export-card">
       <h2 className="card-title">Content archive</h2>
       <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>

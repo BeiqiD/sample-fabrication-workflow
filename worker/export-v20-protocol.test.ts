@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,7 @@ const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.
 const nativeMigration = "0017_fp2_native_storage_profiles.sql";
 const databases: DatabaseSync[] = [], directories: string[] = [];
 const adapter = (sql: DatabaseSync) => new SqliteD1Database(sql) as unknown as D1Database;
-function database(throughMigration?: string) { const sql = referenceTestDatabase({ throughMigration }); databases.push(sql); return sql; }
+function database(throughMigration = nativeMigration) { const sql = referenceTestDatabase({ throughMigration }); databases.push(sql); return sql; }
 afterEach(async () => { vi.restoreAllMocks(); vi.unstubAllGlobals(); databases.splice(0).forEach(sql => sql.close()); for (const path of directories.splice(0)) await rm(path, { recursive: true, force: true }); });
 const execution = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
 const schema = (sql: DatabaseSync) => sql.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name").all() as unknown as ExportSchemaObject[];
@@ -55,7 +55,7 @@ async function fixture() {
   const put = vi.fn(async (key: string, body: BodyInit) => { stored.set(key, new Uint8Array(await new Response(body).arrayBuffer())); });
   const get = vi.fn(async (key: string) => { const value = stored.get(key); return value ? { body: new Blob([value.slice().buffer]).stream(), size: value.length, httpEtag: '"original"', writeHttpMetadata() {} } : null; });
   const env = { AUTH_MODE: "disabled", DB: adapter(sql), R2_BOOTSTRAP_NAMESPACE: namespace,
-    ASSETS: { get, head: get, put } as unknown as R2Bucket } as Env;
+    ASSETS: { get, head: get, put, delete: async (key: string) => { stored.delete(key); } } as unknown as R2Bucket } as Env;
   const original = Uint8Array.of(4, 8, 15, 16, 23, 42);
   await acceptCommentUpload(sql, env, { kind: "attachment", bytes: original });
   await uploadAcceptedCommentItem(env, "submission-upload", "item-upload", "attachment", original);
@@ -72,14 +72,20 @@ async function restore(manifest: FullExportManifestV19 | FullExportManifestV20, 
   const fetcher = vi.fn(async () => new Response(bytes.slice().buffer));
   const packaged = await (manifest.schemaVersion === 20 ? buildFullExportArchiveV20 : buildFullExportArchiveV19)(manifest, undefined, fetcher);
   const archivePath = join(directory, "archive.zip"); await writeFile(archivePath, Buffer.from(await packaged.archive.arrayBuffer()));
-  const result = await restoreExportToIsolatedDirectory({ archivePath, destination: join(directory, "restored"), migrationsDirectory, targetCompatibilitySchema: "S2" });
+  // This fixture qualifies the frozen V19 -> V20 boundary. Current-generation
+  // forward recovery has separate current-generation checks and must not redefine this source.
+  const frozenMigrations = join(directory, "migrations-v20"); await mkdir(frozenMigrations);
+  const names = (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql") && name <= nativeMigration).sort();
+  expect(names).toHaveLength(17); expect(names.at(-1)).toBe(nativeMigration);
+  for (const name of names) await writeFile(join(frozenMigrations, name), await readFile(join(migrationsDirectory, name)));
+  const result = await restoreExportToIsolatedDirectory({ archivePath, destination: join(directory, "restored"), migrationsDirectory: frozenMigrations, targetCompatibilitySchema: "S2" });
   const sql = new DatabaseSync(join(result.restoredDirectory, "database.sqlite")); databases.push(sql); return { sql, result, packaged, fetcher };
 }
 
 describe("V20 portable, metadata-only native S3 admissions", () => {
   it("pins whole-file and Wrangler-split checkpoints while preserving frozen V19", async () => {
     const whole = database(), split = new DatabaseSync(":memory:"); databases.push(split);
-    for (const name of (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql")).sort())
+    for (const name of (await readdir(migrationsDirectory)).filter(name => name.endsWith(".sql") && name <= nativeMigration).sort())
       for (const statement of splitSql(await readFile(join(migrationsDirectory, name), "utf8"))) split.exec(statement);
     for (const sql of [whole, split]) {
       expect(await fileShadowSchemaFingerprint(contentExportSchemaObjects(schema(sql)))).toBe(FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256);

@@ -9,6 +9,7 @@ import type {
 } from "../../shared/types";
 import type { TemplateDetail } from "./api";
 import { correspondingRunForSelectedRun } from "./correspondingRun";
+import { commentImageUrl } from "./asset-media";
 import { buildRunGrid, type RunGridColumn, type RunGridRow } from "./runGrid";
 import { collectSampleNotes } from "./sampleNotes";
 
@@ -70,12 +71,13 @@ function ready(comment: RunStepComment) {
 }
 
 function imagePreview(image: CommentImage): ReferenceAttachmentPreview | null {
-  if (!image.assetKey) return null;
+  const assetUrl = commentImageUrl(image);
+  if (!assetUrl) return null;
   return {
     kind: "image",
     id: image.id,
     title: image.originalFilename || image.filename || "Comment image",
-    assetUrl: `/api/assets/${image.assetKey}`,
+    assetUrl,
     mimeType: image.mimeType || image.originalMimeType || "image/*",
   };
 }

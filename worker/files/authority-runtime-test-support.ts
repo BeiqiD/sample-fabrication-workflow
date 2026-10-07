@@ -28,8 +28,8 @@ export function enableFutureFileAuthority(sql: DatabaseSync, now = new Date().to
 }
 
 /** Load all real migrations, legally enter overlap, then simulate future active. */
-export function futureActiveRuntimeDatabase(prepareOverlap?: (sql: DatabaseSync) => void) {
-  const sql = referenceTestDatabase();
+export function futureActiveRuntimeDatabase(prepareOverlap?: (sql: DatabaseSync) => void, options: { throughMigration?: string } = {}) {
+  const sql = referenceTestDatabase(options);
   try {
     sql.exec("PRAGMA foreign_keys=ON");
     sql.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'future-runtime-test',? FROM file_shadow_control")

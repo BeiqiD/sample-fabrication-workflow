@@ -75,8 +75,9 @@ export function StorageCandidateReadiness({ candidate, evidenceGeneration, block
         <p className="muted">Observed <time dateTime={result.observedAt}>{new Date(result.observedAt).toLocaleString()}</time>. Recorded success does not guarantee that the provider is reachable now.</p>
       </>}
       <StorageProfileRegistration candidate={candidate} evidence={result} blocked={blocked} onForbidden={onForbidden}
+        enableActivation
         onStaleEvidence={() => { sequence.current += 1; request.current?.abort(); setObservation(null); setLoading(false); }} />
-      <p className="muted">Candidate activation is unavailable. Current upload destinations are unchanged.</p>
+      <p className="muted">Register a tested profile, activate it, then choose it in current storage settings for new uploads.</p>
     </section>}
   </div>;
 }

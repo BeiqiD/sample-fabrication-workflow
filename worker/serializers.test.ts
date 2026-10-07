@@ -72,4 +72,24 @@ describe("D1 serializers", () => {
       created_at: "2026-07-20T10:05:00.000Z",
     }).metadata).toEqual({ stepStatus: "done" });
   });
+
+  it("preserves native thumbnail identity without inventing a legacy storage key", () => {
+    const row = { id: "sample-native", code: "NATIVE", title: "Native", status: "stored" as const,
+      location: null, parent_id: null, pinned: 0, updated_at: "2026-10-05T12:00:00.000Z" };
+    expect(sampleSummary({ ...row, current_state_thumbnail_json: JSON.stringify({ assetId: "native-image", fileId: "native-file", key: null }) }))
+      .toMatchObject({ currentStateThumbnailKey: null, currentStateThumbnailUrl: "/api/file-assets/native-image" });
+    expect(sampleSummary({ ...row, current_state_thumbnail_json: JSON.stringify({ assetId: "old-image", fileId: "old-file", key: "images/old.png" }) }))
+      .toMatchObject({ currentStateThumbnailKey: "images/old.png" });
+  });
+
+  it("exposes native event URLs only with typed bindings and hides deleted attachments", () => {
+    const row = { id: "native-event", sample_id: "sample-native", kind: "image" as const, body: null, asset_key: null,
+      asset_file_id: "native-file", thumbnail_file_id: "native-preview", created_at: "2026-10-05T12:00:00.000Z" };
+    const metadata = { action: "sample_record", assetId: "native-image", thumbnailAssetId: "preview-image" };
+    expect(sampleEvent({ ...row, metadata_json: JSON.stringify(metadata) })).toMatchObject({ assetKey: null,
+      assetUrl: "/api/file-assets/native-image", thumbnailUrl: "/api/file-assets/preview-image" });
+    expect(sampleEvent({ ...row, asset_file_id: null, thumbnail_file_id: null, metadata_json: JSON.stringify(metadata) }).assetUrl).toBeUndefined();
+    const hidden = sampleEvent({ ...row, metadata_json: JSON.stringify({ ...metadata, assetDeletedAt: "2026-10-05T12:01:00.000Z" }) });
+    expect(hidden.assetUrl).toBeUndefined(); expect(hidden.thumbnailUrl).toBeUndefined();
+  });
 });

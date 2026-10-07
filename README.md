@@ -43,11 +43,11 @@ The application deploys as one Cloudflare Worker project.
 | React, React Router, Vite | Browser interface |
 | Hono on Cloudflare Workers | API, authentication checks, reference resolution and search, exports, scheduled cleanup, and storage orchestration |
 | Cloudflare D1 | Samples, templates, runs, events, comments, reference registry, hashes, retention edges, GC ledger, and file metadata |
-| Private Cloudflare R2 | Imported workbooks, diagrams, and compressed inline images |
-| `ManagedStorage` adapter | Optional unchanged original files; currently supports SWITCHdrive over WebDAV |
+| Private Cloudflare R2 | Default ordinary and original files; immutable historical R2 locations |
+| `ManagedStorage` adapter | Compatibility access to historical SWITCHdrive originals over WebDAV |
 | Cloudflare Access | User authentication; the Worker validates the Access JWT again before serving protected API routes |
 
-Original-file storage is deliberately provider-neutral at the application boundary. Comment and run logic call `ManagedStorage`; provider-specific authentication and requests remain inside the adapter.
+Original-file operations resolve their recorded File location and exact storage profile. The `ManagedStorage` adapter retains compatibility for historical SWITCHdrive locations; provider authentication and transport remain inside adapters.
 
 User-authored Project Markdown and displayed Sample-note and process-Comment bodies share one client-side safe rich-text renderer. Project Reading uses document spacing and allows ordinary Markdown images; Comment surfaces use compact spacing, preserve single line breaks, demote Markdown image syntax to safe links, and continue to display uploaded images/files through the existing attachment model. Source strings remain authoritative in D1; generated HTML and MathML are never persisted.
 
@@ -112,7 +112,7 @@ See [the full deployment guide](./docs/DEPLOYMENT.md) for resource setup, first-
 
 ## Optional original-file storage
 
-The app works without an external file provider: text comments, compressed inline images, and attachment links remain available. Unchanged original-file uploads stay disabled until a managed-storage adapter passes its server-side connection check.
+The app works without an external file provider. With active File authority, original-file uploads use the selected `originals` profile, initially R2. The local successor runtime supports registered R2/S3 destinations and independent defaults. The SWITCHdrive configuration below describes the historical compatibility path.
 
 The included SWITCHdrive adapter uses HTTPS WebDAV with a dedicated App Passcode. Configure it only through Worker secrets:
 
@@ -124,7 +124,7 @@ SWITCHDRIVE_APP_PASSWORD=<APP_PASSCODE_PASSWORD>
 SWITCHDRIVE_ROOT=<YOUR_STORAGE_ROOT>
 ```
 
-The browser never receives these credentials. Original files are streamed unchanged to managed storage; no second R2 bucket is used as a fallback. See [comment file uploads](./docs/comment-file-uploads.md) for the storage and retry model.
+The browser never receives these saved credentials. Original bytes use their frozen accepted destination without an alternate-provider fallback. See [comment file uploads](./docs/comment-file-uploads.md) for the historical managed-storage and retry model.
 
 ## Local development
 
@@ -138,6 +138,29 @@ npm run dev
 ```
 
 Cloudflare's Vite plugin runs the API in the Workers runtime with local D1 and R2 simulations. `AUTH_MODE=disabled` is intended only for local development.
+
+The current development Storage Settings page supports independent registered
+R2 instances through the optional deployment-owned `R2_PROFILE_BINDINGS` map.
+Each profile ID maps to its exact canonical `namespaceIdentity` JSON string and
+the corresponding environment `bindingName`; each bucket binding must already
+exist. This map changes no registered physical identities and makes no provider
+connection test. See [current Storage Settings](./docs/FP2_CURRENT_STORAGE_SETTINGS.md)
+for local availability, activation and default-selection behavior.
+
+The current development branch also supplies persisted File migration jobs at
+`/settings/storage/migrations`, with independent execution, complete-byte
+verification, per-File progress and separate cleanup. See the
+[FP2/FP3 local development checkpoint](./docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md)
+for limits, recovery behavior and pending real-provider acceptance. Run the
+complete development gate with `npm run verify:ci`.
+
+Settings Data at `/settings/data` now supplies native Sample/Project package
+export, uploaded-package validation and fresh-copy import, plus independent
+offline reports. Sample and Project pages provide contextual export entries.
+Accepted jobs persist independently of the browser; native execution requires
+qualified active File authority, available destinations and the independently
+invoked executor. See [FP4 research packages](./docs/FP4_RESEARCH_PACKAGES.md)
+for formats, bounds and recovery behavior.
 
 The local migration script explicitly uses `.wrangler/state`, matching Vite's
 storage directory. Use `--persist-to .wrangler/state` for other local D1 commands
@@ -173,16 +196,16 @@ The [live preflight contract](./docs/FP1_SHADOW_CONVERSION_PREFLIGHT.md) explain
 its source fingerprints, bounds and the remaining shadow-conversion protocols.
 The report does not verify bytes, authorize provider work or activate File authority.
 
-Ordinary image and Project uploads now use
+Ordinary image and Project uploads adopted
 [durable request acceptance](./docs/FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md), with stable
 retry identities and a fixed 24-hour result window. Metrology reference uploads
-also use [durable business publication](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md),
+also adopted [durable business publication](./docs/FP1_METROLOGY_REFERENCE_ACCEPTANCE.md),
 binding upload recovery to the original reference occurrence. [Comment acceptance](./docs/FP1_COMMENT_ACCEPTANCE.md)
 freezes complete submissions and file hashes before upload, fences cancellation,
 and atomically publishes all retained items and targets within a fixed seven-day
 window. The [additive File-authority transition](./docs/FP1_FILE_AUTHORITY_TRANSITION.md)
 introduced schema 14. The [shadow conversion runtime](./docs/FP1_SHADOW_RUNTIME.md)
-now adds migration `0008` and complete export schema **15**, writer **1**, profile
+added migration `0008` and complete export schema **15**, writer **1**, profile
 `fp1-shadow-conversion`. It captures all 13 consumer slots, records owned conversion
 and recovery operations, and preserves legacy business paths. Conversion requires
 explicit overlap/runtime/profile enablement; migration and restore perform no
@@ -193,8 +216,8 @@ execution starts paused. Migration `0010` adds separately authorized historical
 evidence adjudication, durable withdrawal, conservative revocation/correction and
 immutable conversion bindings. Its matching complete export is schema **17**,
 profile `fp1-shadow-adjudications`. The operator allowlist defaults to disabled;
-deploying the mechanism approves no historical reference. Final File authority
-activation remains a separate reviewed change.
+deploying that mechanism approved no historical reference. Final File authority
+activation required a separate reviewed change.
 
 Migration-first rollout requires the matching V17 Worker after `0010`; stale export
 pages must refresh. If Worker deployment fails, finish the reviewed V17 deployment
@@ -207,35 +230,62 @@ A full-system export preserves canonical database rows and packages available by
 The first full-export implementation builds the ZIP in browser memory. Large archives therefore require an explicit scalability review and, eventually, a streaming/server-side or desktop export path. Opening and inspecting the generated archive is part of backup verification.
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
-rehearses a trusted negotiated complete archive (current schema 17,
-`fp1-shadow-adjudications`, with historical readers retained) against the current migrations in a newly
+rehearses a trusted negotiated complete archive (current development schema 23,
+`fp4-research-packages`, with historical readers retained) against the current migrations in a newly
 created local SQLite database and a separate blob directory. Existing targets
 are refused. See [isolated export/restore rehearsal](./docs/EXPORT_RESTORE_REHEARSAL.md)
 for validation, missing-byte outcomes, size limits and the separate remote
 recovery boundary.
 
-The integration branch uses the S2 baseline plus the additive FP1 registry suffix for new empty local databases and
+The integration branch uses the S2 baseline plus additive File, storage, job and package migrations for new empty local databases and
 preserves the original SQL in `migrations-history/s0/`.
 Historical S0 recovery must explicitly add
 `--migrations-dir migrations-history/s0 --target-schema S0`. The authorized
 same-D1 S2 activation is complete; final browser acceptance remains open in the
 [activation checkpoint](./docs/CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md). The reviewed
 [file/data portability track](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-has begun with [FP1a](./docs/FP1_FILE_REGISTRY_FOUNDATION.md): dormant file identities,
-legacy observations and matched v9 recovery. Current R2/managed upload, read and
-retention paths remain in use. The byte-read/write boundaries now extend to
+began with [FP1a](./docs/FP1_FILE_REGISTRY_FOUNDATION.md): dormant file identities,
+legacy observations and matched v9 recovery. At that checkpoint, R2/managed upload,
+read and retention paths remained in use. The byte-read/write boundaries extended to
 [fenced deletion and GC recovery](./docs/FP1_FENCED_BYTE_DELETION.md): uncertain
 deletion keeps the locator claimed until guarded reconciliation. Qualified v7/v8 archives can be restored against
 the reviewed S2 target and then upgraded by the same additive suffix, with the
-applied forward migration recorded in the report. Settings, universal upload
-routing and native website import remain later slices. FP1a–FP1j are merged
+applied forward migration recorded in the report. FP1a–FP1j are merged
 through PR #219 at `7e63a366663c47c830120abc77af1d174abaf5aa`.
 Migration `0007` adds typed authority/conversion metadata and matched schema-14
 recovery and installs immutable `legacy` mode. Migration `0008` adds the complete
 shadow generation/operation pipeline and V15 recovery. Migration `0009` seals
 unaccepted request identities and retains those receipts in V16 recovery.
-Final authority cutover,
-R2 role defaults and authenticated Settings remain separate work.
+FP1 authority/defaults and authenticated Settings subsequently completed.
+The current local FP2/FP3 successor adds native File routing, activation,
+independent defaults and persisted migration jobs with paired V21/V22 recovery;
+the local FP4 implementation adds paired native package export/site copy-import
+and offline reports with additive `0020` and matched V23 recovery. The formats
+are `research-package/1`, `research-report/1` and `research-records/1`.
+Host qualification passed R2→S3, S3→R2 and S3→S3 round trips. The complete
+R2→S3 workflow also passed in real workerd with local D1/R2 and an isolated
+signed S3 transport fixture. The nonempty graph covered all 13 File binding slots
+and 9 reference kinds, 97 records, 15 Files and 11 placements; a nonempty V23
+backup and offline recovery also passed. See
+[FP4 research packages](./docs/FP4_RESEARCH_PACKAGES.md) and the retained
+[FP2/FP3 local checkpoint](./docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md).
+
+At the preserved FP4 checkpoint, the exact 12 canonical CI leaves passed in serial stages; the local database had applied migration `0020`, preserved all 95 application tables and the original 19-entry ledger prefix, and remained in legacy File mode with execution disabled.
+The [FP4 checkpoint](./docs/FP4_RESEARCH_PACKAGES.md) records the verification stages and corrections.
+
+Formal real-provider, deployed-runtime and concentrated manual acceptance remain
+deferred. This local work includes no production deployment or provider activation.
+Local FP5 development checkpoint, 2026-10-06: privileged `system-backup/1`
+archives and website fresh-target recovery are complete with additive `0021`/
+`0022` and ordinary V24 recovery. Native R2→S3→rebackup→fresh R2 and actual local
+Wrangler migration no-op passed; converted historical archives covered all 13
+File consumer slots. Protected history remains quarantined; handoff is operator
+assisted. Independent conversion/offline recovery and all 12 exact canonical CI
+leaves passed through the documented staged qualification. The actual local DB is on `0022` with 119 application tables; all
+103 prior tables' data, 31 rows, types/rowids, 20 old receipts and SQL files are
+preserved. File mode is legacy and execution remains disabled. See
+[FP5 system recovery](./docs/FP5_SYSTEM_RECOVERY.md) and the
+[completed FP5 goal](./docs/FP5_DEVELOPMENT_GOAL.md).
 
 ## Further documentation
 
@@ -247,6 +297,7 @@ R2 role defaults and authenticated Settings remain separate work.
 - [Proposed file storage architecture](./docs/FILE_STORAGE_ARCHITECTURE.md)
 - [Proposed reports, data packages and system recovery](./docs/DATA_EXPORT_IMPORT_DESIGN.md)
 - [File/data portability implementation and compatibility plan](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+- [FP4 native research packages and local qualification](./docs/FP4_RESEARCH_PACKAGES.md)
 - [FP1a file registry implementation boundary](./docs/FP1_FILE_REGISTRY_FOUNDATION.md)
 - [FP1b byte-reader and legacy route boundary](./docs/FP1_BYTE_READER_BOUNDARY.md)
 - [FP1c verified writes and bounded hashing](./docs/FP1_VERIFIED_BYTE_WRITES.md)

@@ -3,6 +3,7 @@ import type { FileAuthorityMode } from "./authority-reader";
 import type { Env } from "../types";
 import type { R2BootstrapProfile } from "./r2-bootstrap-profile";
 import { prepareR2StorageRoleDefaults, StorageRoleDefaultsUnavailableError, type StorageRoleDefault } from "./storage-role-defaults";
+import { hasNativeStoragePolicy, prepareCurrentRolePolicy, type SelectedStorageProfile } from "../storage/storage-role-policy";
 
 type StorageRole = StorageRoleDefault["role"];
 const PURPOSE_ROLES = Object.freeze({
@@ -19,14 +20,15 @@ export function roleForFilePurpose(purpose: FilePurpose): StorageRole {
 }
 
 interface StorageRoleProfiles {
-  profileFor(purpose: FilePurpose): R2BootstrapProfile;
+  profileFor(purpose: FilePurpose): SelectedStorageProfile;
   /** Whole-import receipts capture one destination. Reject a selection that
    * would require destinations which that receipt cannot represent. */
-  uniformProfile(): R2BootstrapProfile;
+  uniformProfile(): SelectedStorageProfile;
 }
 
 export interface StorageRoleSelection extends StorageRoleProfiles {
-  rolePolicyRevision: 2;
+  rolePolicyRevision: number;
+  selectionRevision: number | null;
   statements: D1PreparedStatement[];
 }
 
@@ -45,8 +47,8 @@ function checkedPurposes(purposes: readonly FilePurpose[]): Set<FilePurpose> {
   return new Set(purposes);
 }
 
-function profilesForPurposes(purposes: Set<FilePurpose>, profiles: Record<StorageRole, R2BootstrapProfile>): StorageRoleProfiles {
-  const selected = new Map<FilePurpose, R2BootstrapProfile>();
+function profilesForPurposes(purposes: Set<FilePurpose>, profiles: Record<StorageRole, SelectedStorageProfile>): StorageRoleProfiles {
+  const selected = new Map<FilePurpose, SelectedStorageProfile>();
   for (const purpose of purposes) {
     const profile = profiles[roleForFilePurpose(purpose)];
     if (!profile || typeof profile.id !== "string" || !profile.id || profile.configurationRevision !== 1
@@ -54,7 +56,7 @@ function profilesForPurposes(purposes: Set<FilePurpose>, profiles: Record<Storag
       throw new StorageRoleDefaultsUnavailableError();
     selected.set(purpose, Object.freeze({ ...profile }));
   }
-  const profileFor = (purpose: FilePurpose): R2BootstrapProfile => {
+  const profileFor = (purpose: FilePurpose): SelectedStorageProfile => {
     roleForFilePurpose(purpose);
     const profile = selected.get(purpose);
     if (!profile) throw new StorageRoleDefaultsUnavailableError();
@@ -84,13 +86,19 @@ export function resolveStorageRoleProfiles(purposes: readonly FilePurpose[], pro
  * exists in one batch, before any provider I/O. A zero-row receipt INSERT must
  * roll back newly initialized defaults. Existing receipts and execution must
  * continue using their captured targets. */
-export async function prepareStorageRoleSelection(database: D1Database, env: Pick<Env, "R2_BOOTSTRAP_NAMESPACE">,
+export async function prepareStorageRoleSelection(database: D1Database, env: Pick<Env, "R2_BOOTSTRAP_NAMESPACE"> & Partial<Env>,
   purposes: readonly FilePurpose[], now: string): Promise<StorageRoleSelection> {
   const selected = checkedPurposes(purposes);
+  if (await hasNativeStoragePolicy(database)) {
+    const prepared = await prepareCurrentRolePolicy(database, env, now, [...new Set([...selected].map(roleForFilePurpose))]);
+    return { ...profilesForPurposes(selected, prepared.profiles), rolePolicyRevision: prepared.revision,
+      selectionRevision: prepared.revision, statements: prepared.statements };
+  }
   const prepared = await prepareR2StorageRoleDefaults(database, env, now);
   return {
     ...profilesForPurposes(selected, { internal: prepared.profile, originals: prepared.profile }),
     rolePolicyRevision: 2,
+    selectionRevision: null,
     statements: prepared.statements,
   };
 }
