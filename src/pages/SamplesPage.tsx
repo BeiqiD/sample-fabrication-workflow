@@ -11,6 +11,7 @@ import {
 } from "../../shared/types";
 import { EmptyState } from "../components/EmptyState";
 import { PaginationControls } from "../components/PaginationControls";
+import { ReadStatus } from "../components/ReadStatus";
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
@@ -55,10 +56,13 @@ export function SamplesPage() {
   const [pagination, setPagination] = useState<PaginationMeta>(EMPTY_PAGINATION);
   const [filterOptions, setFilterOptions] = useState<SampleDirectoryFilterOptions>(EMPTY_FILTER_OPTIONS);
   const [filterOptionsError, setFilterOptionsError] = useState(false);
+  const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
+  const [filterOptionsRefresh, setFilterOptionsRefresh] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<SampleDirectorySettings>(settings);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     setQuery(requestedQuery);
@@ -78,18 +82,24 @@ export function SamplesPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setFilterOptionsLoading(true);
+    setFilterOptionsError(false);
     api.listSampleDirectoryOptions(controller.signal).then((result) => {
+      if (controller.signal.aborted) return;
       setFilterOptions(result);
       setFilterOptionsError(false);
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setFilterOptionsError(true);
+      if (!controller.signal.aborted && error.name !== "AbortError") setFilterOptionsError(true);
+    }).finally(() => {
+      if (!controller.signal.aborted) setFilterOptionsLoading(false);
     });
     return () => controller.abort();
-  }, []);
+  }, [filterOptionsRefresh]);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
+    setError("");
     api.listSamples({
       query: requestedQuery,
       page: requestedPage,
@@ -101,6 +111,7 @@ export function SamplesPage() {
       sort: settings.sort,
       signal: controller.signal,
     }).then((result) => {
+      if (controller.signal.aborted) return;
       if (requestedPage > result.pagination.totalPages) {
         setSearchParams((current) => setPageParam(current, "page", result.pagination.totalPages), { replace: true });
         return;
@@ -109,7 +120,7 @@ export function SamplesPage() {
       setPagination(result.pagination);
       setError("");
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setError(error.message);
+      if (!controller.signal.aborted && error.name !== "AbortError") setError(error.message);
     }).finally(() => {
       if (!controller.signal.aborted) setLoading(false);
     });
@@ -117,6 +128,7 @@ export function SamplesPage() {
   }, [
     requestedPage,
     requestedQuery,
+    refresh,
     setSearchParams,
     settings.location,
     settings.parent,
@@ -177,7 +189,7 @@ export function SamplesPage() {
       <input autoFocus={shouldAutoFocusPageField()} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search samples…" />
     </label>
     <div className="sample-directory-toolbar">
-      <p>{loading ? "Loading samples…" : <><strong>{pagination.total}</strong> {pagination.total === 1 ? "sample" : "samples"}</>}</p>
+      <p>{loading ? "Samples" : error ? "Results unavailable" : <><strong>{pagination.total}</strong> {pagination.total === 1 ? "sample" : "samples"}</>}</p>
       <button
         type="button"
         className={`button compact-button sample-filter-trigger${filtersOpen ? " selected" : ""}`}
@@ -220,7 +232,8 @@ export function SamplesPage() {
             <datalist id="sample-process-options">{filterOptions.workflows.map((workflow) => <option value={workflow} key={workflow} />)}</datalist>
           </label>
         </div>
-        {filterOptionsError && <p className="sample-filter-options-error">Suggestions are unavailable, but typed filters still work.</p>}
+        {filterOptionsLoading && <p className="card-meta" role="status">Loading filter suggestions…</p>}
+        {filterOptionsError && <div className="sample-filter-options-error" role="status"><p>Suggestions are unavailable, but typed filters still work.</p><button type="button" className="text-button" onClick={() => setFilterOptionsRefresh((value) => value + 1)}>Retry suggestions</button></div>}
       </section>
       <section>
         <div className="sample-filter-section-heading">
@@ -244,8 +257,8 @@ export function SamplesPage() {
       <div>{activeChips.map((chip) => <button type="button" key={chip.key} onClick={() => removeSetting(chip.key)} aria-label={`Remove ${chip.label}`}>{chip.label}<span aria-hidden="true">×</span></button>)}</div>
       <button type="button" className="text-button" onClick={clearSettings}>Clear all</button>
     </div>}
-    {error && <p className="error-banner">{error}</p>}
-    {loading ? <p className="muted">Loading…</p> : samples.length ? <div className="sample-directory">
+    <ReadStatus loading={loading} error={error} loadingMessage="Loading samples…" errorTitle="Samples could not be loaded" retryLabel="Retry samples" onRetry={() => setRefresh((value) => value + 1)} density="compact" />
+    {!loading && !error && (samples.length ? <div className="sample-directory">
       <div className="sample-directory-head" aria-hidden="true"><span>Sample</span><span>Status / location</span><span>Latest process run</span><span>Updated</span></div>
       {samples.map((sample) => <Link to={`/samples/${sample.id}`} className="sample-directory-row" key={sample.id}>
         <div className="sample-directory-identity"><div className="sample-identity"><span className="sample-code">{sample.code}</span>{sample.pinned && <span className="sample-pinned">Pinned</span>}</div><strong>{sample.title}</strong>{sample.parentId && <small>Child sample</small>}</div>
@@ -255,7 +268,7 @@ export function SamplesPage() {
       </Link>)}
     </div> : <EmptyState title={requestedQuery || hasFilters ? "No matching samples" : "No samples yet"}>
       {requestedQuery || hasFilters ? "Adjust the search or remove a filter to see more samples." : "Create the first sample to start its event log."}
-    </EmptyState>}
-    <PaginationControls pagination={pagination} label="Sample pages" disabled={loading} onPageChange={changePage} />
+    </EmptyState>)}
+    {!loading && !error && <PaginationControls pagination={pagination} label="Sample pages" disabled={loading} onPageChange={changePage} />}
   </div>;
 }

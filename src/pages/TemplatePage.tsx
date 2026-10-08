@@ -4,6 +4,7 @@ import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DiagramGallery } from "../components/MultiSampleRunGrid";
 import { SubstrateStepDetails } from "../components/SubstrateStepDetails";
 import { FileDropzone } from "../components/FileDropzone";
+import { ReadStatus } from "../components/ReadStatus";
 import { api, type TemplateDetail, type TemplateStepRecord } from "../lib/api";
 import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
 import { compressLayerStackImage } from "../lib/images";
@@ -25,6 +26,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   const [deleteError, setDeleteError] = useState("");
 
   function beginEdit() {
+    if (saving) return;
     setName(step.name);
     setToolName(step.toolName || "");
     setParametersText(step.parametersText || "");
@@ -36,6 +38,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   }
 
   function cancelEdit() {
+    if (saving) return;
     setName(step.name);
     setToolName(step.toolName || "");
     setParametersText(step.parametersText || "");
@@ -47,6 +50,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   }
 
   async function save() {
+    if (saving) return;
     setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
@@ -64,6 +68,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
   }
 
   async function deleteStep() {
+    if (saving) return;
     setSaving(true); setDeleteError("");
     try {
       await api.deleteTemplateStep(template.id, step.id);
@@ -73,7 +78,7 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
     finally { setSaving(false); }
   }
 
-  return <article className={`card template-step-card${editing ? " is-editing" : ""}`}>
+  return <article className={`card template-step-card${editing ? " is-editing" : ""}`} aria-busy={saving}>
     <div className="template-step-number">{step.stepNumber || step.position + 1}</div>
     <div className="template-step-body">
       <div className="card-title-row">
@@ -81,17 +86,17 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
           ? <div className="template-step-heading-editor">
             <label className="template-step-heading-control">
               <span>Step name</span>
-              <input className="template-step-title-input" value={name} onChange={(event) => setName(event.target.value)} />
+              <input className="template-step-title-input" value={name} disabled={saving} onChange={(event) => setName(event.target.value)} />
             </label>
             <label className="template-step-heading-control">
               <span>Tool</span>
-              <input className="template-step-tool-input" value={toolName} placeholder="Optional" onChange={(event) => setToolName(event.target.value)} />
+              <input className="template-step-tool-input" value={toolName} disabled={saving} placeholder="Optional" onChange={(event) => setToolName(event.target.value)} />
             </label>
           </div>
           : <div><h3 className="card-title">{step.name}</h3>{step.toolName && <p className="template-step-tool">{step.toolName}</p>}</div>}
         {!template.locked && !template.archived && <div className="template-step-actions">
-          <button type="button" className="text-button" onClick={editing ? cancelEdit : beginEdit}>{editing ? "Cancel" : "Edit"}</button>
-          <button type="button" className="text-button danger-text" onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button>
+          <button type="button" className="text-button" disabled={saving} onClick={editing ? cancelEdit : beginEdit}>{editing ? "Cancel" : "Edit"}</button>
+          <button type="button" className="text-button danger-text" disabled={saving} onClick={() => { setDeleteError(""); setConfirmingDelete(true); }}>Delete step</button>
         </div>}
       </div>
       <div className={(step.imageKeys.length > 0 || Boolean(step.images?.length)) ? "template-step-content has-diagrams" : "template-step-content"}>
@@ -99,14 +104,14 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
           ? <div className="template-step-fields template-step-fields-edit">
             <label className="template-step-field">
               <span>Parameters</span>
-              <textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} />
+              <textarea rows={3} value={parametersText} disabled={saving} onChange={(event) => setParametersText(event.target.value)} />
             </label>
             <label className="template-step-field">
               <span>Comments</span>
-              <textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} />
+              <textarea rows={3} value={commentsText} disabled={saving} onChange={(event) => setCommentsText(event.target.value)} />
             </label>
             <div className="template-step-edit-extras">
-              <FileDropzone compact accept="image/*" file={image} onFile={setImage} label="Drop another diagram" />
+              <FileDropzone compact accept="image/*" file={image} disabled={saving} onFile={setImage} label="Drop another diagram" />
               <div className="template-step-edit-actions"><button type="button" className="button primary" disabled={saving || !name.trim()} onClick={() => void save()}>{saving ? "Saving…" : "Save step"}</button></div>
             </div>
           </div>
@@ -116,7 +121,8 @@ function TemplateStepEditor({ template, step, onSaved }: { template: TemplateDet
           </div>}
         {(step.imageKeys.length > 0 || Boolean(step.images?.length)) && <DiagramGallery keys={step.imageKeys} images={step.images} label={step.name} className="template-diagram-gallery" />}
       </div>
-      {error && <p className="error-banner">{error}</p>}
+      {saving && <p className="visually-hidden" role="status">{confirmingDelete ? "Deleting template step…" : "Saving template step…"}</p>}
+      {error && <p className="error-banner" role="alert">{error}</p>}
       {uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `template-step:${template.id}:${step.id}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}
     </div>
     {confirmingDelete && <ConfirmDeleteDialog title="Delete this template step?" description="The complete step, including all of its diagrams, will be removed from this unused template version. Shared file data will remain unchanged." summary={step.name} deleting={saving} error={deleteError} eyebrow="Delete step" confirmLabel="Delete step" onCancel={() => { setConfirmingDelete(false); setDeleteError(""); }} onConfirm={() => void deleteStep()} />}
@@ -135,6 +141,7 @@ function NewTemplateStep({ templateId, onSaved }: { templateId: string; onSaved:
   const [uploadProblem, setUploadProblem] = useState(false);
 
   async function add() {
+    if (saving) return;
     setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
@@ -152,11 +159,26 @@ function NewTemplateStep({ templateId, onSaved }: { templateId: string; onSaved:
   }
 
   if (!open) return <button type="button" className="button wide" onClick={() => setOpen(true)}>+ Add template step</button>;
-  return <div className="card step-form new-template-step"><h3 className="card-title">Add template step</h3><label>Step name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Tool<input value={toolName} onChange={(event) => setToolName(event.target.value)} /></label><label>Parameters<textarea rows={3} value={parametersText} onChange={(event) => setParametersText(event.target.value)} /></label><label>Comments<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} /></label><FileDropzone compact accept="image/*" file={image} onFile={setImage} label="Drop a diagram" />{error && <p className="error-banner">{error}</p>}{uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `template-new-step:${templateId}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}<div className="form-actions"><button type="button" className="button" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="button primary" disabled={saving || !name.trim()} onClick={() => void add()}>{saving ? "Adding…" : "Add step"}</button></div></div>;
+  return <div className="card step-form new-template-step" aria-busy={saving}>
+    <h3 className="card-title">Add template step</h3>
+    <label>Step name<input value={name} disabled={saving} onChange={(event) => setName(event.target.value)} /></label>
+    <label>Tool<input value={toolName} disabled={saving} onChange={(event) => setToolName(event.target.value)} /></label>
+    <label>Parameters<textarea rows={3} value={parametersText} disabled={saving} onChange={(event) => setParametersText(event.target.value)} /></label>
+    <label>Comments<textarea rows={3} value={commentsText} disabled={saving} onChange={(event) => setCommentsText(event.target.value)} /></label>
+    <FileDropzone compact accept="image/*" file={image} disabled={saving} onFile={setImage} label="Drop a diagram" />
+    {saving && <p className="visually-hidden" role="status">Adding template step…</p>}
+    {error && <p className="error-banner" role="alert">{error}</p>}
+    {uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `template-new-step:${templateId}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}
+    <div className="form-actions"><button type="button" className="button" disabled={saving} onClick={() => setOpen(false)}>Cancel</button><button type="button" className="button primary" disabled={saving || !name.trim()} onClick={() => void add()}>{saving ? "Adding…" : "Add step"}</button></div>
+  </div>;
 }
 
 export function TemplatePage() {
   const { templateId = "" } = useParams();
+  return <TemplateSession key={templateId} templateId={templateId} />;
+}
+
+function TemplateSession({ templateId }: { templateId: string }) {
   const location = useLocation();
   const locationSearchRef = useRef(location.search);
   locationSearchRef.current = location.search;
@@ -166,22 +188,42 @@ export function TemplatePage() {
   const [version, setVersion] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [readError, setReadError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const [removeError, setRemoveError] = useState("");
+  const sessionActive = useRef(true);
+  const loadSequence = useRef(0);
   const load = useCallback(async () => {
-    const result = await api.getTemplate(templateId);
-    if (result.template.templateKind === "metrology") {
-      navigate(`${templateDetailPath(templateId, "metrology")}${locationSearchRef.current}`, { replace: true });
-      return;
+    if (!sessionActive.current) return;
+    const sequence = ++loadSequence.current;
+    setLoading(true);
+    setReadError("");
+    try {
+      const result = await api.getTemplate(templateId);
+      if (!sessionActive.current || sequence !== loadSequence.current) return;
+      if (result.template.templateKind === "metrology") {
+        navigate(`${templateDetailPath(templateId, "metrology")}${locationSearchRef.current}`, { replace: true });
+        return;
+      }
+      setTemplate(result.template); setName(result.template.name); setVersion(result.template.version);
+    } catch (caught) {
+      if (!sessionActive.current || sequence !== loadSequence.current) return;
+      setReadError((caught as Error).message);
+      throw caught;
+    } finally {
+      if (sessionActive.current && sequence === loadSequence.current) setLoading(false);
     }
-    setTemplate(result.template); setName(result.template.name); setVersion(result.template.version);
   }, [navigate, templateId]);
   useEffect(() => {
+    sessionActive.current = true;
     setTemplate(null); setError("");
-    void load().catch((error: Error) => setError(error.message));
+    void load().catch(() => undefined);
+    return () => { sessionActive.current = false; loadSequence.current += 1; };
   }, [load]);
 
   async function saveMetadata() {
+    if (saving) return;
     setSaving(true); setError("");
     try { await api.updateTemplate(templateId, { name, version }); await load(); }
     catch (error) { setError((error as Error).message); }
@@ -189,16 +231,19 @@ export function TemplatePage() {
   }
 
   async function clone() {
+    if (saving) return;
     setSaving(true); setError("");
-    try { const created = await api.cloneTemplate(templateId); navigate(`/templates/${created.id}`); }
+    try { const created = await api.cloneTemplate(templateId); if (sessionActive.current) navigate(`/templates/${created.id}`); }
     catch (error) { setError((error as Error).message); }
     finally { setSaving(false); }
   }
 
   async function remove() {
+    if (saving) return;
     setSaving(true); setRemoveError("");
     try {
       await api.removeTemplate(templateId);
+      if (!sessionActive.current) return;
       setConfirmingRemoval(false);
       navigate("/templates");
     } catch (error) {
@@ -207,15 +252,19 @@ export function TemplatePage() {
     }
   }
 
-  if (!template) return <div className="page"><p>{error || "Loading template…"}</p></div>;
+  if (!template) return <div className="page">
+    <Link className="back-link" to="/templates">← Templates</Link>
+    <ReadStatus loading={loading} error={readError} loadingMessage="Loading template…" errorTitle="Template could not be loaded" retryLabel="Retry template" onRetry={() => void load().catch(() => undefined)} />
+  </div>;
   const editable = !template.locked && !template.archived;
   const removalIsArchive = template.locked;
   return <div className="page template-detail-page">
     <Link className="back-link" to="/templates">← Templates</Link>
     <div className="page-heading"><div><p className="eyebrow">Process template · v{template.version}</p><h1>{template.name}</h1><p className="lead">{template.sourceFilename || "Manually created version"}</p></div><div className="header-actions"><button className="button" disabled={saving} onClick={() => void clone()}>{saving ? "Working…" : "Clone as new version"}</button><button className="button danger" disabled={saving} onClick={() => { setRemoveError(""); setConfirmingRemoval(true); }}>{removalIsArchive ? "Archive" : "Delete"}</button></div></div>
     {template.locked && <p className="info-banner">This version was first used on {template.lockedAt ? new Date(template.lockedAt).toLocaleString() : "an earlier run"} and is now immutable. Clone it to make changes.</p>}
-    {editable && <section className="card template-metadata-editor"><h2 className="card-title">Editable version details</h2><div className="step-field-row"><label>Name<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
-    {error && <p className="error-banner">{error}</p>}
+    {editable && <section className="card template-metadata-editor" aria-busy={saving}><h2 className="card-title">Editable version details</h2><div className="step-field-row"><label>Name<input value={name} disabled={saving} onChange={(event) => setName(event.target.value)} /></label><label>Version<input type="number" min="1" step="1" value={version} disabled={saving} onChange={(event) => setVersion(Number(event.target.value))} /></label></div><button className="button primary" disabled={saving} onClick={() => void saveMetadata()}>{saving ? "Saving…" : "Save version details"}</button></section>}
+    <ReadStatus loading={loading} error={readError} loadingMessage="Refreshing template…" errorTitle="Template could not be refreshed" retryLabel="Retry template" onRetry={() => void load().catch(() => undefined)} />
+    {error && <p className="error-banner" role="alert">{error}</p>}
     <section className={(template.initialStateImageKeys.length + (template.initialStateImages?.length ?? 0)) ? "card template-initial-state has-diagrams" : "card template-initial-state"}><div className="card-copy"><div className="card-title-line"><h2 className="card-title">Initial substrate</h2><span className="meta-badge">Step 0</span></div><p className="card-value">{template.initialSubstrateStep ? "Substrate Stack" : template.initialStateHash ? "Legacy substrate definition" : "Substrate Stack missing"}</p>{template.initialSubstrateStep ? <SubstrateStepDetails step={template.initialSubstrateStep} /> : <p className="card-meta">{template.initialStateHash ? "This older version has a stored structure but no Step 0 metadata." : "Re-import this version with Step 0 named Substrate Stack before starting a run from it."}</p>}{!(template.initialStateImageKeys.length + (template.initialStateImages?.length ?? 0)) && <p className="card-meta">No substrate diagram attached</p>}</div>{(template.initialStateImageKeys.length + (template.initialStateImages?.length ?? 0)) > 0 && <DiagramGallery keys={template.initialStateImageKeys} images={template.initialStateImages} label="Initial substrate" size="wide" className="template-diagram-gallery" />}</section>
     <section className="template-steps-section"><div className="section-heading"><div><h2>Process steps</h2><p>Executable steps in this template version.</p></div><span className="section-count">{template.steps.length}</span></div>{template.steps.map((step, index) => {
       const sectionLabel = sectionHeaderAtGroupStart(template.steps, index);

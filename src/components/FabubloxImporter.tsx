@@ -219,8 +219,8 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
       </div>
     </div>
     <FileDropzone disabled={inputsLocked} accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" file={file} onFile={(nextFile) => void choose(nextFile)} label={busy && !preview && !operation ? "Inspecting workbook…" : "Drop a FabuBlox .xlsx workbook"} hint="Cell values, drawing relationships, anchor rows, and embedded layer-stack diagrams are inspected in the browser." />
-    {familyError && <p className="error-banner">{familyError}</p>}
-    {error && <p className="error-banner">{error}</p>}
+    {familyError && <p className="error-banner" role="alert">{familyError}</p>}
+    {error && <p className="error-banner" role="alert">{error}</p>}
     {operation && <section className="card" aria-label="Import request">
       <p role="status">{busy ? "Checking or completing the import…" : operation.status === "ready"
         ? `Import completed: ${operation.title || "Process template"}, version ${operation.result.version}.`

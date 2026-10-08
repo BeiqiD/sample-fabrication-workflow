@@ -299,9 +299,28 @@ generic-file fallbacks, media failure/retry, child/owner action wording and
 keyboard/focus transitions are complete across Project, Comment and Run.
 The isolated-browser matrices and full local Verify passed; the actual
 development DB remains unchanged. See the [completed Phase 5D goal](./docs/PHASE_5D_DEVELOPMENT_GOAL.md)
-and [acceptance record](./docs/PHASE_5D_ACCEPTANCE.md). Phase 5E source-record
-and directory coherence is next, followed by Phase 5F and Phase 6B.
-Physical-device, authenticated/deployed and release acceptance remains open.
+and [acceptance record](./docs/PHASE_5D_ACCEPTANCE.md). This dated attachment/media
+checkpoint remains complete; its external acceptance limits remain open.
+
+Local Phase 5E development checkpoint, 2026-10-08: bounded source-record,
+directory and Settings/Export coherence is complete. 400/400 core isolated-browser
+cases and 12/12 canonical local Verify leaves passed, with independent
+review. The complete twelve-leaf result qualifies finite local resources: source
+used `--maxWorkers=2 --testTimeout=15000`; default five-second CI timing remains
+unqualified by this round. Three test-only repairs preserve existing assertions and application deadlines:
+a deterministic clock, optional-argument access and picker readiness. Production
+bytes match the browser-qualified source. Qualification retains two source/native
+leaves only with approved unchanged input closure and runs ten leaves fresh;
+actual per-leaf fingerprints are preserved.
+The actual development DB preserves all 119 application tables, 33 rows
+and 22 migration receipts, including schema, typed cells, physical rowids and
+migration SQL. See the [completed Phase 5E goal](./docs/PHASE_5E_DEVELOPMENT_GOAL.md)
+and [acceptance record](./docs/PHASE_5E_ACCEPTANCE.md) for
+actual browser and per-leaf source identities and preserved original failure
+records. No push, production
+deployment, remote migration or actual provider activation was performed.
+Next is Phase 5F integration review, which has not started, followed by Phase 6B.
+Physical-device, authenticated/deployed, provider and release acceptance remains open.
 
 ## Further documentation
 

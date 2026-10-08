@@ -17,6 +17,7 @@ import { api } from "../lib/api";
 import { currentStructurePresentation } from "../lib/currentStructure";
 import { exportSample } from "../lib/exportSample";
 import { ResearchPackageExport } from "../components/ResearchPackageExport";
+import { ReadStatus } from "../components/ReadStatus";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 import { selectSamplePageRuns } from "../lib/sample-run-selection";
@@ -68,6 +69,8 @@ export function SamplePage() {
   const requestedFocus = searchParams.get("focus");
   const [sample, setSample] = useState<SampleDetail | null>(null);
   const [error, setError] = useState("");
+  const [readError, setReadError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
@@ -94,7 +97,10 @@ export function SamplePage() {
   sourceIdRef.current = sampleId;
   const loadSequence = useRef(0);
   const load = useCallback(async () => {
+    if (sourceIdRef.current !== sampleId) return;
     const sequence = ++loadSequence.current;
+    setLoading(true);
+    setReadError("");
     try {
       const result = await api.getSample(sampleId);
       if (sourceIdRef.current !== sampleId || sequence !== loadSequence.current) return;
@@ -102,14 +108,17 @@ export function SamplePage() {
       setError("");
     } catch (error) {
       if (sourceIdRef.current !== sampleId || sequence !== loadSequence.current) return;
-      setError((error as Error).message);
+      setReadError((error as Error).message);
       throw error;
+    } finally {
+      if (sourceIdRef.current === sampleId && sequence === loadSequence.current) setLoading(false);
     }
   }, [sampleId]);
 
   useEffect(() => {
     setShowAllNotes(false);
     setSample(null);
+    setError("");
     void load().catch(() => undefined);
     return () => { loadSequence.current += 1; };
   }, [load]);
@@ -172,7 +181,7 @@ export function SamplePage() {
 
   async function updateDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!sample) return;
+    if (!sample || updatingDetails) return;
     const form = new FormData(event.currentTarget);
     setUpdatingDetails(true); setError("");
     try {
@@ -203,7 +212,10 @@ export function SamplePage() {
     finally { setDeletingSample(false); }
   }
 
-  if (!sample) return <div className="page"><p>{error || "Loading sample…"}</p></div>;
+  if (!sample) return <div className="page">
+    <Link className="back-link" to="/samples">← Samples</Link>
+    <ReadStatus loading={loading} error={readError} loadingMessage="Loading sample…" errorTitle="Sample could not be loaded" retryLabel="Retry sample" onRetry={() => void load().catch(() => undefined)} />
+  </div>;
   const {
     activeProcessRun,
     activeMetrologyRun,
@@ -289,7 +301,8 @@ export function SamplePage() {
       </div>
     </div>
 
-    {error && <p className="error-banner">{error}</p>}
+    <ReadStatus loading={loading} error={readError} loadingMessage="Refreshing sample…" errorTitle="Sample could not be refreshed" retryLabel="Retry sample" onRetry={() => void load().catch(() => undefined)} />
+    {error && <p className="error-banner" role="alert">{error}</p>}
     <section className="sample-priority-grid">
       <div className="sample-priority-sidebar">
         <aside className={`card facts sample-details-card${editingDetails ? " is-editing" : ""}`}>
@@ -299,13 +312,13 @@ export function SamplePage() {
               <dl><dt>Location</dt><dd className="sample-location-value">{sample.location || "—"}</dd><dt>Sample code</dt><dd>{sample.code}</dd><dt>Sample name</dt><dd>{sample.title}</dd><dt>Status</dt><dd>{SAMPLE_STATUS_LABELS[sample.status]}</dd><dt>Pinned</dt><dd>{sample.pinned ? "Yes" : "No"}</dd><dt>Parent</dt><dd>{sample.parent ? <Link to={`/samples/${sample.parent.id}`}>{sample.parent.code}</Link> : "—"}</dd><dt>Children</dt><dd>{sample.children.length ? sample.children.map((child) => <Link key={child.id} to={`/samples/${child.id}`}>{child.code}</Link>) : "—"}</dd><dt>Created</dt><dd>{new Date(sample.createdAt).toLocaleString()}</dd></dl>
               <div className="sample-danger-zone"><div><strong>Delete sample</strong><small>Remove this sample and its processing history.</small></div><button type="button" className="button danger" onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete</button></div>
             </div>
-            {editingDetails && <form className="detail-form sample-identity-form sample-details-edit-form" onSubmit={updateDetails}>
+            {editingDetails && <form className="detail-form sample-identity-form sample-details-edit-form" onSubmit={updateDetails} aria-busy={updatingDetails}>
               <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
-              <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} /></label>
-              <label>Status<select name="status" defaultValue={sample.status}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
-              <label>Location<input name="location" defaultValue={sample.location || ""} placeholder="Box, lab, or tool" /></label>
-              <label className="sample-details-description-field">Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} placeholder="Purpose, structure, or other sample context" /></label>
-              <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} />Pinned</label>
+              <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} disabled={updatingDetails} /></label>
+              <label>Status<select name="status" defaultValue={sample.status} disabled={updatingDetails}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
+              <label>Location<input name="location" defaultValue={sample.location || ""} disabled={updatingDetails} placeholder="Box, lab, or tool" /></label>
+              <label className="sample-details-description-field">Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} disabled={updatingDetails} placeholder="Purpose, structure, or other sample context" /></label>
+              <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} disabled={updatingDetails} />Pinned</label>
               <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>
             </form>}
           </div>

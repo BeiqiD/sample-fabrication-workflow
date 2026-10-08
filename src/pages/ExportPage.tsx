@@ -67,7 +67,8 @@ export function ExportPage() {
       <h2 className="card-title">Content archive</h2>
       <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
       <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
-      {exporting && progress && <p className="muted" role="status">Assets processed: {progress.completed} / {progress.total}. Building archive…</p>}
+      {exporting && <p className="muted" role="status">{progress
+        ? `Assets processed: ${progress.completed} / ${progress.total}. Building archive…` : "Building archive…"}</p>}
       {prepared && <div>
         <p role="status">Archive ready. Assets included: {prepared.packaged} / {prepared.total}.</p>
         {prepared.warningCount > 0 && <p className="warning-card" role="status">

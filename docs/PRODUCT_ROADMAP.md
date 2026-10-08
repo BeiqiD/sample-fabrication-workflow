@@ -2,6 +2,28 @@
 
 Status: canonical product direction and active implementation roadmap
 
+Local Phase 5E development checkpoint, 2026-10-08: the
+[bounded local goal](./PHASE_5E_DEVELOPMENT_GOAL.md) is complete after the
+qualified Phase 5D baseline. Truthful current-read states and independent GET
+retries, source-response ownership, pending-form guards, accessibility and
+measured metadata/responsive repairs passed 12/12 canonical
+local Verify leaves and 400/400 isolated-browser cases.
+The complete twelve-leaf result qualifies finite local resources: source used
+`--maxWorkers=2 --testTimeout=15000`; default five-second CI timing remains
+unqualified by this round. Three test-only repairs preserve existing assertions and application deadlines:
+a deterministic clock, optional-argument access and picker readiness. Production
+bytes match the browser-qualified source. Qualification retains two source/native
+leaves only with approved unchanged input closure and runs ten leaves fresh;
+actual per-leaf fingerprints are preserved.
+See the acceptance record for actual browser and per-leaf source identities and retained evidence.
+FP2–FP5 storage/administration/recovery controls, Phase 5D attachment semantics,
+record field order, Dense Process geometry and the exact actual development
+data remain preserved. See [Phase 5E acceptance](./PHASE_5E_ACCEPTANCE.md).
+**Next implementation slice: Phase 5F — cross-product integration review**;
+it has not started. Carry the remaining device/deployed/provider boundaries
+through integration, then qualify Phase 6B. No production deployment, push,
+remote migration or real-provider activation is included in this checkpoint.
+
 Local Phase 5D development checkpoint, 2026-10-08: the
 [bounded goal](./PHASE_5D_DEVELOPMENT_GOAL.md) is complete after C4. Shared
 attachment metadata and role-based cards, unsupported/failed-preview
@@ -9,11 +31,8 @@ fallbacks, upload-state feedback, child/owner action wording and media
 keyboard/focus transitions passed isolated-browser and full local Verify
 qualification. Existing File ownership, lifecycle, preview trust and actual
 development data remain preserved. See [Phase 5D acceptance](./PHASE_5D_ACCEPTANCE.md).
-**Next implementation slice: Phase 5E — source-record and directory coherence**;
-it has not started. Refine Samples, Templates, Processing, Comments,
-Timeline and Settings/Export by role, then complete Phase 5F integration
-before Phase 6B. Formal device/deployed and provider/release acceptance
-remains open.
+This dated Phase 5D result remains the attachment/media checkpoint;
+its device/deployed and provider/release acceptance limits remain open.
 
 Local C4 development checkpoint, 2026-10-07: the
 [bounded local goal](./C4_LOCAL_DEVELOPMENT_GOAL.md) is complete after FP5.
@@ -57,7 +76,7 @@ deployed-runtime and concentrated manual acceptance remain deferred; historical
 deployment remains V20. FP5 local development and qualification are complete;
 see the [FP5 goal](./FP5_DEVELOPMENT_GOAL.md). No production deployment or provider activation is included.
 
-Last reviewed: 2026-10-08 for the completed local Phase 5D checkpoint after C4/FP5. Historical deployed
+Last reviewed: 2026-10-08 for the completed local Phase 5E checkpoint after Phase 5D/C4/FP5. Historical deployed
 checkpoint, 2026-10-05: FP1 live acceptance and deployed FP2 configuration
 #239/S3 transport #241. Candidate checks #242, credential re-enveloping #243
 and fresh acceptance selection #244 are deployed, preserving current R2 defaults.
@@ -221,7 +240,7 @@ The canonical new boundaries and stage gates are:
 | 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
 | 4 | FP2: configurable storage after accepted FP1 | Native exact-instance R2/S3 access, accepted writes, lifecycle/GC, tested-candidate activation and independent defaults are implemented locally with `0018`/V21. Historical deployed behavior remains through `0017`/V20; real-provider and deployed-runtime acceptance remain pending. Preserve accepted FP1 identities and recovery evidence. |
 | 5 | FP2–FP5 implemented and qualified locally | Persisted migration and administration UI retain `0019`/V22 and paused recovery. Paired native package export/site fresh-copy import, independent offline reports and Settings Data add `0020`/V23 with focused local qualification complete. The final development result is recorded above; formal external acceptance remains pending. FP5 full backup and privileged website recovery are locally complete; the FP5 checkpoint records the passing gate and remaining external acceptance. Detailed exits belong to the implementation plan. |
-| 6 | C4/Phase 5D local goals complete; next Phase 5E → 5F | The reviewed FP5, C4 and Phase 5D local checkpoints are preserved. Phase 5E source-record and directory refinement has not started. Formal C4 device/deployed checks remain open; preserve completed shortcuts/panels and carry unverified cases into integration, including enabled file/Settings surfaces. |
+| 6 | C4/Phase 5D/Phase 5E local goals complete; next Phase 5F | The reviewed FP5, C4, Phase 5D and Phase 5E local checkpoints are preserved. Phase 5F cross-product integration has not started. Carry formal device/deployed/provider limits and the documented narrow four-column Process discrepancy into integration, including enabled file/Settings surfaces. |
 | 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
 
 SWITCHdrive authentication is not a prerequisite for document review or developing
@@ -796,7 +815,10 @@ work refines the integrated surfaces without reimplementing their backend.
 **Status:** the bounded C4 local development goal completed on 2026-10-07 after
 FP5, and the [Phase 5D local goal](./PHASE_5D_DEVELOPMENT_GOAL.md) completed
 on 2026-10-08. Formal C4/device/deployed acceptance remains in progress.
-Phase 5E source-record and directory coherence is next and has not started.
+The [Phase 5E local goal](./PHASE_5E_DEVELOPMENT_GOAL.md) is also complete
+on 2026-10-08; its [acceptance record](./PHASE_5E_ACCEPTANCE.md) qualifies the
+bounded source-record and directory repairs. Phase 5F integration is next and
+has not started; external acceptance remains open.
 Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 have merged through
@@ -858,17 +880,26 @@ identity, source hierarchy and performance contracts continue to govern this rev
 
 The previously planned attachment/media, source-record/directory, and
 cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
-respectively; its product scope is unchanged. The bounded C4 and Phase 5D
-local goals are complete. The next frontend slice is **Phase 5E — source-record
-and directory coherence** for Samples, Templates, Processing, Comments,
-Timeline and Settings/Export. Formal C4 device/deployed acceptance remains
-open and must be carried forward; the qualified FP2–FP5 backend baseline
-is preserved. File upload/download, location health, migration and
+respectively; its product scope is unchanged. The bounded C4, Phase 5D
+and Phase 5E local goals are complete. The next frontend slice is **Phase 5F —
+cross-product integration review**, which has not started. Preserve the qualified
+source-record, directory and Settings/Export repairs from
+[Phase 5E acceptance](./PHASE_5E_ACCEPTANCE.md). Formal C4/device/deployed/provider
+limits remain open and must be carried forward; the qualified FP2–FP5 backend
+baseline is preserved. File upload/download, location health, migration and
 Settings functionality belongs to FP; Phase 5D supplies consistent attachment
 presentation and states across existing pages under the
 [local acceptance record](./PHASE_5D_ACCEPTANCE.md). Phase 5F includes the new enabled
 Settings/export/import surfaces in final cross-product acceptance. Appearance
 personalization is a separate later feature, not a prerequisite.
+
+One concrete Phase 5F follow-up is the existing narrow four-column Process
+width-variable override discrepancy. At `<=720px`, the override selector includes
+sample counts 1–3 but omits `.sample-count-4`; the actual four-column recipe/Sample
+widths remain 230/300px, while counts 1–3 use 88/270px. Phase 5E preserved this
+measured baseline. Integration must compare the same content at 720/721px and
+the adjacent responsive tiers before deciding a bounded repair; do not describe
+88/270px as the already implemented geometry for every narrow sample count.
 
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
@@ -1105,9 +1136,10 @@ Project-owned Markdown or attachment content only through explicit user action.
    enabled provider scope. Keep untested SWITCHdrive cases explicitly blocked;
    do not pass them by changing the default. The bounded **C4** local goal is now
    complete; preserve its remaining formal device/deployed acceptance limits.
-   The **5D** local goal is complete; next develop **5E → 5F** under the
-   scope split above. Focused correctness
-   repairs can occur throughout.
+   The **5D** and **5E** local goals are complete; next develop **5F** under
+   the scope split above, including the documented narrow four-column Process
+   discrepancy. Phase 5F has not started. Focused correctness repairs can occur
+   throughout.
 8. Run **6B** against the final integrated result. Schedule complete
    **Docker/Node + SQLite + local** support as a later portability milestone,
    with actual cross-deployment package/restore verification there.

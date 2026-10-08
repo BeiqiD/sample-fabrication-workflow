@@ -9,6 +9,7 @@ import {
 import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { sourceFromBlob, validateStoreArchive } from "../../shared/domain/research-archive";
 import { researchPackagesClient, ResearchPackageRequestError, researchPackageErrorMessage } from "../lib/research-package-client";
+import { ReadStatus } from "../components/ReadStatus";
 import "./storage-settings.css";
 import "./research-packages.css";
 
@@ -142,16 +143,20 @@ export function ResearchPackagesPage() {
   const [receipts, setReceipts] = useState(savedReceipts);
   const [suffix, setSuffix] = useState(" (imported)"), suffixRef = useRef(suffix); suffixRef.current = suffix;
   const [jobs, setJobs] = useState<ResearchJobStatus[]>([]), [executor, setExecutor] = useState<ResearchExecutorStatus | null>(null);
-  const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), busyRef = useRef(false);
-  const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessage] = useState("");
+  const [readPhase, setReadPhase] = useState<"loading" | "ready" | "error">("loading"), [readError, setReadError] = useState<string | null>(null);
+  const [jobsLoaded, setJobsLoaded] = useState(false), [busy, setBusy] = useState(false), busyRef = useRef(false);
+  const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessageText] = useState("");
+  const [messageError, setMessageError] = useState(false);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
+
+  function setMessage(value: string) { setMessageText(value); setMessageError(false); }
 
   function reportFailure(error: unknown) {
     if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) {
       deniedRef.current = true; setDenied(true); setJobs([]); setExportPreview(null); setImportPreview(null); setAcceptedScope(null); setFile(null);
     }
-    setMessage(error instanceof SessionIntentError ? error.message : researchPackageErrorMessage(error));
+    setMessageText(error instanceof SessionIntentError ? error.message : researchPackageErrorMessage(error)); setMessageError(true);
   }
   function remember(value: Intent | null) {
     writeSession(intentKey, value);
@@ -215,33 +220,40 @@ export function ResearchPackagesPage() {
       else reportFailure(error);
     }
   }
-  async function refresh(signal: AbortSignal) {
+  async function refresh(signal: AbortSignal, announce = false) {
     if (signal.aborted || deniedRef.current) return;
     const sequence = ++refreshSequence.current;
-    const [list, status] = await Promise.all([researchPackagesClient.list(signal), researchPackagesClient.executor(signal)]);
-    if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
-    const savedIds = [...new Set(savedReceipts().map(receipt => receipt.jobId))].filter(id => !list.some(job => job.id === id));
-    const recovered = await Promise.all(savedIds.map(async id => {
-      try { return await researchPackagesClient.status(id, signal); }
-      catch (error) {
-        if (error instanceof ResearchPackageRequestError && [404, 410].includes(error.status || 0)) return null;
-        throw error;
+    if (announce) setReadPhase("loading");
+    try {
+      const [list, status] = await Promise.all([researchPackagesClient.list(signal), researchPackagesClient.executor(signal)]);
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      const savedIds = [...new Set(savedReceipts().map(receipt => receipt.jobId))].filter(id => !list.some(job => job.id === id));
+      const recovered = await Promise.all(savedIds.map(async id => {
+        try { return await researchPackagesClient.status(id, signal); }
+        catch (error) {
+          if (error instanceof ResearchPackageRequestError && [404, 410].includes(error.status || 0)) return null;
+          throw error;
+        }
+      }));
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      const visible = [...recovered.filter((job): job is ResearchJobStatus => job !== null), ...list].slice(0, 100);
+      setJobs(visible); setExecutor(status); setJobsLoaded(true); setReadError(null); setReadPhase("ready");
+      const checkpoint = uploadRef.current;
+      if (checkpoint) {
+        const uploaded = visible.find(job => job.id === checkpoint.jobId) || await researchPackagesClient.status(checkpoint.jobId, signal);
+        if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
+        if (!visible.some(job => job.id === uploaded.id)) updateJob(uploaded);
+        if (uploaded?.state === "preview") {
+          const previewSuffix = suffixRef.current;
+          const preview = await researchPackagesClient.preview(checkpoint.jobId, previewSuffix, signal);
+          if (!signal.aborted && !deniedRef.current && sequence === refreshSequence.current && suffixRef.current === previewSuffix
+            && uploadRef.current?.jobId === checkpoint.jobId) setImportPreview(preview);
+        } else if (uploaded) setImportPreview(null);
       }
-    }));
-    if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
-    const visible = [...recovered.filter((job): job is ResearchJobStatus => job !== null), ...list].slice(0, 100);
-    setJobs(visible); setExecutor(status); setLoading(false);
-    const checkpoint = uploadRef.current;
-    if (checkpoint) {
-      const uploaded = visible.find(job => job.id === checkpoint.jobId) || await researchPackagesClient.status(checkpoint.jobId, signal);
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
-      if (!visible.some(job => job.id === uploaded.id)) updateJob(uploaded);
-      if (uploaded?.state === "preview") {
-        const previewSuffix = suffixRef.current;
-        const preview = await researchPackagesClient.preview(checkpoint.jobId, previewSuffix, signal);
-        if (!signal.aborted && !deniedRef.current && sequence === refreshSequence.current && suffixRef.current === previewSuffix
-          && uploadRef.current?.jobId === checkpoint.jobId) setImportPreview(preview);
-      } else if (uploaded) setImportPreview(null);
+    } catch (error) {
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) reportFailure(error);
+      else { setReadError(researchPackageErrorMessage(error)); setReadPhase("error"); }
     }
   }
   useEffect(() => {
@@ -249,8 +261,7 @@ export function ResearchPackagesPage() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       if (controller.signal.aborted || deniedRef.current) return;
-      try { await refresh(controller.signal); }
-      catch (error) { if (!controller.signal.aborted) { setLoading(false); reportFailure(error); } }
+      await refresh(controller.signal);
       if (!controller.signal.aborted && !deniedRef.current) timer = setTimeout(() => void poll(), 5000);
     };
     void (async () => {
@@ -259,10 +270,10 @@ export function ResearchPackagesPage() {
     })();
     return () => { controller.abort(); refreshSequence.current++; if (timer) clearTimeout(timer); };
   }, []);
-  async function act(operation: (signal: AbortSignal) => Promise<void>) {
+  async function act(operation: (signal: AbortSignal) => Promise<void>, preserveMessage = false) {
     const controller = lifetime.current;
     if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
-    busyRef.current = true; setBusy(true); setMessage("");
+    busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
     try { await operation(controller.signal); }
     catch (error) { if (!controller.signal.aborted) reportFailure(error); }
     finally { if (!controller.signal.aborted) { busyRef.current = false; setBusy(false); } }
@@ -318,12 +329,16 @@ export function ResearchPackagesPage() {
   return <div className="page storage-settings-page research-packages-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Data</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
-      <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal))}>Refresh status</button></div>
+      <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh status</button></div>
     <nav className="research-package-navigation" aria-label="Data settings"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Full content backup</Link>
       <Link to="/settings/data/system">System backup and recovery</Link>
       <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
-    {message && <p role={denied ? "alert" : "status"}>{message}</p>}
-    {loading && !denied && <p role="status">Reading saved package work…</p>}
+    {message && (denied || !messageError) && <p role={denied ? "alert" : "status"}>{message}</p>}
+    <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading saved package work…"
+      error={!denied ? readError : null} errorTitle="Package status unavailable"
+      onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Retry reading package status" />
+    <ReadStatus loading={false} loadingMessage="" error={!denied && messageError ? message : null} errorTitle="Data operation unavailable"
+      onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Read current package status" />
     {denied ? <p>Sign in with an account allowed to use the application before continuing. Saved operation identifiers are retained for reconciliation.</p> : <>
       <section className="card storage-settings-section"><h2 className="card-title">Independent executor</h2>
         {executor && <><p>{!executor.supported ? "Package jobs are unavailable on this runtime." : !executor.enabled ? "Execution is paused." : executor.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Execution is enabled."}</p>
@@ -359,7 +374,7 @@ export function ResearchPackagesPage() {
         {upload && currentUpload?.state === "awaiting_upload" && <p className="muted">The accepted upload is waiting for bytes. After reload or interruption, reselect the original {size(upload.input.byteSize)} ZIP; its streaming hash must match.</p>}
         <div className="storage-candidate-actions"><button className="button" disabled={blocked || !file || executor?.supported === false}
           onClick={() => void act(prepareUpload)}>{upload ? "Resume original upload" : "Upload and validate package"}</button>
-          {upload && <button className="button" disabled={busy} onClick={() => void act(signal => refresh(signal))}>Check uploaded package</button>}</div>
+          {upload && <button className="button" disabled={busy} onClick={() => void act(signal => refresh(signal, true), true)}>Check uploaded package</button>}</div>
         {upload && <p className="muted">Validation job: <code>{upload.jobId}</code>. Upload interruption does not authorize a new copy or discard accepted work.</p>}
         {upload && currentUpload?.state === "preview" && <><label>Imported name suffix<input maxLength={32} value={suffix} disabled={blocked}
           onChange={event => { setSuffix(event.target.value); setImportPreview(null); }} /></label>
@@ -383,7 +398,11 @@ export function ResearchPackagesPage() {
       </section>
       <section className="card storage-settings-section"><h2 className="card-title">Saved package work</h2>
         <p className="muted">Work persists when the browser closes. Pause and cancel take effect at a safe boundary; cancellation retains committed copies. Cleanup is separate and does not remove published research.</p>
-        {!jobs.length && !loading && <p className="muted">No package jobs are recorded for your account.</p>}
+        {!jobsLoaded && readPhase === "error" && <p className="muted">Saved package work has not been read. Refresh status to check it.</p>}
+        {jobsLoaded && readPhase !== "ready" && jobs.length > 0 && <p className="muted">{readPhase === "error"
+          ? "Showing previously read package work. Its current status could not be refreshed."
+          : "Showing previously read package work while status is refreshed."}</p>}
+        {!jobs.length && readPhase === "ready" && <p className="muted">No package jobs are recorded for your account.</p>}
         {acceptedScope && <div className="research-package-accepted-scope"><h3>Accepted import scope</h3><p><code>{acceptedScope.jobId}</code></p>
           <Preview value={acceptedScope.preview} accepted /><button className="text-button" onClick={() => setAcceptedScope(null)}>Close accepted scope</button></div>}
         {jobs.map(job => <Job key={job.id} job={job} busy={blocked} reused={receipts.some(receipt => receipt.jobId === job.id && receipt.reused)}

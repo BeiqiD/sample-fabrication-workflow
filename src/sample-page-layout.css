@@ -68,6 +68,13 @@
   min-height: 40px;
 }
 
+@media (min-width: 1201px) {
+  /* Keep record identity readable when the complete action group needs a row. */
+  .sample-overview-page .sample-header { flex-wrap: wrap; }
+  .sample-overview-page .sample-header-copy { flex-basis: 20rem; }
+  .sample-overview-page .sample-header > .sample-header-actions { flex-grow: 1; }
+}
+
 @media (max-width: 720px) {
   /* Package/report actions may exceed the compact icon group's available width. */
   .sample-header > .sample-header-actions { flex-wrap: wrap; }

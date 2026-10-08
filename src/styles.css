@@ -283,7 +283,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .processing-row { min-height: 122px; display: grid; grid-template-columns: 120px minmax(140px, .9fr) minmax(220px, 1.5fr) auto; gap: 16px; align-items: center; padding: 14px 12px; border-bottom: 1px solid var(--line); text-decoration: none; }
 .processing-row:hover { background: var(--surface); box-shadow: inset 3px 0 var(--accent); }
 .processing-sample, .processing-workflow { min-width: 0; display: grid; gap: 4px; }
-.processing-sample > span, .processing-workflow > strong { overflow-wrap: anywhere; }
+.processing-sample > span, .processing-sample > small, .processing-workflow > strong { overflow-wrap: anywhere; }
 .processing-sample > small, .processing-workflow > small, .processing-workflow > span, .processing-row-side time { color: var(--muted); font-size: 12px; }
 .processing-row-side { min-width: 116px; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .run-status { display: inline-flex; width: fit-content; padding: 4px 8px; border: 0; border-radius: 999px; color: var(--status-neutral-ink); background: var(--neutral-soft); font-size: 11px; font-weight: 720; text-transform: capitalize; }
@@ -579,7 +579,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .comment-card-copy { min-width: 0; flex: 1 1 auto; }
 .comment-card-copy > p, .comment-card-copy > .comment-rich-text-fallback { margin: 0 0 3px; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 12px; }
 .comment-card-copy > .comment-rich-text { margin: 0 0 3px; font-size: 12px; }
-.cell-comment small { display: block; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.cell-comment small { display: block; color: var(--muted); font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
 .comment-delete-button { position: absolute; top: 5px; right: 6px; padding: 3px; border: 0; color: var(--muted); background: transparent; font-size: 9px; }
 .comment-delete-button:hover { color: var(--danger); text-decoration: underline; }
 .comment-history { display: grid; gap: 6px; }
@@ -939,7 +939,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .event-content > p, .event-content > .comment-rich-text-fallback { margin: 8px 0; white-space: pre-wrap; }
 .event-content > .comment-rich-text { margin: 8px 0; }
 .event-content img { display: block; max-width: min(100%, 620px); max-height: 520px; border-radius: 10px; object-fit: contain; background: var(--surface-muted); }
-.event-meta { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; text-transform: capitalize; }
+.event-meta { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; }
+.event-meta > span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .event-meta > div { display: flex; align-items: center; gap: 10px; }
 .event-meta button { padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 10px; }
 .event-meta button:hover { color: var(--danger); text-decoration: underline; }

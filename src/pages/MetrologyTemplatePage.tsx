@@ -4,6 +4,7 @@ import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { FileDropzone } from "../components/FileDropzone";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { MetrologyReferenceSourceFocus } from "../components/ReferenceSourceFocus";
+import { ReadStatus } from "../components/ReadStatus";
 import { api, type MetrologyTemplateInput, type TemplateDetail } from "../lib/api";
 import { discardMetrologyReferenceUpload, finishMetrologyReferenceUpload, MetrologyReferenceUploadError, savedMetrologyReferenceUploadFilename } from "../lib/metrology-reference-upload-client";
 import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
@@ -24,6 +25,8 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   const [searchParams] = useSearchParams();
   const requestedFocus = searchParams.get("focus");
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
+  const [reading, setReading] = useState(true);
+  const [readError, setReadError] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -38,6 +41,8 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   const [referenceDeleteError, setReferenceDeleteError] = useState("");
   const sessionActive = useRef(true);
   const loadSequence = useRef(0);
+  const initialReadSequence = useRef(0);
+  const initialReadInFlight = useRef(false);
   const load = useCallback(async (syncReferenceNotes = true) => {
     if (!sessionActive.current) return;
     const sequence = ++loadSequence.current;
@@ -60,21 +65,38 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
     return result.template;
   }, [navigate, templateId]);
+  const readInitialTemplate = useCallback(async () => {
+    if (!sessionActive.current || initialReadInFlight.current) return;
+    const sequence = ++initialReadSequence.current;
+    initialReadInFlight.current = true;
+    setReading(true); setReadError("");
+    try { await load(true); }
+    catch (caught) {
+      if (sessionActive.current && sequence === initialReadSequence.current) {
+        setReadError(caught instanceof Error ? caught.message : "The metrology template could not be read.");
+      }
+    } finally {
+      if (sessionActive.current && sequence === initialReadSequence.current) {
+        initialReadInFlight.current = false;
+        setReading(false);
+      }
+    }
+  }, [load]);
   useEffect(() => {
     sessionActive.current = true;
+    initialReadInFlight.current = false;
     try {
       const pendingFilename = savedMetrologyReferenceUploadFilename(templateId);
       setReferenceUploadRecoveryName(pendingFilename);
       setReferenceUploadProblem(pendingFilename !== null);
     } catch (caught) { setError((caught as Error).message); setReferenceUploadProblem(true); }
-    void load(true).catch((error: Error) => {
-      if (sessionActive.current) setError(error.message);
-    });
+    void readInitialTemplate();
     return () => {
       sessionActive.current = false;
       loadSequence.current += 1;
+      initialReadSequence.current += 1;
     };
-  }, [load, templateId]);
+  }, [readInitialTemplate, templateId]);
 
   async function update(input: MetrologyTemplateInput) {
     await api.updateMetrologyTemplate(templateId, input);
@@ -150,7 +172,13 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
     }
   }
 
-  if (!template) return <div className="page"><p>{error || "Loading metrology template…"}</p></div>;
+  if (!template) return <div className="page metrology-template-page">
+    <div className="page-heading"><div><p className="eyebrow">Templates</p><h1>Metrology template</h1></div></div>
+    <p><Link to="/templates">Back to templates</Link></p>
+    <ReadStatus loading={reading} error={readError} loadingMessage="Loading metrology template…"
+      errorTitle="Metrology template is unavailable" retryLabel="Retry metrology template" onRetry={() => void readInitialTemplate()} />
+    {error && <p className="error-banner" role="alert">{error}</p>}
+  </div>;
   const step = template.steps[0];
   return <div className="page metrology-template-page">
     <Link className="back-link" to="/templates">← Templates</Link>

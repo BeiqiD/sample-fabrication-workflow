@@ -13,6 +13,7 @@ import {
 } from "../../shared/contracts/system-recovery";
 import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError } from "../lib/system-recovery-client";
+import { ReadStatus } from "../components/ReadStatus";
 import "./storage-settings.css";
 import "./system-recovery.css";
 
@@ -153,16 +154,20 @@ export function SystemRecoveryPage() {
   const [acknowledgeLaterChanges, setAcknowledgeLaterChanges] = useState(false);
   const [cutoverJob, setCutoverJob] = useState<SystemRecoveryJobStatus | null>(null), [cutoverAcknowledged, setCutoverAcknowledged] = useState(false);
   const cutoverRef = useRef(cutoverJob); cutoverRef.current = cutoverJob;
-  const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), busyRef = useRef(false);
-  const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessage] = useState("");
+  const [readPhase, setReadPhase] = useState<"loading" | "ready" | "error">("loading"), [readError, setReadError] = useState<string | null>(null);
+  const [jobsLoaded, setJobsLoaded] = useState(false), [busy, setBusy] = useState(false), busyRef = useRef(false);
+  const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessageText] = useState("");
+  const [messageError, setMessageError] = useState(false);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0), reportSequence = useRef(0), reportIdentity = useRef("");
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
+
+  function setMessage(value: string) { setMessageText(value); setMessageError(false); }
 
   function failure(error: unknown) {
     if (error instanceof SystemRecoveryRequestError && [401, 403].includes(error.status || 0)) {
       deniedRef.current = true; setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null); setCutoverJob(null); setFile(null); setMapping([]);
     }
-    setMessage(error instanceof SessionIntentError ? error.message : systemRecoveryErrorMessage(error));
+    setMessageText(error instanceof SessionIntentError ? error.message : systemRecoveryErrorMessage(error)); setMessageError(true);
   }
   function remember(value: Intent | null) { storeSession(intentKey, value); pendingRef.current = value; setPending(value); }
   function saveUpload(value: UploadCheckpoint | null) { storeSession(uploadKey, value); uploadRef.current = value; setUpload(value); }
@@ -234,35 +239,43 @@ export function SystemRecoveryPage() {
     }
     setPreview(value);
   }
-  async function refresh(signal: AbortSignal) {
+  async function refresh(signal: AbortSignal, announce = false) {
+    if (signal.aborted || deniedRef.current) return;
     const sequence = ++refreshSequence.current;
-    const access = await systemRecoveryClient.capabilities(signal);
-    if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
-    setCapability(access);
-    if (!access.canManage) {
-      deniedRef.current = true; setDenied(true); setLoading(false); setJobs([]); setPreview(null); setBackupPreview(null);
-      setCutoverJob(null); setFile(null); setMapping([]); return;
-    }
-    if (pendingMaintenanceRef.current) await reconcileMaintenance(signal);
-    if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
-    const [list, maintenanceStatus] = await Promise.all([systemRecoveryClient.list(signal), systemRecoveryClient.maintenance(signal)]);
-    const ids = [...new Set(savedReceipts().map(row => row.jobId))].filter(id => !list.some(job => job.id === id));
-    const recovered = await Promise.all(ids.map(async id => {
-      try { return await systemRecoveryClient.status(id, signal); }
-      catch (error) { if (error instanceof SystemRecoveryRequestError && [404, 410].includes(error.status || 0)) return null; throw error; }
-    }));
-    if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
-    const visible = [...recovered.filter((job): job is SystemRecoveryJobStatus => job !== null), ...list].slice(0, 100);
-    setJobs(visible); setMaintenance(maintenanceStatus); setExecutorUncertain(false); setLoading(false);
-    const checkpoint = uploadRef.current;
-    if (checkpoint) {
-      const value = visible.find(job => job.id === checkpoint.jobId) || await systemRecoveryClient.status(checkpoint.jobId, signal);
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
-      if (!visible.some(job => job.id === value.id)) updateJob(value);
-      if (value.state === "preview" && (!reportJobRef.current || reportJobRef.current === value.id)) await loadReport(value.id, signal);
-    }
-    if (cutoverRef.current) {
-      const latest = visible.find(job => job.id === cutoverRef.current?.id); if (latest) setCutoverJob(latest);
+    if (announce) setReadPhase("loading");
+    try {
+      const access = await systemRecoveryClient.capabilities(signal);
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      setCapability(access);
+      if (!access.canManage) {
+        deniedRef.current = true; setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null);
+        setCutoverJob(null); setFile(null); setMapping([]); return;
+      }
+      if (pendingMaintenanceRef.current) await reconcileMaintenance(signal);
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      const [list, maintenanceStatus] = await Promise.all([systemRecoveryClient.list(signal), systemRecoveryClient.maintenance(signal)]);
+      const ids = [...new Set(savedReceipts().map(row => row.jobId))].filter(id => !list.some(job => job.id === id));
+      const recovered = await Promise.all(ids.map(async id => {
+        try { return await systemRecoveryClient.status(id, signal); }
+        catch (error) { if (error instanceof SystemRecoveryRequestError && [404, 410].includes(error.status || 0)) return null; throw error; }
+      }));
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      const visible = [...recovered.filter((job): job is SystemRecoveryJobStatus => job !== null), ...list].slice(0, 100);
+      setJobs(visible); setMaintenance(maintenanceStatus); setExecutorUncertain(false); setJobsLoaded(true); setReadError(null); setReadPhase("ready");
+      const checkpoint = uploadRef.current;
+      if (checkpoint) {
+        const value = visible.find(job => job.id === checkpoint.jobId) || await systemRecoveryClient.status(checkpoint.jobId, signal);
+        if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
+        if (!visible.some(job => job.id === value.id)) updateJob(value);
+        if (value.state === "preview" && (!reportJobRef.current || reportJobRef.current === value.id)) await loadReport(value.id, signal);
+      }
+      if (cutoverRef.current) {
+        const latest = visible.find(job => job.id === cutoverRef.current?.id); if (latest) setCutoverJob(latest);
+      }
+    } catch (error) {
+      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (error instanceof SystemRecoveryRequestError && [401, 403].includes(error.status || 0)) failure(error);
+      else { setReadError(systemRecoveryErrorMessage(error)); setReadPhase("error"); }
     }
   }
   useEffect(() => {
@@ -270,8 +283,7 @@ export function SystemRecoveryPage() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       if (controller.signal.aborted || deniedRef.current) return;
-      try { await refresh(controller.signal); }
-      catch (error) { if (!controller.signal.aborted) { setLoading(false); failure(error); } }
+      await refresh(controller.signal);
       if (!controller.signal.aborted && !deniedRef.current) timer = setTimeout(() => void poll(), 5000);
     };
     void (async () => {
@@ -282,10 +294,10 @@ export function SystemRecoveryPage() {
     })();
     return () => { controller.abort(); refreshSequence.current++; reportSequence.current++; if (timer) clearTimeout(timer); };
   }, []);
-  async function act(operation: (signal: AbortSignal) => Promise<unknown>) {
+  async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false) {
     const controller = lifetime.current;
     if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
-    busyRef.current = true; setBusy(true); setMessage("");
+    busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
     try { await operation(controller.signal); }
     catch (error) { if (!controller.signal.aborted) failure(error); }
     finally { if (!controller.signal.aborted) { busyRef.current = false; setBusy(false); } }
@@ -386,11 +398,15 @@ export function SystemRecoveryPage() {
   return <div className="page storage-settings-page system-recovery-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>System backup and recovery</h1>
       <p className="lead">Preserve installation identities and history, then verify recovery in an isolated target before an administrator prepares a deployment handoff.</p></div>
-      <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal))}>Refresh recovery status</button></div>
+      <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh recovery status</button></div>
     <nav className="system-recovery-navigation" aria-label="Data settings"><Link to="/settings/data">Research packages and reports</Link>
       <Link to="/settings/storage">Storage settings</Link><Link to="/export">Legacy content archive</Link></nav>
-    {message && <p role={denied ? "alert" : "status"}>{message}</p>}
-    {loading && !denied && <p role="status">Reading administrator recovery access…</p>}
+    {message && (denied || !messageError) && <p role={denied ? "alert" : "status"}>{message}</p>}
+    <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading administrator recovery access…"
+      error={!denied ? readError : null} errorTitle="Recovery status unavailable"
+      onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Retry reading recovery status" />
+    <ReadStatus loading={false} loadingMessage="" error={!denied && messageError ? message : null} errorTitle="Recovery operation unavailable"
+      onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Read current recovery status" />
     {denied ? <section className="card storage-settings-section"><h2 className="card-title">Administrator access required</h2>
       <p>Sign in with a verified system administrator account to create backups or recover an installation. Saved operation identifiers remain available for reconciliation after access is restored.</p></section>
       : capability?.canManage && <>
@@ -488,7 +504,11 @@ export function SystemRecoveryPage() {
       </section>}
       <section className="card storage-settings-section"><h2 className="card-title">Saved system work</h2>
         <p className="muted">Pause, retry and cancellation act at safe boundaries. Cleanup removes only this job's eligible artifacts; it does not delete source files or published recovery data.</p>
-        {!jobs.length && !loading && <p className="muted">No system backup or recovery jobs are recorded.</p>}
+        {!jobsLoaded && readPhase === "error" && <p className="muted">Saved system work has not been read. Refresh recovery status to check it.</p>}
+        {jobsLoaded && readPhase !== "ready" && jobs.length > 0 && <p className="muted">{readPhase === "error"
+          ? "Showing previously read system work. Its current status could not be refreshed."
+          : "Showing previously read system work while status is refreshed."}</p>}
+        {!jobs.length && readPhase === "ready" && <p className="muted">No system backup or recovery jobs are recorded.</p>}
         {jobs.map(job => <Job key={job.id} value={job} busy={blocked} onControl={action => void act(async signal => {
           const value = await systemRecoveryClient.control(job.id, action, signal); if (!signal.aborted && !deniedRef.current) updateJob(value);
         })} onReport={() => void act(signal => loadReport(job.id, signal))} onSelectUpload={() => void act(async signal => {

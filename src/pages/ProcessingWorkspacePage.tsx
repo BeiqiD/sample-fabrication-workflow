@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
@@ -7,6 +7,7 @@ import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
 import { ProcessingReferenceSourceFocus } from "../components/ReferenceSourceFocus";
+import { ReadStatus } from "../components/ReadStatus";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
@@ -41,9 +42,18 @@ export function ProcessingWorkspacePage() {
   const requestedFocus = searchParams.get("focus");
   const requestedAction = searchParams.get("action") || "";
   const additionalIds = additionalKey.split(",").map((id) => id.trim()).filter((id, index, ids) => id && id !== sampleId && ids.indexOf(id) === index).slice(0, MAX_VISIBLE_SAMPLES - 1);
-  const [samples, setSamples] = useState<ProcessingSampleDetail[]>([]);
+  const readKey = JSON.stringify([sampleId, additionalKey]);
+  const [loadedSamples, setSamples] = useState<ProcessingSampleDetail[]>([]);
+  const [loadedReadKey, setLoadedReadKey] = useState("");
+  const samples = loadedReadKey === readKey ? loadedSamples : [];
   const sample = samples.find((item) => item.id === sampleId) || null;
-  const [error, setError] = useState("");
+  const [readError, setError] = useState("");
+  const [readState, setReadState] = useState({ key: readKey, loading: true });
+  const currentSource = useRef(readKey);
+  currentSource.current = readKey;
+  const readGeneration = useRef(0);
+  const loading = readState.key !== readKey || readState.loading;
+  const error = readState.key === readKey ? readError : "";
   const [processFamilies, setProcessFamilies] = useState<ProcessTemplateFamilySummary[]>([]);
   const [processFamilyQuery, setProcessFamilyQuery] = useState("");
   const [selectedProcessFamilyId, setSelectedProcessFamilyId] = useState("");
@@ -60,6 +70,8 @@ export function ProcessingWorkspacePage() {
   const [showSamplePicker, setShowSamplePicker] = useState(false);
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
+  const [samplePickerState, setSamplePickerState] = useState({ key: "", loading: true, error: "" });
+  const [samplePickerRetry, setSamplePickerRetry] = useState(0);
   const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
   const [confirmingRunFinish, setConfirmingRunFinish] = useState(false);
   const [finishRunError, setFinishRunError] = useState("");
@@ -67,21 +79,45 @@ export function ProcessingWorkspacePage() {
   const [deleteRunError, setDeleteRunError] = useState("");
 
   const load = useCallback(async (propagateError = false) => {
+    if (currentSource.current !== readKey) {
+      if (propagateError) throw new Error("The processing view changed before attachment state could be refreshed.");
+      return;
+    }
+    const generation = ++readGeneration.current;
+    setReadState({ key: readKey, loading: true });
+    setError("");
     try {
       const details = await Promise.all([sampleId, ...additionalIds].map((id) => api.getProcessingSample(id)));
+      if (generation !== readGeneration.current || currentSource.current !== readKey) {
+        if (propagateError) throw new Error("The processing view changed before attachment state could be refreshed.");
+        return;
+      }
       setSamples(details);
+      setLoadedReadKey(readKey);
       setError("");
     } catch (error) {
-      setError((error as Error).message);
+      if (generation === readGeneration.current && currentSource.current === readKey) {
+        setError((error as Error).message);
+      }
       if (propagateError) throw error;
+    } finally {
+      if (generation === readGeneration.current && currentSource.current === readKey) {
+        setReadState({ key: readKey, loading: false });
+      }
     }
   // additionalKey is the stable URL representation of additionalIds.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sampleId, additionalKey]);
+  }, [sampleId, additionalKey, readKey]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+    return () => { readGeneration.current += 1; };
+  }, [load]);
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
+  const samplePickerKey = JSON.stringify([selectedRun?.id, selectedRun?.recipeFamilyId, selectedRun?.runKind, selectedRun?.status, sampleQuery]);
+  const samplePickerLoading = samplePickerState.key !== samplePickerKey || samplePickerState.loading;
+  const samplePickerError = samplePickerState.key === samplePickerKey ? samplePickerState.error : "";
   const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
   const gridColumns = useMemo(() => {
     if (!sample || !selectedRun) return [];
@@ -129,6 +165,7 @@ export function ProcessingWorkspacePage() {
       return;
     }
     const controller = new AbortController();
+    setSamplePickerState({ key: samplePickerKey, loading: true, error: "" });
     const timeout = window.setTimeout(() => {
       api.listSamples({
         query: sampleQuery,
@@ -140,16 +177,22 @@ export function ProcessingWorkspacePage() {
         },
         signal: controller.signal,
       })
-        .then(({ samples }) => setSampleResults(samples))
+        .then(({ samples }) => {
+          if (controller.signal.aborted) return;
+          setSampleResults(samples);
+          setSamplePickerState({ key: samplePickerKey, loading: false, error: "" });
+        })
         .catch((error: Error) => {
-          if (error.name !== "AbortError") setError(error.message);
+          if (!controller.signal.aborted && error.name !== "AbortError") {
+            setSamplePickerState({ key: samplePickerKey, loading: false, error: error.message });
+          }
         });
     }, sampleQuery.trim() ? 160 : 0);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [sampleQuery, selectedRun?.recipeFamilyId, selectedRun?.runKind, selectedRun?.status, showSamplePicker]);
+  }, [sampleQuery, selectedRun?.recipeFamilyId, selectedRun?.runKind, selectedRun?.status, samplePickerKey, samplePickerRetry, showSamplePicker]);
 
   useEffect(() => {
     if (transitionMode !== "start") return;
@@ -336,9 +379,13 @@ export function ProcessingWorkspacePage() {
     setRunStartError("");
   }
 
-  if (!sample) return <div className="page"><p>{error || "Loading processing workspace…"}</p></div>;
+  if (!sample) return <div className="page processing-workspace-page sample-page">
+    <Link className="back-link" to="/processing">← Processing</Link>
+    <div className="page-heading"><div><p className="eyebrow">Cleanroom workspace</p><h1>Processing workspace</h1></div></div>
+    <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
+  </div>;
   const includedIds = new Set(samples.map((item) => item.id));
-  const availableResults = sampleResults.filter((result) => !includedIds.has(result.id));
+  const availableResults = !samplePickerLoading && !samplePickerError ? sampleResults.filter((result) => !includedIds.has(result.id)) : [];
   const selectedIsActive = selectedRun?.status === "active";
   const selectedRunIsEditable = selectedIsActive
     || (selectedRun?.runKind === "metrology" && selectedRun.status === "complete");
@@ -429,7 +476,7 @@ export function ProcessingWorkspacePage() {
       <div className="sample-header-copy"><p className="eyebrow">Processing · {sample.code}</p><h1>{sample.title}</h1><p className="lead">Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p></div>
       <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link></div>
     </div>
-    {error && <p className="error-banner">{error}</p>}
+    <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
 
     <section className="execution-workspace">
       <div className="execution-heading">
@@ -441,7 +488,8 @@ export function ProcessingWorkspacePage() {
       </div>
       {showSamplePicker && <div className="card sample-picker-popover" id="sample-picker-popover">
         <label>{selectedRun?.runKind === "metrology" ? "Find a sample with matching metrology" : "Find a sample assigned to this process"}<input autoFocus value={sampleQuery} onChange={(event) => setSampleQuery(event.target.value)} placeholder="Search matching samples…" /></label>
-        <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>
+        <ReadStatus loading={samplePickerLoading} error={samplePickerError} loadingMessage="Loading matching samples…" errorTitle="Could not load matching samples" density="compact" onRetry={() => setSamplePickerRetry((value) => value + 1)} />
+        {!samplePickerLoading && !samplePickerError && <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>}
       </div>}
 
       <div className="run-controls card">

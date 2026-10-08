@@ -27,7 +27,7 @@ export function SampleTimeline({
         <div className="event-meta">
           <span>{sampleEventLabel(event)}{event.metadata.deletedAt ? " · deleted" : ""}{event.actorEmail ? ` · ${event.actorEmail}` : ""}</span>
           <div>
-            <time>{new Date(event.createdAt).toLocaleString()}</time>
+            <time dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleString()}</time>
             {onDeleteAsset && sampleEventAssetUrl(event) && <button type="button" onClick={() => onDeleteAsset(event)}>Delete image</button>}
             {onDeleteRecord && isSampleRecordEvent(event.kind, event.metadata) && <button type="button" onClick={() => onDeleteRecord(event)}>Delete note</button>}
           </div>

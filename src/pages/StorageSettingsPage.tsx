@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CurrentStorageSettings, CurrentStorageSettingsStatus } from "../../shared/contracts/current-storage-settings";
 import { api } from "../lib/api";
-import { storageConfigurationClient } from "../lib/storage-configuration-client";
+import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
 import { StorageRoleDefaultsForm } from "./StorageRoleDefaultsForm";
 import "./storage-settings.css";
 
@@ -92,12 +92,25 @@ export function StorageSettingsPage() {
 }
 
 function CurrentStorageSettingsView({ status, onChanged }: { status: CurrentStorageSettingsStatus; onChanged: () => void }) {
-  const [canManage, setCanManage] = useState(false);
+  const [access, setAccess] = useState<boolean | "checking" | "unavailable">("checking");
+  const accessSequence = useRef(0), accessController = useRef<AbortController | null>(null);
+  async function readCapability() {
+    const sequence = ++accessSequence.current;
+    accessController.current?.abort();
+    const request = new AbortController(); accessController.current = request;
+    setAccess("checking");
+    try {
+      const value = await storageConfigurationClient.capability(request.signal);
+      if (sequence === accessSequence.current && !request.signal.aborted) setAccess(value.canManage);
+    } catch (failure) {
+      if (sequence === accessSequence.current && !request.signal.aborted) setAccess(failure instanceof StorageConfigurationRequestError
+        && [401, 403].includes(failure.status) ? false : "unavailable");
+    }
+  }
+  function accessDenied() { accessSequence.current++; accessController.current?.abort(); setAccess(false); }
   useEffect(() => {
-    const request = new AbortController();
-    void storageConfigurationClient.capability(request.signal).then(value => { if (!request.signal.aborted) setCanManage(value.canManage); })
-      .catch(() => { if (!request.signal.aborted) setCanManage(false); });
-    return () => request.abort();
+    void readCapability();
+    return () => { accessSequence.current++; accessController.current?.abort(); };
   }, []);
   const destinations = [
     { title: "Images and Project attachments", role: status.roleDefaults.internal,
@@ -124,7 +137,9 @@ function CurrentStorageSettingsView({ status, onChanged }: { status: CurrentStor
         {destination.role?.availability === "unavailable" && <p className="muted">New uploads cannot use this selected profile until its configuration is restored or an administrator selects another available profile.</p>}
       </article>)}</div>
     </section>
-    <StorageRoleDefaultsForm status={status} canManage={canManage} onChanged={onChanged} onForbidden={() => setCanManage(false)} />
+    <StorageRoleDefaultsForm status={status} canManage={access === true}
+      accessStatus={typeof access === "boolean" ? "resolved" : access} onChanged={onChanged}
+      onRetryAccess={() => void readCapability()} onForbidden={accessDenied} />
     <section className="card storage-settings-section" aria-labelledby="storage-profiles-title">
       <div className="storage-section-heading"><h2 className="card-title" id="storage-profiles-title">Registered profiles</h2>
         <span className="section-count">{status.profiles.items.length}</span></div>

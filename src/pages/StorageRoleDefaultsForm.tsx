@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CurrentStorageSettingsStatus } from "../../shared/contracts/current-storage-settings";
 import { checkedStorageRolePolicyInput, type StorageRolePolicyInput, type StorageRolePolicyReceipt } from "../../shared/contracts/storage-policy";
 import { api, StoragePolicyRequestError } from "../lib/api";
+import { ReadStatus } from "../components/ReadStatus";
 
 const key = "storage-role-policy:pending";
 function remembered(): StorageRolePolicyInput | null {
   try { const value = sessionStorage.getItem(key); return value ? checkedStorageRolePolicyInput(JSON.parse(value)) : null; } catch { return null; }
 }
-export function StorageRoleDefaultsForm({ status, canManage, onChanged, onForbidden }: {
-  status: CurrentStorageSettingsStatus; canManage: boolean; onChanged: () => void; onForbidden: () => void;
+export function StorageRoleDefaultsForm({ status, canManage, accessStatus = "resolved", onChanged, onRetryAccess, onForbidden }: {
+  status: CurrentStorageSettingsStatus; canManage: boolean; onChanged: () => void; onRetryAccess: () => void; onForbidden: () => void;
+  accessStatus?: "checking" | "unavailable" | "resolved";
 }) {
   const eligible = status.profiles.items.filter(profile => profile.availability === "available" && ["r2", "s3"].includes(profile.adapterType));
   const [internal, setInternal] = useState(status.roleDefaults.internal?.profileId ?? eligible[0]?.id ?? "");
@@ -75,7 +77,10 @@ export function StorageRoleDefaultsForm({ status, canManage, onChanged, onForbid
   return <section className="card storage-settings-section" aria-labelledby="storage-default-policy-title">
     <h2 className="card-title" id="storage-default-policy-title">Upload destinations</h2>
     <p className="muted">Choose where new files are stored. Existing files keep their recorded storage location.</p>
-    {!canManage ? <p className="muted">Only system administrators can change upload destinations.</p> : <>
+    <ReadStatus loading={accessStatus === "checking"} loadingMessage="Checking administrator access…"
+      error={accessStatus === "unavailable" ? "Administrator access could not be checked. Upload destinations are read only until access can be confirmed." : null}
+      errorTitle="Access check unavailable" onRetry={onRetryAccess} retryLabel="Retry access check" />
+    {!canManage ? accessStatus === "resolved" && <p className="muted">Only system administrators can change upload destinations.</p> : <>
       {!enabled && !stale && <p className="muted">Upload destination changes are unavailable while file access is paused or historical file authority is active.</p>}
       {eligible.length === 0 && <p className="muted">No profile is currently available for new uploads. Register and activate a tested S3 profile, or restore the current R2 configuration.</p>}
       <form className="storage-candidate-form" onSubmit={save}><fieldset disabled={!enabled || busy || !!pending}>

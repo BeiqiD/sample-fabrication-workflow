@@ -47,7 +47,16 @@ async function fixture() {
   const command = () => ({ checkId: crypto.randomUUID(), profileId: saved.profileId, expectedRevision: 1 });
   return { sql, db, env, saved, objects, fetch, options, command };
 }
-afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(sql => sql.close()); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); databases.splice(0).forEach(sql => sql.close()); });
+// Freeze the injected 40 ms lease while asynchronous signing and database work
+// reach the intended stalled request; expire the real deadline at its boundary.
+async function expireLease(request: Request) {
+  expect(request.signal.aborted).toBe(false);
+  await vi.advanceTimersByTimeAsync(39);
+  expect(request.signal.aborted).toBe(false);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(request.signal.aborted).toBe(true);
+}
 function installMaintenance(f: Awaited<ReturnType<typeof fixture>>) {
   f.sql.exec(readFileSync(new URL("../../migrations/0021_fp5_system_recovery.sql", import.meta.url), "utf8"));
   for (const name of ["file_shadow_attempts", "file_migration_attempts", "research_package_attempts"]) {
@@ -135,10 +144,11 @@ describe("durable administrator candidate checks", () => {
     const f = await fixture();
     installMaintenance(f);
     const command = f.command(), entered = deferred<Request>(), late = deferred<Response>();
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const pending = startStorageCandidateCheck(f.env, command, actor, {
       ...f.options, timeoutMs: 40, fetch: async request => { entered.resolve(request); return late.promise; },
     });
-    await entered.promise;
+    await expireLease(await entered.promise);
     expect(await pending).toMatchObject({ status: "interrupted", write: "unknown", cleanup: "required" });
     expect(await cleanupStorageCandidateCheck(f.env, command.checkId, actor, f.options)).toMatchObject({
       write: "unknown", cleanup: "absence_observed",
@@ -311,8 +321,11 @@ describe("durable administrator candidate checks", () => {
   it("bounds a hanging PUT, passes abort to the provider and fences its late acknowledgement", async () => {
     const f = await fixture(), command = f.command(), entered = deferred<Request>(), release = deferred<Response>();
     const fetch = vi.fn(async (request: Request) => { entered.resolve(request); return release.promise; });
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const pending = startStorageCandidateCheck(f.env, command, actor, { ...f.options, fetch, timeoutMs: 40 });
-    const request = await entered.promise, result = await pending;
+    const request = await entered.promise;
+    await expireLease(request);
+    const result = await pending;
     expect(request.signal.aborted).toBe(true);
     expect(result).toMatchObject({ status: "interrupted", write: "unknown", cleanup: "required", code: "execution_interrupted" });
     release.resolve(new Response(null, { status: 200 })); await Promise.resolve(); await Promise.resolve();
@@ -321,14 +334,21 @@ describe("durable administrator candidate checks", () => {
   });
 
   it("the same deadline cancels a hanging GET response body and does not start cleanup afterward", async () => {
-    const f = await fixture(), signals: AbortSignal[] = [], fetch = async (request: Request) => {
-      signals.push(request.signal);
+    const f = await fixture(), entered = deferred<Request>(), signals: AbortSignal[] = [], methods: string[] = [], fetch = async (request: Request) => {
+      signals.push(request.signal); methods.push(request.method);
       if (request.method !== "GET") return f.fetch(request);
-      return new Response(new ReadableStream({ start(controller) { request.signal.addEventListener("abort", () => controller.error(new Error("private cancellation")), { once: true }); } }));
+      return new Response(new ReadableStream<Uint8Array>({
+        start(controller) { request.signal.addEventListener("abort", () => controller.error(new Error("private cancellation")), { once: true }); },
+        pull() { entered.resolve(request); },
+      }, { highWaterMark: 0 }));
     };
-    const result = await startStorageCandidateCheck(f.env, f.command(), actor, { ...f.options, fetch, timeoutMs: 40 });
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    const pending = startStorageCandidateCheck(f.env, f.command(), actor, { ...f.options, fetch, timeoutMs: 40 });
+    await expireLease(await entered.promise);
+    const result = await pending;
     expect(result).toMatchObject({ status: "interrupted", write: "passed", read: "not_run", cleanup: "required" });
     expect(signals).toHaveLength(2); expect(signals.every(signal => signal.aborted)).toBe(true);
+    expect(methods).toEqual(["PUT", "GET"]);
   });
 
   it("missing keys preserve captured envelopes and skip privileged provider I/O", async () => {
@@ -344,8 +364,10 @@ describe("durable administrator candidate checks", () => {
     await startStorageCandidateCheck(f.env, command, actor, { ...f.options, fetch: async request => request.method === "DELETE" ? new Response(null, { status: 500 }) : f.fetch(request) });
     const entered = deferred<Request>(), release = deferred<Response>();
     const fetch = vi.fn(async (request: Request) => { entered.resolve(request); return release.promise; });
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const first = cleanupStorageCandidateCheck(f.env, command.checkId, actor, { ...f.options, fetch, timeoutMs: 40 });
     const request = await entered.promise;
+    await expireLease(request);
     expect(await first).toMatchObject({ status: "failed", write: "passed", cleanup: "required", code: "execution_interrupted" });
     expect(request.signal.aborted).toBe(true);
     expect(await cleanupStorageCandidateCheck(f.env, command.checkId, actor, f.options)).toMatchObject({ status: "failed", cleanup: "confirmed_absent" });

@@ -3,15 +3,17 @@
 Status: C4 local integration resumed and its bounded development goal completed
 on 2026-10-07 after the FP5 checkpoint; formal C4 acceptance remains in progress.
 The [Phase 5D local goal](./PHASE_5D_DEVELOPMENT_GOAL.md) completed on
-2026-10-08; Phase 5E source-record and directory coherence is next and has
-not started. Phase 5A and Phase 5B are complete in PRs
+2026-10-08; the [Phase 5E local goal](./PHASE_5E_DEVELOPMENT_GOAL.md) also completed
+on 2026-10-08 for bounded source-record and directory coherence. Its
+[acceptance record](./PHASE_5E_ACCEPTANCE.md) preserves external limits.
+Phase 5F cross-product integration is next and has not started. Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
 C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
 C4 refinements through PR #185 are merged and deployed; wider integration
 acceptance remains in progress.
 
-Last reviewed: 2026-10-08 for [Phase 5D local acceptance](./PHASE_5D_ACCEPTANCE.md).
+Last reviewed: 2026-10-08 for [Phase 5E local acceptance](./PHASE_5E_ACCEPTANCE.md).
 Historical deployed reference: PR #185 integration commit
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`.
 
@@ -22,9 +24,9 @@ Worker/contract extraction. Its order and gates are owned by
 the regression reference. C4's unverified cases remain open; completed keyboard,
 editor and panel work is not reopened. The FP5 local gate now supplies that
 reviewed checkpoint, and C4's scoped local integration is complete. Carry its
-formal device/deployed gaps forward into the remaining 5E/5F sequence. Phase 5F
-remains a prerequisite for final Phase 6B release qualification, not for beginning
-backend Phase 6A.
+formal device/deployed gaps and the completed Phase 5D/5E local acceptance
+limits forward into Phase 5F, which has not started. Phase 5F remains a prerequisite
+for final Phase 6B release qualification, not for beginning backend Phase 6A.
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
@@ -501,9 +503,23 @@ misrepresenting lifecycle or preview trust.
 
 ### Phase 5E — source-record and directory coherence
 
-Status: not started; next frontend implementation slice after the completed
-bounded local C4 and Phase 5D goals. Carry their external acceptance limits
-forward into Phase 5F and Phase 6B.
+Status: bounded local development goal complete on 2026-10-08 under the
+[Phase 5E goal](./PHASE_5E_DEVELOPMENT_GOAL.md), following the completed local C4
+and Phase 5D goals. The [acceptance record](./PHASE_5E_ACCEPTANCE.md) records
+12/12 canonical local Verify leaves, 400/400 isolated-browser
+cases, independent review and exact actual development-data preservation.
+The complete twelve-leaf result qualifies finite local resources: source used
+`--maxWorkers=2 --testTimeout=15000`; default five-second CI timing remains
+unqualified by this round. Three test-only repairs preserve existing assertions and application deadlines:
+a deterministic clock, optional-argument access and picker readiness. Production
+bytes match the browser-qualified source. Qualification retains two source/native
+leaves only with approved unchanged input closure and runs ten leaves fresh;
+actual per-leaf fingerprints are preserved.
+The acceptance record preserves actual browser and per-leaf source identities and exact evidence.
+Truthful read/error/GET-retry states, response ownership, pending-form guards and
+measured accessibility/metadata/responsive repairs preserve the existing roles,
+protocols and field geometry. Carry all external device/deployed/provider limits
+into Phase 5F and Phase 6B; this local completion includes no production release.
 
 Goal: complete evidence-driven refinement of Samples, Templates, Processing,
 Comments, Timeline, and Settings/Export after the Project visual language is
@@ -530,6 +546,20 @@ Exit: mature source-record surfaces use the same role definitions while retainin
 their intentional density and workflow differences.
 
 ### Phase 5F — cross-product integration review
+
+Status: not started; next bounded local slice after completed Phase 5E.
+Preserve the C4/Phase 5D/Phase 5E checkpoints and their unqualified external
+device/deployed/provider/release cases. Phase 6B follows the integrated result.
+
+Concrete follow-up: the existing `<=720px` width-variable selector lists
+`.sample-count-1` through `.sample-count-3` but omits `.sample-count-4`.
+Four-column Process therefore retains actual 230px recipe / 300px Sample widths,
+while counts 1–3 use 88/270px. Phase 5E preserved that baseline and does not claim
+the narrower pair universally. Compare realistic multi-sample content, themes,
+horizontal scrolling, sticky/header alignment and action hit areas at 720/721px
+and adjacent responsive tiers before choosing a bounded correction; retain Dense
+status colors, action ladder and protected geometry unless a measured defect
+justifies the specific change.
 
 Goal: prove that the completed slices form one product and close only concrete
 cross-surface gaps.
@@ -1224,8 +1254,8 @@ Phase 5 is complete only when:
 Backend Phase 6A now proceeds ahead of the remaining frontend refinement without
 reopening completed Phase 5 visual or interaction scope; its bounded plan is in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
-The bounded C4 and Phase 5D local goals are complete; remaining frontend work
-proceeds through Phase 5E and Phase 5F. Phase 6B release
+The bounded C4, Phase 5D and Phase 5E local goals are complete; remaining
+frontend work proceeds through Phase 5F, which has not started. Phase 6B release
 validation and operational rehearsal requires both the final frontend baseline
 and the completed backend stabilization gate. Optional
 trusted derivative generation, transport convergence, Docker distribution,
