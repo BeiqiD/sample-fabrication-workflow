@@ -17,6 +17,8 @@ import {
 import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
 import { pendingRunStepActionTargets } from "../lib/runGridActions";
 import { CommentAttachmentList } from "./CommentAttachmentList";
+import { AttachmentCard } from "./AttachmentCard";
+import { safeAttachmentHref } from "../lib/attachment-presentation";
 import { CommentBody } from "./CommentBody";
 import { commentComposerSource } from "../lib/comment-submission-client";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
@@ -127,7 +129,7 @@ type DiagramViewport = {
 
 const diagramViewportCache = new Map<string, DiagramViewport | null>();
 
-function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
+function DiagramThumbnail({ src, alt, onError }: { src: string; alt: string; onError?: () => void }) {
   const cached = diagramViewportCache.get(src);
   const [viewport, setViewport] = useState<DiagramViewport | null | undefined>(cached);
 
@@ -177,6 +179,7 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
 
   return <>
     <img
+      onError={onError}
       className={viewport ? "diagram-thumbnail-source measured" : "diagram-thumbnail-source"}
       src={src}
       alt={viewport ? "" : alt}
@@ -190,10 +193,12 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
   </>;
 }
 
-export function DiagramGallery({ keys, images = [], urls = [], onDeleteNative, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
+export function DiagramGallery({ keys, images = [], urls = [], thumbnailUrls = {}, onDeleteNative, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
   keys: string[];
   images?: FileAssetMediaRef[];
   urls?: string[];
+  /** Existing server-projected thumbnails; this does not generate derivatives. */
+  thumbnailUrls?: Readonly<Record<string, string>>;
   onDeleteNative?: (assetId: string) => void;
   label: string;
   kind?: GalleryKind;
@@ -201,90 +206,97 @@ export function DiagramGallery({ keys, images = [], urls = [], onDeleteNative, l
   onDelete?: (key: string) => void;
   className?: string;
 }) {
-  const entries = [...keys.map(key => ({ id: key, url: `/api/assets/${key}`, native: false })),
+  const entries = [...keys.filter(key => key && !/[\\\u0000-\u001f\u007f]/.test(key)).map(key => ({ id: key, url: `/api/assets/${key}`, native: false })),
     ...images.filter(image => image.url === nativeAssetUrl(image.assetId))
       .map(image => ({ id: image.assetId, url: image.url, native: true })),
-    ...urls.filter(url => url.startsWith("/api/") && !url.includes("\\") && !url.includes("\0"))
+    ...urls.filter(url => url.startsWith("/api/") && safeAttachmentHref(url))
       .map(url => ({ id: url, url, native: false }))];
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const entryOrder = entries.map(entry => entry.url).join("\n");
+  const everOpened = useRef(false);
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const activeIndex = activeUrl === null ? null : entries.findIndex(entry => entry.url === activeUrl);
+  const activeEntry = activeIndex === null || activeIndex < 0 ? null : entries[activeIndex];
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
-
+  useModalDialog({ dialogRef, initialFocusRef: closeButtonRef, returnFocusRef: galleryRef, enabled: Boolean(activeEntry), onClose: () => setActiveUrl(null) });
+  function setActiveIndex(index: number) { everOpened.current = true; setActiveUrl(entries[index]?.url ?? null); }
+  function failed(url: string) { setFailedUrls(current => new Set(current).add(url)); }
+  function retry(url: string) {
+    setFailedUrls(current => { const next = new Set(current); next.delete(url); return next; });
+    setPreviewAttempt(current => current + 1);
+    closeButtonRef.current?.focus({ preventScroll: true });
+  }
   function setImageZoom(nextZoom: number) {
     const limited = Math.min(5, Math.max(1, nextZoom));
     setZoom(limited);
     if (limited === 1) setPan({ x: 0, y: 0 });
   }
-
   useEffect(() => {
-    if (activeIndex === null) return;
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
+    if (activeUrl && !activeEntry) setActiveUrl(null);
+  }, [activeUrl, activeEntry]);
+  useEffect(() => {
+    if (!activeEntry) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); setActiveIndex(null); }
-      if (event.key === "ArrowLeft") setActiveIndex((current) => current === null ? null : (current - 1 + entries.length) % entries.length);
-      if (event.key === "ArrowRight") setActiveIndex((current) => current === null ? null : (current + 1) % entries.length);
-      if (["+", "="].includes(event.key)) { event.preventDefault(); setZoom((current) => Math.min(5, current + .25)); }
-      if (event.key === "-") { event.preventDefault(); setZoom((current) => Math.max(1, current - .25)); }
-      if (event.key === "0") { setZoom(1); setPan({ x: 0, y: 0 }); }
+      if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey
+        || !dialogRef.current?.contains(document.activeElement)) return;
+      if (event.key === "ArrowLeft") { event.preventDefault(); setActiveIndex(((activeIndex ?? 0) - 1 + entries.length) % entries.length); }
+      if (event.key === "ArrowRight") { event.preventDefault(); setActiveIndex(((activeIndex ?? 0) + 1) % entries.length); }
+      if (["+", "="].includes(event.key)) { event.preventDefault(); if (!failedUrls.has(activeUrl!)) setImageZoom(zoom + .25); }
+      if (event.key === "-") { event.preventDefault(); if (!failedUrls.has(activeUrl!)) setImageZoom(zoom - .25); }
+      if (event.key === "0") { event.preventDefault(); setZoom(1); setPan({ x: 0, y: 0 }); }
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [activeIndex, entries.length]);
-  if (!entries.length) return null;
-  const lightbox = activeIndex === null ? null : createPortal(<div className={`image-lightbox ${kind}-lightbox`} role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
-    <div className="image-lightbox-panel">
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeUrl, activeIndex, entryOrder, zoom, failedUrls]);
+  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); dragRef.current = null; }, [activeUrl]);
+  if (!entries.length && !activeEntry && !everOpened.current) return null;
+  const lightbox = !activeEntry || activeIndex === null ? null : createPortal(<div className={`image-lightbox ${kind}-lightbox`} role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setActiveUrl(null); }}>
+    <div ref={dialogRef} className="image-lightbox-panel" role="dialog" aria-modal="true" aria-label={label}>
       <div className="image-lightbox-toolbar">
         <span className="image-lightbox-caption"><strong>{label}</strong><small>{activeIndex + 1} / {entries.length}</small></span>
         <div className="image-zoom-controls" aria-label="Image zoom controls">
-          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1 || failedUrls.has(activeEntry.url)} aria-label="Zoom out">−</button>
           <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Reset image zoom">{Math.round(zoom * 100)}%</button>
-          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
+          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5 || failedUrls.has(activeEntry.url)} aria-label="Zoom in">+</button>
         </div>
-        <a href={entries[activeIndex]?.url} target="_blank" rel="noreferrer">Original</a>
-        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer"><DialogCloseIcon /></button>
+        <a href={activeEntry.url} target="_blank" rel="noopener noreferrer">Open image</a>
+        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveUrl(null)} aria-label="Close image viewer"><DialogCloseIcon /></button>
       </div>
-      <div
-        className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
-        onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
+      <div className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
+        onWheel={event => { event.preventDefault(); if (!failedUrls.has(activeEntry.url)) setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
         onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
-        onPointerDown={(event) => {
-          if (zoom === 1) return;
+        onPointerDown={event => {
+          if (zoom === 1 || failedUrls.has(activeEntry.url)) return;
           event.currentTarget.setPointerCapture(event.pointerId);
           dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
         }}
-        onPointerMove={(event) => {
-          const drag = dragRef.current;
-          if (!drag || drag.pointerId !== event.pointerId) return;
-          setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
-        }}
-        onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
-        onPointerCancel={() => { dragRef.current = null; }}
-      >
-        <img
-          src={entries[activeIndex]?.url}
-          alt={`${label} ${activeIndex + 1}`}
-          draggable={false}
-          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
-        />
+        onPointerMove={event => { const drag = dragRef.current; if (drag && drag.pointerId === event.pointerId) setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y }); }}
+        onPointerUp={event => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
+        onPointerCancel={() => { dragRef.current = null; }}>
+        {failedUrls.has(activeEntry.url) ? <AttachmentCard filename={label} description="The browser could not display this image. Its authorized image link remains available."
+          href={activeEntry.url} actionLabel="Open image" external density="comfortable" status={{ kind: "failed", label: "Preview unavailable" }}
+          actions={<button type="button" onClick={() => retry(activeEntry.url)}>Retry image preview</button>} />
+          : <img key={`${activeEntry.url}:${previewAttempt}`} src={activeEntry.url} alt={`${label} ${activeIndex + 1}`} draggable={false}
+            onError={() => failed(activeEntry.url)} style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }} />}
       </div>
       {entries.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + entries.length) % entries.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % entries.length)} aria-label="Next image">→</button></>}
     </div>
   </div>, document.body);
   return <>
-    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list">{entries.map((entry, index) => {
+    <div ref={galleryRef} tabIndex={-1} className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list" aria-label={label}>{!entries.length && <span className="image-preview-unavailable">No images available</span>}{entries.map((entry, index) => {
       const key = entry.id, src = entry.url;
+      const thumbnail = thumbnailUrls[src];
+      const thumbnailSrc = thumbnail?.startsWith("/api/") && safeAttachmentHref(thumbnail) ? thumbnail : src;
       return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${entries.length}`}>
-        {kind === "diagram" ? <DiagramThumbnail src={src} alt={label} /> : <img src={src} alt={label} loading="lazy" />}
-      </button>{(entry.native ? onDeleteNative : onDelete) && <button type="button" className="diagram-delete-button" title="Delete image" onClick={() => entry.native ? onDeleteNative?.(key) : onDelete?.(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
+        {failedUrls.has(thumbnailSrc) ? <span className="image-preview-unavailable">Preview unavailable</span>
+          : kind === "diagram" ? <DiagramThumbnail src={thumbnailSrc} alt={label} onError={() => failed(thumbnailSrc)} /> : <img key={previewAttempt} src={thumbnailSrc} alt={label} loading="lazy" onError={() => failed(thumbnailSrc)} />}
+      </button>{(entry.native ? onDeleteNative : onDelete) && <button type="button" className="diagram-delete-button" title="Delete run attachment" onClick={() => entry.native ? onDeleteNative?.(key) : onDelete?.(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
     })}</div>
     {lightbox}
   </>;
@@ -317,17 +329,19 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
   </div>, document.body);
 }
 
-function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, common = false }: {
+function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, onChanged, common = false, density = "dense" }: {
   comment: RunStepComment;
   meta: string;
   imageLabel: string;
   onDelete?: () => void;
   onDeleteAsset?: () => void;
+  onChanged?: () => Promise<void>;
   common?: boolean;
+  density?: "comfortable" | "compact" | "dense";
 }) {
-  const imageKeys = (comment.images ?? []).flatMap((image) => image.assetKey ? [image.assetKey] : []);
-  const imageUrls = (comment.images ?? []).flatMap(image => image.assetKey ? [] : image.assetUrl ? [image.assetUrl] : []);
-  if (!imageUrls.length && !imageKeys.length && comment.assetUrl) imageUrls.push(comment.assetUrl);
+  const imageKeys = (comment.images ?? []).filter(image => image.status === "ready").flatMap((image) => image.assetKey ? [image.assetKey] : []);
+  const imageUrls = (comment.images ?? []).filter(image => image.status === "ready").flatMap(image => image.assetKey ? [] : image.assetUrl ? [image.assetUrl] : []);
+  if (!comment.submissionId && !imageUrls.length && !imageKeys.length && comment.assetUrl) imageUrls.push(comment.assetUrl);
   const attachments = comment.attachments ?? [];
   const incomplete = comment.status && comment.status !== "ready";
   return <div className={`cell-comment${common ? " common-comment" : ""}`}>
@@ -337,10 +351,10 @@ function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, commo
         {comment.body && <CommentBody source={comment.body} />}
         <small>{meta}</small>
       </div>
-      {(imageKeys.length > 0 || imageUrls.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : comment.assetKey ? [comment.assetKey] : []} urls={imageUrls} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
+      {(imageKeys.length > 0 || imageUrls.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : !comment.submissionId && comment.assetKey ? [comment.assetKey] : []} urls={imageUrls} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
     </div>
-    <CommentAttachmentList attachments={attachments} />
-    {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
+    <CommentAttachmentList attachments={attachments} images={comment.submissionId ? comment.images : undefined} submissionId={!incomplete ? comment.submissionId : undefined} onChanged={onChanged} common={common} density={density} />
+    {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label={comment.submissionId ? "Move Comment to trash" : "Delete comment"}>{comment.submissionId ? "Trash" : "Delete"}</button>}
   </div>;
 }
 
@@ -365,13 +379,14 @@ function recoverableFromComments(comments: RunStepComment[]) {
   return [...submissions.values()];
 }
 
-function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepComment[]; onDelete?: (comment: RunStepComment) => void; onDeleteAsset?: (comment: RunStepComment) => void }) {
+function CommentList({ comments, onDelete, onDeleteAsset, onChanged }: { comments: RunStepComment[]; onDelete?: (comment: RunStepComment) => void; onDeleteAsset?: (comment: RunStepComment) => void; onChanged?: () => Promise<void> }) {
   if (!comments.length) return null;
   return <div className="comment-history"><div className="cell-comments">{comments.map((comment) => <CommentCard
     key={comment.id}
     comment={comment}
     meta={`${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
     imageLabel="Comment photo"
+    onChanged={onChanged}
     onDelete={onDelete ? () => onDelete(comment) : undefined}
     onDeleteAsset={onDeleteAsset && (comment.assetKey || comment.assetUrl) ? () => onDeleteAsset(comment) : undefined}
   />)}</div></div>;
@@ -387,6 +402,7 @@ function ProcessPlanCommentDialog({
   readOnly,
   onClose,
   onSubmitted,
+  onAttachmentChanged,
   onDelete,
   onDeleteAsset,
 }: {
@@ -399,6 +415,7 @@ function ProcessPlanCommentDialog({
   readOnly: boolean;
   onClose: () => void;
   onSubmitted: () => Promise<void>;
+  onAttachmentChanged: () => Promise<void>;
   onDelete: (comment: RunStepComment) => void;
   onDeleteAsset: (comment: RunStepComment) => void;
 }) {
@@ -445,8 +462,10 @@ function ProcessPlanCommentDialog({
               key={comment.operationGroupId || comment.id}
               comment={comment}
               common
+              density="compact"
               meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
               imageLabel="Common comment photo"
+              onChanged={readOnly ? undefined : onAttachmentChanged}
               onDelete={() => onDelete(comment)}
               onDeleteAsset={(comment.assetKey || comment.assetUrl) ? () => onDeleteAsset(comment) : undefined}
             />)}</div>
@@ -647,7 +666,7 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   </div>;
 }
 
-export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; readOnly?: boolean }) {
+export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentChanged = onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; onAttachmentChanged?: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
   const currentRow = useMemo(() => findCurrentRunGridRow(rows), [rows]);
   const currentRowSignature = currentRow ? `${currentRow.row.key}:${currentRow.unfinishedColumnIndexes.join(",")}` : "";
@@ -1133,6 +1152,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       onVerifyMismatch={(note) => verifyState(column, step, "mismatched", note)}
       commentContext={{ kind: "run_steps", scope: "individual", targets: [target(column, step)] }}
       onCommentSubmitted={onSaved}
+      onAttachmentChanged={onAttachmentChanged}
       onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: false }); }}
       onDeleteCommentAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: false }); }}
       onDeleteExecutionAsset={(selector) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey: typeof selector === "string" ? selector : "", ...(typeof selector === "string" ? {} : selector), column, step }); }}
@@ -1303,6 +1323,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   common
                   meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
                   imageLabel="Common comment photo"
+                  onChanged={readOnly ? undefined : onAttachmentChanged}
                   onDelete={() => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
                   onDeleteAsset={(comment.assetKey || comment.assetUrl) ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
                   />)}
@@ -1318,6 +1339,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 readOnly={readOnly}
                 onClose={() => setCommonCommentRow(null)}
                 onSubmitted={onSaved}
+                onAttachmentChanged={onAttachmentChanged}
                 onDelete={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
                 onDeleteAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); }}
               />}
@@ -1346,17 +1368,18 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     {metrologyDrawer && <MetrologyPickerDrawer key={`${metrologyDrawer.column.sample.id}:${metrologyDrawer.afterStepId || "first"}`} state={metrologyDrawer} onClose={() => setMetrologyDrawer(null)} onSaved={onSaved} />}
     {recipeDetails && <RecipeDetailsSheet state={recipeDetails} onClose={closeRecipeDetails} />}
     {deleteRequest && <ConfirmDeleteDialog
-      title={deleteRequest.kind === "comment" ? "Delete this comment?" : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this execution image?"}
+      title={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move this Comment to trash?" : "Delete this comment?") : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this run attachment?"}
       description={deleteRequest.kind === "comment"
-        ? (deleteRequest.common ? "This common comment will be removed from every sample included when it was added. The audit history will remain." : "This comment will be removed from this sample step. The audit history will remain.")
+        ? (deleteRequest.comment.submissionId ? `${deleteRequest.common ? "This common Comment will be hidden from every target. " : "This Comment will be hidden from this step. "}The Comment and its attachments are retained in Trash for 30 days; the audit history remains.` : deleteRequest.common ? "This common comment will be removed from every sample included when it was added. The audit history will remain." : "This comment will be removed from this sample step. The audit history will remain.")
         : deleteRequest.kind === "comment_asset"
           ? (deleteRequest.common ? "The attached image will be removed from every copy of this common comment; the text and audit history will remain." : "The attached image will be removed; the comment text and audit history will remain.")
-          : "The image will be detached from this execution step; the Timeline will retain a text-only deletion event."}
+          : "Only this attachment will be detached from the execution step. The Run, step, status, and textual Timeline history remain. Its bytes have a guaranteed 24-hour recovery window; later recovery depends on whether cleanup has begun."}
       summary={deleteRequest.kind === "execution_asset" ? deleteRequest.step.title : deleteRequest.comment.body.trim() || "Image attachment"}
       deleting={pendingAction !== null && pendingAction.startsWith("delete")}
       error={deleteError}
-      eyebrow={deleteRequest.kind === "comment" ? "Delete comment" : "Delete image"}
-      confirmLabel={deleteRequest.kind === "comment" ? "Delete comment" : "Delete image"}
+      appendIrreversibleWarning={deleteRequest.kind === "comment" && !deleteRequest.comment.submissionId}
+      eyebrow={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move Comment to trash" : "Delete comment") : "Remove attachment"}
+      confirmLabel={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move Comment to trash" : "Delete comment") : deleteRequest.kind === "execution_asset" ? "Delete run attachment" : "Remove attachment"}
       onCancel={() => { setDeleteRequest(null); setDeleteError(""); }}
       onConfirm={() => void confirmDelete()}
     />}
@@ -1365,11 +1388,12 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   </>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVerifyMismatch, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
+function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVerifyMismatch, commentContext, onCommentSubmitted, onAttachmentChanged, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
   onDone: () => void; onVerifyMatched: () => void; onVerifyMismatch: (note: string) => Promise<void>;
   commentContext: Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
   onCommentSubmitted: () => Promise<void>;
+  onAttachmentChanged: () => Promise<void>;
   onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (selector: string | { assetId: string }) => void; onEdit: () => void;
   onAddFabrication: () => void; onAddMetrology: () => void; allowAdd: boolean; readOnly: boolean;
 }) {
@@ -1400,7 +1424,7 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} images={step.executionImages} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} onDeleteNative={assetId => onDeleteExecutionAsset({ assetId })} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
     <CommentSubmissionRecovery localSourceKey={!readOnly ? commentComposerSource(commentContext) : undefined} submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
-    <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
+    <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} onChanged={readOnly ? undefined : onAttachmentChanged} />
     {showMismatchDialog && <StateMismatchDialog
       sampleCode={column.sample.code}
       stepTitle={step.plannedTitle || step.title}

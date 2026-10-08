@@ -2,14 +2,16 @@
 
 Status: C4 local integration resumed and its bounded development goal completed
 on 2026-10-07 after the FP5 checkpoint; formal C4 acceptance remains in progress.
-Phase 5D has not started. Phase 5A and Phase 5B are complete in PRs
+The [Phase 5D local goal](./PHASE_5D_DEVELOPMENT_GOAL.md) completed on
+2026-10-08; Phase 5E source-record and directory coherence is next and has
+not started. Phase 5A and Phase 5B are complete in PRs
 #157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
 and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
 C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
 C4 refinements through PR #185 are merged and deployed; wider integration
 acceptance remains in progress.
 
-Last reviewed: 2026-10-07 for the [completed local C4 goal](./C4_LOCAL_DEVELOPMENT_GOAL.md).
+Last reviewed: 2026-10-08 for [Phase 5D local acceptance](./PHASE_5D_ACCEPTANCE.md).
 Historical deployed reference: PR #185 integration commit
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`.
 
@@ -20,7 +22,7 @@ Worker/contract extraction. Its order and gates are owned by
 the regression reference. C4's unverified cases remain open; completed keyboard,
 editor and panel work is not reopened. The FP5 local gate now supplies that
 reviewed checkpoint, and C4's scoped local integration is complete. Carry its
-formal device/deployed gaps forward into the existing 5D/5E/5F sequence. Phase 5F
+formal device/deployed gaps forward into the remaining 5E/5F sequence. Phase 5F
 remains a prerequisite for final Phase 6B release qualification, not for beginning
 backend Phase 6A.
 
@@ -457,14 +459,18 @@ Record the served version, real-backend workflow checks, directory/workspace
 transitions, cross-mode commands and focus, representative content and viewport
 coverage in `PROJECT_C4_ACCEPTANCE.md`. Repair only demonstrated integration gaps
 and keep untested device or workflow boundaries explicit. The merged slice
-evidence does not itself complete C4; Phase 5D remains subsequent work.
+evidence does not itself complete formal C4 acceptance. The completed Phase 5D
+local checkpoint below preserves those external acceptance limits.
 
 ### Phase 5D — attachment and media surfaces
 
-Status: not started; next frontend implementation slice after the completed
-bounded local C4 goal. Formal C4 device/deployed checks remain recorded separately
-and must be carried forward without declaring them passed. The FP2–FP5 local
-backend development/qualification checkpoint is preserved.
+Status: bounded local development goal complete on 2026-10-08 after C4.
+The [goal](./PHASE_5D_DEVELOPMENT_GOAL.md) and
+[acceptance record](./PHASE_5D_ACCEPTANCE.md) record shared metadata/cards,
+unsupported/failed/unavailable previews, upload feedback, child/owner action
+wording and media keyboard/focus transitions, with isolated-browser evidence
+and full local Verify. Formal C4 device/deployed checks remain open; the
+FP2–FP5 backend checkpoint and actual development DB are preserved.
 
 Goal: expose the stable shared attachment semantics through one clear visual and
 wording system while preserving separate Project, Comment, and Run ownership.
@@ -494,6 +500,10 @@ Exit: attachment actions and states are understandable across domains without
 misrepresenting lifecycle or preview trust.
 
 ### Phase 5E — source-record and directory coherence
+
+Status: not started; next frontend implementation slice after the completed
+bounded local C4 and Phase 5D goals. Carry their external acceptance limits
+forward into Phase 5F and Phase 6B.
 
 Goal: complete evidence-driven refinement of Samples, Templates, Processing,
 Comments, Timeline, and Settings/Export after the Project visual language is
@@ -1214,7 +1224,8 @@ Phase 5 is complete only when:
 Backend Phase 6A now proceeds ahead of the remaining frontend refinement without
 reopening completed Phase 5 visual or interaction scope; its bounded plan is in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
-The frontend track resumes in its existing C4/5D/5E/5F order. Phase 6B release
+The bounded C4 and Phase 5D local goals are complete; remaining frontend work
+proceeds through Phase 5E and Phase 5F. Phase 6B release
 validation and operational rehearsal requires both the final frontend baseline
 and the completed backend stabilization gate. Optional
 trusted derivative generation, transport convergence, Docker distribution,

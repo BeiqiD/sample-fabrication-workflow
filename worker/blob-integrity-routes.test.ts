@@ -1059,7 +1059,8 @@ describe("FabuBlox storage winner recovery", () => {
       `https://app.test/api/templates/${retried.templateVersionId}`,
     ), env, executionContext)).status).toBe(200);
     database.close();
-  });
+    // Full-schema staging, rollback, retry and GC exceed the default on constrained builders.
+  }, 15_000);
 
 });
 

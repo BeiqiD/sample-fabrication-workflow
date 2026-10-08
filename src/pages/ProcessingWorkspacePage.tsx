@@ -66,12 +66,15 @@ export function ProcessingWorkspacePage() {
   const [confirmingRunDelete, setConfirmingRunDelete] = useState(false);
   const [deleteRunError, setDeleteRunError] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (propagateError = false) => {
     try {
       const details = await Promise.all([sampleId, ...additionalIds].map((id) => api.getProcessingSample(id)));
       setSamples(details);
       setError("");
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) {
+      setError((error as Error).message);
+      if (propagateError) throw error;
+    }
   // additionalKey is the stable URL representation of additionalIds.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sampleId, additionalKey]);
@@ -458,7 +461,7 @@ export function ProcessingWorkspacePage() {
       </div>
 
       {selectedRun ? <section className="runs-section">
-        <MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={gridColumns} onSaved={load} readOnly={!selectedRunIsEditable} />
+        <MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={gridColumns} onSaved={load} onAttachmentChanged={() => load(true)} readOnly={!selectedRunIsEditable} />
         <ProcessingReferenceSourceFocus
           focusValue={requestedFocus}
           sampleId={sampleId}

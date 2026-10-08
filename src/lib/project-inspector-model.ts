@@ -15,6 +15,8 @@ import {
   projectNodeKindLabel,
   type ProjectNodeDescriptor,
 } from "./project-map-model";
+import { projectAttachmentCanPreviewImage } from "./project-owned-content";
+import { safeAttachmentHref } from "./attachment-presentation";
 
 export interface ProjectInspectorField {
   label: string;
@@ -297,10 +299,10 @@ function projectOwnedProjection(
     }
   }
 
-  const fileUrl = attachment?.fileUrl ?? descriptor.fileUrl;
+  const fileUrl = safeAttachmentHref(attachment?.fileUrl ?? descriptor.fileUrl);
   const image = Boolean(
     fileUrl
-      && (attachment?.mimeType ?? descriptor.mimeType)?.toLowerCase().startsWith("image/"),
+      && projectAttachmentCanPreviewImage(attachment?.mimeType ?? descriptor.mimeType),
   );
   return {
     identityHeading: "Project-owned content",

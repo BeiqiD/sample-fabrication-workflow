@@ -1646,7 +1646,8 @@ export const ProjectMapSurface = forwardRef<ProjectMapSurfaceHandle, ProjectMapS
         { label: "Send backward", section: "Layer", disabled: contextCommands.zOrderDisabled("send-backward"), action: () => contextCommands.changeZOrder("send-backward") },
         { label: "Send to back", section: "Layer", disabled: contextCommands.zOrderDisabled("send-to-back"), action: () => contextCommands.changeZOrder("send-to-back") },
         {
-          label: descriptor.kind === "reference" ? "Remove from Project" : "Move to trash",
+          label: descriptor.kind === "reference" ? "Remove from Project"
+            : descriptor.kind === "attachment" ? "Remove attachment" : "Move to trash",
           section: "Remove",
           danger: true,
           disabled: contextCommands.removeDisabled,

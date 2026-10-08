@@ -42,14 +42,15 @@
 .project-rich-editor-loading { min-height: 220px; display: grid; place-items: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 9px; }
 
 .project-attachment-presentation { min-width: 0; display: grid; gap: 9px; }
+.project-attachment-presentation:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 9px; }
+.project-attachment-presentation.compact { gap: 7px; }
+.project-attachment-presentation.compact .project-reading-image { max-height: 240px; }
+.project-attachment-file-meta { margin: 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.project-attachment-presentation.compact .project-attachment-file-meta { font-size: var(--project-panel-font-meta); }
+.project-attachment-presentation.compact .project-reading-caption { font-size: var(--project-panel-font-body); line-height: 1.5; }
+.project-attachment-removal-hint { max-width: 32ch; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
 .project-reading-image-button { width: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 9px; background: transparent; cursor: zoom-in; }
 .project-reading-image-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.project-reading-file-card { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-warm); }
-.project-reading-file-card > div { min-width: 0; display: grid; gap: 4px; }
-.project-reading-file-card strong,
-.project-reading-file-card small { overflow-wrap: anywhere; }
-.project-reading-file-card small { color: var(--muted); font-size: 11px; }
-.project-reading-file-mark { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--muted); background: var(--paper); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .project-attachment-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .project-image-preview-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .72); }
 .project-image-preview-dialog { width: min(1200px, 100%); height: min(900px, 100%); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 20px 70px rgba(0, 0, 0, .35); }
@@ -60,8 +61,6 @@
 @media (max-width: 859px) {
   .project-reading-heading { grid-template-columns: 1fr; }
   .project-reading-export-actions { justify-content: flex-start; }
-  .project-reading-file-card { grid-template-columns: auto minmax(0, 1fr); }
-  .project-reading-file-card .button { grid-column: 1 / -1; }
   .project-image-preview-backdrop { padding: 8px; }
   .project-rich-editor > textarea,
   .project-rich-editor-preview { min-height: 200px; }

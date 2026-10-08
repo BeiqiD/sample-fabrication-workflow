@@ -290,9 +290,18 @@ preserved. File mode is legacy and execution remains disabled. See
 Local C4 development checkpoint, 2026-10-07: two responsive Project control
 repairs passed 64 layout/Help, 18 active-editor and three real local save-fault
 browser cases, plus all five relevant checks. The actual development DB is
-unchanged. Formal device/deployed acceptance remains open; Phase 5D is next and
-has not started. See the [completed C4 goal](./docs/C4_LOCAL_DEVELOPMENT_GOAL.md)
+unchanged. Formal device/deployed acceptance remains open. See the
+[completed C4 goal](./docs/C4_LOCAL_DEVELOPMENT_GOAL.md)
 and [local acceptance record](./docs/PROJECT_C4_ACCEPTANCE.md#local-integration-checkpoint--2026-10-07).
+
+Local Phase 5D development checkpoint, 2026-10-08: attachment metadata,
+generic-file fallbacks, media failure/retry, child/owner action wording and
+keyboard/focus transitions are complete across Project, Comment and Run.
+The isolated-browser matrices and full local Verify passed; the actual
+development DB remains unchanged. See the [completed Phase 5D goal](./docs/PHASE_5D_DEVELOPMENT_GOAL.md)
+and [acceptance record](./docs/PHASE_5D_ACCEPTANCE.md). Phase 5E source-record
+and directory coherence is next, followed by Phase 5F and Phase 6B.
+Physical-device, authenticated/deployed and release acceptance remains open.
 
 ## Further documentation
 

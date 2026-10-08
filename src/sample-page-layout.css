@@ -69,6 +69,15 @@
 }
 
 @media (max-width: 720px) {
+  /* Package/report actions may exceed the compact icon group's available width. */
+  .sample-header > .sample-header-actions { flex-wrap: wrap; }
+  .sample-header .sample-header-action-buttons {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+  }
+
   .sample-note-content {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;

@@ -3,6 +3,7 @@ import { isSampleRecordEvent } from "../../shared/sample-records";
 import { sampleEventLabel } from "../lib/sampleHistory";
 import { sampleEventAssetUrl } from "../lib/asset-media";
 import { CommentBody } from "./CommentBody";
+import { DiagramGallery } from "./MultiSampleRunGrid";
 
 export function SampleTimeline({
   events,
@@ -35,13 +36,9 @@ export function SampleTimeline({
           ? <CommentBody source={event.body} scrollable={compact} />
           : <p>{event.body}</p>)}
         {!compact && sampleEventAssetUrl(event) && <div className="event-asset">
-          <a href={sampleEventAssetUrl(event)!} target="_blank" rel="noreferrer">
-            <img
-              src={event.thumbnailUrl ?? (typeof event.metadata.thumbnailKey === "string" ? `/api/assets/${event.metadata.thumbnailKey}` : sampleEventAssetUrl(event)!)}
-              alt={event.body || "Timeline attachment"}
-              loading="lazy"
-            />
-          </a>
+          <DiagramGallery keys={[]} urls={[sampleEventAssetUrl(event)!]}
+            thumbnailUrls={{ [sampleEventAssetUrl(event)!]: event.thumbnailUrl ?? (typeof event.metadata.thumbnailKey === "string" ? `/api/assets/${event.metadata.thumbnailKey}` : sampleEventAssetUrl(event)!) }}
+            label={event.body || "Timeline attachment"} kind="photo" size="wide" />
         </div>}
       </div>
     </article>)}

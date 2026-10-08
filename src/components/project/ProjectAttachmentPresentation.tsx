@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { projectAttachmentCanPreviewImage } from "../../lib/project-owned-content";
-import { projectMarkdownSafeHref, projectMarkdownSafeImageSrc } from "../../lib/project-markdown";
+import { projectMarkdownSafeHref } from "../../lib/project-markdown";
 import { useModalDialog } from "../../lib/use-modal-dialog";
+import { formatAttachmentBytes, safeAttachmentHref } from "../../lib/attachment-presentation";
+import { AttachmentCard } from "../AttachmentCard";
 import "./project-rich-content.css";
 
 export interface ProjectAttachmentPresentationProps {
   title: string;
   fileUrl: string | null;
   mimeType: string | null;
+  byteSize?: number | null;
   caption: string | null;
   sourceUrl: string | null;
+  density?: "comfortable" | "compact";
+  captionRegionLabel?: string;
 }
 
 function ProjectImagePreviewDialog({
@@ -18,17 +23,22 @@ function ProjectImagePreviewDialog({
   alt,
   imagePreviewUrl,
   onClose,
+  onPreviewError,
+  returnFocusRef,
 }: {
   title: string;
   alt: string;
   imagePreviewUrl: string;
   onClose: () => void;
+  onPreviewError: () => void;
+  returnFocusRef: { current: HTMLElement | null };
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   useModalDialog({
     dialogRef,
     initialFocusRef: closeButtonRef,
+    returnFocusRef,
     onClose,
   });
 
@@ -55,7 +65,7 @@ function ProjectImagePreviewDialog({
           onClick={onClose}
         >Close</button>
       </div>
-      <img src={imagePreviewUrl} alt={alt} />
+      <img src={imagePreviewUrl} alt={alt} onError={onPreviewError} />
     </div>
   </div>, document.body);
 }
@@ -64,12 +74,25 @@ export function ProjectAttachmentPresentation({
   title,
   fileUrl,
   mimeType,
+  byteSize,
   caption,
   sourceUrl,
+  density = "comfortable",
+  captionRegionLabel,
 }: ProjectAttachmentPresentationProps) {
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const safeFileUrl = fileUrl ? projectMarkdownSafeImageSrc(fileUrl) : null;
+  const [previewOpenUrl, setPreviewOpenUrl] = useState<string | null>(null);
+  const retryButtonRef = useRef<HTMLButtonElement>(null);
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const presentationRef = useRef<HTMLDivElement>(null);
+  const previewReturnFocusRef = useMemo(() => ({
+    get current() {
+      return retryButtonRef.current ?? imageButtonRef.current ?? presentationRef.current;
+    },
+  }), []);
+  const retryRequestedRef = useRef(false);
+  const failureFocusRequestedRef = useRef(false);
+  const safeFileUrl = safeAttachmentHref(fileUrl);
   const safeSourceUrl = sourceUrl ? projectMarkdownSafeHref(sourceUrl) : null;
   const imagePreviewUrl = safeFileUrl
     && projectAttachmentCanPreviewImage(mimeType)
@@ -77,17 +100,40 @@ export function ProjectAttachmentPresentation({
     ? safeFileUrl
     : null;
   const alt = caption?.trim() || title;
+  const fileMetadata = [mimeType?.trim(), formatAttachmentBytes(byteSize)].filter(Boolean).join(" · ");
 
   useEffect(() => {
-    if (!imagePreviewUrl) setPreviewOpen(false);
+    setFailedPreviewUrl(null);
+    setPreviewOpenUrl(null);
+    retryRequestedRef.current = false;
+    failureFocusRequestedRef.current = false;
+  }, [safeFileUrl, mimeType]);
+
+  useEffect(() => {
+    if (!imagePreviewUrl) setPreviewOpenUrl(null);
+    if (!imagePreviewUrl && failureFocusRequestedRef.current) {
+      failureFocusRequestedRef.current = false;
+      retryButtonRef.current?.focus();
+    }
+    if (imagePreviewUrl && retryRequestedRef.current) {
+      retryRequestedRef.current = false;
+      imageButtonRef.current?.focus();
+    }
   }, [imagePreviewUrl]);
 
-  return <div className="project-attachment-presentation">
+  return <div
+    ref={presentationRef}
+    className={`project-attachment-presentation ${density}`}
+    role="group"
+    aria-label={`Project attachment: ${title}`}
+    tabIndex={-1}
+  >
     {imagePreviewUrl ? <button
+      ref={imageButtonRef}
       type="button"
       className="project-reading-image-button"
       aria-label={`Preview image: ${alt}`}
-      onClick={() => setPreviewOpen(true)}
+      onClick={() => setPreviewOpenUrl(imagePreviewUrl)}
     >
       <img
         className="project-reading-image"
@@ -95,18 +141,50 @@ export function ProjectAttachmentPresentation({
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setFailedPreviewUrl(imagePreviewUrl)}
+        onError={() => {
+          failureFocusRequestedRef.current = document.activeElement === imageButtonRef.current;
+          setFailedPreviewUrl(imagePreviewUrl);
+        }}
       />
-    </button> : <div className="project-reading-file-card">
-      <span className="project-reading-file-mark" aria-hidden="true">FILE</span>
-      <div>
-        <strong>{title}</strong>
-        <small>{mimeType || "Generic file"}</small>
-      </div>
-      {safeFileUrl && <a className="button compact-button" href={safeFileUrl}>Open file</a>}
-    </div>}
+    </button> : <AttachmentCard
+      filename={title}
+      mimeType={mimeType}
+      byteSize={byteSize}
+      href={safeFileUrl}
+      actionLabel="Open attachment"
+      actionAriaLabel="Open attachment"
+      density={density}
+      description={safeFileUrl && failedPreviewUrl !== safeFileUrl
+        ? "No browser preview is available for this file." : undefined}
+      status={!safeFileUrl ? {
+        kind: "unavailable",
+        label: "Attachment unavailable",
+        message: "The attachment file is unavailable.",
+      } : failedPreviewUrl === safeFileUrl ? {
+        kind: "failed",
+        label: "Image preview unavailable",
+        message: "The image preview could not be loaded. You can retry the preview or open the attachment.",
+      } : undefined}
+      actions={safeFileUrl && failedPreviewUrl === safeFileUrl ? <button
+        ref={retryButtonRef}
+        type="button"
+        className="button compact-button"
+        onClick={() => {
+          retryRequestedRef.current = true;
+          setFailedPreviewUrl(null);
+        }}
+      >Retry image preview</button> : undefined}
+    />}
 
-    {caption && <p className="project-reading-caption">{caption}</p>}
+    {imagePreviewUrl && fileMetadata && <p className="project-attachment-file-meta">{fileMetadata}</p>}
+
+    {caption && <p
+      className={`project-reading-caption${captionRegionLabel ? " project-inspector-excerpt" : ""}`}
+      role={captionRegionLabel ? "region" : undefined}
+      aria-label={captionRegionLabel}
+      tabIndex={captionRegionLabel ? 0 : undefined}
+      data-project-reading-content={captionRegionLabel ? "true" : undefined}
+    >{caption}</p>}
     <div className="project-attachment-actions">
       {safeSourceUrl && <a
         className="button wide"
@@ -117,11 +195,13 @@ export function ProjectAttachmentPresentation({
       {safeFileUrl && imagePreviewUrl && <a className="button wide" href={safeFileUrl}>Open attachment</a>}
     </div>
 
-    {previewOpen && imagePreviewUrl && <ProjectImagePreviewDialog
+    {previewOpenUrl === imagePreviewUrl && imagePreviewUrl && <ProjectImagePreviewDialog
       title={caption || title}
       alt={alt}
       imagePreviewUrl={imagePreviewUrl}
-      onClose={() => setPreviewOpen(false)}
+      onClose={() => setPreviewOpenUrl(null)}
+      onPreviewError={() => setFailedPreviewUrl(imagePreviewUrl)}
+      returnFocusRef={previewReturnFocusRef}
     />}
   </div>;
 }

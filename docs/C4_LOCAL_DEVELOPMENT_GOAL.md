@@ -86,7 +86,13 @@ The upstream socket-drop cause remains unproven.
 
 See the [current local C4 record](./PROJECT_C4_ACCEPTANCE.md#local-integration-checkpoint--2026-10-07)
 for cases, commands, evidence paths and formal acceptance gaps.
-The next implementation slice is **Phase 5D — attachment and media surfaces**;
-it has not started. Its eventual goal must carry forward these device/deployed
-acceptance limits, then follow the existing 5E → 5F → 6B order. This goal closes
-at the reviewed local C4 checkpoint and does not authorize a production rollout.
+At this goal's 2026-10-07 exit, the next implementation slice was
+**Phase 5D — attachment and media surfaces**, which had not started. Its successor
+goal carried forward these device/deployed acceptance limits and the existing
+5E → 5F → 6B order. This goal closed at the reviewed local C4 checkpoint and
+did not authorize a production rollout.
+
+Successor checkpoint, 2026-10-08: the [Phase 5D local goal](./PHASE_5D_DEVELOPMENT_GOAL.md)
+is complete, with its own [acceptance record](./PHASE_5D_ACCEPTANCE.md).
+Phase 5E source-record and directory coherence is next; formal C4 acceptance
+boundaries remain open.

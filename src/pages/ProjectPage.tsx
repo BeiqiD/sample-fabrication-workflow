@@ -3370,14 +3370,6 @@ export function ProjectPage() {
               onClick={() => startAttachmentEdit(selected.itemId, "inspector")}
             ><ActionIcon name="edit" />Edit</button> : null}
             primaryContent={selected.kind === "attachment" ? <>
-              {attachmentEditor?.itemId !== selected.itemId && <div className="project-inspector-supporting-actions">
-                {selected.attachmentSourceUrl && <a
-                  className="button compact-button"
-                  href={selected.attachmentSourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >Open source URL</a>}
-              </div>}
               {attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId && <div className="project-attachment-meta-form project-inspector-editor">
                 <label>Caption
                   <textarea
@@ -3472,7 +3464,8 @@ export function ProjectPage() {
                   : pendingReferenceRemoval.status === "uncertain"
                     ? "Removal needs exact retry"
                     : "Removal needs reconciliation"
-              : "Move attachment to trash"}</button>}
+              : "Remove attachment"}</button>}
+            {selected.kind === "attachment" && <small className="muted">Removed attachments remain recoverable in Project trash for 30 days.</small>}
             {selected.kind === "reference" && <button
               type="button"
               className="button danger wide"
@@ -3690,7 +3683,9 @@ export function ProjectPage() {
       />
     <div className="project-workspace-status-region">
       <ProjectTrashStatus controller={trash} disabled={saveState !== "saved" || ownedContentBusy || edgeController.unsafe || copyPaste.unsafe || pendingReference !== null || pendingReferenceRemoval !== null} />
-        {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}>
+        {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}
+          role="status" aria-live="polite" aria-label="Attachment upload status"
+          aria-busy={pendingAttachment.status === "uploading" || pendingAttachment.status === "saving"}>
           <strong>{pendingAttachment.filename}</strong>
           <span>{pendingAttachment.status === "uploading"
             ? "Uploading file…"

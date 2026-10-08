@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot } from "../../shared/project-api";
-import { projectTestSnapshot } from "../project-test-fixture";
+import { projectTestSnapshot, projectTestSnapshotWithAttachment } from "../project-test-fixture";
 import {
   projectInspectorProjection,
   projectInspectorReferenceTypeLabel,
@@ -267,6 +267,28 @@ describe("Project Inspector authoritative projection", () => {
       alt: "AFM overview",
     });
     expect(projection.primaryAction?.label).toBe("Open attachment");
+  });
+
+  it.each(["image/tiff", "image/svg+xml", "image/unknown", "application/pdf"])(
+    "does not offer an Inspector image preview for %s while retaining the original read",
+    (mimeType) => {
+      const snapshot = projectTestSnapshotWithAttachment();
+      snapshot.attachments[0].mimeType = mimeType;
+      const descriptor = projectMapNodes(snapshot).find((node) => node.itemId === "item-attachment")!;
+      const projection = projectInspectorProjection(snapshot, descriptor)!;
+      expect(projection.media).toBeNull();
+      expect(projection.primaryAction?.href).toBe(snapshot.attachments[0].fileUrl);
+    },
+  );
+
+  it("does not offer an Inspector read or preview for an unsafe file URL", () => {
+    const snapshot = projectTestSnapshotWithAttachment();
+    snapshot.attachments[0].mimeType = "image/png";
+    snapshot.attachments[0].fileUrl = "javascript:alert(1)";
+    const descriptor = projectMapNodes(snapshot).find((node) => node.itemId === "item-attachment")!;
+    const projection = projectInspectorProjection(snapshot, descriptor)!;
+    expect(projection.media).toBeNull();
+    expect(projection.primaryAction).toBeNull();
   });
 
   it("uses explicit labels for every supported reference target", () => {

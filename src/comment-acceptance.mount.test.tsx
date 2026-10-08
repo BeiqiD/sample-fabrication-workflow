@@ -120,11 +120,11 @@ describe("mounted immutable Comment acceptance", () => {
     }));
     render(<CommentComposer label="Note" context={context()} onSubmitted={refresh} submitLabel="Add note" />);
     typeAndSubmit(); await screen.findByText("The comment response was lost. Retry to check the same request.");
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel comment upload" }));
     await waitFor(() => expect(cancelPosts).toBe(1));
     fireEvent.click(screen.getByRole("button", { name: "Retry incomplete" }));
     await screen.findByText("Cancellation is unresolved. Use Cancel again to check the same request before uploading more files.");
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel comment upload" }));
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(createPosts).toBe(1); expect(cancelPosts).toBe(1); expect(sessionStorage.length).toBe(0);
   });
@@ -138,9 +138,9 @@ describe("mounted immutable Comment acceptance", () => {
     render(<CommentSubmissionRecovery submissions={[submission]} onSubmitted={refresh} />);
     await screen.findByText("This older or unavailable upload cannot resume. Cancel it and submit a new comment.");
     expect(screen.queryByRole("button", { name: "Finish" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel comment upload" }));
     await screen.findByText("The comment response was lost. Retry to check the same request.");
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel comment upload" }));
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce()); expect(posts).toBe(1);
   });
   it("removes a recovered file from the upload queue when its source unmounts", async () => {
@@ -173,7 +173,7 @@ describe("mounted immutable Comment acceptance", () => {
     render(<CommentComposer label="Note" context={context()} onSubmitted={vi.fn()} submitLabel="Add note" />);
     typeAndSubmit(); await screen.findByText("Sample revision changed");
     expect(screen.queryByRole("button", { name: "Discard local request" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel comment upload" }));
     await screen.findByRole("button", { name: "Discard local request" });
     expect(screen.getByText("This clears local tracking. An earlier request may still finish.")).toBeTruthy();
     expect(requests).toHaveLength(2); expect(requests[1]).toEqual(requests[0]);
@@ -194,7 +194,7 @@ describe("mounted immutable Comment acceptance", () => {
     const view = render(<CommentComposer label="Note" context={context()} onSubmitted={refresh} submitLabel="Add note" />);
     fireEvent.change(view.container.querySelector('input[accept]')!, { target: { files: [original] } });
     await screen.findByText("diagram.png"); fireEvent.click(screen.getByRole("button", { name: "Add note" }));
-    await waitFor(() => expect(creates).toBe(1)); fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(creates).toBe(1)); fireEvent.click(screen.getByRole("button", { name: "Cancel comment upload" }));
     await screen.findByRole("button", { name: "Discard local request" }); fireEvent.click(screen.getByRole("button", { name: "Discard local request" }));
     expect(sessionStorage.length).toBe(0);
     await act(async () => pending.resolve(json(await state(input))));

@@ -253,6 +253,12 @@ export const api = {
     },
   ),
   removeCommentSubmissionItem: removeDurableCommentItem,
+  // Completed attachment lifecycle is distinct from pending durable uploads.
+  // Reconcile uncertain outcomes with an owner refresh before another attempt.
+  removeReadyCommentSubmissionItem: (submissionId: string, itemId: string) => request<{ ok: true }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}`,
+    { method: "DELETE" },
+  ),
   finalizeCommentSubmission: finalizeDurableCommentSubmission,
   cancelCommentSubmission: cancelDurableCommentSubmission,
   deleteCommentSubmission: (submissionId: string) => request<{ ok: true }>(

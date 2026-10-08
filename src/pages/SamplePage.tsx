@@ -361,13 +361,13 @@ export function SamplePage() {
           <div className="sample-note-content">
             {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
             {note.status === "ready" ? <CommentBody source={note.body} /> : <p>{note.body}</p>}
-            {note.images.some((image) => commentImageUrl(image)) && <div className="sample-note-images"><DiagramGallery
+            {note.images.some((image) => image.status === "ready" && commentImageUrl(image)) && <div className="sample-note-images"><DiagramGallery
               keys={[]}
-              urls={note.images.flatMap((image) => { const url = commentImageUrl(image); return url ? [url] : []; })}
+              urls={note.images.flatMap((image) => { const url = image.status === "ready" ? commentImageUrl(image) : null; return url ? [url] : []; })}
               label={`${note.label} photo`}
               kind="photo"
             /></div>}
-            <CommentAttachmentList attachments={note.attachments} className="sample-note-attachments" />
+            <CommentAttachmentList attachments={note.attachments} images={note.submissionId ? note.images : undefined} submissionId={note.status === "ready" ? note.submissionId : undefined} onChanged={load} common={note.label === "Common process comment"} density="comfortable" className="sample-note-attachments" />
           </div>
           <div className="sample-note-footer">
             <span className="sample-note-author">{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>
@@ -375,7 +375,7 @@ export function SamplePage() {
               {note.runId && <Link className="text-button" to={`/processing/${sample.id}?run=${encodeURIComponent(note.runId)}`}>Open in processing</Link>}
               {note.sampleEvent && sampleEventAssetUrl(note.sampleEvent) && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
               {note.sampleEvent && <button type="button" className="text-button danger-text-button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(note.sampleEvent); }}>Delete note</button>}
-              {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Delete note</button>}
+              {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Move Comment to trash</button>}
             </div>
           </div>
           </article>
@@ -434,7 +434,7 @@ export function SamplePage() {
     </section>
     {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (sampleEventAssetUrl(recordToDelete) ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}
-    {submissionToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note and its attachments will be removed. The Timeline will retain a deletion audit entry." summary={submissionToDelete.body || "Files attached"} deleting={deletingSubmission} error={submissionDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setSubmissionToDelete(null); setSubmissionDeleteError(""); }} onConfirm={() => void deleteSubmission()} />}
+    {submissionToDelete && <ConfirmDeleteDialog title="Move this Comment to trash?" description="The Comment and its attachments will be hidden from their targets and retained in Trash for 30 days. The Timeline retains a deletion audit entry." appendIrreversibleWarning={false} summary={submissionToDelete.body || "Files attached"} deleting={deletingSubmission} error={submissionDeleteError} eyebrow="Move Comment to trash" confirmLabel="Move Comment to trash" onCancel={() => { setSubmissionToDelete(null); setSubmissionDeleteError(""); }} onConfirm={() => void deleteSubmission()} />}
     {confirmingSampleDeletion && <ConfirmDeleteDialog
       title={`Delete ${sample.code}?`}
       description={`The sample and all of its processing history will be permanently deleted.${sample.children.length ? " Child samples will remain, but their parent link will be removed." : ""}`}

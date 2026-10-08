@@ -286,12 +286,13 @@ export function ProjectReadingSurface({
                 className="button compact-button danger"
                 disabled={interactionDisabled || editorBusy}
                 onClick={() => onAttachmentDeleteRequest(node.itemId)}
-              >Move attachment to trash</button>
+              >Remove attachment</button>
+              <p className="project-attachment-removal-hint">The attachment moves to Project trash and can be restored for 30 days. The Project stays active.</p>
             </ReadingMore>}
           </div>
         </header>
         {showGeneratedTitle && <h2>{node.title}</h2>}
-        {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
+        {node.kind !== "attachment" && node.subtitle && <p className="card-meta">{node.subtitle}</p>}
 
         {node.kind === "markdown" && (editingMarkdown ? <Suspense fallback={<div className="project-rich-editor-loading">Loading editor…</div>}>
           <LazyProjectMarkdownEditor
@@ -345,6 +346,7 @@ export function ProjectReadingSurface({
               title={node.title}
               fileUrl={node.fileUrl}
               mimeType={node.mimeType}
+              byteSize={node.attachmentByteSize}
               caption={node.attachmentCaption}
               sourceUrl={node.attachmentSourceUrl}
             />

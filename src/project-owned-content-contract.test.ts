@@ -73,7 +73,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
     const presentation = read("./components/project/ProjectAttachmentPresentation.tsx");
     expect(reading).toContain("<ProjectAttachmentPresentation");
     expect(presentation).toContain("projectAttachmentCanPreviewImage(mimeType)");
-    expect(presentation).toContain("onError={() => setFailedPreviewUrl(imagePreviewUrl)}");
+    expect(presentation).toContain("setFailedPreviewUrl(imagePreviewUrl)");
     expect(model).toContain("attachmentCaption");
     expect(page).toContain("<ReferenceSearchSurface");
     expect(page).not.toContain("sourceAttachmentId");
@@ -203,7 +203,7 @@ describe("Phase 3B3 Project-owned content contract", () => {
     expect(reading).toContain('ariaLabel="New Markdown editor"');
     expect(reading).toContain("Edit Markdown");
     expect(reading).toContain("Edit attachment metadata");
-    expect(reading).toContain("Move attachment to trash");
+    expect(reading).toContain("Remove attachment");
     expect(page).toContain("const removeAttachmentItem");
     expect(page).toContain("onAttachmentDeleteRequest={removeAttachmentItem}");
   });

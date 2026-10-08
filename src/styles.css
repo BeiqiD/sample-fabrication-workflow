@@ -513,6 +513,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .image-lightbox-stage img { display: block; width: auto; height: auto; max-width: min(70vw, 720px); max-height: calc(100dvh - var(--lightbox-outer-inset) - 52px - var(--lightbox-stage-block-padding) - 4px); object-fit: contain; user-select: none; transition: transform .12s ease-out; will-change: transform; }
 .photo-lightbox .image-lightbox-stage img { max-width: min(82vw, 1040px); }
 .image-lightbox-stage.zoomed img { transition: none; }
+.image-lightbox-stage > .attachment-card { max-width: min(480px, 100%); }
+.image-preview-unavailable { padding: 6px; color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
 .image-lightbox-toolbar { position: relative; z-index: 2; min-height: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 7px 9px 7px 14px; color: white; background: #202521; font-size: 12px; }
 .image-lightbox-caption { min-width: 0; margin-right: auto; display: grid; gap: 1px; }
 .image-lightbox-caption strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1344,8 +1346,10 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .image-lightbox { --lightbox-outer-inset: 20px; --lightbox-stage-block-padding: 20px; padding: 10px; }
   .image-lightbox-panel { min-width: 0; }
   .image-lightbox-toolbar { gap: 7px; padding-left: 10px; }
-  .image-lightbox-caption strong { display: none; }
-  .image-lightbox-toolbar a { display: none; }
+  .image-lightbox-toolbar { flex-wrap: wrap; }
+  .image-lightbox-caption { flex: 1 1 100%; }
+  .image-lightbox-caption strong { white-space: normal; overflow-wrap: anywhere; }
+  .image-lightbox-toolbar a { margin-right: auto; }
   .image-lightbox-stage { padding: 10px; }
   .image-lightbox-stage img { max-width: calc(100vw - 40px); }
   .lightbox-arrow { width: 38px; height: 38px; }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import "../modal-form-controls.css";
 
-export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", appendIrreversibleWarning = true, cancelDisabled = false, confirmation, onCancel, onConfirm }: {
+export function ConfirmDeleteDialog({ title, description, summary, deleting, error, eyebrow = "Confirm deletion", confirmLabel = "Delete", busyLabel = "Deleting…", appendIrreversibleWarning = true, cancelDisabled = false, returnFocusRef, confirmation, onCancel, onConfirm }: {
   title: string;
   description: string;
   summary: string;
@@ -13,6 +13,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
   busyLabel?: string;
   appendIrreversibleWarning?: boolean;
   cancelDisabled?: boolean;
+  returnFocusRef?: { current: HTMLElement | null };
   confirmation?: {
     label: string;
     target: string;
@@ -30,6 +31,7 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
   useModalDialog({
     dialogRef,
     initialFocusRef: confirmation ? confirmationRef : cancelRef,
+    returnFocusRef,
     onClose: onCancel,
     blocked: deleting || cancelDisabled,
   });

@@ -5,10 +5,13 @@ goal completed on 2026-10-07 after FP5 qualification, with two demonstrated
 responsive repairs and the current isolated-browser evidence below. Shortcut,
 editor and panel work through PR #185 retains its recorded deployed desktop
 acceptance. Physical-device, OS input and deployed-runtime boundaries remain
-explicit. Phase 5D has not started.
+explicit. The successor [Phase 5D local goal](./PHASE_5D_DEVELOPMENT_GOAL.md)
+completed on 2026-10-08; its [acceptance record](./PHASE_5D_ACCEPTANCE.md)
+preserves these formal C4 boundaries. Phase 5E is the next implementation slice.
 
-Reviewed: 2026-10-07 for the new local checkpoint. The 2026-09-13 and earlier
-records below are historical deployed evidence, not newly executed tests.
+Current status reviewed: 2026-10-08 for the successor Phase 5D local checkpoint.
+The 2026-10-07 C4 local integration subsection and the 2026-09-13 and earlier
+deployed records retain their original versions, dates and test scope.
 
 ## Local integration checkpoint — 2026-10-07
 

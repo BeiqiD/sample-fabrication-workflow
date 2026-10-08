@@ -129,12 +129,14 @@ describe("Phase 3D rich Reading projection", () => {
       title: "measurement.csv",
       createdSequence: 1,
       mimeType: "text/csv",
+      attachmentByteSize: 1_200,
       fileUrl: "/api/projects/project-a/contents/file-a/file",
     })]} /></MemoryRouter>);
 
     expect(screen.getByRole("heading", { level: 2, name: "measurement.csv" })).toBeTruthy();
     expect(screen.getByText("text/csv")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Open file" }).getAttribute("href"))
+    expect(screen.getByText(/1.2 kB/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open attachment" }).getAttribute("href"))
       .toBe("/api/projects/project-a/contents/file-a/file");
   });
   it("presents outcome-uncertain attachment metadata as warning in Reading", () => {
