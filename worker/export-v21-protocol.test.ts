@@ -1,9 +1,9 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DatabaseSync } from "node:sqlite";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { backup, DatabaseSync } from "node:sqlite";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import type { ExportSchemaObject } from "../shared/contracts/export";
 import { FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../shared/contracts/export-file-native-runtime";
@@ -38,22 +38,44 @@ afterEach(async () => {
   for (const path of directories.splice(0)) await rm(path, { recursive: true, force: true });
 });
 
+let baselineDirectory = "";
+let preparedProfileId = "";
+// Build both real migration generations once. Each test gets its own physical
+// copy and fresh snapshot; the whole-file/split migration test below still
+// replays the actual migration chain independently.
+beforeAll(async () => {
+  baselineDirectory = await mkdtemp(join(tmpdir(), "v21-pristine-baseline-"));
+  const sql = referenceTestDatabase({ throughMigration: "0017_fp2_native_storage_profiles.sql" });
+  try {
+    const namespace = canonicalNativeS3Namespace({ kind: "aws-s3", partition: "aws", accountId: "123456789012", bucketName: "runtime-archive", root: "originals" });
+    const digest = await sha256Hex(namespace), profileId = `storage-profile:aws-s3:${digest}`;
+    sql.prepare("INSERT INTO storage_profiles VALUES(?,'s3',?,'system',NULL,1,'historical',?)").run(profileId, namespace, now);
+    sql.prepare("INSERT INTO storage_profile_admissions VALUES(?,?,?,?,?,?,?,?,?,?)").run("00000000-0000-4000-8000-000000000011", profileId,
+      "00000000-0000-4000-8000-000000000012", 1, 1, "00000000-0000-4000-8000-000000000013", "a".repeat(64), digest, "archive-admin@example.test", now);
+    sql.prepare("INSERT INTO samples(rowid,id,code,title,created_at,updated_at) VALUES(?,'source-sample','V21-ARCHIVE','Native archive source',?,?)")
+      .run(9007199254740993n, now, now);
+    sql.prepare("INSERT INTO recipe_families(id,name,template_type,created_at) VALUES('source-family','Source','module',?)").run(now);
+    sql.prepare("INSERT INTO template_versions(rowid,id,recipe_family_id,name,template_type,version,manifest_hash,content_json,created_at,template_kind) VALUES(?,'source-template','source-family','Source','module',1,'manifest','{}',?,'metrology')")
+      .run(9007199254740993n, now);
+    preparedProfileId = profileId;
+    await backup(sql, join(baselineDirectory, "v20.sqlite"));
+    sql.exec(await readFile(join(migrationsDirectory, generation), "utf8"));
+    await backup(sql, join(baselineDirectory, "v21.sqlite"));
+  } finally { sql.close(); }
+});
+afterAll(async () => {
+  if (baselineDirectory) await rm(baselineDirectory, { recursive: true, force: true });
+});
+
 async function fixture(previousGeneration = false) {
-  const sql = database("0017_fp2_native_storage_profiles.sql");
-  const namespace = canonicalNativeS3Namespace({ kind: "aws-s3", partition: "aws", accountId: "123456789012", bucketName: "runtime-archive", root: "originals" });
-  const digest = await sha256Hex(namespace), profileId = `storage-profile:aws-s3:${digest}`;
-  sql.prepare("INSERT INTO storage_profiles VALUES(?,'s3',?,'system',NULL,1,'historical',?)").run(profileId, namespace, now);
-  sql.prepare("INSERT INTO storage_profile_admissions VALUES(?,?,?,?,?,?,?,?,?,?)").run("00000000-0000-4000-8000-000000000011", profileId,
-    "00000000-0000-4000-8000-000000000012", 1, 1, "00000000-0000-4000-8000-000000000013", "a".repeat(64), digest, "archive-admin@example.test", now);
-  sql.prepare("INSERT INTO samples(rowid,id,code,title,created_at,updated_at) VALUES(?,'source-sample','V21-ARCHIVE','Native archive source',?,?)")
-    .run(9007199254740993n, now, now);
-  sql.prepare("INSERT INTO recipe_families(id,name,template_type,created_at) VALUES('source-family','Source','module',?)").run(now);
-  sql.prepare("INSERT INTO template_versions(rowid,id,recipe_family_id,name,template_type,version,manifest_hash,content_json,created_at,template_kind) VALUES(?,'source-template','source-family','Source','module',1,'manifest','{}',?,'metrology')")
-    .run(9007199254740993n, now);
+  const directory = await mkdtemp(join(tmpdir(), "v21-case-")); directories.push(directory);
+  const path = join(directory, "database.sqlite");
+  await copyFile(join(baselineDirectory, previousGeneration ? "v20.sqlite" : "v21.sqlite"), path);
+  const sql = new DatabaseSync(path); databases.push(sql);
   const before = previousGeneration ? await snapshotFullExportV20(adapter(sql)) : undefined;
-  sql.exec(await readFile(join(migrationsDirectory, generation), "utf8"));
+  if (previousGeneration) sql.exec(await readFile(join(migrationsDirectory, generation), "utf8"));
   const manifest = await snapshotFullExportV21(adapter(sql));
-  return { sql, profileId, before, manifest };
+  return { sql, profileId: preparedProfileId, before, manifest };
 }
 
 async function migrationPrefix(directory: string) {
@@ -83,6 +105,17 @@ describe("V21 native File archive generation", () => {
     await expect(validateFullExportV21(f.manifest)).resolves.toMatchObject({ schemaVersion: 21 });
     await expect(validateFullExportV20(f.manifest)).rejects.toThrow();
     expect(f.manifest.blobs).toEqual(f.before!.blobs);
+  });
+
+  it("isolates prepared native fixtures from earlier source mutations", async () => {
+    const first = await fixture();
+    first.sql.prepare("UPDATE samples SET title='Changed only in the first fixture' WHERE id='source-sample'").run();
+    const second = await fixture();
+    expect(second.sql.prepare("SELECT title FROM samples WHERE id='source-sample'").get()).toEqual({ title: "Native archive source" });
+    expect(second.sql.prepare("SELECT CAST(rowid AS TEXT) AS rowid FROM template_versions WHERE id='source-template'").get())
+      .toEqual({ rowid: "9007199254740993" });
+    expect(second.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(second.sql.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
   });
 
   it("restores original registration and exact source rowids with no local credentials or execution", async () => {
