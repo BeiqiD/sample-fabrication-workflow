@@ -1280,7 +1280,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .run-grid-card,
   .run-grid-card.sample-count-1,
   .run-grid-card.sample-count-2,
-  .run-grid-card.sample-count-3 { --recipe-width: 88px; --sample-width: 270px; }
+  .run-grid-card.sample-count-3,
+  .run-grid-card.sample-count-4 { --recipe-width: 88px; --sample-width: 270px; }
   .run-grid-card.sample-count-1 .run-grid { width: 100%; grid-template-columns: var(--recipe-width) minmax(var(--sample-width), 1fr); }
   .run-grid-card.sample-count-2 .run-grid,
   .run-grid-card.sample-count-3 .run-grid,

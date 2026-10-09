@@ -23,8 +23,11 @@ import {
   selectedProcessTemplateVersionId,
 } from "../lib/process-template-picker";
 import { sampleRunControlActionIds, sampleRunControlTitle } from "../lib/sample-run-selection";
+import { useModalDialog } from "../lib/use-modal-dialog";
 
 const MAX_VISIBLE_SAMPLES = 8;
+type TransitionMode = "start" | "update" | "reopen";
+type OwnedPreview<T> = { owner: string; value: T };
 
 function processRunStatus(status: ProcessingSampleDetail["runs"][number]["status"]) {
   if (status === "complete") return "Completed";
@@ -54,19 +57,31 @@ export function ProcessingWorkspacePage() {
   const readGeneration = useRef(0);
   const loading = readState.key !== readKey || readState.loading;
   const error = readState.key === readKey ? readError : "";
-  const [processFamilies, setProcessFamilies] = useState<ProcessTemplateFamilySummary[]>([]);
+  const [loadedProcessFamilies, setProcessFamilies] = useState<OwnedPreview<ProcessTemplateFamilySummary[]> | null>(null);
   const [processFamilyQuery, setProcessFamilyQuery] = useState("");
   const [selectedProcessFamilyId, setSelectedProcessFamilyId] = useState("");
   const [selectedProcessFamily, setSelectedProcessFamily] = useState<ProcessTemplateFamilySummary | null>(null);
-  const [processVersions, setProcessVersions] = useState<ProcessTemplateVersionSummary[]>([]);
+  const [loadedProcessVersions, setProcessVersions] = useState<OwnedPreview<ProcessTemplateVersionSummary[]> | null>(null);
   const [processFamiliesLoading, setProcessFamiliesLoading] = useState(false);
   const [processVersionsLoading, setProcessVersionsLoading] = useState(false);
-  const [templateVersionId, setTemplateVersionId] = useState("");
+  const [templateSelection, setTemplateSelection] = useState<OwnedPreview<string> | null>(null);
   const [assigning, setAssigning] = useState(false);
-  const [planPreview, setPlanPreview] = useState<PlanUpdatePreview | null>(null);
-  const [runStartPreview, setRunStartPreview] = useState<RunStartPreview | null>(null);
-  const [runStartError, setRunStartError] = useState("");
-  const [transitionMode, setTransitionMode] = useState<"start" | "update" | "reopen" | null>(null);
+  const [loadedPlanPreview, setPlanPreview] = useState<OwnedPreview<PlanUpdatePreview> | null>(null);
+  const [loadedRunStartPreview, setRunStartPreview] = useState<OwnedPreview<RunStartPreview> | null>(null);
+  const [runStartFailure, setRunStartFailure] = useState<OwnedPreview<string> | null>(null);
+  const [transition, setTransition] = useState<{ mode: TransitionMode; sampleId: string; session: number } | null>(null);
+  const transitionSequence = useRef(0);
+  const transitionMode = transition?.sampleId === sampleId ? transition.mode : null;
+  const [startPreviewRequest, setStartPreviewRequest] = useState<{ owner: string; generation: number } | null>(null);
+  const startPreviewInFlight = useRef<typeof startPreviewRequest>(null);
+  const startPreviewGeneration = useRef(0);
+  const previewLifetime = useRef(true);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const transitionDialogRef = useRef<HTMLElement>(null);
+  const processFamilySearchRef = useRef<HTMLInputElement>(null);
+  const transitionCancelRef = useRef<HTMLButtonElement>(null);
+  const transitionReturnFocusRef = useRef<HTMLElement>(null);
+  const returnTransitionFocus = useRef(false);
   const [showSamplePicker, setShowSamplePicker] = useState(false);
   const [sampleQuery, setSampleQuery] = useState("");
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
@@ -119,6 +134,73 @@ export function ProcessingWorkspacePage() {
   const samplePickerLoading = samplePickerState.key !== samplePickerKey || samplePickerState.loading;
   const samplePickerError = samplePickerState.key === samplePickerKey ? samplePickerState.error : "";
   const transitionTargetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
+  // A new opening is a new session, even when every business identifier is unchanged.
+  const transitionOwner = transitionMode && sample ? JSON.stringify([
+    transition?.session, sample.id, sample.updatedAt, selectedRun?.id, selectedRun?.status,
+    transitionMode, transitionTargetRun?.id, transitionTargetRun?.status,
+    transitionTargetRun?.currentPlanRevisionId, transitionTargetRun?.templateVersionId,
+  ]) : null;
+  const familiesOwner = transitionMode === "start" && transitionOwner
+    ? JSON.stringify([transitionOwner, processFamilyQuery]) : null;
+  const versionsFamilyId = transitionMode === "start" ? selectedProcessFamilyId : transitionTargetRun?.recipeFamilyId;
+  const versionsOwner = transitionOwner
+    ? JSON.stringify([transitionOwner, versionsFamilyId, transitionTargetRun?.templateVersion]) : null;
+  const processFamilies = loadedProcessFamilies?.owner === familiesOwner ? loadedProcessFamilies.value : [];
+  const processVersions = loadedProcessVersions?.owner === versionsOwner ? loadedProcessVersions.value : [];
+  const templateVersionId = templateSelection?.owner === versionsOwner ? templateSelection.value : "";
+  const previewOwner = versionsOwner && templateVersionId ? JSON.stringify([versionsOwner, templateVersionId]) : null;
+  const currentPreviewOwner = useRef(previewOwner);
+  currentPreviewOwner.current = previewOwner;
+  const currentPickerOwners = useRef({ families: familiesOwner, versions: versionsOwner });
+  currentPickerOwners.current = { families: familiesOwner, versions: versionsOwner };
+  const planPreview = loadedPlanPreview?.owner === previewOwner
+    && loadedPlanPreview.value.nextTemplateVersionId === templateVersionId ? loadedPlanPreview.value : null;
+  const runStartPreview = loadedRunStartPreview?.owner === previewOwner
+    && loadedRunStartPreview.value.template.id === templateVersionId ? loadedRunStartPreview.value : null;
+  const errorOwner = previewOwner ?? transitionOwner;
+  const runStartError = runStartFailure && (runStartFailure.owner === previewOwner || runStartFailure.owner === transitionOwner)
+    ? runStartFailure.value : "";
+  const previewLoading = startPreviewRequest !== null && startPreviewRequest.owner === previewOwner;
+  const transitionBusy = assigning || previewLoading;
+
+  function setTemplateVersionId(id: string, owner = versionsOwner) {
+    setTemplateSelection(owner && id ? { owner, value: id } : null);
+  }
+  function setRunStartError(message: string, owner = errorOwner) {
+    setRunStartFailure(owner && message ? { owner, value: message } : null);
+  }
+  function closeTransition() {
+    currentPreviewOwner.current = null;
+    returnTransitionFocus.current = true;
+    setTransition(null);
+    setPlanPreview(null);
+    setRunStartPreview(null);
+    setRunStartError("");
+  }
+  useModalDialog({
+    dialogRef: transitionDialogRef,
+    initialFocusRef: transitionMode === "start" ? processFamilySearchRef : transitionCancelRef,
+    returnFocusRef: transitionReturnFocusRef,
+    enabled: Boolean(sample && transitionMode && !runStartPreview),
+    blocked: transitionBusy,
+    onClose: closeTransition,
+  });
+  useEffect(() => {
+    previewLifetime.current = true;
+    return () => { previewLifetime.current = false; };
+  }, []);
+  useEffect(() => {
+    if (transition && transition.sampleId !== sampleId) closeTransition();
+  // The source identity, rather than a refresh of its data, closes the session.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sampleId]);
+  useEffect(() => {
+    const target = transitionReturnFocusRef.current;
+    if (!transitionMode && !transitionBusy && returnTransitionFocus.current && target?.isConnected && !target.matches(":disabled")) {
+      returnTransitionFocus.current = false;
+      target.focus({ preventScroll: true });
+    }
+  }, [transitionMode, transitionBusy]);
   const gridColumns = useMemo(() => {
     if (!sample || !selectedRun) return [];
     return samples.map((item) => ({
@@ -141,10 +223,7 @@ export function ProcessingWorkspacePage() {
 
   useEffect(() => {
     if (!sample || requestedAction !== "start" || activeRun || transitionMode) return;
-    setTransitionMode("start");
-    setTemplateVersionId("");
-    setPlanPreview(null);
-    setRunStartPreview(null);
+    openTransition("start");
     const next = new URLSearchParams(searchParams);
     next.delete("action");
     setSearchParams(next, { replace: true });
@@ -152,11 +231,26 @@ export function ProcessingWorkspacePage() {
 
   useEffect(() => {
     setPlanPreview(null);
+    setRunStartPreview(current => current?.owner === previewOwner ? current : null);
+    if (startPreviewInFlight.current && startPreviewInFlight.current.owner !== previewOwner) {
+      startPreviewInFlight.current = null;
+      setStartPreviewRequest(null);
+    }
     setRunStartError("");
-    const targetRun = transitionMode === "update" ? activeRun : transitionMode === "reopen" ? selectedRun : null;
-    if (!sample || !targetRun || !templateVersionId) return;
-    api.previewPlanUpdate(sample.id, targetRun.id, templateVersionId).then(setPlanPreview).catch((error: Error) => setRunStartError(error.message));
-  }, [sample, activeRun, selectedRun, templateVersionId, transitionMode]);
+    if (!sample || !transitionTargetRun || !templateVersionId || !previewOwner) return;
+    const owner = previewOwner;
+    let active = true;
+    api.previewPlanUpdate(sample.id, transitionTargetRun.id, templateVersionId)
+      .then(value => {
+        if (active && currentPreviewOwner.current === owner) setPlanPreview({ owner, value });
+      })
+      .catch((error: Error) => {
+        if (active && currentPreviewOwner.current === owner) setRunStartError(error.message, owner);
+      });
+    return () => { active = false; };
+  // Stable ownership includes the sample state, selected run, plan revision and incoming version.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewOwner]);
 
   useEffect(() => {
     if (!showSamplePicker) return;
@@ -195,35 +289,36 @@ export function ProcessingWorkspacePage() {
   }, [sampleQuery, selectedRun?.recipeFamilyId, selectedRun?.runKind, selectedRun?.status, samplePickerKey, samplePickerRetry, showSamplePicker]);
 
   useEffect(() => {
-    if (transitionMode !== "start") return;
+    if (transitionMode !== "start" || !familiesOwner) return;
+    const owner = familiesOwner;
     const controller = new AbortController();
     setProcessFamiliesLoading(true);
     const timeout = window.setTimeout(() => {
       api.listTemplateFamilies({ query: processFamilyQuery, pageSize: 50, signal: controller.signal })
         .then(({ families }) => {
-          setProcessFamilies(families);
+          if (controller.signal.aborted || currentPickerOwners.current.families !== owner) return;
+          setProcessFamilies({ owner, value: families });
           setRunStartError("");
         })
         .catch((error: Error) => {
-          if (error.name !== "AbortError") setRunStartError(error.message);
+          if (!controller.signal.aborted && currentPickerOwners.current.families === owner && error.name !== "AbortError") setRunStartError(error.message, transitionOwner);
         })
         .finally(() => {
-          if (!controller.signal.aborted) setProcessFamiliesLoading(false);
+          if (!controller.signal.aborted && currentPickerOwners.current.families === owner) setProcessFamiliesLoading(false);
         });
     }, processFamilyQuery.trim() ? 160 : 0);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [processFamilyQuery, transitionMode]);
+  }, [processFamilyQuery, transitionMode, familiesOwner]);
 
   useEffect(() => {
-    if (!transitionMode) return;
-    const familyId = transitionMode === "start"
-      ? selectedProcessFamilyId
-      : transitionTargetRun?.recipeFamilyId;
+    if (!transitionMode || !versionsOwner) return;
+    const owner = versionsOwner;
+    const familyId = versionsFamilyId;
     if (!familyId) {
-      setProcessVersions([]);
+      setProcessVersions(null);
       setTemplateVersionId("");
       setProcessVersionsLoading(false);
       return;
@@ -232,19 +327,20 @@ export function ProcessingWorkspacePage() {
     setProcessVersionsLoading(true);
     api.listTemplateFamilyVersions(familyId, { signal: controller.signal })
       .then(({ versions }) => {
+        if (controller.signal.aborted || currentPickerOwners.current.versions !== owner) return;
         const availableVersions = availableProcessTemplateVersions(
           versions,
           transitionTargetRun?.templateVersion,
         );
-        setProcessVersions(availableVersions);
-        setTemplateVersionId((current) => selectedProcessTemplateVersionId(availableVersions, current));
+        setProcessVersions({ owner, value: availableVersions });
+        setTemplateSelection(current => ({ owner, value: selectedProcessTemplateVersionId(availableVersions, current?.owner === owner ? current.value : "") }));
         setRunStartError("");
       })
       .catch((error: Error) => {
-        if (error.name !== "AbortError") setRunStartError(error.message);
+        if (!controller.signal.aborted && currentPickerOwners.current.versions === owner && error.name !== "AbortError") setRunStartError(error.message, transitionOwner);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setProcessVersionsLoading(false);
+        if (!controller.signal.aborted && currentPickerOwners.current.versions === owner) setProcessVersionsLoading(false);
       });
     return () => controller.abort();
   }, [
@@ -252,6 +348,8 @@ export function ProcessingWorkspacePage() {
     transitionMode,
     transitionTargetRun?.recipeFamilyId,
     transitionTargetRun?.templateVersion,
+    versionsFamilyId,
+    versionsOwner,
   ]);
 
   function updateSearchParams(updates: { with?: string[]; run?: string }) {
@@ -279,18 +377,26 @@ export function ProcessingWorkspacePage() {
   }
 
   async function beginProcessRun() {
-    if (!templateVersionId) return;
-    setAssigning(true); setError("");
+    const owner = previewOwner;
+    if (!templateVersionId || !owner || assigning || startPreviewInFlight.current?.owner === owner) return;
+    const request = { owner, generation: ++startPreviewGeneration.current };
+    startPreviewInFlight.current = request;
+    setStartPreviewRequest(request); setError("");
+    const isCurrent = () => previewLifetime.current && currentPreviewOwner.current === owner && startPreviewInFlight.current === request;
     try {
       const preview = await api.previewRunStart(sampleId, templateVersionId);
-      setRunStartPreview(preview);
-      setRunStartError("");
-    } catch (error) { setRunStartError((error as Error).message); }
-    finally { setAssigning(false); }
+      if (!isCurrent()) return;
+      setRunStartPreview({ owner, value: preview });
+      setRunStartError("", owner);
+    } catch (error) { if (isCurrent()) setRunStartError((error as Error).message, owner); }
+    finally {
+      if (isCurrent()) { startPreviewInFlight.current = null; setStartPreviewRequest(null); }
+    }
   }
 
   async function confirmProcessTransition() {
-    if (!templateVersionId || !runStartPreview || !transitionMode) return;
+    if (!previewOwner || currentPreviewOwner.current !== previewOwner || !templateVersionId || !runStartPreview || !runStartPreview.canConfirm || !transitionMode
+      || (transitionMode !== "start" && !planPreview?.compatible)) return;
     setAssigning(true); setRunStartError("");
     try {
       const currentPlanRevisionId = (transitionMode === "update" ? activeRun : selectedRun)?.currentPlanRevisionId;
@@ -315,7 +421,7 @@ export function ProcessingWorkspacePage() {
         updateSearchParams({ run: targetRun.id });
       }
       setRunStartPreview(null);
-      setTransitionMode(null);
+      closeTransition();
       setTemplateVersionId("");
       setPlanPreview(null);
       await load();
@@ -353,13 +459,16 @@ export function ProcessingWorkspacePage() {
     finally { setAssigning(false); }
   }
 
-  function openTransition(mode: "start" | "update" | "reopen") {
-    setTransitionMode(mode);
+  function openTransition(mode: TransitionMode) {
+    transitionReturnFocusRef.current = workspaceRef.current?.querySelector<HTMLElement>(mode === "start"
+      ? 'button[aria-label="Start run"]' : 'button[aria-label="Run actions"]') ?? null;
+    returnTransitionFocus.current = false;
+    setTransition({ mode, sampleId, session: ++transitionSequence.current });
     setProcessFamilyQuery("");
     setSelectedProcessFamilyId("");
     setSelectedProcessFamily(null);
-    setProcessFamilies([]);
-    setProcessVersions([]);
+    setProcessFamilies(null);
+    setProcessVersions(null);
     setProcessFamiliesLoading(mode === "start");
     setProcessVersionsLoading(mode !== "start");
     setTemplateVersionId("");
@@ -370,16 +479,17 @@ export function ProcessingWorkspacePage() {
   }
 
   function selectProcessFamily(family: ProcessTemplateFamilySummary) {
+    const owner = transitionOwner ? JSON.stringify([transitionOwner, family.recipeFamilyId, transitionTargetRun?.templateVersion]) : null;
     setSelectedProcessFamilyId(family.recipeFamilyId);
     setSelectedProcessFamily(family);
-    setProcessVersions([family.latest]);
-    setTemplateVersionId(family.latest.id);
+    setProcessVersions(owner ? { owner, value: [family.latest] } : null);
+    setTemplateVersionId(family.latest.id, owner);
     setPlanPreview(null);
     setRunStartPreview(null);
     setRunStartError("");
   }
 
-  if (!sample) return <div className="page processing-workspace-page sample-page">
+  if (!sample) return <div ref={workspaceRef} className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
     <div className="page-heading"><div><p className="eyebrow">Cleanroom workspace</p><h1>Processing workspace</h1></div></div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
@@ -410,7 +520,7 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: "Update future plan",
       icon: <ActionIcon name="plan-update" />,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => openTransition("update"),
     };
     if (action === "finish_run") return {
@@ -421,7 +531,7 @@ export function ProcessingWorkspacePage() {
         : "Complete this active run",
       icon: <ProcessingActionIcon name="done" />,
       danger: unfinishedCurrentSteps.length > 0,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => {
         setFinishRunError("");
         setConfirmingRunFinish(true);
@@ -431,7 +541,7 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: "Reopen with updated template",
       icon: <ActionIcon name="plan-update" />,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => openTransition("reopen"),
     };
     if (action === "delete_run") return {
@@ -440,7 +550,7 @@ export function ProcessingWorkspacePage() {
       description: "Permanently remove this run",
       icon: <ActionIcon name="delete" />,
       danger: true,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => {
         setDeleteRunError("");
         setConfirmingRunDelete(true);
@@ -450,7 +560,7 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: "View active process",
       icon: <ActionIcon name="process" />,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => activeRun && updateSearchParams({ run: activeRun.id }),
     };
   });
@@ -459,18 +569,18 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: processStartLabel,
       icon: <ActionIcon name="process" />,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => openTransition("start"),
     }
     : {
       id: action,
       label: "Start metrology",
       icon: <ActionIcon name="metrology" />,
-      disabled: assigning,
+      disabled: transitionBusy,
       onSelect: () => setShowMetrologyPicker(true),
     });
 
-  return <div className="page processing-workspace-page sample-page">
+  return <div ref={workspaceRef} className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
     <div className="sample-header">
       <div className="sample-header-copy"><p className="eyebrow">Processing · {sample.code}</p><h1>{sample.title}</h1><p className="lead">Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p></div>
@@ -503,8 +613,8 @@ export function ProcessingWorkspacePage() {
             : <strong title={selectedRunLabel}>{selectedRunLabel}</strong>}
         </div>
         <div className="run-control-menus">
-          <RunActionMenu label="Run actions" icon={<ActionIcon name="actions" />} items={runActionItems} disabled={assigning} />
-          <RunActionMenu label="Start run" icon={<ActionIcon name="start" />} items={startActionItems} disabled={assigning} primary />
+          <RunActionMenu label="Run actions" icon={<ActionIcon name="actions" />} items={runActionItems} disabled={transitionBusy} />
+          <RunActionMenu label="Start run" icon={<ActionIcon name="start" />} items={startActionItems} disabled={transitionBusy} primary />
         </div>
       </div>
 
@@ -537,7 +647,7 @@ export function ProcessingWorkspacePage() {
         summary={`${selectedRunLabel}${unfinishedCurrentSteps.length
           ? ` · ${unfinishedCurrentSteps.length} unfinished step${unfinishedCurrentSteps.length === 1 ? "" : "s"} will be skipped`
           : ""}`}
-        deleting={assigning}
+        deleting={transitionBusy}
         error={finishRunError}
         confirmLabel={unfinishedCurrentSteps.length
           ? `Finish and skip ${unfinishedCurrentSteps.length} step${unfinishedCurrentSteps.length === 1 ? "" : "s"}`
@@ -554,7 +664,7 @@ export function ProcessingWorkspacePage() {
         title={`Delete this ${selectedRun.runKind} run?`}
         description="The run and its steps, comments, attachment associations, plan revisions, and verification records will be removed. Existing timeline entries remain as read-only history; detached files follow the normal retention period before cleanup."
         summary={selectedRunLabel}
-        deleting={assigning}
+        deleting={transitionBusy}
         error={deleteRunError}
         confirmLabel="Delete run"
         busyLabel="Deleting…"
@@ -564,16 +674,16 @@ export function ProcessingWorkspacePage() {
         }}
         onConfirm={() => void deleteSelectedRun()}
       />}
-      {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !assigning) setTransitionMode(null); }}>
-        <section className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
-          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={assigning} onClick={() => setTransitionMode(null)} aria-label="Close"><DialogCloseIcon /></button></div>
+      {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !transitionBusy) closeTransition(); }}>
+        <section ref={transitionDialogRef} className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
+          <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={transitionBusy} onClick={closeTransition} aria-label="Close"><DialogCloseIcon /></button></div>
           <p className="muted">{transitionMode === "start" ? "This creates an independent process run. Earlier runs remain completed." : "Only a newer version of the same process template can continue this run; completed steps remain frozen."}</p>
           <div className={`process-template-picker ${transitionMode === "start" ? "" : "fixed-family"}`}>
             {transitionMode === "start" && <section className="process-template-picker-column">
               <div className="process-template-picker-heading"><small>1 · Process family</small><strong>{selectedProcessFamily?.name || "Choose a family"}</strong></div>
-              <label className="search-box process-family-search"><span>Search process families</span><input autoFocus value={processFamilyQuery} onChange={(event) => setProcessFamilyQuery(event.target.value)} placeholder="Etch, bonding, lithography…" /></label>
+              <label className="search-box process-family-search"><span>Search process families</span><input ref={processFamilySearchRef} autoFocus value={processFamilyQuery} onChange={(event) => setProcessFamilyQuery(event.target.value)} placeholder="Etch, bonding, lithography…" /></label>
               <div className="template-picker-list process-family-list">
-                {processFamilies.map((family) => <button type="button" className={selectedProcessFamilyId === family.recipeFamilyId ? "selected" : ""} aria-pressed={selectedProcessFamilyId === family.recipeFamilyId} key={family.recipeFamilyId} disabled={assigning} onClick={() => selectProcessFamily(family)}>
+                {processFamilies.map((family) => <button type="button" className={selectedProcessFamilyId === family.recipeFamilyId ? "selected" : ""} aria-pressed={selectedProcessFamilyId === family.recipeFamilyId} key={family.recipeFamilyId} disabled={transitionBusy} onClick={() => selectProcessFamily(family)}>
                   <span><strong>{family.name}</strong><small>{family.versionCount} version{family.versionCount === 1 ? "" : "s"} · latest v{family.latestVersion}</small></span>
                   <span>{selectedProcessFamilyId === family.recipeFamilyId ? "Selected" : "Select"}</span>
                 </button>)}
@@ -588,7 +698,7 @@ export function ProcessingWorkspacePage() {
                 {transitionTargetRun && <span>Current version · v{transitionTargetRun.templateVersion}</span>}
               </div>
               <div className="template-picker-list process-version-list">
-                {processVersions.map((version) => <button type="button" className={templateVersionId === version.id ? "selected" : ""} aria-pressed={templateVersionId === version.id} key={version.id} disabled={assigning} onClick={() => { setTemplateVersionId(version.id); setRunStartError(""); }}>
+                {processVersions.map((version) => <button type="button" className={templateVersionId === version.id ? "selected" : ""} aria-pressed={templateVersionId === version.id} key={version.id} disabled={transitionBusy} onClick={() => { setTemplateVersionId(version.id); setRunStartError(""); }}>
                   <span><strong>Version {version.version}</strong><small>{version.stepCount} executable steps{version.sourceFilename ? ` · ${version.sourceFilename}` : ""}</small></span>
                   <span>{templateVersionId === version.id ? "Selected" : "Use"}</span>
                 </button>)}
@@ -602,10 +712,10 @@ export function ProcessingWorkspacePage() {
           {!processVersionsLoading && !processVersions.length && transitionMode !== "start" && <p className="warning-card compact-warning">Import a newer version of this process template before updating or reopening the run.</p>}
           {(transitionMode === "update" || transitionMode === "reopen") && planPreview && <div className={`transition-plan-summary ${planPreview.compatible ? "" : "has-conflict"}`}><strong>{planPreview.compatible ? `${planPreview.preservedCount} linked · ${planPreview.additionCount} new · ${planPreview.supersededCount} replaced` : "This version cannot be applied"}</strong><small>{planPreview.blockingReason || `${planPreview.skippedAdditionCount ? `${planPreview.skippedAdditionCount} inserted before the execution boundary will be skipped · ` : ""}${planPreview.historicalDifferences.length} historical difference${planPreview.historicalDifferences.length === 1 ? "" : "s"} retained`}</small></div>}
           {runStartError && <p className="error-banner">{runStartError}</p>}
-          <div className="form-actions"><button type="button" className="button" disabled={assigning} onClick={() => setTransitionMode(null)}>Cancel</button><button type="button" className="button primary" disabled={!templateVersionId || assigning || Boolean(transitionMode !== "start" && !planPreview?.compatible)} onClick={() => void (transitionMode === "start" ? beginProcessRun() : planPreview && setRunStartPreview(planPreview.substrateTransition))}>{assigning ? "Loading…" : "Compare structures"}</button></div>
+          <div className="form-actions"><button ref={transitionCancelRef} type="button" className="button" disabled={transitionBusy} onClick={closeTransition}>Cancel</button><button type="button" className="button primary" disabled={!templateVersionId || transitionBusy || Boolean(transitionMode !== "start" && !planPreview?.compatible)} onClick={() => void (transitionMode === "start" ? beginProcessRun() : planPreview && previewOwner && setRunStartPreview({ owner: previewOwner, value: planPreview.substrateTransition }))}>{transitionBusy ? "Loading…" : "Compare structures"}</button></div>
         </section>
       </div>}
-      {runStartPreview && transitionMode && <StartProcessRunDialog preview={runStartPreview} action={transitionMode} starting={assigning} error={runStartError} onCancel={() => { setRunStartPreview(null); setRunStartError(""); }} onConfirm={() => void confirmProcessTransition()} />}
+      {runStartPreview && transitionMode && <StartProcessRunDialog preview={runStartPreview} action={transitionMode} starting={transitionBusy} error={runStartError} onCancel={() => { setRunStartPreview(null); setRunStartError(""); }} onConfirm={() => void confirmProcessTransition()} />}
     </section>
   </div>;
 }

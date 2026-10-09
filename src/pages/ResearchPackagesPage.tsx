@@ -253,7 +253,7 @@ export function ResearchPackagesPage() {
     } catch (error) {
       if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
       if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) reportFailure(error);
-      else { setReadError(researchPackageErrorMessage(error)); setReadPhase("error"); }
+      else { setReadError("Package status could not be read. Retry the status check."); setReadPhase("error"); }
     }
   }
   useEffect(() => {

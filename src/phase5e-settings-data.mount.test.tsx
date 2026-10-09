@@ -158,6 +158,41 @@ describe("Phase 5E truthful Settings and Data read states", () => {
     expect(screen.queryByRole("alert")).toBeNull(); expect(mutations()).toHaveLength(0);
   });
 
+  it.each(savedWorkCases.flatMap(scenario => ["network", "HTTP 500"].map(failure => ({ ...scenario, failure }))))(
+    "keeps a failed first $name read separate from an unconfirmed write ($failure)", async scenario => {
+      let unavailable = true;
+      network.mockImplementation(async path => {
+        if (unavailable && String(path) === `${scenario.base}/jobs`) {
+          if (scenario.failure === "network") throw new TypeError("PRIVATE_STATUS_DETAIL");
+          return json({ credentials: "PRIVATE_STATUS_DETAIL" }, 500);
+        }
+        return savedWorkRead(path, false);
+      });
+      scenario.mount();
+      const alert = await screen.findByRole("alert");
+      expect(alert.textContent).toContain(scenario.name === "package"
+        ? "Package status could not be read. Retry the status check."
+        : "Recovery access or status could not be read. Retry the status check.");
+      expect(alert.textContent).not.toContain("original request");
+      expect(screen.queryByRole("heading", { name: "Unconfirmed operation" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Administrator access required" })).toBeNull();
+      expect(screen.queryByText(scenario.empty)).toBeNull();
+      expect(document.body.textContent).not.toContain("PRIVATE_STATUS_DETAIL");
+      expect(sessionStorage.getItem(scenario.key)).toBeNull();
+      expect(mutations()).toHaveLength(0);
+
+      const readsBeforeRetry = network.mock.calls.length;
+      unavailable = false; fireEvent.click(screen.getByRole("button", { name: scenario.retry }));
+      await screen.findByText(scenario.empty);
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(network.mock.calls.slice(readsBeforeRetry).map(([path]) => String(path))).toEqual(scenario.name === "package"
+        ? [`${scenario.base}/jobs`, `${scenario.base}/executor`]
+        : [`${scenario.base}/capabilities`, `${scenario.base}/jobs`, `${scenario.base}/maintenance`]);
+      expect(mutations()).toHaveLength(0);
+      expect(sessionStorage.getItem(scenario.key)).toBeNull();
+    },
+  );
+
   it("keeps read package jobs and an unconfirmed request intact when a later status read fails", async () => {
     const original = { action: "export", input: { requestId: "unconfirmed:package", kind: "report", roots: [{ kind: "sample", id: "sample:1" }] } };
     sessionStorage.setItem("research-package-operation", JSON.stringify(original));

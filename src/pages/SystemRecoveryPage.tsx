@@ -275,7 +275,7 @@ export function SystemRecoveryPage() {
     } catch (error) {
       if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
       if (error instanceof SystemRecoveryRequestError && [401, 403].includes(error.status || 0)) failure(error);
-      else { setReadError(systemRecoveryErrorMessage(error)); setReadPhase("error"); }
+      else { setReadError("Recovery access or status could not be read. Retry the status check."); setReadPhase("error"); }
     }
   }
   useEffect(() => {
