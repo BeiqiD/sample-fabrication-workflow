@@ -4,13 +4,15 @@ Status: long-horizon direction. The [Product roadmap](./PRODUCT_ROADMAP.md#near-
 owns current sequence and release scope.
 
 Last reviewed: 2026-10-09 against integration `474a038` and synchronized
-local development `2060c745` (not yet integrated/deployed).
+local development `20176fc5` (not yet integrated/deployed).
 
 FP1 File authority/R2 defaults are historically deployed. **FP2, FP3, FP4 and
 FP5 are now locally implemented and qualified** on the synchronized development
 branch, with V21–V24 paired recovery and migrations `0018`–`0022`.
-Bounded local C4, 5D and 5E have likewise completed. The immediate work is
-remote CI remediation, implementation review/integration, **5F**, finite measured
+Bounded local C4, 5D and 5E have likewise completed. **5F is in progress** with
+its initial bounded implementation committed and pushed. The immediate work is
+complete exact-head gate qualification, implementation review/integration and
+continued **5F**, alongside finite measured
 performance cleanup, 6A6 and scoped 6B; remaining real-provider/device/deployed
 acceptance is not waived. See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
 Detailed FP milestones below are durable design commitments, **not** an assertion
@@ -34,8 +36,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary |
 | --- | --- | --- |
-| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Repair exact-head remote CI, review and integrate complete native File/archive pairs; preserve historical deployed V20 separately from local V24. |
-| Next | 5F and finite performance/maintenance | Cross-page consistency, keyboard/focus and read/retry identities, realistic mixed-domain flows; measured multi-card save/Processing/CI/archive costs. |
+| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Qualify exact-head complete gates, review and integrate complete native File/archive pairs and initial bounded 5F repairs; preserve historical deployed V20 separately from local V24. |
+| In progress | 5F and finite performance/maintenance | Cross-page consistency, keyboard/focus and read/retry identities, realistic mixed-domain flows; measured multi-card save/Processing/CI/archive costs. |
 | First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
 | Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
 | Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |
@@ -391,5 +393,8 @@ The proposed FP track does not require:
 - account-level preference sync or appearance expansion before functional needs.
 
 Universal file portability, explicit migration and paired native export/import
-are now planned deliverables, not items on this deferred list. Their current
-status remains design review, with implementation scheduled only after review.
+are locally implemented and qualified on the synchronized FP2–FP5 development
+branch. Real-provider, deployed and integrated release exits remain open; these
+capabilities are not items on this deferred list. The
+[Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns their current
+implementation, integration and acceptance status.

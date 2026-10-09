@@ -8,8 +8,10 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 The active V3 integration line is `v2/backend-foundation` (last merged
 checkpoint `474a038`); `main` has not received its first integrated V3 release.
-A **separate synchronized development branch** at `2060c745`
-contains locally qualified FP2–FP5 and C4/5D/5E changes not yet merged/deployed.
+A **separate synchronized development branch** at `20176fc5`
+contains locally qualified FP2–FP5 and C4/5D/5E changes plus the initial bounded
+5F implementation, not yet merged/deployed. **5F remains in progress**; complete
+local and exact-head remote gates are not yet qualified at this checkpoint.
 This README distinguishes that **development V24** from the **deployed V20**
 runtime. See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
 before using any capability on a live installation.
@@ -54,7 +56,7 @@ The application deploys as one Cloudflare Worker project.
 | Hono on Cloudflare Workers | API, authentication checks, reference resolution and search, exports, scheduled cleanup, and storage orchestration |
 | Cloudflare D1 | Samples, templates, runs, events, comments, reference registry, hashes, retention edges, GC ledger, and file metadata |
 | Private Cloudflare R2 | Default destination for both ordinary/internal files and unchanged originals after FP1 |
-| File registry and exact-profile adapters | Logical File locations and lifecycle; historical SWITCHdrive/WebDAV access, with native S3 integration still in progress |
+| File registry and exact-profile adapters | Logical File locations and lifecycle; historical SWITCHdrive/WebDAV access. Native S3 is implemented in the separate local successor and is not qualified on the historical deployed V20 runtime. |
 | Cloudflare Access | User authentication; the Worker validates the Access JWT again before serving protected API routes |
 
 File reads resolve their recorded profile and location. New writes select a storage role at acceptance, and retries retain that destination. Provider authentication and requests remain inside adapters; changing a future default will not migrate old files.

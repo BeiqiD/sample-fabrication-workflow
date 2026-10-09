@@ -2,17 +2,21 @@
 
 Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
 **Bounded local C4, 5D and 5E development completed** on synchronized
-`codex/fp2-fp3-development` at `2060c745`;
+`codex/fp2-fp3-development`, now at `20176fc5`;
 formal device/OS-input, deployed-provider and combined-product acceptance
-remain open. **Next implementation slice: 5F** (not started as of 2026-10-09).
+remain open. **5F is in progress** with its initial bounded implementation
+committed and pushed; this does not close the whole phase.
 
 The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
 not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
 [5D completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5D_ACCEPTANCE.md) and
 [5E completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md) describe bounded work and
 explicit unqualified cases. The latter passed 400 core browser cases plus
-supplemental checks under a bounded local source configuration; default
-five-second CI has not passed on the synchronized head.
+supplemental checks under a bounded local source configuration. The historical
+`2060c745` default-five-second CI failure remains recorded; the later `4479295`
+Verify run was cancelled at the 20-minute whole-job budget. At `20176fc5`,
+complete local and remote gates are not yet qualified; see the
+[current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint).
 
 [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
 now schedules exact-head CI/integration review, 5F and a finite performance lane
@@ -519,7 +523,12 @@ their intentional density and workflow differences.
 
 ### Phase 5F — cross-product integration review
 
-Status: **next unstarted implementation phase** on the synchronized checkpoint.
+Status: **bounded development in progress** at `20176fc5`. Initial read-state,
+preview ownership, modal focus and narrow-grid repairs are committed and pushed;
+complete cross-product qualification remains open. See
+[the current 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
+and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
+local results and the still-open exact-head gate and real-plan/mutation cases.
 Divide the work into 5F-1 (cross-page semantics and action ownership),
 5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and
 recovery identity), and 5F-3 (representative mixed-domain browser,
@@ -1217,11 +1226,15 @@ Phase 5 is complete only when:
 - all exact-head CI and affected permanent gates are green;
 - the measured frontend baseline and product roadmap are updated for Phase 6.
 
-Backend Phase 6A now proceeds ahead of the remaining frontend refinement without
-reopening completed Phase 5 visual or interaction scope; its bounded plan is in
+Historical Phase 6A ownership/S2 work proceeded ahead of the remaining frontend
+refinement without reopening completed Phase 5 visual or interaction scope;
+6A6 remains open, and its bounded plan is in
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
-The frontend track resumes in its existing C4/5D/5E/5F order. Phase 6B release
-validation and operational rehearsal requires both the final frontend baseline
+Bounded local C4, 5D and 5E development is complete; their remaining formal
+acceptance retains its scope. The frontend implementation track continues with
+5F in progress; initial bounded repairs do not close final integrated acceptance.
+Phase 6B release validation and operational
+rehearsal requires both the final frontend baseline
 and the completed backend stabilization gate. Optional
 trusted derivative generation, transport convergence, Docker distribution,
 semantic/LLM features, real-time collaboration, and other deferred capabilities

@@ -86,7 +86,11 @@ No content schema or archive changes are required. V20 and frozen predecessors
 remain unchanged, and this service does not add an activation or default-change
 route. Native S3 byte addresses, accepted write receipts, File-only business
 bindings and paired recovery still require a reviewed successor generation.
-The FabuBlox whole-import target also needs per-purpose frozen receipts before
-internal/original defaults can diverge. Real AWS and SWITCHdrive qualification
+At the #249 / `0017` / V20 checkpoint, the FabuBlox whole-import target also
+needed per-purpose frozen receipts before internal/original defaults could
+diverge. This historical prerequisite is locally implemented in the synchronized
+FP2 successor; its integration and provider acceptance exits remain open. See
+[the current FP2 status](./PRODUCT_ROADMAP.md#fp2-completion-units).
+Real AWS and SWITCHdrive qualification
 remain separate deployment acceptance; the existing waived live ZIP exercise
 is not repeated for this runtime-only change.

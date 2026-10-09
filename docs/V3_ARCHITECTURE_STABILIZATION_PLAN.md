@@ -4,14 +4,16 @@ Status: selected S2 baseline, Worker ownership and shared contracts merged/
 deployed historically. **6A6 is not closed.** Synchronized FP2–FP5 local
 development through `0022` / V24 and C4/5D/5E local acceptance are newer
 evidence, **not yet integrated or deployed**. Reviewed 2026-10-09 against
-integration `474a038` and development `2060c745`.
+integration `474a038` and development `20176fc5`.
 
 The [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns the
-version-aware current matrix. Exact-head remote CI on the synchronized branch
-currently fails one V21 restore test at the default 5-second timeout; this
-must be diagnosed before claiming full gates or a merge-ready baseline.
-Do not recut immutable S2 or restart delivered 6A1–6A5 extraction.
-The next frontend implementation is **5F**; 6A6/6B must qualify the
+version-aware current matrix. The historical `2060c745` default-five-second
+V21 restore failure and `4479295` 20-minute job-budget cancellation remain
+distinct evidence. Current head `20176fc5` has a 40-minute Verify job budget
+with the default Vitest deadline still at 5 seconds and existing case-specific
+limits unchanged; complete local and exact-head remote gates are not yet qualified. Do not recut immutable S2 or restart delivered
+6A1–6A5 extraction. Frontend **5F is in progress** with its initial bounded
+implementation committed and pushed; 6A6/6B must qualify the
 **actual combined tree and the chosen enabled FP2–FP5 release scope**.
 
 This plan owns behavior-preserving cleanup, migrations/compatibility hygiene
@@ -104,8 +106,8 @@ The stabilization phase will not:
 
 ## Relationship to Phase 5 and release hardening
 
-The user has chosen to pause new frontend refinement and prioritize backend
-review/correction. Phase 6A1 used the deployed PR #185 frontend behavior as the
+The historical Phase 6A1 sequence prioritized backend review/correction ahead
+of new frontend refinement. Phase 6A1 used the deployed PR #185 frontend behavior as the
 initial regression reference. Complete export/restore and representative
 large-Project characterization, demonstrated defect repairs, and Phase 6A2/6A3
 Worker/contract ownership work are merged. Continue from the current late-stage
@@ -123,9 +125,9 @@ sequence, now completed for the selected S2 integration path. Preserve their
 historical schema-comparison and recovery evidence; 6A6 remains open. New FP
 schema work follows the current baseline with reviewed forward migrations.
 
-The FP track preserves outstanding C4 acceptance and the frontend 5D → 5E → 5F
-sequence; its necessary storage/upload/data UI changes are reviewed in the FP
-slices. Resume broad frontend refinement at the checkpoint in the product
+The FP track preserves outstanding formal C4/5D/5E acceptance and ongoing 5F
+review; its necessary storage/upload/data UI changes are reviewed in the FP
+slices. Continue bounded frontend refinement at the checkpoint in the product
 roadmap without repeating completed work. Backend probes cannot qualify device
 or usability claims. Phase 6B requires backend exit, the final frontend baseline
 and acceptance of the release's enabled FP capabilities. Earlier recovery and
