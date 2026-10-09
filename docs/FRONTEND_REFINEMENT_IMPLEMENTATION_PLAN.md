@@ -7,8 +7,10 @@ C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
 C4 refinements through PR #185 are merged and deployed; wider integration
 acceptance remains in progress.
 
-Last reviewed: 2026-09-13 against PR #185 integration commit
+Last implementation checkpoint reviewed: 2026-09-13 against PR #185 integration commit
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`
+
+Sequencing reviewed: 2026-10-09 against integration `474a038`.
 
 The 2026-09-13 user-authorized route revision prioritizes backend inventory,
 reliability verification, demonstrated defect repairs and behavior-preserving
@@ -18,6 +20,12 @@ the regression reference. C4's unverified cases remain open; completed keyboard,
 editor and panel work is not reopened. Resume C4 and then 5D/5E/5F after the
 backend review checkpoint. Phase 5F remains a prerequisite for final Phase 6B
 release qualification, not for beginning backend Phase 6A.
+
+October 2026 sequencing amendment: the [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
+schedules a short measured performance/maintenance tranche and complete FP2,
+then the unchanged C4 → 5D → 5E → 5F order for the first integrated release.
+FP3–FP5 follow that checkpoint. Targeted performance/correctness work may proceed
+sooner while existing visual/interaction contracts remain the baseline.
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged

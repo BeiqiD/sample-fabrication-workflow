@@ -1,8 +1,18 @@
 # FP2 profile-bound File garbage collection
 
-Status: implementation and qualification of the deployed File collector's
-provider binding and execution fences. This is an FP2 lifecycle prerequisite;
+Status: merged in #249 as `474a038e3eb79b4251b949458e252805f7851cac` and deployed
+on 2026-10-03. All 14 commit statuses and both merge-head Actions workflows passed;
+Cloudflare build `4ba3cd7a-1e22-49ec-958a-4c3fb23ebf65` deployed Worker
+`faa8a01b-0fc8-47d7-b59e-81e038bc4310`. This is an FP2 lifecycle prerequisite;
 native S3 File writes and deletion remain unavailable under `0017`/V20.
+
+The post-deployment browser observation retained both upload roles on R2 and
+File authority Active/Enabled. Historical shadow maintenance reported 4 resolved
+of 5 current references, one pending and zero unfinished attempts. Both Project
+historical references appeared resolved; the pending source was not identified.
+This is a diagnostic follow-up, not an assertion that all five are resolved or
+that a new authority transition is needed. No live cleanup was invoked and the
+owner-waived ZIP exercise was not repeated. This remains a 2026-10-03 observation.
 
 ## Exact deletion capability
 

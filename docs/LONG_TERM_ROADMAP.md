@@ -1,69 +1,20 @@
 # Long-term application roadmap
 
-Status: long-horizon direction and compatibility with the active FP track;
-not authorization to implement later capabilities
+Status: long-horizon direction; immediate sequencing and release scope belong to
+[Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release).
 
-Last reviewed: 2026-10-03 — accepted FP1, deployed FP2 configuration/S3 transport,
-deployed candidate checks #242, credential re-enveloping #243 and shared fresh
-acceptance role selection #244. Candidate check evidence #245 (`5992307`) is
-merged and deployed. AWS S3 bucket-owner condition #246 (`4d7d942`) is deployed.
-Restricted native AWS S3 profile admission with paired V20 recovery is merged
-and deployed in #247 (`07a7d8f`); real-provider acceptance remains pending
+Last reviewed: 2026-10-09 at integration `474a038` (merged #249).
 
-The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
-The reviewed [file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-has accepted **FP1 role defaults and recovery** and deployed **FP2 candidate
-configuration**.
-This track brings universal file storage, essential Settings and export/import
-forward while preserving completed Project and stabilization work. The earlier
-additive File substrate was followed by all-13-slot shadow capture, owned
-conversion and adjudication. The owner-authorized disposal of obsolete test
-Projects closed their evidence gaps; current references reached 4/4 resolved.
-#236 supplied the runtime and atomic activation, and an explicit operator command
-enabled File authority. #238 supplied R2 defaults for both roles, preserved old
-accepted destinations and added V19 recovery. After #240's download repair,
-the 6 MiB HTTP round trip and isolated V19 recovery passed on 2026-10-01;
-[exact FP1 acceptance proof](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01)
-is retained without routine repetition, alongside historical V15–V18 evidence.
+FP1 File authority and R2 defaults are accepted. FP2 configuration and internal
+transport/admission foundations are delivered, but native S3 File I/O, accepted
+writes, lifecycle, activation and independent defaults are not complete.
+The [current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) owns exact
+repository, deployment and last-observed maintenance status; focused FP documents
+retain historical acceptance evidence. Do not duplicate a moving PR log here.
 
-Deployed #239 [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
-adds an independent administrator policy, versioned candidates and encrypted
-credential storage without enabling external providers. Candidate editing
-performs no provider requests or activation. Deployed #243
-[credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md) adds atomic key
-maintenance for retained descriptor payloads while preserving check snapshots.
-Deployed #244 [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
-purpose routing while preserving the immutable R2 defaults and historical
-accepted targets; independent defaults still require a successor schema/archive.
-Ordinary V19 content packages exclude candidate configuration, audit, descriptors and
-payloads; an authorized installation backup remains a separate later capability.
-Merged and deployed #241 qualifies isolated S3 transport without activating a
-provider or changing defaults. [Bounded candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md)
-are deployed in #242; atomic activation and independent role selection follow their
-qualification. The read-only
-[candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is merged and deployed
-in #245 (`5992307`). It distinguishes exact
-current-envelope success from retained configuration history and counts
-unresolved cleanup across all checks. It
-performs no provider calls or database writes and keeps activation unavailable.
-The current live actor is read-only, so privileged provider checks have not been
-exercised on the deployment.
-
-The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
-#246 (`4d7d942`). Its optional AWS-specific request condition is a qualification
-prerequisite. The
-[native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
-is merged and deployed in #247 (`07a7d8f`) with migration `0017` and V20 recovery. It
-registers a restricted native identity and portable admission evidence while
-prohibiting S3 File locations, non-read-only state and defaults. It supplies no
-native S3 File byte access. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
-is merged and deployed in #248 (`889ef20`), preparing exact installation binding
-without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.md)
-removes legacy deletion reconstruction and fences paused/replaced executors and
-late holds without changing the schema or granting native S3 cleanup. Complete
-native byte-access/acceptance/lifecycle support and real-provider qualification precede atomic activation and independent
-defaults. V20 carries nonsecret native registration receipts while excluding the
-installation's candidate/check/credential payloads.
+The October roadmap schedules a bounded performance/maintenance tranche, complete
+FP2, then the first integrated V3 release before FP3–FP5. The later commitments
+below retain their existing contracts; a deferred capability is not marked passed.
 
 ## Product scale and engineering stance
 
@@ -83,19 +34,20 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary with current and later work |
 | --- | --- | --- |
-| Now | FP2 native identity and registration | FP1 original-file and V19 live acceptance passed. FP2 candidate settings through evidence #245 and AWS owner condition #246 are deployed. Restricted native S3 profile admission with `0017`/V20 is merged and deployed in #247 (`07a7d8f`); internal registered read transport now prepares exact installation binding without production File routing; it supplies no S3 File byte access or default change. Real-provider acceptance remains pending. Authority remains Active/Enabled with 4/4 resolved references. |
-| Next | FP2 byte runtime, activation and role defaults | Complete provider-bound byte access, accepted writes and lifecycle/GC with paired recovery. After real candidate qualification, activate atomically, then independently select internal/original defaults for new uploads. Preserve old accepted destinations and keep installation configuration out of ordinary content packages. |
-| Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated provider configurations; accepted history and recovery retain their existing identities. |
-| Then | FP4 native packages + matching website import; FP5 full backup + privileged web restore | Share snapshots, file enumeration, integrity and jobs. Readable native packages, reports and system backups retain distinct product/identity semantics. |
-| Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
-| Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual cross-deployment non-empty import/restore and runtime validation. |
-| Later shared-data milestone | Small-group users, membership and domain authorization | Extend the early admin boundary and actor/concurrency seams; no real-time editing requirement. |
-| Independently justified | Appearance preferences, measured search/derivatives, optional insight | Do not block reliable files, recovery or the deterministic research workflow. |
+| Now | Measured performance and maintenance | Establish Active/Enabled browser/API baselines; reduce proven repeated work and expensive verification setup, preserving completed Canvas and integrity behavior. |
+| Next | Complete FP2 configurable storage | Native File read/write/accepted publication/lifecycle and paired recovery, then real AWS qualification, activation and separate role defaults. Historical/default/provider boundaries remain exact. |
+| First release | C4, Phase 5D/E/F, 6A6 and scoped 6B | Qualify existing product plus FP1/FP2 and prepare the integration-to-main release. FP3–FP5 remain later; any R2-only alternative explicitly defers FP2 activation. |
+| Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated profiles; changing defaults never silently migrates old files. |
+| Then | FP4 native packages + matching website import | One export/import milestone, offline readable projection and report output using shared snapshots/files/jobs. |
+| Then | FP5 full backup + privileged web restore | Same bounded engine, explicit completeness and protected settings policy; fresh-target recovery preserves promised identity/history. |
+| Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual non-empty Cloudflare ↔ Docker import/restore and documented runtime/volume validation. |
+| Later shared-data milestone | Small-group users, membership and domain authorization | Extend the delivered system-administrator boundary and actor/concurrency seams; real-time editing is separately deferred. |
+| Independently justified | Appearance preferences, measured search/derivatives, optional insight | These do not block reliable files, recovery or the deterministic research workflow. |
 
 The exact FP sequence, gates and compatibility transition belong to the
 [implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md). This
-long-term document must not introduce alternative phase labels or silently turn
-later portability/multi-user goals into an FP release gate.
+long-term document must not introduce alternative phase labels or turn later
+portability/multi-user goals into a first-release gate.
 
 ## Advanced now — universal file management and data portability
 

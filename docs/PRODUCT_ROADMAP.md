@@ -2,178 +2,165 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-10-03 after FP1 live acceptance and deployed FP2 configuration
-#239/S3 transport #241. Candidate checks #242, credential re-enveloping #243
-and fresh acceptance selection #244 are deployed, preserving current R2 defaults.
-Read-only candidate check evidence is merged and deployed in #245 (`5992307`).
-The AWS S3 bucket-owner condition is deployed in #246 (`4d7d942`). Native AWS S3
-profile admission with paired V20 recovery is merged and deployed in #247 (`07a7d8f`);
-real-provider acceptance remains pending. PR #202's
-S2 activation is deployed; the same disposable D1 was rebuilt with file bindings preserved. Page reads and
-a zero-blob export/isolated-restore exercise remain historical evidence. Later
-R2 attachment round trips and an actual 9/9-blob V15 isolated restore passed;
-full interactive acceptance remains broader than these cases. Historical
-SWITCHdrive read/write acceptance remains blocked by authentication; #206 adds
-diagnostics, not working credentials.
-The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) remains the
-source of operational evidence and temporary control state. Backend ownership and
-shared contracts are merged. Alternative Drafts #199/#200 remain inactive.
-Project refinements through #185 are merged and deployed; wider C4 acceptance
-remains open. The file/data-portability design was reviewed and merged in #207.
-The [FP1a foundation](./FP1_FILE_REGISTRY_FOUNDATION.md) now implements dormant
-file identities/mappings and matched v9 recovery. The
-[FP1b reader boundary](./FP1_BYTE_READER_BOUNDARY.md) converges legacy byte reads
-and hardens SWITCHdrive transport. [FP1c](./FP1_VERIFIED_BYTE_WRITES.md) verifies
-source/destination bytes for current ingestion and selected reused objects.
-[FP1d](./FP1_FENCED_BYTE_DELETION.md) supplies bound deletion adapters and fences
-GC retries while uncertain deletions remain claimed. Authoritative File
-publication is delivered by #236. Subsequent slices qualified independent recovery byte
-verification, durable FabuBlox acceptance, the read-only consumer-conversion plan,
-[ordinary/Project upload acceptance](./FP1_DURABLE_R2_UPLOAD_ACCEPTANCE.md) and
-[metrology reference publication](./FP1_METROLOGY_REFERENCE_ACCEPTANCE.md).
-[FP1j Comment acceptance](./FP1_COMMENT_ACCEPTANCE.md) adds immutable inputs,
-original/preview upload ownership, cancellation fencing and atomic multi-target
-publication. FP1a–FP1j are merged through PR #219. The merged PR #220
-[FP1k additive transition substrate](./FP1_FILE_AUTHORITY_TRANSITION.md) adds
-migration `0007` and schema-14 recovery while keeping authority mode immutably
-`legacy`; it does not itself deliver runtime File authority or role defaults. The
-[preflight checkpoint](./FP1_SHADOW_CONVERSION_PREFLIGHT.md) adds executable
-read-only inspection and qualification of four observed overlap protocol gaps.
-The merged and deployed [runtime implementation](./FP1_SHADOW_RUNTIME.md) adds all-13-slot
-transactional occurrence capture, owned conversion/reconciliation, legacy-visible
-holds, exact catch-up checkpoints and V15 recovery. It requires explicit overlap
-enablement and retains legacy business authority. The separate V15 closed-snapshot
-inspector explains current-generation blockers without executing conversion.
-The bounded maintenance client exposes explicit single-item R2 conversion and
-saved-operation recovery through the deployed protocol. PR #228's live single-item pilot passed. On 2026-09-28, three more accepted
-references were converted through the deployed flow, reaching 4 resolved / 7 pending.
-PR #229's durable unaccepted-request withdrawal, migration `0009` and matched
-V16 export/recovery are deployed and accepted. Browser withdrawal/readback/reload
-passed without an additional successful conversion. PR #230's
-[historical evidence review](./FP1_HISTORICAL_EVIDENCE_REVIEW.md) is deployed.
-PR #231 delivered operator-scoped adjudication, durable withdrawal, conservative
-revocation/correction, immutable conversion bindings and matched `0010`/V17
-recovery. #232 repaired deployment verification; #233 repaired File-location
-export transport. The owner-supplied post-fix V17 ZIP passed isolated recovery
-with 10/10 files and zero warnings on 2026-09-28. This closes that archive
-acceptance; routine feature changes do not require another live ZIP rehearsal.
-The owner authorized permanent disposal of the six obsolete FP1b–FP1g test
-Projects containing those seven pending references. Migration `0011` removes
-only that trashed Project graph, records absence through the existing shadow
-triggers and preserves the physical schema, shared assets and audit history.
-Its deployment and a fresh catch-up checkpoint replace further historical
-evidence work for these discarded fixtures. The [basic Storage Settings](./FP1_STORAGE_SETTINGS.md)
-read-only surface shipped in #234; it shows deployment configuration and
-registered profiles without changing destinations or checking providers.
-The [File runtime](./FP1_FILE_AUTHORITY_RUNTIME.md) shipped in #236 with `0012`
-and V18. Its deployed ZIP passed one isolated recovery with 13/13 files and zero
-warnings. On 2026-09-30 the explicit operator command activated File authority;
-the maintenance page confirmed Active, execution Enabled and 4/4 resolved
-references. The [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md) shipped in #238
-with `0013` and V19. It keeps old accepted destinations and routes new originals
-to R2. After the #240 download repair, its 6 MiB HTTP round trip and V19 isolated
-recovery passed on 2026-10-01, closing FP1 live acceptance; exact proof is retained
-in the focused role-default document. The deployed #239
-[FP2 configuration security slice](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
-adds independent administrator authorization, immutable external candidates,
-encrypted credentials and candidate editing without enabling external providers.
-Merged and deployed #241 contains isolated S3 transport without activation or
-default changes. [Bounded candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md) are
-deployed in #242; real-provider acceptance, atomic activation and independent default selection remain later.
-[Credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md), deployed in #243, adds atomic key
-maintenance for retained descriptor payloads while preserving check snapshots.
-[Fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md), deployed in #244, centralizes
-purpose routing across binary ingress while retaining the immutable R2 defaults
-and accepted historical targets. The read-only
-[candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is merged and deployed
-in #245 (`5992307`). It distinguishes exact
-current-envelope evidence from all retained configuration history without
-provider calls or state changes. The
-[S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in #246
-(`4d7d942`). Its optional AWS-specific request condition does not activate providers
-or establish generic S3 identity. The
-[native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
-is merged and deployed in #247 (`07a7d8f`). It pairs restricted native identity and
-admission evidence with migration `0017` and V20 recovery; database guards forbid
-S3 locations, non-read-only state and S3 defaults. No native S3 File reader ships
-in that slice. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
-is merged and deployed in #248 (`889ef20`), preparing exact installation binding
-without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.md)
-uses the exact opened deletion capability and checks claim/incarnation/retention
-again before I/O and completion. This runtime change grants no native S3 cleanup
-or default change. Complete
-byte-access/acceptance/lifecycle support and real-provider qualification precede
-atomic activation and independent defaults.
-The deployed content writer is V20. V19 and V20 both
-exclude installation candidate configuration, check snapshots and credentials.
-This document records
-scope and evidence; deployment authority comes from the owner's requests.
+Last reviewed: 2026-10-09 against integration commit
+`474a038e3eb79b4251b949458e252805f7851cac` (merged PR #249).
+This planning revision changes sequencing and release scope; it implements no
+runtime, schema, provider, default, deployment or compatibility transition.
 
-This document is the single high-level roadmap for Sample Fabrication Workflow.
-Detailed identity, lifecycle, search, Project, Canvas, export, and deployment
-contracts remain in their focused documents, but their phase labels and
-priorities must not contradict this roadmap.
+## Current checkpoint
 
-The Map-first interaction and persistence contract is defined in
-[Project Canvas interaction contract](./PROJECT_CANVAS_INTERACTION_CONTRACT.md).
-The shared attachment ownership and lifecycle boundary is defined in
-[shared attachment backend contract](./ATTACHMENT_BACKEND_CONTRACT.md).
-The bounded Phase 5 sequence and verification contract are defined in
-[frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
-The behavior-preserving architecture cleanup, schema-baseline replacement, and
-release handoff are defined in
-[V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
+Repository state was read on 2026-10-09. Deployment and browser observations below
+retain their actual observation dates; they are not a new live acceptance run.
 
-## Backend-first and file/data-portability order — 2026-09-27
-
-The user has paused new frontend refinement and requested a documentation PR for
-systematic file storage, Settings, migration, readable/portable export and website
-import. That design review is complete, and the user has requested development.
-The new **FP**
-track is a capability change with its own schema, API and frontend impact; it is
-not a behavior-preserving Phase 6A extraction or a retroactive change to completed
-phase results. Each subsequent PR starts from the latest
-`v2/backend-foundation` head and preserves the currently deployed UI contracts.
-
-The canonical new boundaries and stage gates are:
-
-- [File storage architecture](./FILE_STORAGE_ARCHITECTURE.md);
-- [Data export/import design](./DATA_EXPORT_IMPORT_DESIGN.md);
-- [File/data portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
-
-| Phase order | Work | Current state and boundary |
+| Area | Verified position | Remaining boundary |
 | --- | --- | --- |
-| 1 | Preserve Phase 6A1–3 evidence and focused reliability fixes | Inventory, recovery/performance probes, Worker ownership and shared contracts are merged. Retest affected behavior; do not repeat completed extraction. |
-| 2 | Keep late 6A / S2 acceptance explicit | S2 is deployed on the same D1 with bindings preserved. R2 attachment and actual 9/9-blob V15 restore checks passed; broader interactive, live replay/stale-version, SWITCHdrive and 6A6 checks remain open. No new reset, cleanup, credential change or deployment is authorized here. |
-| 3 | FP0: review file/data-portability documents | Reviewed and merged in PR #207. |
-| 4 | FP2: configurable storage after accepted FP1 | File authority is Active/Enabled with 4/4 resolved references. FP1 R2 originals and V19 live recovery passed after #240. FP2 configuration through candidate evidence #245 and AWS owner condition #246 are deployed. Restricted native AWS S3 profile admission with `0017`/V20 is merged and deployed in #247 (`07a7d8f`); internal registered read transport prepares exact installation binding without production File routing; it enables no S3 File access or defaults. Complete byte-access/acceptance/lifecycle support and real-provider qualification precede activation and independent defaults. |
-| 5 | FP3 → FP4 → FP5: migration and data portability | Persisted bounded jobs and all-file migration; paired native package export/site import with report projection; full backup and privileged web restore using the same engine. Detailed exits belong to the implementation plan. |
-| 6 | Resume remaining C4 acceptance and Phase 5D → 5E → 5F | After the reviewed storage track and backend review checkpoint. Preserve completed shortcuts/panels and all still-unverified cases; include new enabled file/Settings surfaces in affected regression coverage. |
-| 7 | Phase 6B release validation | Qualify the actual enabled backend, data-control and final frontend scope together; Docker parity is a separately scheduled later milestone. |
+| Integration | `v2/backend-foundation` at `474a038`; #249 is the latest merged PR. `main` is `1788c19`, 238 commits behind the integration line and one commit ahead of its common ancestor. | The main-only commit adds Apache-2.0; both branches already contain the identical LICENSE blob. Reconcile ancestry in the eventual release PR, rather than treating this as a conflicting product change. |
+| Verification/deployment | [The merge-head Verify run](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37147477245) passed 2,533 source and 625 mounted tests; all 14 commit statuses passed. The Cloudflare check for [#249](https://github.com/BeiqiD/sample-fabrication-workflow/pull/249) reports a successful build on 2026-10-03 and Worker `faa8a01b-0fc8-47d7-b59e-81e038bc4310`. | Passing CI and a deployment check do not establish today's provider health or real-browser latency. |
+| FP1 | File authority was activated; both new-upload roles use R2. The [2026-10-01 R2 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed the 6 MiB HTTP round trip and V19 recovery of 15/15 byte entries. | Preserve historical accepted destinations, supported recovery and explicit unavailable-provider results. |
+| FP2 | Configuration/admin/credential handling, candidate checks, AWS owner binding, native identity admission with V20, internal registered S3 reads and exact-profile File GC are merged through #249. | Native S3 File routes, accepted writes, lifecycle integration, activation and independent defaults remain incomplete. S3 transport/admission is not usable S3 upload support. |
+| Frontend/stabilization | Project work through #185 and 6A1–3 ownership/contracts are delivered. The selected S2 baseline is deployed. | Remaining C4, 6A6, 5D/5E/5F and final 6B acceptance are open; completed shortcuts, panels and IME handling are the regression baseline. |
+| Old Drafts | #199/#200 remain open and inactive; the selected direct-S2 path shipped in #202. | Review their disposition as superseded alternatives; closing them is housekeeping, not implementing another migration path. |
 
-SWITCHdrive authentication is not a prerequisite for document review or developing
-R2 defaults, Registry, Settings and provider-independent contracts. It remains a
-prerequisite for an actual SWITCHdrive file read/write/migration acceptance case.
-Record that case as blocked until exercised with working credentials; a healthy
-R2 default neither repairs old SWITCHdrive files nor establishes that acceptance.
-New writes use the chosen role default; reads continue to resolve recorded file
-locations. There is no silent fallback to a different destination.
+The latest recorded browser readback, after #249 on 2026-10-03, reported
+File authority **Active / execution Enabled**, both roles on R2, and historical
+shadow maintenance at **4 resolved / 5 current references / 1 pending / 0 unfinished
+attempts**. The pending source was not identified. The earlier 4/4 state remains
+valid historical activation evidence, not a current all-clear. One bounded
+read-only diagnosis must identify the source and whether it affects active reads,
+retention, recovery or only historical reporting before deciding on a repair.
+A changed count alone is not permission to convert, delete or reactivate data.
 
-The earlier [S0 browser checks](./BACKEND_BROWSER_RETRY_ACCEPTANCE.md) and
-[compatibility preflight](./COMPATIBILITY_STAGE_PREFLIGHT.md) remain evidence for
-the versions and paths they tested. They do not qualify a later schema or establish
-retirement of incompatible historical Worker requests. The completed disposable
-integration reset is recorded in the
-[direct S2 cutover](./BACKEND_DISPOSABLE_S2_CUTOVER.md); it is not standing
-authorization to reset a database again. New file-schema changes require an
-explicit upgrade/recovery plan and ordinarily use later versioned migrations.
+Detailed historical evidence belongs in the [S2 activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md),
+[FP1 role-default acceptance](./FP1_R2_ROLE_DEFAULTS.md), and the focused FP1/FP2
+delivery records. Their successful cases and explicitly waived live V20 ZIP
+exercise remain accepted. Routine unrelated work does not repeat a live ZIP
+export/download/restore; material persistence/addressing/archive/recovery changes
+or an actual export defect require the relevant new evidence.
 
-The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) owns the
-remaining live checks and temporary Builds/Cron controls. The responsible
-operator must record their disposition against the accepted deployed version;
-this documentation PR does not resume writers, change credentials or restore
-controls. Reconcile the late 6A6 review against the actual baseline without
-claiming the FP capabilities are already complete.
+This is the single high-level roadmap. The [File implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+owns FP contracts and exits; [V3 stabilization](./V3_ARCHITECTURE_STABILIZATION_PLAN.md)
+owns backend cleanup; [frontend refinement](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md)
+owns Phase 5. Focused documents keep immutable historical details rather than
+copying the entire latest-PR narrative into every plan.
+
+## Near-term order and first integrated release
+
+The October revision introduces a bounded performance/maintenance tranche and
+an explicit release checkpoint. It preserves FP2 → FP3 → FP4 → FP5 dependencies,
+but removes the assumption that all five must finish before the first integrated
+V3 release can reach `main`. These are release boundaries, not replacement phase
+numbers or a new long-lived branch.
+
+| Order | Outcome | Exit and scope |
+| --- | --- | --- |
+| 1 | Measured, maintainable current baseline | Record Active/Enabled end-to-end performance and CI cost attribution; repair the pending-reference diagnostic if it exposes a real defect. Remove proven duplicate work, preserving current behavior. Time-box this tranche to the measured highest-return changes. |
+| 2 | Complete configurable storage (FP2) | Deliver native File byte addressing/read/write/accepted publication/lifecycle with paired recovery, then qualified activation and independent internal/original defaults. Exercise R2 plus a real qualified AWS S3 instance. |
+| 3 | First integrated V3 release | Close 6A6 and remaining C4, complete 5D → 5E → 5F for enabled surfaces, then run 6B. Default scope is existing product + accepted FP1 + completed FP2. FP3–FP5, Docker, group permissions and optional insights remain later commitments. |
+| 4 | Verified migration (FP3) | Persisted bounded jobs, dry run, copy/verify/conditional location switch, progress/retry/cancel and retained source cleanup for all file purposes. |
+| 5 | Portable research packages (FP4) | Sample/Project export and matching website import ship together, with offline readable projection and a report-only option. Import creates a new copy with explicit identity/provider mapping. |
+| 6 | Full system recovery (FP5) | Bounded complete backups and privileged website recovery into a fresh target, preserving promised IDs/history, explicit completeness, protected settings policy and paused recovered jobs. |
+| Later | Self-hosting and small-group sharing | Node/Docker + SQLite + persistent local defaults, then membership/resource authorization; see the long-term plan. |
+
+Performance instrumentation and demonstrably safe cleanup can proceed alongside
+FP2 preparation. Avoid a general rewrite or an open-ended optimization phase.
+Each change must name the affected cost and the behavior it preserves. Broader
+frontend redesign remains at the stated checkpoint; targeted correctness and
+performance fixes may happen sooner.
+
+If real-provider setup blocks FP2 acceptance, do not manufacture success or keep
+adding prerequisite-only panels. A separately reviewed R2-only first-release
+scope may defer FP2 activation while retaining its disabled groundwork. That is
+an explicit scope decision, not the default plan and not a claim that FP2 passed.
+Likewise, unsupported SWITCHdrive live cases remain documented; they do not block
+unrelated R2/AWS development or become qualified when another default changes.
+
+### Performance and redundancy programme
+
+The [existing Map performance contract](./PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md)
+already provides lazy route/React Flow loading, memoized nodes, selection-only
+object reuse, visible-element rendering, contextual zoom and 250/400 plus 500/800
+structural fixtures. TIFF decoding already runs in a bounded Worker queue.
+These are delivered foundations, not new backlog items. jsdom checks establish
+structure and interaction, not frame rate, network latency or browser memory.
+
+Use a named browser/device/network profile and fixed small, 250-node/400-edge and
+500-node/800-edge Projects. Include rich Markdown/MathML, images, an eight-sample
+Processing workspace, reference search, and non-empty exports. Record cold/warm
+open time, long tasks/frame distribution, React commits, request count/bytes,
+save acknowledgement time, D1 queries/rows read, export memory and total bytes.
+Existing September host/legacy-authority SQL figures remain dated evidence;
+measure the current Active/Enabled middleware and real request path again.
+Set budgets from that reproducible baseline and state the tested envelope.
+
+| Priority | Concrete candidate and evidence | Acceptance / decision rule |
+| --- | --- | --- |
+| First | Multi-card save amplification: [placement service](../worker/projects/service.ts) and [single-placement route](../worker/project-routes.ts); the [historical scale record](./BACKEND_RELIABILITY_ACCEPTANCE.md) retains 250/500 serial PATCHes for 250/500 moved cards. | Measure the current path. If confirmed dominant, introduce a bounded geometry batch contract in its own reviewed API change. Requests scale with bounded chunks; revisions, conflict disposition, lost responses, retry identity, undo and final Saved acknowledgement remain correct. Do not merely launch all writes concurrently. |
+| First | [ProjectPage](../src/pages/ProjectPage.tsx) computes Map and Reading descriptors separately; [projectReadingNodes](../src/lib/project-map-model.ts) invokes the Map derivation again. Geometry commits recreate descriptor identities. | Derive canonical descriptors once and reuse unchanged nodes; Reading keeps immutable creation order. Measure geometry/content changes, not just selection. Do not claim the parent recomputes on every pointer event. |
+| First | [ProcessingWorkspacePage](../src/pages/ProcessingWorkspacePage.tsx) reloads all displayed samples after single-sample operations; its main detail reload and plan-update preview lack the cancellation/generation checks already used in Project. | Refresh the true affected sample set, including shared operations. An isolated one-sample change in an eight-sample workspace avoids seven unrelated reads; stale responses cannot overwrite a changed route/selection. |
+| Baseline-dependent | [Alignment guide](../src/lib/project-canvas-productivity.ts) compares moving and stationary anchors in nested loops; [ProjectMapSurface](../src/components/project/ProjectMapSurface.tsx) invokes it during drag. | Compare 1/25/250 selected nodes. Add a drag-scoped index or frame-coalesced work only if traces justify it, preserving threshold and tie-breaking semantics. |
+| First, maintenance | [V19](../worker/export-v19-snapshot.ts) and [V20](../worker/export-v20-snapshot.ts) duplicate snapshot mechanics. | Share proven-equivalent mechanics under explicit version descriptors. Preserve frozen catalogs, validators, schema filtering, nonsecret V20 admissions and historical recovery. This is maintainability work, not a demonstrated speedup. |
+| Baseline-dependent | Project snapshot already batches its base reads and resolves deduplicated targets in bounded groups; [search](../worker/references/search.ts) still scans text before ranked LIMIT. | Measure query plans, rows read, response size and actual latency. Optimize the offending query/projection first. FTS5 remains conditional on measured need. |
+| Staged | [Full export](../src/lib/exportAll.ts) downloads and hashes complete files serially, retains their buffers and creates a complete ZIP Blob. | Measure and declare byte/memory limits, add cancellation and resource bounds where needed, and preserve existing progress and explicit per-file outcomes. FP3 jobs supply the durable execution base for FP4/FP5 streaming/staged packaging. Parallel fetch alone does not solve memory use or snapshot consistency. |
+
+The exact #249 CI run used **1,031 seconds** for shared verification inside a
+**17 minute 31 second** job with a 20-minute timeout. Leaf times were 512.146 s
+for source tests, 371.322 s for native verification scripts, 69.398 s for mounted
+tests and 4.460 s for the build. This is one observed run, not an average.
+The [verification plan](../scripts/verification-plan.mjs) already runs shared
+leaves once per complete gate; statement/SQL-split caches also already exist.
+Measure fixture creation, migration, seeding and scenario execution before choosing
+isolated prepared baselines or independent job sharding. Retain migration replay
+in migration/upgrade/recovery tests, real guards, all required fault cases and
+exact-commit status mapping. Evaluate duplicate push/PR execution and stale-run
+cancellation separately. Compare equivalent runs; deleting risk coverage or only
+raising timeouts is not a performance result.
+
+### Redundancy removal boundaries
+
+Remove repeated work in layers:
+
+1. **Now:** duplicate pure projections, unnecessarily broad refetches, equivalent
+   snapshot mechanics, stale current-status prose and superseded Draft clutter.
+   This roadmap update consolidates current progress here; historical records
+   remain linked from focused documents.
+2. **Where a measured/maintenance boundary warrants it:** extract Project
+   controllers and shared transport primitives without merging distinct uncertain,
+   rejected, conflict and accepted-operation state machines. File size alone is
+   not evidence that a module is slow or redundant.
+3. **After native File adoption:** retire runtime legacy aliases and bridges only
+   after inventorying every reader, writer, accepted retry, retention/GC root,
+   export and supported recovery consumer. Use a populated forward migration and
+   explicit old-client treatment. Keep historical migrations and archive readers.
+
+Repeated final authorization/lease/retention checks protect changes that can occur
+between asynchronous steps. They are not removable duplicate reads without a
+proof that the replacement preserves those races. Trigger/table count is not a
+performance target. Keep the single modular Worker and D1/SQLite; current evidence
+does not call for a new database engine, cache server or distributed scheduler.
+
+### FP2 completion units
+
+Prefer two coherent delivery outcomes, split into focused reviewable PRs only
+where dependency boundaries require it:
+
+1. **Native File runtime and persistence:** one reviewed successor schema/archive
+   generation for S3 byte locations, File-only business bindings, accepted writes,
+   media/download/export reads, purpose-aware reuse, deletion/GC and paired recovery.
+   The [FabuBlox whole-import destination](./FP2_STORAGE_ROLE_SELECTION.md) must
+   become per-purpose/per-item frozen targets before internal/original roles can
+   differ. Retain historical receipts, recovery and exact profile identities.
+2. **Working storage choice:** qualify a real AWS instance, activate atomically,
+   then expose independent defaults through existing Settings. Test new writes,
+   same-provider distinct instances, old File reads, in-flight accepted retries,
+   provider failure, permissions, restart and non-empty successor recovery.
+
+Changing a default chooses the destination of **newly accepted** writes only.
+Existing files and already accepted operations stay bound to their recorded
+locations. Moving old files is the explicit FP3 job. External credentials remain
+encrypted application settings; root keys, Cloudflare bindings and later local
+mounts remain installation bootstrap, and ordinary content packages contain no
+usable credentials. Generic S3/WebDAV identity and live support are qualified
+separately; AWS-specific admission does not certify every S3-compatible service.
 
 ## North star
 
@@ -783,9 +770,10 @@ The previously planned attachment/media, source-record/directory, and
 cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
 respectively; its product scope is unchanged. On resuming the frontend track,
 the next frontend implementation slice after C4 acceptance is **Phase 5D —
-attachment and media surfaces**. Phase 5D has not started. Backend inventory,
-correction and behavior-preserving extraction now take priority under the
-backend-first order above. File upload/download, location health, migration and
+attachment and media surfaces**. Phase 5D has not started. The bounded
+performance/maintenance tranche and FP2 completion take priority under the
+near-term order above; completed Worker extraction is not repeated.
+File upload/download, location health, migration and
 Settings functionality belongs to FP; Phase 5D later owns consistent attachment
 presentation and states across existing pages. Phase 5F includes the new enabled
 Settings/export/import surfaces in final cross-product acceptance. Appearance
@@ -803,6 +791,11 @@ final frontend baseline. The two gates remain distinct so early backend probes c
 be mistaken for final release qualification.
 
 #### Phase 6A — V3 architecture stabilization
+
+The scope below records the delivered ownership/extraction and selected S2
+baseline work. The remaining task is the 6A6 exit review and integrated
+qualification of that baseline plus forward migrations, not a second extraction
+or replacement baseline.
 
 **Goal:** preserve the verified v1 behavior while establishing explicit module
 ownership, a bounded Web/Worker contract surface, a final pre-release schema, and
@@ -845,9 +838,13 @@ treating it as a release candidate.
 - performance regression and large-Project checks;
 - version-appropriate backup/recovery, human-readable reports, native package
   export/website import and privileged restore rehearsal for enabled FP scope;
-- non-empty file cases across configured storage roles, migration interruption,
-  destination verification, reference preservation and deletion protection;
+- non-empty file cases across configured storage roles, destination verification,
+  reference preservation and deletion protection; migration/job interruption is
+  qualified in the later release that enables FP3;
 - isolated migration/deployment/runbook verification;
+- recovery when an old tab requests an unavailable lazy route/editor chunk after
+  deployment or a temporary network failure: clear retry/refresh without reload
+  loops, lost dirty drafts or discarded accepted-operation checkpoints;
 - accessibility and security review of the final interaction surface;
 - release-blocking bug fixing without reopening optional feature development.
 
@@ -963,68 +960,34 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
 | Project v1 functional shape | MVP plus mature Inspector/navigation, selected Canvas productivity, previews where justified, and representative-scale performance |
 | V1 feature freeze | Interaction-shaping v1 scope is fixed; optional future capabilities no longer block refinement |
-| File/data portability | Planned FP1–FP5 exits: universal files, Settings, verified migration, readable native packages with website import, and full backup/privileged restore; not delivered by FP0 |
+| First integrated V3 release | Existing product, accepted FP1 and completed FP2; remaining C4/5D/5E/5F, 6A6 and scoped 6B pass. A reviewed R2-only scope is possible only as an explicit FP2 deferral. |
+| File/data portability follow-ups | FP3 verified migration, FP4 paired native packages/website import, then FP5 full backup/privileged restore. These remain required later milestones, not gates on the first integrated V3 release. |
 | Refined release candidate | Frozen v1 plus enabled reviewed FP scope, systematic frontend refinement, V3 architecture stabilization, and final integrated release validation |
 | Portable release | Later milestone: Node/SQLite/local defaults and the same product contracts, including non-empty Cloudflare ↔ Docker import/restore and storage remapping, pass in documented deployments |
 | Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
 
 ## Immediate next PR order
 
-1. Preserve merged **FP1k** (`#220`, `4248deb5`) and merged #221's verified
-   [read-only preflight](./FP1_SHADOW_CONVERSION_PREFLIGHT.md). Its frozen V14
-   diagnostic contract remains separate from shadow operations.
-2. Preserve the deployed [shadow runtime](./FP1_SHADOW_RUNTIME.md), accepted
-   conversion history and current 4/4 resolved references. The obsolete six test
-   Projects were disposed through `0011` with the owner's authorization; further
-   historical evidence work for these fixtures is closed. Current business paths
-   use File authority. Recovery retains evidence and starts execution paused;
-   live/provider-specific acceptance gaps remain explicit.
-3. Preserve separately reviewed **File runtime and atomic authority activation**
-   delivered in #236. Its deployed operator command switched reads, writes,
-   retention, purpose-aware reuse, quarantine, deletion and recovery together
-   on 2026-09-30. Compatibility retirement remains a later explicit step.
-4. Preserve S0 and deployed S2 evidence, the same resource bindings and outstanding
-   interactive/provider-specific acceptance. Keep #199/#200 inactive. No repeat reset or
-   unreferenced-file cleanup follows from this plan. The activation checkpoint
-   continues to own operator follow-up and temporary control restoration.
-5. Preserve the accepted #238/#240 [R2 role-default slice](./FP1_R2_ROLE_DEFAULTS.md)
-   and its 2026-10-01 original-file and V19 recovery evidence. Preserve deployed
-   #239 [FP2 candidate configuration](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md),
-   and merged/deployed #241 S3 transport. Preserve deployed #242
-   [candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md), deployed #243
-   [credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md), and deployed #244
-   [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md). Preserve
-   the read-only
-   [candidate check evidence report](./FP2_CANDIDATE_READINESS.md), deployed in #245
-   (`5992307`). It separates
-   current-envelope evidence from historical successes and keeps unresolved
-   cleanup visible across all retained checks. Preserve the optional AWS
-   [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md), deployed in #246
-   (`4d7d942`). Preserve merged/deployed #247
-   [native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md)
-   and paired `0017`/V20 recovery, which prohibit S3 locations, non-read-only
-   profiles and S3 defaults. Its non-empty paired recovery fixtures passed;
-   live V20 ZIP download/isolated restore was waived after the browser failure.
-   Preserve earlier live ZIP evidence without repeating unrelated rehearsals.
-   [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md) prepares exact
-   installation binding without production File routing. Complete native
-   byte-access/acceptance/lifecycle support follows. Atomic activation and
-   independent defaults then require real-provider qualification and these native
-   guarantees. Candidate checks and evidence reports do not enable a provider or
-   redirect uploads. SWITCHdrive credentials are not required for development.
-   V19 and its V20 successor exclude installation configuration and protected
-   check evidence; V20 additionally preserves nonsecret native admission receipts.
-6. Complete **FP3**, then paired **FP4**, then **FP5** against their documented
-   exits. Do not ship an export-only native format or claim backup completeness
-   from a zero-file exercise. Maintain current exporter/recovery and GC coverage
-   throughout the model transition, not only at the final stage.
-7. Reconcile remaining late **6A6/S2 acceptance** against the deployed version and
-   enabled provider scope. Keep untested SWITCHdrive cases explicitly blocked;
-   do not pass them by changing the default. Resume **C4**, then **5D → 5E → 5F**
-   under the scope split above. Focused correctness repairs can occur throughout.
-8. Run **6B** against the final integrated result. Schedule complete
-   **Docker/Node + SQLite + local** support as a later portability milestone,
-   with actual cross-deployment package/restore verification there.
+1. Review this consolidated roadmap and current README. Record a disposition for
+   inactive #199/#200 without merging their historical bridge paths. Identify the
+   single pending shadow reference through a bounded read-only diagnostic.
+2. Establish the current Active/Enabled browser/API/CI baseline. Publish the
+   workload and measurements once so subsequent fixes compare the same scenarios.
+3. Implement the highest-return measured save/data-loading fix and the proven
+   duplicate Project derivation; keep API-contract and behavior-preserving changes
+   separately reviewable. Consolidate V19/V20 mechanics and optimize test setup
+   only to the extent justified by evidence and maintenance value.
+4. Complete the two [FP2 outcomes](#fp2-completion-units). Each enabled persistence
+   generation ships with its matching archive/recovery contract. Extra internal
+   evidence screens are not substitutes for an end-to-end storage feature.
+5. Close remaining 6A6/C4 and complete 5D → 5E → 5F for enabled product scope;
+   qualify 6B and prepare the first integrated V3 release PR to `main`. Preserve
+   the license, existing deployment separation and a documented populated upgrade
+   path. Reconcile current operational controls, not historical assumed state.
+6. Continue FP3 → paired FP4 → FP5 after that release checkpoint. Keep current
+   export/recovery working throughout; later backup UX is not deferred data safety.
+7. Schedule Node/Docker/local portability and then small-group resource sharing
+   as separate milestones, with their actual runtime and authorization evidence.
 
 A trusted server-side derivative producer remains optional and separately scoped.
 Neither automatic replication nor a distributed task system is required to make
