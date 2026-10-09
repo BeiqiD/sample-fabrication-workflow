@@ -429,7 +429,7 @@ export function ResearchPackagesPage() {
           }
           setMessage(value.state === "awaiting_upload" ? "Saved upload selected. Reselect the original ZIP to verify and continue it." : "Saved package selected. Its validated preview is available when validation finishes.");
         })} onControl={(id, action) => void act(async signal => {
-          const value = await researchPackagesClient.control(id, action, signal); if (!signal.aborted) { updateJob(value); setMessage("Saved job state updated. Check status to follow its independent progress."); }
+          const value = await researchPackagesClient.control(id, action, signal); if (!signal.aborted && !deniedRef.current) { refreshSequence.current++; updateJob(value); setMessage("Saved job state updated. Check status to follow its independent progress."); }
         })} />)}
       </section>
     </>}

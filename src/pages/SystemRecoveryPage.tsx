@@ -510,7 +510,7 @@ export function SystemRecoveryPage() {
           : "Showing previously read system work while status is refreshed."}</p>}
         {!jobs.length && readPhase === "ready" && <p className="muted">No system backup or recovery jobs are recorded.</p>}
         {jobs.map(job => <Job key={job.id} value={job} busy={blocked} onControl={action => void act(async signal => {
-          const value = await systemRecoveryClient.control(job.id, action, signal); if (!signal.aborted && !deniedRef.current) updateJob(value);
+          const value = await systemRecoveryClient.control(job.id, action, signal); if (!signal.aborted && !deniedRef.current) { refreshSequence.current++; updateJob(value); }
         })} onReport={() => void act(signal => loadReport(job.id, signal))} onSelectUpload={() => void act(async signal => {
           const [input, value] = await Promise.all([systemRecoveryClient.uploadIntent(job.id, signal), systemRecoveryClient.status(job.id, signal)]);
           if (signal.aborted || deniedRef.current) return;
