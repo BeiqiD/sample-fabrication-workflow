@@ -1,87 +1,99 @@
 # Phase 5F initial local integration goal
 
-Status: active local development, 2026-10-09 (Europe/Berlin).
-Working branch: `codex/fp2-fp3-development`.
+Status: bounded code/default-CI exits passed; whole Phase 5F remains in progress, 2026-10-09
+(Europe/Berlin). Branch: `codex/fp2-fp3-development`.
+Pushed code: `3c1baf5fdb21994c0510754eb20919db8189a91a`.
+Tree: `eda8a59c55817a0c1adab5ba759f956a82e826f3`.
+Record: [Phase 5F initial bounded acceptance](PHASE_5F_INITIAL_ACCEPTANCE.md).
 
 The owner requested continued development and merging roadmap Draft PR #250 at
-an appropriate checkpoint. Previously completed FP2–FP5, bounded C4, 5D and 5E
-remain the baseline. This goal records the initial bounded 5F slices; finishing
-them does not by itself close the entire cross-product or release acceptance.
+an appropriate checkpoint. FP2–FP5, bounded C4, 5D and 5E remain the baseline.
+This goal covers initial 5F slices, not complete cross-product or release acceptance.
 
-## Authorized scope and preserved boundaries
+## Scope and dated baseline
 
-Local source changes, isolated fixtures/browser work, verification, ordinary
-development-branch pushes and the reviewed PR #250 merge are authorized.
-Production deployment, remote database migration, real provider activation and
-actual development-data changes are outside this goal. Keep `main` unchanged.
-Do not bypass branch protections or required checks to merge. Confirm the merge
-transport and deployment boundary before writing the integration branch.
+Local development, isolated fixtures/browser checks, verification, ordinary
+development pushes and reviewed PR #250 merge are authorized. Production
+deployment, remote migration, real provider activation and actual development-data
+changes remain outside scope. Keep `main` unchanged and preserve required checks;
+confirm the deployment boundary before writing the integration branch.
 
-## Current starting evidence
+- `2060c74` passed bounded local 5E qualification, but remote Verify `37918377223`
+  failed V21 recovery at default 5,000ms; earlier local source checks used 15,000ms.
+- `4479295` reuses independent real V20/V21 fixtures without losing assertions or
+  migration replay. Focused default suite: 11 passed, restore 3,091ms versus
+  observed 4,667ms before. Remote Verify `37976554667` hit its 20-minute job budget
+  without a specific failed-test annotation; Map passed. The sequential budget
+  is now 40 minutes; individual deadlines remain unchanged.
+- `20176fc`'s default source-only context succeeded, but mounted Verify
+  `37979239529` exposed lost helpful preflight guidance. The assistant deliberately
+  stopped the redundant local gate's owned native processes before repair;
+  source-stable exit 1 is incomplete, not a native failure or complete pass.
+- `0512763` restored validated helpful guidance (47 focused passed). `b7c6246`
+  added current-intent receipt ownership (56 focused passed, overlapping the 47).
+  Its [Verify `37983032975`](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37983032975)
+  completed SUCCESS at 20:12:24 UTC after 21m14s, with all 15 published contexts
+  successful. This qualifies its complete 12-leaf gate, not later `3c1baf5`;
+  no exact remote file/test counts are asserted.
+  All dated failures, corrections and evidence identities remain in the record.
 
-- The synchronized implementation at `2060c74` passed bounded local 5E checks,
-  but remote Verify run `37918377223` failed the V21 recovery test at the default
-  5,000ms deadline. Its earlier local source qualification used 15,000ms.
-- Test-only commit `4479295` prepares real populated V20/V21 migration baselines
-  once and copies independent SQLite fixtures. All original recovery assertions
-  and migration replay remain. The focused default-timeout suite passed 11 cases;
-  the previously failing case measured 3,091ms versus 4,667ms before the change.
-  These are local observations, not a production restore benchmark.
-- Remote Verify run `37976554667` was cancelled at the workflow's 20-minute job
-  limit, with no specific test failure annotation. This does not qualify the
-  complete gate. Map performance run `37976554666` passed. The sequential complete
-  gate now has a 40-minute job budget; individual test deadlines remain unchanged.
-- PR #250 at `8134fe6` correctly acknowledges completed development and separate
-  remote/integration/provider acceptance. Its remaining old status prose needs
-  cleanup. Standard GitHub API access currently fails at proxy CONNECT with 403;
-  successful development-branch Git push does not prove PR merge availability.
+## Bounded slices and exits
 
-## Initial slices and exits
+1. Complete default Verify qualification passed for `3c1baf5`: canonical 12-leaf
+   gate and all 15 published contexts succeeded, without reduced coverage.
+2. First-read status errors: safe package/recovery guidance, validated helpful
+   preflight reasons, authorization and original request reconciliation retained.
+   Receipt/error handling must still own the current saved intent.
+3. Processing preview ownership: source/session/selection changes invalidate
+   obsolete results, errors and completion, preserving mutation/revision guards.
+4. Processing modal focus: Escape, Tab, pending-close protection and dialog handoff.
+5. Dense layout: measure 3/4/8 Samples at 720/721px in both themes and repair the
+   demonstrated missing selector while preserving desktop widths and grid behavior.
+6. Jobs-view control ACK: invalidate background reads begun before/during an
+   accepted control in both pages; late ACKs preserve current access denial.
+   Backend/API, maintenance and accepted-control protocols remain unchanged.
+7. Reconcile roadmap documents and merge PR #250 when current checks/review and
+   the confirmed non-deployment boundary permit an observed merge.
 
-1. Resolve default-CI qualification without dropping migration, corruption,
-   recovery or security coverage. Run the appropriate complete gate and obtain
-   the actual remote result for the final submitted implementation head.
-2. 5F-1a: distinguish first-read network/500 failure from an uncertain write in
-   research packages and system recovery. Preserve authorization, original
-   request identities and reconciliation. Verify safe GET-only retry.
-3. 5F-2a: bind Processing plan/start previews to their source and transition
-   session. Late success, error and completion must not affect a different
-   selection/session. Existing results must become unusable when their owner
-   changes. Preserve mutation and plan-revision preconditions.
-4. Integrate the existing modal focus contract for the Processing template picker;
-   verify Escape, Tab, pending-close protection and dialog focus handoff.
-5. Measure the documented narrow Process discrepancy for 3, 4 and 8 samples at
-   720/721px in both themes. Apply a minimal selector repair only if demonstrated,
-   preserving the existing desktop widths and grid behavior.
-6. Reconcile the roadmap documents, run appropriate link/status checks and merge
-   PR #250 when its actual checks, review and non-deployment boundary permit it.
+## Current checkpoint and next step
 
-Retain dated raw failures and successes rather than replacing them with a
-blanket green claim. Real devices/IME, authenticated deployment, real providers,
-operational recovery admission and release acceptance remain separate exits.
+All bounded source repairs are pushed in `3c1baf5`. Jobs-control tests first failed
+all 12 cases; the initial fix passed 86 focused tests. Added denial/late-ACK checks
+exposed one more failure (13 pass/1 fail), then all 88 focused tests passed,
+including 14 new cases. Final full mounted passed 93 files/877 tests on two CPUs
+(137.10s, start 20:04:49 UTC). The local TypeScript/Worker/client rebuild exited 0;
+its raw log retains a nonfatal Wrangler logging ENOENT. No deployment ran.
 
-## Follow-up
+Exact-head Map `37984549655` passed at 20:05:26 UTC; [Verify `37984549600`](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600)
+completed SUCCESS at 20:30:28 UTC after 25m39s, with all 15 contexts successful.
+This qualifies the complete default gate; no remote test counts or new complete
+local canonical pass are claimed. Keep this coding batch frozen.
 
-Continue the remaining 5F cross-product review and measured performance lane,
-then the actual enabled-scope 6A6/6B review. This goal neither retires historical
-archive readers nor changes migrations, authorization, provider selection or
-accepted-operation protocols.
+Twelve post-repair grid cases and eight isolated preview/focus cases passed.
+The latter are four unconfirmable start reads (200) and four historical absent-plan
+rejections (404); successful real plan preview/confirmation is not qualified.
+Positive confirmation is mocked mounted evidence. Preserve original harness failures.
 
-## Development checkpoint — 2026-10-09
+The dated `b7c6246` runtime review reconstructs matching browser source windows;
+it is a hash review, not a rerun or retrospective browser qualification of later
+package/jobs changes. The final jobs-view Git/source-byte delta is closed: only
+two pages and the new control test changed; Processing/styles match browser code.
+This is not a dependency rehash or browser rerun. This review did not obtain an
+independent before baseline for the original 5E isolated fixture. Actual development-data
+read-only proof at 20:07:36 UTC matches schema, typed cells and physical rowids,
+quick-check `ok`, zero FK errors. The isolated server stopped with TERM/exit 143.
 
-The initial source repairs are implemented. Settings/data mounted checks passed
-21 tests; Processing preview, existing Process/Timeline and modal checks passed
-57 tests; six positive/blocked mocked-confirmation cases passed. Local build
-passed. These results preserve ordinary start/update/reopen payloads and refresh.
+PR #250's historical `1fe8dd6` docs head had four green runs/14 contexts at 19:47.
+Head `4b7353ad8c792d790d379df0e38cbfba04730fb5` now has all four own runs and 14
+contexts passed, Draft/CLEAN/MERGEABLE. These are separate from implementation
+qualification, and any later docs head needs its own checks. The Cloudflare
+deployment boundary remains unconfirmed and an observed merge is pending.
 
-The narrow grid discrepancy was measured before repairing its missing selector.
-All 12 post-repair layout cases passed. Eight actual local preview/focus cases
-passed: four unconfirmable start-preview responses (200) and four historical
-plan-preview rejections (404). The historical fixture has no plan revision;
-this browser result does not qualify a successful plan preview or real mutation.
-The isolated server is stopped and actual development-data schema/typed rows/
-physical rowids remain identical to the retained pre-5E baseline.
-
-Complete default gate, final submitted-head remote checks, the remaining 5F
-review and PR #250 merge are still open. Preserve the original failed harness
-runs and their diagnosed corrections in the acceptance record.
+The next queued slice is [Metrology Save and add](PHASE_5F_METROLOGY_GOAL.md): full
+pending ownership across create → entry-add → `onSaved`/refresh and session/unmount
+fences. Its source is not implemented or qualified at this checkpoint.
+Remaining 5F cross-product review,
+measured performance, enabled-scope 6A6/6B, real devices/IME/other engines,
+authenticated deployment, real providers, operational recovery and release
+acceptance remain open. Historical archive readers, migrations, authorization,
+provider selection and accepted-operation protocols are preserved.
