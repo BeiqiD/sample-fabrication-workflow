@@ -253,7 +253,13 @@ export function ResearchPackagesPage() {
     } catch (error) {
       if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
       if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) reportFailure(error);
-      else { setReadError("Package status could not be read. Retry the status check."); setReadPhase("error"); }
+      else {
+        const helpfulReadFailure = error instanceof ResearchPackageRequestError
+          && (error.reason !== null || [400, 410, 413, 422, 503].includes(error.status || 0));
+        setReadError(helpfulReadFailure ? researchPackageErrorMessage(error)
+          : "Package status could not be read. Retry the status check.");
+        setReadPhase("error");
+      }
     }
   }
   useEffect(() => {
