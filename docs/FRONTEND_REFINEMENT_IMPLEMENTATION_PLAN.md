@@ -1,31 +1,27 @@
 # Phase 5 frontend refinement implementation plan
 
-Status: new frontend refinement paused for the backend-first track; Phase 5A and Phase 5B are complete in PRs
-#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163; Phase 5C2b merged through PRs #166/#168,
-C3 merged in PR #169, and the gesture/reference follow-up merged in PR #170.
-C4 refinements through PR #185 are merged and deployed; wider integration
-acceptance remains in progress.
+Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
+**Bounded local C4, 5D and 5E development completed** on synchronized
+`codex/fp2-fp3-development` at `2060c745`;
+formal device/OS-input, deployed-provider and combined-product acceptance
+remain open. **Next implementation slice: 5F** (not started as of 2026-10-09).
 
-Last implementation checkpoint reviewed: 2026-09-13 against PR #185 integration commit
-`c4bf698e3753a0474e7d75d400af6685ff874a6a`
+The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
+not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
+[5D completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5D_ACCEPTANCE.md) and
+[5E completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md) describe bounded work and
+explicit unqualified cases. The latter passed 400 core browser cases plus
+supplemental checks under a bounded local source configuration; default
+five-second CI has not passed on the synchronized head.
 
-Sequencing reviewed: 2026-10-09 against integration `474a038`.
-
-The 2026-09-13 user-authorized route revision prioritizes backend inventory,
-reliability verification, demonstrated defect repairs and behavior-preserving
-Worker/contract extraction. Its order and gates are owned by
-[Product goal and roadmap](./PRODUCT_ROADMAP.md). The deployed frontend remains
-the regression reference. C4's unverified cases remain open; completed keyboard,
-editor and panel work is not reopened. Resume C4 and then 5D/5E/5F after the
-backend review checkpoint. Phase 5F remains a prerequisite for final Phase 6B
-release qualification, not for beginning backend Phase 6A.
-
-October 2026 sequencing amendment: the [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
-schedules a short measured performance/maintenance tranche and complete FP2,
-then the unchanged C4 → 5D → 5E → 5F order for the first integrated release.
-FP3–FP5 follow that checkpoint. Targeted performance/correctness work may proceed
-sooner while existing visual/interaction contracts remain the baseline.
+[Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
+now schedules exact-head CI/integration review, 5F and a finite performance lane
+before 6A6/6B. FP2–FP5 implementation is locally complete, not a reason to defer
+5F again. Preserve Comfortable/Compact/Dense presentation roles, current
+Project keyboard/editor/panel behavior, 5D attachment trust/lifecycle,
+5E read-state ownership and the distinct copy-import vs system-recovery
+operations. No new backend schema, broad stylesheet replacement or unsolicited
+provider activation is part of Phase 5F.
 
 Historical C2b execution base: `v2/backend-foundation` at
 `5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
@@ -434,10 +430,10 @@ remains authoritative.
 
 ### Phase 5C4 — integrated acceptance status
 
-Status: partially accepted at merged PR #185, integration commit
-`c4bf698e3753a0474e7d75d400af6685ff874a6a`.
-New frontend refinement is paused while backend work takes priority; the
-remaining C4 acceptance matrix is retained for resumption and affected regression.
+Status: original #185 desktop integration acceptance was partial at
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`. A later **bounded local
+C4 development checkpoint passed on 2026-10-07** on the synchronized branch;
+physical-device, OS-input and deployed-runtime cases remain open.
 
 Completed implementation and deployed desktop follow-ups include shortcut help
 and command ownership (#175/#176/#183), editing resize (#180), Markdown draft
@@ -452,13 +448,14 @@ part of the verified implementation.
 Record the served version, real-backend workflow checks, directory/workspace
 transitions, cross-mode commands and focus, representative content and viewport
 coverage in `PROJECT_C4_ACCEPTANCE.md`. Repair only demonstrated integration gaps
-and keep untested device or workflow boundaries explicit. The merged slice
-evidence does not itself complete C4; Phase 5D remains subsequent work.
+and keep untested device or workflow boundaries explicit. The #185 merged-slice evidence alone did not finish C4; later local
+C4 and 5D checkpoints are complete, but not a deployed/device release signoff.
 
 ### Phase 5D — attachment and media surfaces
 
-Status: not started; next frontend implementation slice after the outstanding C4
-acceptance when the frontend track resumes. Backend work now takes priority.
+Status: **bounded local development complete on 2026-10-08**, after C4, on
+the synchronized branch; [5D acceptance](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5D_ACCEPTANCE.md).
+Deployed/device and combined-product acceptance remain open.
 
 Goal: expose the stable shared attachment semantics through one clear visual and
 wording system while preserving separate Project, Comment, and Run ownership.
@@ -489,6 +486,13 @@ misrepresenting lifecycle or preview trust.
 
 ### Phase 5E — source-record and directory coherence
 
+Status: **bounded local development complete on 2026-10-08**, after 5D,
+with GET ownership, stale-result protection, current pending/error/empty
+states, explicit read retries, focused form guards and documented accessibility/
+responsive repairs. [5E acceptance](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md)
+retains finite local verification and the unqualified default-CI/device/deployed
+boundaries. This is **not** a new request-controller implementation task.
+
 Goal: complete evidence-driven refinement of Samples, Templates, Processing,
 Comments, Timeline, and Settings/Export after the Project visual language is
 stable.
@@ -514,6 +518,14 @@ Exit: mature source-record surfaces use the same role definitions while retainin
 their intentional density and workflow differences.
 
 ### Phase 5F — cross-product integration review
+
+Status: **next unstarted implementation phase** on the synchronized checkpoint.
+Divide the work into 5F-1 (cross-page semantics and action ownership),
+5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and
+recovery identity), and 5F-3 (representative mixed-domain browser,
+theme, responsive, accessibility and physical input qualification).
+Include enabled Storage/Migrations, native research packages and system recovery;
+do not redesign or reimplement their already delivered engines.
 
 Goal: prove that the completed slices form one product and close only concrete
 cross-surface gaps.

@@ -1,29 +1,36 @@
 # File and data portability implementation plan
 
-Status: FP0 reviewed in #207; FP1 live acceptance complete; FP2 partially delivered
-through #249. FP3–FP5 remain planned. Last reviewed: 2026-10-09 at `474a038`.
+Status: FP0 design reviewed (#207), FP1 historically deployed and accepted.
+**Synchronized local FP2–FP5 implementation and qualification are complete**;
+real-provider/deployed/integrated release exits remain open.
+Last reviewed: 2026-10-09 at integration `474a038` and separate synchronized
+implementation `2060c745376862a379e8c952ee87c05d49982e02`. This document records **contracts and acceptance
+exits**, while [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint)
+owns active implementation/deployment/CI state.
 
-The [canonical checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) owns current
-status, last-observed deployment state and remaining diagnostics. The
-[near-term release order](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
-adds measured performance/maintenance and an integrated FP1/FP2 release checkpoint
-before FP3–FP5. This document owns the unchanged FP contracts and phase exits.
+The 2026-10-03 deployed runtime remained `0017` / V20, R2 defaults and
+active File authority. The **separate local development branch** has:
+- FP2 `0018` / V21: exact-profile native File S3/R2 operations, accepted
+  writes/read/GC, candidate activation and independent original/internal roles;
+- FP3 `0019` / V22: persisted bounded migration jobs, execution, complete
+  byte verification, pause/resume/cancel/retry, source holds and explicit cleanup;
+- FP4 `0020` / V23: paired native **Sample and Project** export and website
+  fresh-copy import, plus standalone readable reports;
+- FP5 `0021`–`0022` / V24: privileged full backup, identity-preserving
+  website fresh-target recovery, protected settings and operator-assisted handoff.
 
-FP1's authoritative File runtime, R2 defaults and 2026-10-01 non-empty V19 recovery
-are accepted in the [role-default record](./FP1_R2_ROLE_DEFAULTS.md). FP2 has
-independent administrator authorization, versioned candidates and encrypted
-credentials, checks/re-enveloping, owner-qualified AWS admission and paired V20
-recovery. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md) is
-internal; [exact-profile GC](./FP2_PROFILE_BOUND_GC.md) qualifies the existing
-R2/SWITCHdrive lifecycle. Neither provides S3 File routing, writes or defaults.
-Complete native byte access/acceptance/lifecycle and real-provider qualification
-precede activation. V20 preserves nonsecret admission evidence and excludes
-installation candidates, checks and credentials.
-
-Historical FP1 substrate, preflight, conversion and activation records remain in
-their focused documents. They describe the versions they qualified; their dormant
-or overlap states are not the current authority state. The waived live V20 ZIP
-exercise and accepted earlier live archives retain their recorded boundaries.
+The recorded local qualification includes nonempty R2/S3 fixture round trips,
+but it does **not** qualify a real AWS account, deployed runner or operator
+handoff. Local File mode remains legacy with execution disabled. Exact-head
+remote CI is currently failing a default-five-second V21 restore test;
+unrun dependent gates are not independent failures.
+See [FP2/3 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md),
+[FP4 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md) and
+[FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md).
+Preserve frozen historical readers/migrations and current V20 deployment
+semantics until each explicitly reviewed rollout. The owner-waived V20 live
+ZIP/download rehearsal is not reimposed for unrelated work, although material
+V21–V24 release changes require their relevant new evidence.
 
 ## Authority and reading order
 
@@ -58,26 +65,20 @@ current consumer compatible.
 
 ## Starting checkpoint and scope
 
-The current application is one Hono Worker using D1 and the existing R2 binding,
-with environment-backed historical SWITCHdrive access. The authoritative File
-registry separates logical files, purposes, physical locations and exact profiles.
-Both new-upload roles currently select R2; old accepted destinations remain frozen.
-Application-managed encrypted candidate credentials and minimum administrator
-checks already exist. Candidate configuration does not establish active external
-File I/O, independent defaults, native website package import or a durable job runner.
+The core integration application is a modular Hono Worker with D1, R2 and
+historical SWITCHdrive support. Its active File registry separates logical
+File purpose, physical location, profile identity, accepted operation, retention
+and execution ownership. Changing a role default never rewrites an existing File.
+The deployed 2026-10-03 R2 configuration is accepted FP1/early FP2, whereas
+the synchronized development branch contains implemented native S3 and
+independent role routing. Those are distinct generations and environments.
 
-The selected S2 baseline and subsequent FP migrations remain immutable. The
-[S2 activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) records the
-completed same-D1 test rebuild with retained file bindings. 6A6 and broader
-interactive/provider-specific acceptance remain open. Historical Builds/Cron holds
-need a current disposition at operational handoff; the successful latest build does
-not establish the state of every other control. No new reset follows from this plan.
-
-SWITCHdrive diagnostics do not repair credentials. Its unexercised live cases
-remain explicit while R2/AWS development proceeds. Existing complete archives have
-trusted isolated recovery; readable exports are not native re-import packages.
-FP3–FP5 improve jobs, portability and recovery UX while current schema export and
-recovery continue to work throughout every new persistence generation.
+The S2 baseline and historical migration chain stay immutable; the synchronized
+branch adds forward `0018`–`0022` and paired V21–V24 writers/readers. These
+are **implemented local checkpoints** rather than an instruction to reset D1,
+activate a provider or change deployment bindings. 6A6 and provider/device/manual
+acceptance remain open. SWITCHdrive live credential issues remain explicit and
+do not silently become qualified when R2 or AWS fixtures pass.
 
 ## Delivery sequence
 
@@ -85,18 +86,19 @@ Each FP milestone may contain several focused PRs. Every implementation starts
 from the latest integration head, preserves a usable frontend and carries its
 affected schema, export/restore, file-lifecycle and authorization checks.
 
-The accepted FP1 conversion/publication history is retained; it is not pending
-implementation. The next native generation must preserve that history while
-replacing live alias dependencies where S3 requires File-only business bindings.
-FabuBlox still freezes one profile for an entire import; per-purpose/per-item
-accepted destinations are required before originals and internal roles diverge.
-The two coherent FP2 delivery outcomes are specified in the
-[canonical completion units](./PRODUCT_ROADMAP.md#fp2-completion-units).
+The accepted FP1 conversion/publication history is retained. On the synchronized
+branch, the native generation and purpose-specific, per-item FabuBlox accepted
+destinations are already implemented and qualified locally. The historical
+single-profile import note applies only to the earlier `0017`/V20 deployment;
+it is no longer a missing implementation task. See
+[FP2 completion evidence and release boundaries](./PRODUCT_ROADMAP.md#fp2-completion-units).
 
-The first integrated V3 release is scheduled after qualified FP2 and the enabled
-frontend/stabilization gates. FP3–FP5 remain subsequent milestones with the exits
-below; they are neither cancelled nor silently required before the first release.
-A reviewed R2-only release alternative must explicitly defer FP2 activation.
+FP2–FP5 are already built in local development and must not be scheduled as
+future greenfield implementation. The first integrated V3 release is scoped
+after reviewed code integration, 5F, 6A6 and 6B; the **enabled** subset of
+FP2–FP5 must individually pass real-provider, deployed, recovery and operator
+gates. Explicit server-side deferral is valid when qualified operations
+are unavailable; a deferral is not a success claim.
 
 | Milestone | Deliverable | Exit evidence |
 |---|---|---|
@@ -286,7 +288,7 @@ The backend-first product priority continues. FP's affected upload/storage/data
 UI is part of its own milestones; it does not repeat completed Canvas work or
 absorb the entire Phase 5 media/appearance pass. Remaining C4 acceptance and
 Phase 5D/5E/5F retain their scope and resume after the bounded quality tranche
-and FP2 completion, before FP3–FP5. Phase 6B validates the actual integrated release and its enabled FP capabilities,
+and synchronized FP2–FP5 integration review, before the scoped Phase 6B release. Phase 6B validates the actual enabled FP capabilities,
 not merely the previous zero-blob S2 state. Delaying an FP feature requires an
 explicit scope update rather than marking its tests passed.
 

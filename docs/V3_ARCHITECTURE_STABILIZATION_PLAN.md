@@ -1,25 +1,27 @@
 # V3 architecture stabilization plan
 
-Status: reliability corrections, Worker ownership and shared contracts are merged;
-the selected S2 baseline is deployed. 6A6 and final integrated acceptance remain
-open. Last reviewed: 2026-10-09 at integration `474a038` (merged #249).
+Status: selected S2 baseline, Worker ownership and shared contracts merged/
+deployed historically. **6A6 is not closed.** Synchronized FP2–FP5 local
+development through `0022` / V24 and C4/5D/5E local acceptance are newer
+evidence, **not yet integrated or deployed**. Reviewed 2026-10-09 against
+integration `474a038` and development `2060c745`.
 
-The [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns current
-capability/deployment status. Its [October order](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
-adds a bounded performance/maintenance tranche, complete FP2, then C4/5D/5E/5F and
-6B for the first integrated release. FP3–FP5 follow that release checkpoint.
-Completed extraction, S2 activation and FP1 acceptance are not restarted.
+The [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns the
+version-aware current matrix. Exact-head remote CI on the synchronized branch
+currently fails one V21 restore test at the default 5-second timeout; this
+must be diagnosed before claiming full gates or a merge-ready baseline.
+Do not recut immutable S2 or restart delivered 6A1–6A5 extraction.
+The next frontend implementation is **5F**; 6A6/6B must qualify the
+**actual combined tree and the chosen enabled FP2–FP5 release scope**.
 
-This plan owns behavior-preserving cleanup and the 6A6 exit. Native File/S3
-persistence is a capability change owned by FP2, with matching migrations and
-recovery. Runtime bridge retirement needs a consumer/invariant inventory; reducing
-trigger counts or removing historical archive readers is not an optimization goal.
-The [performance programme](./PRODUCT_ROADMAP.md#performance-and-redundancy-programme)
-separates real runtime cost, test-fixture cost and maintenance duplication.
-
-The current integration line remains the behavior reference. No new V3 branch,
-product rewrite or database reset is needed. The historical execution record below
-retains its dated evidence; operational controls require fresh observation at handoff.
+This plan owns behavior-preserving cleanup, migrations/compatibility hygiene
+and the 6A6 exit. FP native storage, jobs, research copy packages and privileged
+recovery are separate capability tracks with paired `0018`–`0022`
+migrations/V21–V24 historical readers and writers. Preserve accepted
+operation retries, source holds, race fences and frozen archive fingerprints;
+file size and trigger count are not optimization metrics. Perform only measured
+or independently justified maintenance cleanup; no reset, force-push, provider
+rebinding or deployment is authorized here.
 
 ## Decision summary
 
@@ -525,20 +527,31 @@ and exit evidence complete. If FP migrations precede the final integrated review
 also qualify fresh install and populated upgrade through the baseline plus those
 forward migrations; do not recut the baseline to satisfy a final-schema claim.
 
-Phase 6B follows only when this backend exit, the release's enabled FP scope and
-Phase 5F's resumed frontend baseline are complete. The first release targets
-FP1/FP2; FP3–FP5 are later milestones, and any R2-only alternative explicitly
-defers FP2 activation. It owns:
+Phase 6B follows only after the combined-tree backend exit, Phase 5F
+integration and the selected **enabled** FP2–FP5 capabilities are qualified.
+Implementation and local fixtures alone do not grant real-provider activation.
+Its finite acceptance matrix includes:
 
-- sustained representative research-data use;
-- desktop, mobile, and supported-browser regression;
-- large-Project and performance qualification;
-- complete export, existing human-readable export and version-appropriate isolated
-  recovery; native package import and privileged web restore are qualified in the
-  later releases that enable FP4/FP5;
-- isolated deployment and upgrade/runbook verification;
-- accessibility and security review;
-- release-blocking corrections without reopening optional feature development.
+- fresh S2 install and populated upgrades through every reviewed forward
+  migration to the actual release head, preserving existing rows and physical IDs;
+- complete current-version archive export/isolated restore, and the **matching**
+  Sample + Project package/website copy-import and privileged fresh-target system
+  recovery **if enabled** in that release;
+- real R2/S3 namespace/credential/role validation, immutable accepted targets,
+  explicit File migration, provider failure and resumed/cancelled job execution
+  **if those routes are enabled**;
+- current backup completeness, no automatic restart of restored execution,
+  protected settings/key policy and an operator-assisted target/binding handoff;
+- representative projects and multi-sample workflows, supported browser/device
+  and physical OS input checks, accessibility, measured performance, and security;
+- old-tab lazy-chunk/retry handling, documented unavailable capabilities, and
+  release-blocking corrections without unrelated optional scope.
+
+Any capability not operationally qualified remains explicitly restricted in
+server-side admission; do not call an R2-only or disabled S3 deployment an
+enabled FP2–FP5 release. Never reinterpret a fresh-copy package as identity-
+preserving recovery. Previous V19/V20 production evidence remains historical;
+new V24 release claims require their own relevant nonempty qualification.
 
 The representative-data rehearsal includes a 250/500-node Project's multi-card
 move through the final save acknowledgement, measuring request count, elapsed

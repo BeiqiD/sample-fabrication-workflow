@@ -1,20 +1,20 @@
 # Long-term application roadmap
 
-Status: long-horizon direction; immediate sequencing and release scope belong to
-[Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release).
+Status: long-horizon direction. The [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
+owns current sequence and release scope.
 
-Last reviewed: 2026-10-09 at integration `474a038` (merged #249).
+Last reviewed: 2026-10-09 against integration `474a038` and synchronized
+local development `2060c745` (not yet integrated/deployed).
 
-FP1 File authority and R2 defaults are accepted. FP2 configuration and internal
-transport/admission foundations are delivered, but native S3 File I/O, accepted
-writes, lifecycle, activation and independent defaults are not complete.
-The [current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) owns exact
-repository, deployment and last-observed maintenance status; focused FP documents
-retain historical acceptance evidence. Do not duplicate a moving PR log here.
-
-The October roadmap schedules a bounded performance/maintenance tranche, complete
-FP2, then the first integrated V3 release before FP3–FP5. The later commitments
-below retain their existing contracts; a deferred capability is not marked passed.
+FP1 File authority/R2 defaults are historically deployed. **FP2, FP3, FP4 and
+FP5 are now locally implemented and qualified** on the synchronized development
+branch, with V21–V24 paired recovery and migrations `0018`–`0022`.
+Bounded local C4, 5D and 5E have likewise completed. The immediate work is
+remote CI remediation, implementation review/integration, **5F**, finite measured
+performance cleanup, 6A6 and scoped 6B; remaining real-provider/device/deployed
+acceptance is not waived. See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
+Detailed FP milestones below are durable design commitments, **not** an assertion
+that FP3–FP5 remain unimplemented.
 
 ## Product scale and engineering stance
 
@@ -32,22 +32,19 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 ## Intended order and compatibility
 
-| Order | Capability | Boundary with current and later work |
+| Order | Capability | Boundary |
 | --- | --- | --- |
-| Now | Measured performance and maintenance | Establish Active/Enabled browser/API baselines; reduce proven repeated work and expensive verification setup, preserving completed Canvas and integrity behavior. |
-| Next | Complete FP2 configurable storage | Native File read/write/accepted publication/lifecycle and paired recovery, then real AWS qualification, activation and separate role defaults. Historical/default/provider boundaries remain exact. |
-| First release | C4, Phase 5D/E/F, 6A6 and scoped 6B | Qualify existing product plus FP1/FP2 and prepare the integration-to-main release. FP3–FP5 remain later; any R2-only alternative explicitly defers FP2 activation. |
-| Then | FP3 bounded jobs and verified migration | Persisted runners and explicit verified byte migration build on activated profiles; changing defaults never silently migrates old files. |
-| Then | FP4 native packages + matching website import | One export/import milestone, offline readable projection and report output using shared snapshots/files/jobs. |
-| Then | FP5 full backup + privileged web restore | Same bounded engine, explicit completeness and protected settings policy; fresh-target recovery preserves promised identity/history. |
-| Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual non-empty Cloudflare ↔ Docker import/restore and documented runtime/volume validation. |
-| Later shared-data milestone | Small-group users, membership and domain authorization | Extend the delivered system-administrator boundary and actor/concurrency seams; real-time editing is separately deferred. |
-| Independently justified | Appearance preferences, measured search/derivatives, optional insight | These do not block reliable files, recovery or the deterministic research workflow. |
+| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Repair exact-head remote CI, review and integrate complete native File/archive pairs; preserve historical deployed V20 separately from local V24. |
+| Next | 5F and finite performance/maintenance | Cross-page consistency, keyboard/focus and read/retry identities, realistic mixed-domain flows; measured multi-card save/Processing/CI/archive costs. |
+| First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
+| Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
+| Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |
+| Independently justified | Appearance, search/derivatives, LLM/insight | Optional, evidence-driven, not a release-blocking rewrite. |
 
-The exact FP sequence, gates and compatibility transition belong to the
-[implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md). This
-long-term document must not introduce alternative phase labels or turn later
-portability/multi-user goals into a first-release gate.
+Keep exact instance/purpose-bound file locations. Changing a default routes
+new acceptances, while explicit FP3 migration moves qualified existing Files.
+FP4 copy imports allocate new identities; FP5 backup recovery preserves source
+identities into a fresh isolated target. These distinction rules remain current.
 
 ## Advanced now — universal file management and data portability
 
@@ -360,7 +357,7 @@ Current FP work preserves:
   adapters;
 - existing user-visible media/Comment/Project behavior while backend records evolve.
 
-The currently outstanding S2/6A6 and C4 acceptance remains outstanding. FP design
+6A6 and broad C4 device/deployed acceptance remain open; bounded local C4 implementation has passed. FP design
 cannot convert a zero-blob recovery exercise into a non-empty upload/download
 pass, infer successful SWITCHdrive authentication, repeat a database reset or
 resume held operational controls. Detailed transition and stage checks are in

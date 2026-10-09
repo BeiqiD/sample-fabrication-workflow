@@ -2,165 +2,147 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-10-09 against integration commit
-`474a038e3eb79b4251b949458e252805f7851cac` (merged PR #249).
-This planning revision changes sequencing and release scope; it implements no
-runtime, schema, provider, default, deployment or compatibility transition.
+Last reviewed: 2026-10-09, reconciling integration `v2/backend-foundation`
+(`474a038e3eb79b4251b949458e252805f7851cac`) with the **separately synchronized**
+local-development branch `codex/fp2-fp3-development` at `2060c745376862a379e8c952ee87c05d49982e02`.
+This is a **documentation-only proposal**. No synchronized implementation, migration,
+File mode, storage profile, production deployment or release scope is activated by
+this document or by PR #250.
 
 ## Current checkpoint
 
-Repository state was read on 2026-10-09. Deployment and browser observations below
-retain their actual observation dates; they are not a new live acceptance run.
+Separate **implemented**, **locally qualified**, **remote CI passed**,
+**integrated**, and **deployed / real-provider-qualified**. Local verification
+is valuable evidence but is not a remote pass or production admission.
 
-| Area | Verified position | Remaining boundary |
+| Area | Synchronization and evidence as of 2026-10-09 | Remaining boundary |
 | --- | --- | --- |
-| Integration | `v2/backend-foundation` at `474a038`; #249 is the latest merged PR. `main` is `1788c19`, 238 commits behind the integration line and one commit ahead of its common ancestor. | The main-only commit adds Apache-2.0; both branches already contain the identical LICENSE blob. Reconcile ancestry in the eventual release PR, rather than treating this as a conflicting product change. |
-| Verification/deployment | [The merge-head Verify run](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37147477245) passed 2,533 source and 625 mounted tests; all 14 commit statuses passed. The Cloudflare check for [#249](https://github.com/BeiqiD/sample-fabrication-workflow/pull/249) reports a successful build on 2026-10-03 and Worker `faa8a01b-0fc8-47d7-b59e-81e038bc4310`. | Passing CI and a deployment check do not establish today's provider health or real-browser latency. |
-| FP1 | File authority was activated; both new-upload roles use R2. The [2026-10-01 R2 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed the 6 MiB HTTP round trip and V19 recovery of 15/15 byte entries. | Preserve historical accepted destinations, supported recovery and explicit unavailable-provider results. |
-| FP2 | Configuration/admin/credential handling, candidate checks, AWS owner binding, native identity admission with V20, internal registered S3 reads and exact-profile File GC are merged through #249. | Native S3 File routes, accepted writes, lifecycle integration, activation and independent defaults remain incomplete. S3 transport/admission is not usable S3 upload support. |
-| Frontend/stabilization | Project work through #185 and 6A1–3 ownership/contracts are delivered. The selected S2 baseline is deployed. | Remaining C4, 6A6, 5D/5E/5F and final 6B acceptance are open; completed shortcuts, panels and IME handling are the regression baseline. |
-| Old Drafts | #199/#200 remain open and inactive; the selected direct-S2 path shipped in #202. | Review their disposition as superseded alternatives; closing them is housekeeping, not implementing another migration path. |
+| Integration and deployment | `v2/backend-foundation` still targets merged [#249](https://github.com/BeiqiD/sample-fabrication-workflow/pull/249) (`474a038`). The 2026-10-03 deployed Worker version is `faa8a01b-0fc8-47d7-b59e-81e038bc4310`, with V20 content writer. `main` remains the separate first-release target. | The synchronized code has **not** been merged or deployed by this planning PR. Preserve main/integration ancestry and current bindings until a reviewed handoff. |
+| FP1 | File authority was activated on the historical deployment; new `internal` and `originals` roles use R2. The [2026-10-01 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed 6 MiB HTTP writes and 15/15 V19 restore bytes. | Historical accepted locations and missing-provider outcomes remain explicit. |
+| FP2 | **Locally implemented and qualified** in the synchronized branch: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Exact-head CI, integration, real AWS account/profile and deployed administration/provider/runtime acceptance. Do not call fixture tests real-provider qualification. |
+| FP3 | **Locally implemented and qualified**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Current remote test failure, deployed runner limits/invocation, interruption and nonempty recovery rehearsal. |
+| FP4 | **Locally implemented and qualified**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
+| FP5 | **Locally implemented and qualified**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
+| Frontend | Bounded **C4, 5D and 5E** local development completed on 2026-10-07/08; [5E record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md). **5F has not begun.** | Remaining physical device/OS input, deployment and combined-product acceptance. Do not redo locally complete slices. |
+| Stabilization | 6A1–6A5 selected ownership/S2 baseline work delivered historically. | 6A6 complete combined-tree exit and enabled-scope 6B release verification remain open. |
+| Legacy Drafts | #199/#200 are inactive alternatives to the chosen S2 route. | Review closure as maintenance, not as new migrations or a release prerequisite. |
 
-The latest recorded browser readback, after #249 on 2026-10-03, reported
-File authority **Active / execution Enabled**, both roles on R2, and historical
-shadow maintenance at **4 resolved / 5 current references / 1 pending / 0 unfinished
-attempts**. The pending source was not identified. The earlier 4/4 state remains
-valid historical activation evidence, not a current all-clear. One bounded
-read-only diagnosis must identify the source and whether it affects active reads,
-retention, recovery or only historical reporting before deciding on a repair.
-A changed count alone is not permission to convert, delete or reactivate data.
+**Exact-head CI blocker.** [Run 37918377223](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37918377223)
+on `2060c745376862a379e8c952ee87c05d49982e02` finished with one source test failing:
+`worker/export-v21-protocol.test.ts`, “restores original registration and exact source
+rowids with no local credentials or execution”, timed out at the default **5,000 ms**.
+It recorded **3,335 passed / 1 failed** source tests (351/351 native script tests
+passed). Later dependent checks were skipped; their red status contexts are not
+separate demonstrated product defects. The 5E local source qualification explicitly
+used two workers and a **15,000 ms** test timeout, and its staged results cannot be
+equated with this default-CI run. Reproduce the actual timeout under CI constraints
+and determine whether fixture/runtime contention or a real restore defect caused
+it. Preserve test coverage and verify the final exact head; do not mark a larger
+timeout alone as a performance correction.
 
-Detailed historical evidence belongs in the [S2 activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md),
-[FP1 role-default acceptance](./FP1_R2_ROLE_DEFAULTS.md), and the focused FP1/FP2
-delivery records. Their successful cases and explicitly waived live V20 ZIP
-exercise remain accepted. Routine unrelated work does not repeat a live ZIP
-export/download/restore; material persistence/addressing/archive/recovery changes
-or an actual export defect require the relevant new evidence.
-
-This is the single high-level roadmap. The [File implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-owns FP contracts and exits; [V3 stabilization](./V3_ARCHITECTURE_STABILIZATION_PLAN.md)
-owns backend cleanup; [frontend refinement](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md)
-owns Phase 5. Focused documents keep immutable historical details rather than
-copying the entire latest-PR narrative into every plan.
+**Historical live state, not synchronized local state.** The 2026-10-03 browser
+readback reported File authority Active/execution Enabled, both roles R2, and shadow
+maintenance **4 resolved / 5 current / 1 pending / 0 unfinished**. The pending
+source remains unidentified; investigate read-only before any corrective operation.
+The development database, after its locally qualified upgrades, is recorded in
+`legacy` mode with execution **disabled**. Do not copy authority/runtime state
+between these environments. Source-specific evidence remains in
+[the S2 checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md),
+[FP1 acceptance](./FP1_R2_ROLE_DEFAULTS.md) and the linked synchronized
+acceptance records. The previously owner-waived live V20 ZIP exercise remains waived
+for unrelated work; significant new persistence/recovery generations need their
+own appropriate qualification.
 
 ## Near-term order and first integrated release
 
-The October revision introduces a bounded performance/maintenance tranche and
-an explicit release checkpoint. It preserves FP2 → FP3 → FP4 → FP5 dependencies,
-but removes the assumption that all five must finish before the first integrated
-V3 release can reach `main`. These are release boundaries, not replacement phase
-numbers or a new long-lived branch.
+The former “performance → implement FP2 → first FP1/FP2 release → implement FP3–FP5”
+sequence described the earlier integration branch, **not** the synchronized work.
+FP2–FP5, C4, 5D and 5E are no longer pending development tasks.
+Maintain a separate integration/release acceptance ledger for each capability;
+an unqualified feature is implemented-but-not-approved, not “not started”.
 
-| Order | Outcome | Exit and scope |
+| Order | Work | Finite exit / release rule |
 | --- | --- | --- |
-| 1 | Measured, maintainable current baseline | Record Active/Enabled end-to-end performance and CI cost attribution; repair the pending-reference diagnostic if it exposes a real defect. Remove proven duplicate work, preserving current behavior. Time-box this tranche to the measured highest-return changes. |
-| 2 | Complete configurable storage (FP2) | Deliver native File byte addressing/read/write/accepted publication/lifecycle with paired recovery, then qualified activation and independent internal/original defaults. Exercise R2 plus a real qualified AWS S3 instance. |
-| 3 | First integrated V3 release | Close 6A6 and remaining C4, complete 5D → 5E → 5F for enabled surfaces, then run 6B. Default scope is existing product + accepted FP1 + completed FP2. FP3–FP5, Docker, group permissions and optional insights remain later commitments. |
-| 4 | Verified migration (FP3) | Persisted bounded jobs, dry run, copy/verify/conditional location switch, progress/retry/cancel and retained source cleanup for all file purposes. |
-| 5 | Portable research packages (FP4) | Sample/Project export and matching website import ship together, with offline readable projection and a report-only option. Import creates a new copy with explicit identity/provider mapping. |
-| 6 | Full system recovery (FP5) | Bounded complete backups and privileged website recovery into a fresh target, preserving promised IDs/history, explicit completeness, protected settings policy and paused recovered jobs. |
-| Later | Self-hosting and small-group sharing | Node/Docker + SQLite + persistent local defaults, then membership/resource authorization; see the long-term plan. |
+| 1 | Reconcile synchronized implementation and planning | Reproduce/fix exact-head remote CI; independently review the four-commit synchronized implementation and paired `0018`–`0022` migrations with V21–V24 recovery, then integrate by accepted PR(s) against `v2/backend-foundation`. This documentation Draft **does not merge that code**. Update this roadmap on the accepted code head. |
+| 2 | Phase **5F**, in bounded integration slices | 5F-1 common cross-page language/action ownership; 5F-2 navigation, read/retry, uncertain-write and recovery boundaries; 5F-3 representative responsive/theme/input and mixed-record acceptance. Repair observed gaps, not every old style. |
+| Parallel finite lane | Measured performance and redundancy cleanup | Attribute CI fixture cost, multi-card save requests, duplicate projections, Processing refresh and archive maintenance on the synchronized head. Preserve fault/retention/security coverage. No open-ended optimization phase. |
+| 3 | **6A6** stabilization exit and **6B** release validation | Qualify a merged/reviewed tree, fresh and populated migrations, exact-head complete gates, realistic browser/device cases and explicit **enabled FP2–FP5** capability boundaries. Finish real-provider/deployed/operational acceptance **before enabling** a capability. |
+| 4 | First integrated V3 release to `main` | Candidate scope includes implemented FP2–FP5 plus existing product. Release only capabilities whose actual enablement gates pass; others stay clearly labeled unavailable or deferred with effective server-side restrictions. Reconcile `main` ancestry and document deployment handoff. |
+| Later | Node/Docker/local and small-group resource authorization | Complete application/runtime/SQLite/local volumes, real cross-deployment recovery, then membership and domain authorization. Node File job-runner tests alone are not complete self-hosting. |
 
-Performance instrumentation and demonstrably safe cleanup can proceed alongside
-FP2 preparation. Avoid a general rewrite or an open-ended optimization phase.
-Each change must name the affected cost and the behavior it preserves. Broader
-frontend redesign remains at the stated checkpoint; targeted correctness and
-performance fixes may happen sooner.
-
-If real-provider setup blocks FP2 acceptance, do not manufacture success or keep
-adding prerequisite-only panels. A separately reviewed R2-only first-release
-scope may defer FP2 activation while retaining its disabled groundwork. That is
-an explicit scope decision, not the default plan and not a claim that FP2 passed.
-Likewise, unsupported SWITCHdrive live cases remain documented; they do not block
-unrelated R2/AWS development or become qualified when another default changes.
+The first release is **not automatically FP2–FP5 fully enabled**. Any missing
+real-provider qualification, installed credential binding, deployed schedule,
+device evidence or assisted recovery procedure must be documented and enforced
+at the server boundary. Cloudflare resource provisioning and binding changes
+remain deployment operations. Changing storage defaults selects only *newly
+accepted* writes; it never moves previous File locations. FP3 provides explicit
+verified migration. A fresh-copy FP4 import allocates new identities; FP5
+identity-preserving recovery restores an installation into an empty qualified
+target. Keep those operations visibly separate.
 
 ### Performance and redundancy programme
 
-The [existing Map performance contract](./PROJECT_MAP_PERFORMANCE_IMPLEMENTATION_PLAN.md)
-already provides lazy route/React Flow loading, memoized nodes, selection-only
-object reuse, visible-element rendering, contextual zoom and 250/400 plus 500/800
-structural fixtures. TIFF decoding already runs in a bounded Worker queue.
-These are delivered foundations, not new backlog items. jsdom checks establish
-structure and interaction, not frame rate, network latency or browser memory.
+Keep the existing lazy Map bundle, memoized/culling node strategy, contextual
+zoom, TIFF Worker queue and bounded native research archive engine as delivered
+baseline. Measure named device/browser/network, cold/warm opens, long tasks,
+React commits, network requests/bytes, save-ACK time, D1 reads/rows and peak
+archive/job memory. Use fixed small, **250-node/400-edge**, **500-node/800-edge**
+Projects and an eight-sample Processing workspace. Compare the same workload
+before and after each change; local SQLite timings do not establish deployment
+latency.
 
-Use a named browser/device/network profile and fixed small, 250-node/400-edge and
-500-node/800-edge Projects. Include rich Markdown/MathML, images, an eight-sample
-Processing workspace, reference search, and non-empty exports. Record cold/warm
-open time, long tasks/frame distribution, React commits, request count/bytes,
-save acknowledgement time, D1 queries/rows read, export memory and total bytes.
-Existing September host/legacy-authority SQL figures remain dated evidence;
-measure the current Active/Enabled middleware and real request path again.
-Set budgets from that reproducible baseline and state the tested envelope.
-
-| Priority | Concrete candidate and evidence | Acceptance / decision rule |
+| Priority | Candidate | Exit and preservation rule |
 | --- | --- | --- |
-| First | Multi-card save amplification: [placement service](../worker/projects/service.ts) and [single-placement route](../worker/project-routes.ts); the [historical scale record](./BACKEND_RELIABILITY_ACCEPTANCE.md) retains 250/500 serial PATCHes for 250/500 moved cards. | Measure the current path. If confirmed dominant, introduce a bounded geometry batch contract in its own reviewed API change. Requests scale with bounded chunks; revisions, conflict disposition, lost responses, retry identity, undo and final Saved acknowledgement remain correct. Do not merely launch all writes concurrently. |
-| First | [ProjectPage](../src/pages/ProjectPage.tsx) computes Map and Reading descriptors separately; [projectReadingNodes](../src/lib/project-map-model.ts) invokes the Map derivation again. Geometry commits recreate descriptor identities. | Derive canonical descriptors once and reuse unchanged nodes; Reading keeps immutable creation order. Measure geometry/content changes, not just selection. Do not claim the parent recomputes on every pointer event. |
-| First | [ProcessingWorkspacePage](../src/pages/ProcessingWorkspacePage.tsx) reloads all displayed samples after single-sample operations; its main detail reload and plan-update preview lack the cancellation/generation checks already used in Project. | Refresh the true affected sample set, including shared operations. An isolated one-sample change in an eight-sample workspace avoids seven unrelated reads; stale responses cannot overwrite a changed route/selection. |
-| Baseline-dependent | [Alignment guide](../src/lib/project-canvas-productivity.ts) compares moving and stationary anchors in nested loops; [ProjectMapSurface](../src/components/project/ProjectMapSurface.tsx) invokes it during drag. | Compare 1/25/250 selected nodes. Add a drag-scoped index or frame-coalesced work only if traces justify it, preserving threshold and tie-breaking semantics. |
-| First, maintenance | [V19](../worker/export-v19-snapshot.ts) and [V20](../worker/export-v20-snapshot.ts) duplicate snapshot mechanics. | Share proven-equivalent mechanics under explicit version descriptors. Preserve frozen catalogs, validators, schema filtering, nonsecret V20 admissions and historical recovery. This is maintainability work, not a demonstrated speedup. |
-| Baseline-dependent | Project snapshot already batches its base reads and resolves deduplicated targets in bounded groups; [search](../worker/references/search.ts) still scans text before ranked LIMIT. | Measure query plans, rows read, response size and actual latency. Optimize the offending query/projection first. FTS5 remains conditional on measured need. |
-| Staged | [Full export](../src/lib/exportAll.ts) downloads and hashes complete files serially, retains their buffers and creates a complete ZIP Blob. | Measure and declare byte/memory limits, add cancellation and resource bounds where needed, and preserve existing progress and explicit per-file outcomes. FP3 jobs supply the durable execution base for FP4/FP5 streaming/staged packaging. Parallel fetch alone does not solve memory use or snapshot consistency. |
+| P0 | Remote CI stability/fixture cost | Determine causes of the 5-second timeout and expensive D1 migration/setup/recovery fixtures. Maintain exact migration upgrades, corrupt-data failures, real native fixtures, test isolation and required status mapping. Do not simply drop suites or raise timeouts. |
+| P1 | Multi-card placement save | Existing [scale acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md) records 250/500 serial placement PATCHes. Re-measure synchronized code; only if requests dominate, introduce independently reviewed bounded batch geometry preserving revision conflicts, lost ACKs, retry identities, undo and Saved state. |
+| P1 | Map/Reading repeated derivation | Inspect [ProjectPage](../src/pages/ProjectPage.tsx) and [Map model](../src/lib/project-map-model.ts) after sync; share proven-equivalent canonical descriptors while retaining Reading order and stable geometry/object identities. |
+| P1 | Processing reload scope | 5E already implements source ownership, stale-read protection and retained grid/dialog state. Measure whether isolated changes still fetch unrelated Samples, then narrow only demonstrated reads without weakening shared-operation refresh. |
+| P2 | Export/version maintenance | Review repeated mechanics across frozen V19–V24 snapshot/validator generations. Extract only behaviorally identical utilities; preserve each immutable catalog/fingerprint, supported reader, exclusions and accepted receipt/hold invariants. |
+| P2 | FP3–FP5 runner and archive efficiency | **Reuse** the already implemented bounded streaming and persistent job execution; profile hashing, source readback, provider latency, memory and per-step budgets. The legacy browser ZIP path may need its *own* memory ceiling; do not describe all native packages as in-memory ZIPs. |
+| Conditional | Alignment, ranked reference search and FTS | Inspect traces and query plans first. New indexes/cache/FTS are not release gates without demonstrated benefit. |
 
-The exact #249 CI run used **1,031 seconds** for shared verification inside a
-**17 minute 31 second** job with a 20-minute timeout. Leaf times were 512.146 s
-for source tests, 371.322 s for native verification scripts, 69.398 s for mounted
-tests and 4.460 s for the build. This is one observed run, not an average.
-The [verification plan](../scripts/verification-plan.mjs) already runs shared
-leaves once per complete gate; statement/SQL-split caches also already exist.
-Measure fixture creation, migration, seeding and scenario execution before choosing
-isolated prepared baselines or independent job sharding. Retain migration replay
-in migration/upgrade/recovery tests, real guards, all required fault cases and
-exact-commit status mapping. Evaluate duplicate push/PR execution and stale-run
-cancellation separately. Compare equivalent runs; deleting risk coverage or only
-raising timeouts is not a performance result.
+Historical [#249 verification](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37147477245)
+took 17 min 31 s with source, native and mounted suites consuming most time.
+That is a dated **different-code** measurement, not the synchronized benchmark.
+The latest remote source stage passed 3,335 tests but failed one; record new
+complete-gate resource use only after exact-head qualification.
 
 ### Redundancy removal boundaries
 
-Remove repeated work in layers:
+Eliminate repeated pure projections, unnecessary reloads, equivalent helpers
+and stale moving-status paragraphs. Keep one current status matrix here;
+companion plans own domain contracts and dated acceptance records.
 
-1. **Now:** duplicate pure projections, unnecessarily broad refetches, equivalent
-   snapshot mechanics, stale current-status prose and superseded Draft clutter.
-   This roadmap update consolidates current progress here; historical records
-   remain linked from focused documents.
-2. **Where a measured/maintenance boundary warrants it:** extract Project
-   controllers and shared transport primitives without merging distinct uncertain,
-   rejected, conflict and accepted-operation state machines. File size alone is
-   not evidence that a module is slow or redundant.
-3. **After native File adoption:** retire runtime legacy aliases and bridges only
-   after inventorying every reader, writer, accepted retry, retention/GC root,
-   export and supported recovery consumer. Use a populated forward migration and
-   explicit old-client treatment. Keep historical migrations and archive readers.
+Already implemented elsewhere: native S3 File read/write/default selection,
+per-purpose accepted targets, persistent migration jobs, paired Sample+Project
+packages, website recovery, 5D attachment/media controls, 5E read-state and
+stale-response guards, and native bounded streaming. **Do not recreate them.**
 
-Repeated final authorization/lease/retention checks protect changes that can occur
-between asynchronous steps. They are not removable duplicate reads without a
-proof that the replacement preserves those races. Trigger/table count is not a
-performance target. Keep the single modular Worker and D1/SQLite; current evidence
-does not call for a new database engine, cache server or distributed scheduler.
+Do **not** remove final asynchronous authority/lease/retention checks,
+immutable receipts, source holds, historical migrations, versioned archive
+readers or frozen compatibility checks as “duplicate code”. Retire live legacy
+consumers only after an explicit reader/writer/retry/GC/export/recovery
+inventory and populated forward-upgrade plan. Neither source-file size nor
+SQL trigger count is an optimization KPI. Retain the modular Worker and
+D1/SQLite unless measurements justify a fundamental alternative.
 
 ### FP2 completion units
 
-Prefer two coherent delivery outcomes, split into focused reviewable PRs only
-where dependency boundaries require it:
+**Historical implementation scope now satisfied locally**, not a new
+implementation queue. The synchronized `0018`/V21 generation implements
+native File access, read/write, publication and lifecycle with independent
+internal/original defaults; the FabuBlox per-purpose frozen target distinction
+is covered in the local implementation and acceptance records. Existing accepted
+operations and old File locations remain exact. The synchronized FP3 migration
+does not silently move bytes on default edits.
 
-1. **Native File runtime and persistence:** one reviewed successor schema/archive
-   generation for S3 byte locations, File-only business bindings, accepted writes,
-   media/download/export reads, purpose-aware reuse, deletion/GC and paired recovery.
-   The [FabuBlox whole-import destination](./FP2_STORAGE_ROLE_SELECTION.md) must
-   become per-purpose/per-item frozen targets before internal/original roles can
-   differ. Retain historical receipts, recovery and exact profile identities.
-2. **Working storage choice:** qualify a real AWS instance, activate atomically,
-   then expose independent defaults through existing Settings. Test new writes,
-   same-provider distinct instances, old File reads, in-flight accepted retries,
-   provider failure, permissions, restart and non-empty successor recovery.
-
-Changing a default chooses the destination of **newly accepted** writes only.
-Existing files and already accepted operations stay bound to their recorded
-locations. Moving old files is the explicit FP3 job. External credentials remain
-encrypted application settings; root keys, Cloudflare bindings and later local
-mounts remain installation bootstrap, and ordinary content packages contain no
-usable credentials. Generic S3/WebDAV identity and live support are qualified
-separately; AWS-specific admission does not certify every S3-compatible service.
+**Still open:** independent exact-head remote/integration review, real AWS account
+and deployed provider/namespace/credential qualification, operational activation
+and version-specific nonempty recovery. Generic S3/WebDAV support needs its own
+proof; qualifying an AWS fixture does not certify every S3-compatible service.
+The 2026-10-03 deployment still represents **V20 / 0017**, where the native S3
+File capability is **not** available. Treat FP2 completion as **local development
+complete, operational release admission open**.
 
 ## North star
 
@@ -707,12 +689,11 @@ work refines the integrated surfaces without reimplementing their backend.
 
 ### Phase 5 — frontend refinement
 
-**Status:** new refinement paused for the backend-first track; Phase 5A and Phase 5B are complete in PRs
-#157–#160, Phase 5C0 is complete in PR #161, Phase 5C1 is complete in PR #162,
-and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 have merged through
-PRs #166/#168/#169. Project refinements through #185 are merged and deployed;
-C4 integration acceptance remains in progress for the explicitly unverified
-workflow, viewport and physical-device cases.
+**Status:** prior Phase 5A–5C implementation through #185 is merged/deployed.
+The synchronized branch now also records **bounded local C4, 5D and 5E
+development completion**, without claiming device/deployed acceptance. **5F is
+the next unstarted implementation slice.** See its dated acceptance records;
+do not restart 5D or 5E because this integration-base document predates sync.
 
 The bounded slice order and review contract are recorded in
 [frontend refinement implementation plan](./FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md).
@@ -766,18 +747,13 @@ double-click (#184), and equal panel widths plus Sample note source-focus layout
 IME, wider device/viewport and other unverified C4 cases remain explicit. Existing
 identity, source hierarchy and performance contracts continue to govern this review.
 
-The previously planned attachment/media, source-record/directory, and
-cross-product integration work moves to Phase 5D, Phase 5E, and Phase 5F
-respectively; its product scope is unchanged. On resuming the frontend track,
-the next frontend implementation slice after C4 acceptance is **Phase 5D —
-attachment and media surfaces**. Phase 5D has not started. The bounded
-performance/maintenance tranche and FP2 completion take priority under the
-near-term order above; completed Worker extraction is not repeated.
-File upload/download, location health, migration and
-Settings functionality belongs to FP; Phase 5D later owns consistent attachment
-presentation and states across existing pages. Phase 5F includes the new enabled
-Settings/export/import surfaces in final cross-product acceptance. Appearance
-personalization is a separate later feature, not a prerequisite.
+Phase 5D and Phase 5E are **locally complete on the synchronized branch**,
+with remaining real-device/deployment/cross-surface acceptance. Phase 5F is
+the next implementation scope and also reviews enabled FP2–FP5 Settings,
+migration, export and recovery entry points. This is not authorization for a
+whole-product visual rewrite or a repeat of finished keyboard/panel work.
+Functional provider, upload, migration and recovery engines stay owned by FP;
+Phase 5 owns presentation consistency and operator comprehension.
 
 **Exit:** the frozen v1 feature set reads and behaves as one coherent product rather
 than a sequence of independently implemented phases.
@@ -840,7 +816,7 @@ treating it as a release candidate.
   export/website import and privileged restore rehearsal for enabled FP scope;
 - non-empty file cases across configured storage roles, destination verification,
   reference preservation and deletion protection; migration/job interruption is
-  qualified in the later release that enables FP3;
+  a 6B gate **if FP3 is enabled in that release**, not an unstarted future implementation;
 - isolated migration/deployment/runbook verification;
 - recovery when an old tab requests an unavailable lazy route/editor chunk after
   deployment or a temporary network failure: clear retry/refresh without reload
@@ -952,46 +928,44 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Release milestones
 
-| Milestone | Required capabilities |
-|---|---|
-| Foundation complete | Source/blob lifecycle, registry, resolver, deep links, exact focus, deterministic search, reusable Project discovery surface |
-| Project reference-workspace alpha | Project identity/save model, Map kernel, authoritative repeated-reference placement, reopen/remove behavior |
-| Map-first Project workspace alpha | Alpha plus Markdown/attachment creation and basic directed/undirected edges |
-| Project MVP | Map-first alpha plus Reading projection, Markdown/TeX, media/save hardening, complete export |
-| Project v1 functional shape | MVP plus mature Inspector/navigation, selected Canvas productivity, previews where justified, and representative-scale performance |
-| V1 feature freeze | Interaction-shaping v1 scope is fixed; optional future capabilities no longer block refinement |
-| First integrated V3 release | Existing product, accepted FP1 and completed FP2; remaining C4/5D/5E/5F, 6A6 and scoped 6B pass. A reviewed R2-only scope is possible only as an explicit FP2 deferral. |
-| File/data portability follow-ups | FP3 verified migration, FP4 paired native packages/website import, then FP5 full backup/privileged restore. These remain required later milestones, not gates on the first integrated V3 release. |
-| Refined release candidate | Frozen v1 plus enabled reviewed FP scope, systematic frontend refinement, V3 architecture stabilization, and final integrated release validation |
-| Portable release | Later milestone: Node/SQLite/local defaults and the same product contracts, including non-empty Cloudflare ↔ Docker import/restore and storage remapping, pass in documented deployments |
-| Insight experiments | Optional read-only semantic/LLM features after the deterministic product is stable |
+| Milestone | Required capabilities and current state |
+| --- | --- |
+| Foundation → Project v1 shape | Earlier Project and backend fundamentals are delivered; retain their reference/Canvas/save/media regression behavior. |
+| Synchronized FP2–FP5 development | Native File/S3, bounded migration jobs, paired Sample+Project copy packages and system backup/restore **implemented and locally qualified**; not yet merged/deployed/provider-qualified. |
+| C4 / 5D / 5E | Bounded local development completed; keep physical-device, OS-input and deployed-runtime acceptance gaps visible. |
+| 5F integrated UX | Next phase; inspect all enabled screens and their read/uncertain-operation/identity distinctions. |
+| 6A6 / 6B | Required combined-tree stabilization, realistic data, provider/operational and final release acceptance. |
+| First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
+| Portable runtime | Node/Docker/SQLite/local defaults with real volume/upgrade and cross-deployment recovery evidence. |
+| Group collaboration | Small-group membership and complete resource authorization, after runtime/identity boundaries are qualified. |
 
 ## Immediate next PR order
 
-1. Review this consolidated roadmap and current README. Record a disposition for
-   inactive #199/#200 without merging their historical bridge paths. Identify the
-   single pending shadow reference through a bounded read-only diagnostic.
-2. Establish the current Active/Enabled browser/API/CI baseline. Publish the
-   workload and measurements once so subsequent fixes compare the same scenarios.
-3. Implement the highest-return measured save/data-loading fix and the proven
-   duplicate Project derivation; keep API-contract and behavior-preserving changes
-   separately reviewable. Consolidate V19/V20 mechanics and optimize test setup
-   only to the extent justified by evidence and maintenance value.
-4. Complete the two [FP2 outcomes](#fp2-completion-units). Each enabled persistence
-   generation ships with its matching archive/recovery contract. Extra internal
-   evidence screens are not substitutes for an end-to-end storage feature.
-5. Close remaining 6A6/C4 and complete 5D → 5E → 5F for enabled product scope;
-   qualify 6B and prepare the first integrated V3 release PR to `main`. Preserve
-   the license, existing deployment separation and a documented populated upgrade
-   path. Reconcile current operational controls, not historical assumed state.
-6. Continue FP3 → paired FP4 → FP5 after that release checkpoint. Keep current
-   export/recovery working throughout; later backup UX is not deferred data safety.
-7. Schedule Node/Docker/local portability and then small-group resource sharing
-   as separate milestones, with their actual runtime and authorization evidence.
-
-A trusted server-side derivative producer remains optional and separately scoped.
-Neither automatic replication nor a distributed task system is required to make
-migration, export and import reliable for the intended small-group deployment.
+1. Reproduce and resolve the **exact-head CI failure** at `2060c745`;
+   review the synchronized four-commit implementation, schema generations
+   `0018`–`0022` and V21–V24 paired readers/writers, then merge only through its
+   own reviewed implementation PR(s). No deployment or provider activation is
+   implied by this roadmap Draft.
+2. Reconcile this planning Draft **#250** against the actual accepted integration
+   head. Keep historical deployment V20 separate from local V24 and update
+   cross-plan status/links in the same reviewed documentation tree. Review inactive
+   Drafts #199/#200 without adopting those old migration bridges.
+3. Begin **5F-1** (cross-page language/control), **5F-2** (read/retry, focus,
+   uncertain-write and recovery identity), then **5F-3** (realistic integrated
+   responsive/theme/accessibility and source-data workflows).
+4. In parallel run the finite measured CI/performance/maintenance lane: first
+   instrument cost, then address only demonstrated save, projection, refetch,
+   archive or verification bottlenecks in separately reviewable changes.
+5. Close **6A6**, then **6B** with a capability/acceptance matrix for every FP2–FP5
+   feature proposed for enablement. Qualify exact real providers, migration
+   execution, current-version nonempty recovery, fresh target provisioning,
+   paused restored execution, physical input, live endpoints and handoff.
+6. Prepare the integration-to-`main` release only for the **tested enabled scope**.
+   Explicitly defer unsafe/unqualified capabilities at server-side gates; reconcile
+   main ancestry, deployment runbook and unchanged previous File addresses.
+7. After the release, plan complete Node/Docker local-volume distribution,
+   cross-deployment portability, then group-wide resource authorization. Optional
+   derivation/LLM/search features remain separate measured decisions.
 
 ## Work that should not happen next
 

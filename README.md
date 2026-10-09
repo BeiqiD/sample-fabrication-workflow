@@ -6,10 +6,13 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 ## Development status
 
-The active V3 integration line is `v2/backend-foundation`; `main` does not yet
-contain that full implementation. This README describes the integration line.
-See the [current checkpoint and release roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
-for verified capability boundaries, current work and planned releases.
+The active V3 integration line is `v2/backend-foundation` (last merged
+checkpoint `474a038`); `main` has not received its first integrated V3 release.
+A **separate synchronized development branch** at `2060c745`
+contains locally qualified FP2–FP5 and C4/5D/5E changes not yet merged/deployed.
+This README distinguishes that **development V24** from the **deployed V20**
+runtime. See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
+before using any capability on a live installation.
 
 ## Core model
 
@@ -123,11 +126,15 @@ The accepted FP1 integration uses the existing R2 profile for both ordinary/inte
 files and unchanged originals. Original uploads do not require SWITCHdrive.
 Authenticated Storage Settings shows current destinations and configuration status.
 
-FP2 adds administrator-scoped external candidates, encrypted credentials,
-connection checks and restricted AWS S3 identity admission. Internal S3 read
-transport is groundwork; S3 File uploads/downloads, activation and independent
-role defaults are not yet enabled. See the [FP2 completion scope](./docs/PRODUCT_ROADMAP.md#fp2-completion-units).
-A registered candidate is not an active upload destination.
+Historically deployed FP2 adds administrator-scoped candidates, encrypted
+credentials, checks and AWS S3 **read-only** profile admission under V20.
+The **synchronized local implementation** adds native S3 File read/write,
+publication/GC, independent internal/original role defaults and accepted
+per-purpose destinations (`0018`/V21), with persistent migration jobs
+(`0019`/V22). Those capabilities have local qualification **but have not been
+integrated, deployed or validated against a real AWS provider**. A configured
+candidate or local test does not make an upload destination active on the
+existing deployment. See [phase and release gates](./docs/PRODUCT_ROADMAP.md#fp2-completion-units).
 
 Historical SWITCHdrive files continue to use their recorded provider and require
 working HTTPS WebDAV credentials. Configure that environment-backed adapter
@@ -179,17 +186,27 @@ npm run verify:v3-deployment
 
 ## Data ownership and backup
 
-The current complete content archive is **V20**, writer **1**, profile
-`fp2-native-profile-admission`. It preserves canonical content, available file
-bytes and nonsecret native admission evidence. Installation candidate settings,
-check history, credential payloads and root keys are excluded. It is not a full
-installation-secret backup or the planned native website-import package.
+The **deployed** complete content writer remains **V20**, writer **1**,
+`fp2-native-profile-admission`. It retains canonical rows and available bytes
+plus nonsecret S3 admission metadata, but not installation candidate secrets,
+check history or root keys. Missing/unavailable/mismatched bytes still appear
+as explicit `export-warnings.json` outcomes; a partial content archive is not
+a complete system backup. The older browser ZIP path needs its own measured
+memory ceiling.
 
-Each file has a final byte outcome. Missing, unavailable or integrity-mismatched
-bytes appear in `export-warnings.json`; a partial archive must not be treated as a
-complete backup. The current exporter builds ZIPs in browser memory, so large
-archives need a measured size/memory budget. Bounded jobs, portable Sample/Project
-packages with matching import, and privileged web restore belong to FP3–FP5.
+The **synchronized, not deployed** implementation adds V21 native File archive,
+V22 migration-job archive, V23 native Sample/**Project** export with matching
+website **fresh-copy** import plus offline HTML/Markdown reports, and V24
+privileged system backup/website **identity-preserving** recovery. These
+separate V1 product envelopes use bounded streaming and persisted job execution.
+Research packages have a 100 MiB complete-archive ceiling, 96 MiB File payload
+ceiling, 100 Files, 1,200 records and 20 roots. They are not unlimited and local
+workerd/S3 fixtures are not real-provider release tests. The system recovery
+handoff still requires an independently provisioned fresh target and operator
+approval; restored execution starts disabled. See
+[FP4 local design](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md),
+[FP5 local goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md) and
+[current release limits](./docs/PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release).
 
 `npm run verify:export-restore -- --archive backup.zip --destination NEW_LOCAL_DIRECTORY --target-schema S2`
 rehearses a trusted supported archive against current migrations in a new isolated
@@ -214,7 +231,7 @@ Historical conversion utilities are version-scoped diagnostics rather than
 current universal migration tools: [FP1g planner](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md),
 [V14 consumer inspection](./docs/FP1_SHADOW_CONVERSION_PREFLIGHT.md), and
 [shadow runtime/inspection](./docs/FP1_SHADOW_RUNTIME.md). Their frozen inputs
-must not be relabeled as current V20 or future FP3 migration support.
+remain historical, not a substitute for the separate synchronized FP3 job and V22 archive implementation.
 
 ## Further documentation
 
