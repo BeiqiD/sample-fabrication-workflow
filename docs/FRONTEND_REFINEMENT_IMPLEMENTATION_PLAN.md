@@ -2,10 +2,11 @@
 
 Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
 **Bounded local C4, 5D and 5E development completed** on synchronized
-`codex/fp2-fp3-development`, now at `20176fc5`;
+`codex/fp2-fp3-development`, now at `3c1baf5`;
 formal device/OS-input, deployed-provider and combined-product acceptance
-remain open. **5F is in progress** with its initial bounded implementation
-committed and pushed; this does not close the whole phase.
+remain open. **5F is in progress** with bounded implementation and follow-up
+research read-error, receipt and job-control ownership repairs committed and pushed; this does
+not close the whole phase.
 
 The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
 not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
@@ -14,8 +15,9 @@ not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sampl
 explicit unqualified cases. The latter passed 400 core browser cases plus
 supplemental checks under a bounded local source configuration. The historical
 `2060c745` default-five-second CI failure remains recorded; the later `4479295`
-Verify run was cancelled at the 20-minute whole-job budget. At `20176fc5`,
-complete local and remote gates are not yet qualified; see the
+Verify run was cancelled at the 20-minute whole-job budget. The `20176fc5`
+source context passed, but mounted checks failed. Follow-up repairs are pushed
+at `3c1baf5`; its complete exact-head gate remains open. See the
 [current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint).
 
 [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
@@ -523,10 +525,11 @@ their intentional density and workflow differences.
 
 ### Phase 5F — cross-product integration review
 
-Status: **bounded development in progress** at `20176fc5`. Initial read-state,
-preview ownership, modal focus and narrow-grid repairs are committed and pushed;
-complete cross-product qualification remains open. See
-[the current 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
+Status: **bounded development in progress** at `3c1baf5`. Initial read-state,
+preview ownership, modal focus and narrow-grid repairs, plus follow-up research
+read-error, receipt and job-control ownership fixes, are committed and pushed; complete
+cross-product qualification remains open. See
+[the initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
 and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
 local results and the still-open exact-head gate and real-plan/mutation cases.
 Divide the work into 5F-1 (cross-page semantics and action ownership),
@@ -1232,7 +1235,8 @@ refinement without reopening completed Phase 5 visual or interaction scope;
 [V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
 Bounded local C4, 5D and 5E development is complete; their remaining formal
 acceptance retains its scope. The frontend implementation track continues with
-5F in progress; initial bounded repairs do not close final integrated acceptance.
+5F in progress; bounded implementation and follow-up repairs do not close final
+integrated acceptance.
 Phase 6B release validation and operational
 rehearsal requires both the final frontend baseline
 and the completed backend stabilization gate. Optional

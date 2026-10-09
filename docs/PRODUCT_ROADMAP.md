@@ -4,7 +4,7 @@ Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-10-09, reconciling integration `v2/backend-foundation`
 (`474a038e3eb79b4251b949458e252805f7851cac`) with the **separately synchronized**
-local-development branch `codex/fp2-fp3-development` at `20176fc51d77301c58706d8ae0ff7d87ca6a8422`.
+local-development branch `codex/fp2-fp3-development` at `3c1baf5fdb21994c0510754eb20919db8189a91a`.
 This is a **documentation-only proposal**. No synchronized implementation, migration,
 File mode, storage profile, production deployment or release scope is activated by
 this document or by PR #250.
@@ -23,27 +23,62 @@ is valuable evidence but is not a remote pass or production admission.
 | FP3 | **Locally implemented and qualified**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Complete exact-head gate qualification, deployed runner limits/invocation, interruption and nonempty recovery rehearsal. |
 | FP4 | **Locally implemented and qualified**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Locally implemented and qualified**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
-| Frontend | Bounded **C4, 5D and 5E** local development completed on 2026-10-07/08; [5E record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md). **5F is in progress**, with its initial bounded implementation committed and pushed; complete cross-product qualification remains open. | Remaining physical device/OS input, deployment and combined-product acceptance. Do not redo locally complete slices. |
-| CI | Development head `20176fc5` raises the sequential Verify job budget to 40 minutes; the default Vitest test deadline remains 5 seconds, and existing case-specific limits are unchanged. The prior `4479295` Verify run was cancelled at its 20-minute job budget. | Complete local and exact-head remote outcomes are not yet qualified; cancellation is not evidence of a specific test failure. |
+| Frontend | Bounded **C4, 5D and 5E** local development completed on 2026-10-07/08; [5E record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md). **5F is in progress**, with bounded implementation and follow-up research read-error, receipt and job-control ownership repairs committed and pushed; complete cross-product qualification remains open. | Remaining physical device/OS input, deployment and combined-product acceptance. Do not redo locally complete slices. |
+| CI | Development head `3c1baf5` retains the 40-minute sequential Verify job budget, default 5-second Vitest deadline and unchanged case-specific limits. Final mounted checks passed 93 files / 877 tests; local build and Map performance passed. | Complete exact-head remote qualification remains open: Verify was still running. Earlier `b7c6246` local leaves and `20176fc5` source-pass/mounted-fail results belong to their own heads. |
 | Stabilization | 6A1–6A5 selected ownership/S2 baseline work delivered historically. | 6A6 complete combined-tree exit and enabled-scope 6B release verification remain open. |
 | Legacy Drafts | #199/#200 are inactive alternatives to the chosen S2 route. | Review closure as maintenance, not as new migrations or a release prerequisite. |
 
-**Current CI qualification remains open.** [Run 37976554667](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37976554667)
-on `44792957109838b652fb10adb7a145cecd2b68de` was **cancelled** at the
-20-minute job budget. Its annotations report “The job has exceeded the maximum
-execution time of 20m0s” and “The operation was canceled.” They do not identify
-a specific failed test or qualify the complete gate. Committed and pushed
-`20176fc51d77301c58706d8ae0ff7d87ca6a8422` changes the Verify job budget to **40 minutes**,
-while the default Vitest test deadline remains **5,000 ms** and existing
-case-specific limits are unchanged. On this exact head,
-[Map performance run 37979239617](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37979239617)
-passed in 30 seconds; [Verify run 37979239529](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37979239529)
-was still running at this checkpoint. Complete local and exact-head remote
-gates are not yet qualified. Increasing the whole-job
-budget is not itself a performance correction or a passing result.
+**Current CI qualification remains open.** Development head
+`3c1baf5fdb21994c0510754eb20919db8189a91a` adds
+[acknowledged job-control/read-ownership repair](https://github.com/BeiqiD/sample-fabrication-workflow/commit/3c1baf5fdb21994c0510754eb20919db8189a91a)
+to the preceding
+[helpful research read-error repair](https://github.com/BeiqiD/sample-fabrication-workflow/commit/051276300a34a1fce4b0afaa901cd0c38559e6b4)
+and [saved-intent receipt-ownership repair](https://github.com/BeiqiD/sample-fabrication-workflow/commit/b7c624637b61a087c415b31e4c67a355867a9a69).
+Successful job-control acknowledgements now invalidate older background reads
+in Research Packages and System Recovery; an old paused GET cannot restore
+Paused/Resume after an acknowledged Cancel. Research control completions also
+retain the current denied/read-owner guard. The final five-file focused run
+passed **88 tests** in 5.36 seconds. The final-head complete mounted suite then
+passed **93 files / 877 tests** in 137.10 seconds; the local `tsc -b`/Vite build
+also passed. Read-only development-data comparison retained exact schema, typed
+cells and physical rowids, with SQLite quick-check OK and zero foreign-key
+violations.
+[Map performance run 37984549655](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549655)
+passed; [Verify run 37984549600](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600)
+was still running at this checkpoint. These local leaf results do not qualify
+a complete canonical or remote gate. These client repairs do not change
+backend/API/provider protocols.
 
-**Initial bounded 5F implementation, not full 5F acceptance.**
-[The current 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md) records
+**Historical local leaves at `b7c6246`.** Forty-seven focused repair cases and a
+separate combined three-file/56-case run passed locally; those runs overlap. On
+that head, the complete mounted suite passed **92 files / 863 tests** in 142.16
+seconds, and a two-CPU `tsc -b`/Vite rebuild passed. Those results do not qualify
+the changed `3c1baf5` tree. Prior
+[Verify run 37983032975](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37983032975)
+was still running at this checkpoint;
+[Map performance run 37983032962](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37983032962)
+passed. The earlier local complete-gate run was deliberately interrupted and
+remains unqualified.
+
+The preceding [Verify run 37979239529](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37979239529)
+on `20176fc51d77301c58706d8ae0ff7d87ca6a8422` passed its source context but
+failed mounted checks on the immutable-media/helpful-GET conflict. Its
+[Map performance run 37979239617](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37979239617)
+passed in 30 seconds. Earlier `4479295` Verify
+[run 37976554667](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37976554667)
+was cancelled at the 20-minute job budget, without a specific test failure
+annotation. The 40-minute job budget introduced at `20176fc5` is retained; the
+default Vitest deadline remains **5,000 ms**, with existing case-specific limits
+unchanged. A larger whole-job budget is not itself a passing result.
+
+The documentation-only PR #250 checkpoint `1fe8dd6` passed all 14 status
+contexts and both workflows. Those results do not qualify the separate
+implementation head or any later documentation head. PR merge still requires
+confirmation of the actual Cloudflare automatic-build/deployment boundary;
+no deployment or provider activation is authorized by this document.
+
+**Historical initial 5F checkpoint at `20176fc5`, not full 5F acceptance.**
+[The initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md) records
 21 passing Settings/data mounted tests, 57 passing preview/Process/Timeline/modal
 tests, six passing positive/blocked **mocked** confirmation cases and a passing
 local build. All 12 post-repair narrow-grid layout cases passed. Eight actual
@@ -89,7 +124,7 @@ an unqualified feature is implemented-but-not-approved, not “not started”.
 
 | Order | Work | Finite exit / release rule |
 | --- | --- | --- |
-| 1 | Qualify and review synchronized implementation and planning | Complete exact-head local/remote gates after fixture-cost and whole-job-budget changes; independently review the synchronized implementation, its initial bounded 5F repairs and paired `0018`–`0022` migrations with V21–V24 recovery, then integrate by accepted PR(s) against `v2/backend-foundation`. This documentation Draft **does not merge that code**. Update this roadmap on the accepted code head. |
+| 1 | Qualify and review synchronized implementation and planning | Complete exact-head local/remote gates after fixture-cost and whole-job-budget changes; independently review the synchronized implementation, its bounded 5F repairs, including research read-error, receipt and job-control read ownership, and paired `0018`–`0022` migrations with V21–V24 recovery, then integrate by accepted PR(s) against `v2/backend-foundation`. This documentation Draft **does not merge that code**. Update this roadmap on the accepted code head. |
 | 2 | Continue Phase **5F**, in bounded integration slices | 5F-1 common cross-page language/action ownership; 5F-2 navigation, read/retry, uncertain-write and recovery boundaries; 5F-3 representative responsive/theme/input and mixed-record acceptance. Repair observed gaps, not every old style. |
 | Parallel finite lane | Measured performance and redundancy cleanup | Attribute CI fixture cost, multi-card save requests, duplicate projections, Processing refresh and archive maintenance on the synchronized head. Preserve fault/retention/security coverage. No open-ended optimization phase. |
 | 3 | **6A6** stabilization exit and **6B** release validation | Qualify a merged/reviewed tree, fresh and populated migrations, exact-head complete gates, realistic browser/device cases and explicit **enabled FP2–FP5** capability boundaries. Finish real-provider/deployed/operational acceptance **before enabling** a capability. |
@@ -719,7 +754,8 @@ work refines the integrated surfaces without reimplementing their backend.
 **Status:** prior Phase 5A–5C implementation through #185 is merged/deployed.
 The synchronized branch now also records **bounded local C4, 5D and 5E
 development completion**, without claiming device/deployed acceptance. **5F is
-in progress**, with its initial bounded implementation committed and pushed.
+in progress**, with bounded implementation and follow-up research/job-control
+read-ownership repairs committed and pushed.
 Complete 5F qualification remains open. See the dated acceptance records;
 do not restart 5D or 5E because this integration-base document predates sync.
 
@@ -961,7 +997,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Foundation → Project v1 shape | Earlier Project and backend fundamentals are delivered; retain their reference/Canvas/save/media regression behavior. |
 | Synchronized FP2–FP5 development | Native File/S3, bounded migration jobs, paired Sample+Project copy packages and system backup/restore **implemented and locally qualified**; not yet merged/deployed/provider-qualified. |
 | C4 / 5D / 5E | Bounded local development completed; keep physical-device, OS-input and deployed-runtime acceptance gaps visible. |
-| 5F integrated UX | In progress: initial bounded read-state, preview ownership, modal focus and narrow-grid repairs are implemented. Complete exact-head gates and the remaining cross-product/input/provider acceptance are open. |
+| 5F integrated UX | In progress: bounded read-state, preview ownership, modal focus, narrow-grid and research read-error/receipt/job-control ownership repairs are implemented. Complete exact-head gates and the remaining cross-product/input/provider acceptance are open. |
 | 6A6 / 6B | Required combined-tree stabilization, realistic data, provider/operational and final release acceptance. |
 | First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
 | Portable runtime | Node/Docker/SQLite/local defaults with real volume/upgrade and cross-deployment recovery evidence. |
@@ -969,7 +1005,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete exact-head local and remote gate qualification at `20176fc5`;
+1. Complete exact-head local and remote gate qualification at `3c1baf5`;
    preserve the historical `2060c745` test failure and `4479295` job-budget
    cancellation separately. Review the synchronized implementation, schema generations
    `0018`–`0022` and V21–V24 paired readers/writers, then merge only through its

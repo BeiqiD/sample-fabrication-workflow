@@ -4,7 +4,7 @@ Status: FP0 design reviewed (#207), FP1 historically deployed and accepted.
 **Synchronized local FP2–FP5 implementation and qualification are complete**;
 real-provider/deployed/integrated release exits remain open.
 Last reviewed: 2026-10-09 at integration `474a038` and separate synchronized
-implementation `20176fc51d77301c58706d8ae0ff7d87ca6a8422`. This document records **contracts and acceptance
+implementation `3c1baf5fdb21994c0510754eb20919db8189a91a`. This document records **contracts and acceptance
 exits**, while [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint)
 owns active implementation/deployment/CI state.
 
@@ -24,9 +24,12 @@ but it does **not** qualify a real AWS account, deployed runner or operator
 handoff. Local File mode remains legacy with execution disabled. The historical
 `2060c745` remote CI failed a default-five-second V21 restore test; its unrun
 dependent gates were not independent failures. The later `4479295` run exhausted
-the 20-minute whole-job budget. Current head `20176fc5` uses a 40-minute job
-budget; the default Vitest deadline remains 5 seconds and existing case-specific
-limits are unchanged. Complete local and remote results are not yet qualified. The Product checkpoint owns current gate status.
+the 20-minute whole-job budget. The `20176fc5` source context passed, but mounted checks failed;
+follow-up research read-error, receipt and job-control ownership repairs are
+pushed at `3c1baf5`.
+The 40-minute job budget, default 5-second Vitest deadline and existing
+case-specific limits are retained. Complete exact-head qualification remains
+open; the Product checkpoint owns current gate status.
 See [FP2/3 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md),
 [FP4 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md) and
 [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md).
@@ -292,7 +295,7 @@ UI is part of its own milestones; it does not repeat completed Canvas work or
 absorb the entire Phase 5 media/appearance pass. Bounded local C4, 5D and 5E
 development is complete; their remaining formal acceptance retains its scope.
 Phase 5F is in progress alongside exact-head qualification and synchronized
-implementation review; its initial bounded repairs do not complete cross-product
+implementation review; bounded implementation and follow-up repairs do not complete cross-product
 acceptance. These exits precede the scoped Phase 6B release. Phase 6B validates
 the actual enabled FP capabilities,
 not merely the previous zero-blob S2 state. Delaying an FP feature requires an
