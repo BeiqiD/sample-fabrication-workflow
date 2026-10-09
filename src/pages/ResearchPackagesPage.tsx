@@ -167,7 +167,11 @@ export function ResearchPackagesPage() {
     uploadRef.current = value; setUpload(value);
   }
   function updateJob(job: ResearchJobStatus) { setJobs(current => [job, ...current.filter(item => item.id !== job.id)].slice(0, 100)); }
-  function acceptReceipt(intent: Intent, receipt: ResearchRequestReceipt) {
+  function ownsIntent(intent: Intent, signal: AbortSignal) {
+    return !signal.aborted && !deniedRef.current && pendingRef.current === intent;
+  }
+  function acceptReceipt(intent: Intent, receipt: ResearchRequestReceipt, signal: AbortSignal) {
+    if (!ownsIntent(intent, signal)) return null;
     if (receipt.requestId !== intent.input.requestId) throw new Error("Invalid operation receipt.");
     const expected = intent.action === "export" ? intent.input.kind : intent.action;
     if (receipt.job.kind !== expected) throw new Error("Invalid operation receipt.");
@@ -185,17 +189,18 @@ export function ResearchPackagesPage() {
     return receipt.job;
   }
   async function submit(intent: Intent, signal: AbortSignal) {
+    if (!ownsIntent(intent, signal)) return null;
     let receipt: ResearchRequestReceipt;
     try {
       receipt = intent.action === "export" ? await researchPackagesClient.export(intent.input, signal)
         : intent.action === "upload" ? await researchPackagesClient.acceptUpload(intent.input, signal)
           : await researchPackagesClient.import(intent.input, signal);
     } catch (error) {
-      if (signal.aborted) return null;
+      if (!ownsIntent(intent, signal)) return null;
       if (error instanceof ResearchPackageRequestError && error.status === 409) {
         try { receipt = await researchPackagesClient.readRequest(intent.input.requestId, signal); }
         catch (lookupError) {
-          if (signal.aborted) return null;
+          if (!ownsIntent(intent, signal)) return null;
           if (lookupError instanceof ResearchPackageRequestError && lookupError.status === 404) {
             remember(null); setExportPreview(null); setImportPreview(null);
             setMessage(error.reason ? researchPackageErrorMessage(error)
@@ -205,16 +210,15 @@ export function ResearchPackagesPage() {
         }
       } else throw error;
     }
-    if (signal.aborted) return null;
-    return acceptReceipt(intent, receipt);
+    return acceptReceipt(intent, receipt, signal);
   }
   async function reconcile(signal: AbortSignal, retryMissing = false) {
     const intent = pendingRef.current; if (!intent) return;
     try {
       const receipt = await researchPackagesClient.readRequest(intent.input.requestId, signal);
-      if (!signal.aborted) acceptReceipt(intent, receipt);
+      acceptReceipt(intent, receipt, signal);
     } catch (error) {
-      if (signal.aborted) return;
+      if (!ownsIntent(intent, signal)) return;
       if (retryMissing && error instanceof ResearchPackageRequestError && error.status === 404) { await submit(intent, signal); return; }
       if (error instanceof ResearchPackageRequestError && error.status === 404) setMessage("No receipt is recorded yet. An explicit retry will use the original request and identifier.");
       else reportFailure(error);
