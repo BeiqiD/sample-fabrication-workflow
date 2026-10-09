@@ -8,11 +8,13 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 The active V3 integration line is `v2/backend-foundation` (last merged
 checkpoint `474a038`); `main` has not received its first integrated V3 release.
-A **separate synchronized development branch** at `3c1baf5`
-contains locally qualified FP2–FP5 and C4/5D/5E changes, bounded 5F implementation
+A **separate synchronized development line**, with qualified implementation
+checkpoint `3c1baf5`, contains locally qualified FP2–FP5 and C4/5D/5E changes, bounded 5F implementation
 and follow-up research read-error, receipt and job-control ownership repairs,
-not yet merged/deployed. **5F remains in progress**; complete
-local and exact-head remote gates are not yet qualified at this checkpoint.
+not yet merged/deployed. **5F remains in progress**. The complete default remote
+CI gate passed at `3c1baf5`; local mounted/build leaves passed, while the full
+local canonical gate remains unqualified. Review and qualification of the
+accepted combined tree, providers/devices and remaining 5F work stay open.
 This README distinguishes that **development V24** from the **deployed V20**
 runtime. See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
 before using any capability on a live installation.

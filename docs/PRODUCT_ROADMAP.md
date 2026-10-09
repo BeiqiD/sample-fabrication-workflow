@@ -4,7 +4,8 @@ Status: canonical product direction and active implementation roadmap
 
 Last reviewed: 2026-10-09, reconciling integration `v2/backend-foundation`
 (`474a038e3eb79b4251b949458e252805f7851cac`) with the **separately synchronized**
-local-development branch `codex/fp2-fp3-development` at `3c1baf5fdb21994c0510754eb20919db8189a91a`.
+local-development line `codex/fp2-fp3-development` at qualified implementation
+checkpoint `3c1baf5fdb21994c0510754eb20919db8189a91a`.
 This is a **documentation-only proposal**. No synchronized implementation, migration,
 File mode, storage profile, production deployment or release scope is activated by
 this document or by PR #250.
@@ -19,16 +20,16 @@ is valuable evidence but is not a remote pass or production admission.
 | --- | --- | --- |
 | Integration and deployment | `v2/backend-foundation` still targets merged [#249](https://github.com/BeiqiD/sample-fabrication-workflow/pull/249) (`474a038`). The 2026-10-03 deployed Worker version is `faa8a01b-0fc8-47d7-b59e-81e038bc4310`, with V20 content writer. `main` remains the separate first-release target. | The synchronized code has **not** been merged or deployed by this planning PR. Preserve main/integration ancestry and current bindings until a reviewed handoff. |
 | FP1 | File authority was activated on the historical deployment; new `internal` and `originals` roles use R2. The [2026-10-01 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed 6 MiB HTTP writes and 15/15 V19 restore bytes. | Historical accepted locations and missing-provider outcomes remain explicit. |
-| FP2 | **Locally implemented and qualified** in the synchronized branch: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Exact-head CI, integration, real AWS account/profile and deployed administration/provider/runtime acceptance. Do not call fixture tests real-provider qualification. |
-| FP3 | **Locally implemented and qualified**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Complete exact-head gate qualification, deployed runner limits/invocation, interruption and nonempty recovery rehearsal. |
+| FP2 | **Locally implemented and qualified** in the synchronized branch: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Accepted combined-tree review/requalification, integration, real AWS account/profile and deployed administration/provider/runtime acceptance. Do not call fixture tests real-provider qualification. |
+| FP3 | **Locally implemented and qualified**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Accepted combined-tree review/requalification, deployed runner limits/invocation, interruption and nonempty recovery rehearsal. |
 | FP4 | **Locally implemented and qualified**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Locally implemented and qualified**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
 | Frontend | Bounded **C4, 5D and 5E** local development completed on 2026-10-07/08; [5E record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md). **5F is in progress**, with bounded implementation and follow-up research read-error, receipt and job-control ownership repairs committed and pushed; complete cross-product qualification remains open. | Remaining physical device/OS input, deployment and combined-product acceptance. Do not redo locally complete slices. |
-| CI | Development head `3c1baf5` retains the 40-minute sequential Verify job budget, default 5-second Vitest deadline and unchanged case-specific limits. Final mounted checks passed 93 files / 877 tests; local build and Map performance passed. | Complete exact-head remote qualification remains open: Verify was still running. Earlier `b7c6246` local leaves and `20176fc5` source-pass/mounted-fail results belong to their own heads. |
+| CI | Qualified implementation checkpoint `3c1baf5` passed the complete default remote Verify gate: all 12 canonical leaf checks and all 15 status contexts succeeded. The 40-minute job budget, default 5-second Vitest deadline and case-specific limits are retained. Local mounted checks passed 93 files / 877 tests; local build and Map performance passed. | Review/requalify the accepted combined tree and later changed heads. The full local canonical gate remains unqualified; earlier checkpoint evidence keeps its own scope. |
 | Stabilization | 6A1–6A5 selected ownership/S2 baseline work delivered historically. | 6A6 complete combined-tree exit and enabled-scope 6B release verification remain open. |
 | Legacy Drafts | #199/#200 are inactive alternatives to the chosen S2 route. | Review closure as maintenance, not as new migrations or a release prerequisite. |
 
-**Current CI qualification remains open.** Development head
+**Qualified default remote CI at `3c1baf5`.** Implementation checkpoint
 `3c1baf5fdb21994c0510754eb20919db8189a91a` adds
 [acknowledged job-control/read-ownership repair](https://github.com/BeiqiD/sample-fabrication-workflow/commit/3c1baf5fdb21994c0510754eb20919db8189a91a)
 to the preceding
@@ -45,9 +46,20 @@ cells and physical rowids, with SQLite quick-check OK and zero foreign-key
 violations.
 [Map performance run 37984549655](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549655)
 passed; [Verify run 37984549600](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600)
-was still running at this checkpoint. These local leaf results do not qualify
-a complete canonical or remote gate. These client repairs do not change
+completed successfully on this exact code commit. All **12 canonical leaf
+checks** and **15 status contexts** succeeded under the default CI configuration.
+Local mounted/build results retain their separate scope; the complete local
+canonical gate remains unqualified. These client repairs do not change
 backend/API/provider protocols.
+
+This qualification applies to `3c1baf5`, not automatically to later development
+tips, including documentation-only commits, or to an accepted merged code/docs
+tree. Review and requalify the actual combined head. Whole-5F, provider/device
+and enabled-scope release acceptance remain open.
+The later documentation-only development tip `4b2c660` preserves that code and
+records the [bounded initial 5F acceptance](https://github.com/BeiqiD/sample-fabrication-workflow/blob/4b2c660267b794d09798f961efe8d11ba6e1df86/docs/PHASE_5F_INITIAL_ACCEPTANCE.md)
+and [queued Metrology slice](https://github.com/BeiqiD/sample-fabrication-workflow/blob/4b2c660267b794d09798f961efe8d11ba6e1df86/docs/PHASE_5F_METROLOGY_GOAL.md).
+Its exact-head CI must be checked separately; it does not inherit the `3c1baf5` qualification.
 
 **Historical local leaves at `b7c6246`.** Forty-seven focused repair cases and a
 separate combined three-file/56-case run passed locally; those runs overlap. On
@@ -71,9 +83,10 @@ annotation. The 40-minute job budget introduced at `20176fc5` is retained; the
 default Vitest deadline remains **5,000 ms**, with existing case-specific limits
 unchanged. A larger whole-job budget is not itself a passing result.
 
-The documentation-only PR #250 checkpoint `1fe8dd6` passed all 14 status
-contexts and both workflows. Those results do not qualify the separate
-implementation head or any later documentation head. PR merge still requires
+The documentation-only PR #250 checkpoint `4b7353a` passed all four workflow
+runs and 14 status contexts, with a clean merge assessment. Those results do
+not qualify the separate implementation head or this later documentation
+follow-up; each new documentation head needs its own checks. PR merge still requires
 confirmation of the actual Cloudflare automatic-build/deployment boundary;
 no deployment or provider activation is authorized by this document.
 
@@ -124,7 +137,7 @@ an unqualified feature is implemented-but-not-approved, not “not started”.
 
 | Order | Work | Finite exit / release rule |
 | --- | --- | --- |
-| 1 | Qualify and review synchronized implementation and planning | Complete exact-head local/remote gates after fixture-cost and whole-job-budget changes; independently review the synchronized implementation, its bounded 5F repairs, including research read-error, receipt and job-control read ownership, and paired `0018`–`0022` migrations with V21–V24 recovery, then integrate by accepted PR(s) against `v2/backend-foundation`. This documentation Draft **does not merge that code**. Update this roadmap on the accepted code head. |
+| 1 | Review and integrate qualified implementation and planning | Use the passed default remote gate at `3c1baf5`; independently review the synchronized implementation, its bounded 5F repairs, including research read-error, receipt and job-control read ownership, and paired `0018`–`0022` migrations with V21–V24 recovery, and qualify the accepted combined code/docs tree before integration by reviewed PR(s) against `v2/backend-foundation`. This documentation Draft **does not merge that code**. Update this roadmap on the accepted code head. |
 | 2 | Continue Phase **5F**, in bounded integration slices | 5F-1 common cross-page language/action ownership; 5F-2 navigation, read/retry, uncertain-write and recovery boundaries; 5F-3 representative responsive/theme/input and mixed-record acceptance. Repair observed gaps, not every old style. |
 | Parallel finite lane | Measured performance and redundancy cleanup | Attribute CI fixture cost, multi-card save requests, duplicate projections, Processing refresh and archive maintenance on the synchronized head. Preserve fault/retention/security coverage. No open-ended optimization phase. |
 | 3 | **6A6** stabilization exit and **6B** release validation | Qualify a merged/reviewed tree, fresh and populated migrations, exact-head complete gates, realistic browser/device cases and explicit **enabled FP2–FP5** capability boundaries. Finish real-provider/deployed/operational acceptance **before enabling** a capability. |
@@ -154,7 +167,7 @@ latency.
 
 | Priority | Candidate | Exit and preservation rule |
 | --- | --- | --- |
-| P0 | Remote CI stability/fixture cost | Qualify the fixture-cost repair and 40-minute sequential job budget on the exact submitted head; the default Vitest deadline stays at 5 seconds and existing case-specific limits are unchanged. Measure remaining D1 migration/setup/recovery costs while retaining exact migration upgrades, corrupt-data failures, real native fixtures, test isolation and required status mapping. A larger whole-job budget alone is not a performance correction. |
+| P0 | Remote CI stability/fixture cost | Preserve the repair qualified by the complete default remote gate at `3c1baf5`, then measure remaining fixture cost; the default Vitest deadline stays at 5 seconds and existing case-specific limits are unchanged. Measure remaining D1 migration/setup/recovery costs while retaining exact migration upgrades, corrupt-data failures, real native fixtures, test isolation and required status mapping. A larger whole-job budget alone is not a performance correction. |
 | P1 | Multi-card placement save | Existing [scale acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md) records 250/500 serial placement PATCHes. Re-measure synchronized code; only if requests dominate, introduce independently reviewed bounded batch geometry preserving revision conflicts, lost ACKs, retry identities, undo and Saved state. |
 | P1 | Map/Reading repeated derivation | Inspect [ProjectPage](../src/pages/ProjectPage.tsx) and [Map model](../src/lib/project-map-model.ts) after sync; share proven-equivalent canonical descriptors while retaining Reading order and stable geometry/object identities. |
 | P1 | Processing reload scope | 5E already implements source ownership, stale-read protection and retained grid/dialog state. Measure whether isolated changes still fetch unrelated Samples, then narrow only demonstrated reads without weakening shared-operation refresh. |
@@ -997,7 +1010,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Foundation → Project v1 shape | Earlier Project and backend fundamentals are delivered; retain their reference/Canvas/save/media regression behavior. |
 | Synchronized FP2–FP5 development | Native File/S3, bounded migration jobs, paired Sample+Project copy packages and system backup/restore **implemented and locally qualified**; not yet merged/deployed/provider-qualified. |
 | C4 / 5D / 5E | Bounded local development completed; keep physical-device, OS-input and deployed-runtime acceptance gaps visible. |
-| 5F integrated UX | In progress: bounded read-state, preview ownership, modal focus, narrow-grid and research read-error/receipt/job-control ownership repairs are implemented. Complete exact-head gates and the remaining cross-product/input/provider acceptance are open. |
+| 5F integrated UX | In progress: bounded read-state, preview ownership, modal focus, narrow-grid and research read-error/receipt/job-control ownership repairs are implemented. Default remote CI passed at `3c1baf5`; accepted combined-tree requalification and remaining cross-product/input/provider acceptance are open. |
 | 6A6 / 6B | Required combined-tree stabilization, realistic data, provider/operational and final release acceptance. |
 | First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
 | Portable runtime | Node/Docker/SQLite/local defaults with real volume/upgrade and cross-deployment recovery evidence. |
@@ -1005,8 +1018,9 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Complete exact-head local and remote gate qualification at `3c1baf5`;
-   preserve the historical `2060c745` test failure and `4479295` job-budget
+1. Review and integrate the default-remote-CI-qualified `3c1baf5` implementation;
+   review/requalify the actual accepted combined code/docs tree and later changes.
+   Preserve the historical `2060c745` test failure and `4479295` job-budget
    cancellation separately. Review the synchronized implementation, schema generations
    `0018`–`0022` and V21–V24 paired readers/writers, then merge only through its
    own reviewed implementation PR(s). No deployment or provider activation is

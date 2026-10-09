@@ -4,7 +4,7 @@ Status: FP0 design reviewed (#207), FP1 historically deployed and accepted.
 **Synchronized local FP2–FP5 implementation and qualification are complete**;
 real-provider/deployed/integrated release exits remain open.
 Last reviewed: 2026-10-09 at integration `474a038` and separate synchronized
-implementation `3c1baf5fdb21994c0510754eb20919db8189a91a`. This document records **contracts and acceptance
+qualified implementation checkpoint `3c1baf5fdb21994c0510754eb20919db8189a91a`. This document records **contracts and acceptance
 exits**, while [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint)
 owns active implementation/deployment/CI state.
 
@@ -28,8 +28,9 @@ the 20-minute whole-job budget. The `20176fc5` source context passed, but mounte
 follow-up research read-error, receipt and job-control ownership repairs are
 pushed at `3c1baf5`.
 The 40-minute job budget, default 5-second Vitest deadline and existing
-case-specific limits are retained. Complete exact-head qualification remains
-open; the Product checkpoint owns current gate status.
+case-specific limits are retained. The complete default remote gate at
+`3c1baf5` passed; accepted combined-tree review/requalification and provider
+acceptance remain open. The Product checkpoint owns current gate status.
 See [FP2/3 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md),
 [FP4 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md) and
 [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md).

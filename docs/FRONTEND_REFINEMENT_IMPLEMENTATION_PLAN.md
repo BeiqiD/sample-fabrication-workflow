@@ -2,7 +2,7 @@
 
 Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
 **Bounded local C4, 5D and 5E development completed** on synchronized
-`codex/fp2-fp3-development`, now at `3c1baf5`;
+`codex/fp2-fp3-development`, with qualified implementation checkpoint `3c1baf5`;
 formal device/OS-input, deployed-provider and combined-product acceptance
 remain open. **5F is in progress** with bounded implementation and follow-up
 research read-error, receipt and job-control ownership repairs committed and pushed; this does
@@ -17,11 +17,12 @@ supplemental checks under a bounded local source configuration. The historical
 `2060c745` default-five-second CI failure remains recorded; the later `4479295`
 Verify run was cancelled at the 20-minute whole-job budget. The `20176fc5`
 source context passed, but mounted checks failed. Follow-up repairs are pushed
-at `3c1baf5`; its complete exact-head gate remains open. See the
+at `3c1baf5`; its complete default remote gate passed. Accepted combined-tree
+review/requalification and whole-5F acceptance remain open. See the
 [current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint).
 
 [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
-now schedules exact-head CI/integration review, 5F and a finite performance lane
+now schedules qualified implementation review/integration, 5F and a finite performance lane
 before 6A6/6B. FP2–FP5 implementation is locally complete, not a reason to defer
 5F again. Preserve Comfortable/Compact/Dense presentation roles, current
 Project keyboard/editor/panel behavior, 5D attachment trust/lifecycle,
@@ -531,7 +532,8 @@ read-error, receipt and job-control ownership fixes, are committed and pushed; c
 cross-product qualification remains open. See
 [the initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
 and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
-local results and the still-open exact-head gate and real-plan/mutation cases.
+local results, the passed `3c1baf5` default remote gate, and remaining combined-tree
+qualification and real-plan/mutation cases.
 Divide the work into 5F-1 (cross-page semantics and action ownership),
 5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and
 recovery identity), and 5F-3 (representative mixed-domain browser,

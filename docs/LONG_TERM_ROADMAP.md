@@ -4,7 +4,7 @@ Status: long-horizon direction. The [Product roadmap](./PRODUCT_ROADMAP.md#near-
 owns current sequence and release scope.
 
 Last reviewed: 2026-10-09 against integration `474a038` and synchronized
-local development `3c1baf5` (not yet integrated/deployed).
+qualified implementation checkpoint `3c1baf5` (not yet integrated/deployed).
 
 FP1 File authority/R2 defaults are historically deployed. **FP2, FP3, FP4 and
 FP5 are now locally implemented and qualified** on the synchronized development
@@ -13,7 +13,8 @@ Bounded local C4, 5D and 5E have likewise completed. **5F is in progress** with
 bounded implementation and follow-up research/job-control ownership repairs
 committed and pushed.
 The immediate work is
-complete exact-head gate qualification, implementation review/integration and
+review/integration of the default-remote-CI-qualified implementation,
+accepted combined-tree requalification and
 continued **5F**, alongside finite measured
 performance cleanup, 6A6 and scoped 6B; remaining real-provider/device/deployed
 acceptance is not waived. See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
@@ -38,7 +39,7 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary |
 | --- | --- | --- |
-| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Qualify exact-head complete gates, review and integrate complete native File/archive pairs and bounded 5F implementation/follow-up repairs; preserve historical deployed V20 separately from local V24. |
+| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Use the qualified default remote gate at `3c1baf5`, review/requalify the accepted combined tree, and integrate complete native File/archive pairs and bounded 5F implementation/follow-up repairs; preserve historical deployed V20 separately from local V24. |
 | In progress | 5F and finite performance/maintenance | Cross-page consistency, keyboard/focus and read/retry identities, realistic mixed-domain flows; measured multi-card save/Processing/CI/archive costs. |
 | First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
 | Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |

@@ -4,16 +4,18 @@ Status: selected S2 baseline, Worker ownership and shared contracts merged/
 deployed historically. **6A6 is not closed.** Synchronized FP2–FP5 local
 development through `0022` / V24 and C4/5D/5E local acceptance are newer
 evidence, **not yet integrated or deployed**. Reviewed 2026-10-09 against
-integration `474a038` and development `3c1baf5`.
+integration `474a038` and qualified implementation checkpoint `3c1baf5`.
 
 The [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns the
 version-aware current matrix. The historical `2060c745` default-five-second
 V21 restore failure and `4479295` 20-minute job-budget cancellation remain
 distinct evidence. The `20176fc5` source context passed, but mounted checks
 failed. Follow-up research/receipt/job-control ownership repairs are pushed at
-current head `3c1baf5`, retaining the
+implementation checkpoint `3c1baf5`, retaining the
 40-minute Verify job budget, default 5-second Vitest deadline and existing
-case-specific limits. Complete exact-head qualification remains open. Do not
+case-specific limits. Its complete default remote gate passed; accepted
+combined-tree review/requalification remains open. The full local canonical
+gate is not claimed complete. Do not
 recut immutable S2 or restart delivered 6A1–6A5 extraction. Frontend **5F is in
 progress** with bounded implementation and follow-up research repairs committed
 and pushed; 6A6/6B must qualify the
