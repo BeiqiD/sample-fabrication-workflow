@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import JSZip from "jszip";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { CURRENT_NODE_INSTALLATION_CATALOG } from "../../server/installation-catalog";
 import { installReviewedSqliteCatalog } from "../../server/migrations";
 import { createSqliteCapability } from "../../server/sqlite";
 import { captureQuiescedNodeSystemBackup } from "../../server/recovery/snapshot";
-import { buildFullExportArchiveV25 } from "../../src/lib/exportAll";
+import { exportAll } from "../../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "./export-restore";
 
 it("packages and restores actual non-empty V25 research bytes/rowids while excluding protected accounts and all installation authority", async () => {
@@ -28,11 +28,20 @@ it("packages and restores actual non-empty V25 research bytes/rowids while exclu
     database.prepare("INSERT INTO local_accounts VALUES('local_10000000-0000-4000-8000-000000000001','retained.admin',?,1,1,0)").run(verifier);
     const content = (await captureQuiescedNodeSystemBackup(core, database, { backupId: "research-only", createdAt: at })).content;
     const fetched: string[] = [];
-    const built = await buildFullExportArchiveV25(content, undefined, async input => {
-      const address = String(input); fetched.push(address);
+    let manifestRequests = 0;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+      const address = String(input);
+      if (address === "/api/exports/all?archiveSchema=25&archiveWriter=1") {
+        manifestRequests++; return Response.json(content);
+      }
+      fetched.push(address);
       expect(content.blobs.some(blob => blob.downloadUrl === address)).toBe(true);
       return new Response(payload.slice().buffer);
     });
+    // Exercise the actual browser-facing dispatcher and current API query,
+    // then inspect and independently restore its genuine non-empty ZIP.
+    const built = await exportAll();
+    expect(manifestRequests).toBe(1);
     expect(built.warnings).toEqual([]); expect(fetched).toHaveLength(1);
     const bytes = Buffer.from(await built.archive.arrayBuffer()), zip = await JSZip.loadAsync(bytes);
     const archived = JSON.parse(await zip.file("export-manifest.json")!.async("string"));
@@ -66,5 +75,5 @@ it("packages and restores actual non-empty V25 research bytes/rowids while exclu
     const blobPath = providers.find((blob: { outcome: string }) => blob.outcome === "packaged").path;
     expect(await readFile(join(result.restoredDirectory, blobPath))).toEqual(Buffer.from(payload));
     expect(await readFile(archivePath)).toEqual(bytes);
-  } finally { core.close(); await rm(directory, { recursive: true, force: true }); }
+  } finally { vi.unstubAllGlobals(); core.close(); await rm(directory, { recursive: true, force: true }); }
 }, 30_000);

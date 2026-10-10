@@ -3345,5 +3345,50 @@
     },
     "newOwnCompleteCI": "pending after dependency reconciliation"
   },
-  "allRuntimeMilestonesUnfinished": true
+  "allRuntimeMilestonesUnfinished": true,
+  "currentPublicExportDispatcherFollowup": {
+    "scope": "actual browser-facing exportAll/api25 call with genuine nonempty Node snapshot, real JSZip and actual isolated restore; only HTTP manifest/blob transport controlled",
+    "testAdaptation": {
+      "path": "scripts/lib/export-portable-runtime.test.ts",
+      "beforeSha256": "a611c20bee1ef40c9f5d0bbf9d2b56a09bb65dc2d25ccf9977e3d1e8156d5481",
+      "afterSha256": "62c8e17316896ee4ab87b767030bea8c635cfb2ec4b15ed9ab31be1bcff975ed",
+      "scope": "same genuine installed23/nonempty4byte ZIP+isolated restoration/protected-account exclusion/typed event rowid proof, nowactual exportAll/api25 dispatcher instead ofdirectwriter; control onlymanifest andblob HTTPtransport, noSQL/archive/restore mocks",
+      "productionBeforeFix": "unchanged69fbdf6"
+    },
+    "sourceFix": {
+      "path": "src/lib/exportAll.ts",
+      "beforeSha256": "cc6070c7061b0bd49d039eef52aaff44199bb5975806985f06cb48407291f657",
+      "afterSha256": "1855d500189d787321e1ae01daae03743455d3dfa44b254055143776e35a70fa",
+      "change": "actualexportAll selects V25 currentwriter to match actualapi25; all frozenhistoricalwriterfunctions unchanged",
+      "negativeReproductionLog": "/tmp/portable-v25-public-dispatcher-before-fix-attempt1.log"
+    },
+    "actual": {
+      "beforeFix": "FAIL server/archive writer version mismatch at actualexportAll\u2192V24validator",
+      "afterFix": "3PASS (publicnonemptyZIP+isolatedrestore, api25once, refusal/no fallback)",
+      "strictClient": "PASS",
+      "historicalWritersChanged": false,
+      "protectedAccountVerifierInResearch": false,
+      "exactEventRowid": "9007199254740993",
+      "exactOriginalBytes": [
+        0,
+        1,
+        255,
+        7
+      ]
+    },
+    "logs": [
+      {
+        "path": "/tmp/portable-v25-public-dispatcher-before-fix-attempt1.log",
+        "sha256": "03b22d9bd0ee671c00c8e2c977e8835f8524df8e2f65ecb3b16fbc938317f58f"
+      },
+      {
+        "path": "/tmp/portable-v25-public-dispatcher-after-fix-attempt1.log",
+        "sha256": "3a98effeab8f6f25f0ab76b16b88b3870360424955836d213f87c3396304b154"
+      },
+      {
+        "path": "/tmp/portable-v25-public-dispatcher-client-types-attempt1.log",
+        "sha256": "76162e465989f3f070a9de8db711fbf358e53b74d09ce1bbdb57c727e4c4a16d"
+      }
+    ]
+  }
 }

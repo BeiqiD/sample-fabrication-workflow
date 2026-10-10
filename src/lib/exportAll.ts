@@ -256,7 +256,7 @@ export function buildFullExportArchiveV16(input: unknown, onProgress?: (complete
 
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const result = await buildFullExportArchiveV24(manifest, onProgress);
+  const result = await buildFullExportArchiveV25(manifest, onProgress);
   return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
 }
 
