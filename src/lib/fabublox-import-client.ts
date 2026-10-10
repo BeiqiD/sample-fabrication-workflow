@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import {
   FABUBLOX_IMPORT_REQUEST_HEADER,
   normalizeFabubloxImportRequestId,
@@ -70,7 +71,7 @@ export async function prepareFabubloxImport(
 }
 
 export async function submitFabubloxImport(prepared: PreparedFabubloxImport): Promise<FabubloxImportResult> {
-  const response = await fetch("/api/imports/fabublox", {
+  const response = await applicationFetch("/api/imports/fabublox", {
     method: "POST",
     headers: { [FABUBLOX_IMPORT_REQUEST_HEADER]: prepared.requestId },
     body: prepared.form,
@@ -85,7 +86,7 @@ export async function submitFabubloxImport(prepared: PreparedFabubloxImport): Pr
 }
 
 export async function getFabubloxImportRequest(requestId: string, signal?: AbortSignal): Promise<FabubloxImportRequestState | null> {
-  const response = await fetch(`/api/imports/fabublox/requests/${encodeURIComponent(requestId)}`, { cache: "no-store", ...(signal ? { signal } : {}) });
+  const response = await applicationFetch(`/api/imports/fabublox/requests/${encodeURIComponent(requestId)}`, { cache: "no-store", ...(signal ? { signal } : {}) });
   if (response.status === 404) return null;
   const payload: unknown = await response.json().catch(() => null);
   if (response.ok && requestState(payload, requestId)) return payload;

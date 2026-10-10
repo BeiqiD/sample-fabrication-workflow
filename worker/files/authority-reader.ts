@@ -4,11 +4,9 @@ import type { Env } from "../types";
 import type { ByteReadResult } from "./byte-reader";
 import { openShadowProfile } from "./shadow-profile";
 
-export type FileAuthorityMode = "legacy" | "overlap" | "active";
-
-export class FileAuthorityUnavailableError extends Error {
-  constructor() { super("File storage is unavailable"); this.name = "FileAuthorityUnavailableError"; }
-}
+import { readSqlFileAuthorityMode, FileAuthorityUnavailableError, type FileAuthorityMode } from "./authority-mode";
+import { d1StorageConfigurationDatabase } from "../storage/configuration-d1";
+export { FileAuthorityUnavailableError, type FileAuthorityMode } from "./authority-mode";
 
 export const FILE_READ_MAX_LIFETIME_MS = 2 * 60_000;
 export const FILE_READ_HOLD_MS = 15 * 60_000;
@@ -46,21 +44,7 @@ function heldReadBody(body: ReadableStream, deadline: number, release: () => Pro
 /** Pre-FP1 databases retain legacy behavior. An installed but unavailable or
  * invalid authority never grants permission to use a legacy locator. */
 export async function readFileAuthorityMode(db: D1Database): Promise<FileAuthorityMode> {
-  try {
-    const row = await primaryD1(db).prepare("SELECT mode FROM file_authority_control WHERE singleton=1")
-      .first<{ mode: string }>();
-    if (row?.mode === "legacy" || row?.mode === "overlap" || row?.mode === "active") return row.mode;
-  } catch {
-    // The contracted Worker remains compatible with the S1/S2 schema. Check
-    // actual schema absence rather than treating a failed authority read as legacy.
-    try {
-      const schema = await primaryD1(db).prepare(
-        "SELECT COUNT(*) AS count FROM sqlite_schema WHERE type='table' AND name IN ('file_authority_control','storage_profiles')",
-      ).first<{ count: number }>();
-      if (schema?.count === 0) return "legacy";
-    } catch { /* Database failure is still unavailable. */ }
-  }
-  throw new FileAuthorityUnavailableError();
+  return readSqlFileAuthorityMode(() => d1StorageConfigurationDatabase(primaryD1(db)));
 }
 
 /** The caller authorizes the business occurrence and supplies its typed binding.

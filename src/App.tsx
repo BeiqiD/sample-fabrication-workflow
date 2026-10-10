@@ -3,6 +3,7 @@ import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom"
 import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
+import { LocalAuthenticationGate, LocalSessionAction } from "./components/LocalAuthenticationGate";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import "./reference-search.css";
 
@@ -71,6 +72,7 @@ export function App() {
               <span className="nav-link-label">{label}</span>
             </NavLink>)}
           </nav>
+          <LocalSessionAction />
           <button
             type="button"
             className="theme-toggle"
@@ -84,6 +86,7 @@ export function App() {
         </div>
       </header>
       <main>
+        <LocalAuthenticationGate>
         <RouteErrorBoundary resetKey={location.pathname}>
           <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
           <Routes>
@@ -114,6 +117,7 @@ export function App() {
           </Routes>
           </Suspense>
         </RouteErrorBoundary>
+        </LocalAuthenticationGate>
       </main>
     </div>
   );

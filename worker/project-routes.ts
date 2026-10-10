@@ -1,3 +1,4 @@
+import { projectReadHandlers } from "./projects/read-worker";
 import { Context, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
@@ -31,9 +32,7 @@ import {
   createReferenceProjectItem,
   deleteProject,
   deleteProjectEdge,
-  listProjects,
   readProjectAttachmentMediaSource,
-  readProjectSnapshot,
   removeProjectItem,
   renameProject,
   restoreProject,
@@ -121,10 +120,7 @@ async function projectCall<T>(
   }
 }
 
-routes.get("/projects", async (c) => {
-  const includeDeleted = c.req.query("includeDeleted") === "1";
-  return c.json(await projectCall(() => listProjects(c.env.DB, includeDeleted)));
-});
+routes.get("/projects", projectReadHandlers.captureIngressRequest, projectReadHandlers.list);
 
 routes.post("/projects", async (c) => {
   const input = await requireJson(c, isCreateProjectInput, "Invalid Project creation request");
@@ -136,15 +132,7 @@ routes.post("/projects", async (c) => {
   return c.json(result, result.replayed ? 200 : 201);
 });
 
-routes.get("/projects/:projectId", async (c) => {
-  const projectId = requireRouteId(c.req.param("projectId"), "Project");
-  const includeDeleted = c.req.query("includeDeleted") === "1";
-  return c.json(await projectCall(() => readProjectSnapshot(
-    c.env.DB,
-    projectId,
-    includeDeleted,
-  )));
-});
+routes.get("/projects/:projectId", projectReadHandlers.captureIngressRequest, projectReadHandlers.snapshot);
 
 routes.patch("/projects/:projectId", async (c) => {
   const projectId = requireRouteId(c.req.param("projectId"), "Project");
