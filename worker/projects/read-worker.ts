@@ -2,6 +2,7 @@ import type { Env } from "../types";
 import { d1ProjectReadDatabase } from "./read-d1";
 import { createProjectReadService } from "./read-service";
 import { createProjectReadHandlers } from "./read-surface";
+import { workerProjectCreationSubjectScope } from "./creation-subject";
 
 /** Current Worker middleware owns verified Access/ordinary research admission.
  * Select its current request binding so maintenance/File read proxies remain
@@ -9,4 +10,4 @@ import { createProjectReadHandlers } from "./read-surface";
 export const projectReadHandlers = createProjectReadHandlers<Env>((_request, env) => createProjectReadService({
   database: () => d1ProjectReadDatabase(env.DB),
   admit: async () => { /* Existing actual Worker middleware owns read admission. */ },
-}));
+}), workerProjectCreationSubjectScope);

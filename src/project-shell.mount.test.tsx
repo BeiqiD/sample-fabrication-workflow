@@ -7,7 +7,7 @@ import { ProjectsPage } from "./pages/ProjectsPage";
 function jsonResponse(payload: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(payload), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-sfw-project-creation-subject": "a".repeat(64) },
   }));
 }
 
@@ -26,12 +26,14 @@ describe("Phase 5A1 Project directory shell", () => {
   const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
+    sessionStorage.clear();
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
     cleanup();
+    sessionStorage.clear();
     vi.unstubAllGlobals();
   });
 

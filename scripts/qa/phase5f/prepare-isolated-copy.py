@@ -85,6 +85,40 @@ def read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def installed_dependencies(source, explicit_root):
+    if explicit_root is None:
+        # Preserve the original source dependency-directory rule. Only the
+        # explicitly selected installed root permits the source's known link.
+        dependencies = without_symlinks(source / "node_modules").resolve(strict=True)
+        require(dependencies.is_dir(), "Existing source dependencies are required; this helper does not install.")
+        return dependencies, None
+
+    requested = Path(explicit_root).expanduser().absolute()
+    without_symlinks(requested)
+    dependencies = requested.resolve(strict=True)
+    require(dependencies.is_dir(), "Explicit dependencies must be an existing real directory.")
+    require((source / "node_modules").resolve(strict=True) == dependencies,
+            "Explicit dependencies must match the source's actual installed dependency resolution.")
+    metadata = {}
+    for name in ("package.json", "package-lock.json"):
+        source_file = regular_file(source, name)
+        dependency_file = regular_file(dependencies.parent, name)
+        require(source_file.read_bytes() == dependency_file.read_bytes(),
+                "Explicit dependency parent package metadata must exactly match the selected source.")
+        metadata[name] = sha256(source_file)
+    installed_lock = regular_file(dependencies, ".package-lock.json")
+    return dependencies, {
+        "mode": "explicit-existing-real-root",
+        "root": str(dependencies),
+        "sourceDependencyPath": str(source / "node_modules"),
+        "sourceDependencyLink": (source / "node_modules").is_symlink(),
+        "dependencyParentRoot": str(dependencies.parent),
+        "matchingPackageMetadataSha256": metadata,
+        "installedHiddenLockSha256": sha256(installed_lock),
+        "scope": "Existing real installed directory, exact source/parent package metadata and installed hidden-lock byte identity; no installation, dependency copy or independent verification of every installed package.",
+    }
+
+
 def build_identity(source):
     redirect_relative = ".wrangler/deploy/config.json"
     redirect = read_json(regular_file(source, redirect_relative))
@@ -150,6 +184,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", default=str(Path(__file__).resolve().parents[3]))
     parser.add_argument("--destination", required=True)
+    parser.add_argument("--dependency-root", help="Explicit existing real installed directory matching the source's dependency resolution and package metadata.")
     args = parser.parse_args()
     requested_source = Path(args.source_root).expanduser().absolute()
     without_symlinks(requested_source)
@@ -179,8 +214,7 @@ def main():
                          and not path.name.endswith(".example")),
                 "Tracked credential, generated state or dependency files cannot be copied.")
         regular_file(source, relative)
-    dependencies = without_symlinks(source / "node_modules").resolve(strict=True)
-    require(dependencies.is_dir(), "Existing source dependencies are required; this helper does not install.")
+    dependencies, dependency_identity = installed_dependencies(source, args.dependency_root)
     artifact_paths = tree_files(source, "dist") + [
         ".wrangler/deploy.jsonc", ".wrangler/deploy/config.json", ".wrangler/local-installation.json",
     ]
@@ -223,6 +257,8 @@ def main():
     require(all(sha256(regular_file(destination, relative)) == expected
                 for relative, expected in {**files, **artifacts}.items()),
             "Copied source or artifact bytes changed before the receipt was written.")
+    require((dependencies, dependency_identity) == installed_dependencies(source, args.dependency_root),
+            "Installed dependency selection or metadata changed during copying.")
     receipt = {
         "version": 2, "sourceRoot": str(source), "sourceCopyRoot": str(destination),
         "sourceHead": head, "sourceTree": tree, "trackedFiles": files,
@@ -231,6 +267,8 @@ def main():
         "helperSha256": sha256(Path(__file__).resolve()),
         "scope": "Fresh isolated copy only; no database state, credentials, Git metadata, server or API writes copied. Artifact hashes do not independently attest the build's source HEAD.",
     }
+    if dependency_identity is not None:
+        receipt["explicitDependencyIdentity"] = dependency_identity
     with (destination / "isolation-receipt.json").open("x", encoding="utf-8") as output:
         json.dump(receipt, output, indent=2)
         output.write("\n")

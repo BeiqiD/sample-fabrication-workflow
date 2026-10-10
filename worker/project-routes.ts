@@ -54,6 +54,8 @@ import {
   type SettlementProof,
 } from "./projects/settlement";
 import type { Env } from "./types";
+import { PROJECT_CREATION_SUBJECT_HEADER, PROJECT_CREATION_SUBJECT_RESULT_HEADER, isProjectCreationSubject, projectCreationSubject } from "../shared/project-creation-subject";
+import { workerProjectCreationSubjectScope } from "./projects/creation-subject";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 type AppContext = Context<AppBindings>;
@@ -123,6 +125,12 @@ async function projectCall<T>(
 routes.get("/projects", projectReadHandlers.captureIngressRequest, projectReadHandlers.list);
 
 routes.post("/projects", async (c) => {
+  const expectedSubject = c.req.header(PROJECT_CREATION_SUBJECT_HEADER);
+  if (expectedSubject !== undefined && (!isProjectCreationSubject(expectedSubject)
+    || expectedSubject !== await projectCreationSubject(c.get("userEmail"), workerProjectCreationSubjectScope(c.req.raw, c.env)))) {
+    c.header(PROJECT_CREATION_SUBJECT_RESULT_HEADER, "mismatch");
+    throw new HTTPException(409, { message: "Sign-in identity changed. Refresh Projects before retrying." });
+  }
   const input = await requireJson(c, isCreateProjectInput, "Invalid Project creation request");
   const result = await projectCall(() => createProject(
     c.env.DB,

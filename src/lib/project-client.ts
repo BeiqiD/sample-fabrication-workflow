@@ -1,6 +1,7 @@
 import { applicationFetch } from "./authentication-client";
 import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
 import { createUuid } from "./uuid";
+import { PROJECT_CREATION_SUBJECT_HEADER, PROJECT_CREATION_SUBJECT_RESULT_HEADER, isProjectCreationSubject } from "../../shared/project-creation-subject";
 import type {
   CreateAttachmentProjectItemInput,
   CreateMarkdownProjectItemInput,
@@ -26,6 +27,8 @@ import type {
 import type { CopyAttachmentProjectItemInput } from "../../shared/project-copy-paste-api";
 
 export type ProjectMutationDisposition = "authoritative-rejection";
+const directorySubjects = new WeakMap<object, string>();
+export const projectDirectorySubject = (response: ProjectListResponse): string | null => directorySubjects.get(response) ?? null;
 
 export class ProjectApiError extends Error {
   readonly status: number;
@@ -35,6 +38,7 @@ export class ProjectApiError extends Error {
     message: string,
     status: number,
     mutationDisposition: ProjectMutationDisposition | null = null,
+    readonly creationSubjectChanged = false,
   ) {
     super(message);
     this.name = "ProjectApiError";
@@ -57,9 +61,15 @@ async function projectRequest<T>(path: string, init?: RequestInit): Promise<T> {
       payload.error || `Project request failed (${response.status})`,
       response.status,
       mutationDisposition,
+      path === "/projects" && init?.method === "POST" && response.headers.get(PROJECT_CREATION_SUBJECT_RESULT_HEADER) === "mismatch",
     );
   }
-  return response.json() as Promise<T>;
+  const value = await response.json() as T;
+  if (path === "/projects" && !init?.method && value && typeof value === "object") {
+    const subject = response.headers.get(PROJECT_CREATION_SUBJECT_HEADER);
+    if (isProjectCreationSubject(subject)) directorySubjects.set(value, subject);
+  }
+  return value;
 }
 
 function jsonRequest(method: string, body: unknown): RequestInit {
@@ -79,9 +89,9 @@ export const projectApi = {
     "/projects",
     signal ? { signal } : undefined,
   ),
-  create: (input: CreateProjectInput) => projectRequest<ProjectMutationResponse>(
+  create: (input: CreateProjectInput, subject?: string) => projectRequest<ProjectMutationResponse>(
     "/projects",
-    jsonRequest("POST", input),
+    { ...jsonRequest("POST", input), ...(subject ? { headers: { "content-type": "application/json", [PROJECT_CREATION_SUBJECT_HEADER]: subject } } : {}) },
   ),
   read: (projectId: string, signal?: AbortSignal) => projectRequest<ProjectSnapshot>(
     `/projects/${encodeURIComponent(projectId)}`,
