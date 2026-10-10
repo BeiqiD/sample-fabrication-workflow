@@ -85,7 +85,10 @@ its result is recorded separately when observed. No production main release or
 actual serving/schema/provider acceptance is implied.
 
 This follow-up branch starts from fc3 and retains the exercised frontend source
-with an additional reviewed QA helper and documentation. Its final complete
+with an additional reviewed QA helper, independent test-fixture setup and
+[focus-settlement test repair](ATTACHMENT_FOCUS_SETTLEMENT_ACCEPTANCE.md).
+The latter reproduces the original failure, passes all22 focused cases and
+fails a private suppressed-focus negative control as expected. Its final complete
 local/remote checks remain pending. Separately, draft portable-runtime PR #253
 at 7cdee51 failed its local full source gate on one default-deadline case, its
 push source gate on another, and its PR mounted gate on a focus assertion.

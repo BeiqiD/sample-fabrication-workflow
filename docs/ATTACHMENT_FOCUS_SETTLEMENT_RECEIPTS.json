@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "scope": "Finite private mounted check of exact7c UI source with test-only asynchronous focus assertion correction; no actual API/provider/source DB operations or canonical source edits.",
+  "sourceHead": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+  "sourceTree": "c7bcea5d47ed70bb40aec56ed424e58ed6c4702a",
+  "originalRemoteFailure": {
+    "path": "/tmp/portable-foundation-7cdee51-pr-verify-failed.log",
+    "sha256": "e67e19faf0818a09259b2ff12c601b6f47873d3e1e27eb55bb632721d9b825b6",
+    "mountedTests": 966,
+    "passed": 965,
+    "failed": 1,
+    "failure": "attachment-media.mount.test.tsx:90 expected parent contains activeElement true but received false; remains retained."
+  },
+  "inputManifest": {
+    "path": "/tmp/phase5f-attachment-focus-ci-audit/runtime-input-manifest.json",
+    "sha256": "6c26215874b41d4429de5d2a0e640851cdaae59a0ffcdf6676a258af36a26ad6"
+  },
+  "qualifiedPatch": {
+    "path": "/tmp/phase5f-attachment-focus-ci-audit/focus-assertion-await.patch",
+    "sha256": "cf6e22fe7ceff8a9b98f8fa30eaaef914d7e2a66f7279f1d8426071e16b49225"
+  },
+  "candidateTestSha256": "852a6c0a74d23793ac9512c01aff0cb805e0e4a510dd2a45dba0d580a49d8bc0",
+  "productionUiUnchanged": true,
+  "assertionStrengthPreserved": {
+    "parentContainsActiveElement": true,
+    "exactCommentAttachmentsAriaLabel": true,
+    "alertDialogAbsent": true,
+    "emptyAttachmentLabelPresent": true
+  },
+  "runs": [
+    {
+      "name": "original-baseline",
+      "command": "node node_modules/vitest/vitest.mjs run --config vitest.mounted.config.ts src/attachment-media.mount.test.tsx",
+      "cwd": "/tmp/phase5f-attachment-focus-ci-audit/baseline",
+      "exitCode": 1,
+      "passed": 21,
+      "failed": 1,
+      "expectedFailure": false,
+      "sameRemoteFailureReproduced": true,
+      "log": {
+        "path": "/tmp/phase5f-attachment-focus-ci-audit/baseline.log",
+        "sha256": "02d9575c9b1478d05e7cd944d938bb4d5a91b985b803c32c062e95b49db0fbda"
+      }
+    },
+    {
+      "name": "candidate-file",
+      "command": "node node_modules/vitest/vitest.mjs run --config vitest.mounted.config.ts src/attachment-media.mount.test.tsx",
+      "cwd": "/tmp/phase5f-attachment-focus-ci-audit/candidate",
+      "exitCode": 0,
+      "passed": 22,
+      "failed": 0,
+      "log": {
+        "path": "/tmp/phase5f-attachment-focus-ci-audit/candidate.log",
+        "sha256": "8cb9a06446ae076e6dba9ee963ac9e0592e4b09921086e9473dfd22cea05a016"
+      }
+    },
+    {
+      "name": "suppressed-exact-fallback-negative-control",
+      "command": "node node_modules/vitest/vitest.mjs run --config vitest.mounted.config.ts src/attachment-media.mount.test.tsx -t 'restores focus within a parent modal after the last child is removed'",
+      "cwd": "/tmp/phase5f-attachment-focus-ci-audit/negative",
+      "exitCode": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 21,
+      "expectedFailure": true,
+      "fault": "Suppress only return focus to canFocus target with exact aria-label Comment attachments; all unrelated focus behavior kept.",
+      "suppressionMarkerObserved": true,
+      "sameContainmentAssertionTimedOut": true,
+      "log": {
+        "path": "/tmp/phase5f-attachment-focus-ci-audit/negative.log",
+        "sha256": "fb7dd1520f659f0aa918f5e80dfa10239543e8f155842732d82a5326fffe4f48"
+      }
+    }
+  ],
+  "conclusion": "Original same failure reproduced; directly awaiting both original focus postconditions passed unchanged production UI. Suppressing real fallback restoration still fails. This supports passive-effect/assertion settlement as local failure mechanism; remote log lacks activeElement/cleanup trace and remote final gate remains required.",
+  "allOwnedVitestClientsExited": true,
+  "runtimeWindowReleased": true,
+  "limits": [
+    "Focused file only, not full966mounted suite or final remote gate",
+    "No device/engine/actual browser qualification added",
+    "No blind reruns of unchanged failing remote run"
+  ]
+}

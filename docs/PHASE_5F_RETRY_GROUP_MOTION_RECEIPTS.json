@@ -187,7 +187,9 @@
     "exerciseHead": "6c4dc88800f783cd756ce6370fb4d8f4764f952c",
     "checkedTrackedNonDocumentationNonPhase5fQaFiles": 1159,
     "allBytesEqual": true,
-    "excluded": "docs/ and scripts/qa/phase5f/; final branch complete CI still pending"
+    "excluded": "docs/ and scripts/qa/phase5f/; final branch complete CI still pending",
+    "checkedCommit": "98c44a953d1ac011b7a8c2da5e4a3a66276a4d41",
+    "qualificationPoint": "Recorded before subsequent test-only fixture/focus repairs; frontend production source still unchanged."
   },
   "appliedFocused": {
     "tests": 35,

@@ -87,8 +87,11 @@ describe("Comment attachment presentation and child lifecycle", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(screen.getByText("No attachments")).toBeTruthy();
     const parent = screen.getByRole("dialog", { name: "Process-plan comments" });
-    expect(parent.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement?.getAttribute("aria-label")).toBe("Comment attachments");
+    // Portal removal precedes the modal's passive cleanup that restores focus.
+    await waitFor(() => {
+      expect(parent.contains(document.activeElement)).toBe(true);
+      expect(document.activeElement?.getAttribute("aria-label")).toBe("Comment attachments");
+    });
   });
 
   it("shows the TIFF original dependency and preserves a concurrent server rejection", async () => {
