@@ -286,6 +286,11 @@ const domains = {
 };
 async function requireRows(page, domain, owners) {
   const config = domains[domain], section = page.locator(config.section);
+  if (owners.length) {
+    const first = owners[0], name = domain === 'process' ? `Open ${first.name} version 1` : `Open ${first.name} metrology template`;
+    const originalFirstLink = section.getByRole('link', { name, exact: true });
+    await visible(originalFirstLink); assert.equal(await originalFirstLink.getAttribute('href'), `${config.route}${first.templateId}`);
+  }
   assert.equal(await section.locator(config.row).count(), owners.length, `${domain} original row cardinality`);
   const actual = await section.locator(config.link).evaluateAll(elements => elements.map(element => ({
     href: element.getAttribute('href'), name: element.getAttribute('aria-label') })));
